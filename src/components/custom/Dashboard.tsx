@@ -6,8 +6,8 @@ import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
 import ExamsSubTabs from "./Exams/ExamSubsTab";
 import MarksDisplay from "./Exams/marksDislay";
-import ExamsScheduleDisplay from "./exams/SchduleDisplay";
-import TestGradesContainer from "./exams/TestGradesContainer";
+import ExamsScheduleDisplay from "./Exams/SchduleDisplay";
+import TestGradesContainer from "./Exams/TestGradesContainer";
 import CurriculumPage from "./Exams/CurriculumPage";
 import HostelSubTabs from "./Hostel/HostelSubsTab";
 import MessDisplay from "./Hostel/messDisplay";
@@ -23,7 +23,7 @@ import BusFeesDisplay from "./dayscholar/BusFeesDisplay";
 import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
-import FFCSTimetableTab from "./exams/FFCSTimetableTab";
+import FFCSTimetableTab from "./Exams/FFCSTimetableTab";
 
 export default function DashboardContent({
   activeTab,
