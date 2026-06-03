@@ -1,13 +1,14 @@
 "use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import NoContentFound from "../NoContentFound";
 import { RefreshCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function ExamSchedule({ data, handleScheduleFetch }) {
-  if (Object.keys(data.Schedule).length === 0) {
+  const scheduleObj = data?.Schedule || data?.schedule;
+  
+  if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
     return (
       <div>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
@@ -132,7 +133,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
     return URL.createObjectURL(blob);
   };
 
-  const todayExams = Object.entries(data.Schedule)
+  const todayExams = Object.entries(scheduleObj)
     .flatMap(([examType, subjects]) =>
       subjects.filter((subj) => {
         const examDate = parseExamDate(subj.examDate);
@@ -232,7 +233,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
         </div>
       )}
 
-      {Object.entries(data.Schedule).map(([examType, subjects]) => {
+      {Object.entries(scheduleObj).map(([examType, subjects]: [string, any]) => {
         const sortedSubjects = [...subjects].sort(compareExamDates);
         const hasCalendarData = sortedSubjects.some((s) => s.examSession && s.reportingTime);
         const icsUrl = hasCalendarData ? generateICSFile(sortedSubjects, examType) : null;
@@ -260,78 +261,77 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
               )}
             </div>
 
-            <div data-scrollable className="overflow-x-auto">
-              <Table className="bg-transparent">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="midnight:text-gray-200">Course Code</TableHead>
-                    <TableHead className="midnight:text-gray-200">Course Title</TableHead>
-                    <TableHead className="midnight:text-gray-200">Exam Time</TableHead>
-                    <TableHead className="midnight:text-gray-200">Venue</TableHead>
-                    <TableHead className="midnight:text-gray-200">Seat Location</TableHead>
-                    <TableHead className="midnight:text-gray-200">Slot</TableHead>
-                    <TableHead className="midnight:text-gray-200">Exam Date</TableHead>
-                    <TableHead className="midnight:text-gray-200">Session</TableHead>
-                    <TableHead className="midnight:text-gray-200">Reporting Time</TableHead>
-                    <TableHead className="midnight:text-gray-200">Seat No</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedSubjects.map((subj, idx) => {
-                    const examDate = parseExamDate(subj.examDate);
-                    const isPast = examDate && examDate < today;
-                    const isToday =
-                      examDate && examDate.getTime() === today.getTime();
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
+              {sortedSubjects.map((subj, idx) => {
+                const examDate = parseExamDate(subj.examDate);
+                const isPast = examDate && examDate < today;
+                const isToday = examDate && examDate.getTime() === today.getTime();
 
-                    let rowClass =
-                      "odd:bg-slate-100 even:bg-slate-200 dark:odd:bg-slate-700 dark:even:bg-slate-800 midnight:odd:bg-gray-900 midnight:even:bg-gray-800";
+                let cardClass =
+                  "flex flex-col p-4 rounded-xl shadow-sm border transition-all ";
+                
+                if (isPast) {
+                  cardClass += "bg-gray-100 dark:bg-gray-800/50 midnight:bg-gray-900/50 border-gray-200 dark:border-gray-700 midnight:border-gray-800 opacity-60";
+                } else if (isToday) {
+                  cardClass += "bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/30 border-green-300 dark:border-green-700 midnight:border-green-800";
+                } else {
+                  cardClass += "bg-white dark:bg-slate-800 midnight:bg-gray-900 border-gray-200 dark:border-slate-700 midnight:border-gray-800 hover:shadow-md";
+                }
 
-                    if (isPast)
-                      rowClass +=
-                        " opacity-40 line-through hover:opacity-50 cursor-not-allowed";
-                    else if (isToday)
-                      rowClass +=
-                        " !bg-green-100 dark:!bg-green-600/40 midnight:!bg-green-700/50 !text-green-900 dark:!text-green-200";
+                const finalSeatLocation = subj.seatLocation === "-" && subj.seatNo && subj.seatNo !== "-"
+                  ? calculateSeatLocation(subj.seatNo, subj.courseTitle)
+                  : subj.seatLocation;
 
-                    return (
-                      <TableRow key={idx} className={rowClass}>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
+                return (
+                  <div key={idx} className={cardClass}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-blue-700 dark:text-blue-400 midnight:text-blue-400'}`}>
                           {subj.courseCode}
-                        </TableCell>
-                        <TableCell className="text-slate-900 dark:text-slate-200 midnight:text-gray-100">
+                        </h3>
+                        <p className={`text-sm font-medium ${isPast ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 midnight:text-gray-300'}`}>
                           {subj.courseTitle}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.examTime}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
+                        </p>
+                      </div>
+                      {subj.slot && subj.slot !== "-" && (
+                        <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-md">
+                          Slot: {subj.slot}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-auto pt-3 border-t border-gray-100 dark:border-slate-700 midnight:border-gray-800">
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Date & Time</p>
+                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                          {subj.examDate}<br/>{subj.examTime}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Venue</p>
+                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                           {subj.venue}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.seatLocation === "-" && subj.seatNo && subj.seatNo !== "-"
-                            ? calculateSeatLocation(subj.seatNo, subj.courseTitle)
-                            : subj.seatLocation}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.slot}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.examDate}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.examSession}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.reportingTime}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-900 dark:text-slate-200 midnight:text-gray-100">
-                          {subj.seatNo}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Session & Reporting</p>
+                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                          {subj.examSession}<br/>{subj.reportingTime}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Seat</p>
+                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                          Loc: {finalSeatLocation}<br/>No: {subj.seatNo}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

@@ -6,7 +6,9 @@ import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
 import ExamsSubTabs from "./Exams/ExamSubsTab";
 import MarksDisplay from "./Exams/marksDislay";
-import ScheduleDisplay from "./Exams/SchduleDisplay";
+import ExamsScheduleDisplay from "./exams/SchduleDisplay";
+import TestGradesContainer from "./exams/TestGradesContainer";
+import CurriculumPage from "./Exams/CurriculumPage";
 import HostelSubTabs from "./Hostel/HostelSubsTab";
 import MessDisplay from "./Hostel/messDisplay";
 import LaundryDisplay from "./Hostel/LaundryDisplay";
@@ -462,9 +464,64 @@ export default function DashboardContent({
                   setActiveSubTab={setActiveSubTab}
                 />
               </div>
-              {activeSubTab === "marks" && <MarksSubTab data={marksData} moodleData={moodleData} handleFetchMoodle={handleFetchMoodle} setMoodleData={setMoodleData} IDs={IDs} />}
-              {activeSubTab === "schedule" && <ScheduleSubTab data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />}
-              {activeSubTab === "grades" && <AllGradesDisplay data={allGradesData} handleAllGradesFetch={handleAllGradesFetch} CGPA={marksData.cgpa} attendance={attendanceData.attendance} />}
+                <div className="flex flex-wrap gap-2 mb-4 overflow-x-auto pb-2">
+                  <button
+                    onClick={() => setActiveSubTab("marks")}
+                    className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeSubTab === "marks"
+                        ? "bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-gray-100 midnight:bg-gray-800 midnight:text-gray-100"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+                    }`}
+                  >
+                    Marks
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab("grades")}
+                    className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeSubTab === "grades"
+                        ? "bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-gray-100 midnight:bg-gray-800 midnight:text-gray-100"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+                    }`}
+                  >
+                    Grades
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab("schedule")}
+                    className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeSubTab === "schedule"
+                        ? "bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-gray-100 midnight:bg-gray-800 midnight:text-gray-100"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+                    }`}
+                  >
+                    Schedule
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab("curriculum")}
+                    className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeSubTab === "curriculum"
+                        ? "bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-gray-100 midnight:bg-gray-800 midnight:text-gray-100"
+                        : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+                    }`}
+                  >
+                    Curriculum
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab("test-grades")}
+                    className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                      activeSubTab === "test-grades"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm"
+                        : "text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 midnight:text-indigo-400 midnight:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 midnight:hover:bg-indigo-900/30"
+                    }`}
+                  >
+                    🚀 App Grades (Test)
+                  </button>
+                </div>
+
+                {activeSubTab === "marks" && <MarksSubTab data={marksData} moodleData={moodleData} handleFetchMoodle={handleFetchMoodle} setMoodleData={setMoodleData} IDs={IDs} />}
+                {activeSubTab === "grades" && <AllGradesDisplay data={allGradesData} handleAllGradesFetch={handleAllGradesFetch} CGPA={marksData.cgpa} attendance={attendanceData.attendance} />}
+                {activeSubTab === "schedule" && <ExamsScheduleDisplay data={ScheduleData} />}
+                {activeSubTab === "curriculum" && <CurriculumPage gradesData={GradesData} marksData={marksData} attendance={attendanceData.attendance} handleFetchGrades={handleFetchGrades} />}
+                {activeSubTab === "test-grades" && <TestGradesContainer data={allGradesData} marksData={marksData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} />}
             </div>
           )}
 

@@ -64,7 +64,13 @@ function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
   }
 
   const safeAttendance = Array.isArray(attendance) ? attendance : [];
-  const curriculum = Array.isArray(data?.curriculum) ? data.curriculum : [];
+  let rawCurriculum = [];
+  if (Array.isArray(data?.curriculum) && data.curriculum.length > 0) rawCurriculum = data.curriculum;
+  else if (Array.isArray(marksData?.curriculum) && marksData.curriculum.length > 0) rawCurriculum = marksData.curriculum;
+  else if (Array.isArray(data?.cgpa?.curriculum) && data.cgpa.curriculum.length > 0) rawCurriculum = data.cgpa.curriculum;
+  else if (Array.isArray(marksData?.cgpa?.curriculum) && marksData.cgpa.curriculum.length > 0) rawCurriculum = marksData.cgpa.curriculum;
+
+  const curriculum = rawCurriculum;
 
   const ongoingCreditsByCategory = safeAttendance.reduce<Record<string, number>>((acc, item) => {
     let category = item.category || "Uncategorized";
@@ -146,15 +152,31 @@ function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
           </button></CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-sm">
-          {Object.entries((data?.cgpa?.grades || {}) as Record<string, number>).map(([grade, count]) => (
-            <div
-              key={grade}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 midnight:bg-gray-800 text-gray-900 dark:text-gray-100 midnight:text-gray-100 font-bold"
-            >
-              <p>{grade}</p>
-              <p className="text-gray-600 dark:text-gray-300 midnight:text-gray-300 font-medium">{count}</p>
-            </div>
-          ))}
+          {(() => {
+            let rawGradeCounts = (data?.cgpa?.grades || marksData?.cgpa?.grades || {}) as Record<string, number>;
+            if (Object.keys(rawGradeCounts).length === 0) {
+              const computedGradeCounts: Record<string, number> = {};
+              const allSemesters = Object.values(data?.grades || {}) as Array<{ grades?: Array<{ grade?: string }> } | null>;
+              allSemesters.forEach(sem => {
+                if (!sem) return;
+                (sem.grades || []).forEach(course => {
+                  if (course.grade && course.grade !== "N" && course.grade !== "F") {
+                    computedGradeCounts[course.grade] = (computedGradeCounts[course.grade] || 0) + 1;
+                  }
+                });
+              });
+              rawGradeCounts = computedGradeCounts;
+            }
+            return Object.entries(rawGradeCounts).map(([grade, count]) => (
+              <div
+                key={grade}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 midnight:bg-gray-800 text-gray-900 dark:text-gray-100 midnight:text-gray-100 font-bold"
+              >
+                <p>{grade}</p>
+                <p className="text-gray-600 dark:text-gray-300 midnight:text-gray-300 font-medium">{count}</p>
+              </div>
+            ));
+          })()}
         </CardContent>
       </Card>
 

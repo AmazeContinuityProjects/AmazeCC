@@ -2,6 +2,19 @@
 import { Eye } from "lucide-react";
 import { useState } from "react";
 
+interface LoginFormProps {
+  username: any;
+  setUsername: any;
+  password: any;
+  setPassword: any;
+  message: any;
+  handleFormSubmit: any;
+  progressBar: any;
+  handleDemoClick: any;
+  residentialStatus: any;
+  setResidentialStatus: any;
+}
+
 export default function LoginForm({
   username,
   setUsername,
@@ -13,7 +26,7 @@ export default function LoginForm({
   handleDemoClick,
   residentialStatus,
   setResidentialStatus
-}) {
+}: LoginFormProps) {
   const isLoading = message.startsWith("Logging");
   const [showPassword, setShowPassword] = useState(false);
 
