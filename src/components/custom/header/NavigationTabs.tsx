@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus } from "lucide-react";
+import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map } from "lucide-react";
 import SettingsPage from "./SettingsPage";
 import Footer from "../footer/Footer";
 
@@ -239,6 +239,14 @@ export default function NavigationTabs({
             </button>
           </div>
         )}
+
+        <button
+          onClick={() => setActiveTab("ffcs")}
+          className={navItemClass(activeTab === "ffcs")}
+        >
+          <Map className="w-5 h-5 md:w-5 md:h-5" />
+          <span className="text-[10px] md:text-sm font-medium">FFCS Planner</span>
+        </button>
 
         {settings?.residentialStatus !== "dayscholar" && (
           <>

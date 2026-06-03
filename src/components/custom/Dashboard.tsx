@@ -23,6 +23,7 @@ import BusFeesDisplay from "./dayscholar/BusFeesDisplay";
 import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
+import FFCSTimetableTab from "./exams/FFCSTimetableTab";
 
 export default function DashboardContent({
   activeTab,
@@ -90,7 +91,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "exams"];
+  const tabsOrder = ["attendance", "exams", "ffcs"];
   if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
   if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
 
@@ -467,7 +468,7 @@ export default function DashboardContent({
 
 
                 {activeSubTab === "marks" && <MarksSubTab data={marksData} moodleData={moodleData} handleFetchMoodle={handleFetchMoodle} setMoodleData={setMoodleData} IDs={IDs} />}
-                {activeSubTab === "schedule" && <ExamsScheduleDisplay data={ScheduleData} />}
+                {activeSubTab === "schedule" && <ExamsScheduleDisplay data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />}
                 {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} />}
             </div>
           )}
@@ -496,6 +497,12 @@ export default function DashboardContent({
               </div>
               {activeDayscholarSubTab === "finder" && <BusFinder buses={dayscholarBuses} />}
               {activeDayscholarSubTab === "fees" && <BusFeesDisplay />}
+            </div>
+          )}
+
+          {activeTab === "ffcs" && (
+            <div className="animate-fadeIn">
+              <FFCSTimetableTab />
             </div>
           )}
         </div>
