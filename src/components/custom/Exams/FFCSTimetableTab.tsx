@@ -419,9 +419,9 @@ export default function FFCSTimetableTab() {
 
   const renderUnifiedGrid = () => {
     return (
-      <div className="mb-8 overflow-x-auto rounded-xl border border-white/10 shadow-2xl bg-slate-900/50 backdrop-blur-md">
-        <div className="p-4 bg-slate-800/80 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+      <div className="mb-8 overflow-x-auto rounded-xl border border-border shadow-2xl bg-background backdrop-blur-md">
+        <div className="p-4 bg-muted/80 border-b border-border flex items-center justify-between">
+          <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
             Unified Schedule
           </h3>
           <div className="flex items-center gap-4 text-xs font-medium">
@@ -432,13 +432,13 @@ export default function FFCSTimetableTab() {
         <div className="min-w-max">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-800/40">
-                <th className="p-3 border-b border-r border-white/10 font-semibold text-slate-300 w-24 text-center">Day</th>
+              <tr className="bg-card">
+                <th className="p-3 border-b border-r border-border font-semibold text-foreground/80 w-24 text-center">Day</th>
                 {theoryPeriods.map((period, idx) => (
-                  <th key={idx} className="p-2 border-b border-r border-white/10 text-xs text-center text-slate-400 font-medium">
+                  <th key={idx} className="p-2 border-b border-r border-border text-xs text-center text-muted-foreground font-medium">
                     <div className="flex flex-col">
                       <span>{period.start}</span>
-                      <span className="text-[10px] text-slate-500">to</span>
+                      <span className="text-[10px] text-muted-foreground">to</span>
                       <span>{period.end}</span>
                     </div>
                   </th>
@@ -447,8 +447,8 @@ export default function FFCSTimetableTab() {
             </thead>
             <tbody>
               {DAYS.map((day) => (
-                <tr key={day.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3 border-r border-white/10 font-semibold text-slate-200 text-center bg-slate-800/20">
+                <tr key={day.id} className="border-b border-border hover:bg-white/[0.02] transition-colors">
+                  <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-muted/20">
                     {day.name.substring(0, 3).toUpperCase()}
                   </td>
                   {theoryPeriods.map((period, pIdx) => {
@@ -456,27 +456,27 @@ export default function FFCSTimetableTab() {
                     const labSlotName = labPeriods[pIdx]?.days?.[day.id];
                     
                     if (!theorySlotName && !labSlotName) {
-                      return <td key={pIdx} className="p-2 border-r border-white/10 bg-black/20"></td>;
+                      return <td key={pIdx} className="p-2 border-r border-border bg-black/20"></td>;
                     }
 
                     const tCourse = theorySlotName ? getCourseForSlot(theorySlotName) : undefined;
                     const lCourse = labSlotName ? getCourseForSlot(labSlotName) : undefined;
 
                     return (
-                      <td key={pIdx} className="border-r border-white/10 text-center relative group min-w-[80px] align-top">
+                      <td key={pIdx} className="border-r border-border text-center relative group min-w-[80px] align-top">
                         <div className="w-full h-full min-h-[70px] flex flex-col items-stretch">
                           {/* Theory Half */}
                           {theorySlotName && (
-                            <div className={`flex-1 p-1 border-b border-white/5 flex flex-col items-center justify-center transition-all duration-300 relative ${tCourse ? tCourse.color + ' shadow-lg text-white z-10' : 'bg-slate-800/20 text-slate-400 hover:bg-slate-700/50'}`}>
+                            <div className={`flex-1 p-1 border-b border-border flex flex-col items-center justify-center transition-all duration-300 relative ${tCourse ? tCourse.color + ' shadow-lg text-foreground z-10' : 'bg-muted/20 text-muted-foreground hover:border-border/50'}`}>
                               <span className={`text-[11px] font-bold ${tCourse ? 'opacity-100' : 'opacity-60'}`}>{theorySlotName}</span>
                               {tCourse && <span className="text-[9px] font-medium leading-tight px-1 text-center truncate w-full">{tCourse.code}</span>}
                               
                               {/* Theory Tooltip */}
                               {tCourse && (
-                                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1 w-max max-w-[200px] bg-gray-900 text-white text-xs rounded-lg py-1.5 px-3 shadow-xl z-50 pointer-events-none border border-white/10 text-center">
+                                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bottom-full left-1/2 -translate-x-1/2 mb-1 w-max max-w-[200px] bg-gray-900 text-foreground text-xs rounded-lg py-1.5 px-3 shadow-xl z-50 pointer-events-none border border-border text-center">
                                   <p className="font-bold">{tCourse.title}</p>
                                   <p className="text-gray-300 mt-0.5">{tCourse.faculty}</p>
-                                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 border-r border-b border-white/10"></div>
+                                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 border-r border-b border-border"></div>
                                 </div>
                               )}
                             </div>
@@ -484,16 +484,16 @@ export default function FFCSTimetableTab() {
                           
                           {/* Lab Half */}
                           {labSlotName && (
-                            <div className={`flex-1 p-1 flex flex-col items-center justify-center border-t border-dashed border-white/10 transition-all duration-300 relative ${lCourse ? lCourse.color + ' shadow-lg text-white z-10' : 'bg-slate-800/10 text-slate-500 hover:bg-slate-700/40'}`}>
+                            <div className={`flex-1 p-1 flex flex-col items-center justify-center border-t border-dashed border-border transition-all duration-300 relative ${lCourse ? lCourse.color + ' shadow-lg text-foreground z-10' : 'bg-muted/10 text-muted-foreground hover:border-border/40'}`}>
                               <span className={`text-[11px] font-bold ${lCourse ? 'opacity-100' : 'opacity-60'}`}>{labSlotName}</span>
                               {lCourse && <span className="text-[9px] font-medium leading-tight px-1 text-center truncate w-full">{lCourse.code}</span>}
                               
                               {/* Lab Tooltip */}
                               {lCourse && (
-                                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 top-full left-1/2 -translate-x-1/2 mt-1 w-max max-w-[200px] bg-gray-900 text-white text-xs rounded-lg py-1.5 px-3 shadow-xl z-50 pointer-events-none border border-white/10 text-center">
+                                <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 top-full left-1/2 -translate-x-1/2 mt-1 w-max max-w-[200px] bg-gray-900 text-foreground text-xs rounded-lg py-1.5 px-3 shadow-xl z-50 pointer-events-none border border-border text-center">
                                   <p className="font-bold">{lCourse.title}</p>
                                   <p className="text-gray-300 mt-0.5">{lCourse.faculty}</p>
-                                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 border-t border-l border-white/10"></div>
+                                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 border-t border-l border-border"></div>
                                 </div>
                               )}
                             </div>
@@ -515,26 +515,26 @@ export default function FFCSTimetableTab() {
     <div className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* Top Banner / Upload Area */}
-      <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <MapIcon className="text-blue-400 w-6 h-6" /> FFCS Planner
             </h2>
-            <p className="text-slate-400 text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
+            <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl border border-white/10 transition-colors shadow-lg"
+              className="hidden md:flex items-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-lg"
               title="Toggle Fullscreen"
             >
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
 
             {masterCourses.length > 0 ? (
-              <div className="flex items-center gap-3 bg-slate-900/50 px-4 py-2 rounded-xl border border-white/10">
+              <div className="flex items-center gap-3 bg-background px-4 py-2 rounded-xl border border-border">
                 <span className="text-green-400 text-sm font-medium flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                   {masterCourses.length} slots loaded
@@ -542,14 +542,14 @@ export default function FFCSTimetableTab() {
                 <div className="w-px h-4 bg-white/20 mx-1"></div>
                 <button 
                   onClick={handleClearMaster}
-                  className="text-slate-400 hover:text-red-400 text-sm font-medium transition-colors"
+                  className="text-muted-foreground hover:text-red-400 text-sm font-medium transition-colors"
                 >
                   Clear Data
                 </button>
               </div>
             ) : (
               <label 
-                className={`relative flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium py-2.5 px-6 rounded-xl shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${isDragging ? 'ring-4 ring-blue-500/50' : ''}`}
+                className={`relative flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-medium py-2.5 px-6 rounded-xl shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${isDragging ? 'ring-4 ring-blue-500/50' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => {
@@ -584,13 +584,13 @@ export default function FFCSTimetableTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Timetable Manager */}
-          <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-md">
-            <h2 className="text-lg font-bold text-white mb-4">Timetable Manager</h2>
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-xl backdrop-blur-md">
+            <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
             <div className="space-y-3">
               <select 
                 value={activeTimetableId}
                 onChange={e => setActiveTimetableId(e.target.value)}
-                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
               >
                 {timetables.map(t => (
                   <option key={t.id} value={t.id}>{t.name} ({t.courses.length} courses)</option>
@@ -600,7 +600,7 @@ export default function FFCSTimetableTab() {
               <div className="flex gap-2">
                 <button 
                   onClick={createNewTimetable}
-                  className="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-medium py-2 rounded-lg border border-white/10 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
                 >
                   <Plus className="w-3 h-3" /> New
                 </button>
@@ -609,7 +609,7 @@ export default function FFCSTimetableTab() {
                     setEditNameValue(activeTimetable.name);
                     setIsEditingName(true);
                   }}
-                  className="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-medium py-2 rounded-lg border border-white/10 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
                 >
                   <Edit2 className="w-3 h-3" /> Rename
                 </button>
@@ -627,7 +627,7 @@ export default function FFCSTimetableTab() {
                     type="text" 
                     value={editNameValue}
                     onChange={e => setEditNameValue(e.target.value)}
-                    className="flex-1 bg-slate-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50"
                     placeholder="New name..."
                   />
                   <button 
@@ -642,26 +642,26 @@ export default function FFCSTimetableTab() {
           </div>
 
           {/* Course Selector */}
-          <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-md">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-xl backdrop-blur-md">
+            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
               <PlusCircle className="text-blue-400 w-5 h-5" /> Course Selector
             </h2>
             
             {!masterCourses.length ? (
-              <div className="bg-slate-900/50 border border-white/5 p-4 rounded-xl text-center">
-                <p className="text-slate-400 text-sm">Please upload a master slots file first.</p>
+              <div className="bg-background border border-border p-4 rounded-xl text-center">
+                <p className="text-muted-foreground text-sm">Please upload a master slots file first.</p>
               </div>
             ) : (
               <form onSubmit={handleAddCourse} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1 ml-1">1. Select Course</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">1. Select Course</label>
                   <select 
                     value={selectedCourseCode}
                     onChange={e => {
                       setSelectedCourseCode(e.target.value);
                       setSelectedSlotIndex("-1"); 
                     }}
-                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
                   >
                     <option value="">-- Choose Course --</option>
                     {uniqueCourses.map(c => (
@@ -674,11 +674,11 @@ export default function FFCSTimetableTab() {
                 
                 {selectedCourseCode && (
                   <div className="animate-fadeIn">
-                    <label className="block text-xs font-medium text-slate-400 mb-1 ml-1">2. Select Slot & Faculty</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">2. Select Slot & Faculty</label>
                     <select 
                       value={selectedSlotIndex}
                       onChange={e => setSelectedSlotIndex(e.target.value)}
-                      className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                      className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
                     >
                       <option value="-1">-- Choose Component --</option>
                       {availableSlots.map((row, idx) => (
@@ -687,7 +687,7 @@ export default function FFCSTimetableTab() {
                         </option>
                       ))}
                     </select>
-                    <p className="text-[10px] text-slate-500 mt-2 ml-1">
+                    <p className="text-[10px] text-muted-foreground mt-2 ml-1">
                       * For embedded courses, you must manually add the Theory slot and Lab slot separately to select the exact slots you want.
                     </p>
                   </div>
@@ -696,7 +696,7 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="submit" 
                   disabled={!selectedCourseCode || selectedSlotIndex === "-1"}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-foreground font-medium py-2.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
                 >
                   <PlusCircle className="w-4 h-4" /> Add to Timetable
                 </button>
@@ -711,7 +711,7 @@ export default function FFCSTimetableTab() {
             <button 
               onClick={downloadPDF}
               disabled={isDownloading || courses.length === 0}
-              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
             >
               <Download className="w-4 h-4" /> 
               {isDownloading ? "Exporting..." : "Download PDF"}
@@ -719,7 +719,7 @@ export default function FFCSTimetableTab() {
             <button 
               onClick={downloadImage}
               disabled={isDownloading || courses.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
             >
               <Download className="w-4 h-4" /> 
               {isDownloading ? "Capturing..." : "Download JPG"}
@@ -728,18 +728,18 @@ export default function FFCSTimetableTab() {
           
           <div ref={captureRef} className="space-y-6 rounded-xl">
             {/* Header for the exported image */}
-            <div className="hidden print:block p-4 mb-4 bg-slate-800 rounded-xl border border-white/10 text-center">
-              <h1 className="text-2xl font-bold text-white">{activeTimetable.name}</h1>
-              <p className="text-slate-400 text-sm mt-1">Generated by UniCC FFCS Planner</p>
+            <div className="hidden print:block p-4 mb-4 bg-muted rounded-xl border border-border text-center">
+              <h1 className="text-2xl font-bold text-foreground">{activeTimetable.name}</h1>
+              <p className="text-muted-foreground text-sm mt-1">Generated by UniCC FFCS Planner</p>
             </div>
             
             {renderUnifiedGrid()}
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 && (
-              <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md overflow-x-auto">
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl backdrop-blur-md overflow-x-auto">
                 <div className="flex items-center justify-between mb-4 min-w-[600px]">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                     Selected Courses
                     <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20">
                       Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
@@ -756,14 +756,14 @@ export default function FFCSTimetableTab() {
                 <div className="min-w-[600px]">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Course</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Faculty</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Slots</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Venue</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider">Credits</th>
-                        <th className="py-3 px-2 text-xs font-medium text-slate-400 uppercase tracking-wider text-right print:hidden">Action</th>
+                      <tr className="border-b border-border">
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
+                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right print:hidden">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -773,32 +773,32 @@ export default function FFCSTimetableTab() {
                             <div className="flex items-center gap-3">
                               <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                               <div>
-                                <p className="text-white font-semibold text-sm">{c.code}</p>
-                                <p className="text-slate-400 text-xs truncate max-w-[200px]">{c.title}</p>
+                                <p className="text-foreground font-semibold text-sm">{c.code}</p>
+                                <p className="text-muted-foreground text-xs truncate max-w-[200px]">{c.title}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-slate-300">
-                            <span className="bg-white/5 border border-white/10 text-slate-300 text-[10px] px-2 py-0.5 rounded-md">
+                          <td className="py-3 px-2 text-sm text-foreground/80">
+                            <span className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-2 py-0.5 rounded-md">
                               {c.type}
                             </span>
                           </td>
-                          <td className="py-3 px-2 text-sm text-slate-300">{c.faculty}</td>
+                          <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
                           <td className="py-3 px-2">
                             <div className="flex flex-wrap gap-1">
                               {c.slots.map(s => (
-                                <span key={s} className="bg-white/5 border border-white/10 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-md">
+                                <span key={s} className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-1.5 py-0.5 rounded-md">
                                   {s}
                                 </span>
                               ))}
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-slate-300 truncate max-w-[150px]">{c.venue}</td>
-                          <td className="py-3 px-2 text-sm text-slate-300">{c.credits}</td>
+                          <td className="py-3 px-2 text-sm text-foreground/80 truncate max-w-[150px]">{c.venue}</td>
+                          <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
                           <td className="py-3 px-2 text-right print:hidden">
                             <button 
                               onClick={() => handleRemoveCourse(c.id)}
-                              className="text-slate-500 hover:text-red-400 transition-colors p-2"
+                              className="text-muted-foreground hover:text-red-400 transition-colors p-2"
                               title="Remove Course"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -829,23 +829,23 @@ export default function FFCSTimetableTab() {
           padding: '40px'
         }}
       >
-        <div className="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
+        <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">{activeTimetable.name}</h1>
-            <p className="text-slate-400">Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{activeTimetable.name}</h1>
+            <p className="text-muted-foreground">Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-blue-400">UniCC FFCS</h2>
-            <p className="text-slate-400 text-sm">VIT Chennai</p>
+            <p className="text-muted-foreground text-sm">VIT Chennai</p>
           </div>
         </div>
 
         {/* Selected Courses Table */}
         <div className="mb-10">
-          <h2 className="text-xl font-bold text-white mb-4">Selected Courses</h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">Selected Courses</h2>
           <table className="w-full text-sm text-left border-collapse">
             <thead>
-              <tr className="bg-slate-800 border-b border-slate-700 text-slate-300">
+              <tr className="bg-muted border-b border-border text-foreground/80">
                 <th className="py-3 px-4 font-semibold">Course Code</th>
                 <th className="py-3 px-4 font-semibold">Title</th>
                 <th className="py-3 px-4 font-semibold">Type</th>
@@ -857,19 +857,19 @@ export default function FFCSTimetableTab() {
             <tbody>
               {courses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-slate-500">No courses selected</td>
+                  <td colSpan={6} className="py-6 text-center text-muted-foreground">No courses selected</td>
                 </tr>
               ) : (
                 courses.map((c, i) => (
-                  <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                  <tr key={i} className="border-b border-border hover:bg-muted/20">
                     <td className="py-3 px-4 font-medium">{c.code}</td>
                     <td className="py-3 px-4">{c.title}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300">
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-muted text-foreground/80">
                         {c.type}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-300">{c.faculty}</td>
+                    <td className="py-3 px-4 text-foreground/80">{c.faculty}</td>
                     <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
                     <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
                   </tr>
@@ -881,24 +881,24 @@ export default function FFCSTimetableTab() {
 
         {/* Timetable Grid Preview */}
         <div className="mb-10">
-          <h2 className="text-xl font-bold text-white mb-4">Schedule</h2>
-          <div className="border border-slate-700 rounded-xl overflow-hidden">
+          <h2 className="text-xl font-bold text-foreground mb-4">Schedule</h2>
+          <div className="border border-border rounded-xl overflow-hidden">
             <table className="w-full text-xs text-center border-collapse table-fixed">
               <thead>
-                <tr className="bg-slate-800">
-                  <th className="border border-slate-700 p-2 w-20 text-slate-400">Day</th>
+                <tr className="bg-muted">
+                  <th className="border border-border p-2 w-20 text-muted-foreground">Day</th>
                   {theoryPeriods.map(p => (
-                    <th key={p.start} className="border border-slate-700 p-2 text-slate-300">
+                    <th key={p.start} className="border border-border p-2 text-foreground/80">
                       <div>{p.start}</div>
-                      <div className="text-slate-500 font-normal">to {p.end}</div>
+                      <div className="text-muted-foreground font-normal">to {p.end}</div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {DAYS.map(day => (
-                  <tr key={day.id} className="border border-slate-700">
-                    <td className="border border-slate-700 font-bold bg-slate-800/50 uppercase">
+                  <tr key={day.id} className="border border-border">
+                    <td className="border border-border font-bold bg-muted/50 uppercase">
                       {day.id}
                     </td>
                     {theoryPeriods.map((tp, idx) => {
@@ -910,9 +910,9 @@ export default function FFCSTimetableTab() {
                       const lCourse = lSlot ? getCourseForSlot(lSlot) : null;
                       
                       return (
-                        <td key={idx} className="border border-slate-700 p-0 relative h-16 align-top">
+                        <td key={idx} className="border border-border p-0 relative h-16 align-top">
                           {/* Theory Half */}
-                          <div className={`h-1/2 w-full border-b border-slate-700/30 flex flex-col items-center justify-center p-0.5 ${tCourse ? 'bg-blue-500/20 text-blue-300' : 'bg-transparent text-slate-500'}`}>
+                          <div className={`h-1/2 w-full border-b border-border/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? 'bg-blue-500/20 text-blue-300' : 'bg-transparent text-muted-foreground'}`}>
                             {tCourse ? (
                               <>
                                 <span className="font-bold text-[10px] leading-tight">{tCourse.code}</span>
@@ -924,7 +924,7 @@ export default function FFCSTimetableTab() {
                           </div>
                           
                           {/* Lab Half */}
-                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? 'bg-purple-500/20 text-purple-300' : 'bg-transparent text-slate-500'}`}>
+                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? 'bg-purple-500/20 text-purple-300' : 'bg-transparent text-muted-foreground'}`}>
                             {lCourse ? (
                               <>
                                 <span className="font-bold text-[10px] leading-tight">{lCourse.code}</span>
@@ -944,8 +944,8 @@ export default function FFCSTimetableTab() {
           </div>
         </div>
 
-        <div className="text-center mt-12 pt-4 border-t border-slate-800">
-          <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
+        <div className="text-center mt-12 pt-4 border-t border-border">
+          <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
             Generated by UniCC <MapIcon className="w-4 h-4 text-blue-500" />
           </p>
         </div>
