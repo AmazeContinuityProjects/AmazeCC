@@ -123,7 +123,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
     const ics = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Uni CC//Schedule Export//EN",
+      "PRODID:-//AmazeCC//Schedule Export//EN",
       events,
       "END:VCALENDAR",
     ].join("\n");

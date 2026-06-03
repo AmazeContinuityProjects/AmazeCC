@@ -1,6 +1,6 @@
 {
-    "name": "Uni CC",
-    "short_name": "Uni CC",
+    "name": "AmazeCC",
+    "short_name": "AmazeCC",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

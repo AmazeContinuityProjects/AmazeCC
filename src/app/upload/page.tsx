@@ -18,7 +18,7 @@ export default function UploadPage() {
     const [uploading, setUploading] = useState(false);
     const [email, setEmail] = useState("");
     const [mailSending, setMailSending] = useState(false);
-    const [mailTitle, setMailTitle] = useState("Files from UniCC");
+    const [mailTitle, setMailTitle] = useState("Files from AmazeCC");
 
     const handleDrop = (incomingFiles: File[]) => {
         setFiles(incomingFiles);
@@ -102,7 +102,7 @@ export default function UploadPage() {
                         onClick={handleUpload}
                         disabled={!userID || files.length === 0 || uploading}
                     >
-                        {uploading ? "Uploading to UniCC..." : "Upload to UniCC"}
+                        {uploading ? "Uploading to AmazeCC..." : "Upload to AmazeCC"}
                     </Button>
                 </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import { Analytics } from "@vercel/analytics/next";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
 import ODHoursModal from "./ODHoursModal";
@@ -24,6 +25,8 @@ import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import FFCSTimetableTab from "./Exams/FFCSTimetableTab";
+
+<Analytics/>
 
 export default function DashboardContent({
   activeTab,
@@ -374,7 +377,7 @@ export default function DashboardContent({
       >
         <div className="md:hidden">
           <div className="px-6 pt-6 pb-2">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">UniCC</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
             <p className="text-sm text-gray-500 mt-1">
               {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {IDs.VtopUsername}
             </p>

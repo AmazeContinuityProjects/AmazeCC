@@ -4,9 +4,9 @@ export const swaggerSpec = swaggerJSDoc({
     definition: {
         openapi: "3.0.0",
         info: {
-            title: "UniCC API Documentation",
+            title: "AmazeCC API Documentation",
             version: "1.0.0",
-            description: "API documentation for the UniCC application.",
+            description: "API documentation for the AmazeCC application.",
         },
         tags: [
             { name: "System" },

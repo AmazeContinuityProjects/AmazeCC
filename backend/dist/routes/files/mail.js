@@ -74,7 +74,7 @@ router.post("/", upload.array("files"), async (req, res) => {
             contentType: file.mimetype,
         }));
         await nodemailer_1.mailTransporter.sendMail({
-            from: `Unicc <${process.env.SMTP_USER}>`,
+            from: `AmazeCC <${process.env.SMTP_USER}>`,
             to: to.toString(),
             subject: subject ? subject.toString() : "Files from Uni-cc",
             text: `Your files, sent on ${new Date().toLocaleString()}`,

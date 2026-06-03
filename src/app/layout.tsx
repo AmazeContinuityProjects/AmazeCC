@@ -35,14 +35,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const APP_NAME = "Uni CC";
+const APP_NAME = "AmazeCC";
 const APP_DESCRIPTION = "Showing data from VTOP in a clean and simple way.";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
   title: {
     default: APP_NAME,
-    template: "%s - UniCC App",
+    template: "%s - AmazeCC App",
   },
   description: APP_DESCRIPTION,
   manifest: "/manifest.json",

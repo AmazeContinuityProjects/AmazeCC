@@ -77,7 +77,7 @@ export default function ErrorDiagnosticCard({
       <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center py-10">
         <Card className="w-full border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 midnight:border-gray-800 midnight:bg-[#0a0a0a]">
           <CardHeader>
-            <p className="text-sm font-medium text-muted-foreground">UniCC Error Inspector</p>
+            <p className="text-sm font-medium text-muted-foreground">AmazeCC Error Inspector</p>
             <CardTitle className="text-2xl tracking-tight md:text-3xl">{title}</CardTitle>
             <CardDescription className="text-sm md:text-base">{description}</CardDescription>
           </CardHeader>

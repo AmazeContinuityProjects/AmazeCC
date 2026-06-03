@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage({ handleClose }) {
 
             <div className="w-full max-w-3xl space-y-4 text-gray-700 dark:text-gray-300 midnight:text-gray-200 text-sm leading-relaxed">
                 <p>
-                    This Privacy Policy describes how <strong>Uni CC</strong> handles data when you use the app.
+                    This Privacy Policy describes how <strong>AmazeCC</strong> handles data when you use the app.
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100 mt-4">
@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage({ handleClose }) {
                     Cookies & Analytics
                 </h3>
                 <p>
-                    <strong>Uni CC</strong> uses <strong>Vercel Analytics</strong> and <strong>Google Analytics</strong>
+                    <strong>AmazeCC</strong> uses <strong>Vercel Analytics</strong> and <strong>Google Analytics</strong>
                     to gather <em>anonymous, aggregate data</em> such as page visits, device types, and general
                     interaction information. These analytics help improve the app’s performance and user experience.
                 </p>
@@ -48,7 +48,7 @@ export default function PrivacyPolicyPage({ handleClose }) {
                     <strong> Google </strong> and <strong>Vercel</strong> under their respective privacy policies.
                 </p>
                 <p>
-                    Uni CC does not track users, create profiles, sell data, or share analytics with any third party.
+                    AmazeCC does not track users, create profiles, sell data, or share analytics with any third party.
                     These analytics are used purely for <strong>educational and experimental</strong> purposes and can be
                     cleared anytime by removing browser cookies.
                 </p>
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage({ handleClose }) {
                     Open Source
                 </h3>
                 <p>
-                    <strong>Uni CC</strong> is an <strong>open-source project</strong> created for learning and
+                    <strong>AmazeCC</strong> is an <strong>open-source project</strong> created for learning and
                     experimentation purposes. The source code is publicly available, and anyone is welcome to
                     explore, modify, or contribute improvements through the project’s GitHub repository.
                 </p>

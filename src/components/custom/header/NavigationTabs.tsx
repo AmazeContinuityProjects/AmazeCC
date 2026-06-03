@@ -99,7 +99,7 @@ export default function NavigationTabs({
           <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col gap-4' : 'justify-between items-center'} mb-4 w-full`}>
             {!settings.isSidebarCollapsed && (
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">UniCC</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
                 <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
               </div>
             )}

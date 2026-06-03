@@ -1,5 +1,5 @@
 export const metadata = {
-    title: "Upload Files - Unicc",
+    title: "Upload Files - AmazeCC",
     description: "Upload Now, access later",
 };
 

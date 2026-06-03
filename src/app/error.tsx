@@ -13,7 +13,7 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[UniCC client route error]", error);
+    console.error("[AmazeCC client route error]", error);
   }, [error]);
 
   return (
