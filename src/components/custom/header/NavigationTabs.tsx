@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map } from "lucide-react";
+import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map, Menu } from "lucide-react";
 import SettingsPage from "./SettingsPage";
+import { IconToggle } from "../toggle";
 import Footer from "../footer/Footer";
 
 export default function NavigationTabs({
@@ -48,7 +49,7 @@ export default function NavigationTabs({
   };
 
   const navItemClass = (isActive) => 
-    `flex flex-col md:flex-row items-center justify-center md:justify-start flex-1 md:flex-none w-full py-2 md:py-4 md:px-6 space-y-1 md:space-y-0 md:space-x-4 transition-colors cursor-pointer border-l-4 ${
+    `flex flex-col md:flex-row items-center justify-center flex-1 md:flex-none w-full py-2 md:py-4 ${settings.isSidebarCollapsed ? 'md:px-0 md:justify-center' : 'md:px-6 md:justify-start'} space-y-1 md:space-y-0 ${settings.isSidebarCollapsed ? 'md:space-x-0' : 'md:space-x-4'} transition-colors cursor-pointer border-l-4 ${
       isActive 
         ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 md:bg-blue-50 dark:md:bg-slate-800/50 midnight:md:bg-gray-900/50 border-transparent md:border-blue-600 dark:md:border-blue-400" 
         : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200 border-transparent"
@@ -90,37 +91,55 @@ export default function NavigationTabs({
 
       {/* Main Container */}
       <div 
-        className="fixed bottom-0 md:top-4 left-0 right-0 md:left-4 md:right-auto z-40 flex items-center md:items-start justify-around md:justify-start w-full md:w-64 md:h-[calc(100vh-2rem)] md:flex-col bg-white dark:bg-slate-900 midnight:bg-black border-t md:border border-gray-200 dark:border-gray-800 midnight:border-gray-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-lg md:rounded-2xl safe-area-pb md:pb-0 overflow-y-auto"
+        className={`fixed bottom-0 md:top-4 left-0 right-0 md:left-4 md:right-auto z-40 flex items-center md:items-start justify-around md:justify-start w-full ${settings.isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} md:h-[calc(100vh-2rem)] md:flex-col bg-white dark:bg-slate-900 midnight:bg-black border-t md:border border-gray-200 dark:border-gray-800 midnight:border-gray-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-lg md:rounded-2xl safe-area-pb md:pb-0 overflow-y-auto transition-all duration-300`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)', scrollbarWidth: 'none' }}
       >
         {/* Desktop Sidebar Profile / Stats Area */}
-        <div className="hidden md:flex flex-col w-full p-4 mb-2 border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800 pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">UniCC</h2>
-              <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
-            </div>
+        <div className={`hidden md:flex flex-col w-full p-4 mb-2 border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800 pt-6 ${settings.isSidebarCollapsed ? 'items-center' : ''}`}>
+          <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col gap-4' : 'justify-between items-center'} mb-4 w-full`}>
+            {!settings.isSidebarCollapsed && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">UniCC</h2>
+                <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
+              </div>
+            )}
             
-            <div className="flex items-center gap-2">
+            <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col' : 'items-center'} gap-2`}>
               <button 
-                onClick={handleReloadClick}
+                onClick={() => {
+                  setSettings(prev => ({ ...prev, isSidebarCollapsed: !prev.isSidebarCollapsed }));
+                  localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: !settings.isSidebarCollapsed }));
+                }}
                 className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
-                title="Reload Data"
+                title="Toggle Sidebar"
               >
-                <RefreshCcw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${isSpinning ? "animate-spin" : ""}`} />
+                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
-              <button 
-                onClick={() => setShowSettingsPage(true)}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              </button>
+              {!settings.isSidebarCollapsed && (
+                <>
+                  <button 
+                    onClick={handleReloadClick}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                    title="Reload Data"
+                  >
+                    <RefreshCcw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${isSpinning ? "animate-spin" : ""}`} />
+                  </button>
+                  <button 
+                    onClick={() => setShowSettingsPage(true)}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                    title="Settings"
+                  >
+                    <Settings className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
           
           {/* Compact Stats Grid - Small Cards */}
-          <div className="grid grid-cols-2 gap-2 mb-2">
+          {!settings.isSidebarCollapsed && (
+            <>
+              <div className="grid grid-cols-2 gap-2 mb-2">
             {/* CGPA */}
             <div 
               className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 midnight:bg-gray-800/50 border border-gray-100 dark:border-gray-800 midnight:border-gray-700 cursor-pointer hover:shadow-sm transition-all group" 
@@ -182,18 +201,21 @@ export default function NavigationTabs({
                   {feedbackStatus?.EndSem?.Curriculum && feedbackStatus?.EndSem?.Course ? "Given" : "Pending"}
                 </span>
               </div>
-            </div>
+              </div>
+            )}
+            </>
           )}
         </div>
 
         <button
           onClick={() => setActiveTab("attendance")}
           className={navItemClass(activeTab === "attendance")}
+          title="Attendance"
         >
-          <CalendarCheck className="w-5 h-5 md:w-5 md:h-5" />
-          <span className="text-[10px] md:text-sm font-medium">Attendance</span>
+          <CalendarCheck className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Attendance</span>
         </button>
-        {activeTab === "attendance" && (
+        {activeTab === "attendance" && !settings.isSidebarCollapsed && (
           <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
             <button
               onClick={() => setActiveAttendanceSubTab("attendance")}
@@ -213,11 +235,12 @@ export default function NavigationTabs({
         <button
           onClick={() => setActiveTab("exams")}
           className={navItemClass(activeTab === "exams")}
+          title="Exams"
         >
-          <GraduationCap className="w-5 h-5 md:w-5 md:h-5" />
-          <span className="text-[10px] md:text-sm font-medium">Exams</span>
+          <GraduationCap className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Exams</span>
         </button>
-        {activeTab === "exams" && (
+        {activeTab === "exams" && !settings.isSidebarCollapsed && (
           <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
             <button
               onClick={() => setActiveSubTab("marks")}
@@ -243,9 +266,10 @@ export default function NavigationTabs({
         <button
           onClick={() => setActiveTab("ffcs")}
           className={navItemClass(activeTab === "ffcs")}
+          title="FFCS Planner"
         >
-          <Map className="w-5 h-5 md:w-5 md:h-5" />
-          <span className="text-[10px] md:text-sm font-medium">FFCS Planner</span>
+          <Map className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>FFCS Planner</span>
         </button>
 
         {settings?.residentialStatus !== "dayscholar" && (
@@ -253,11 +277,12 @@ export default function NavigationTabs({
             <button
               onClick={() => setActiveTab("hostel")}
               className={navItemClass(activeTab === "hostel")}
+              title="Hostel"
             >
-              <Building className="w-5 h-5 md:w-5 md:h-5" />
-              <span className="text-[10px] md:text-sm font-medium">Hostel</span>
+              <Building className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+              <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Hostel</span>
             </button>
-            {activeTab === "hostel" && (
+            {activeTab === "hostel" && !settings.isSidebarCollapsed && (
               <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
                 <button
                   onClick={() => setHostelActiveSubTab("mess")}
@@ -282,16 +307,17 @@ export default function NavigationTabs({
           </>
         )}
 
-        {settings?.residentialStatus !== "hosteller" && (
+        {settings.isDayscholarWithBus && (
           <>
             <button
               onClick={() => setActiveTab("dayscholar")}
               className={navItemClass(activeTab === "dayscholar")}
+              title="Bus Pass"
             >
-              <Bus className="w-5 h-5 md:w-5 md:h-5" />
-              <span className="text-[10px] md:text-sm font-medium">Dayscholar</span>
+              <Bus className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+              <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Bus Pass</span>
             </button>
-            {activeTab === "dayscholar" && (
+            {activeTab === "dayscholar" && !settings.isSidebarCollapsed && (
               <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
                 <button
                   onClick={() => setActiveDayscholarSubTab("finder")}
@@ -328,9 +354,17 @@ export default function NavigationTabs({
           <span className="text-[10px] md:text-sm font-medium">Settings</span>
         </button>
 
-        <div className="hidden md:block w-full mt-auto">
-          <Footer isLoggedIn={true} variant="sidebar" />
-        </div>
+        {!settings.isSidebarCollapsed ? (
+          <div className="hidden md:block w-full mt-auto">
+            <Footer isLoggedIn={true} variant="sidebar" />
+          </div>
+        ) : (
+          <div className="hidden md:flex flex-col items-center w-full mt-auto pb-6">
+            <div className="scale-75 origin-center">
+              <IconToggle />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

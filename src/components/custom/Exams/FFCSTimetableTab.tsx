@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
+
 import timetableSchema from "@/app/data/chennai.json";
 
 // Types
@@ -94,6 +95,7 @@ export default function FFCSTimetableTab() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const captureRef = useRef<HTMLDivElement>(null);
+  const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -283,6 +285,72 @@ export default function FFCSTimetableTab() {
       if (tableContainer) {
         tableContainer.classList.add('overflow-x-auto');
       }
+      setIsDownloading(false);
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!pdfCaptureRef.current) return;
+    setIsDownloading(true);
+    
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        setError("Please allow popups to export as PDF.");
+        setIsDownloading(false);
+        return;
+      }
+
+      // Get all styles from the current document so Tailwind works in the popup
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(el => el.outerHTML)
+        .join('\n');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html class="dark">
+          <head>
+            <title>${activeTimetable.name} - FFCS</title>
+            ${styles}
+            <style>
+              body { 
+                margin: 0; 
+                background-color: #0f172a; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+              }
+              @page {
+                size: landscape;
+                margin: 10mm;
+              }
+            </style>
+          </head>
+          <body>
+            <div style="background-color: #0f172a; color: white; padding: 40px; width: 100%; box-sizing: border-box;">
+              ${pdfCaptureRef.current.innerHTML}
+            </div>
+            <script>
+              window.onload = () => {
+                setTimeout(() => {
+                  window.print();
+                  window.close();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      setSuccessMsg("PDF print dialog opened!");
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to generate PDF.");
+    } finally {
       setIsDownloading(false);
     }
   };
@@ -510,10 +578,10 @@ export default function FFCSTimetableTab() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="flex flex-col gap-6">
         
-        {/* Left Panel: Course Manager */}
-        <div className="lg:col-span-1 space-y-6">
+        {/* Top Panel: Course Manager */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Timetable Manager */}
           <div className="bg-slate-800/40 border border-white/10 rounded-2xl p-5 shadow-xl backdrop-blur-md">
@@ -638,15 +706,23 @@ export default function FFCSTimetableTab() {
         </div>
 
         {/* Right Panel: The Grid and Export */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="flex justify-end mb-2">
+        <div className="w-full space-y-6">
+          <div className="flex justify-end gap-2 mb-2">
             <button 
-              onClick={downloadImage}
-              disabled={isDownloading}
-              className="bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium py-2 px-4 rounded-xl border border-white/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+              onClick={downloadPDF}
+              disabled={isDownloading || courses.length === 0}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
             >
               <Download className="w-4 h-4" /> 
-              {isDownloading ? "Generating JPG..." : "Download as JPG"}
+              {isDownloading ? "Exporting..." : "Download PDF"}
+            </button>
+            <button 
+              onClick={downloadImage}
+              disabled={isDownloading || courses.length === 0}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+            >
+              <Download className="w-4 h-4" /> 
+              {isDownloading ? "Capturing..." : "Download JPG"}
             </button>
           </div>
           
@@ -736,6 +812,142 @@ export default function FFCSTimetableTab() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Hidden PDF Capture Container */}
+      <div 
+        ref={pdfCaptureRef} 
+        style={{ 
+          display: 'none', 
+          position: 'absolute', 
+          left: '-9999px', 
+          top: '-9999px', 
+          width: '1200px', 
+          backgroundColor: '#0f172a',
+          color: 'white',
+          padding: '40px'
+        }}
+      >
+        <div className="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">{activeTimetable.name}</h1>
+            <p className="text-slate-400">Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-xl font-bold text-blue-400">UniCC FFCS</h2>
+            <p className="text-slate-400 text-sm">VIT Chennai</p>
+          </div>
+        </div>
+
+        {/* Selected Courses Table */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-white mb-4">Selected Courses</h2>
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-800 border-b border-slate-700 text-slate-300">
+                <th className="py-3 px-4 font-semibold">Course Code</th>
+                <th className="py-3 px-4 font-semibold">Title</th>
+                <th className="py-3 px-4 font-semibold">Type</th>
+                <th className="py-3 px-4 font-semibold">Faculty</th>
+                <th className="py-3 px-4 font-semibold">Slots</th>
+                <th className="py-3 px-4 font-semibold text-center">Credits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-slate-500">No courses selected</td>
+                </tr>
+              ) : (
+                courses.map((c, i) => (
+                  <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                    <td className="py-3 px-4 font-medium">{c.code}</td>
+                    <td className="py-3 px-4">{c.title}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-800 text-slate-300">
+                        {c.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">{c.faculty}</td>
+                    <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
+                    <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Timetable Grid Preview */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-white mb-4">Schedule</h2>
+          <div className="border border-slate-700 rounded-xl overflow-hidden">
+            <table className="w-full text-xs text-center border-collapse table-fixed">
+              <thead>
+                <tr className="bg-slate-800">
+                  <th className="border border-slate-700 p-2 w-20 text-slate-400">Day</th>
+                  {theoryPeriods.map(p => (
+                    <th key={p.start} className="border border-slate-700 p-2 text-slate-300">
+                      <div>{p.start}</div>
+                      <div className="text-slate-500 font-normal">to {p.end}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {DAYS.map(day => (
+                  <tr key={day.id} className="border border-slate-700">
+                    <td className="border border-slate-700 font-bold bg-slate-800/50 uppercase">
+                      {day.id}
+                    </td>
+                    {theoryPeriods.map((tp, idx) => {
+                      const tSlot = tp.days?.[day.id];
+                      const lp = labPeriods[idx];
+                      const lSlot = lp?.days?.[day.id];
+                      
+                      const tCourse = tSlot ? getCourseForSlot(tSlot) : null;
+                      const lCourse = lSlot ? getCourseForSlot(lSlot) : null;
+                      
+                      return (
+                        <td key={idx} className="border border-slate-700 p-0 relative h-16 align-top">
+                          {/* Theory Half */}
+                          <div className={`h-1/2 w-full border-b border-slate-700/30 flex flex-col items-center justify-center p-0.5 ${tCourse ? 'bg-blue-500/20 text-blue-300' : 'bg-transparent text-slate-500'}`}>
+                            {tCourse ? (
+                              <>
+                                <span className="font-bold text-[10px] leading-tight">{tCourse.code}</span>
+                                <span className="text-[8px] opacity-75">{tSlot}</span>
+                              </>
+                            ) : (
+                              <span className="text-[9px]">{tSlot || '-'}</span>
+                            )}
+                          </div>
+                          
+                          {/* Lab Half */}
+                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? 'bg-purple-500/20 text-purple-300' : 'bg-transparent text-slate-500'}`}>
+                            {lCourse ? (
+                              <>
+                                <span className="font-bold text-[10px] leading-tight">{lCourse.code}</span>
+                                <span className="text-[8px] opacity-75">{lSlot}</span>
+                              </>
+                            ) : (
+                              <span className="text-[9px]">{lSlot || '-'}</span>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="text-center mt-12 pt-4 border-t border-slate-800">
+          <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
+            Generated by UniCC <MapIcon className="w-4 h-4 text-blue-500" />
+          </p>
         </div>
       </div>
     </div>
