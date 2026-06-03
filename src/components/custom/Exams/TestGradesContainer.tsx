@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import AcademicPerformanceTab from "./AcademicPerformanceTab";
+import CurriculumPage from "./CurriculumPage";
+import GPAPredictorTab from "./GPAPredictorTab";
 import MarksHistoryTab from "./MarksHistoryTab";
 import { RefreshCcw } from "lucide-react";
 
-export default function TestGradesContainer({ data, marksData, attendance, handleFetchGrades }) {
-  const [view, setView] = useState("performance"); // 'performance' | 'history'
+export default function TestGradesContainer({ data, marksData, gradesData, attendance, handleFetchGrades }) {
+  const [view, setView] = useState("performance"); // 'performance' | 'history' | 'curriculum'
 
   if (!data || !marksData?.cgpa) {
     return (
@@ -64,6 +66,26 @@ export default function TestGradesContainer({ data, marksData, attendance, handl
           >
             History
           </button>
+          <button
+            onClick={() => setView("curriculum")}
+            className={`flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              view === "curriculum"
+                ? "bg-white text-blue-600 dark:bg-slate-700 midnight:bg-slate-800 dark:text-blue-400 midnight:text-blue-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 midnight:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"
+            }`}
+          >
+            Curriculum
+          </button>
+          <button
+            onClick={() => setView("predictor")}
+            className={`flex-1 md:flex-none px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              view === "predictor"
+                ? "bg-white text-blue-600 dark:bg-slate-700 midnight:bg-slate-800 dark:text-blue-400 midnight:text-blue-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-400 midnight:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"
+            }`}
+          >
+            Predictor
+          </button>
         </div>
       </div>
 
@@ -74,6 +96,18 @@ export default function TestGradesContainer({ data, marksData, attendance, handl
              marksData={marksData} 
              attendance={attendance} 
              handleFetchGrades={handleFetchGrades} 
+          />
+        ) : view === "curriculum" ? (
+          <CurriculumPage
+            gradesData={gradesData}
+            marksData={marksData}
+            attendance={attendance}
+            handleFetchGrades={handleFetchGrades}
+          />
+        ) : view === "predictor" ? (
+          <GPAPredictorTab
+            marksData={marksData}
+            attendance={attendance}
           />
         ) : (
           <MarksHistoryTab data={data} />

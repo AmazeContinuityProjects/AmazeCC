@@ -237,12 +237,6 @@ export default function NavigationTabs({
             >
               Grades
             </button>
-            <button
-              onClick={() => setActiveSubTab("curriculum")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "curriculum" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-            >
-              Curriculum
-            </button>
           </div>
         )}
 
