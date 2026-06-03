@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Trophy } from "lucide-react";
 import GradesModal from "./GradesModal";
 
 export default function AcademicPerformanceTab({ data, marksData, attendance, handleFetchGrades }) {
@@ -13,6 +13,16 @@ export default function AcademicPerformanceTab({ data, marksData, attendance, ha
   const totalRequiredCredits = 160; // Assuming 160 as standard if not provided
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savedGoal, setSavedGoal] = useState<{ target: number, requiredSgpa: number } | null>(null);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("uni_cc_gpa_goal");
+    if (saved) {
+      try {
+        setSavedGoal(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, []);
 
   // Try to find total credits from curriculum
   let rawCurriculum = [];
@@ -146,6 +156,25 @@ export default function AcademicPerformanceTab({ data, marksData, attendance, ha
 
   return (
     <div className="space-y-4">
+      {savedGoal && (
+        <Card className="bg-gradient-to-r from-blue-500 to-indigo-600 border-none text-white shadow-sm">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Trophy className="w-5 h-5 text-yellow-300" />
+            </div>
+            <div>
+              <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">Active Goal</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold">{savedGoal.target.toFixed(2)} CGPA</span>
+                <span className="text-sm text-blue-100 bg-white/10 px-2 py-0.5 rounded">
+                  Requires {savedGoal.requiredSgpa.toFixed(2)} SGPA this semester
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Overall Performance */}
       <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm">
         <CardContent className="p-5">
