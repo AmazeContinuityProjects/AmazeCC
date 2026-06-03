@@ -59,6 +59,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
   };
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
 
   const [gender, setGender] = useState(
     normalizeGender(hostelData.hostelInfo?.gender.toUpperCase()) || "Male"
