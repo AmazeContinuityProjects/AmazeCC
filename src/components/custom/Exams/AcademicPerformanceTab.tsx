@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCcw, Trophy } from "lucide-react";
 import GradesModal from "./GradesModal";
 
-export default function AcademicPerformanceTab({ data, marksData, attendance, handleFetchGrades }) {
+export default function AcademicPerformanceTab({ data, marksData, gradesData, attendance, handleFetchGrades }) {
   const currentCgpa = Number(marksData?.cgpa?.cgpa || 0);
   const creditsEarned = Number(marksData?.cgpa?.creditsEarned || 0);
   const creditsRegistered = Number(marksData?.cgpa?.creditsRegistered || 0);
@@ -279,9 +279,41 @@ export default function AcademicPerformanceTab({ data, marksData, attendance, ha
                .map(([sem, details]: any) => {
                  const gpa = Number(details.gpa).toFixed(2);
                  const courseCount = details.grades?.length || 0;
-                 const semCredits = details.grades?.reduce((acc: number, curr: any) => acc + (parseFloat(curr.creditsEarned) || 0), 0) || 0;
+                 // Look up credits from effectiveGrades if not present in curr
+                 const effectiveGrades = Array.isArray(gradesData?.effectiveGrades) ? gradesData.effectiveGrades : [];
+                 const semCredits = details.grades?.reduce((acc: number, curr: any) => {
+                   let credits = parseFloat(curr.creditsEarned) || parseFloat(curr.credits);
+                   if (!credits) {
+                     const matched = effectiveGrades.find(eg => (eg.basketTitle || "").toLowerCase() === (curr.courseTitle || "").toLowerCase() || eg.courseCode === curr.courseCode);
+                     credits = matched ? parseFloat(matched.creditsEarned) : 0;
+                   }
+                   return acc + (credits || 0);
+                 }, 0) || 0;
                  
-                 const semName = sem.endsWith("1") ? `Fall Semester 20${sem.slice(2,4)}-${sem.slice(4,6)}` : `Winter Semester 20${sem.slice(2,4)}-${sem.slice(4,6)}`;
+                 let semName = sem;
+                 if (sem.length >= 8 && sem.includes("20")) {
+                   const yearMatch = sem.match(/20\d{4}/);
+                   if (yearMatch) {
+                     const startYear = yearMatch[0].slice(0, 4);
+                     const endYear = "20" + yearMatch[0].slice(4, 6);
+                     let term = "Semester";
+                     if (sem.endsWith("1") || sem.endsWith("01")) term = "Fall";
+                     else if (sem.endsWith("5") || sem.endsWith("05")) term = "Winter";
+                     else if (sem.endsWith("9") || sem.endsWith("09")) term = "Summer";
+                     semName = `${term} Semester ${startYear}-${endYear}`;
+                   }
+                 } else if (sem.length >= 5) {
+                   const match = sem.match(/(\d{2})(\d{2})(\d)/);
+                   if (match) {
+                     const startYear = "20" + match[1];
+                     const endYear = "20" + match[2];
+                     let term = "Semester";
+                     if (match[3] === "1") term = "Fall";
+                     else if (match[3] === "5") term = "Winter";
+                     else if (match[3] === "9") term = "Summer";
+                     semName = `${term} Semester ${startYear}-${endYear}`;
+                   }
+                 }
                  
                  return (
                    <div key={sem} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800/60 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50">

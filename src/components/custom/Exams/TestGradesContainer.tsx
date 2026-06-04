@@ -93,7 +93,8 @@ export default function TestGradesContainer({ data, marksData, gradesData, atten
         {view === "performance" ? (
           <AcademicPerformanceTab 
              data={data} 
-             marksData={marksData} 
+             marksData={marksData}
+             gradesData={gradesData} 
              attendance={attendance} 
              handleFetchGrades={handleFetchGrades} 
           />
