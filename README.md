@@ -1,8 +1,8 @@
 # UniCC
 
-**Live site:** [https://uni-cc.site/](https://uni-cc.site/)
+**Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
 
-**Repository:** [https://github.com/Arya4930/UniCC](https://github.com/Arya4930/UniCC)
+**Repository:** [https://github.com/SugeethJSA/UniCC](https://github.com/SugeethJSA/UniCC)
 **API Docs:** [https://api.uni-cc.site/docs](https://api.uni-cc.site/docs)
 **API Stats:** [https://api.uni-cc.site/stats](https://api.uni-cc.site/docs)
 
@@ -96,7 +96,7 @@ To run UniCC locally:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/Arya4930/UniCC.git
+   git clone https://github.com/SugeethJSA/UniCC.git
    cd UniCC
    ```
 2. **Install dependencies:**
@@ -124,6 +124,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contributors
 
-[![Arya4930](https://img.shields.io/badge/Arya4930-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Arya4930)
-[![DumbTempest](https://img.shields.io/badge/DumbTempest-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/DumbTempest)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/arya.dev)
+[![SugeethJSA](https://img.shields.io/badge/SugeethJSA-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SugeethJSA)
