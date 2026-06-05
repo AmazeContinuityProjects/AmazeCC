@@ -29,6 +29,7 @@ import MoreTab from "./more/MoreTab";
 
 import PapersArchiveTab from "./qbank/PapersArchiveTab";
 import PureQBankTab from "./qbank/PureQBankTab";
+import ProfilePage from "./header/ProfilePage";
 
 <Analytics/>
 
@@ -103,7 +104,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "exams", "ffcs", "qbank"];
+  const tabsOrder = ["attendance", "exams", "more", "qbank", "hostel", "dayscholar", "profile"];
   if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
   if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
 
@@ -542,6 +543,46 @@ export default function DashboardContent({
           {activeTab === "qbank" && (
             <div className="animate-fadeIn">
               <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} />
+            </div>
+          )}
+
+          {activeTab === "profile" && (
+            <div className="animate-fadeIn">
+              <ProfilePage
+                isLoggedIn={true}
+                currSemesterID={settings.currSemesterID}
+                setCurrSemesterID={(val: string) => {
+                  setSettings(prev => ({ ...prev, currSemesterID: val }))
+                  localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
+                }}
+                handleLogin={handleLogin}
+                setIsReloading={setIsReloading}
+                handleLogOutRequest={handleLogOutRequest}
+                password={IDs.VtopPassword}
+                username={IDs.VtopUsername}
+                setPassword={(val: string[]) =>{
+                  setIDs(prev => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }))
+                  localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1]}))
+                }}
+                decimalValues={settings.decimalValues}
+                setDecimalValues={(val: boolean) => {
+                    setSettings(prev => ({ ...prev, decimalValues: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, decimalValues: val }))
+                  }
+                }
+                loadingScreen={settings.loadingScreen}
+                setLoadingScreen={(val: boolean) => {
+                    setSettings(prev => ({ ...prev, loadingScreen: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, loadingScreen: val }))
+                  }
+                }
+                isDayscholarWithBus={settings.isDayscholarWithBus}
+                setIsDayscholarWithBus={(val: boolean) => {
+                    setSettings(prev => ({ ...prev, isDayscholarWithBus: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
+                  }
+                }
+              />
             </div>
           )}
         </div>

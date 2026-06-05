@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ReloadModal } from "./reloadModel";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
-import Footer from "./footer/Footer";
+import LoginFooter from "./footer/LoginFooter";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
@@ -683,9 +683,11 @@ export default function LoginPage() {
         Scheduled maintenance on December 29, 2025 ( afternoon ). API services will be temporarily unavailable.
       </div> */}
 
-      <div className={`md:hidden ${(isLoggedIn || demoMode) ? 'pb-24' : 'pb-6'}`}>
-        <Footer isLoggedIn={isLoggedIn} />
-      </div>
+      {!isLoggedIn && (
+        <div className={`md:hidden ${demoMode ? 'pb-24' : 'pb-6'}`}>
+          <LoginFooter />
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
-import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
-import SettingsPage from "./SettingsPage";
+import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
+
 import { IconToggle } from "../toggle";
-import Footer from "../footer/Footer";
 
 export default function NavigationTabs({
   activeTab,
@@ -39,7 +38,6 @@ export default function NavigationTabs({
   setActiveMoreSubTab
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
-  const [showSettingsPage, setShowSettingsPage] = useState<boolean>(false);
 
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -61,37 +59,7 @@ export default function NavigationTabs({
 
   return (
     <>
-      {showSettingsPage && (
-        <SettingsPage
-          handleClose={() => setShowSettingsPage(false)}
-          currSemesterID={currSemesterID}
-          setCurrSemesterID={setCurrSemesterID}
-          handleLogin={handleLogin}
-          setIsReloading={setIsReloading}
-          handleLogOutRequest={handleLogOutRequest}
-          password={password}
-          username={username}
-          setPassword={setPassword}
-          decimalValues={settings.decimalValues}
-          setDecimalValues={(val: boolean) => {
-              setSettings(prev => ({ ...prev, decimalValues: val }))
-              localStorage.setItem("settings", JSON.stringify({ ...settings, decimalValues: val }))
-            }
-          }
-          loadingScreen={settings.loadingScreen}
-          setLoadingScreen={(val: boolean) => {
-              setSettings(prev => ({ ...prev, loadingScreen: val }))
-              localStorage.setItem("settings", JSON.stringify({ ...settings, loadingScreen: val }))
-            }
-          }
-          isDayscholarWithBus={settings.isDayscholarWithBus}
-          setIsDayscholarWithBus={(val: boolean) => {
-              setSettings(prev => ({ ...prev, isDayscholarWithBus: val }))
-              localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
-            }
-          }
-        />
-      )}
+
 
       {/* Main Container */}
       <div 
@@ -129,11 +97,11 @@ export default function NavigationTabs({
                     <RefreshCcw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${isSpinning ? "animate-spin" : ""}`} />
                   </button>
                   <button 
-                    onClick={() => setShowSettingsPage(true)}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
-                    title="Settings"
+                    onClick={() => setActiveTab("profile")}
+                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors ${activeTab === "profile" ? "bg-blue-50 dark:bg-slate-800/50 midnight:bg-gray-900/50" : ""}`}
+                    title="Profile"
                   >
-                    <Settings className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                    <User className={`w-4 h-4 ${activeTab === "profile" ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"}`} />
                   </button>
                 </>
               )}
@@ -289,12 +257,6 @@ export default function NavigationTabs({
             >
               FFCS Planner
             </button>
-            <button
-              onClick={() => setActiveMoreSubTab("utilities")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "utilities" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-            >
-              Utilities
-            </button>
           </div>
         )}
 
@@ -375,24 +337,13 @@ export default function NavigationTabs({
         <div className="hidden md:block w-full flex-grow"></div>
 
         <button
-          onClick={() => setShowSettingsPage(true)}
-          className={`${navItemClass(false)} md:hidden`}
+          onClick={() => setActiveTab("profile")}
+          className={`${navItemClass(activeTab === "profile")} md:hidden`}
         >
-          <Settings className="w-5 h-5 md:w-5 md:h-5" />
-          <span className="text-[10px] md:text-sm font-medium">Settings</span>
+          <User className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className="text-[10px] md:text-sm font-medium">Profile</span>
         </button>
 
-        {!settings.isSidebarCollapsed ? (
-          <div className="hidden md:block w-full mt-auto">
-            <Footer isLoggedIn={true} variant="sidebar" />
-          </div>
-        ) : (
-          <div className="hidden md:flex flex-col items-center w-full mt-auto pb-6">
-            <div className="scale-75 origin-center">
-              <IconToggle />
-            </div>
-          </div>
-        )}
       </div>
     </>
   );

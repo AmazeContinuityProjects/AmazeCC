@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from "../components/themeprovider";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import IconUpdater from "../components/custom/IconUpdater";
 import type { Viewport, Metadata } from "next";
 import './globals.css';
 
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
       >
+        <IconUpdater />
         <ThemeProvider
           attribute="class"
           defaultTheme="midnight"
