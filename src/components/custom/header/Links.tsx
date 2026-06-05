@@ -6,7 +6,7 @@ import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 export default function Links() {
     const Links = [
         "https://uni-cc.site",
-        "https://uni-cc.vercel.app",
+        "https://amaze-cc.vercel.app",
         "https://uni-cc.netlify.app",
         "https://github.uni-cc.site"
     ];

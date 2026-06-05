@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map, Menu } from "lucide-react";
+import { RefreshCcw, Settings, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen } from "lucide-react";
 import SettingsPage from "./SettingsPage";
 import { IconToggle } from "../toggle";
 import Footer from "../footer/Footer";
@@ -32,7 +32,9 @@ export default function NavigationTabs({
   HostelActiveSubTab,
   setHostelActiveSubTab,
   activeDayscholarSubTab,
-  setActiveDayscholarSubTab
+  setActiveDayscholarSubTab,
+  activeQBankSubTab,
+  setActiveQBankSubTab
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showSettingsPage, setShowSettingsPage] = useState<boolean>(false);
@@ -272,6 +274,16 @@ export default function NavigationTabs({
           <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>FFCS Planner</span>
         </button>
 
+        <button
+          onClick={() => setActiveTab("qbank")}
+          className={navItemClass(activeTab === "qbank")}
+          title="Q-Bank Archive"
+        >
+          <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Q-Bank Archive</span>
+        </button>
+
+
         {settings?.residentialStatus !== "dayscholar" && (
           <>
             <button
@@ -337,14 +349,6 @@ export default function NavigationTabs({
         )}
 
         <div className="hidden md:block w-full flex-grow"></div>
-
-        <button
-          onClick={handleReloadClick}
-          className={`${navItemClass(false)} md:hidden`}
-        >
-          <RefreshCcw className={`w-5 h-5 md:w-5 md:h-5 ${isSpinning ? "animate-spin" : ""}`} />
-          <span className="text-[10px] md:text-sm font-medium">Reload Data</span>
-        </button>
 
         <button
           onClick={() => setShowSettingsPage(true)}

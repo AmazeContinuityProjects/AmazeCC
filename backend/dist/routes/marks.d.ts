@@ -1,7 +1,0 @@
-import VTOPClient from "../lib/clients/VTOPClient";
-import { CourseItem, CGPA } from "../types/data/marks";
-export declare function getMarks(cookies: string[] | string, authorizedID: string, csrf: string, semesterId: string, client: ReturnType<typeof VTOPClient>, courseCreditMap: Record<string, number>): Promise<{
-    courses: CourseItem[];
-    cgpa: CGPA;
-} | string>;
-//# sourceMappingURL=marks.d.ts.map
