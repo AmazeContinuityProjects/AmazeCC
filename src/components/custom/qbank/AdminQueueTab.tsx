@@ -232,7 +232,7 @@ export default function AdminQueueTab() {
                         <span className="bg-blue-100 dark:bg-blue-900/40 midnight:bg-blue-900/40 text-blue-800 dark:text-blue-400 px-2 py-1.5 text-xs font-bold rounded-l-md border border-blue-200 dark:border-blue-800 border-r-0">Q.</span>
                         <input 
                           type="text" 
-                          className="w-12 px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 midnight:bg-black border border-blue-200 dark:border-blue-800 rounded-r-md text-gray-900 dark:text-gray-100 focus:outline-none"
+                          className="w-12 px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 midnight:bg-black border border-blue-200 dark:border-blue-800 midnight:border-blue-900 rounded-r-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                           value={q.question_number}
                           onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, question_number: e.target.value } : item))}
                           onBlur={(e) => handleUpdateQuestion(q.question_id, { questionNumber: e.target.value })}
@@ -241,7 +241,7 @@ export default function AdminQueueTab() {
                       </div>
                       
                       <select 
-                        className="text-xs px-2 py-1.5 bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-300 focus:outline-none"
+                        className="text-xs px-2 py-1.5 bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 midnight:text-gray-300 focus:outline-none focus:border-blue-500"
                         value={q.question_type || "DESCRIPTIVE"}
                         onChange={(e) => handleUpdateQuestion(q.question_id, { questionType: e.target.value })}
                       >
@@ -254,7 +254,7 @@ export default function AdminQueueTab() {
                         <div className="flex items-center">
                           <input 
                             type="number" 
-                            className="w-12 px-2 py-1 text-xs text-center bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 rounded-l-md text-gray-900 dark:text-gray-100 focus:outline-none"
+                            className="w-12 px-2 py-1 text-xs text-center bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-l-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:border-blue-500"
                             value={q.marks || 0}
                             onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, marks: parseInt(e.target.value) || 0 } : item))}
                             onBlur={(e) => handleUpdateQuestion(q.question_id, { marks: parseInt(e.target.value) || 0 })}
@@ -268,7 +268,7 @@ export default function AdminQueueTab() {
                     </div>
 
                     <textarea
-                      className="w-full p-3 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg font-mono text-sm bg-gray-50 dark:bg-gray-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[100px]"
+                      className="w-full p-3 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg font-mono text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[100px]"
                       value={q.question_text || ""}
                       onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, question_text: e.target.value } : item))}
                       onBlur={(e) => handleUpdateQuestion(q.question_id, { questionText: e.target.value })}
@@ -308,7 +308,7 @@ export default function AdminQueueTab() {
                             <span className="w-6 text-sm font-bold text-gray-500 text-center">{opt}.</span>
                             <input 
                               type="text" 
-                              className="flex-1 px-3 py-1.5 text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none"
+                              className="flex-1 px-3 py-1.5 text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:border-blue-500"
                               value={q.options?.[opt] || ""}
                               onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, options: { ...(item.options || {}), [opt]: e.target.value } } : item))}
                               onBlur={() => handleUpdateQuestion(q.question_id, { options: q.options })}
@@ -319,7 +319,7 @@ export default function AdminQueueTab() {
                               name={`correct_${q.question_id}`} 
                               checked={q.correct_answer === opt}
                               onChange={() => handleUpdateQuestion(q.question_id, { correctAnswer: opt })}
-                              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                              className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-700 midnight:border-gray-800 dark:bg-slate-900 midnight:bg-black focus:ring-blue-500"
                               title={`Set ${opt} as Correct Answer`}
                             />
                           </div>
@@ -332,7 +332,7 @@ export default function AdminQueueTab() {
                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Answer / Hints (Optional)</p>
                         <input 
                           type="text" 
-                          className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none"
+                          className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:border-blue-500"
                           value={q.correct_answer || ""}
                           onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, correct_answer: e.target.value } : item))}
                           onBlur={(e) => handleUpdateQuestion(q.question_id, { correctAnswer: e.target.value })}
@@ -345,10 +345,10 @@ export default function AdminQueueTab() {
               )}
               
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                <button onClick={handleAddQuestion} className="flex-1 py-3 border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 rounded-xl flex items-center justify-center gap-2 transition-colors font-medium text-sm">
+                <button onClick={handleAddQuestion} className="flex-1 py-3 border-2 border-dashed border-gray-300 dark:border-gray-700 midnight:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 midnight:hover:border-blue-500 text-gray-500 hover:text-blue-600 dark:text-gray-400 midnight:text-gray-500 dark:hover:text-blue-400 midnight:hover:text-blue-400 rounded-xl flex items-center justify-center gap-2 transition-colors font-medium text-sm">
                   <Plus className="w-4 h-4" /> Add New Question
                 </button>
-                <button onClick={() => setIsJsonModalOpen(true)} className="flex-1 py-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl flex items-center justify-center gap-2 transition-colors font-medium text-sm">
+                <button onClick={() => setIsJsonModalOpen(true)} className="flex-1 py-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 midnight:bg-indigo-900/20 dark:hover:bg-indigo-900/40 midnight:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-400 border border-indigo-200 dark:border-indigo-800 midnight:border-indigo-900 rounded-xl flex items-center justify-center gap-2 transition-colors font-medium text-sm">
                   <FileText className="w-4 h-4" /> Import JSON Data
                 </button>
               </div>
@@ -367,7 +367,7 @@ export default function AdminQueueTab() {
               <div className="p-4 flex-1">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Paste a JSON array of questions. Note: This will OVERWRITE existing questions.</p>
                 <textarea 
-                  className="w-full h-64 p-3 font-mono text-xs border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-gray-50 dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-64 p-3 font-mono text-xs border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-gray-50 dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder={'[\n  {\n    "question_number": "1",\n    "question_type": "MCQ",\n    "marks": 2,\n    "question_text": "Sample text",\n    "options": {"A": "Opt1"},\n    "correct_answer": "A"\n  }\n]'}
                   value={jsonInput}
                   onChange={(e) => setJsonInput(e.target.value)}
