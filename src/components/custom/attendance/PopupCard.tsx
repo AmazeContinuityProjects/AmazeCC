@@ -120,11 +120,11 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
 
                             <div className="p-0 text-sm text-gray-600 dark:text-gray-300 midnight:text-gray-300 space-y-1">
                                 <div className="flex items-center gap-2">
-                                    <Building2 size={16} className="text-gray-500 dark:text-gray-400" />
+                                    <Building2 size={16} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400" />
                                     <span>{a.slotVenue}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Clock size={16} className="text-gray-500 dark:text-gray-400" />
+                                    <Clock size={16} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400" />
                                     <span>{a.time}</span>
                                 </div>
                                 <p><strong>Faculty:</strong> {a.faculty}</p>
@@ -393,7 +393,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     if (!classes || classes.length === 0) {
         return (
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-500 text-xs text-center">
+            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs text-center">
                 No upcoming classes 🎉
             </p>
         );
@@ -500,10 +500,10 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                           cursor-pointer select-none transform-gpu
                           transition-all duration-200 ease-in-out
                           ${isSkipped
-                                    ? "bg-red-100 dark:bg-red-900/40 midnight:bg-red-950 ..."
+                                    ? "bg-red-100 dark:bg-red-900/40 midnight:bg-red-950"
                                     : isIgnored
-                                        ? "bg-gray-200 dark:bg-gray-500 midnight:bg-gray-700 ..."
-                                        : "bg-white dark:bg-slate-900 midnight:bg-gray-950 ..."
+                                        ? "bg-gray-200 dark:bg-gray-500 midnight:bg-gray-700"
+                                        : "bg-white dark:bg-slate-900 midnight:bg-gray-950"
                                 }`}
                         >
                             <span

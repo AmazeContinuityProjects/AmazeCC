@@ -1,0 +1,46 @@
+{
+  "importantLinks": [
+    {
+      "id": 1,
+      "title": "VIT Chennai Official Page",
+      "link": "https://chennai.vit.ac.in/",
+      "desc": "Official website of VIT Chennai with campus details, news, announcements, and academic information."
+    },
+    {
+      "id": 2,
+      "title": "VTOP Student Login",
+      "link": "https://vtopcc.vit.ac.in/vtop/open/page",
+      "desc": "VTOP portal for students to access academics, attendance, grades, and exam schedules."
+    },
+    {
+      "id": 3,
+      "title": "Learning Management System (LMS)",
+      "link": "https://lms.vit.ac.in/login/index.php",
+      "desc": "LMS platform for accessing course materials and assignments."
+    },
+    {
+      "id": 4,
+      "title": "VITCC Help Center",
+      "link": "https://vhelp.vit.ac.in/vitcc-help-center/",
+      "desc": "View and raise any complaint or issue regarding VIT Chennai campus facilities and services."
+    },
+    {
+      "id": 5,
+      "title": "EventHub (VITCC)",
+      "link": "https://eventhubcc.vit.ac.in/EventHub/",
+      "desc": "Official platform for exploring events happening at VIT Chennai."
+    }
+  ],
+  "communityLinks": [
+    {
+      "title": "GitHub",
+      "link": "https://github.com/vit-verse",
+      "icon": "github"
+    },
+    {
+      "title": "WhatsApp Community",
+      "link": "https://chat.whatsapp.com/G1CNYLaMgYu6ePIzT2csWM",
+      "icon": "whatsapp"
+    }
+  ]
+}

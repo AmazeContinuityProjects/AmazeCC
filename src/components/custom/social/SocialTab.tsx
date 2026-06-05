@@ -1,0 +1,268 @@
+import React, { useState, useEffect } from "react";
+import { Users, UserPlus, Share2, Trash2, Calendar, LayoutDashboard, Eye, EyeOff, UsersRound, Plus } from "lucide-react";
+import { getFriends, removeFriend, saveFriend, getFriendGroups, removeFriendGroup, Friend, FriendGroup } from "../../../lib/socialUtils";
+import ShareScheduleModal from "./ShareScheduleModal";
+import AddFriendModal from "./AddFriendModal";
+import FriendTimetableModal from "./FriendTimetableModal";
+import CommonFreeSlotsModal from "./CommonFreeSlotsModal";
+import AddGroupModal from "./AddGroupModal";
+
+export default function SocialTab({ attendanceData }: { attendanceData: any }) {
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [groups, setGroups] = useState<FriendGroup[]>([]);
+  
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<{ group: FriendGroup | null, friends: Friend[], name?: string } | null>(null);
+
+  const loadData = () => {
+    setFriends(getFriends());
+    setGroups(getFriendGroups());
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleDeleteFriend = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Remove this friend from your list?")) {
+      removeFriend(id);
+      loadData();
+    }
+  };
+
+  const handleDeleteGroup = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Delete this group?")) {
+      removeFriendGroup(id);
+      loadData();
+    }
+  };
+
+  const toggleDashboardVisibility = (friend: Friend, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = { ...friend, showInHomePage: !friend.showInHomePage };
+    saveFriend(updated);
+    loadData();
+  };
+
+  const handleOpenAllFreeSlots = () => {
+    if (friends.length === 0) {
+        alert("You need to add friends first!");
+        return;
+    }
+    setSelectedGroup({ group: null, friends: friends, name: "All Friends" });
+  };
+
+  const myAttendance = attendanceData?.attendance || [];
+
+  return (
+    <div className="w-full space-y-6 pb-8 animate-fadeIn">
+      {/* Header */}
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xl backdrop-blur-md">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Users className="text-blue-500 w-6 h-6" /> Social & Schedules
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Compare schedules, find common free time, and plan group study sessions!
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <button
+              onClick={handleOpenAllFreeSlots}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm border border-green-500/20"
+            >
+              <Calendar className="w-4 h-4" /> Compare All
+            </button>
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Share2 className="w-4 h-4" /> 
+              <span className="hidden sm:inline">Share My Code</span>
+              <span className="sm:hidden">Share</span>
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl shadow-lg transition-all duration-300"
+            >
+              <UserPlus className="w-4 h-4" /> Add Friend
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Groups Section */}
+      {friends.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <UsersRound className="w-4 h-4" /> Groups
+            </h3>
+            <button onClick={() => setIsAddGroupModalOpen(true)} className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
+              <Plus className="w-4 h-4" /> Create Group
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {groups.length === 0 ? (
+              <div className="col-span-full py-6 flex flex-col items-center justify-center text-center bg-card/50 border border-border border-dashed rounded-2xl">
+                <p className="text-muted-foreground text-sm">No groups created. Create a group to easily compare schedules for project teams!</p>
+              </div>
+            ) : (
+              groups.map((group) => {
+                const groupFriends = friends.filter(f => group.friendIds.includes(f.id));
+                return (
+                  <div
+                    key={group.id}
+                    onClick={() => setSelectedGroup({ group, friends: groupFriends, name: group.name })}
+                    className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-foreground leading-tight text-lg">{group.name}</h3>
+                      <button
+                        onClick={(e) => handleDeleteGroup(group.id, e)}
+                        className="text-muted-foreground hover:text-red-400 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex -space-x-2 overflow-hidden mb-3">
+                      {groupFriends.slice(0, 5).map(f => (
+                        <div key={f.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: f.color }}>
+                          {f.nickname.substring(0, 1).toUpperCase()}
+                        </div>
+                      ))}
+                      {groupFriends.length > 5 && (
+                        <div className="inline-block h-8 w-8 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">
+                          +{groupFriends.length - 5}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-auto">Click to view common free slots</p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Friends List */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2 px-1">
+          <Users className="w-4 h-4" /> All Friends
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {friends.length === 0 ? (
+            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-card border border-border border-dashed rounded-2xl">
+              <Users className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
+              <h3 className="text-lg font-bold text-foreground mb-1">
+                No friends added yet
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                Ask your friends to share their schedule code and add them here to see their timetables.
+              </p>
+            </div>
+          ) : (
+            friends.map((friend) => (
+              <div
+                key={friend.id}
+                onClick={() => setSelectedFriend(friend)}
+                className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                      style={{ backgroundColor: friend.color }}
+                    >
+                      {friend.nickname.substring(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground leading-tight">
+                        {friend.nickname}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {friend.regNumber}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => toggleDashboardVisibility(friend, e)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        friend.showInHomePage
+                          ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20"
+                          : "text-muted-foreground bg-muted hover:bg-muted/80"
+                      }`}
+                      title={friend.showInHomePage ? "Shown on Dashboard" : "Hidden on Dashboard"}
+                    >
+                      {friend.showInHomePage ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteFriend(friend.id, e)}
+                      className="text-muted-foreground hover:text-red-400 p-2 rounded-lg transition-colors hover:bg-red-500/10"
+                      title="Remove friend"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-xl flex items-center justify-between">
+                  <p>
+                    <span className="font-medium text-foreground">
+                      {friend.classSlots.length}
+                    </span>{" "}
+                    classes
+                  </p>
+                  <span className="text-xs text-blue-500 font-medium">View Schedule &rarr;</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Modals */}
+      {isShareModalOpen && (
+        <ShareScheduleModal
+          attendanceData={attendanceData}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      )}
+      {isAddModalOpen && (
+        <AddFriendModal
+          onClose={() => setIsAddModalOpen(false)}
+          onAdd={loadData}
+        />
+      )}
+      {isAddGroupModalOpen && (
+        <AddGroupModal
+          friends={friends}
+          onClose={() => setIsAddGroupModalOpen(false)}
+          onAdd={loadData}
+        />
+      )}
+      {selectedFriend && (
+        <FriendTimetableModal
+          friend={selectedFriend}
+          onClose={() => setSelectedFriend(null)}
+        />
+      )}
+      {selectedGroup && (
+        <CommonFreeSlotsModal
+          friends={selectedGroup.friends}
+          myAttendance={myAttendance}
+          groupName={selectedGroup.name}
+          onClose={() => setSelectedGroup(null)}
+        />
+      )}
+    </div>
+  );
+}

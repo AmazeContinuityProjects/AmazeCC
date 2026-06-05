@@ -73,6 +73,7 @@ export default function LoginPage() {
   const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useState<string>("attendance");
   const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
   const [activeQBankSubTab, setActiveQBankSubTab] = useState<string>("archive");
+  const [activeMoreSubTab, setActiveMoreSubTab] = useState<string>("social");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [progressBar, setProgressBar] = useState<number>(0);
   const [moodleData, setMoodleData] = useState([]);
@@ -654,6 +655,8 @@ export default function LoginPage() {
             setActiveDayscholarSubTab={setActiveDayscholarSubTab}
             activeQBankSubTab={activeQBankSubTab}
             setActiveQBankSubTab={setActiveQBankSubTab}
+            activeMoreSubTab={activeMoreSubTab}
+            setActiveMoreSubTab={setActiveMoreSubTab}
             calendarData={Calender}
             setCalender={setCalender}
             setIsReloading={setIsReloading}

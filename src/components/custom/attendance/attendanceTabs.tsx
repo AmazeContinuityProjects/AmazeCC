@@ -6,15 +6,25 @@ import config from '../../../../config.json';
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
 import { Button } from "@/components/ui/button";
-import { X, BadgeQuestionMark, Calendar } from "lucide-react";
+import { X, BadgeQuestionMark, Calendar, Users } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
+import { getFriends, Friend } from "../../../lib/socialUtils";
+import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 
 export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus }) {
   const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
-  const slotMap = config.slotMap;
+  const [showCommonFree, setShowCommonFree] = useState(false);
+  const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
+  const slotMap = config.slotMap as any;
+
+  useEffect(() => {
+    // Load friends meant for dashboard
+    const allFriends = getFriends();
+    setDashboardFriends(allFriends.filter(f => f.showInHomePage));
+  }, []);
 
   const dayCardsMap = {};
   days.forEach((day) => (dayCardsMap[day] = []));
@@ -164,6 +174,11 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           <button onClick={() => setShowPredictor(true)} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
             <BadgeQuestionMark className={`w-4 h-4`} />
           </button>
+          {dashboardFriends.length > 0 && (
+            <button onClick={() => setShowCommonFree(true)} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 border border-green-500/20 font-medium transition-colors align-middle">
+              <Users className={`w-4 h-4`} />
+            </button>
+          )}
         </h1>
 
         {/* Desktop View: Left Aligned Heading + Right Aligned Buttons */}
@@ -171,6 +186,11 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           Weekly Attendance
         </h1>
         <div className="hidden md:flex items-center gap-3">
+          {dashboardFriends.length > 0 && (
+            <button onClick={() => setShowCommonFree(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-400 font-medium transition-colors shadow-sm border border-green-500/20">
+              <Users className={`w-4 h-4`} /> <span className="text-sm">Group Free Time</span>
+            </button>
+          )}
           <button onClick={() => setShowTimetable(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
             <Calendar className={`w-4 h-4`} /> <span className="text-sm">Timetable</span>
           </button>
@@ -196,7 +216,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 p-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-2">
         {dayCardsMap[activeDay]?.map((a, idx) => (
           <div key={idx}>
             <CourseCard
@@ -259,6 +279,14 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             <TimetableGrid attendance={data.attendance} />
           </div>
         </div>
+      )}
+      {showCommonFree && (
+        <CommonFreeSlotsModal
+          friends={dashboardFriends}
+          myAttendance={data.attendance}
+          groupName="Dashboard Friends"
+          onClose={() => setShowCommonFree(false)}
+        />
       )}
     </div>
   );

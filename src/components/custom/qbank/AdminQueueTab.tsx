@@ -149,22 +149,6 @@ export default function AdminQueueTab() {
     }
   };
 
-  const handleImageUpload = (questionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 500 * 1024) {
-      alert("Image must be smaller than 500 KB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target?.result as string;
-      handleUpdateQuestion(questionId, { imageUrl: base64String });
-    };
-    reader.readAsDataURL(file);
-  };
 
   // ─── REVIEW VIEW (Split Pane) ───
   if (selectedPaper) {
@@ -291,21 +275,25 @@ export default function AdminQueueTab() {
                       </div>
                     </div>
 
-                    {/* Image Upload */}
-                    <div className="mt-4 flex items-center gap-3">
-                      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Attached Image (Optional):</label>
+                    {/* Image URL Input */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 midnight:border-gray-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Attached Image URL (Optional):</label>
+                        {q.image_url && (
+                          <a href={q.image_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">View Image</a>
+                        )}
+                      </div>
                       <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="text-xs file:mr-2 file:py-1 file:px-3 file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 dark:hover:file:bg-blue-900/40"
-                        onChange={(e) => handleImageUpload(q.question_id, e)}
+                        type="url" 
+                        placeholder="https://i.imgur.com/your-image.png"
+                        className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:border-blue-500"
+                        value={q.image_url || ""}
+                        onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, image_url: e.target.value } : item))}
+                        onBlur={(e) => handleUpdateQuestion(q.question_id, { imageUrl: e.target.value || null })}
                       />
-                      {q.image_url && (
-                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-green-600 font-medium">Image uploaded!</span>
-                            <button onClick={() => handleUpdateQuestion(q.question_id, { imageUrl: null })} className="text-xs text-red-500 hover:underline">Remove</button>
-                         </div>
-                      )}
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                        Upload your image to <a href="https://imgur.com/upload" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Imgur</a> or <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">PostImages</a> and paste the <strong>Direct Link</strong> (ending in .png or .jpg) here.
+                      </p>
                     </div>
 
                     {/* Type-specific inputs */}
@@ -387,6 +375,12 @@ export default function AdminQueueTab() {
                         <pre className="whitespace-pre-wrap font-mono text-[10px] text-gray-800 dark:text-gray-200 midnight:text-gray-300 overflow-x-auto">
 {`Please convert the following exam paper into a JSON array of objects.
 Do not include any markdown formatting, only pure JSON.
+
+CRITICAL INSTRUCTION FOR MATH & EQUATIONS:
+The application uses LaTeX to render math. If there are any equations or symbols, you MUST wrap them in $$ (e.g., $$x^2 + y^2 = r^2$$).
+Because this is going into a JSON string, you MUST DOUBLE ESCAPE all LaTeX backslashes so the JSON remains valid.
+For example, instead of writing $$ \\frac{1}{2} $$, you MUST write $$ \\\\frac{1}{2} $$.
+If you fail to double escape backslashes, the JSON parser will crash.
 
 Use this exact structure:
 [

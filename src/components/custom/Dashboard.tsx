@@ -25,7 +25,7 @@ import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
 import { RefreshCcw } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
-import FFCSTimetableTab from "./Exams/FFCSTimetableTab";
+import MoreTab from "./more/MoreTab";
 
 import PapersArchiveTab from "./qbank/PapersArchiveTab";
 import PureQBankTab from "./qbank/PureQBankTab";
@@ -61,6 +61,8 @@ export default function DashboardContent({
   setActiveDayscholarSubTab,
   activeQBankSubTab,
   setActiveQBankSubTab,
+  activeMoreSubTab,
+  setActiveMoreSubTab,
   calendarData,
   setCalender,
   setIsReloading,
@@ -378,6 +380,8 @@ export default function DashboardContent({
         setActiveDayscholarSubTab={setActiveDayscholarSubTab}
         activeQBankSubTab={activeQBankSubTab}
         setActiveQBankSubTab={setActiveQBankSubTab}
+        activeMoreSubTab={activeMoreSubTab}
+        setActiveMoreSubTab={setActiveMoreSubTab}
       />
 
       <div 
@@ -525,9 +529,13 @@ export default function DashboardContent({
             </div>
           )}
 
-          {activeTab === "ffcs" && (
+          {activeTab === "more" && (
             <div className="animate-fadeIn">
-              <FFCSTimetableTab />
+              <MoreTab 
+                attendanceData={attendanceData} 
+                activeMoreSubTab={activeMoreSubTab} 
+                setActiveMoreSubTab={setActiveMoreSubTab} 
+              />
             </div>
           )}
 
