@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
           [
             paperId,
             q.question_number?.toString() || '1',
-            q.question_type || 'DESCRIPTIVE',
+            q.question_type || (q.options && Object.keys(q.options).length > 0 ? 'MCQ' : 'DESCRIPTIVE'),
             q.topic_name || null,
             parseInt(q.marks) || 0,
             q.question_text || '',
