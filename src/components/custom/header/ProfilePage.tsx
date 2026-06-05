@@ -15,7 +15,7 @@ import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, isLoggedIn }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, isLoggedIn }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
     const [changeUsername, setChangedUsername] = useState<string>(username);
     const [changedPassword, setChangedPassword] = useState<string>(password);
@@ -173,6 +173,42 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     <Save size={16} className="mr-2" /> Update Credentials
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                        <div className="flex flex-col mb-2">
+                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Residential Status</label>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Changes which tabs are visible</span>
+                            <select
+                                value={residentialStatus || "hosteller"}
+                                onChange={(e) => setResidentialStatus(e.target.value as "hosteller" | "dayscholar")}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
+                            >
+                                <option value="hosteller">Hosteller</option>
+                                <option value="dayscholar">Dayscholar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                        <div className="flex flex-col mb-2">
+                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Academic Calendar</label>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Set your default calendar view</span>
+                            <select
+                                value={calendarType || "ALL"}
+                                onChange={(e) => setCalendarType(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
+                            >
+                                <option value="ALL">General Semester</option>
+                                <option value="ALL02">General Flexible</option>
+                                <option value="ALL03">General Freshers</option>
+                                <option value="ALL05">General LAW</option>
+                                <option value="ALL06">Flexible Freshers</option>
+                                <option value="ALL08">Cohort LAW</option>
+                                <option value="ALL11">Flexible Research</option>
+                                <option value="WEI">Weekend Intra Semester</option>
+                            </select>
                         </div>
                     </div>
 

@@ -472,17 +472,13 @@ export default function DashboardContent({
               )}
 
               {activeAttendanceSubTab === "calendar" && (
-                <>
+                <div className="animate-fadeIn">
                   <CalendarView
-                    calendars={calendarData.calendars}
+                    calendars={calendarData?.calendars}
                     calendarType={settings.calendarType}
                     handleCalendarFetch={handleCalendarFetch}
                   />
-                  <CalendarTabWrapper
-                    calendarType={settings.calendarType}
-                    handleCalendarFetch={handleCalendarFetch}
-                  />
-                </>
+                </div>
               )}
             </div>
           )}
@@ -582,6 +578,16 @@ export default function DashboardContent({
                     localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
                   }
                 }
+                residentialStatus={settings.residentialStatus}
+                setResidentialStatus={(val: "hosteller" | "dayscholar") => {
+                    setSettings(prev => ({ ...prev, residentialStatus: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }))
+                }}
+                calendarType={settings.calendarType}
+                setCalendarType={(val: any) => {
+                    setSettings(prev => ({ ...prev, calendarType: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: val }))
+                }}
               />
             </div>
           )}
@@ -591,54 +597,3 @@ export default function DashboardContent({
   );
 }
 
-function CalendarTabWrapper({ calendarType, handleCalendarFetch }) {
-  const CALENDAR_TYPES = {
-    ALL: "General Semester",
-    ALL02: "General Flexible",
-    ALL03: "General Freshers",
-    ALL05: "General LAW",
-    ALL06: "Flexible Freshers",
-    ALL08: "Cohort LAW",
-    ALL11: "Flexible Research",
-    WEI: "Weekend Intra Semester",
-  };
-
-  const [selectedType, setSelectedType] = useState(calendarType || "ALL");
-
-  function handleSubmitCalendarType() {
-    handleCalendarFetch(selectedType);
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center gap-5 p-6 text-center">
-      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-        Select Calendar Type
-      </h2>
-
-      <select
-        value={selectedType}
-        onChange={(e) => setSelectedType(e.target.value)}
-        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 
-                   dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
-                   midnight:bg-[#0f172a] midnight:text-gray-100
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-      >
-        {Object.entries(CALENDAR_TYPES).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-
-      <button
-        onClick={handleSubmitCalendarType}
-        className="px-6 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 
-                   dark:bg-blue-500 dark:hover:bg-blue-600
-                   data-[theme=midnight]:bg-blue-500 data-[theme=midnight]:hover:bg-blue-600
-                   transition-colors duration-150"
-      >
-        Submit
-      </button>
-    </div>
-  );
-}
