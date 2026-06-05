@@ -1,0 +1,21 @@
+[
+  {
+    "version": "v1.1.0",
+    "date": "2026-06-05",
+    "changes": [
+      "Transformed Settings into a dedicated Profile page inspired by modern UI paradigms.",
+      "Integrated Quick Links and Community Links into the new Profile Page.",
+      "Removed the redundant Footer and relocated its controls to the Profile Page.",
+      "Added dedicated Changelogs/Updates section."
+    ]
+  },
+  {
+    "version": "v1.0.0",
+    "date": "2026-05-30",
+    "changes": [
+      "Initial release of AmazeCC.",
+      "Added Dashboard, Attendance, Calendar, and QBank tabs.",
+      "Integrated FFCS Planner and Social group scheduling."
+    ]
+  }
+]
