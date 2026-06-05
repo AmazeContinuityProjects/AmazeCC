@@ -9,7 +9,7 @@ import {
     DropzoneEmptyState,
 } from "@/components/ui/shadcn-io/dropzone";
 import { API_BASE } from "@/components/custom/Main";
-import Footer from "@/components/custom/footer/Footer";
+import LoginFooter from "@/components/custom/footer/LoginFooter";
 
 export default function UploadPage() {
     const [userID, setUserID] = useState("");
@@ -161,7 +161,7 @@ export default function UploadPage() {
                 </p>
             </main>
 
-            <Footer isLoggedIn={false} />
+            <LoginFooter />
         </div>
     );
 }
