@@ -66,12 +66,12 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
         
         <div className="flex items-center justify-center gap-2 mb-2 w-full">
           <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-            <a href="https://github.com/Arya4930/UniCC" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
               <Github size={16} className="text-gray-600 dark:text-gray-300 midnight:text-gray-300" />
             </a>
           </Button>
           <Button variant="outline" size="icon" className="w-8 h-8" asChild>
-            <a href="https://arya22.vercel.app/" target="_blank" rel="noopener noreferrer">
+            <a href="https://amaze-cc.vercel.app" target="_blank" rel="noopener noreferrer">
               <Link size={16} className="text-gray-600 dark:text-gray-300 midnight:text-gray-300" />
             </a>
           </Button>
@@ -89,7 +89,6 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
             <span className="text-[10px] text-gray-400">•</span>
             <button onClick={() => setShowTOS(true)} className="text-[10px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Terms</button>
           </div>
-          <span className="text-[9px] text-gray-400 mt-1">&copy; {new Date().getFullYear()} Arya Evil Inc.</span>
         </div>
       </div>
     );
@@ -106,7 +105,7 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
         <div className="flex items-center justify-center gap-2 mb-4">
           <Button variant="outline" size="icon" asChild>
             <a
-              href="https://github.com/Arya4930/UniCC"
+              href="https://github.com/SugeethJSA/UniCC"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -118,7 +117,7 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
           </Button>
           <Button variant="outline" size="icon" asChild>
             <a
-              href="https://arya22.vercel.app/"
+              href="https://amaze-cc.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -130,7 +129,7 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
           </Button>
 
           <p className="text-sm font-medium tracking-wide px-5">
-            Made for No reason<br></br>By My heart{" "}
+            Made by<br></br>SugeethJSA{" "}
           </p>
 
           <Button variant="outline" size="icon" onClick={openStoragePage}>
@@ -139,9 +138,7 @@ export default function Footer({ isLoggedIn, variant = "mobile" }: FooterProps) 
           <IconToggle />
         </div>
 
-        <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 block">
-          &copy; {new Date().getFullYear()} Arya Evil Inc. All rights reserved. &nbsp;
-        </span>
+
         <div>
           <Button
             variant="ghost"

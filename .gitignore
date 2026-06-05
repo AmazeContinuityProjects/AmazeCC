@@ -49,3 +49,4 @@ public/swe-worker*
 certificates
 .open-next
 .wrangler
+.env*

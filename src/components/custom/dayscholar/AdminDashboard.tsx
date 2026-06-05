@@ -1,7 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Upload, Save, AlertCircle, RefreshCw } from 'lucide-react';
+import { Upload, Save, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminQueueTab from '@/components/custom/qbank/AdminQueueTab';
+import UploadPaperModal from '@/components/custom/qbank/UploadPaperModal';
 
 interface BusRoute {
   id: string;
@@ -19,6 +22,7 @@ const AdminDashboard: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/buses')
@@ -83,63 +87,105 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Update Bus Database</CardTitle>
-          <CardDescription>Upload a JSON file containing the updated bus routes, phone numbers, and WhatsApp links.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {successMsg && (
-            <div className="p-3 bg-green-100 text-green-800 rounded-lg text-sm border border-green-200">
-              {successMsg}
-            </div>
-          )}
-          
-          {errorMsg && (
-            <div className="p-3 bg-red-100 text-red-800 rounded-lg text-sm border border-red-200">
-              {errorMsg}
-            </div>
-          )}
+    <div className="w-full max-w-6xl mx-auto space-y-6 relative">
+      <div className="absolute right-0 top-0 mt-2 mr-2 z-10">
+        <button 
+          onClick={() => setIsUploadModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md transition-all"
+        >
+          <Upload className="w-4 h-4" /> Upload QP Direct
+        </button>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${isUploading ? 'opacity-50' : 'hover:border-blue-500'}`}>
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Upload updated buses.json
-              </p>
-              <p className="text-xs text-gray-500 mb-4">
-                This will override the database directly.
-              </p>
-              <label className={`cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isUploading ? 'pointer-events-none' : ''}`}>
-                {isUploading ? 'Uploading...' : 'Select File'}
-                <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
-              </label>
-            </div>
+      <UploadPaperModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+        courses={[]} 
+        username="admin" 
+        isAdmin={true} 
+      />
 
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <Save size={16} /> Need a template?
-                </h4>
-                <p className="text-xs text-gray-500 mb-3">
-                  Download the current database schema to edit driver details or routes manually.
-                </p>
-                <button onClick={downloadTemplate} className="text-sm text-blue-600 font-medium hover:underline">
-                  Download buses_template.json
-                </button>
-              </div>
-            </div>
+      <Tabs defaultValue="qbank" className="w-full">
+        <TabsList className="w-full justify-start border-b border-gray-200 dark:border-gray-700 bg-transparent rounded-none p-0 h-auto mb-6 pr-40">
+          <TabsTrigger 
+            value="qbank" 
+            className="px-6 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400 font-medium bg-transparent"
+          >
+            Q-Bank Queue
+          </TabsTrigger>
+          <TabsTrigger 
+            value="buses"
+            className="px-6 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400 font-medium bg-transparent"
+          >
+            Bus Database
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="qbank" className="mt-0">
+          <AdminQueueTab />
+        </TabsContent>
+
+        <TabsContent value="buses" className="mt-0">
+          <div className="w-full max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Bus Database</CardTitle>
+                <CardDescription>Upload a JSON file containing the updated bus routes, phone numbers, and WhatsApp links.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {successMsg && (
+                  <div className="p-3 bg-green-100 text-green-800 rounded-lg text-sm border border-green-200">
+                    {successMsg}
+                  </div>
+                )}
+                
+                {errorMsg && (
+                  <div className="p-3 bg-red-100 text-red-800 rounded-lg text-sm border border-red-200">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${isUploading ? 'opacity-50' : 'hover:border-blue-500'}`}>
+                    <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Upload updated buses.json
+                    </p>
+                    <p className="text-xs text-gray-500 mb-4">
+                      This will override the database directly.
+                    </p>
+                    <label className={`cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isUploading ? 'pointer-events-none' : ''}`}>
+                      {isUploading ? 'Uploading...' : 'Select File'}
+                      <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                    </label>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Save size={16} /> Need a template?
+                      </h4>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Download the current database schema to edit driver details or routes manually.
+                      </p>
+                      <button onClick={downloadTemplate} className="text-sm text-blue-600 font-medium hover:underline">
+                        Download buses_template.json
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex gap-3 text-sm text-blue-800 dark:text-blue-200 border border-blue-100 dark:border-blue-800/50">
+                  <AlertCircle className="shrink-0" />
+                  <div>
+                    <strong>Note:</strong> Changes made here will immediately reflect in the PostgreSQL database and update for all students.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex gap-3 text-sm text-blue-800 dark:text-blue-200 border border-blue-100 dark:border-blue-800/50">
-            <AlertCircle className="shrink-0" />
-            <div>
-              <strong>Note:</strong> Changes made here will immediately reflect in the PostgreSQL database and update for all students.
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

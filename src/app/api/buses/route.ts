@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDbPool } from '@/lib/db';
 import defaultBuses from '@/data/dayscholar_buses.json';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const fallbackBuses = (defaultBuses as any).default || defaultBuses;

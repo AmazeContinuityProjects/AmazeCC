@@ -23,8 +23,12 @@ import BusFinder from "./dayscholar/BusFinder";
 import BusFeesDisplay from "./dayscholar/BusFeesDisplay";
 import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
+import { RefreshCcw } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import FFCSTimetableTab from "./Exams/FFCSTimetableTab";
+
+import PapersArchiveTab from "./qbank/PapersArchiveTab";
+import PureQBankTab from "./qbank/PureQBankTab";
 
 <Analytics/>
 
@@ -55,6 +59,8 @@ export default function DashboardContent({
   setActiveAttendanceSubTab,
   activeDayscholarSubTab,
   setActiveDayscholarSubTab,
+  activeQBankSubTab,
+  setActiveQBankSubTab,
   calendarData,
   setCalender,
   setIsReloading,
@@ -76,8 +82,9 @@ export default function DashboardContent({
   setSettings
 }) {
   const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchEndX = useRef(0);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [isSpinning, setIsSpinning] = useState(false);
   const touchEndY = useRef(0);
   const hasMoved = useRef(false);
 
@@ -94,7 +101,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "exams", "ffcs"];
+  const tabsOrder = ["attendance", "exams", "ffcs", "qbank"];
   if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
   if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
 
@@ -369,6 +376,8 @@ export default function DashboardContent({
         setHostelActiveSubTab={setHostelActiveSubTab}
         activeDayscholarSubTab={activeDayscholarSubTab}
         setActiveDayscholarSubTab={setActiveDayscholarSubTab}
+        activeQBankSubTab={activeQBankSubTab}
+        setActiveQBankSubTab={setActiveQBankSubTab}
       />
 
       <div 
@@ -376,11 +385,24 @@ export default function DashboardContent({
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <div className="md:hidden">
-          <div className="px-6 pt-6 pb-2">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {IDs.VtopUsername}
-            </p>
+          <div className="px-6 pt-6 pb-2 flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {IDs.VtopUsername}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                setIsSpinning(true);
+                await handleReloadRequest();
+                setTimeout(() => setIsSpinning(false), 600);
+              }}
+              className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              title="Reload Data"
+            >
+              <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
+            </button>
           </div>
           <StatsCards
             attendancePercentage={attendancePercentage}
@@ -506,6 +528,12 @@ export default function DashboardContent({
           {activeTab === "ffcs" && (
             <div className="animate-fadeIn">
               <FFCSTimetableTab />
+            </div>
+          )}
+
+          {activeTab === "qbank" && (
+            <div className="animate-fadeIn">
+              <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} />
             </div>
           )}
         </div>
