@@ -105,14 +105,14 @@ export default function ExamQuestion({ question, index }) {
           {!selectedOption ? (
             <button 
               onClick={() => setSelectedOption('SHOW_ANSWER')}
-              className="text-sm px-4 py-2 bg-gray-100 dark:bg-slate-800 midnight:bg-slate-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
+              className="text-sm px-4 py-2 bg-gray-100 dark:bg-slate-800 midnight:bg-black text-gray-700 dark:text-gray-300 midnight:text-gray-300 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900 transition-colors font-medium"
             >
               Show Answer / Hints
             </button>
           ) : (
-            <div className="p-4 bg-green-50 dark:bg-green-900/10 midnight:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-lg">
-              <h4 className="text-xs font-bold text-green-700 dark:text-green-500 uppercase tracking-wider mb-2">Answer:</h4>
-              <div className="text-sm text-gray-800 dark:text-gray-200 font-medium">
+            <div className="p-4 bg-green-50 dark:bg-green-900/10 midnight:bg-green-900/20 border border-green-200 dark:border-green-800/40 midnight:border-green-800/50 rounded-lg">
+              <h4 className="text-xs font-bold text-green-700 dark:text-green-500 midnight:text-green-400 uppercase tracking-wider mb-2">Answer:</h4>
+              <div className="text-sm text-gray-800 dark:text-gray-200 midnight:text-white font-medium">
                 <Latex>{question.correct_answer}</Latex>
               </div>
             </div>

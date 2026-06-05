@@ -249,6 +249,15 @@ export default function AdminQueueTab() {
                         <option value="MCQ">MCQ</option>
                         <option value="NUMERICAL">Numerical</option>
                       </select>
+                      
+                      <input
+                        type="text"
+                        className="text-xs px-2 py-1.5 w-24 bg-gray-50 dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-md text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:border-blue-500"
+                        placeholder="Module/Obj"
+                        value={q.topic_name || ""}
+                        onChange={(e) => setQuestions(prev => prev.map(item => item.question_id === q.question_id ? { ...item, topic_name: e.target.value } : item))}
+                        onBlur={(e) => handleUpdateQuestion(q.question_id, { topicName: e.target.value })}
+                      />
 
                       <div className="flex items-center ml-auto gap-2">
                         <div className="flex items-center">
@@ -365,7 +374,54 @@ export default function AdminQueueTab() {
                 <button onClick={() => setIsJsonModalOpen(false)} className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">✕</button>
               </div>
               <div className="p-4 flex-1">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Paste a JSON array of questions. Note: This will OVERWRITE existing questions.</p>
+                <div className="flex flex-col gap-2 mb-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Paste a JSON array of questions. Note: This will OVERWRITE existing questions.</p>
+                  
+                  <details className="bg-blue-50 dark:bg-slate-800/40 midnight:bg-slate-900 border border-blue-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg p-3">
+                    <summary className="text-xs font-bold text-blue-700 dark:text-blue-400 midnight:text-blue-400 cursor-pointer outline-none select-none">
+                      🤖 Need help generating this JSON? (AI Prompt Guide)
+                    </summary>
+                    <div className="mt-3 text-[11px] text-gray-700 dark:text-gray-300 midnight:text-gray-300 space-y-2">
+                      <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">Copy and paste the following prompt to an AI (ChatGPT, Claude, Gemini) along with your exam paper text to instantly generate the correct JSON format:</p>
+                      <div className="bg-white dark:bg-slate-900 midnight:bg-black p-2 rounded border border-gray-200 dark:border-gray-700 midnight:border-gray-800 relative group">
+                        <pre className="whitespace-pre-wrap font-mono text-[10px] text-gray-800 dark:text-gray-200 midnight:text-gray-300 overflow-x-auto">
+{`Please convert the following exam paper into a JSON array of objects.
+Do not include any markdown formatting, only pure JSON.
+
+Use this exact structure:
+[
+  {
+    "question_number": "1",
+    "question_type": "MCQ", // Can be MCQ, DESCRIPTIVE, or NUMERICAL
+    "topic_name": "Module 1", // The course objective, topic, or module number
+    "marks": 2, // Integer
+    "question_text": "What is the capital of France?",
+    "options": { // Provide exactly 4 options for MCQ, otherwise omit
+      "A": "London",
+      "B": "Paris",
+      "C": "Berlin",
+      "D": "Rome"
+    },
+    "correct_answer": "B" // Must match an option key for MCQ, or the answer text
+  }
+]`}
+                        </pre>
+                        <button 
+                          className="absolute top-2 right-2 px-2 py-1 text-[9px] font-bold text-gray-600 dark:text-gray-300 midnight:text-gray-400 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 midnight:hover:bg-gray-800"
+                          onClick={(e) => {
+                            const text = e.currentTarget.previousElementSibling?.textContent;
+                            if (text) navigator.clipboard.writeText(text);
+                            const btn = e.currentTarget;
+                            btn.textContent = "Copied!";
+                            setTimeout(() => btn.textContent = "Copy", 2000);
+                          }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
                 <textarea 
                   className="w-full h-64 p-3 font-mono text-xs border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-lg bg-gray-50 dark:bg-slate-800 midnight:bg-slate-900 text-gray-900 dark:text-gray-100 midnight:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder={'[\n  {\n    "question_number": "1",\n    "question_type": "MCQ",\n    "marks": 2,\n    "question_text": "Sample text",\n    "options": {"A": "Opt1"},\n    "correct_answer": "A"\n  }\n]'}

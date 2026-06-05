@@ -62,6 +62,7 @@ export async function PATCH(req: NextRequest) {
     if ('options' in body) addUpdate('options', body.options ? JSON.stringify(body.options) : null);
     if ('correctAnswer' in body) addUpdate('correct_answer', body.correctAnswer);
     if ('imageUrl' in body) addUpdate('image_url', body.imageUrl);
+    if ('topicName' in body) addUpdate('topic_name', body.topicName);
 
     if (updates.length === 0) return NextResponse.json({ success: true });
 
