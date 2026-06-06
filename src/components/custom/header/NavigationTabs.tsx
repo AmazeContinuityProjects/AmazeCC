@@ -286,7 +286,6 @@ export default function NavigationTabs({
         )}
 
         {settings.isDayscholarWithBus && (
-          <>
             <button
               onClick={() => setActiveTab("dayscholar")}
               className={navItemClass(activeTab === "dayscholar")}
@@ -295,23 +294,6 @@ export default function NavigationTabs({
               <Bus className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
               <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Bus Pass</span>
             </button>
-            {activeTab === "dayscholar" && !settings.isSidebarCollapsed && (
-              <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
-                <button
-                  onClick={() => setActiveDayscholarSubTab("finder")}
-                  className={`text-left text-sm py-1.5 transition-colors ${activeDayscholarSubTab === "finder" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-                >
-                  Bus Finder
-                </button>
-                <button
-                  onClick={() => setActiveDayscholarSubTab("fees")}
-                  className={`text-left text-sm py-1.5 transition-colors ${activeDayscholarSubTab === "fees" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-                >
-                  Fees & Info
-                </button>
-              </div>
-            )}
-          </>
         )}
         <button
           onClick={() => setActiveTab("more")}

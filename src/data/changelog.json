@@ -1,5 +1,17 @@
 [
   {
+    "version": "v1.3.0",
+    "date": "2026-06-06",
+    "changes": [
+      "Introduced comprehensive Social features including Common Free Slots Grid, Share Schedule, and Friend Timetable modals.",
+      "Revamped the Exams section with Academic Performance, Curriculum Page, FFCS Timetable, GPA Predictor, and Marks History tabs.",
+      "Implemented marks synchronization and statistics retrieval functionality.",
+      "Added comprehensive Dayscholar features including Bus Finder, Bus Fees Display, and an Admin Dashboard.",
+      "Enhanced QBank with dedicated API endpoints and UI for Admin Queue, Exam Questions, and Paper Uploads.",
+      "Upgraded Profile Page with residential status and calendar type selection."
+    ]
+  },
+  {
     "version": "v1.2.0",
     "date": "2026-06-06",
     "changes": [

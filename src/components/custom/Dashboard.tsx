@@ -17,9 +17,7 @@ import CalendarView from "./attendance/CalendarView";
 import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
-import DayscholarSubTabs from "./dayscholar/DayscholarSubTabs";
 import BusFinder from "./dayscholar/BusFinder";
-import BusFeesDisplay from "./dayscholar/BusFeesDisplay";
 import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
 import { RefreshCcw } from "lucide-react";
@@ -519,14 +517,7 @@ export default function DashboardContent({
 
           {activeTab === "dayscholar" && (
             <div className="animate-fadeIn">
-              <div className="md:hidden">
-                <DayscholarSubTabs
-                  activeSubTab={activeDayscholarSubTab}
-                  setActiveSubTab={setActiveDayscholarSubTab}
-                />
-              </div>
-              {activeDayscholarSubTab === "finder" && <BusFinder buses={dayscholarBuses} />}
-              {activeDayscholarSubTab === "fees" && <BusFeesDisplay />}
+              <BusFinder buses={dayscholarBuses} />
             </div>
           )}
 
