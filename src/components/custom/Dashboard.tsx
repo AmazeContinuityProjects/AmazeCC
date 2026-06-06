@@ -2,7 +2,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
-import ODHoursModal from "./ODHoursModal";
 import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
 import ExamsSubTabs from "./Exams/ExamSubsTab";
@@ -85,11 +84,13 @@ export default function DashboardContent({
   setSettings
 }) {
   const touchStartX = useRef(0);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const [isSpinning, setIsSpinning] = useState(false);
+  const touchStartY = useRef(0);
+  const touchEndX = useRef(0);
   const touchEndY = useRef(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const hasMoved = useRef(false);
+  const [resetKey, setResetKey] = useState(0);
 
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
 
@@ -104,7 +105,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "exams", "more", "qbank", "hostel", "dayscholar", "profile"];
+  const tabsOrder = ["attendance", "exams", "qbank", "hostel", "dayscholar", "more", "profile"];
   if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
   if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
 
@@ -345,7 +346,12 @@ export default function DashboardContent({
     >
       <NavigationTabs
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(newTab) => {
+          if (newTab === activeTab) {
+            setResetKey(k => k + 1);
+          }
+          setActiveTab(newTab);
+        }}
         handleLogOutRequest={handleLogOutRequest}
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
@@ -389,7 +395,7 @@ export default function DashboardContent({
         className={`bg-gray-50 dark:bg-gray-900 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""}`}>
+        <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
           <div className="px-6 pt-6 pb-2 flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
@@ -431,13 +437,6 @@ export default function DashboardContent({
         />
         </div>
 
-        {ODhoursIsOpen && (
-          <ODHoursModal
-            ODhoursData={ODhoursData}
-            onClose={() => setODhoursIsOpen(false)}
-          />
-        )}
-
         {GradesDisplayIsOpen && (
           <GradesModal
             GradesData={GradesData}
@@ -451,7 +450,7 @@ export default function DashboardContent({
         <div className="p-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
-              <div className="md:hidden">
+              <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>
                 <AttendanceSubTabs
                   activeSubTab={activeAttendanceSubTab}
                   setActiveAttendanceSubTab={setActiveAttendanceSubTab}
@@ -461,12 +460,17 @@ export default function DashboardContent({
               {activeAttendanceSubTab === "attendance" && (
                 <>
                   <AttendanceTabs
+                    key={`attendance-tabs-${resetKey}`}
                     data={attendanceData}
                     activeDay={activeDay}
                     setActiveDay={setActiveDay}
                     calendars={calendarData.calendars}
                     decimalValues={settings.decimalValues}
                     isDayscholarWithBus={settings.isDayscholarWithBus}
+                    setIsSubpageOpen={setIsSubpageOpen}
+                    ODhoursData={ODhoursData}
+                    ODhoursIsOpen={ODhoursIsOpen}
+                    setODhoursIsOpen={setODhoursIsOpen}
                   />
                 </>
               )}

@@ -100,6 +100,53 @@ export default function LoginPage() {
 
   function setAttendanceAndOD(attendance: attendanceRes): void {
     setAttendanceData(attendance);
+    
+    // Check for dynamic OD changes (Present -> OD = Wasted) (OD -> Present = Recovered)
+    const prevAttRaw = localStorage.getItem("attendance");
+    if (prevAttRaw) {
+      try {
+        const prevAttRes: attendanceRes = JSON.parse(prevAttRaw);
+        const trackerRaw = localStorage.getItem("wastedODsTracker");
+        const tracker = trackerRaw ? JSON.parse(trackerRaw) : {};
+        let trackerUpdated = false;
+
+        attendance.attendance?.forEach(newCourse => {
+          const oldCourse = prevAttRes.attendance?.find(c => c.courseCode === newCourse.courseCode);
+          if (oldCourse && Array.isArray(oldCourse.viewLink) && Array.isArray(newCourse.viewLink)) {
+            newCourse.viewLink.forEach((newDay: any) => {
+              const oldDay = oldCourse.viewLink.find((d: any) => d.date === newDay.date);
+              if (oldDay) {
+                const oldStatus = oldDay.status.toLowerCase();
+                const newStatus = newDay.status.toLowerCase();
+
+                if (!tracker[newDay.date]) tracker[newDay.date] = {};
+
+                if (oldStatus === "present" && (newStatus === "on duty" || newStatus === "partial od")) {
+                  tracker[newDay.date][newCourse.courseCode] = {
+                    courseTitle: newCourse.courseTitle,
+                    type: newCourse.courseType,
+                    slotName: newCourse.slotName,
+                    status: "wasted"
+                  };
+                  trackerUpdated = true;
+                } else if ((oldStatus === "on duty" || oldStatus === "partial od") && newStatus === "present") {
+                  if (tracker[newDay.date][newCourse.courseCode] && tracker[newDay.date][newCourse.courseCode].status === "wasted") {
+                    tracker[newDay.date][newCourse.courseCode].status = "recovered";
+                    trackerUpdated = true;
+                  }
+                }
+              }
+            });
+          }
+        });
+
+        if (trackerUpdated) {
+          localStorage.setItem("wastedODsTracker", JSON.stringify(tracker));
+        }
+      } catch (e) {
+        console.error("Error comparing attendance states:", e);
+      }
+    }
     let totalClass = 0;
     let attendedClasses = 0;
     attendance.attendance?.forEach(course => {
