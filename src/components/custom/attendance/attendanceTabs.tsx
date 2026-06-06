@@ -6,19 +6,29 @@ import config from '../../../../config.json';
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
 import { Button } from "@/components/ui/button";
-import { X, BadgeQuestionMark, Calendar, Users } from "lucide-react";
+import { X, BadgeQuestionMark, Calendar, Users, ClipboardList } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
+import AttendanceSubpage from "./AttendanceSubpage";
+import OverallTrackerSubpage from "./OverallTrackerSubpage";
+import ODTrackerSubpage from "./ODTrackerSubpage";
 
-export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus }) {
+export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
   const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
+  const [showOverallTracker, setShowOverallTracker] = useState(false);
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const slotMap = config.slotMap as any;
+
+  useEffect(() => {
+    if (setIsSubpageOpen) {
+      setIsSubpageOpen(expandedIdx !== null || showOverallTracker || showPredictor || showTimetable || showCommonFree || ODhoursIsOpen);
+    }
+  }, [expandedIdx, showOverallTracker, showPredictor, showTimetable, showCommonFree, ODhoursIsOpen, setIsSubpageOpen]);
 
   useEffect(() => {
     // Load friends meant for dashboard
@@ -162,8 +172,48 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   if (daysWithClasses.length === 0) return <NoContentFound />;
 
+  if (expandedIdx !== null && dayCardsMap[activeDay]?.[expandedIdx]) {
+    return (
+      <AttendanceSubpage
+        a={dayCardsMap[activeDay][expandedIdx]}
+        onBack={() => setExpandedIdx(null)}
+        dayCardsMap={dayCardsMap}
+        analyzeCalendars={results}
+        impDates={impDates}
+        decimalValues={decimalValues}
+        isDayscholarWithBus={isDayscholarWithBus}
+      />
+    );
+  }
+
+  if (showOverallTracker) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 md:-mx-4">
+        <OverallTrackerSubpage
+          attendanceData={data.attendance}
+          dayCardsMap={dayCardsMap}
+          analyzeCalendars={results}
+          onBack={() => setShowOverallTracker(false)}
+        />
+      </div>
+    );
+  }
+
+  if (ODhoursIsOpen) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 md:-mx-4">
+        <ODTrackerSubpage
+          ODhoursData={ODhoursData}
+          attendanceData={data.attendance}
+          analyzeCalendars={results}
+          onBack={() => setODhoursIsOpen(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
         {/* Mobile View: Inline Center */}
         <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
@@ -173,6 +223,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           Weekly Attendance
           <button onClick={() => setShowPredictor(true)} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
             <BadgeQuestionMark className={`w-4 h-4`} />
+          </button>
+          <button onClick={() => setShowOverallTracker(true)} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
+            <ClipboardList className={`w-4 h-4`} />
           </button>
           {dashboardFriends.length > 0 && (
             <button onClick={() => setShowCommonFree(true)} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 border border-green-500/20 font-medium transition-colors align-middle">
@@ -193,6 +246,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           )}
           <button onClick={() => setShowTimetable(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
             <Calendar className={`w-4 h-4`} /> <span className="text-sm">Timetable</span>
+          </button>
+          <button onClick={() => setShowOverallTracker(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
+            <ClipboardList className={`w-4 h-4`} /> <span className="text-sm">Tracker</span>
           </button>
           <button onClick={() => setShowPredictor(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
             <BadgeQuestionMark className={`w-4 h-4`} /> <span className="text-sm">Predictor</span>
@@ -227,17 +283,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
               decimalValues={decimalValues}
               isDayscholarWithBus={isDayscholarWithBus}
             />
-            {expandedIdx === idx && (
-              <PopupCard
-                a={a}
-                setExpandedIdx={setExpandedIdx}
-                dayCardsMap={dayCardsMap}
-                analyzeCalendars={results}
-                impDates={impDates}
-                decimalValues={decimalValues}
-                isDayscholarWithBus={isDayscholarWithBus}
-              />
-            )}
           </div>
         ))}
       </div>

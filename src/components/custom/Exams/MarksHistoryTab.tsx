@@ -166,12 +166,17 @@ export default function MarksHistoryTab({ data }) {
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <h4 className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm md:text-base">{course.courseCode} - {course.courseTitle}</h4>
-                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-slate-800 text-gray-600 dark:text-gray-300 midnight:text-gray-300">
-                      {course.courseType}
-                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-slate-800 text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+                        {course.courseType}
+                      </span>
+                      <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-400">
+                        Total: {course.grandTotal}%
+                      </span>
+                    </div>
                   </div>
                   <div className="text-right flex flex-col items-end justify-center">
-                    <div className="text-3xl font-black text-indigo-500">{course.grandTotal}<span className="text-lg text-indigo-400 ml-0.5">%</span></div>
+                    <div className="text-3xl font-black text-emerald-500 leading-none">{course.grade || '-'}</div>
                   </div>
                 </div>
 
@@ -183,6 +188,31 @@ export default function MarksHistoryTab({ data }) {
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-200 midnight:text-gray-100">{detail.scoredMark} <span className="text-xs text-gray-400 font-normal">/ {detail.maxMark}</span></p>
                       </div>
                     ))}
+                  </div>
+                )}
+                
+                {course.range && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase font-bold tracking-wider mb-2">Grade Ranges</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                      {Object.entries(course.range).map(([grade, rangeStr]: any, idx) => {
+                        let colorClass = 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700 midnight:bg-gray-800/50 midnight:text-gray-400';
+                        if (grade === 'S') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-900/20 midnight:text-emerald-400';
+                        else if (grade === 'A') colorClass = 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50 midnight:bg-green-900/20 midnight:text-green-400';
+                        else if (grade === 'B') colorClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50 midnight:bg-blue-900/20 midnight:text-blue-400';
+                        else if (grade === 'C') colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 midnight:bg-indigo-900/20 midnight:text-indigo-400';
+                        else if (grade === 'D') colorClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50 midnight:bg-purple-900/20 midnight:text-purple-400';
+                        else if (grade === 'E') colorClass = 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 midnight:bg-orange-900/20 midnight:text-orange-400';
+                        else if (grade === 'F' || grade === 'N') colorClass = 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-900/20 midnight:text-red-400';
+
+                        return (
+                          <div key={idx} className={`rounded-xl border p-2 flex flex-col items-center justify-center ${colorClass}`}>
+                            <span className="text-lg font-black mb-1">{grade}</span>
+                            <span className="text-[10px] font-bold tracking-wider text-center">{rangeStr}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

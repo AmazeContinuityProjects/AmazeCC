@@ -235,30 +235,7 @@ export default function NavigationTabs({
           </div>
         )}
 
-        <button
-          onClick={() => setActiveTab("more")}
-          className={navItemClass(activeTab === "more")}
-          title="More"
-        >
-          <LayoutGrid className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>More</span>
-        </button>
-        {activeTab === "more" && !settings.isSidebarCollapsed && (
-          <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
-            <button
-              onClick={() => setActiveMoreSubTab("social")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "social" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-            >
-              Social
-            </button>
-            <button
-              onClick={() => setActiveMoreSubTab("ffcs")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "ffcs" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-            >
-              FFCS Planner
-            </button>
-          </div>
-        )}
+
 
         <button
           onClick={() => setActiveTab("qbank")}
@@ -266,7 +243,10 @@ export default function NavigationTabs({
           title="Q-Bank Archive"
         >
           <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Q-Bank Archive</span>
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>
+            <span className="md:hidden">QB</span>
+            <span className="hidden md:inline">Q-Bank Archive</span>
+          </span>
         </button>
 
 
@@ -332,6 +312,30 @@ export default function NavigationTabs({
               </div>
             )}
           </>
+        )}
+        <button
+          onClick={() => setActiveTab("more")}
+          className={navItemClass(activeTab === "more")}
+          title="More"
+        >
+          <LayoutGrid className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>More</span>
+        </button>
+        {activeTab === "more" && !settings.isSidebarCollapsed && (
+          <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
+            <button
+              onClick={() => setActiveMoreSubTab("social")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "social" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Social
+            </button>
+            <button
+              onClick={() => setActiveMoreSubTab("ffcs")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "ffcs" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              FFCS Planner
+            </button>
+          </div>
         )}
 
         <div className="hidden md:block w-full flex-grow"></div>
