@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import NoContentFound from "../NoContentFound";
-import MarksDisplay from "./marksDislay";
+import MarksDisplay from "./MarksDisplay";
 import MoodleDisplay, { MoodleUserPassForm } from "./moodleDisplay";
 
 export default function MarksSubTab({ data, moodleData, handleFetchMoodle, setMoodleData, IDs }) {

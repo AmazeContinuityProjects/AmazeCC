@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Save, LogOut, Eye, User, Link2, ExternalLink, Github, Database, Shield, FileText, ChevronRight, History } from "lucide-react";
+import { X, Save, LogOut, Eye, User, Link2, ExternalLink, Github, Database, Shield, FileText, ChevronRight, History, RefreshCcw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "../../ui/button";
 import config from "../../../../config.json";
@@ -15,7 +15,7 @@ import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, isLoggedIn }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
     const [changeUsername, setChangedUsername] = useState<string>(username);
     const [changedPassword, setChangedPassword] = useState<string>(password);
@@ -226,8 +226,20 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         icon={User} 
                         title="Dayscholar with Bus" 
                         subtitle="Calculate attendance against 85% requirement"
-                        noBorder={true}
                         trailing={<Switch checked={isDayscholarWithBus} onCheckedChange={setIsDayscholarWithBus} />} 
+                    />
+                    <ListTile 
+                        icon={Shield} 
+                        title="Compact Mobile View" 
+                        subtitle="Hide header and stats on tabs other than Dashboard"
+                        trailing={<Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />} 
+                    />
+                    <ListTile 
+                        icon={RefreshCcw} 
+                        title="Reload All Data" 
+                        subtitle="Refresh button updates all data, not just attendance"
+                        noBorder={true}
+                        trailing={<Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />} 
                     />
                 </CardContainer>
 
