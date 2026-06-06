@@ -351,6 +351,11 @@ export default function LoginPage() {
     localStorage.setItem("IDs", JSON.stringify(IDs));
 
     try {
+      if (settings.reloadAllData) {
+        await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
+        return;
+      }
+
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
       const coreTask = fetch(`${API_BASE}/api/attendance`, {

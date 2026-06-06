@@ -6,7 +6,7 @@ import ODHoursModal from "./ODHoursModal";
 import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
 import ExamsSubTabs from "./Exams/ExamSubsTab";
-import MarksDisplay from "./Exams/marksDislay";
+import MarksDisplay from "./Exams/MarksDisplay";
 import ExamsScheduleDisplay from "./Exams/SchduleDisplay";
 import TestGradesContainer from "./Exams/TestGradesContainer";
 import CurriculumPage from "./Exams/CurriculumPage";
@@ -389,7 +389,7 @@ export default function DashboardContent({
         className={`bg-gray-50 dark:bg-gray-900 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="md:hidden">
+        <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""}`}>
           <div className="px-6 pt-6 pb-2 flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
@@ -587,6 +587,16 @@ export default function DashboardContent({
                 setCalendarType={(val: any) => {
                     setSettings(prev => ({ ...prev, calendarType: val }))
                     localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: val }))
+                }}
+                hideMobileHeader={settings.hideMobileHeader}
+                setHideMobileHeader={(val: boolean) => {
+                    setSettings(prev => ({ ...prev, hideMobileHeader: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, hideMobileHeader: val }))
+                }}
+                reloadAllData={settings.reloadAllData}
+                setReloadAllData={(val: boolean) => {
+                    setSettings(prev => ({ ...prev, reloadAllData: val }))
+                    localStorage.setItem("settings", JSON.stringify({ ...settings, reloadAllData: val }))
                 }}
               />
             </div>

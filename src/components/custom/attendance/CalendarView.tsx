@@ -222,10 +222,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
-                    <CalendarIcon className="text-blue-500" />
-                    Academic Calendar
-                    <span className="text-sm font-medium px-2 py-1 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 rounded-md text-gray-600 dark:text-gray-300 midnight:text-gray-400 border border-gray-200 dark:border-gray-700 midnight:border-gray-800">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-3 text-center md:text-left">
+                    <div className="flex items-center gap-2">
+                        <CalendarIcon className="text-blue-500 shrink-0" />
+                        <span>Academic Calendar</span>
+                    </div>
+                    <span className="text-xs md:text-sm font-medium px-2 py-1 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 rounded-md text-gray-600 dark:text-gray-300 midnight:text-gray-400 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 whitespace-nowrap">
                         {CALENDAR_TYPES[calendarType || "ALL"]}
                     </span>
                 </h1>
