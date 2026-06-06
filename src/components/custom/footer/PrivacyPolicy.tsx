@@ -31,7 +31,16 @@ export default function PrivacyPolicyPage({ handleClose }) {
                 <p>
                     All data fetched from <strong>VTOP</strong> (including your academic data, credentials, or
                     related content) is stored <strong>locally on your device</strong>. No information from VTOP is
-                    ever uploaded, transmitted, or stored on any external servers controlled by this app.
+                    ever uploaded, transmitted, or stored on any external servers controlled by this app, with the exception of the Grade Prediction feature.
+                </p>
+
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100 mt-4">
+                    Grade Prediction & Statistics
+                </h3>
+                <p>
+                    To calculate global class statistics (mean and standard deviation) for the Grade Prediction feature, your academic marks are temporarily sent to our server via an encrypted connection. 
+                    The server strictly processes the numbers in-memory to incrementally update the class-wide averages using Welford's Algorithm and then <strong>immediately discards</strong> your individual marks. 
+                    We do not store, map, or link any marks to any user. The process is completely anonymous. 
                 </p>
 
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100 mt-4">

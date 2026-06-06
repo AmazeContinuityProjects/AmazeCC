@@ -10,6 +10,7 @@ import { AllGradesRes } from "@/types/data/allgrades";
 import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
 import demoData from '../../app/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
+import { syncMarksDiff } from "@/lib/marksSync";
 
 export const API_BASE = "https://api.uni-cc.site";
 
@@ -364,6 +365,9 @@ export default function LoginPage() {
       sethostelData(HostelRes);
       setCalender(calenderRes);
 
+      const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+      syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
+
       localStorage.setItem("attendance", JSON.stringify(attRes));
       localStorage.setItem("marks", JSON.stringify(marksRes));
       localStorage.setItem("grades", JSON.stringify(gradesRes));
@@ -420,6 +424,8 @@ export default function LoginPage() {
         const { attRes, marksRes } = await r.json();
         setAttendanceAndOD(attRes);
         setMarksData(marksRes);
+        const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+        syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
         localStorage.setItem("attendance", JSON.stringify(attRes));
         localStorage.setItem("marks", JSON.stringify(marksRes));
         setMessage(prev => prev + "\n✅ Attendance & Marks fetched");
