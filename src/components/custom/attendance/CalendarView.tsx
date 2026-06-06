@@ -110,7 +110,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     <select
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-gray-800 midnight:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm"
+                        className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-gray-800 midnight:bg-gray-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm"
                     >
                         {Object.entries(CALENDAR_TYPES).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
@@ -256,12 +256,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             <Info size={20} className="text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">Up Next</p>
-                            <p className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-200">{upcomingEvent.text}</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 midnight:text-blue-400">Up Next</p>
+                            <p className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{upcomingEvent.text}</p>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                        <p className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 midnight:from-blue-400 midnight:to-purple-400">
                             {upcomingDays === 0 ? "Today" : `${upcomingDays} days`}
                         </p>
                     </div>
@@ -356,7 +356,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                     `}
                                     >
                                         <div className="w-full flex items-center justify-between mb-1">
-                                            <span className={`text-base font-semibold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 midnight:text-gray-400'}`}>
+                                            <span className={`text-base font-semibold ${isToday ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-gray-700 dark:text-gray-300 midnight:text-gray-400'}`}>
                                                 {date}
                                             </span>
                                             {dayType !== "other" && events.length > 0 && (

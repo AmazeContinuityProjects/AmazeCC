@@ -144,7 +144,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6 pb-20">
-            <Button variant="ghost" onClick={onBack} className="mb-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white">
+            <Button variant="ghost" onClick={onBack} className="mb-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white midnight:hover:text-white">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
             </Button>
 
@@ -152,11 +152,11 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                 {/* Left Pane (Stats) */}
                 <div className="xl:col-span-1 space-y-6">
                     <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 midnight:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400 flex items-center justify-center mb-4">
                             <Award size={32} />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2">OD Tracker</h2>
-                        <p className="text-sm text-gray-500 mb-6">Track your approved On-Duty hours and find out if you attended classes while on OD.</p>
+                        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-2">OD Tracker</h2>
+                        <p className="text-sm text-gray-500 midnight:text-gray-400 mb-6">Track your approved On-Duty hours and find out if you attended classes while on OD.</p>
                         
                         <div className="grid grid-cols-2 gap-4 w-full">
                             <div className={`p-4 bg-emerald-50 border border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/10 midnight:bg-gray-900 rounded-xl ${recoveredODsCount > 0 ? "col-span-2" : "col-span-2"}`}>
@@ -164,8 +164,8 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                 <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{totalODHours}</p>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Valid Hours</p>
-                                <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">{validODsCount}</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-gray-500 midnight:text-gray-400 uppercase tracking-wider mb-1">Valid Hours</p>
+                                <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400">{validODsCount}</p>
                             </div>
                             <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 midnight:bg-gray-900 rounded-xl relative group">
                                 <div className="absolute top-2 right-2 text-red-400 opacity-50"><ShieldAlert size={14} /></div>
@@ -186,21 +186,21 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                 {/* Right Pane (Log) */}
                 <div className="xl:col-span-2 min-w-0 w-full">
                     <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
                                 <div className="min-w-0">
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
                                         OD History Log
                                     </h2>
                                 </div>
                                 <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto shrink-0">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <CalendarDays size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <Grid3x3 size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <List size={18} />
                                     </button>
                                 </div>
@@ -252,16 +252,16 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                     ) : (
                                         masterODHistory.map((d, i) => {
                                             let dotColor = "bg-emerald-500";
-                                            let textCol = "text-emerald-600 dark:text-emerald-400";
+                                            let textCol = "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400";
                                             let title = "Valid OD";
 
                                             if (d.allWasted) { 
                                                 dotColor = "bg-red-500"; 
-                                                textCol = "text-red-600 dark:text-red-400"; 
+                                                textCol = "text-red-600 dark:text-red-400 midnight:text-red-400"; 
                                                 title = "Wasted OD";
                                             } else if (d.hasWasted) { 
                                                 dotColor = "bg-amber-500"; 
-                                                textCol = "text-amber-600 dark:text-amber-400"; 
+                                                textCol = "text-amber-600 dark:text-amber-400 midnight:text-amber-400"; 
                                                 title = "Partial Wasted";
                                             }
 
@@ -271,8 +271,8 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                                         <div className={`w-2 h-10 rounded-full shrink-0 ${dotColor}`}></div>
                                                         <div className="min-w-0 flex-1">
                                                             <div className="flex items-baseline justify-between gap-2 min-w-0">
-                                                                <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{d.date}</p>
-                                                                <span className="text-xs font-semibold text-gray-500 shrink-0">{d.totalHours} Hours</span>
+                                                                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">{d.date}</p>
+                                                                <span className="text-xs font-semibold text-gray-500 midnight:text-gray-400 shrink-0">{d.totalHours} Hours</span>
                                                             </div>
                                                             <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 truncate ${textCol}`}>
                                                                 {title}
@@ -280,14 +280,14 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                                         </div>
                                                     </div>
 
-                                                    <div className="mt-3 pl-6 border-l-2 border-gray-100 dark:border-gray-800 ml-1 space-y-2 min-w-0">
+                                                    <div className="mt-3 pl-6 border-l-2 border-gray-100 dark:border-gray-800 midnight:border-gray-800 ml-1 space-y-2 min-w-0">
                                                         {d.courses.map((c, idx) => (
-                                                            <div key={idx} className={`flex items-center justify-between gap-3 p-2 rounded-lg border min-w-0 ${c.isWasted ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30' : c.isRecovered ? 'bg-purple-50 border-purple-100 dark:bg-purple-900/10 dark:border-purple-900/30' : 'bg-gray-50/50 border-transparent dark:bg-slate-800/50'}`}>
+                                                            <div key={idx} className={`flex items-center justify-between gap-3 p-2 rounded-lg border min-w-0 ${c.isWasted ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30 midnight:bg-gray-900 midnight:border-red-900/30' : c.isRecovered ? 'bg-purple-50 border-purple-100 dark:bg-purple-900/10 dark:border-purple-900/30 midnight:bg-gray-900 midnight:border-purple-900/30' : 'bg-gray-50/50 border-transparent dark:bg-slate-800/50 midnight:bg-gray-900/50'}`}>
                                                                 <div className="min-w-0 flex-1 flex flex-col gap-0.5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <p className={`text-xs font-bold truncate ${c.isWasted ? 'text-red-700 dark:text-red-400 line-through opacity-70' : c.isRecovered ? 'text-purple-700 dark:text-purple-400' : 'text-gray-900 dark:text-gray-200'}`}>{c.title}</p>
+                                                                        <p className={`text-xs font-bold truncate ${c.isWasted ? 'text-red-700 dark:text-red-400 midnight:text-red-400 line-through opacity-70' : c.isRecovered ? 'text-purple-700 dark:text-purple-400 midnight:text-purple-400' : 'text-gray-900 dark:text-gray-200 midnight:text-gray-200'}`}>{c.title}</p>
                                                                         {c.timeString && (
-                                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold border ${c.isWasted ? 'bg-red-100 text-red-600 border-red-200 dark:bg-red-900/30 dark:border-red-800' : c.isRecovered ? 'bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-slate-700 dark:border-gray-600'}`}>
+                                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold border ${c.isWasted ? 'bg-red-100 text-red-600 border-red-200 dark:bg-red-900/30 dark:border-red-800 midnight:bg-red-900/30 midnight:text-red-400 midnight:border-red-800' : c.isRecovered ? 'bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 midnight:bg-purple-900/30 midnight:text-purple-400 midnight:border-purple-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-slate-700 dark:border-gray-600 midnight:bg-gray-800 midnight:text-gray-400 midnight:border-gray-700'}`}>
                                                                                 {c.timeString}
                                                                             </span>
                                                                         )}
@@ -295,12 +295,12 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                                                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">{c.type}</p>
                                                                 </div>
                                                                 {c.isWasted && (
-                                                                    <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded flex items-center gap-1 dark:bg-red-900/30 dark:text-red-400">
+                                                                    <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded flex items-center gap-1 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400">
                                                                         <ShieldAlert size={12}/> Wasted
                                                                     </span>
                                                                 )}
                                                                 {c.isRecovered && (
-                                                                    <span className="shrink-0 text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-0.5 rounded flex items-center gap-1 dark:bg-purple-900/30 dark:text-purple-400">
+                                                                    <span className="shrink-0 text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-0.5 rounded flex items-center gap-1 dark:bg-purple-900/30 dark:text-purple-400 midnight:bg-purple-900/30 midnight:text-purple-400">
                                                                         <CheckCircle2 size={12}/> Recovered
                                                                     </span>
                                                                 )}

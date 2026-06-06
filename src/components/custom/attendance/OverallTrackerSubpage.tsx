@@ -181,7 +181,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6 pb-20">
-            <Button variant="ghost" onClick={onBack} className="mb-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white">
+            <Button variant="ghost" onClick={onBack} className="mb-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white midnight:hover:text-white">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
             </Button>
 
@@ -189,20 +189,20 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                 {/* Left Pane (Predictor could go here later, or stats) */}
                 <div className="xl:col-span-1 space-y-6">
                     <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 flex items-center justify-center mb-4">
                             <FileText size={32} />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2">Overall Tracker</h2>
-                        <p className="text-sm text-gray-500 mb-6">Manage notes and track all absences across your entire timetable in one place.</p>
+                        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-2">Overall Tracker</h2>
+                        <p className="text-sm text-gray-500 midnight:text-gray-400 mb-6">Manage notes and track all absences across your entire timetable in one place.</p>
                         
                         <div className="grid grid-cols-2 gap-4 w-full">
                             <div className="p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Missed Days</p>
-                                <p className="text-2xl font-black text-red-600 dark:text-red-400">{totalMissedDaysCount}</p>
+                                <p className="text-xs font-bold text-gray-500 midnight:text-gray-400 uppercase tracking-wider mb-1">Missed Days</p>
+                                <p className="text-2xl font-black text-red-600 dark:text-red-400 midnight:text-red-400">{totalMissedDaysCount}</p>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Classes</p>
-                                <p className="text-2xl font-black text-blue-600 dark:text-blue-400">{masterHistory.length}</p>
+                                <p className="text-xs font-bold text-gray-500 midnight:text-gray-400 uppercase tracking-wider mb-1">Total Classes</p>
+                                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400">{masterHistory.length}</p>
                             </div>
                         </div>
                     </div>
@@ -211,21 +211,21 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                 {/* Right Pane (Log) */}
                 <div className="xl:col-span-2 min-w-0 w-full">
                     <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
                                         Aggregated Log
                                     </h2>
                                 </div>
                                 <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <CalendarDays size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <Grid3x3 size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <List size={18} />
                                     </button>
                                 </div>
@@ -291,7 +291,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     <div className="flex items-center gap-4">
                                                         <div className={`w-2 h-10 rounded-full ${dotColor}`}></div>
                                                         <div>
-                                                            <p className="font-bold text-gray-900 dark:text-gray-100">{d.date}</p>
+                                                            <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
                                                             <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${textCol}`}>
                                                                 {d.overallStatus}
                                                             </p>
@@ -304,35 +304,35 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                                 onClick={(e) => toggleMasterNotes(d.date, d.missedClasses, e)}
                                                                 className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                                     allSecured 
-                                                                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400" 
-                                                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700"
+                                                                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
+                                                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
                                                                 }`}
                                                             >
                                                                 {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
                                                                 <span className="hidden sm:inline">{allSecured ? "All Secured" : "Get Notes"}</span>
                                                             </button>
-                                                            {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                                                            {isExpanded ? <ChevronUp size={16} className="text-gray-400 midnight:text-gray-500" /> : <ChevronDown size={16} className="text-gray-400 midnight:text-gray-500" />}
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Expanded Details */}
                                                 {!isPresent && isExpanded && (
-                                                    <div className="mt-4 pl-6 border-l-2 border-gray-100 dark:border-gray-800 ml-1 space-y-3">
+                                                    <div className="mt-4 pl-6 border-l-2 border-gray-100 dark:border-gray-800 midnight:border-gray-800 ml-1 space-y-3">
                                                         {d.missedClasses.map((c, idx) => {
                                                             const isSecured = notesTracker[c.courseCode]?.[d.date] === true;
                                                             return (
-                                                                <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50 dark:bg-slate-800/50 p-2 rounded-lg">
+                                                                <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-2 rounded-lg">
                                                                     <div>
-                                                                        <p className="text-xs font-bold text-gray-900 dark:text-gray-200">{c.courseTitle}</p>
-                                                                        <p className="text-[10px] text-gray-500 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
+                                                                        <p className="text-xs font-bold text-gray-900 dark:text-gray-200 midnight:text-gray-200">{c.courseTitle}</p>
+                                                                        <p className="text-[10px] text-gray-500 midnight:text-gray-400 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
                                                                     </div>
                                                                     <button 
                                                                         onClick={(e) => toggleIndividualNote(d.date, c.courseCode, e)}
                                                                         className={`flex items-center justify-center p-1.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
                                                                             isSecured 
-                                                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" 
-                                                                                : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300"
+                                                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" 
+                                                                                : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-400 midnight:hover:bg-gray-700"
                                                                         }`}
                                                                     >
                                                                         {isSecured ? <CheckCircle2 size={12} /> : <FileText size={12} />}

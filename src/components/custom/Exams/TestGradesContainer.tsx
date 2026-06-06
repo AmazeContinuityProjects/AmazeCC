@@ -100,6 +100,7 @@ export default function TestGradesContainer({ data, marksData, gradesData, atten
           />
         ) : view === "curriculum" ? (
           <CurriculumPage
+            allGradesData={data}
             gradesData={gradesData}
             marksData={marksData}
             attendance={attendance}

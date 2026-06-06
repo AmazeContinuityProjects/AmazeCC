@@ -58,32 +58,57 @@ interface EffectiveGradeItem {
 }
 
 // ── main component ──────────────────────────────────────────────────
-export default function CurriculumPage({ gradesData, marksData, attendance, handleFetchGrades }: {
+export default function CurriculumPage({ allGradesData, gradesData, marksData, attendance, handleFetchGrades }: {
+  allGradesData?: any;
   gradesData: any;
   marksData: any;
   attendance: any;
   handleFetchGrades: () => void;
 }) {
+  const findCurriculum = () => {
+    const sources = [
+      allGradesData?.curriculum, allGradesData?.cgpa?.curriculum, allGradesData?.grades?.curriculum, allGradesData?.data?.curriculum,
+      gradesData?.curriculum, gradesData?.cgpa?.curriculum, gradesData?.grades?.curriculum, gradesData?.data?.curriculum,
+      marksData?.curriculum, marksData?.cgpa?.curriculum, marksData?.grades?.curriculum
+    ];
+    for (const src of sources) {
+      if (Array.isArray(src) && src.length > 0) return src;
+    }
+    return [];
+  };
+
+  const findEffectiveGrades = () => {
+    const sources = [
+      allGradesData?.effectiveGrades, allGradesData?.cgpa?.effectiveGrades, allGradesData?.grades?.effectiveGrades, allGradesData?.data?.effectiveGrades,
+      gradesData?.effectiveGrades, gradesData?.cgpa?.effectiveGrades, gradesData?.grades?.effectiveGrades, gradesData?.data?.effectiveGrades,
+      marksData?.effectiveGrades, marksData?.cgpa?.effectiveGrades, marksData?.grades?.effectiveGrades
+    ];
+    for (const src of sources) {
+      if (Array.isArray(src) && src.length > 0) return src;
+    }
+    return [];
+  };
+
   // ─ resolve curriculum array ─
-  // curriculum comes from /api/grades response (gradesData), NOT from /api/attendance (marksData)
-  let curriculum: CurriculumItem[] = [];
-  if (Array.isArray(gradesData?.curriculum) && gradesData.curriculum.length > 0) curriculum = gradesData.curriculum;
-  else if (Array.isArray(marksData?.curriculum) && marksData.curriculum.length > 0) curriculum = marksData.curriculum;
-  else if (Array.isArray(gradesData?.cgpa?.curriculum) && gradesData.cgpa.curriculum.length > 0) curriculum = gradesData.cgpa.curriculum;
-  else if (Array.isArray(marksData?.cgpa?.curriculum) && marksData.cgpa.curriculum.length > 0) curriculum = marksData.cgpa.curriculum;
+  let curriculum: CurriculumItem[] = findCurriculum();
 
   // ─ resolve effective grades ─
-  // effectiveGrades also comes from /api/grades response (gradesData)
-  let effectiveGrades: EffectiveGradeItem[] = [];
-  if (Array.isArray(gradesData?.effectiveGrades)) effectiveGrades = gradesData.effectiveGrades;
-  else if (Array.isArray(marksData?.effectiveGrades)) effectiveGrades = marksData.effectiveGrades;
+  let effectiveGrades: EffectiveGradeItem[] = findEffectiveGrades();
   // Filter out the header row that comes from VTOP
   effectiveGrades = effectiveGrades.filter(eg => !isNaN(parseFloat(eg.creditsEarned)));
 
   // ─ totals ─
   const totalRow = curriculum.find(c => (c.basketTitle || "").toLowerCase().includes("total credits"));
-  const totalRequired = totalRow ? parseFloat(totalRow.creditsRequired) : 160;
-  const totalEarned = totalRow ? parseFloat(totalRow.creditsEarned) : 0;
+  let totalRequired = totalRow ? parseFloat(totalRow.creditsRequired) : 160;
+  let totalEarned = totalRow ? parseFloat(totalRow.creditsEarned) : 0;
+
+  if (totalEarned === 0 && marksData?.cgpa?.creditsEarned) {
+    totalEarned = parseFloat(marksData.cgpa.creditsEarned) + parseFloat(marksData.cgpa.nonGradedRequirement || "0");
+    totalRequired = parseFloat(marksData.cgpa.creditsRequired) || 160;
+  }
+  if (totalEarned === 0 && effectiveGrades.length > 0) {
+    totalEarned = effectiveGrades.reduce((acc, curr) => acc + (parseFloat(curr.creditsEarned) || 0), 0);
+  }
 
   // ─ category splits ─
   const specialBaskets = ["Extra curricular activities", "HSM Elective", "Foreign Language"];

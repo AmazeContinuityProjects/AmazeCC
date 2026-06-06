@@ -44,7 +44,7 @@ export default function AddFriendModal({ onClose, onAdd }) {
         <div className="p-6">
           <form onSubmit={handleAdd} className="space-y-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Paste your friend's schedule code below to add them. Codes generated from the <strong>fkvit</strong> app are fully supported.
+              Paste your friend's schedule code below to add them. Codes generated from the <strong>VIT Verse App and Clones</strong> app are fully supported.
             </p>
             
             <div>

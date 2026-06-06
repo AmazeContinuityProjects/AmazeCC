@@ -104,7 +104,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 const status = dataObj?.status; 
                                 const entry = dataObj?.entry;
                                 
-                                let bgClass = "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-800/50";
+                                let bgClass = "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-800/50 midnight:hover:bg-gray-900/50";
                                 let dotColor = "";
 
                                 if (isODTracker) {
@@ -159,7 +159,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                         className={`relative flex flex-col p-2 h-24 sm:h-28 border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
                                     >
                                         <div className="w-full flex justify-between items-start">
-                                            <span className={`text-sm font-semibold ${status ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-500'}`}>
+                                            <span className={`text-sm font-semibold ${status ? 'text-gray-900 dark:text-gray-100 midnight:text-gray-100' : 'text-gray-500 dark:text-gray-500 midnight:text-gray-500'}`}>
                                                 {date}
                                             </span>
                                             {dotColor && <div className={`w-2 h-2 rounded-full mt-1 ${dotColor}`} />}
@@ -168,15 +168,15 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                             <div className="mt-auto text-left flex flex-col gap-1.5">
                                                 <span className={`text-[10px] font-bold uppercase tracking-wider ${
                                                     isODTracker ? (
-                                                        status === "valid od" ? "text-emerald-600 dark:text-emerald-400" :
-                                                        status === "wasted od" ? "text-red-600 dark:text-red-400" :
-                                                        "text-amber-600 dark:text-amber-400"
+                                                        status === "valid od" ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" :
+                                                        status === "wasted od" ? "text-red-600 dark:text-red-400 midnight:text-red-400" :
+                                                        "text-amber-600 dark:text-amber-400 midnight:text-amber-400"
                                                     ) : (
-                                                        status === "present" ? "text-emerald-600 dark:text-emerald-400" :
-                                                        status === "absent" ? "text-red-600 dark:text-red-400" :
-                                                        status.includes("half-day") ? "text-orange-600 dark:text-orange-400" :
-                                                        status.includes("partially absent") ? "text-rose-600 dark:text-rose-400" :
-                                                        "text-yellow-600 dark:text-yellow-400"
+                                                        status === "present" ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" :
+                                                        status === "absent" ? "text-red-600 dark:text-red-400 midnight:text-red-400" :
+                                                        status.includes("half-day") ? "text-orange-600 dark:text-orange-400 midnight:text-orange-400" :
+                                                        status.includes("partially absent") ? "text-rose-600 dark:text-rose-400 midnight:text-rose-400" :
+                                                        "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"
                                                     )
                                                 }`}>
                                                     {status}
@@ -189,10 +189,10 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                                             if (isOverall) toggleNotes(exactDateStr, entry.missedClasses, e);
                                                             else toggleNotes(exactDateStr); 
                                                         }}
-                                                        className={`flex items-center justify-center gap-1 py-1 rounded text-[10px] font-semibold transition-all w-full ${
+                                                        className={`flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
                                                             hasNotes 
-                                                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400" 
-                                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700"
+                                                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
+                                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={12} /> : <FileText size={12} />}
@@ -232,17 +232,17 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
                                     return (
-                                        <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50 dark:bg-slate-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                                        <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800">
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-200">{c.courseTitle}</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-200 midnight:text-gray-200">{c.courseTitle}</p>
                                                 <p className="text-xs text-gray-500 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
                                             </div>
                                             <button 
                                                 onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
-                                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                     isSecured 
-                                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" 
-                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300"
+                                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" 
+                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
                                                 }`}
                                             >
                                                 {isSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}

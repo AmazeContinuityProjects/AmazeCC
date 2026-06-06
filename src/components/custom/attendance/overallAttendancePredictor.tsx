@@ -213,7 +213,7 @@ export default function OverallAttendancePredictor({
               size="sm"
               onClick={() => setMode(type)}
               className={`text-xs ${mode === type
-                ? "bg-blue-600 text-white dark:bg-blue-700"
+                ? "bg-blue-600 text-white dark:bg-blue-700 midnight:bg-blue-700"
                 : "bg-gray-200 dark:bg-slate-700 midnight:bg-gray-900 text-gray-700 dark:text-gray-200 midnight:text-gray-200 hover:bg-blue-200 dark:hover:bg-blue-800 midnight:hover:bg-gray-800"
                 }`}
             >

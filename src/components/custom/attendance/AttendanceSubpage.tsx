@@ -199,7 +199,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                     <span className="text-emerald-600 dark:text-emerald-400">Attending: <strong>{attending}</strong></span>
                     <span className="text-red-500 dark:text-red-400">Skipping: <strong>{missed}</strong></span>
                 </div>
-                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50"}`}>
+                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-900/30 midnight:text-emerald-400 midnight:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-900/30 midnight:text-red-400 midnight:border-red-800/50"}`}>
                     Predicted: {predictedPercent}%
                 </div>
             </div>
@@ -225,16 +225,16 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                                 "bg-white border-gray-200 dark:bg-slate-800 dark:border-gray-700 midnight:bg-gray-950 midnight:border-gray-800"
                             }`}
                         >
-                            <span className={`font-bold text-sm ${isSkipped ? "text-red-700 dark:text-red-400" : "text-gray-800 dark:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-500" : "text-gray-500 dark:text-gray-400"}`}>{weekday}</span>
+                            <span className={`font-bold text-sm ${isSkipped ? "text-red-700 dark:text-red-400 midnight:text-red-400" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"}`}>{dateStr}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-500 midnight:text-red-500" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
             </div>
-            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300 dark:bg-slate-800 dark:border-gray-600"></div>Attending</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300 dark:bg-red-900/40 dark:border-red-800"></div>Skipping</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300 dark:bg-gray-700 dark:border-gray-600"></div>Ignored</div>
+            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300 dark:bg-slate-800 dark:border-gray-600 midnight:bg-gray-900 midnight:border-gray-700"></div>Attending</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300 dark:bg-red-900/40 dark:border-red-800 midnight:bg-red-900/40 midnight:border-red-800"></div>Skipping</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 midnight:bg-gray-800 midnight:border-gray-700"></div>Ignored</div>
             </div>
         </div>
     );
@@ -415,7 +415,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
                         {a.courseTitle}
                     </h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
                         {a.courseCode.slice(0, -3)} <span className="mx-1">•</span> {a.courseCode.endsWith('(L)') ? "Lab" : "Theory"} <span className="mx-1">•</span> {a.credits} Credits
                     </p>
                 </div>
@@ -423,16 +423,16 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
             {/* Badges Row */}
             <div className="flex flex-wrap gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
                     <Calendar className="w-4 h-4 text-blue-500" /> {a.slotName}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
                     <Building2 className="w-4 h-4 text-purple-500" /> {a.slotVenue}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
                     <Clock className="w-4 h-4 text-orange-500" /> {a.time}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
                     <User className="w-4 h-4 text-green-500" /> {a.faculty}
                 </div>
             </div>
@@ -442,9 +442,9 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                 {/* Attendance Dial Card */}
                 <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
                     <div>
-                        <h3 className="text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
-                        <p className="text-3xl font-black text-gray-900 dark:text-gray-100">{a.attendancePercentage}%</p>
-                        <p className="text-sm text-gray-500 font-medium mt-1">{a.attendedClasses} / {a.totalClasses} Classes</p>
+                        <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
+                        <p className="text-3xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{a.attendancePercentage}%</p>
+                        <p className="text-sm text-gray-500 midnight:text-gray-400 font-medium mt-1">{a.attendedClasses} / {a.totalClasses} Classes</p>
                     </div>
                     <div className="w-24 h-24">
                         <CircularProgressbar
@@ -463,7 +463,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
                 {/* Insights Card */}
                 <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 shadow-sm md:col-span-2 flex flex-col justify-center">
-                    <h3 className="text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
+                    <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
                     {a.totalClasses > 0 && (() => {
                         const attended = a.attendedClasses;
                         const total = a.totalClasses;
@@ -475,12 +475,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
                             return (
                                 <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl">
+                                    <div className="p-3 bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/30 text-red-600 dark:text-red-400 midnight:text-red-400 rounded-xl">
                                         <AlertCircle size={24} />
                                     </div>
                                     <div>
-                                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100">Critical Status</p>
-                                        <p className="text-gray-600 dark:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {lab ? "lab" : "class"}{neededValue > 1 && (lab ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
+                                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Critical Status</p>
+                                        <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {lab ? "lab" : "class"}{neededValue > 1 && (lab ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
                                     </div>
                                 </div>
                             );
@@ -491,24 +491,24 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                             if (canMissValue === 0) {
                                 return (
                                     <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-xl">
+                                        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 midnight:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400 rounded-xl">
                                             <AlertCircle size={24} />
                                         </div>
                                         <div>
-                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">On the Edge</p>
-                                            <p className="text-gray-600 dark:text-gray-400 mt-1">You cannot afford to miss the next {lab ? "lab" : "class"}. Attend to build a safety buffer.</p>
+                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">On the Edge</p>
+                                            <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You cannot afford to miss the next {lab ? "lab" : "class"}. Attend to build a safety buffer.</p>
                                         </div>
                                     </div>
                                 );
                             } else {
                                 return (
                                     <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                                        <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 rounded-xl">
                                             <Star size={24} />
                                         </div>
                                         <div>
-                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">Safe Margin</p>
-                                            <p className="text-gray-600 dark:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {lab ? "lab" : "class"}{canMissValue !== 1 && (lab ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
+                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Safe Margin</p>
+                                            <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {lab ? "lab" : "class"}{canMissValue !== 1 && (lab ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
                                         </div>
                                     </div>
                                 );
@@ -526,8 +526,8 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                     <div className="xl:col-span-2">
                         <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
                             <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Interactive Predictor</h2>
-                                <p className="text-sm text-gray-500">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Interactive Predictor</h2>
+                                <p className="text-sm text-gray-500 midnight:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                             </div>
                             <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
                                 {[
@@ -540,14 +540,14 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         <div key={key} className="w-full">
                                             <button
                                                 onClick={() => toggleDropdown(key)}
-                                                className="flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900 transition-colors"
+                                                className="flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900 transition-colors"
                                             >
                                                 <span className="flex items-center gap-2">
                                                     <CalendarIcon size={18} className="text-blue-500" />
                                                     {label}
                                                 </span>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{data.length} Left</span>
+                                                    <span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>
                                                     {openDropdown === key ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                                                 </div>
                                             </button>
@@ -577,24 +577,24 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                         <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
                                         Attendance Log
                                         {missingNotesCount > 0 && (
-                                            <span className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                                            <span className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold">
                                                 {missingNotesCount} Missing Notes
                                             </span>
                                         )}
                                     </h2>
-                                    {!hasPredictor && <p className="text-sm text-gray-500 mt-1">Track your past classes and secure notes for days you missed.</p>}
+                                    {!hasPredictor && <p className="text-sm text-gray-500 midnight:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
                                 </div>
                                 <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <CalendarIcon size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <Grid3x3 size={18} />
                                     </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>
+                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
                                         <List size={18} />
                                     </button>
                                 </div>
@@ -607,7 +607,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         <button
                                             key={f}
                                             onClick={() => setFilter(f)}
-                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}
                                         >
                                             {f}
                                         </button>
@@ -662,7 +662,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                     </div>
                                 </div>
                             ) : filteredHistory.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                                <div className="p-8 text-center text-gray-500 dark:text-gray-400 midnight:text-gray-400">
                                     No records found for "{filter}".
                                 </div>
                             ) : (
@@ -675,12 +675,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                                         return (
-                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-900/30 transition-colors">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 dark:text-gray-100">{d.date}</p>
-                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400" : "text-yellow-600 dark:text-yellow-400"}`}>
+                                                        <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
+                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400 midnight:text-red-400" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"}`}>
                                                             {d.status}
                                                         </p>
                                                     </div>
@@ -691,8 +691,8 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                         onClick={() => toggleNotes(d.date)}
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                             hasNotes 
-                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400" 
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700"
+                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={14} /> : <FileText size={14} />}

@@ -1,5 +1,19 @@
 [
   {
+    "version": "v1.2.0",
+    "date": "2026-06-06",
+    "changes": [
+      "Overhauled OD Tracker from a popup into a full-screen Focus Mode subpage with Calendar and Heatmap views.",
+      "Replaced OD Tracker's retrospective deduction with a dynamic cross-session state monitor to precisely capture Wasted ODs.",
+      "Added 'Recovered ODs' tracker for when overridden ODs are manually corrected back to Present.",
+      "Added exact 24-hour class timings to the OD History Log.",
+      "Fixed heatmap aggregation bug that caused incorrect color rendering for multiple classes on a single day.",
+      "Fixed mobile viewport overflow issues on CGPA Predictor and OD Tracker subpages.",
+      "Renamed 'QBank Archive' to 'QB' on the mobile navigation bar and repositioned the 'More' tab.",
+      "Optimized mobile focus mode to hide distracting tabs and bottom navigation while viewing subpages."
+    ]
+  },
+  {
     "version": "v1.1.0",
     "date": "2026-06-05",
     "changes": [

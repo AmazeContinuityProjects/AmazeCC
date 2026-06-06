@@ -15,12 +15,14 @@ import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
     const [changeUsername, setChangedUsername] = useState<string>(username);
     const [changedPassword, setChangedPassword] = useState<string>(password);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [appIcon, setAppIcon] = useState<string>("default");
+    const [isEditingName, setIsEditingName] = useState<boolean>(false);
+    const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
 
     // Footer Modals State
     const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
@@ -112,9 +114,32 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
                             <User size={36} className="text-white" />
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 tracking-tight">{username || "Student"}</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">AmazeCC User</p>
+                        <div className="flex-1 min-w-0">
+                            {isEditingName ? (
+                                <div className="flex items-center gap-2 max-w-sm">
+                                    <input 
+                                        type="text" 
+                                        value={tempFriendlyName} 
+                                        onChange={(e) => setTempFriendlyName(e.target.value)} 
+                                        placeholder="Enter preferred name..." 
+                                        className="flex-1 px-3 py-1 text-lg font-bold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-md text-gray-900 dark:text-gray-100"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                setFriendlyName(tempFriendlyName);
+                                                setIsEditingName(false);
+                                            }
+                                        }}
+                                    />
+                                    <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-emerald-500 hover:bg-emerald-600 text-white">Save</Button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 tracking-tight truncate max-w-[200px] sm:max-w-xs">{friendlyName || username || "Student"}</h2>
+                                    <button onClick={() => setIsEditingName(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded hover:bg-blue-100 transition-colors">Edit</button>
+                                </div>
+                            )}
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">{friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}</p>
                         </div>
                     </div>
                 </CardContainer>

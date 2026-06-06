@@ -22,6 +22,7 @@ type settings = {
   loadingScreen: boolean;
   isDayscholarWithBus: boolean;
   residentialStatus?: "hosteller" | "dayscholar";
+  friendlyName?: string;
 }
 
 type IDs = {
@@ -39,7 +40,8 @@ const defaultSettings: settings = {
   calendarType: "ALL",
   loadingScreen: false,
   isDayscholarWithBus: false,
-  residentialStatus: "hosteller"
+  residentialStatus: "hosteller",
+  friendlyName: ""
 };
 
 const defaultIDs: IDs = {
@@ -665,6 +667,11 @@ export default function LoginPage() {
             setResidentialStatus={(val: "hosteller" | "dayscholar") => {
               setSettings(prev => ({ ...prev, residentialStatus: val }));
               localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
+            }}
+            isDayscholarWithBus={settings.isDayscholarWithBus || false}
+            setIsDayscholarWithBus={(val: boolean) => {
+              setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
+              localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
             }}
           />
         </div>

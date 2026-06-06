@@ -23,7 +23,7 @@ const normalizeGradesCategory = (rawCategory?: string | null) => {
   }
 };
 
-export default function GradesModal({ GradesData, onClose, handleFetchGrades, marksData, attendance }) {
+export default function GradesModal({ allGradesData, GradesData, onClose, handleFetchGrades, marksData, attendance }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -34,7 +34,7 @@ export default function GradesModal({ GradesData, onClose, handleFetchGrades, ma
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="rounded-2xl shadow-lg w-11/12 max-w-md md:max-w-5xl max-h-[90vh] overflow-y-auto relative bg-white dark:bg-slate-800 midnight:bg-black midnight:border midnight:border-gray-800">
-        <GradesDisplay data={GradesData} handleFetchGrades={handleFetchGrades} marksData={marksData} attendance={attendance} />
+        <GradesDisplay allGradesData={allGradesData} data={GradesData} handleFetchGrades={handleFetchGrades} marksData={marksData} attendance={attendance} />
         <Button
           variant="ghost"
           size="icon"
@@ -48,7 +48,7 @@ export default function GradesModal({ GradesData, onClose, handleFetchGrades, ma
   );
 }
 
-function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
+function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, attendance }) {
   if (!data || !marksData?.cgpa) {
     return (
       <div>
@@ -64,13 +64,19 @@ function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
   }
 
   const safeAttendance = Array.isArray(attendance) ? attendance : [];
-  let rawCurriculum = [];
-  if (Array.isArray(data?.curriculum) && data.curriculum.length > 0) rawCurriculum = data.curriculum;
-  else if (Array.isArray(marksData?.curriculum) && marksData.curriculum.length > 0) rawCurriculum = marksData.curriculum;
-  else if (Array.isArray(data?.cgpa?.curriculum) && data.cgpa.curriculum.length > 0) rawCurriculum = data.cgpa.curriculum;
-  else if (Array.isArray(marksData?.cgpa?.curriculum) && marksData.cgpa.curriculum.length > 0) rawCurriculum = marksData.cgpa.curriculum;
+  const findCurriculum = () => {
+    const sources = [
+      allGradesData?.curriculum, allGradesData?.cgpa?.curriculum, allGradesData?.grades?.curriculum, allGradesData?.data?.curriculum,
+      data?.curriculum, data?.cgpa?.curriculum, data?.grades?.curriculum, data?.data?.curriculum,
+      marksData?.curriculum, marksData?.cgpa?.curriculum, marksData?.grades?.curriculum
+    ];
+    for (const src of sources) {
+      if (Array.isArray(src) && src.length > 0) return src;
+    }
+    return [];
+  };
 
-  const curriculum = rawCurriculum;
+  const curriculum = findCurriculum();
 
   const ongoingCreditsByCategory = safeAttendance.reduce<Record<string, number>>((acc, item) => {
     let category = item.category || "Uncategorized";
@@ -104,7 +110,19 @@ function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
   const Curriculum = curriculum.filter(
     c => !(c?.basketTitle || "").toLowerCase().includes("total credits")
   );
-  let effectiveGrades = Array.isArray(data?.effectiveGrades) ? data.effectiveGrades : [];
+  const findEffectiveGrades = () => {
+    const sources = [
+      allGradesData?.effectiveGrades, allGradesData?.cgpa?.effectiveGrades, allGradesData?.grades?.effectiveGrades, allGradesData?.data?.effectiveGrades,
+      data?.effectiveGrades, data?.cgpa?.effectiveGrades, data?.grades?.effectiveGrades, data?.data?.effectiveGrades,
+      marksData?.effectiveGrades, marksData?.cgpa?.effectiveGrades, marksData?.grades?.effectiveGrades
+    ];
+    for (const src of sources) {
+      if (Array.isArray(src) && src.length > 0) return src;
+    }
+    return [];
+  };
+
+  let effectiveGrades = findEffectiveGrades();
   effectiveGrades = effectiveGrades.filter(
     eg => !isNaN(parseFloat(eg.creditsEarned))
   );
@@ -183,9 +201,18 @@ function GradesDisplay({ data, handleFetchGrades, marksData, attendance }) {
       <Card className="bg-white dark:bg-slate-800 midnight:bg-black border-0">
         <CardContent className="space-y-6">
           {totalCredits && (() => {
-            const earned = parseFloat(totalCredits.creditsEarned);
+            let earned = parseFloat(totalCredits.creditsEarned);
+            let baseRequired = parseFloat(totalCredits.creditsRequired);
+            
+            if (earned === 0 && marksData?.cgpa?.creditsEarned) {
+              earned = parseFloat(marksData.cgpa.creditsEarned) + parseFloat(marksData.cgpa.nonGradedRequirement || "0");
+              baseRequired = parseFloat(marksData.cgpa.creditsRequired) || 160;
+            } else if (earned === 0 && effectiveGrades.length > 0) {
+              earned = effectiveGrades.reduce((acc, curr) => acc + (parseFloat(curr.creditsEarned) || 0), 0);
+            }
+            
             const required =
-              parseFloat(totalCredits.creditsRequired) +
+              baseRequired +
               Curriculum.filter((c) =>
                 c.basketTitle.toLowerCase().includes("non-graded core requirement")
               ).reduce((acc, c) => acc + parseFloat(c.creditsRequired), 0);

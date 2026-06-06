@@ -399,9 +399,9 @@ export default function DashboardContent({
           <div className="px-6 pt-6 pb-2 flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {IDs.VtopUsername}
-              </p>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 midnight:text-gray-100 flex-1 truncate">
+                {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
+              </h2>
             </div>
             <button
               onClick={async () => {
@@ -582,10 +582,15 @@ export default function DashboardContent({
                     localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
                   }
                 }
-                residentialStatus={settings.residentialStatus}
+                residentialStatus={settings.residentialStatus || "hosteller"}
                 setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-                    setSettings(prev => ({ ...prev, residentialStatus: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }))
+                  setSettings(prev => ({ ...prev, residentialStatus: val }))
+                  localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }))
+                }}
+                friendlyName={settings.friendlyName}
+                setFriendlyName={(val: string) => {
+                  setSettings(prev => ({ ...prev, friendlyName: val }))
+                  localStorage.setItem("settings", JSON.stringify({ ...settings, friendlyName: val }))
                 }}
                 calendarType={settings.calendarType}
                 setCalendarType={(val: any) => {

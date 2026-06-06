@@ -88,7 +88,7 @@ export default function PrivacyPolicyPage({ handleClose }) {
                 </h3>
                 <p>
                     For any concerns or questions about this Privacy Policy, you can reach out to the developer at
-                    <strong> aryapanwar493@gmail.com</strong>.
+                    <strong> sugeeth2007@gmail.com</strong>.
                 </p>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-6">
