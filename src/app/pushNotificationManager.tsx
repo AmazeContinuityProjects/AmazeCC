@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Switch } from "@/components/ui/switch"
-import { API_BASE } from '@/components/custom/Main'
 
 function urlBase64ToUint8Array(base64String: string) {
+    if (!base64String) return new Uint8Array(0);
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
     const rawData = window.atob(base64)
@@ -15,8 +15,10 @@ export default function PushNotificationManager() {
     const [isSupported, setIsSupported] = useState(false)
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
     const [vitolEnabled, setVitolEnabled] = useState(false)
-    const [moodleEnabled, setMoodleEnabled] = useState(false)
+    const [vitolReminderDay, setVitolReminderDay] = useState<number>(1) // Default to Monday
+    const [vitolReminderTime, setVitolReminderTime] = useState<string>("10:00")
     const [fetchError, setFetchError] = useState<string | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
 
     const IDs = localStorage.getItem("IDs") || ""
     const UserID = IDs ? JSON.parse(IDs).VtopUsername : null
@@ -24,15 +26,16 @@ export default function PushNotificationManager() {
     useEffect(() => {
         if (!UserID) return;
 
-        fetch(`${API_BASE}/api/notifications/status?UserID=${UserID}`)
+        // Check status directly from our internal Next.js API connected to Supabase
+        fetch(`/api/notifications/status?UserID=${UserID}`)
             .then(res => res.json())
             .then(data => {
                 setVitolEnabled(!!data.vitol);
-                setMoodleEnabled(!!data.moodle);
+                if (data.vitol_reminder_day !== undefined) setVitolReminderDay(data.vitol_reminder_day);
+                if (data.vitol_reminder_time) setVitolReminderTime(data.vitol_reminder_time);
             })
             .catch(() => {
                 setVitolEnabled(false);
-                setMoodleEnabled(false);
             });
     }, [UserID]);
 
@@ -44,33 +47,58 @@ export default function PushNotificationManager() {
     }, [])
 
     async function registerServiceWorker() {
-        const registration = await navigator.serviceWorker.register('/sw.js')
-        const sub = await registration.pushManager.getSubscription()
-        setSubscription(sub)
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js')
+            const sub = await registration.pushManager.getSubscription()
+            setSubscription(sub)
+        } catch (e) {
+            console.error("Service worker registration failed", e);
+        }
     }
 
     async function subscribeToPush() {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
 
-        const registration = await navigator.serviceWorker.ready
-        const sub = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(
-                process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-            ),
-        })
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidPublicKey) {
+            console.error('VAPID public key not found. Push notifications are disabled.');
+            setFetchError('Push notifications are not configured correctly (missing VAPID key).');
+            return;
+        }
 
-        setSubscription(sub)
+        try {
+            const registration = await navigator.serviceWorker.ready
+            const sub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            })
 
-        await fetch(`${API_BASE}/api/notifications/subscribe`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                UserID,
-                subscription: JSON.parse(JSON.stringify(sub)),
-            }),
-        })
+            setSubscription(sub)
+
+            // Local Welcome Notification
+            if (Notification.permission === 'granted') {
+                new Notification("Welcome to AmazeCC Alerts!", {
+                    body: "Push notifications are now enabled. You will receive scheduled reminders directly on this device.",
+                    icon: "/favicon.ico"
+                });
+            }
+
+            await fetch(`/api/notifications/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserID,
+                    subscription: JSON.parse(JSON.stringify(sub)),
+                    vitol_enabled: vitolEnabled,
+                    vitol_reminder_day: vitolReminderDay,
+                    vitol_reminder_time: vitolReminderTime
+                }),
+            })
+        } catch (error: any) {
+            console.error("Subscription failed:", error);
+            setFetchError(error.message);
+        }
     }
 
     async function unsubscribeFromPush() {
@@ -78,7 +106,7 @@ export default function PushNotificationManager() {
 
         await subscription.unsubscribe()
 
-        await fetch(`${API_BASE}/api/notifications/unsubscribe`, {
+        await fetch(`/api/notifications/unsubscribe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -90,26 +118,33 @@ export default function PushNotificationManager() {
         setSubscription(null)
     }
 
-    if (!isSupported) {
-        return <p>Push notifications are not supported in this browser.</p>
+    async function updateSchedule() {
+        if (!subscription) return;
+        setIsSaving(true);
+        
+        try {
+            await fetch(`/api/notifications/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserID,
+                    subscription: JSON.parse(JSON.stringify(subscription)),
+                    vitol_enabled: vitolEnabled,
+                    vitol_reminder_day: vitolReminderDay,
+                    vitol_reminder_time: vitolReminderTime
+                }),
+            });
+            setFetchError("Schedule updated successfully!");
+            setTimeout(() => setFetchError(null), 3000);
+        } catch (err) {
+            setFetchError("Failed to update schedule.");
+        } finally {
+            setIsSaving(false);
+        }
     }
 
-    async function updateSource(source: 'vitol' | 'moodle', enabled: boolean) {
-        const data =
-            enabled
-                ? JSON.parse(localStorage.getItem(`${source}Data`) || '[]')
-                : [];
-
-        await fetch(`${API_BASE}/api/notifications/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                UserID,
-                source,
-                enabled,
-                data,
-            }),
-        });
+    if (!isSupported) {
+        return <p>Push notifications are not supported in this browser.</p>
     }
 
     return (
@@ -117,7 +152,7 @@ export default function PushNotificationManager() {
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                     <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-                        Push Notifications <span className="text-xs text-muted-foreground">(Early Testing)</span>
+                        Push Notifications
                     </p>
                 </div>
 
@@ -130,17 +165,16 @@ export default function PushNotificationManager() {
             </div>
 
             {subscription && (
-                <div className="mt-3 flex flex-col gap-4">
-
-                    {/* Vitol
-                    <div className="flex flex-col gap-1">
+                <div className="mt-3 flex flex-col gap-4 p-4 border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/40">
+                    {/* Vitol */}
+                    <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-                                    Vitol notifications
+                                    VITOL Course Reminder
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    Tests, quizzes and assignments <span className='text-xs text-red-600'>{fetchError ? " / " + fetchError : ''}</span>
+                                    Set a weekly recurring reminder for your online course.
                                 </p>
                             </div>
 
@@ -149,86 +183,65 @@ export default function PushNotificationManager() {
                                 disabled={!subscription}
                                 onCheckedChange={(checked) => {
                                     setVitolEnabled(checked)
-                                    updateSource('vitol', checked)
+                                    // If we are turning it on, automatically save the state
+                                    if (subscription) {
+                                        fetch(`/api/notifications/subscribe`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                UserID,
+                                                subscription: JSON.parse(JSON.stringify(subscription)),
+                                                vitol_enabled: checked,
+                                                vitol_reminder_day: vitolReminderDay,
+                                                vitol_reminder_time: vitolReminderTime
+                                            }),
+                                        });
+                                    }
                                 }}
                             />
                         </div>
 
-                        <button
-                            disabled={!vitolEnabled}
-                            className="w-fit text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:pointer-events-none"
-                            onClick={async () => {
-                                try {
-                                    const response = await fetch(`${API_BASE}/api/notifications/test`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ UserID, source: 'vitol' }),
-                                    });
-                                    if (!response.ok) {
-                                        const errorData = await response.json();
-                                        setFetchError(errorData.error || 'Failed to send test notification');
-                                    } else {
-                                        setFetchError(null);
-                                    }
-                                } catch (error) {
-                                    setFetchError('Failed to send test notification');
-                                }
-                            }}
-                        >
-                            Test Vitol notification
-                        </button>
-                    </div> */}
-
-                    {/* Moodle */}
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-                                    Moodle notifications
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Assignment due reminders <span className='text-xs text-red-600'>{fetchError ? " / " + fetchError : ''}</span>
-                                </p>
+                        {vitolEnabled && (
+                            <div className="flex flex-col gap-2 p-3 bg-white dark:bg-black/50 midnight:bg-black/50 rounded-lg border border-gray-100 dark:border-gray-800 midnight:border-gray-800 mt-2">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule Time</label>
+                                <div className="flex gap-2">
+                                    <select 
+                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300 dark:border-gray-700 midnight:border-gray-700 bg-transparent midnight:text-gray-200"
+                                        value={vitolReminderDay}
+                                        onChange={(e) => setVitolReminderDay(Number(e.target.value))}
+                                    >
+                                        <option value={0}>Sunday</option>
+                                        <option value={1}>Monday</option>
+                                        <option value={2}>Tuesday</option>
+                                        <option value={3}>Wednesday</option>
+                                        <option value={4}>Thursday</option>
+                                        <option value={5}>Friday</option>
+                                        <option value={6}>Saturday</option>
+                                    </select>
+                                    <input 
+                                        type="time" 
+                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300 dark:border-gray-700 midnight:border-gray-700 bg-transparent midnight:text-gray-200"
+                                        value={vitolReminderTime}
+                                        onChange={(e) => setVitolReminderTime(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                    <span className={`text-xs ${fetchError?.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                                        {fetchError}
+                                    </span>
+                                    <button 
+                                        onClick={updateSchedule}
+                                        disabled={isSaving}
+                                        className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                        {isSaving ? "Saving..." : "Save Schedule"}
+                                    </button>
+                                </div>
                             </div>
-
-                            <Switch
-                                checked={moodleEnabled}
-                                disabled={!subscription}
-                                onCheckedChange={(checked) => {
-                                    setMoodleEnabled(checked)
-                                    updateSource('moodle', checked)
-                                }}
-                            />
-                        </div>
-
-                        <button
-                            disabled={!moodleEnabled}
-                            className="w-fit text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:pointer-events-none"
-                            onClick={async () => {
-                                try {
-                                    const response = await fetch(`${API_BASE}/api/notifications/test`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ UserID, source: 'moodle' }),
-                                    });
-                                    if (!response.ok) {
-                                        const errorData = await response.json();
-                                        setFetchError(errorData.error || 'Failed to send test notification');
-                                    } else {
-                                        setFetchError(null);
-                                    }
-                                } catch (error) {
-                                    setFetchError('Failed to send test notification');
-                                }
-                            }}
-                        >
-                            Test Moodle notification
-                        </button>
+                        )}
                     </div>
-
                 </div>
-            )
-            }
-        </div >
+            )}
+        </div>
     )
 }

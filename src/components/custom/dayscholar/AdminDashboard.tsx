@@ -23,6 +23,10 @@ const AdminDashboard: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState('');
 
   useEffect(() => {
     fetch('/api/buses')
@@ -86,6 +90,31 @@ const AdminDashboard: React.FC = () => {
     downloadAnchorNode.remove();
   };
 
+  const handleSendBroadcast = async () => {
+    if (!broadcastTitle || !broadcastBody) return;
+    setIsBroadcasting(true);
+    setBroadcastMsg('');
+    try {
+      const res = await fetch('/api/admin/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: broadcastTitle, body: broadcastBody })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBroadcastMsg('✅ Broadcast sent successfully!');
+        setBroadcastTitle('');
+        setBroadcastBody('');
+      } else {
+        throw new Error(data.error || 'Failed to send broadcast');
+      }
+    } catch (err: any) {
+      setBroadcastMsg('❌ ' + err.message);
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 relative">
       <div className="absolute right-0 top-0 mt-2 mr-2 z-10">
@@ -118,6 +147,12 @@ const AdminDashboard: React.FC = () => {
             className="px-6 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400 font-medium bg-transparent"
           >
             Bus Database
+          </TabsTrigger>
+          <TabsTrigger 
+            value="push"
+            className="px-6 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400 font-medium bg-transparent"
+          >
+            Push Broadcast
           </TabsTrigger>
         </TabsList>
 
@@ -181,6 +216,52 @@ const AdminDashboard: React.FC = () => {
                     <strong>Note:</strong> Changes made here will immediately reflect in the PostgreSQL database and update for all students.
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="push" className="mt-0">
+          <div className="w-full max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Global Push Broadcast</CardTitle>
+                <CardDescription>Send a push notification to all subscribed users. This cannot be undone.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Notification Title</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Server Maintenance, Urgent Notice" 
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-sm"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Notification Body</label>
+                  <textarea 
+                    placeholder="Type your message here..." 
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-transparent text-sm min-h-[100px]"
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                  />
+                </div>
+                
+                {broadcastMsg && (
+                  <div className={`p-3 rounded-lg text-sm border ${broadcastMsg.includes('✅') ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}>
+                    {broadcastMsg}
+                  </div>
+                )}
+
+                <button 
+                  onClick={handleSendBroadcast}
+                  disabled={isBroadcasting || !broadcastTitle || !broadcastBody}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow disabled:opacity-50"
+                >
+                  {isBroadcasting ? "Sending Broadcast..." : "Send Global Broadcast"}
+                </button>
               </CardContent>
             </Card>
           </div>

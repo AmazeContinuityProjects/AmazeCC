@@ -4,7 +4,12 @@
     "date": "2026-06-07",
     "changes": [
       "Introduced Academic Hub grouping all academics together.",
-      "Removed redundant schedule, predictor and assignments sections and consolidated them into the Calendar tab."
+      "Removed redundant schedule, predictor and assignments sections and consolidated them into the Calendar tab.",
+      "Implemented seamless Push Notification architecture via Supabase for zero Edge-latency.",
+      "Added Admin Broadcast capability to send push notifications to all users.",
+      "Added user-configurable, weekly recurring Push Notifications for VITOL classes.",
+      "Redesigned the UI with premium Glassmorphism, blurred backdrops, and refined spacing across the app.",
+      "Fixed dark mode styling and added a one-time Push Notification opt-in prompt."
     ]
   },
   {

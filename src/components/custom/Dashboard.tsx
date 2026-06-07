@@ -29,6 +29,8 @@ import PapersArchiveTab from "./qbank/PapersArchiveTab";
 import PureQBankTab from "./qbank/PureQBankTab";
 import QBankSubTabs from "./qbank/QBankSubTabs";
 import ProfilePage from "./header/ProfilePage";
+import PushPromptModal from "./PushPromptModal";
+import ChangelogModal from "./ChangelogModal";
 
 <Analytics/>
 
@@ -452,6 +454,9 @@ export default function DashboardContent({
             attendance={attendanceData.attendance}
           />
         )}
+
+        <PushPromptModal UserID={IDs?.VtopUsername} />
+        <ChangelogModal />
 
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
