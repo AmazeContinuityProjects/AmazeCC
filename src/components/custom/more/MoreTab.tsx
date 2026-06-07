@@ -16,7 +16,7 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
 
 
 
-      <div className="mt-4 px-2 md:px-0">
+      <div className="mt-4">
         {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} />}
         {activeMoreSubTab === "ffcs" && <FFCSTimetableTab />}
       </div>

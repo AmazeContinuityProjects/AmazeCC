@@ -77,7 +77,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     );
 
     const CardContainer = ({ children }) => (
-        <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 midnight:border-gray-800 overflow-hidden mb-8">
+        <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden mb-8">
             {children}
         </div>
     );
@@ -85,18 +85,20 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     const ListTile = ({ icon: Icon, title, subtitle = null, trailing = null, onClick = null, isDestructive = false, noBorder = false }) => (
         <div 
             onClick={onClick}
-            className={`flex items-center justify-between p-4 ${!noBorder ? 'border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800' : ''} ${onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50 midnight:hover:bg-gray-800 transition-colors' : ''}`}
+            className={`flex items-center justify-between p-4 ${!noBorder ? 'border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50' : ''} ${onClick ? 'cursor-pointer hover:bg-white/40 dark:hover:bg-slate-700/30 midnight:hover:bg-gray-800/30 transition-colors' : ''}`}
         >
-            <div className="flex items-center gap-4 flex-1">
-                <div className={`p-2 rounded-xl ${isDestructive ? 'bg-red-100 text-red-600 dark:bg-red-900/30 midnight:bg-red-900/30' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 midnight:bg-blue-900/30 dark:text-blue-400 midnight:text-blue-400'}`}>
+            <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                <div className={`p-2 rounded-xl flex-shrink-0 ${isDestructive ? 'bg-red-100 text-red-600 dark:bg-red-900/30 midnight:bg-red-900/30' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 midnight:bg-blue-900/30 dark:text-blue-400 midnight:text-blue-400'}`}>
                     <Icon size={20} />
                 </div>
-                <div className="flex flex-col flex-1">
-                    <span className={`font-medium ${isDestructive ? 'text-red-600 dark:text-red-500 midnight:text-red-500' : 'text-gray-900 dark:text-gray-100 midnight:text-gray-100'}`}>{title}</span>
-                    {subtitle && <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-0.5">{subtitle}</span>}
+                <div className="flex flex-col flex-1 min-w-0">
+                    <span className={`font-medium block break-words leading-snug ${isDestructive ? 'text-red-600 dark:text-red-500 midnight:text-red-500' : 'text-gray-900 dark:text-gray-100 midnight:text-gray-100'}`}>{title}</span>
+                    {subtitle && <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-0.5 block break-words leading-snug">{subtitle}</span>}
                 </div>
             </div>
-            {trailing ? trailing : (onClick && !isDestructive ? <ChevronRight size={18} className="text-gray-400 midnight:text-gray-500" /> : null)}
+            <div className="flex-shrink-0">
+                {trailing ? trailing : (onClick && !isDestructive ? <ChevronRight size={18} className="text-gray-400 midnight:text-gray-500" /> : null)}
+            </div>
         </div>
     );
 
@@ -107,7 +109,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
             {showTOS && <TermsOfServicePage handleClose={() => setShowTOS(false)} />}
             {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
 
-            <div className="max-w-3xl mx-auto p-4 py-6 md:py-8 space-y-2">
+            <div className="w-full max-w-3xl mx-auto py-2 md:py-4 space-y-4">
                 {/* Student Card */}
                 <CardContainer>
                     <div className="p-6 flex items-center gap-6">
@@ -139,7 +141,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     <button onClick={() => setIsEditingName(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded hover:bg-blue-100 transition-colors">Edit</button>
                                 </div>
                             )}
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">{friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">{friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}</p>
                         </div>
                     </div>
                 </CardContainer>
@@ -151,11 +153,11 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <div className="flex flex-col mb-2">
                             <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Select Semester</label>
                             <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Change your active academic semester</span>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <select
                                     value={selectedSemester}
                                     onChange={(e) => setSelectedSemester(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
+                                    className="flex-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-white/50 dark:bg-slate-900/50 midnight:bg-gray-800/50 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
                                 >
                                     {config.semesterIDs?.map((id: string, index: number) => (
                                         <option key={index} value={id}>
@@ -163,7 +165,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                         </option>
                                     ))}
                                 </select>
-                                <Button onClick={handleSaveSemester} disabled={!selectedSemester || selectedSemester === currSemesterID} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                <Button onClick={handleSaveSemester} disabled={!selectedSemester || selectedSemester === currSemesterID} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
                                     <Save size={16} className="mr-2" /> Save
                                 </Button>
                             </div>

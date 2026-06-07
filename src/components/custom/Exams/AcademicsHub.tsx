@@ -122,7 +122,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
   return (
     <div className="py-4 animate-fadeIn">
-      <div className="mb-6 px-4 md:px-0">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
           Academics Hub
         </h1>
@@ -132,7 +132,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       </div>
 
       {savedGoal && (
-        <div className="px-4 md:px-0 mb-8">
+        <div className="mb-8">
             <Card className="bg-gradient-to-r from-blue-500 to-indigo-600 border-none text-white shadow-sm">
             <CardContent className="py-3 px-4 flex items-center gap-4">
                 <div className="p-2 bg-white/20 rounded-lg">
@@ -152,7 +152,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {cards.map((card) => (
           <div
             key={card.id}
@@ -160,7 +160,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                 setActiveSubTab(card.id);
                 window.scrollTo(0, 0);
             }}
-            className="flex items-center p-4 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+            className="flex items-center p-4 bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 cursor-pointer group"
           >
             <div className={`p-3 rounded-xl ${card.bg} ${card.color} mr-4 group-hover:scale-110 transition-transform`}>
               <card.icon className="w-6 h-6" />
@@ -178,7 +178,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         ))}
       </div>
 
-      <div className="px-4 md:px-0">
+      <div>
         {hideMobileHeader && (
             <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm mb-8">
             <CardContent className="p-5">
@@ -243,7 +243,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm h-full">
+            <Card className="h-full">
             <CardContent className="p-5 h-full flex flex-col">
                 <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-6">Grade Distribution</h3>
                 <div className="w-full flex-1 min-h-[200px]">
@@ -274,9 +274,9 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             </CardContent>
             </Card>
 
-            <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm h-full">
+            <Card className="h-full">
             <CardContent className="p-5 h-full overflow-y-auto max-h-[265px] hide-scrollbar">
-                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-4 sticky top-0 bg-white dark:bg-slate-900 midnight:bg-black pb-2">Semester Performance</h3>
+                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 backdrop-blur-md">Semester Performance</h3>
                 <div className="space-y-3">
                     {Object.entries(data?.grades || {})
                     .filter(([sem, details]: any) => details && details.gpa)

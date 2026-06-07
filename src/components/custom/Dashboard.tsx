@@ -392,9 +392,14 @@ export default function DashboardContent({
       />
 
       <div 
-        className={`bg-gray-50 dark:bg-gray-900 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full`}
+        className={`relative bg-gray-50/50 dark:bg-gray-900/50 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full overflow-hidden`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
+        {/* Ambient Background Glows */}
+        <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-500/10 midnight:bg-blue-500/5 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 dark:bg-emerald-500/10 midnight:bg-emerald-500/5 blur-[120px]" />
+        </div>
         <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
           <div className="px-6 pt-6 pb-2 flex justify-between items-start">
             <div>
@@ -448,7 +453,7 @@ export default function DashboardContent({
           />
         )}
 
-        <div className="p-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
               <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>

@@ -515,7 +515,7 @@ export default function FFCSTimetableTab() {
     <div className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* Top Banner / Upload Area */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-xl backdrop-blur-md">
+      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -584,7 +584,7 @@ export default function FFCSTimetableTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Timetable Manager */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-xl backdrop-blur-md">
+          <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
             <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
             <div className="space-y-3">
               <select 
@@ -642,7 +642,7 @@ export default function FFCSTimetableTab() {
           </div>
 
           {/* Course Selector */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-xl backdrop-blur-md">
+          <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
             <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
               <PlusCircle className="text-blue-400 w-5 h-5" /> Course Selector
             </h2>
@@ -737,7 +737,7 @@ export default function FFCSTimetableTab() {
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 && (
-              <div className="bg-card border border-border rounded-2xl p-6 shadow-xl backdrop-blur-md overflow-x-auto">
+              <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] overflow-x-auto">
                 <div className="flex items-center justify-between mb-4 min-w-[600px]">
                   <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                     Selected Courses
