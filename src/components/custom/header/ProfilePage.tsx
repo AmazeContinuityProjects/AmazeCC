@@ -14,6 +14,8 @@ import PrivacyPolicyPage from "../footer/PrivacyPolicy";
 import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
+import HallOfFameModal from "./HallOfFameModal";
+import { Trophy } from "lucide-react";
 
 export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
@@ -30,6 +32,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     const [showPolicy, setShowPolicy] = useState<boolean>(false);
     const [showTOS, setShowTOS] = useState<boolean>(false);
     const [showChangelog, setShowChangelog] = useState<boolean>(false);
+    const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
     const handleSaveSemester = async () => {
         if (!selectedSemester) return;
@@ -108,6 +111,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
             {showPolicy && <PrivacyPolicyPage handleClose={() => setShowPolicy(false)} />}
             {showTOS && <TermsOfServicePage handleClose={() => setShowTOS(false)} />}
             {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
+            {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
 
             <div className="w-full max-w-3xl mx-auto py-2 md:py-4 space-y-4">
                 {/* Student Card */}
@@ -362,6 +366,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 text-center">Your ultimate college companion.</p>
                         <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider">MADE BY SUGEETHJSA</p>
                     </div>
+                    <ListTile icon={Trophy} title="Hall of Fame" onClick={() => setShowHallOfFame(true)} />
                     <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
                         <ListTile icon={Github} title="View Source on GitHub" onClick={() => {}} />
                     </a>
