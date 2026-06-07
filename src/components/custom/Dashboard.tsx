@@ -4,11 +4,12 @@ import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
 import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
-import ExamsSubTabs from "./Exams/ExamSubsTab";
+import AcademicsHub from "./Exams/AcademicsHub";
 import MarksDisplay from "./Exams/MarksDisplay";
 import ExamsScheduleDisplay from "./Exams/SchduleDisplay";
 import TestGradesContainer from "./Exams/TestGradesContainer";
 import CurriculumPage from "./Exams/CurriculumPage";
+import GPAPredictorTab from "./Exams/GPAPredictorTab";
 import HostelSubTabs from "./Hostel/HostelSubsTab";
 import MessDisplay from "./Hostel/messDisplay";
 import LaundryDisplay from "./Hostel/LaundryDisplay";
@@ -26,6 +27,7 @@ import MoreTab from "./more/MoreTab";
 
 import PapersArchiveTab from "./qbank/PapersArchiveTab";
 import PureQBankTab from "./qbank/PureQBankTab";
+import QBankSubTabs from "./qbank/QBankSubTabs";
 import ProfilePage from "./header/ProfilePage";
 
 <Analytics/>
@@ -103,7 +105,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "exams", "qbank", "hostel", "dayscholar", "more", "profile"];
+  const tabsOrder = ["attendance", "academics", "hostel", "dayscholar", "more", "profile"];
   if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
   if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
 
@@ -437,6 +439,7 @@ export default function DashboardContent({
 
         {GradesDisplayIsOpen && (
           <GradesModal
+            allGradesData={allGradesData}
             GradesData={GradesData}
             marksData={marksData}
             onClose={() => setGradesDisplayIsOpen(false)}
@@ -479,25 +482,40 @@ export default function DashboardContent({
                     calendars={calendarData?.calendars}
                     calendarType={settings.calendarType}
                     handleCalendarFetch={handleCalendarFetch}
+                    moodleData={moodleData}
+                    scheduleData={ScheduleData}
+                    attendanceData={attendanceData}
+                    ODhoursData={ODhoursData}
+                    setIsSubpageOpen={setIsSubpageOpen}
+                    setMoodleData={setMoodleData}
+                    handleFetchMoodle={handleFetchMoodle}
+                    IDs={IDs}
                   />
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "exams" && marksData && (
+          {activeTab === "academics" && marksData && (
             <div className="animate-fadeIn">
-              <div className="md:hidden">
-                <ExamsSubTabs
-                  activeSubTab={activeSubTab}
-                  setActiveSubTab={setActiveSubTab}
-                />
-              </div>
-
-
-                {activeSubTab === "marks" && <MarksSubTab data={marksData} moodleData={moodleData} handleFetchMoodle={handleFetchMoodle} setMoodleData={setMoodleData} IDs={IDs} />}
-                {activeSubTab === "schedule" && <ExamsScheduleDisplay data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />}
-                {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} />}
+              {activeSubTab === "overview" && <AcademicsHub 
+                setActiveSubTab={setActiveSubTab} 
+                data={allGradesData} 
+                marksData={marksData} 
+                gradesData={GradesData} 
+                attendance={attendanceData.attendance} 
+                hideMobileHeader={settings.hideMobileHeader} 
+                handleFetchGrades={handleAllGradesFetch} 
+              />}
+              {activeSubTab === "marks" && <MarksSubTab data={marksData} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "predictor" && <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "qbank" && (
+                <div className="animate-fadeIn">
+                  <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
+                </div>
+              )}
             </div>
           )}
 
@@ -531,11 +549,7 @@ export default function DashboardContent({
             </div>
           )}
 
-          {activeTab === "qbank" && (
-            <div className="animate-fadeIn">
-              <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} />
-            </div>
-          )}
+
 
           {activeTab === "profile" && (
             <div className="animate-fadeIn">

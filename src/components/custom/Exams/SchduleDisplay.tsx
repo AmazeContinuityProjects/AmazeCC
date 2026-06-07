@@ -135,10 +135,10 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
 
   const todayExams = Object.entries(scheduleObj)
     .flatMap(([examType, subjects]) =>
-      subjects.filter((subj) => {
+      (subjects as any[]).filter((subj: any) => {
         const examDate = parseExamDate(subj.examDate);
         return examDate && examDate.getTime() === today.getTime();
-      }).map((subj) => ({ ...subj, examType }))
+      }).map((subj: any) => ({ ...subj, examType }))
     );
 
   const compareExamDates = (left, right) => {

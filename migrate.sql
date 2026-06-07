@@ -1,1 +1,5 @@
-CREATE TABLE IF NOT EXISTS class_user_hashes (class_id TEXT, user_hash TEXT, last_updated_at BIGINT, PRIMARY KEY (class_id, user_hash)); TRUNCATE TABLE class_overall_stats; TRUNCATE TABLE class_assessment_stats;
+CREATE TABLE IF NOT EXISTS class_user_hashes (class_id TEXT, user_hash TEXT, last_updated_at BIGINT, PRIMARY KEY (class_id, user_hash));
+TRUNCATE TABLE class_overall_stats;
+TRUNCATE TABLE class_assessment_stats;
+ALTER TABLE papers_archive ADD COLUMN IF NOT EXISTS exam_semester TEXT;
+ALTER TABLE qbank_questions ADD COLUMN IF NOT EXISTS topic_name TEXT;

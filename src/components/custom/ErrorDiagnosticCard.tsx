@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const CHEPUS = [
+  "/chepu/chepu_on_the_floor.png",
+  "/chepu/chepu_says_hi.png",
+  "/chepu/chepu_says_sup.png",
+  "/chepu/empty_page_chepu.png",
+];
 
 type ErrorWithDigest = Error & { digest?: string };
 
@@ -39,8 +47,10 @@ export default function ErrorDiagnosticCard({
 }: ErrorDiagnosticCardProps) {
   const [copied, setCopied] = useState(false);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
+  const [chepuImage, setChepuImage] = useState<string | null>(null);
 
   useEffect(() => {
+    setChepuImage(CHEPUS[Math.floor(Math.random() * CHEPUS.length)]);
     setRuntimeInfo({
       href: window.location.href,
       userAgent: navigator.userAgent,
@@ -83,6 +93,18 @@ export default function ErrorDiagnosticCard({
           </CardHeader>
 
           <CardContent className="space-y-5">
+            {chepuImage && (
+              <div className="flex justify-center mb-6">
+                <Image
+                  src={chepuImage}
+                  alt="Random Chepu"
+                  width={200}
+                  height={200}
+                  className="opacity-90 object-contain drop-shadow-md"
+                  priority
+                />
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {onRetry ? (
                 <Button onClick={onRetry} variant="default">

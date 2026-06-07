@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +13,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const CHEPUS = [
+  "/chepu/chepu_on_the_floor.png",
+  "/chepu/chepu_says_hi.png",
+  "/chepu/chepu_says_sup.png",
+  "/chepu/empty_page_chepu.png",
+];
+
 export default function NotFoundPage() {
   const pathname = usePathname();
+  const [chepuImage, setChepuImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setChepuImage(CHEPUS[Math.floor(Math.random() * CHEPUS.length)]);
+  }, []);
 
   return (
     <main className="min-h-screen w-full bg-gray-100 px-4 text-foreground transition-colors duration-300 dark:bg-slate-900 midnight:bg-black">
@@ -27,6 +41,18 @@ export default function NotFoundPage() {
           </CardHeader>
 
           <CardContent>
+            {chepuImage && (
+              <div className="flex justify-center mb-6">
+                <Image
+                  src={chepuImage}
+                  alt="Random Chepu"
+                  width={200}
+                  height={200}
+                  className="opacity-90 object-contain drop-shadow-md"
+                  priority
+                />
+              </div>
+            )}
             <div className="rounded-lg border border-border bg-background/60 p-4 text-sm">
               <p>
                 <span className="font-semibold">Requested path:</span> {pathname || "unknown"}

@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap, ChevronLeft } from "lucide-react";
 
 // ── helpers ──────────────────────────────────────────────────────────
 const normalizeDistributionType = (raw?: string) => {
@@ -58,18 +59,19 @@ interface EffectiveGradeItem {
 }
 
 // ── main component ──────────────────────────────────────────────────
-export default function CurriculumPage({ allGradesData, gradesData, marksData, attendance, handleFetchGrades }: {
+export default function CurriculumPage({ allGradesData, gradesData, marksData, attendance, handleFetchGrades, setActiveSubTab }: {
   allGradesData?: any;
   gradesData: any;
   marksData: any;
   attendance: any;
   handleFetchGrades: () => void;
+  setActiveSubTab: (tab: string) => void;
 }) {
   const findCurriculum = () => {
     const sources = [
       allGradesData?.curriculum, allGradesData?.cgpa?.curriculum, allGradesData?.grades?.curriculum, allGradesData?.data?.curriculum,
       gradesData?.curriculum, gradesData?.cgpa?.curriculum, gradesData?.grades?.curriculum, gradesData?.data?.curriculum,
-      marksData?.curriculum, marksData?.cgpa?.curriculum, marksData?.grades?.curriculum
+      marksData?.curriculum, marksData?.cgpa?.curriculum, gradesData?.grades?.curriculum
     ];
     for (const src of sources) {
       if (Array.isArray(src) && src.length > 0) return src;
@@ -167,14 +169,37 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
   return (
     <div className="space-y-6 pb-8">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Curriculum Overview</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">Track your degree progress across all credit baskets</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        {/* Mobile View */}
+        <div className="md:hidden flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => setActiveSubTab("overview")} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
+                    <ChevronLeft size={20} />
+                </Button>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    Curriculum Map
+                </h1>
+            </div>
+            <button onClick={handleFetchGrades} className="inline-flex px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
+                <RefreshCcw className={`w-4 h-4`} />
+            </button>
         </div>
-        <button onClick={handleFetchGrades} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm text-sm">
-          <RefreshCcw className="w-4 h-4" /> Reload
-        </button>
+        
+        {/* Desktop View */}
+        <div className="hidden md:flex items-center gap-4 w-full justify-between">
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => setActiveSubTab("overview")} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
+                    <ChevronLeft size={20} />
+                </Button>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Curriculum Overview</h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">Track your degree progress across all credit baskets</p>
+                </div>
+            </div>
+            <button onClick={handleFetchGrades} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm text-sm">
+                <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
+            </button>
+        </div>
       </div>
 
       {/* ── Total Credits Summary ── */}

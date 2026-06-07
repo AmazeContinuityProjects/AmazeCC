@@ -205,49 +205,57 @@ export default function NavigationTabs({
         )}
 
         <button
-          onClick={() => setActiveTab("exams")}
-          className={navItemClass(activeTab === "exams")}
-          title="Exams"
+          onClick={() => {
+            setActiveTab("academics");
+            if (activeSubTab !== "overview") setActiveSubTab("overview");
+            window.scrollTo(0, 0);
+          }}
+          className={navItemClass(activeTab === "academics")}
+          title="Academics"
         >
-          <GraduationCap className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Exams</span>
+          <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>Academics</span>
         </button>
-        {activeTab === "exams" && !settings.isSidebarCollapsed && (
+        {activeTab === "academics" && !settings.isSidebarCollapsed && (
           <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
+            <button
+              onClick={() => setActiveSubTab("overview")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "overview" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Overview
+            </button>
             <button
               onClick={() => setActiveSubTab("marks")}
               className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "marks" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
             >
-              Marks
-            </button>
-            <button
-              onClick={() => setActiveSubTab("schedule")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "schedule" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
-            >
-              Schedule
+              Current Sem Marks
             </button>
             <button
               onClick={() => setActiveSubTab("grades")}
               className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "grades" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
             >
-              Grades
+              Grade History
+            </button>
+            <button
+              onClick={() => setActiveSubTab("curriculum")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "curriculum" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Curriculum
+            </button>
+            <button
+              onClick={() => setActiveSubTab("predictor")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "predictor" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              CGPA Predictor
+            </button>
+            <button
+              onClick={() => setActiveSubTab("qbank")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "qbank" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Question Bank
             </button>
           </div>
         )}
-
-
-
-        <button
-          onClick={() => setActiveTab("qbank")}
-          className={navItemClass(activeTab === "qbank")}
-          title="Q-Bank Archive"
-        >
-          <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className={`text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? 'hidden' : ''}`}>
-            <span className="md:hidden">QB</span>
-            <span className="hidden md:inline">Q-Bank Archive</span>
-          </span>
-        </button>
 
 
         {settings?.residentialStatus !== "dayscholar" && (

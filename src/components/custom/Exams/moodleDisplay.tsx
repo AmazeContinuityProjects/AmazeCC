@@ -34,7 +34,7 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
         );
     }
     const sortedData = [...moodleData].sort(
-        (a, b) => new Date(b.due) - new Date(a.due)
+        (a, b) => new Date(b.due).getTime() - new Date(a.due).getTime()
     );
 
     const visibleAssignments = sortedData.filter(

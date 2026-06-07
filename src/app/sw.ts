@@ -65,7 +65,7 @@ self.addEventListener('push', function (event) {
   }
 })
  
-self.addEventListener('notificationclick', function (event) {
+self.addEventListener('notificationclick', function (event: any) {
   event.notification.close()
-  event.waitUntil(clients.openWindow('/'))
+  event.waitUntil((self as any).clients.openWindow('/'))
 })

@@ -32,7 +32,7 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
         );
     }
     const sortedData = [...vitolData].sort(
-        (a, b) => new Date(b.due) - new Date(a.due)
+        (a, b) => new Date(b.due).getTime() - new Date(a.due).getTime()
     );
 
     return (

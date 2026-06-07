@@ -71,7 +71,7 @@ export default function LoginPage() {
   const [ODhoursIsOpen, setODhoursIsOpen] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<string>("marks");
+  const [activeSubTab, setActiveSubTab] = useState<string>("overview");
   const [HostelActiveSubTab, setHostelActiveSubTab] = useState<string>("mess");
   const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useState<string>("attendance");
   const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
@@ -117,7 +117,7 @@ export default function LoginPage() {
           const oldCourse = prevAttRes.attendance?.find(c => c.courseCode === newCourse.courseCode);
           if (oldCourse && Array.isArray(oldCourse.viewLink) && Array.isArray(newCourse.viewLink)) {
             newCourse.viewLink.forEach((newDay: any) => {
-              const oldDay = oldCourse.viewLink.find((d: any) => d.date === newDay.date);
+              const oldDay = (oldCourse.viewLink as any[]).find((d: any) => d.date === newDay.date);
               if (oldDay) {
                 const oldStatus = oldDay.status.toLowerCase();
                 const newStatus = newDay.status.toLowerCase();
@@ -404,7 +404,7 @@ export default function LoginPage() {
     localStorage.setItem("IDs", JSON.stringify(IDs));
 
     try {
-      if (settings.reloadAllData) {
+      if ((settings as any).reloadAllData) {
         await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
         return;
       }

@@ -86,7 +86,7 @@ export default function ReloadActivityHeatmap() {
                 ry: 3,
                 cursor: "pointer",
               }}
-              rectRender={(props, dayData) => {
+              rectRender={(props, dayData: any) => {
                 const value = dayData?.value ?? dayData?.count ?? 0;
                 const content =
                   value === 0

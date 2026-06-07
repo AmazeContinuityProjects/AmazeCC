@@ -4,7 +4,7 @@ import ExamQuestion from "./ExamQuestion";
 
 type ViewState = "courses" | "questions";
 
-export default function PureQBankTab({ allGradesData, marksData }) {
+export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab }: { allGradesData: any; marksData: any; setActiveSubTab?: (tab: string) => void }) {
   const [courses, setCourses] = useState<{ code: string; title: string }[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<{ code: string; title: string } | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -108,14 +108,21 @@ export default function PureQBankTab({ allGradesData, marksData }) {
   // ─── COURSE LIST ───
   if (view === "courses") {
     return (
-      <div className="py-2">
-        <div className="mb-6">
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-            Pure Question Bank
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">
-            Browse all extracted questions by course — no PDFs, just problems
-          </p>
+      <div className="py-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-3 mb-6 px-4 md:px-0">
+          {setActiveSubTab && (
+            <button onClick={() => setActiveSubTab("overview")} className="hidden md:block p-2 rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
+              Pure Question Bank
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">
+              Browse all extracted questions by course — no PDFs, just problems
+            </p>
+          </div>
         </div>
 
         <div className="relative mb-5">

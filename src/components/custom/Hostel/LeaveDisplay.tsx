@@ -32,7 +32,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
     const activeLeaves = leaveData.filter((leave) => {
         const from = parseDate(leave.from);
         const to = parseDate(leave.to);
-        const daysSinceEnd = (now - to) / (1000 * 60 * 60 * 24);
+        const daysSinceEnd = (now.getTime() - to.getTime()) / (1000 * 60 * 60 * 24);
         return (
             (from <= now && now <= to) ||
             from > now ||

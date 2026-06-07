@@ -5,7 +5,7 @@ import ExamQuestion from "./ExamQuestion";
 
 type ViewState = "courses" | "course-detail";
 
-export default function PapersArchiveTab({ allGradesData, marksData, username }) {
+export default function PapersArchiveTab({ allGradesData, marksData, username, setActiveSubTab }: { allGradesData: any; marksData: any; username: string; setActiveSubTab?: (tab: string) => void }) {
   const [courses, setCourses] = useState<{ code: string; title: string }[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<{ code: string; title: string } | null>(null);
   const [papers, setPapers] = useState<any[]>([]);
@@ -121,16 +121,23 @@ export default function PapersArchiveTab({ allGradesData, marksData, username })
   // ─── COURSE LIST VIEW ───
   if (view === "courses") {
     return (
-      <div className="py-2">
+      <div className="py-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-              Q-Bank Archive
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">
-              Browse past papers and extracted questions by course
-            </p>
+          <div className="flex items-center gap-3">
+            {setActiveSubTab && (
+              <button onClick={() => setActiveSubTab("overview")} className="hidden md:block p-2 rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <div>
+              <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
+                Q-Bank Archive
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">
+                Browse past papers and extracted questions by course
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setIsUploadModalOpen(true)}
