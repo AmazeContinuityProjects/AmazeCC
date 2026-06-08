@@ -22,7 +22,7 @@ const credits = [
     },
     {
         name: "VIT-Verse",
-        author: "Divyanshu Patel,
+        author: "Divyanshu Patel",
         description: "Robust data scraping architecture and attendance mechanics. (Clone only exists)",
         repo: "http://codeberg.org/fkvit/fkvit/"
     },

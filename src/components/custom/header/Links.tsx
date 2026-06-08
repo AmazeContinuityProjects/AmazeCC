@@ -6,7 +6,7 @@ import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
 export default function Links() {
     const Links = [
         "https://amaze-cc.vercel.app",
-        "https://uni-cc.site"
+        "https://amazecc.com"
     ];
 
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
