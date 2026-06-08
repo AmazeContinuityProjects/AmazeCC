@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { API_BASE } from "@/components/custom/Main";
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
@@ -13,15 +14,20 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // We hit the local Next.js route which proxies to api.amazecc.com securely
-      const res = await fetch(`/api/admin/auth`, {
+      // We hit the amazecc-api backend route directly
+      const res = await fetch(`${API_BASE}/api/admin/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.token) {
+        // Set the signed token as a local cookie
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // 7 days expiration
+        document.cookie = `admin_auth=${data.token}; path=/; expires=${expirationDate.toUTCString()}; samesite=lax`;
+        
         window.location.reload();
       } else {
         setError(data.error || 'Authentication failed');
