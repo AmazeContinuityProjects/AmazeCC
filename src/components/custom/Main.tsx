@@ -12,7 +12,7 @@ import demoData from '../../app/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 
-export const API_BASE = "https://api.uni-cc.site";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
 type settings = {
   decimalValues: boolean;
