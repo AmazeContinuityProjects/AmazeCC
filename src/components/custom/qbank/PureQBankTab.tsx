@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
 import ExamQuestion from "./ExamQuestion";
+import { API_BASE } from "@/components/custom/Main";
 
 type ViewState = "courses" | "questions";
 
@@ -16,7 +17,7 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
 
   // Fetch global approved courses
   useEffect(() => {
-    fetch('/api/qbank/courses')
+    fetch(`${API_BASE}/api/qbank/courses`)
       .then(r => r.json())
       .then(d => {
         if (d.success) setGlobalCourses(d.data);
@@ -68,7 +69,7 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
     setLoading(true);
 
     try {
-      const res = await fetch('/api/qbank/questions?course=' + encodeURIComponent(course.code));
+      const res = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
       const json = await res.json();
       if (json.success && json.data) {
         setQuestions(json.data);

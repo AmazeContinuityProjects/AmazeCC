@@ -146,7 +146,7 @@ export default function MarksDisplay({ data }) {
         const classIds = uniqueCourses.map(g => (g.theory || g.lab).classNbr).join(',');
         if (!classIds) return;
 
-        const res = await fetch(`/api/marks/stats?classes=${classIds}`);
+        const res = await fetch(`${API_BASE}/api/marks/stats?classes=${classIds}`);
         if (res.ok) {
           const statsData = await res.json();
           setAllStats(statsData);

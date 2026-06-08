@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { API_BASE } from "@/components/custom/Main";
 
 export default function LoginForm() {
   const [password, setPassword] = useState('');
@@ -12,7 +13,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const res = await fetch('/api/admin/auth', {
+      const res = await fetch(`${API_BASE}/api/admin/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),

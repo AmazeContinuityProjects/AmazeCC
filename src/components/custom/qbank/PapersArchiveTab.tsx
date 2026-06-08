@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FileText, Search, UploadCloud, BookOpen, ArrowLeft, ChevronRight, GraduationCap } from "lucide-react";
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
+import { API_BASE } from "@/components/custom/Main";
 
 type ViewState = "courses" | "course-detail";
 
@@ -20,7 +21,7 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
 
   // Fetch global approved courses
   useEffect(() => {
-    fetch('/api/qbank/courses')
+    fetch(`${API_BASE}/api/qbank/courses`)
       .then(r => r.json())
       .then(d => {
         if (d.success) setGlobalCourses(d.data);
@@ -73,14 +74,14 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
 
     try {
       // Fetch papers via API route
-      const papersRes = await fetch('/api/qbank/papers?course=' + encodeURIComponent(course.code));
+      const papersRes = await fetch(`${API_BASE}/api/qbank/papers?course=` + encodeURIComponent(course.code));
       const papersJson = await papersRes.json();
       const papersData = papersJson.success ? papersJson.data : [];
       setPapers(papersData);
 
       // Fetch questions via API route
       if (papersData && papersData.length > 0) {
-        const questionsRes = await fetch('/api/qbank/questions?course=' + encodeURIComponent(course.code));
+        const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
         const questionsJson = await questionsRes.json();
         setQuestions(questionsJson.success ? questionsJson.data : []);
       } else {

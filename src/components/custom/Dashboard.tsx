@@ -97,7 +97,7 @@ export default function DashboardContent({
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
 
   useEffect(() => {
-    fetch('/api/buses')
+    fetch(`${API_BASE}/api/buses`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.buses) {

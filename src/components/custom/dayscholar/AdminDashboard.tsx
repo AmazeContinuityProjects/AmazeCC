@@ -5,6 +5,7 @@ import { Upload, Save, AlertCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminQueueTab from '@/components/custom/qbank/AdminQueueTab';
 import UploadPaperModal from '@/components/custom/qbank/UploadPaperModal';
+import { API_BASE } from "@/components/custom/Main";
 
 interface BusRoute {
   id: string;
@@ -29,7 +30,7 @@ const AdminDashboard: React.FC = () => {
   const [broadcastMsg, setBroadcastMsg] = useState('');
 
   useEffect(() => {
-    fetch('/api/buses')
+    fetch(`${API_BASE}/api/buses`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.buses) {
@@ -54,7 +55,7 @@ const AdminDashboard: React.FC = () => {
           setErrorMsg('');
           setSuccessMsg('Uploading to database...');
           
-          const res = await fetch('/api/admin/buses', {
+          const res = await fetch(`${API_BASE}/api/admin/buses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(parsed),
@@ -95,7 +96,7 @@ const AdminDashboard: React.FC = () => {
     setIsBroadcasting(true);
     setBroadcastMsg('');
     try {
-      const res = await fetch('/api/admin/push', {
+      const res = await fetch(`${API_BASE}/api/admin/push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: broadcastTitle, body: broadcastBody })

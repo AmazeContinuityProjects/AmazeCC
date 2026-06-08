@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
+import { API_BASE } from "@/components/custom/Main";
 
 export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }) {
   const [courseCode, setCourseCode] = useState("");
@@ -34,7 +35,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         isAdmin
       };
 
-      const res = await fetch("/api/qbank/upload", {
+      const res = await fetch(`${API_BASE}/api/qbank/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

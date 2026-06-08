@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Switch } from "@/components/ui/switch"
+import { API_BASE } from "@/components/custom/Main";
 
 function urlBase64ToUint8Array(base64String: string) {
     if (!base64String) return new Uint8Array(0);
@@ -27,7 +28,7 @@ export default function PushNotificationManager() {
         if (!UserID) return;
 
         // Check status directly from our internal Next.js API connected to Supabase
-        fetch(`/api/notifications/status?UserID=${UserID}`)
+        fetch(`${API_BASE}/api/notifications/status?UserID=${UserID}`)
             .then(res => res.json())
             .then(data => {
                 setVitolEnabled(!!data.vitol);
@@ -84,7 +85,7 @@ export default function PushNotificationManager() {
                 });
             }
 
-            await fetch(`/api/notifications/subscribe`, {
+            await fetch(`${API_BASE}/api/notifications/subscribe`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -106,7 +107,7 @@ export default function PushNotificationManager() {
 
         await subscription.unsubscribe()
 
-        await fetch(`/api/notifications/unsubscribe`, {
+        await fetch(`${API_BASE}/api/notifications/unsubscribe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -123,7 +124,7 @@ export default function PushNotificationManager() {
         setIsSaving(true);
         
         try {
-            await fetch(`/api/notifications/subscribe`, {
+            await fetch(`${API_BASE}/api/notifications/subscribe`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -185,7 +186,7 @@ export default function PushNotificationManager() {
                                     setVitolEnabled(checked)
                                     // If we are turning it on, automatically save the state
                                     if (subscription) {
-                                        fetch(`/api/notifications/subscribe`, {
+                                        fetch(`${API_BASE}/api/notifications/subscribe`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({

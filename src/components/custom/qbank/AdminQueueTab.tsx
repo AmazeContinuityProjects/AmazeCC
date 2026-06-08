@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import 'katex/dist/katex.min.css';
 import Latex from "react-latex-next";
 import { CheckCircle, Clock, FileText, Settings, ArrowRight, ArrowLeft, Eye, Trash2, Save, Plus } from "lucide-react";
+import { API_BASE } from "@/components/custom/Main";
 
 export default function AdminQueueTab() {
   const [papers, setPapers] = useState<any[]>([]);
@@ -21,7 +22,7 @@ export default function AdminQueueTab() {
   const fetchQueue = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/qbank/admin/queue');
+      const res = await fetch(`${API_BASE}/api/qbank/admin/queue`);
       const json = await res.json();
       if (json.success && json.data) setPapers(json.data);
     } catch (err) {
@@ -39,7 +40,7 @@ export default function AdminQueueTab() {
 
   const fetchQuestions = async (paperId: string) => {
     try {
-      const res = await fetch('/api/qbank/admin/questions?paperId=' + encodeURIComponent(paperId));
+      const res = await fetch(`${API_BASE}/api/qbank/admin/questions?paperId=` + encodeURIComponent(paperId));
       const json = await res.json();
       if (json.success && json.data) setQuestions(json.data);
     } catch (err) {
@@ -50,7 +51,7 @@ export default function AdminQueueTab() {
   const handleReject = async (paperId: string) => {
     if (!confirm("Are you sure you want to reject this paper?")) return;
     try {
-      await fetch("/api/qbank/admin/reject", {
+      await fetch(`${API_BASE}/api/qbank/admin/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paperId }),
@@ -64,7 +65,7 @@ export default function AdminQueueTab() {
   const handlePublish = async () => {
     if (!selectedPaper) return;
     try {
-      await fetch("/api/qbank/admin/publish", {
+      await fetch(`${API_BASE}/api/qbank/admin/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paperId: selectedPaper.source_id }),
@@ -83,7 +84,7 @@ export default function AdminQueueTab() {
         alert("JSON must be an array of questions.");
         return;
       }
-      const res = await fetch("/api/qbank/admin/questions/bulk", {
+      const res = await fetch(`${API_BASE}/api/qbank/admin/questions/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paperId: selectedPaper.source_id, questions: parsed }),
@@ -107,7 +108,7 @@ export default function AdminQueueTab() {
     try {
       // Optimistic UI update
       setQuestions(prev => prev.map(q => q.question_id === questionId ? { ...q, ...updates } : q));
-      await fetch("/api/qbank/admin/questions", {
+      await fetch(`${API_BASE}/api/qbank/admin/questions`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId, ...updates }),
@@ -120,7 +121,7 @@ export default function AdminQueueTab() {
   const handleAddQuestion = async () => {
     if (!selectedPaper) return;
     try {
-      const res = await fetch("/api/qbank/admin/questions", {
+      const res = await fetch(`${API_BASE}/api/qbank/admin/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paperId: selectedPaper.source_id }),
@@ -139,7 +140,7 @@ export default function AdminQueueTab() {
     try {
       // Optimistic UI update
       setQuestions(prev => prev.filter(q => q.question_id !== questionId));
-      await fetch("/api/qbank/admin/questions", {
+      await fetch(`${API_BASE}/api/qbank/admin/questions`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId }),
