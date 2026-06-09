@@ -36,6 +36,11 @@
       "title": "WhatsApp Community",
       "link": "https://chat.whatsapp.com/G1CNYLaMgYu6ePIzT2csWM",
       "icon": "whatsapp"
+    },
+    {
+      "title": "Report a bug or suggest a feature!",
+      "link": "https://forms.gle/VbohNWDWgoPuBR5q6",
+      "icon": "link"
     }
   ]
 }
