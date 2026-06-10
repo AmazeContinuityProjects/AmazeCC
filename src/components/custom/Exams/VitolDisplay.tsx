@@ -72,7 +72,7 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                                        midnight:outline midnight:outline-1 midnight:outline-gray-800
                                        hover:shadow-md transition cursor-pointer"
                         >
-                            <a href={item.url} target="_blank">
+                            <a href={item.url} target="_blank" rel="noopener noreferrer">
                                 <div className="flex items-center justify-between">
                                     <h2 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-200">
                                         {courseName} - {assignmentName}

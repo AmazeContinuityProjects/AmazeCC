@@ -71,7 +71,7 @@ export default function Files() {
     }, []);
 
     const handleDrop = async (incomingFiles: File[]) => {
-        const uid = localStorage.getItem("username") || "";
+        const uid = userID || "";
         if (!uid) return;
 
         const tempFiles = incomingFiles.map(f => ({

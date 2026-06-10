@@ -66,7 +66,8 @@ export default function PrivacyPolicyPage({ handleClose }) {
                     Notifications
                 </h3>
                 <p>
-                    The app does not send any push notifications or background alerts. There are no background
+                    The app may send push notifications if you opt in. You can disable push notifications
+                    at any time through your browser settings. There are no background
                     processes that track or monitor user behavior.
                 </p>
 

@@ -123,7 +123,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
       <h2 className="text-md font-bold mb-2 text-center text-gray-700 dark:text-gray-300 midnight:text-gray-300">
         ( Data taken from{" "}
         <a
-          href="http://kaffeine.tech/unmessify"
+          href="https://kaffeine.tech/unmessify"
           target="_blank"
           rel="noopener noreferrer"
           className="underline text-blue-600 dark:text-blue-400 midnight:text-blue-400"

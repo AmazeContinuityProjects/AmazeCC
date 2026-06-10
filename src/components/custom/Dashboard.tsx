@@ -32,8 +32,6 @@ import ProfilePage from "./header/ProfilePage";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
 
-<Analytics/>
-
 export default function DashboardContent({
   activeTab,
   setActiveTab,

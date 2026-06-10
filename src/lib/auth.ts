@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
-const SECRET = process.env.ADMIN_SECRET || 'fallback_secret_change_me_in_production';
+const SECRET = process.env.ADMIN_SECRET;
+if (!SECRET) {
+    throw new Error('ADMIN_SECRET environment variable is required');
+}
 
 /**
  * Generates an HMAC SHA-256 signature for the given payload.

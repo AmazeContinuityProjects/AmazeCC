@@ -14,6 +14,19 @@ import { syncMarksDiff } from "@/lib/marksSync";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
+const FETCH_TIMEOUT = 90000;
+
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 type settings = {
   decimalValues: boolean;
   CGPAHidden: boolean;
@@ -239,14 +252,14 @@ export default function LoginPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       setProgressBar(10);
       setMessage("Logging in and fetching data...");
-      const loginRes = await fetch(`${API_BASE}/api/login`, {
+      const loginRes = await fetchWithTimeout(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: IDs.VtopUsername,
           password: IDs.VtopPassword
         }),
-      });
+      }, 60000);
 
       const data = await loginRes.json();
 
@@ -276,26 +289,34 @@ export default function LoginPage() {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
       localStorage.setItem("IDs", JSON.stringify(IDs));
 
+      const verifyRes = await fetchWithTimeout(`${API_BASE}/api/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: currSemesterID }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.attRes || !verifyData.attRes.attendance) {
+        throw new Error("Session verification failed. Please try again.");
+      }
+
+      if (verifyData.marksRes && typeof verifyData.marksRes === 'string') {
+        throw new Error(`Marks fetch failed: ${verifyData.marksRes}`);
+      }
+
+      const attRes = verifyData.attRes;
+      const marksRes = verifyData.marksRes;
+      setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
+      setProgressBar(prev => prev + 10);
+
       const [
-        { attRes, marksRes },
         gradesRes,
         ScheduleRes,
         HostelRes,
         calenderRes,
         allGradesRes
       ] = await Promise.all([
-        fetch(`${API_BASE}/api/attendance`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
-          setProgressBar(prev => prev + 10);
-          return j;
-        }),
-
-        fetch(`${API_BASE}/api/grades`, {
+        fetchWithTimeout(`${API_BASE}/api/grades`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
@@ -306,7 +327,7 @@ export default function LoginPage() {
           return j;
         }),
 
-        fetch(`${API_BASE}/api/schedule`, {
+        fetchWithTimeout(`${API_BASE}/api/schedule`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
@@ -317,7 +338,7 @@ export default function LoginPage() {
           return j;
         }),
 
-        fetch(`${API_BASE}/api/hostel`, {
+        fetchWithTimeout(`${API_BASE}/api/hostel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
@@ -328,7 +349,7 @@ export default function LoginPage() {
           return j;
         }),
 
-        fetch(`${API_BASE}/api/calendar`, {
+        fetchWithTimeout(`${API_BASE}/api/calendar`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -343,7 +364,7 @@ export default function LoginPage() {
           setProgressBar(prev => prev + 5);
           return j;
         }),
-        fetch(`${API_BASE}/api/all-grades`, {
+        fetchWithTimeout(`${API_BASE}/api/all-grades`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
@@ -411,7 +432,7 @@ export default function LoginPage() {
 
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const coreTask = fetch(`${API_BASE}/api/attendance`, {
+      const coreTask = fetchWithTimeout(`${API_BASE}/api/attendance`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -439,7 +460,7 @@ export default function LoginPage() {
       if (moodleUsername && moodlePassword) {
         tasks.push(
           (async () => {
-            const res = await fetch(`${API_BASE}/api/lms-data`, {
+            const res = await fetchWithTimeout(`${API_BASE}/api/lms-data`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
