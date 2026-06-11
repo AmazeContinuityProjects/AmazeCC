@@ -150,6 +150,8 @@ export default function MarksDisplay({ data }) {
         if (res.ok) {
           const statsData = await res.json();
           setAllStats(statsData);
+        } else {
+          console.error("Failed to fetch marks stats:", res.status, res.statusText);
         }
       } catch (error) {
         console.error("Fetch stats error:", error);

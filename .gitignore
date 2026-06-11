@@ -50,3 +50,4 @@ certificates
 .open-next
 .wrangler
 .env*
+.env.local

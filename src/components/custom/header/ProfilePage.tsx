@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Button } from "../../ui/button";
 import config from "../../../../config.json";
 import { Switch } from "@/components/ui/switch";
-import Files from "./Files";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
@@ -301,9 +300,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                     </div>
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
                         <PushNotificationManager />
-                    </div>
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                        <Files />
                     </div>
                     <div className="p-4">
                         <Links />
