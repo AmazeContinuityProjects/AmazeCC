@@ -6,12 +6,13 @@ import config from '../../../../config.json';
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
 import { Button } from "@/components/ui/button";
-import { X, BadgeQuestionMark, Calendar, Users, ClipboardList } from "lucide-react";
+import { X, BadgeQuestionMark, Calendar, Users, ClipboardList, Building2 } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 import AttendanceSubpage from "./AttendanceSubpage";
 import ODTrackerSubpage from "./ODTrackerSubpage";
+import DesktopCourseDetail from "./DesktopCourseDetail";
 
 export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
   const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -21,6 +22,64 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   const [showCommonFree, setShowCommonFree] = useState(false);
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const slotMap = config.slotMap as any;
+  const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
+
+  const getOngoingIndex = (dayClasses) => {
+    if (!dayClasses || dayClasses.length === 0) return 0;
+    const today = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    if (!today.startsWith(activeDay.slice(0, 3).toUpperCase())) return 0;
+
+    const now = new Date();
+    const parseTime = (str) => {
+      const [hour, minute] = str.split(":").map(Number);
+      const d = new Date();
+      let h = hour;
+      let m = minute || 0;
+      if (h < 8) h += 12;
+      d.setHours(h, m, 0, 0);
+      return d;
+    };
+
+    const idx = dayClasses.findIndex((a) => {
+      if (!a.time) return false;
+      const [startStr, endStr] = a.time.split("-").map(t => t.trim());
+      if (!startStr || !endStr) return false;
+      const start = parseTime(startStr);
+      const end = parseTime(endStr);
+      return now >= start && now <= end;
+    });
+
+    return idx !== -1 ? idx : 0;
+  };
+
+  const getClassStatus = (timeStr: string) => {
+    if (!timeStr || !activeDay) return "upcoming";
+
+    const today = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    if (!today.startsWith(activeDay.slice(0, 3).toUpperCase())) return "upcoming";
+
+    const [startStr, endStr] = timeStr.split("-").map(t => t.trim());
+    if (!startStr || !endStr) return "upcoming";
+
+    const parseTime = (str) => {
+      const [hour, minute] = str.split(":").map(Number);
+      const d = new Date();
+      let h = hour;
+      let m = minute || 0;
+      if (h < 8) h += 12;
+      d.setHours(h, m, 0, 0);
+      return d;
+    };
+
+    const start = parseTime(startStr);
+    const end = parseTime(endStr);
+    const now = new Date();
+
+    if (now >= start && now <= end) return "ongoing";
+    if (now > end) return "completed";
+    return "upcoming";
+  };
+
 
   useEffect(() => {
     if (setIsSubpageOpen) {
@@ -153,6 +212,11 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
     }
   }, [daysWithClasses]);
 
+  useEffect(() => {
+    const dayClasses = dayCardsMap[activeDay] || [];
+    setDesktopSelectedIdx(getOngoingIndex(dayClasses));
+  }, [activeDay]);
+
   const findEventDate = (eventName) => {
     const ev = [...importantEvents.values()].find(
       (e) => e.event.toLowerCase() === eventName.toLowerCase()
@@ -255,7 +319,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-2">
+      {/* Mobile View: Grid of cards */}
+      <div className="grid grid-cols-1 md:hidden gap-4 p-2">
         {dayCardsMap[activeDay]?.map((a, idx) => (
           <div key={idx}>
             <CourseCard
@@ -269,6 +334,135 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           </div>
         ))}
       </div>
+
+      {/* Desktop View: Side-by-side Timeline (Left) and Details Panel (Right) */}
+      {dayCardsMap[activeDay] && dayCardsMap[activeDay].length > 0 ? (
+        <div className="hidden md:grid md:grid-cols-[300px_1fr] gap-8 p-2 items-start">
+          {/* Left Column: Timeline Schedule */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Today's Schedule</h3>
+            <div className="relative pl-8 space-y-4">
+              {/* Vertical timeline line */}
+              <div className="absolute left-[11px] top-3 bottom-3 w-[2px] bg-gray-200 dark:bg-gray-800 midnight:bg-gray-800/80" />
+
+              {dayCardsMap[activeDay].map((a, idx) => {
+                const status = getClassStatus(a.time);
+                const isSelected = idx === desktopSelectedIdx;
+                
+                // Color mapping for status dot
+                let dotColorClass = "bg-gray-300 border-gray-400 dark:bg-gray-700 dark:border-gray-600";
+                let pulseEffect = null;
+                if (status === "ongoing") {
+                  dotColorClass = "bg-amber-500 border-amber-300 dark:bg-amber-500 dark:border-amber-400";
+                  pulseEffect = <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping" />;
+                } else if (status === "completed") {
+                  dotColorClass = "bg-emerald-500 border-emerald-300 dark:bg-emerald-500 dark:border-emerald-400";
+                }
+
+                // Card background and border based on state
+                let cardStyle = "bg-white dark:bg-slate-900 midnight:bg-[#0a0a0a] border-gray-200 dark:border-gray-800 midnight:border-gray-800/60";
+                if (isSelected) {
+                  cardStyle = "bg-blue-50/40 dark:bg-blue-950/20 midnight:bg-blue-950/15 border-blue-500 ring-1 ring-blue-500/30";
+                } else if (status === "ongoing") {
+                  cardStyle = "bg-amber-50/30 dark:bg-amber-950/10 midnight:bg-amber-950/5 border-amber-500/40";
+                }
+
+                // Muted state for completed classes
+                let textOpacity = "opacity-100";
+                if (status === "completed" && !isSelected) {
+                  textOpacity = "opacity-60";
+                }
+
+                const attendanceColor = a.attendancePercentage < (isDayscholarWithBus ? 85 : 75)
+                  ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+                  : a.attendancePercentage < (isDayscholarWithBus ? 90 : 85)
+                    ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
+                    : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400";
+
+                return (
+                  <div 
+                    key={idx} 
+                    className="relative group cursor-pointer"
+                    onClick={() => setDesktopSelectedIdx(idx)}
+                  >
+                    {/* Timeline Dot */}
+                    <div className="absolute left-[-29px] top-4 z-10 flex h-6 w-6 items-center justify-center">
+                      <div className="relative flex h-3 w-3 items-center justify-center">
+                        {pulseEffect}
+                        <span className={`relative inline-flex h-3 w-3 rounded-full border-2 ${dotColorClass}`} />
+                      </div>
+                    </div>
+
+                    {/* Timeline Card */}
+                    <div className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${cardStyle} ${textOpacity}`}>
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 midnight:text-blue-400 uppercase">
+                              {a.slotName}
+                            </span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                              {a.time}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">
+                            {a.courseTitle}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <Building2 size={13} className="text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{a.slotVenue}</span>
+                          </div>
+                        </div>
+
+                        {/* Attendance Pill */}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${attendanceColor}`}>
+                          {a.attendancePercentage}%
+                        </span>
+                      </div>
+
+                      {/* Small badge overlay if ongoing */}
+                      {status === "ongoing" && (
+                        <div className="mt-3 flex justify-between items-center bg-amber-500/10 dark:bg-amber-500/5 px-2.5 py-1 rounded-lg border border-amber-500/25">
+                          <span className="text-[10px] font-black tracking-wider uppercase text-amber-600 dark:text-amber-400">
+                            🔴 Ongoing Class
+                          </span>
+                          <span className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
+                            Now
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Premium Desktop Course Details Preview */}
+          <div className="bg-white dark:bg-slate-900 midnight:bg-[#080808] border border-gray-200 dark:border-gray-800 midnight:border-gray-800/80 rounded-2xl p-6 shadow-sm">
+            {dayCardsMap[activeDay][desktopSelectedIdx] ? (
+              <DesktopCourseDetail
+                a={dayCardsMap[activeDay][desktopSelectedIdx]}
+                isDayscholarWithBus={isDayscholarWithBus}
+                decimalValues={decimalValues}
+                results={results}
+                dayCardsMap={dayCardsMap}
+                impDates={impDates}
+                onViewFullPage={() => setExpandedIdx(desktopSelectedIdx)}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 py-20">
+                <p>Select a class on the timeline to view details.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="hidden md:block">
+          <NoContentFound />
+        </div>
+      )}
 
       {showPredictor && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-center items-center">
