@@ -9,8 +9,6 @@ import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
-import PrivacyPolicyPage from "../footer/PrivacyPolicy";
-import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
@@ -28,8 +26,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     // Footer Modals State
     const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
     const [storageData, setStorageData] = useState<Record<string, string | null>>({});
-    const [showPolicy, setShowPolicy] = useState<boolean>(false);
-    const [showTOS, setShowTOS] = useState<boolean>(false);
     const [showChangelog, setShowChangelog] = useState<boolean>(false);
     const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
@@ -107,8 +103,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     return (
         <div className="w-full h-full pb-8">
             {showStoragePage && isLoggedIn && <DataPage handleClose={() => setShowStoragePage(false)} handleDeleteItem={handleDeleteItem} storageData={storageData} />}
-            {showPolicy && <PrivacyPolicyPage handleClose={() => setShowPolicy(false)} />}
-            {showTOS && <TermsOfServicePage handleClose={() => setShowTOS(false)} />}
             {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
             {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
 
@@ -370,8 +364,8 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <ListTile icon={ExternalLink} title="Visit Official Website" onClick={() => {}} />
                     </a>
                     <ListTile icon={Database} title="Local Storage Viewer" onClick={openStoragePage} />
-                    <ListTile icon={FileText} title="Privacy Policy" onClick={() => setShowPolicy(true)} />
-                    <ListTile icon={Shield} title="Terms of Service" noBorder={true} onClick={() => setShowTOS(true)} />
+                    <ListTile icon={FileText} title="Privacy Policy" onClick={() => window.open("/privacy", "_blank")} />
+                    <ListTile icon={Shield} title="Terms of Service" noBorder={true} onClick={() => window.open("/terms", "_blank")} />
                 </CardContainer>
 
                 {/* Logout Action */}

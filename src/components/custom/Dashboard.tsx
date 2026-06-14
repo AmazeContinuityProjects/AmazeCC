@@ -88,6 +88,17 @@ export default function DashboardContent({
   const touchEndX = useRef(0);
   const touchEndY = useRef(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [currentIcon, setCurrentIcon] = useState("/logo.png");
+
+  useEffect(() => {
+    const updateIcon = () => {
+      const savedIcon = localStorage.getItem("app-icon") || "default";
+      setCurrentIcon(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png");
+    };
+    updateIcon();
+    window.addEventListener("app-icon-changed", updateIcon);
+    return () => window.removeEventListener("app-icon-changed", updateIcon);
+  }, []);
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
@@ -401,12 +412,15 @@ export default function DashboardContent({
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 dark:bg-emerald-500/10 midnight:bg-emerald-500/5 blur-[120px]" />
         </div>
         <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
-          <div className="px-6 pt-6 pb-2 flex justify-between items-start">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 midnight:text-gray-100 flex-1 truncate">
-                {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
-              </h2>
+          <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
+              <div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight leading-tight">AmazeCC</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate max-w-[180px] font-semibold mt-0.5">
+                  {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
+                </p>
+              </div>
             </div>
             <button
               onClick={async () => {

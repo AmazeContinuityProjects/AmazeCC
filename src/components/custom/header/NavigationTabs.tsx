@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
 
 import { IconToggle } from "../toggle";
@@ -38,6 +38,17 @@ export default function NavigationTabs({
   setActiveMoreSubTab
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
+  const [currentIcon, setCurrentIcon] = useState("/logo.png");
+
+  useEffect(() => {
+    const updateIcon = () => {
+      const savedIcon = localStorage.getItem("app-icon") || "default";
+      setCurrentIcon(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png");
+    };
+    updateIcon();
+    window.addEventListener("app-icon-changed", updateIcon);
+    return () => window.removeEventListener("app-icon-changed", updateIcon);
+  }, []);
 
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -68,45 +79,60 @@ export default function NavigationTabs({
       >
         {/* Desktop Sidebar Profile / Stats Area */}
         <div className={`hidden md:flex flex-col w-full p-4 mb-2 border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800 pt-6 ${settings.isSidebarCollapsed ? 'items-center' : ''}`}>
-          <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col gap-4' : 'justify-between items-center'} mb-4 w-full`}>
-            {!settings.isSidebarCollapsed && (
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-                <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
-              </div>
-            )}
-            
-            <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col' : 'items-center'} gap-2`}>
+          {settings.isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-4 w-full mb-4">
+              <img src={currentIcon} alt="Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
               <button 
                 onClick={() => {
                   setSettings(prev => ({ ...prev, isSidebarCollapsed: !prev.isSidebarCollapsed }));
                   localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: !settings.isSidebarCollapsed }));
                 }}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
                 title="Toggle Sidebar"
               >
                 <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
-              {!settings.isSidebarCollapsed && (
-                <>
+            </div>
+          ) : (
+            <div className="flex flex-col w-full mb-4">
+              <div className="flex justify-between items-start w-full">
+                <div className="flex flex-col items-start gap-2">
+                  <img src={currentIcon} alt="Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
+                    <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1.5 pt-1">
+                  <button 
+                    onClick={() => {
+                      setSettings(prev => ({ ...prev, isSidebarCollapsed: !prev.isSidebarCollapsed }));
+                      localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: !settings.isSidebarCollapsed }));
+                    }}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
+                    title="Toggle Sidebar"
+                  >
+                    <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
                   <button 
                     onClick={handleReloadClick}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
                     title="Reload Data"
                   >
                     <RefreshCcw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${isSpinning ? "animate-spin" : ""}`} />
                   </button>
                   <button 
                     onClick={() => setActiveTab("profile")}
-                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors ${activeTab === "profile" ? "bg-blue-50 dark:bg-slate-800/50 midnight:bg-gray-900/50" : ""}`}
+                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center ${activeTab === "profile" ? "bg-blue-50 dark:bg-slate-800/50 midnight:bg-gray-900/50" : ""}`}
                     title="Profile"
                   >
                     <User className={`w-4 h-4 ${activeTab === "profile" ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"}`} />
                   </button>
-                </>
-              )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Compact Stats Grid - Small Cards */}
           {!settings.isSidebarCollapsed && (
