@@ -7,8 +7,22 @@ const withSerwist = withSerwistInit({
   swDest: "public/sw.js",
 });
 
+const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
+let basePath = '';
+
+if (isGithubActions && process.env.GITHUB_REPOSITORY) {
+  const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+  basePath = `/${repo}`;
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  basePath: basePath,
+  trailingSlash: true,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   reactStrictMode: true,
   devIndicators: false,
   images: {

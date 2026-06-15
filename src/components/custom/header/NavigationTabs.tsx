@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { getAssetPath } from "@/lib/utils";
 import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
 
 import { IconToggle } from "../toggle";
@@ -38,12 +39,12 @@ export default function NavigationTabs({
   setActiveMoreSubTab
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
-  const [currentIcon, setCurrentIcon] = useState("/logo.png");
+  const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
 
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      setCurrentIcon(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png");
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png"));
     };
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);

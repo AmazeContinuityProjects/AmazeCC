@@ -48,13 +48,15 @@ self.addEventListener("fetch", (event) => {
 
 serwist.addEventListeners();
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 self.addEventListener('push', function (event) {
   if (event.data) {
     const data = event.data.json()
     const options = {
       body: data.body,
-      icon: data.icon || '/logo.png',
-      badge: '/logo.png',
+      icon: data.icon || `${basePath}/logo.png`,
+      badge: `${basePath}/logo.png`,
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
@@ -67,5 +69,5 @@ self.addEventListener('push', function (event) {
  
 self.addEventListener('notificationclick', function (event: any) {
   event.notification.close()
-  event.waitUntil((self as any).clients.openWindow('/'))
+  event.waitUntil((self as any).clients.openWindow(basePath || '/'))
 })

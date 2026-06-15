@@ -3,6 +3,7 @@
 import { X, Save, LogOut, Eye, User, Link2, ExternalLink, Github, Database, Shield, FileText, ChevronRight, History, RefreshCcw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "../../ui/button";
+import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import { Switch } from "@/components/ui/switch";
 import Links from "./Links";
@@ -279,14 +280,14 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     onClick={() => handleIconChange('default')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'default' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
-                                    <img src="/logo.png" alt="Default Icon" className="w-12 h-12 rounded-xl shadow-sm" />
+                                    <img src={getAssetPath("/logo.png")} alt="Default Icon" className="w-12 h-12 rounded-xl shadow-sm" />
                                     <span className="text-xs font-medium">Default</span>
                                 </button>
                                 <button 
                                     onClick={() => handleIconChange('fire')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'fire' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
-                                    <img src="/icons/fire.png" alt="Fire Icon" className="w-12 h-12 rounded-xl shadow-sm" />
+                                    <img src={getAssetPath("/icons/fire.png")} alt="Fire Icon" className="w-12 h-12 rounded-xl shadow-sm" />
                                     <span className="text-xs font-medium">Fire</span>
                                 </button>
                             </div>

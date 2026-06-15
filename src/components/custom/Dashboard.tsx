@@ -1,5 +1,6 @@
 "use client";
 import { Analytics } from "@vercel/analytics/next";
+import { getAssetPath } from "@/lib/utils";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
 import GradesModal from "./Exams/GradesModal";
@@ -88,12 +89,12 @@ export default function DashboardContent({
   const touchEndX = useRef(0);
   const touchEndY = useRef(0);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [currentIcon, setCurrentIcon] = useState("/logo.png");
+  const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
 
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      setCurrentIcon(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png");
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png"));
     };
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);
