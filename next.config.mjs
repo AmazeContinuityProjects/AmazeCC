@@ -7,13 +7,9 @@ const withSerwist = withSerwistInit({
   swDest: "public/sw.js",
 });
 
-const isGithubActions = process.env.GITHUB_ACTIONS === 'true';
-let basePath = '';
-
-if (isGithubActions && process.env.GITHUB_REPOSITORY) {
-  const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-  basePath = `/${repo}`;
-}
+// Set to your repository name (e.g. '/AmazeCC') if deploying to <username>.github.io/<repo-name>
+// Keep empty '' if deploying to a custom domain (like amazecc.com) or a root user/org page.
+const basePath = '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
