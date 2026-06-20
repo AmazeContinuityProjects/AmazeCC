@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
+import FFCSGuideModal from "./FFCSGuideModal";
 
 import timetableSchema from "@/app/data/chennai.json";
 
@@ -428,6 +429,12 @@ export default function FFCSTimetableTab() {
   const [selectedFriendTimetablesData, setSelectedFriendTimetablesData] = useState<{name: string, timetables: TimetableState[], currentIndex: number} | null>(null);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isCourseSearchOpen, setIsCourseSearchOpen] = useState(false);
+  const [courseSearchQuery, setCourseSearchQuery] = useState("");
+  const [isSlotSearchOpen, setIsSlotSearchOpen] = useState(false);
+  const [slotSearchQuery, setSlotSearchQuery] = useState("");
+  const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
 
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
@@ -1524,6 +1531,13 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <MapIcon className="text-blue-400 w-6 h-6" /> FFCS Planner
+              <button 
+                onClick={() => setIsGuideModalOpen(true)}
+                className="ml-2 text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10"
+                title="How does this work?"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
             </h2>
             <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
           </div>
@@ -1713,21 +1727,17 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
 
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">1. Select Course</label>
-                  <select 
-                    value={selectedCourseCode}
-                    onChange={e => {
-                      setSelectedCourseCode(e.target.value);
-                      setSelectedSlotIndex("-1"); 
-                    }}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
+                  <button 
+                    onClick={() => setIsCourseSearchOpen(true)}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-left text-foreground hover:bg-muted/50 transition-colors flex justify-between items-center group shadow-sm"
                   >
-                    <option value="">-- Choose Course --</option>
-                    {uniqueCourses.map(c => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} - {c.title.substring(0, 40)}{c.title.length > 40 ? '...' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <span className="truncate text-sm font-medium">
+                      {selectedCourseCode 
+                        ? `${selectedCourseCode} - ${uniqueCourses.find(c => c.code === selectedCourseCode)?.title}`
+                        : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
+                    </span>
+                    <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
+                  </button>
                 </div>
                 
                 {selectedCourseCode && (
@@ -1749,30 +1759,21 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                         <option value="evening_lab">Evening Lab</option>
                       </select>
                       
-                      <select 
-                        value={selectedSlotIndex}
-                        onChange={e => setSelectedSlotIndex(e.target.value)}
-                        className="w-2/3 bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
+                      <button
+                        type="button"
+                        onClick={() => setIsSlotSearchOpen(true)}
+                        className="w-2/3 bg-background border border-border rounded-xl px-4 py-2.5 text-left text-foreground hover:bg-muted/50 transition-colors flex justify-between items-center group shadow-sm"
                       >
-                        <option value="-1">-- Choose Component --</option>
-                        {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
-                          if (slotFilter === "all") return true;
-                          if (slotFilter === "morning") return isMorningTheory(row.SLOT);
-                          if (slotFilter === "evening") return isEveningTheory(row.SLOT);
-                          if (slotFilter === "morning_lab") return isMorningLab(row.SLOT);
-                          if (slotFilter === "evening_lab") return isEveningLab(row.SLOT);
-                          return true;
-                        }).map(({ row, idx }) => {
-                          const slotsArray = row.SLOT.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL");
-                          const clashError = checkClashes(slotsArray);
-                          const isBlocked = !!clashError;
-                          return (
-                            <option key={idx} value={idx.toString()} disabled={isBlocked}>
-                              {row.SLOT} - {row.FACULTY} - {row.ROOM} {isBlocked ? `[CLASH: ${clashError}]` : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
+                        <span className="truncate text-sm font-medium">
+                          {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
+                            ? (() => {
+                                const row = availableSlots[parseInt(selectedSlotIndex)];
+                                return `${row.SLOT} - ${row.FACULTY}`;
+                              })()
+                            : <span className="text-muted-foreground">-- Search & Choose Slot --</span>}
+                        </span>
+                        <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
+                      </button>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-2 ml-1">
                       * For embedded courses, theory and lab slots taught by the same faculty are automatically linked (if grouping is enabled). Click cells in the timetable grid to block time slots and narrow down valid options.
@@ -2753,8 +2754,30 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">Choose the courses you want to take. The generator will find all conflict-free combinations.</p>
                   
+                  <div className="relative mb-3">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input 
+                      type="text"
+                      placeholder="Search by course code or title..."
+                      value={generatorCourseSearchQuery}
+                      onChange={e => setGeneratorCourseSearchQuery(e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-amber-500/50"
+                    />
+                  </div>
+
                   <div className="border border-border rounded-xl max-h-[60vh] overflow-y-auto bg-muted/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
-                    {uniqueCourseCodes.map(c => {
+                    {uniqueCourseCodes.filter(c => 
+                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
+                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No courses found matching "{generatorCourseSearchQuery}"
+                      </div>
+                    )}
+                    {uniqueCourseCodes.filter(c => 
+                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
+                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
+                    ).map(c => {
                       const sel = generatorSelectedCourses.find(s => s.code === c.code);
                       const isSelected = !!sel;
                       
@@ -3245,6 +3268,178 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guide Modal */}
+      {isGuideModalOpen && <FFCSGuideModal onClose={() => setIsGuideModalOpen(false)} />}
+
+      {/* Course Search Modal */}
+      {isCourseSearchOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                <Search className="w-5 h-5 text-blue-500" /> Search Course
+              </h3>
+              <button 
+                onClick={() => setIsCourseSearchOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 border-b border-border bg-background">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input 
+                  type="text"
+                  placeholder="Search by course code or title..."
+                  value={courseSearchQuery}
+                  onChange={e => setCourseSearchQuery(e.target.value)}
+                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-muted-foreground"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+              {uniqueCourses.filter(c => 
+                c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
+                c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+              ).slice(0, 100).map(c => (
+                <button
+                  key={c.code}
+                  onClick={() => {
+                    setSelectedCourseCode(c.code);
+                    setSelectedSlotIndex("-1");
+                    setIsCourseSearchOpen(false);
+                    setCourseSearchQuery("");
+                  }}
+                  className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm">{c.code}</span>
+                    {selectedCourseCode === c.code && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>}
+                  </div>
+                  <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
+                </button>
+              ))}
+              {uniqueCourses.filter(c => 
+                c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
+                c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+              ).length === 0 && (
+                <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
+                  <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                  <span className="text-muted-foreground font-medium">No courses found</span>
+                  <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term</span>
+                </div>
+              )}
+              {uniqueCourses.filter(c => 
+                c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
+                c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+              ).length > 100 && (
+                <div className="text-center py-4 text-xs text-muted-foreground font-medium flex items-center justify-center gap-2 border-t border-border/30 mt-2">
+                  <Info className="w-3 h-3" /> Showing first 100 results. Refine search.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slot Search Modal */}
+      {isSlotSearchOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
+              </h3>
+              <button 
+                onClick={() => setIsSlotSearchOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 border-b border-border bg-background">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input 
+                  type="text"
+                  placeholder="Search by slot, faculty, or room..."
+                  value={slotSearchQuery}
+                  onChange={e => setSlotSearchQuery(e.target.value)}
+                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-muted-foreground"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+              {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
+                if (slotFilter === "all") return true;
+                if (slotFilter === "morning") return isMorningTheory(row?.SLOT || "");
+                if (slotFilter === "evening") return isEveningTheory(row?.SLOT || "");
+                if (slotFilter === "morning_lab") return isMorningLab(row?.SLOT || "");
+                if (slotFilter === "evening_lab") return isEveningLab(row?.SLOT || "");
+                return true;
+              }).filter(({ row }) => {
+                const query = slotSearchQuery.toLowerCase();
+                return row?.SLOT?.toLowerCase().includes(query) || 
+                       row?.FACULTY?.toLowerCase().includes(query) || 
+                       row?.ROOM?.toLowerCase().includes(query);
+              }).map(({ row, idx }) => {
+                const slotsArray = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
+                const clashError = checkClashes(slotsArray);
+                const isBlocked = !!clashError;
+                
+                return (
+                  <button
+                    key={idx}
+                    disabled={isBlocked}
+                    onClick={() => {
+                      if (!isBlocked) {
+                        setSelectedSlotIndex(idx.toString());
+                        setIsSlotSearchOpen(false);
+                        setSlotSearchQuery("");
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 
+                      ${selectedSlotIndex === idx.toString() ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent'} 
+                      ${isBlocked ? 'opacity-50 cursor-not-allowed bg-red-500/5 border-red-500/10' : 'hover:bg-muted/80'}`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-foreground text-sm">
+                        {row?.SLOT}
+                      </span>
+                      {selectedSlotIndex === idx.toString() && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Selected</span>}
+                    </div>
+                    <span className="text-xs text-muted-foreground flex justify-between w-full">
+                      <span className="truncate pr-2">{row?.FACULTY}</span>
+                      <span className="font-medium text-foreground/70 shrink-0">{row?.ROOM}</span>
+                    </span>
+                    {isBlocked && (
+                      <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded uppercase w-fit mt-0.5">
+                        Clash: {clashError}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {availableSlots.filter((row) => {
+                const query = slotSearchQuery.toLowerCase();
+                return row?.SLOT?.toLowerCase().includes(query) || 
+                       row?.FACULTY?.toLowerCase().includes(query) || 
+                       row?.ROOM?.toLowerCase().includes(query);
+              }).length === 0 && (
+                <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
+                  <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                  <span className="text-muted-foreground font-medium">No slots found</span>
+                  <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term or filter</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
