@@ -28,6 +28,16 @@ const serwist = new Serwist({
   navigationPreload: false,
   disableDevLogs: true,
   runtimeCaching: defaultCache,
+  fallbacks: {
+    entries: [
+      {
+        url: "/~offline/",
+        matcher({ request }) {
+          return request.destination === "document";
+        },
+      },
+    ],
+  },
 });
 
 self.addEventListener("fetch", (event) => {

@@ -1,5 +1,16 @@
 [
   {
+    "version": "v1.5.0",
+    "date": "2026-06-15",
+    "changes": [
+      "Deployed seamlessly to GitHub Pages via static export architecture.",
+      "Implemented true PWA Offline Fallbacks ensuring native app-like experience even with no internet connection.",
+      "Upgraded Attendance module for Desktop with dynamic Skeleton Loaders for instantly perceived performance.",
+      "Introduced lazy loading mechanisms for heavy modules like QBank.",
+      "Enabled strict TypeScript compilation and initialized unit testing framework for robust code quality."
+    ]
+  },
+  {
     "version": "v1.4.0",
     "date": "2026-06-07",
     "changes": [

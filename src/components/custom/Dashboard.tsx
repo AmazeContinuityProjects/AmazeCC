@@ -1,5 +1,4 @@
 "use client";
-import { Analytics } from "@vercel/analytics/next";
 import { getAssetPath } from "@/lib/utils";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
@@ -25,9 +24,29 @@ import MarksSubTab from "./Exams/MarksSubTab";
 import { RefreshCcw } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
 
-import PapersArchiveTab from "./qbank/PapersArchiveTab";
-import PureQBankTab from "./qbank/PureQBankTab";
+const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
+  loading: () => (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-10 w-48 mb-4" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  )
+});
+const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
+  loading: () => (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-10 w-48 mb-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </div>
+  )
+});
 import QBankSubTabs from "./qbank/QBankSubTabs";
 import ProfilePage from "./header/ProfilePage";
 import PushPromptModal from "./PushPromptModal";

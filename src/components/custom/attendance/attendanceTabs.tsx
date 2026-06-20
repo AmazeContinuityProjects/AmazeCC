@@ -12,8 +12,21 @@ import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 import AttendanceSubpage from "./AttendanceSubpage";
 import ODTrackerSubpage from "./ODTrackerSubpage";
-import DesktopCourseDetail from "./DesktopCourseDetail";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
 
+const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
+  loading: () => (
+    <div className="space-y-4 p-4 animate-in fade-in zoom-in-95 duration-200">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+        </div>
+    </div>
+  )
+});
 export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
   const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const [expandedIdx, setExpandedIdx] = useState(null);
