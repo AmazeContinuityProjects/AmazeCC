@@ -54,6 +54,8 @@ type TimetableState = {
   metrics?: {
     halfDays: number;
     gaps: number;
+    gapsPerDay: Record<string, number>;
+    buildingDashes: number;
     socialScore: number;
     bestFriendMatches: string[];
     isLongWeekend: boolean;
@@ -93,6 +95,35 @@ const timeToMinutes = (timeStr: string) => {
   if (period === "PM" && hours !== 12) hours += 12;
   if (period === "AM" && hours === 12) hours = 0;
   return hours * 60 + minutes;
+};
+
+const parse24HourToMinutes = (timeStr: string) => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+const getGroupedCourses = (courseList: AddedCourse[]) => {
+  const groups = new Map<string, AddedCourse & { ids: string[] }>();
+  courseList.forEach(c => {
+    if (groups.has(c.code)) {
+      const g = groups.get(c.code)!;
+      g.ids.push(c.id);
+      
+      if (!g.faculty.includes(c.faculty)) g.faculty += ` / ${c.faculty}`;
+      if (!g.venue.includes(c.venue)) g.venue += ` / ${c.venue}`;
+      if (!g.type.includes(c.type)) g.type += ` + ${c.type}`;
+      
+      c.slots.forEach(s => {
+        if (!g.slots.includes(s)) g.slots.push(s);
+      });
+      
+      g.credits = String(Math.max(parseFloat(g.credits || "0"), parseFloat(c.credits || "0")));
+    } else {
+      groups.set(c.code, { ...c, ids: [c.id], faculty: c.faculty, venue: c.venue, type: c.type, slots: [...c.slots] });
+    }
+  });
+  return Array.from(groups.values());
 };
 
 const isMorningTheory = (slot: string) => {
@@ -310,6 +341,8 @@ export default function FFCSTimetableTab() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
   const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(0);
+  const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>("08:00");
+  const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>("19:30");
   const [generatorSortBy, setGeneratorSortBy] = useState<"social" | "halfdays" | "compactness" | "balanced">("balanced");
   const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
 
@@ -548,6 +581,30 @@ export default function FFCSTimetableTab() {
           return !slots.some(s => blockedSlots.has(s));
         });
 
+        // Time Bounds Filtering
+        if (generatorMinStartTime || generatorMaxEndTime) {
+          const minAllowedMins = generatorMinStartTime ? parse24HourToMinutes(generatorMinStartTime) : 0;
+          const maxAllowedMins = generatorMaxEndTime ? parse24HourToMinutes(generatorMaxEndTime) : 24 * 60;
+          
+          options = options.filter(opt => {
+            const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
+            return slots.every(slot => {
+              const theoryPeriods = (timetableSchema.theory as TimetablePeriod[]).filter(p => !p.lunch);
+              const labPeriods = (timetableSchema.lab as TimetablePeriod[]).filter(p => !p.lunch);
+              
+              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).includes(slot));
+              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).includes(slot));
+              const p = tPeriod || lPeriod;
+              
+              if (!p || !p.start || !p.end) return true; // ignore slots without specific times
+              
+              const startMins = timeToMinutes(p.start);
+              const endMins = timeToMinutes(p.end);
+              return startMins >= minAllowedMins && endMins <= maxAllowedMins;
+            });
+          });
+        }
+
         // Sync with friends
         if (generatorSyncFriendsClasses) {
           const validFriendCourses = friends.flatMap(f => (f.timetables || []).flatMap(t => t.courses)).filter(c => c.code === sel.code);
@@ -628,6 +685,8 @@ export default function FFCSTimetableTab() {
           let totalGapMinutes = 0;
           let isFridayFree = true;
           let isMondayFree = true;
+          let buildingDashes = 0;
+          const gapsPerDay: Record<string, number> = {};
 
           const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
 
@@ -635,9 +694,8 @@ export default function FFCSTimetableTab() {
             let morningOccupied = false;
             let eveningOccupied = false;
             
-            let firstClassStart = -1;
-            let lastClassEnd = -1;
-            let totalClassMinutes = 0;
+            type DailyClass = { startMins: number, endMins: number, venue: string };
+            const dailyClasses: DailyClass[] = [];
 
             theoryPeriods.forEach((p, pIdx) => {
               const tSlot = p.days?.[day.id];
@@ -645,8 +703,17 @@ export default function FFCSTimetableTab() {
               const isMorning = timeToMinutes(p.start) < timeToMinutes("2:00 PM");
               
               let slotOccupied = false;
-              if (tSlot && mySlots.has(tSlot)) slotOccupied = true;
-              if (lSlot && mySlots.has(lSlot)) slotOccupied = true;
+              let venue = '';
+              
+              if (tSlot && mySlots.has(tSlot)) {
+                slotOccupied = true;
+                const c = mappedCourses.find(mc => mc.slots.includes(tSlot));
+                if (c) venue = c.venue;
+              } else if (lSlot && mySlots.has(lSlot)) {
+                slotOccupied = true;
+                const c = mappedCourses.find(mc => mc.slots.includes(lSlot));
+                if (c) venue = c.venue;
+              }
 
               if (slotOccupied) {
                 if (day.id === 'mon') isMondayFree = false;
@@ -655,24 +722,41 @@ export default function FFCSTimetableTab() {
                 if (isMorning) morningOccupied = true;
                 else eveningOccupied = true;
 
-                const startMins = timeToMinutes(p.start);
-                const endMins = timeToMinutes(p.end);
-                
-                if (firstClassStart === -1 || startMins < firstClassStart) firstClassStart = startMins;
-                if (lastClassEnd === -1 || endMins > lastClassEnd) lastClassEnd = endMins;
-                
-                totalClassMinutes += (endMins - startMins);
+                dailyClasses.push({
+                  startMins: timeToMinutes(p.start),
+                  endMins: timeToMinutes(p.end),
+                  venue
+                });
               }
             });
 
             if (!morningOccupied) freeHalfDays++;
             if (!eveningOccupied) freeHalfDays++;
 
-            if (firstClassStart !== -1 && lastClassEnd !== -1) {
-              const span = lastClassEnd - firstClassStart;
-              const gapMins = span - totalClassMinutes;
-              if (gapMins > 0) totalGapMinutes += gapMins;
+            // Sort classes by start time
+            dailyClasses.sort((a, b) => a.startMins - b.startMins);
+
+            let dayGaps = 0;
+            for (let i = 1; i < dailyClasses.length; i++) {
+              const prev = dailyClasses[i - 1];
+              const curr = dailyClasses[i];
+              const gap = curr.startMins - prev.endMins;
+              
+              if (gap > 0) {
+                dayGaps += gap;
+              } else if (gap === 0) {
+                const getBlock = (v: string) => v.split('-')[0].trim();
+                const prevBlock = getBlock(prev.venue);
+                const currBlock = getBlock(curr.venue);
+                // NIL or unassigned venues shouldn't trigger dashes
+                if (prevBlock && currBlock && prevBlock !== 'NIL' && currBlock !== 'NIL' && prevBlock !== currBlock) {
+                  buildingDashes++;
+                }
+              }
             }
+
+            gapsPerDay[day.id] = parseFloat((dayGaps / 60).toFixed(1));
+            totalGapMinutes += dayGaps;
           });
 
           const isLongWeekend = isFridayFree || isMondayFree;
@@ -718,6 +802,8 @@ export default function FFCSTimetableTab() {
             metrics: {
               halfDays: halfDaysCount,
               gaps: gapsHours,
+              gapsPerDay: gapsPerDay,
+              buildingDashes: buildingDashes,
               socialScore: socialScore,
               bestFriendMatches: bestFriendMatches,
               isLongWeekend: isLongWeekend
@@ -1582,7 +1668,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                           const isBlocked = !!clashError;
                           return (
                             <option key={idx} value={idx.toString()} disabled={isBlocked}>
-                              {row.SLOT} - {row.FACULTY} - {row.ROOM} {isBlocked ? `(Unavailable)` : ''}
+                              {row.SLOT} - {row.FACULTY} - {row.ROOM} {isBlocked ? `[CLASH: ${clashError}]` : ''}
                             </option>
                           );
                         })}
@@ -1686,7 +1772,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
                     <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
-                      Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
+                      Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
                     </span>
                   </h2>
                   <button 
@@ -1711,7 +1797,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {courses.map(c => (
+                      {getGroupedCourses(courses).map(c => (
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-3">
@@ -1741,7 +1827,9 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                           <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
                           <td className="py-3 px-2 text-right print:hidden">
                             <button 
-                              onClick={() => handleRemoveCourse(c.id)}
+                              onClick={() => {
+                                c.ids.forEach(id => handleRemoveCourse(id));
+                              }}
                               className="text-muted-foreground hover:text-red-400 transition-colors p-2"
                               title="Remove Course"
                             >
@@ -1776,7 +1864,10 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
         <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">{activeTimetable.name}</h1>
-            <p className="text-muted-foreground">Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
+            <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-foreground">Course List</h2>
+            <p className="text-muted-foreground">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
+          </div>
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-blue-400">AmazeCC FFCS</h2>
@@ -1804,7 +1895,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   <td colSpan={6} className="py-6 text-center text-muted-foreground">No courses selected</td>
                 </tr>
               ) : (
-                courses.map((c, i) => (
+                getGroupedCourses(courses).map((c, i) => (
                   <tr key={i} className="border-b border-border hover:bg-muted/20">
                     <td className="py-3 px-4 font-medium">{c.code}</td>
                     <td className="py-3 px-4">{c.title}</td>
@@ -2157,6 +2248,43 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   </button>
                 </div>
                 
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm">
+                    <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.halfDays}</span>
+                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Free Half-Days</span>
+                  </div>
+                  
+                  <div className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm relative group">
+                    <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.gaps}h</span>
+                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      {Object.entries(generatorPreviewTimetable.metrics?.gapsPerDay || {}).map(([day, gap]) => (
+                        <div key={day} className="flex justify-between gap-3">
+                          <span className="font-bold text-slate-400 uppercase">{day}</span>
+                          <span>{gap}h</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(generatorPreviewTimetable.metrics?.buildingDashes ?? 0) > 0 ? (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
+                      <span className="text-2xl font-black text-red-500">{generatorPreviewTimetable.metrics?.buildingDashes}</span>
+                      <span className="text-xs uppercase font-bold text-red-500/80 tracking-wider mt-1">Block Dashes</span>
+                    </div>
+                  ) : (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
+                      <span className="text-2xl font-black text-green-500">0</span>
+                      <span className="text-xs uppercase font-bold text-green-500/80 tracking-wider mt-1">Block Dashes</span>
+                    </div>
+                  )}
+
+                  <div className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm">
+                    <span className="text-2xl font-black text-pink-500">{generatorPreviewTimetable.metrics?.socialScore || 0}</span>
+                    <span className="text-xs uppercase font-bold text-pink-500/80 tracking-wider mt-1">Social Score</span>
+                  </div>
+                </div>
+
                 <div className="w-full flex flex-col gap-6 pb-20">
                   {renderUnifiedGrid()}
 
@@ -2166,7 +2294,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                         <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           Selected Courses
                           <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
-                            Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
+                            Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
                           </span>
                         </h2>
                       </div>
@@ -2184,7 +2312,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
-                            {courses.map(c => (
+                            {getGroupedCourses(courses).map(c => (
                               <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                                 <td className="py-3 px-2">
                                   <div className="flex items-center gap-3">
@@ -2283,15 +2411,28 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                             <span className="text-2xl font-black text-foreground">{tt.metrics?.halfDays}</span>
                             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
                           </div>
-                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
                             <span className="text-2xl font-black text-foreground">{tt.metrics?.gaps}h</span>
                             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
+                              {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
+                                <div key={day} className="flex justify-between gap-3">
+                                  <span className="font-bold text-slate-400 uppercase">{day}</span>
+                                  <span>{gap}h</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
                         {tt.metrics?.isLongWeekend && (
                           <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
                             🎉 Long Weekend!
+                          </div>
+                        )}
+                        {(tt.metrics?.buildingDashes ?? 0) > 0 && (
+                          <div className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+                            🏃 {tt.metrics?.buildingDashes} Block Dash{(tt.metrics?.buildingDashes ?? 0) > 1 ? 'es' : ''}
                           </div>
                         )}
 
@@ -2443,22 +2584,44 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                       <div>
                         <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
                           Min Free Half-Days
-                          <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold">{generatorMinHalfDays}</span>
                         </label>
                         <input 
-                          type="range"
+                          type="number"
                           min="0"
                           max="10"
                           step="1"
                           value={generatorMinHalfDays}
-                          onChange={(e) => setGeneratorMinHalfDays(parseInt(e.target.value))}
-                          className="w-full accent-amber-500 mt-2"
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            setGeneratorMinHalfDays(isNaN(val) ? 0 : Math.max(0, Math.min(10, val)));
+                          }}
+                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
                         />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-                          <span>0</span>
-                          <span>5</span>
-                          <span>10</span>
-                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
+                          Min Start Time
+                        </label>
+                        <input 
+                          type="time"
+                          value={generatorMinStartTime}
+                          onChange={(e) => setGeneratorMinStartTime(e.target.value)}
+                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
+                          Max End Time
+                        </label>
+                        <input 
+                          type="time"
+                          value={generatorMaxEndTime}
+                          onChange={(e) => setGeneratorMaxEndTime(e.target.value)}
+                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
+                        />
                       </div>
                     </div>
 
