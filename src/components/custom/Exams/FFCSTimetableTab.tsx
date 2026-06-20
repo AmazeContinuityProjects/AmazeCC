@@ -195,21 +195,6 @@ const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
 };
 
 const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
-  // 1. Fix credits
-  parsed.forEach(c => {
-    if (c.TYPE.toLowerCase().includes('embedded')) {
-      const creditsVal = parseFloat(c.CREDITS) || 0;
-      if (c.SLOT.startsWith('L')) {
-        if (c.SLOT.split('+').map(s => s.trim()).length === 2) {
-          c.CREDITS = "1.0";
-        }
-      } else {
-        if (creditsVal > 1 && creditsVal <= 4) { // typical logic: embedded courses with >1 credits, deduct 1 for lab
-          c.CREDITS = String(creditsVal - 1.0);
-        }
-      }
-    }
-  });
 
   // 2. Combine embedded theory and lab
   const combined: ParsedCourse[] = [];
@@ -270,7 +255,7 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
               const l = labSlots[m.lIdx];
               combined.push({
                 ...t,
-                CREDITS: String(parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
+                CREDITS: String(Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
                 ROOM: `${t.ROOM} / ${l.ROOM}`
               });
@@ -392,22 +377,8 @@ export default function FFCSTimetableTab() {
       if (isGroupingEnabled) {
         setMasterCourses(processParsedCourses(rawParsedCourses));
       } else {
-        // Just the credit fix, no grouping
+        // No grouping, just use the raw courses
         const copy = JSON.parse(JSON.stringify(rawParsedCourses)) as ParsedCourse[];
-        copy.forEach(c => {
-          if (c.TYPE.toLowerCase().includes('embedded')) {
-            const creditsVal = parseFloat(c.CREDITS) || 0;
-            if (c.SLOT.startsWith('L')) {
-              if (c.SLOT.split('+').map(s => s.trim()).length === 2) {
-                c.CREDITS = "1.0";
-              }
-            } else {
-              if (creditsVal > 1 && creditsVal <= 4) {
-                c.CREDITS = String(creditsVal - 1.0);
-              }
-            }
-          }
-        });
         setMasterCourses(copy);
       }
     } else {
