@@ -1979,45 +1979,6 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
           </div>
         </div>
 
-        {/* Selected Courses Table */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold text-foreground mb-4">Selected Courses</h2>
-          <table className="w-full text-sm text-left border-collapse">
-            <thead>
-              <tr className="bg-muted border-b border-border text-foreground/80">
-                <th className="py-3 px-4 font-semibold">Course Code</th>
-                <th className="py-3 px-4 font-semibold">Title</th>
-                <th className="py-3 px-4 font-semibold">Type</th>
-                <th className="py-3 px-4 font-semibold">Faculty</th>
-                <th className="py-3 px-4 font-semibold">Slots</th>
-                <th className="py-3 px-4 font-semibold text-center">Credits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-foreground">No courses selected</td>
-                </tr>
-              ) : (
-                getGroupedCourses(courses).map((c, i) => (
-                  <tr key={i} className="border-b border-border hover:bg-muted/20">
-                    <td className="py-3 px-4 font-medium">{c.code}</td>
-                    <td className="py-3 px-4">{c.title}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-muted text-foreground/80">
-                        {c.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-foreground/80">{c.faculty}</td>
-                    <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
-                    <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
         {/* Timetable Grid Preview */}
         <div className="mb-10">
           <h2 className="text-xl font-bold text-foreground mb-4">Schedule</h2>
@@ -2081,6 +2042,45 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Selected Courses Table */}
+        <div className="mb-10">
+          <h2 className="text-xl font-bold text-foreground mb-4">Selected Courses</h2>
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="bg-muted border-b border-border text-foreground/80">
+                <th className="py-3 px-4 font-semibold">Course Code</th>
+                <th className="py-3 px-4 font-semibold">Title</th>
+                <th className="py-3 px-4 font-semibold">Type</th>
+                <th className="py-3 px-4 font-semibold">Faculty</th>
+                <th className="py-3 px-4 font-semibold">Slots</th>
+                <th className="py-3 px-4 font-semibold text-center">Credits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-muted-foreground">No courses selected</td>
+                </tr>
+              ) : (
+                getGroupedCourses(courses).map((c, i) => (
+                  <tr key={i} className="border-b border-border hover:bg-muted/20">
+                    <td className="py-3 px-4 font-medium">{c.code}</td>
+                    <td className="py-3 px-4">{c.title}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-muted text-foreground/80">
+                        {c.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-foreground/80">{c.faculty}</td>
+                    <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
+                    <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         <div className="text-center mt-12 pt-4 border-t border-border">
