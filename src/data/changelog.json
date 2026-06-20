@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.6.0",
+    "date": "2026-06-20",
+    "changes": [
+      "Completely overhauled the FFCS Predictor Social Score algorithm to accurately measure shared classes, shared half-days, and mutually free slots.",
+      "Introduced the interactive Social Score Breakdown Modal with a 2D Comparison Matrix heatmap to effortlessly find the ultimate overlapping schedule with friends.",
+      "Added ability to seamlessly import a friend's config and instantly cycle through all of their potential FFCS timetable options.",
+      "Upgraded the FFCS Timetable UI with unified overlay schedules and improved course list accessibility in friend view."
+    ]
+  },
+  {
     "version": "v1.5.0",
     "date": "2026-06-15",
     "changes": [
