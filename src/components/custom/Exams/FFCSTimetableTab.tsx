@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
@@ -51,6 +51,13 @@ type TimetableState = {
   id: string;
   name: string;
   courses: AddedCourse[];
+  metrics?: {
+    halfDays: number;
+    gaps: number;
+    socialScore: number;
+    bestFriendMatches: string[];
+    isLongWeekend: boolean;
+  };
 };
 
 interface Friend {
@@ -277,8 +284,10 @@ export default function FFCSTimetableTab() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
 
+  const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
+
   const activeTimetable = timetables.find(t => t.id === activeTimetableId) || timetables[0];
-  const courses = activeTimetable.courses;
+  const courses = generatorPreviewTimetable ? generatorPreviewTimetable.courses : activeTimetable.courses;
   
   // Selection states
   const [selectedCourseCode, setSelectedCourseCode] = useState("");
@@ -299,6 +308,10 @@ export default function FFCSTimetableTab() {
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
   const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
+  const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(0);
+  const [generatorSortBy, setGeneratorSortBy] = useState<"social" | "halfdays" | "compactness" | "balanced">("balanced");
+  const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
 
   // Social State
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -478,6 +491,8 @@ export default function FFCSTimetableTab() {
 
   const generateTimetables = async () => {
     setIsGenerating(true);
+    setStagedTimetables([]);
+    setSelectedStagedIds(new Set());
     // Yield to let UI update
     await new Promise(r => setTimeout(r, 50));
     
@@ -609,9 +624,68 @@ export default function FFCSTimetableTab() {
             color: COLORS[i % COLORS.length]
           }));
           
+          let freeHalfDays = 0;
+          let totalGapMinutes = 0;
+          let isFridayFree = true;
+          let isMondayFree = true;
+
+          const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
+
+          DAYS.forEach(day => {
+            let morningOccupied = false;
+            let eveningOccupied = false;
+            
+            let firstClassStart = -1;
+            let lastClassEnd = -1;
+            let totalClassMinutes = 0;
+
+            theoryPeriods.forEach((p, pIdx) => {
+              const tSlot = p.days?.[day.id];
+              const lSlot = labPeriods[pIdx]?.days?.[day.id];
+              const isMorning = timeToMinutes(p.start) < timeToMinutes("2:00 PM");
+              
+              let slotOccupied = false;
+              if (tSlot && mySlots.has(tSlot)) slotOccupied = true;
+              if (lSlot && mySlots.has(lSlot)) slotOccupied = true;
+
+              if (slotOccupied) {
+                if (day.id === 'mon') isMondayFree = false;
+                if (day.id === 'fri') isFridayFree = false;
+
+                if (isMorning) morningOccupied = true;
+                else eveningOccupied = true;
+
+                const startMins = timeToMinutes(p.start);
+                const endMins = timeToMinutes(p.end);
+                
+                if (firstClassStart === -1 || startMins < firstClassStart) firstClassStart = startMins;
+                if (lastClassEnd === -1 || endMins > lastClassEnd) lastClassEnd = endMins;
+                
+                totalClassMinutes += (endMins - startMins);
+              }
+            });
+
+            if (!morningOccupied) freeHalfDays++;
+            if (!eveningOccupied) freeHalfDays++;
+
+            if (firstClassStart !== -1 && lastClassEnd !== -1) {
+              const span = lastClassEnd - firstClassStart;
+              const gapMins = span - totalClassMinutes;
+              if (gapMins > 0) totalGapMinutes += gapMins;
+            }
+          });
+
+          const isLongWeekend = isFridayFree || isMondayFree;
+          const halfDaysCount = freeHalfDays;
+          const gapsHours = parseFloat((totalGapMinutes / 60).toFixed(1));
+
           let socialScore = 0;
+          let bestFriendMatches: string[] = [];
+
           if (generatorMaximizeFreeTimeFriends.length > 0) {
-            const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
+            let maxOverlap = -1;
+            let closestFriends: string[] = [];
+
             generatorMaximizeFreeTimeFriends.forEach(fid => {
               const f = friends.find(fr => fr.id === fid);
               if (f && f.timetables && f.timetables.length > 0) {
@@ -623,25 +697,61 @@ export default function FFCSTimetableTab() {
                   if (score > maxFriendScore) maxFriendScore = score;
                 });
                 socialScore += maxFriendScore;
+
+                if (maxFriendScore > maxOverlap) {
+                  maxOverlap = maxFriendScore;
+                  closestFriends = [f.name];
+                } else if (maxFriendScore === maxOverlap) {
+                  closestFriends.push(f.name);
+                }
               }
             });
+            bestFriendMatches = closestFriends;
           }
 
-          return { id: tId, name: `Generated ${idx + 1}`, courses: mappedCourses, _score: socialScore };
-        });
+          if (halfDaysCount < generatorMinHalfDays) return null;
 
-        if (generatorMaximizeFreeTimeFriends.length > 0) {
-          newTts.sort((a, b) => b._score - a._score);
-          newTts.forEach((t, i) => {
-            t.name = `Gen ${i + 1} (Score: ${t._score})`;
-            delete (t as any)._score;
-          });
+          return { 
+            id: tId, 
+            name: `Generated Option`, 
+            courses: mappedCourses, 
+            metrics: {
+              halfDays: halfDaysCount,
+              gaps: gapsHours,
+              socialScore: socialScore,
+              bestFriendMatches: bestFriendMatches,
+              isLongWeekend: isLongWeekend
+            }
+          };
+        }).filter(Boolean) as TimetableState[];
+
+        if (newTts.length === 0) {
+          setError(`No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`);
+          setIsGenerating(false);
+          return;
         }
 
-        setTimetables(prev => [...prev, ...newTts]);
-        setActiveTimetableId(newTts[0].id);
-        setSuccessMsg(`Successfully generated ${results.length} timetables!`);
-        setIsGeneratorOpen(false);
+        newTts.sort((a, b) => {
+          const am = a.metrics!;
+          const bm = b.metrics!;
+          if (generatorSortBy === 'social') return bm.socialScore - am.socialScore;
+          if (generatorSortBy === 'halfdays') return bm.halfDays - am.halfDays;
+          if (generatorSortBy === 'compactness') return am.gaps - bm.gaps; // lower gaps is better
+          
+          // Balanced: Normalize and combine. 
+          // HalfDays: 0-10 (* 10 points) = max 100
+          // Gaps: 0-20 hours (max 20) -> (20 - gaps) * 5 points
+          // Social Score: highly variable, let's say average 20-30 -> score * 2
+          const aBalanced = (am.halfDays * 10) + ((20 - am.gaps) * 5) + (am.socialScore * 2);
+          const bBalanced = (bm.halfDays * 10) + ((20 - bm.gaps) * 5) + (bm.socialScore * 2);
+          return bBalanced - aBalanced;
+        });
+
+        newTts.forEach((t, i) => { t.name = `Option ${i + 1}`; });
+
+        setStagedTimetables(newTts);
+        setSuccessMsg(`Found ${newTts.length} valid timetables. Review them below!`);
+        // We do NOT close generator immediately so they can review.
       }
     } catch (e) {
       setError("An error occurred while generating timetables.");
@@ -1220,7 +1330,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
   }
 
   return (
-    <div className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
+    <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* Top Banner / Upload Area */}
       <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
@@ -2008,8 +2118,199 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
               {isGenerating ? "Processing Millions of Combinations..." : "Generate Timetables"}
             </button>
           </div>
-          
+
+          {error && (
+            <div className="bg-red-500/10 border-b border-red-500/20 text-red-500 px-6 py-3 flex items-center justify-center gap-2 text-sm font-medium z-10">
+              <AlertTriangle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 flex justify-center bg-muted/5">
+            {generatorPreviewTimetable ? (
+              <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-background p-6 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => setGeneratorPreviewTimetable(null)} 
+                      className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-medium rounded-xl transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Back to Generator
+                    </button>
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">Preview: {generatorPreviewTimetable.name}</h2>
+                      <p className="text-muted-foreground text-sm">Review this timetable before saving.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setTimetables(prev => [...prev, generatorPreviewTimetable]);
+                      setActiveTimetableId(generatorPreviewTimetable.id);
+                      setStagedTimetables([]);
+                      setSelectedStagedIds(new Set());
+                      setGeneratorPreviewTimetable(null);
+                      setIsGeneratorOpen(false);
+                      setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
+                    }}
+                    className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors shadow-lg"
+                  >
+                    <Save className="w-4 h-4" /> Save & Use This
+                  </button>
+                </div>
+                
+                <div className="w-full flex flex-col gap-6 pb-20">
+                  {renderUnifiedGrid()}
+
+                  {courses.length > 0 && (
+                    <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] overflow-x-auto">
+                      <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
+                        <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                          Selected Courses
+                          <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
+                            Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
+                          </span>
+                        </h2>
+                      </div>
+                      
+                      <div className="min-w-[600px]">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
+                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {courses.map(c => (
+                              <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
+                                <td className="py-3 px-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
+                                    <div>
+                                      <p className="text-foreground font-semibold text-sm">{c.code}</p>
+                                      <p className="text-muted-foreground text-xs truncate max-w-[200px]">{c.title}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-sm text-foreground/80">
+                                  <span className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-2 py-0.5 rounded-md">
+                                    {c.type}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
+                                <td className="py-3 px-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {c.slots.map(s => (
+                                      <span key={s} className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-1.5 py-0.5 rounded-md">
+                                        {s}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-sm text-foreground/80 truncate max-w-[150px]">{c.venue}</td>
+                                <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : stagedTimetables.length > 0 ? (
+              <div className="w-full max-w-6xl flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-background p-6 rounded-2xl border border-border shadow-sm">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Review Timetables</h2>
+                    <p className="text-muted-foreground mt-1">Select the ones you like, or <b className="text-foreground">double-click</b> any card to instantly save and view it.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button 
+                      onClick={() => setStagedTimetables([])}
+                      className="px-4 py-2 text-sm font-bold bg-muted hover:bg-muted/80 text-muted-foreground rounded-xl transition-colors"
+                    >
+                      Discard All
+                    </button>
+                    <button 
+                      disabled={selectedStagedIds.size === 0}
+                      onClick={() => {
+                        const selected = stagedTimetables.filter(t => selectedStagedIds.has(t.id));
+                        setTimetables(prev => [...prev, ...selected]);
+                        setActiveTimetableId(selected[0].id);
+                        setStagedTimetables([]);
+                        setSelectedStagedIds(new Set());
+                        setIsGeneratorOpen(false);
+                      }}
+                      className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" /> Save Selected ({selectedStagedIds.size})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid of Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                  {stagedTimetables.map(tt => (
+                    <div 
+                      key={tt.id} 
+                      className={`relative flex flex-col bg-background rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedStagedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border hover:border-amber-500/50 hover:shadow-lg'}`}
+                      onClick={() => {
+                        const newSet = new Set(selectedStagedIds);
+                        if (newSet.has(tt.id)) newSet.delete(tt.id);
+                        else newSet.add(tt.id);
+                        setSelectedStagedIds(newSet);
+                      }}
+                      onDoubleClick={(e) => {
+                        e.preventDefault();
+                        setGeneratorPreviewTimetable(tt);
+                      }}
+                    >
+                      <div className="p-5 flex-1 flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
+                          <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedStagedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
+                            {selectedStagedIds.has(tt.id) && <Check className="w-4 h-4" />}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
+                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                            <span className="text-2xl font-black text-foreground">{tt.metrics?.halfDays}</span>
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
+                          </div>
+                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                            <span className="text-2xl font-black text-foreground">{tt.metrics?.gaps}h</span>
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
+                          </div>
+                        </div>
+
+                        {tt.metrics?.isLongWeekend && (
+                          <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+                            🎉 Long Weekend!
+                          </div>
+                        )}
+
+                        {generatorMaximizeFreeTimeFriends.length > 0 && (
+                          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto">
+                            <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
+                              <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate" title={tt.metrics?.bestFriendMatches.join(', ')}>
+                              Matches best with: <span className="font-medium text-foreground">{tt.metrics?.bestFriendMatches.join(', ') || 'None'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
             <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
               
               {/* Left Column: Courses Selection */}
@@ -2124,6 +2425,43 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   </h3>
                   
                   <div className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground block mb-1.5">Sort Timetables By</label>
+                        <select 
+                          value={generatorSortBy} 
+                          onChange={e => setGeneratorSortBy(e.target.value as any)}
+                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                        >
+                          <option value="balanced">Balanced (All Metrics)</option>
+                          <option value="compactness">Max Compactness (Fewer Gaps)</option>
+                          <option value="halfdays">Max Free Half-Days</option>
+                          <option value="social">Max Social Score</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
+                          Min Free Half-Days
+                          <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold">{generatorMinHalfDays}</span>
+                        </label>
+                        <input 
+                          type="range"
+                          min="0"
+                          max="10"
+                          step="1"
+                          value={generatorMinHalfDays}
+                          onChange={(e) => setGeneratorMinHalfDays(parseInt(e.target.value))}
+                          className="w-full accent-amber-500 mt-2"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
+                          <span>0</span>
+                          <span>5</span>
+                          <span>10</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <label className="text-sm font-medium text-foreground block mb-1.5">Time Preference</label>
                       <select 
@@ -2256,6 +2594,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
 
               </div>
             </div>
+            )}
           </div>
         </div>
       )}
