@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2 } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
@@ -9,6 +9,11 @@ import { useTheme } from "next-themes";
 import timetableSchema from "@/app/data/chennai.json";
 
 // Types
+interface GenCourseSelection {
+  code: string;
+  offerings: string[];
+}
+
 type SlotMap = {
   [day: string]: string;
 };
@@ -47,6 +52,18 @@ type TimetableState = {
   name: string;
   courses: AddedCourse[];
 };
+
+interface Friend {
+  id: string;
+  name: string;
+  timetables: TimetableState[];
+}
+
+interface FriendGroup {
+  id: string;
+  name: string;
+  friendIds: string[];
+}
 
 const DAYS = [
   { id: "mon", name: "Monday" },
@@ -277,11 +294,24 @@ export default function FFCSTimetableTab() {
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [generatorSelectedCourses, setGeneratorSelectedCourses] = useState<string[]>([]);
+  const [generatorSelectedCourses, setGeneratorSelectedCourses] = useState<GenCourseSelection[]>([]);
   const [generatorPreference, setGeneratorPreference] = useState<'none' | 'morning' | 'evening'>('none');
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
   const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Social State
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendGroups, setFriendGroups] = useState<FriendGroup[]>([]);
+  const [socialScoreGroupMethod, setSocialScoreGroupMethod] = useState<"intersection" | "cumulative">("intersection");
+  const [isFriendsManagerOpen, setIsFriendsManagerOpen] = useState(false);
+  const [friendsManagerTab, setFriendsManagerTab] = useState<"friends" | "groups">("friends");
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupFriends, setNewGroupFriends] = useState<string[]>([]);
+  const [pendingFriendTimetables, setPendingFriendTimetables] = useState<TimetableState[] | null>(null);
+  const [pendingFriendName, setPendingFriendName] = useState("");
+  const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
+  const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
 
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
@@ -299,6 +329,13 @@ export default function FFCSTimetableTab() {
         setActiveTimetableId(parsed[0].id);
       }
     }
+    const savedFriends = localStorage.getItem("ffcs_friends");
+    if (savedFriends) setFriends(JSON.parse(savedFriends));
+    const savedFriendGroups = localStorage.getItem("ffcs_friendGroups");
+    if (savedFriendGroups) setFriendGroups(JSON.parse(savedFriendGroups));
+    const savedMethod = localStorage.getItem("ffcs_socialScoreGroupMethod");
+    if (savedMethod) setSocialScoreGroupMethod(savedMethod as "intersection" | "cumulative");
+
     setIsLoaded(true);
   }, []);
 
@@ -343,6 +380,14 @@ export default function FFCSTimetableTab() {
       localStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
     }
   }, [timetables, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("ffcs_friends", JSON.stringify(friends));
+      localStorage.setItem("ffcs_friendGroups", JSON.stringify(friendGroups));
+      localStorage.setItem("ffcs_socialScoreGroupMethod", socialScoreGroupMethod);
+    }
+  }, [friends, friendGroups, socialScoreGroupMethod, isLoaded]);
 
   const updateActiveTimetableCourses = (newCourses: AddedCourse[]) => {
     setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
@@ -442,7 +487,7 @@ export default function FFCSTimetableTab() {
         coursesByCode.get(c.CODE)!.push(c);
       });
 
-      const targetCodes = generatorSelectedCourses;
+      const targetCodes = generatorSelectedCourses.map(c => c.code);
       if (targetCodes.length === 0) {
         setError("Please select at least one course.");
         setIsGenerating(false);
@@ -450,9 +495,13 @@ export default function FFCSTimetableTab() {
       }
 
       const optionsPerCourse: ParsedCourse[][] = [];
-      for (const code of targetCodes) {
-        let options = coursesByCode.get(code) || [];
+      for (const sel of generatorSelectedCourses) {
+        let options = coursesByCode.get(sel.code) || [];
         
+        if (sel.offerings && sel.offerings.length > 0) {
+          options = options.filter(opt => sel.offerings.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.VENUE}`));
+        }
+
         // Ensure embedded courses are properly combined
         options = options.filter(opt => {
           if (opt.TYPE.toLowerCase().includes('embedded')) {
@@ -483,8 +532,22 @@ export default function FFCSTimetableTab() {
           return !slots.some(s => blockedSlots.has(s));
         });
 
+        // Sync with friends
+        if (generatorSyncFriendsClasses) {
+          const validFriendCourses = friends.flatMap(f => (f.timetables || []).flatMap(t => t.courses)).filter(c => c.code === sel.code);
+          if (validFriendCourses.length > 0) {
+            options = options.filter(opt => {
+              const optSlots = opt.SLOT.split('+').map(s => s.trim().toUpperCase()).sort().join(',');
+              return validFriendCourses.some(fc => {
+                const fSlots = [...fc.slots].sort().join(',');
+                return opt.FACULTY === fc.faculty && optSlots === fSlots;
+              });
+            });
+          }
+        }
+
         if (options.length === 0) {
-          setError(`No valid slots found for ${code} with current preferences and blocked slots.`);
+          setError(`No valid slots found for ${sel.code} with current preferences and blocked slots.`);
           setIsGenerating(false);
           return;
         }
@@ -545,8 +608,34 @@ export default function FFCSTimetableTab() {
             color: COLORS[i % COLORS.length]
           }));
           
-          return { id: tId, name: `Generated ${idx + 1}`, courses: mappedCourses };
+          let socialScore = 0;
+          if (generatorMaximizeFreeTimeFriends.length > 0) {
+            const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
+            generatorMaximizeFreeTimeFriends.forEach(fid => {
+              const f = friends.find(fr => fr.id === fid);
+              if (f && f.timetables && f.timetables.length > 0) {
+                let maxFriendScore = 0;
+                f.timetables.forEach(ft => {
+                  const fSlots = new Set(ft.courses.flatMap(c => c.slots));
+                  const unionSize = new Set([...mySlots, ...fSlots]).size;
+                  const score = 60 - unionSize;
+                  if (score > maxFriendScore) maxFriendScore = score;
+                });
+                socialScore += maxFriendScore;
+              }
+            });
+          }
+
+          return { id: tId, name: `Generated ${idx + 1}`, courses: mappedCourses, _score: socialScore };
         });
+
+        if (generatorMaximizeFreeTimeFriends.length > 0) {
+          newTts.sort((a, b) => b._score - a._score);
+          newTts.forEach((t, i) => {
+            t.name = `Gen ${i + 1} (Score: ${t._score})`;
+            delete (t as any)._score;
+          });
+        }
 
         setTimetables(prev => [...prev, ...newTts]);
         setActiveTimetableId(newTts[0].id);
@@ -679,6 +768,46 @@ export default function FFCSTimetableTab() {
     };
     reader.readAsText(file);
     event.target.value = '';
+  };
+
+  const importFriendTimetable = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id && Array.isArray(parsed[0].courses)) {
+          setPendingFriendTimetables(parsed);
+          setPendingFriendName("");
+        } else {
+          setError("Invalid config format.");
+          setTimeout(() => setError(null), 3000);
+        }
+      } catch (err) {
+        setError("Failed to parse config file.");
+        setTimeout(() => setError(null), 3000);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleSaveFriend = () => {
+    if (!pendingFriendTimetables) return;
+    const friendName = pendingFriendName.trim() || "Friend";
+    const newFriend: Friend = {
+      id: Date.now().toString(),
+      name: friendName,
+      timetables: pendingFriendTimetables
+    };
+    setFriends(prev => [...prev, newFriend]);
+    setSuccessMsg(`${friendName}'s timetable imported successfully!`);
+    setTimeout(() => setSuccessMsg(null), 3000);
+    setPendingFriendTimetables(null);
+    setPendingFriendName("");
   };
 
   const handleRenameSubmit = () => {
@@ -925,7 +1054,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-card">
-                <th className="p-3 border-b border-r border-border font-semibold text-foreground/80 w-24 text-center">Day</th>
+                <th className="p-3 border-b border-r border-border font-semibold text-foreground/80 w-24 text-center sticky left-0 z-20 bg-card">Day</th>
                 {theoryPeriods.map((period, idx) => (
                   <th key={idx} className="p-2 border-b border-r border-border text-xs text-center text-muted-foreground font-medium">
                     <div className="flex flex-col">
@@ -940,7 +1069,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
             <tbody>
               {DAYS.map((day) => (
                 <tr key={day.id} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-muted/20">
+                  <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-background/95 backdrop-blur-md sticky left-0 z-20">
                     {day.name.substring(0, 3).toUpperCase()}
                   </td>
                   {theoryPeriods.map((period, pIdx) => {
@@ -1041,7 +1170,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
             <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto mt-4 md:mt-0">
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="hidden md:flex items-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-lg"
@@ -1065,7 +1194,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full">
                 <button 
                   onClick={downloadSampleCSV}
                   className="bg-muted hover:bg-muted/80 text-foreground text-sm font-medium py-2.5 px-4 rounded-xl border border-border transition-colors shadow-lg flex items-center gap-2"
@@ -1122,16 +1251,16 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                 ))}
               </select>
               
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <button 
                   onClick={createNewTimetable}
-                  className="flex-1 bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
+                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
                 >
                   <Plus className="w-3 h-3" /> New
                 </button>
                 <button 
                   onClick={duplicateTimetable}
-                  className="flex-1 bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
+                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
                 >
                   <Copy className="w-3 h-3" /> Duplicate
                 </button>
@@ -1140,34 +1269,40 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                     setEditNameValue(activeTimetable.name);
                     setIsEditingName(true);
                   }}
-                  className="flex-1 bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
+                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
                 >
                   <Edit2 className="w-3 h-3" /> Rename
                 </button>
                 <button 
                   onClick={() => deleteTimetable(activeTimetableId)}
-                  className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium py-2 rounded-lg border border-red-500/20 transition-colors flex items-center justify-center gap-1"
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium py-2 rounded-lg border border-red-500/20 transition-colors flex items-center justify-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" /> Delete
                 </button>
               </div>
 
-              <div className="flex gap-2 mt-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
                 <button 
                   onClick={exportTimetables}
-                  className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg border border-blue-500/20 transition-colors flex items-center justify-center gap-1"
+                  className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg border border-blue-500/20 transition-colors flex items-center justify-center gap-1"
                 >
                   <Save className="w-3 h-3" /> Export Config
                 </button>
                 <label 
-                  className="flex-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-medium py-2 rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-1 cursor-pointer relative overflow-hidden"
+                  className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-medium py-2 rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-1 cursor-pointer relative overflow-hidden"
                 >
                   <input type="file" accept=".json" onChange={importTimetables} className="absolute inset-0 opacity-0 cursor-pointer" />
                   <Upload className="w-3 h-3" /> Import Config
                 </label>
                 <button 
+                  onClick={() => setIsFriendsManagerOpen(true)}
+                  className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 text-xs font-medium py-2 rounded-lg border border-pink-500/20 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Users className="w-3 h-3" /> Friends
+                </button>
+                <button 
                   onClick={() => setIsGeneratorOpen(true)}
-                  className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-medium py-2 rounded-lg border border-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-medium py-2 rounded-lg border border-amber-500/20 transition-colors flex items-center justify-center gap-1"
                 >
                   <Wand2 className="w-3 h-3" /> Auto-Generate
                 </button>
@@ -1301,7 +1436,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
 
         {/* Right Panel: The Grid and Export */}
         <div className="w-full space-y-6">
-          <div className="flex justify-end gap-2 mb-2">
+          <div className="flex flex-wrap justify-end gap-2 mb-2">
             <button 
               onClick={downloadPDF}
               disabled={isDownloading || courses.length === 0}
@@ -1332,16 +1467,16 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 && (
               <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] overflow-x-auto">
-                <div className="flex items-center justify-between mb-4 min-w-[600px]">
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
+                  <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
-                    <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20">
+                    <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
                       Total Credits: {courses.reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
                     </span>
                   </h2>
                   <button 
                     onClick={handleClearTimetable}
-                    className="text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 print:hidden"
+                    className="text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 print:hidden whitespace-nowrap ml-auto"
                   >
                     <Trash2 className="w-4 h-4" /> Clear All
                   </button>
@@ -1546,145 +1681,474 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
       </div>
 
       {/* Auto-Generator Modal */}
-      {isGeneratorOpen && (
+      {isFriendsManagerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
               <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                <Wand2 className="text-amber-500 w-6 h-6" /> Timetable Auto-Generator
+                <Users className="text-pink-500 w-6 h-6" /> Friends Manager
               </h2>
-              <button onClick={() => setIsGeneratorOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => setIsFriendsManagerOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
-            <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
-              <div>
-                <h3 className="font-semibold text-sm mb-3 text-foreground">1. Select Desired Courses</h3>
-                <p className="text-xs text-muted-foreground mb-4">Choose the courses you want to take. The generator will find all conflict-free combinations.</p>
-                <div className="border border-border rounded-xl max-h-60 overflow-y-auto bg-muted/10 p-2 grid grid-cols-1 md:grid-cols-2 gap-2 custom-scrollbar">
-                  {uniqueCourseCodes.map(c => (
-                    <label key={c.code} className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg cursor-pointer border border-transparent hover:border-border transition-colors">
-                      <input 
-                        type="checkbox" 
-                        className="mt-0.5 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
-                        checked={generatorSelectedCourses.includes(c.code)}
-                        onChange={(e) => {
-                          if (e.target.checked) setGeneratorSelectedCourses(prev => [...prev, c.code]);
-                          else setGeneratorSelectedCourses(prev => prev.filter(code => code !== c.code));
-                        }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-bold text-sm text-foreground">{c.code}</span>
-                        <span className="text-[11px] text-muted-foreground line-clamp-1">{c.title}</span>
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 custom-scrollbar">
+              <div className="flex bg-muted/50 p-1 rounded-xl gap-1 shrink-0">
+                <button 
+                  onClick={() => setFriendsManagerTab("friends")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "friends" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Friends
+                </button>
+                <button 
+                  onClick={() => setFriendsManagerTab("groups")}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "groups" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Groups
+                </button>
+              </div>
+
+              {friendsManagerTab === "friends" && (
+                <>
+                  <label className="flex items-center justify-center gap-2 w-full bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 font-bold py-3 rounded-xl border border-pink-500/20 transition-colors cursor-pointer relative overflow-hidden shrink-0">
+                    <input type="file" accept=".json" onChange={importFriendTimetable} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    <Upload className="w-5 h-5" /> Import Friend's Timetable JSON
+                  </label>
+                  
+                  <div className="mt-2 flex flex-col gap-3">
+                    <h3 className="font-semibold text-sm text-foreground">Your Friends ({friends.length})</h3>
+                    {friends.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                        No friends added yet. Ask your friend to click "Export Config" and send you the file!
                       </div>
-                    </label>
-                  ))}
-                  {uniqueCourseCodes.length === 0 && (
-                    <div className="col-span-full p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
-                      Please upload a master course list first.
+                    ) : (
+                      friends.map(f => (
+                        <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500 font-bold">
+                              {f.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-foreground">{f.name}</p>
+                              <p className="text-xs text-muted-foreground">Considering {f.timetables?.length || 0} timetables</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              setFriends(prev => prev.filter(fr => fr.id !== f.id));
+                              setFriendGroups(prev => prev.map(g => ({ ...g, friendIds: g.friendIds.filter(fid => fid !== f.id) })));
+                            }}
+                            className="p-2 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+
+              {friendsManagerTab === "groups" && (
+                <>
+                  <div className="bg-muted/10 border border-border rounded-xl p-4 flex flex-col gap-3 shrink-0">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-pink-500" /> Create New Group
+                    </h3>
+                    <input 
+                      type="text" 
+                      placeholder="Group Name (e.g., Gaming Squad)" 
+                      value={newGroupName}
+                      onChange={e => setNewGroupName(e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-pink-500/50"
+                    />
+                    <div className="max-h-32 overflow-y-auto custom-scrollbar border border-border rounded-lg bg-background p-2">
+                      {friends.length === 0 ? (
+                        <div className="text-xs text-muted-foreground p-2 text-center">Add friends first</div>
+                      ) : (
+                        friends.map(f => (
+                          <label key={f.id} className="flex items-center gap-2 p-1.5 hover:bg-muted/50 rounded-md cursor-pointer transition-colors">
+                            <input 
+                              type="checkbox" 
+                              checked={newGroupFriends.includes(f.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setNewGroupFriends(prev => [...prev, f.id]);
+                                else setNewGroupFriends(prev => prev.filter(id => id !== f.id));
+                              }}
+                              className="rounded border-border text-pink-500 focus:ring-pink-500/30"
+                            />
+                            <span className="text-sm text-foreground">{f.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                    <button 
+                      disabled={!newGroupName.trim() || newGroupFriends.length === 0}
+                      onClick={() => {
+                        const newGroup: FriendGroup = { id: Date.now().toString(), name: newGroupName.trim(), friendIds: newGroupFriends };
+                        setFriendGroups(prev => [...prev, newGroup]);
+                        setNewGroupName("");
+                        setNewGroupFriends([]);
+                      }}
+                      className="bg-pink-500 hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg transition-colors text-sm"
+                    >
+                      Create Group
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-3">
+                    <h3 className="font-semibold text-sm text-foreground">Your Groups ({friendGroups.length})</h3>
+                    {friendGroups.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                        No groups created yet.
+                      </div>
+                    ) : (
+                      friendGroups.map(g => (
+                        <div key={g.id} className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/10">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-pink-500" />
+                              <p className="text-sm font-bold text-foreground">{g.name}</p>
+                            </div>
+                            <button 
+                              onClick={() => setFriendGroups(prev => prev.filter(gr => gr.id !== g.id))}
+                              className="p-1.5 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {g.friendIds.map(fid => {
+                              const f = friends.find(fr => fr.id === fid);
+                              if (!f) return null;
+                              return <span key={fid} className="text-[10px] bg-background border border-border px-1.5 py-0.5 rounded-full text-muted-foreground">{f.name}</span>;
+                            })}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingFriendTimetables && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
+                <Users className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground">Name Your Friend</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">They're considering {pendingFriendTimetables.length} timetables. Give them a name so you can identify them in the generator.</p>
+            <input 
+              type="text" 
+              value={pendingFriendName}
+              onChange={(e) => setPendingFriendName(e.target.value)}
+              placeholder="E.g., Rahul"
+              className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/50 transition-all"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveFriend();
+              }}
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button 
+                onClick={() => {
+                  setPendingFriendTimetables(null);
+                  setPendingFriendName("");
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveFriend}
+                className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-pink-500/20"
+              >
+                Save Friend
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isGeneratorOpen && (
+        <div className="fixed inset-0 z-[200] bg-background flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* Header */}
+          <div className="p-4 border-b border-border flex flex-wrap justify-between items-center gap-4 bg-muted/30 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-center lg:justify-start">
+              <button 
+                onClick={() => setIsGeneratorOpen(false)} 
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 py-1.5 px-3 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5" />
+                <span className="font-medium text-sm">Back</span>
+              </button>
+              <div className="hidden sm:block w-px h-6 bg-border mx-2"></div>
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-foreground">
+                <Wand2 className="text-amber-500 w-5 h-5 sm:w-6 sm:h-6" /> Advanced Timetable Generator
+              </h2>
+            </div>
+            <button 
+              onClick={generateTimetables}
+              disabled={isGenerating || generatorSelectedCourses.length === 0}
+              className="w-full lg:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
+              {isGenerating ? "Processing Millions of Combinations..." : "Generate Timetables"}
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 flex justify-center bg-muted/5">
+            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
+              
+              {/* Left Column: Courses Selection */}
+              <div className="flex flex-col gap-6">
+                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
+                  <h3 className="font-semibold text-lg mb-2 text-foreground flex items-center gap-2">
+                    <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
+                    Select Desired Courses
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">Choose the courses you want to take. The generator will find all conflict-free combinations.</p>
+                  
+                  <div className="border border-border rounded-xl max-h-[60vh] overflow-y-auto bg-muted/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
+                    {uniqueCourseCodes.map(c => {
+                      const sel = generatorSelectedCourses.find(s => s.code === c.code);
+                      const isSelected = !!sel;
+                      
+                      const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
+                      const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
+                        const id = `${opt.FACULTY}|${opt.SLOT}|${opt.VENUE}`;
+                        return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.VENUE, id }];
+                      })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
+
+                      const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
+                        if (!acc[curr.faculty]) acc[curr.faculty] = [];
+                        acc[curr.faculty].push(curr);
+                        return acc;
+                      }, {} as Record<string, typeof uniqueOfferings>);
+
+                      const sortedFacs = Object.keys(offeringsByFac).sort();
+
+                      return (
+                        <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-amber-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="mt-1 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) setGeneratorSelectedCourses(prev => [...prev, { code: c.code, offerings: [] }]);
+                                else setGeneratorSelectedCourses(prev => prev.filter(s => s.code !== c.code));
+                              }}
+                            />
+                            <div className="flex flex-col flex-1">
+                              <span className="font-bold text-base text-foreground">{c.code}</span>
+                              <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
+                            </div>
+                          </label>
+
+                          {isSelected && uniqueOfferings.length > 1 && (
+                            <div className="pl-8 mt-2">
+                              <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
+                              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
+                                {sortedFacs.map(fac => (
+                                  <div key={fac} className="flex flex-col gap-1.5">
+                                    <div className="text-xs font-semibold text-foreground/90 pb-1 border-b border-border/50">{fac}</div>
+                                    {offeringsByFac[fac].map(offering => {
+                                      const isOffChecked = sel.offerings.includes(offering.id);
+                                      return (
+                                        <label key={offering.id} className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 p-1.5 rounded-md transition-colors">
+                                          <input 
+                                            type="checkbox" 
+                                            className="mt-0.5 rounded w-3.5 h-3.5 border-border text-amber-500 focus:ring-amber-500/30"
+                                            checked={isOffChecked}
+                                            onChange={(e) => {
+                                              setGeneratorSelectedCourses(prev => prev.map(p => {
+                                                if (p.code !== c.code) return p;
+                                                if (e.target.checked) return { ...p, offerings: [...p.offerings, offering.id] };
+                                                return { ...p, offerings: p.offerings.filter(o => o !== offering.id) };
+                                              }));
+                                            }}
+                                          />
+                                          <div className="flex flex-col">
+                                            <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-foreground/80'}`}>{offering.slot}</span>
+                                            <span className="text-[10px] text-muted-foreground">{offering.venue}</span>
+                                          </div>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                              {sel.offerings.length > 0 && (
+                                <div className="text-xs text-amber-500 mt-2 font-medium">
+                                  ✓ Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {uniqueCourseCodes.length === 0 && (
+                      <div className="col-span-full p-10 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+                        Please upload a master course list first.
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 text-sm text-muted-foreground bg-amber-500/10 text-amber-500/90 py-2 px-4 rounded-xl w-max border border-amber-500/20 font-bold">
+                    Selected: {generatorSelectedCourses.length} courses
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Preferences & Social */}
+              <div className="flex flex-col gap-6">
+                
+                {/* General Preferences */}
+                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
+                  <h3 className="font-semibold text-lg mb-4 text-foreground flex items-center gap-2">
+                    <span className="bg-blue-500/10 text-blue-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span> 
+                    Preferences
+                  </h3>
+                  
+                  <div className="space-y-5">
+                    <div>
+                      <label className="text-sm font-medium text-foreground block mb-1.5">Time Preference</label>
+                      <select 
+                        value={generatorPreference} 
+                        onChange={e => setGeneratorPreference(e.target.value as any)}
+                        className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                      >
+                        <option value="none">No Preference (Any combinations)</option>
+                        <option value="morning">Morning Theory Preferred</option>
+                        <option value="evening">Evening Theory Preferred</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-center gap-3 cursor-pointer group bg-muted/20 p-3 rounded-xl border border-transparent hover:border-border transition-all">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={generatorUniqueFaculties}
+                            onChange={e => setGeneratorUniqueFaculties(e.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">Master Timetables <span className="text-muted-foreground font-normal">(Unique Faculties)</span></span>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer group bg-muted/20 p-3 rounded-xl border border-transparent hover:border-border transition-all">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={generatorNoLimit}
+                            onChange={e => setGeneratorNoLimit(e.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">Remove 50 Timetables Limit</span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2">
+                        Blocked Slots Constraint
+                        <Info className="w-4 h-4 text-muted-foreground" />
+                      </label>
+                      <div className="bg-muted/10 border border-border p-4 rounded-xl">
+                        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
+                          Click slots below to block them.
+                          <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold ml-auto">{blockedSlots.size} Blocked</span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                          {allAvailableSlots.map(slot => {
+                            const isBlocked = blockedSlots.has(slot);
+                            return (
+                              <button
+                                key={slot}
+                                onClick={() => toggleBlockSlot(slot)}
+                                className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                                  isBlocked 
+                                    ? 'bg-red-500 text-white border-red-600 shadow-sm' 
+                                    : 'bg-background text-foreground/70 border-border hover:bg-muted hover:text-foreground'
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Preferences */}
+                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
+                  <h3 className="font-semibold text-lg mb-4 text-foreground flex items-center gap-2">
+                    <span className="bg-pink-500/10 text-pink-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">3</span> 
+                    Social Preferences
+                  </h3>
+                  
+                  {friends.length === 0 ? (
+                    <div className="text-sm text-muted-foreground p-4 bg-muted/20 rounded-xl border border-dashed border-border text-center">
+                      Add friends from the dashboard to unlock social generation features.
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      <label className="flex items-start gap-3 cursor-pointer group bg-muted/20 p-4 rounded-xl border border-transparent hover:border-pink-500/30 transition-all">
+                        <div className="relative flex items-center mt-0.5">
+                          <input 
+                            type="checkbox" 
+                            checked={generatorSyncFriendsClasses}
+                            onChange={e => setGeneratorSyncFriendsClasses(e.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-foreground">Auto-Sync Shared Classes</span>
+                          <span className="text-xs text-muted-foreground mt-1">If your friends are taking a course you select, force the exact same slot and faculty.</span>
+                        </div>
+                      </label>
+
+                      <div>
+                        <label className="text-sm font-bold text-foreground block mb-2">Maximize Shared Free Time</label>
+                        <p className="text-xs text-muted-foreground mb-3">Timetables will be sorted to show the ones where you and these friends have the most mutual free time.</p>
+                        <div className="flex flex-col gap-2">
+                          {friends.map(f => {
+                            const isChecked = generatorMaximizeFreeTimeFriends.includes(f.id);
+                            return (
+                              <label key={f.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-pink-500/10 border-pink-500/30' : 'bg-muted/10 border-border hover:bg-muted/30'}`}>
+                                <input 
+                                  type="checkbox" 
+                                  className="w-4 h-4 rounded border-border text-pink-500 focus:ring-pink-500/30 bg-background"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setGeneratorMaximizeFreeTimeFriends(prev => [...prev, f.id]);
+                                    else setGeneratorMaximizeFreeTimeFriends(prev => prev.filter(id => id !== f.id));
+                                  }}
+                                />
+                                <span className={`text-sm ${isChecked ? 'font-bold text-pink-500' : 'text-foreground'}`}>{f.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="mt-3 text-xs text-muted-foreground bg-amber-500/10 text-amber-500/90 py-1.5 px-3 rounded-lg w-max border border-amber-500/20 font-medium">
-                  Selected: {generatorSelectedCourses.length} courses
-                </div>
-              </div>
 
-              <div>
-                <h3 className="font-semibold text-sm mb-3 text-foreground">2. Preferences</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Time Preference</label>
-                    <select 
-                      value={generatorPreference} 
-                      onChange={e => setGeneratorPreference(e.target.value as any)}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-amber-500/50"
-                    >
-                      <option value="none">No Preference (Any combinations)</option>
-                      <option value="morning">Morning Theory Preferred</option>
-                      <option value="evening">Evening Theory Preferred</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-3 mt-4 mb-2">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={generatorUniqueFaculties}
-                          onChange={e => setGeneratorUniqueFaculties(e.target.checked)}
-                          className="peer sr-only"
-                        />
-                        <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                      </div>
-                      <span className="text-sm text-foreground group-hover:text-amber-500 transition-colors">Master Timetables (Unique Faculties)</span>
-                    </label>
-
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={generatorNoLimit}
-                          onChange={e => setGeneratorNoLimit(e.target.checked)}
-                          className="peer sr-only"
-                        />
-                        <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                      </div>
-                      <span className="text-sm text-foreground group-hover:text-amber-500 transition-colors">Remove 50 Timetables Limit</span>
-                    </label>
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
-                      Blocked Slots Constraint
-                      <Info className="w-3 h-3" />
-                    </label>
-                    <div className="bg-muted/10 border border-border p-3 rounded-xl">
-                      <p className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                        Click slots below to block them. The generator will actively avoid these slots.
-                        <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold ml-auto">{blockedSlots.size} Blocked</span>
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                        {allAvailableSlots.map(slot => {
-                          const isBlocked = blockedSlots.has(slot);
-                          return (
-                            <button
-                              key={slot}
-                              onClick={() => toggleBlockSlot(slot)}
-                              className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors border ${
-                                isBlocked 
-                                  ? 'bg-red-500 text-white border-red-600 shadow-sm' 
-                                  : 'bg-background text-foreground/70 border-border hover:bg-muted hover:text-foreground'
-                              }`}
-                            >
-                              {slot}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-border bg-muted/30 flex justify-between items-center">
-              <span className="text-xs text-muted-foreground pl-2">Caps at 50 combinations</span>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsGeneratorOpen(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors border border-transparent hover:border-border"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={generateTimetables}
-                  disabled={isGenerating || generatorSelectedCourses.length === 0}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20"
-                >
-                  {isGenerating ? "Generating..." : "Generate Combinations"}
-                  <Wand2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
           </div>
