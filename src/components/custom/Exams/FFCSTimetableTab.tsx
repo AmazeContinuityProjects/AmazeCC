@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
@@ -72,17 +72,17 @@ const timeToMinutes = (timeStr: string) => {
 };
 
 const isMorningTheory = (slot: string) => {
-  const main = slot.split('+')[0];
+  const main = slot.split('+').map(s => s.trim())[0];
   return main.includes('1');
 };
 
 const isEveningTheory = (slot: string) => {
-  const main = slot.split('+')[0];
+  const main = slot.split('+').map(s => s.trim())[0];
   return main.includes('2');
 };
 
 const isMorningLab = (slot: string) => {
-  const main = slot.split('+')[0];
+  const main = slot.split('+').map(s => s.trim())[0];
   if (main.startsWith('L')) {
     const num = parseInt(main.replace('L', ''), 10);
     if (isNaN(num)) return false;
@@ -99,7 +99,7 @@ const isMorningLab = (slot: string) => {
 };
 
 const isEveningLab = (slot: string) => {
-  const main = slot.split('+')[0];
+  const main = slot.split('+').map(s => s.trim())[0];
   if (main.startsWith('L')) {
     const num = parseInt(main.replace('L', ''), 10);
     if (isNaN(num)) return false;
@@ -115,13 +115,37 @@ const isEveningLab = (slot: string) => {
   return false;
 };
 
+const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
+  const tSlots = theorySlotStr.split('+').map(s => s.trim());
+  const lSlots = labSlotStr.split('+').map(s => s.trim());
+  
+  const isMT = tSlots.some(s => isMorningTheory(s));
+  const isET = tSlots.some(s => isEveningTheory(s));
+
+  for (const l of lSlots) {
+    if (l.startsWith('L')) {
+      const num = parseInt(l.replace('L', ''), 10);
+      if (isNaN(num)) continue;
+      
+      if (num <= 30) {
+        const periodIndex = ((num - 1) % 6) + 1;
+        if (periodIndex <= 4 && isMT) return true;
+      } else {
+        const periodIndex = ((num - 31) % 6) + 1;
+        if (periodIndex <= 4 && isET) return true;
+      }
+    }
+  }
+  return false;
+};
+
 const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
   // 1. Fix credits
   parsed.forEach(c => {
     if (c.TYPE.toLowerCase().includes('embedded')) {
       const creditsVal = parseFloat(c.CREDITS) || 0;
       if (c.SLOT.startsWith('L')) {
-        if (c.SLOT.split('+').length === 2) {
+        if (c.SLOT.split('+').map(s => s.trim()).length === 2) {
           c.CREDITS = "1.0";
         }
       } else {
@@ -153,44 +177,52 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
         const theorySlots = facCourses.filter(c => !c.SLOT.startsWith('L'));
         const labSlots = facCourses.filter(c => c.SLOT.startsWith('L'));
 
-        if (theorySlots.length === labSlots.length && theorySlots.length > 0) {
-          const matched = new Set<number>();
-          const matchedLabs = new Set<number>();
-          const tempCombined: ParsedCourse[] = [];
+        if (theorySlots.length > 0 && labSlots.length > 0) {
+          let bestMatch: { tIdx: number, lIdx: number }[] = [];
+          
+          const backtrack = (tIdx: number, currentMatch: { tIdx: number, lIdx: number }[], usedLabs: Set<number>) => {
+            if (currentMatch.length > bestMatch.length) {
+              bestMatch = [...currentMatch];
+            }
+            if (tIdx >= theorySlots.length) return;
 
-          for (let i = 0; i < theorySlots.length; i++) {
-            const t = theorySlots[i];
-            const isMT = isMorningTheory(t.SLOT);
-            const isET = isEveningTheory(t.SLOT);
+            const t = theorySlots[tIdx];
 
-            let matchIdx = -1;
             for (let j = 0; j < labSlots.length; j++) {
-              if (matchedLabs.has(j)) continue;
+              if (usedLabs.has(j)) continue;
               const l = labSlots[j];
-              const isML = isMorningLab(l.SLOT);
-              const isEL = isEveningLab(l.SLOT);
 
-              if ((isMT && isEL) || (isET && isML)) {
-                matchIdx = j;
-                break;
+              if (!isOverlap(t.SLOT, l.SLOT)) {
+                usedLabs.add(j);
+                currentMatch.push({ tIdx, lIdx: j });
+                backtrack(tIdx + 1, currentMatch, usedLabs);
+                currentMatch.pop();
+                usedLabs.delete(j);
               }
             }
+            
+            backtrack(tIdx + 1, currentMatch, usedLabs);
+          };
 
-            if (matchIdx !== -1) {
-              matched.add(i);
-              matchedLabs.add(matchIdx);
-              const l = labSlots[matchIdx];
-              tempCombined.push({
+          backtrack(0, [], new Set<number>());
+
+          if (bestMatch.length === theorySlots.length && theorySlots.length === labSlots.length) {
+            const matchedT = new Set(bestMatch.map(m => m.tIdx));
+            const matchedL = new Set(bestMatch.map(m => m.lIdx));
+            
+            bestMatch.forEach(m => {
+              const t = theorySlots[m.tIdx];
+              const l = labSlots[m.lIdx];
+              combined.push({
                 ...t,
                 CREDITS: String(parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
-                SLOT: `${t.SLOT} + ${l.SLOT}`,
+                SLOT: `${t.SLOT}+${l.SLOT}`,
                 ROOM: `${t.ROOM} / ${l.ROOM}`
               });
-            }
-          }
+            });
 
-          if (matched.size === theorySlots.length) {
-            combined.push(...tempCombined);
+            theorySlots.forEach((t, i) => { if (!matchedT.has(i)) combined.push(t); });
+            labSlots.forEach((l, i) => { if (!matchedL.has(i)) combined.push(l); });
           } else {
             combined.push(...facCourses);
           }
@@ -243,6 +275,14 @@ export default function FFCSTimetableTab() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Generator State
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [generatorSelectedCourses, setGeneratorSelectedCourses] = useState<string[]>([]);
+  const [generatorPreference, setGeneratorPreference] = useState<'none' | 'morning' | 'evening'>('none');
+  const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
+  const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
@@ -274,7 +314,7 @@ export default function FFCSTimetableTab() {
           if (c.TYPE.toLowerCase().includes('embedded')) {
             const creditsVal = parseFloat(c.CREDITS) || 0;
             if (c.SLOT.startsWith('L')) {
-              if (c.SLOT.split('+').length === 2) {
+              if (c.SLOT.split('+').map(s => s.trim()).length === 2) {
                 c.CREDITS = "1.0";
               }
             } else {
@@ -311,6 +351,23 @@ export default function FFCSTimetableTab() {
   const theoryPeriods = (timetableSchema.theory as TimetablePeriod[]).filter(p => !p.lunch);
   const labPeriods = (timetableSchema.lab as TimetablePeriod[]).filter(p => !p.lunch);
   const allPeriods = [...theoryPeriods, ...labPeriods];
+
+  const allAvailableSlots = useMemo(() => {
+    const slots = new Set<string>();
+    theoryPeriods.forEach(p => {
+      if (p.days) Object.values(p.days).forEach(s => slots.add(s));
+    });
+    labPeriods.forEach(p => {
+      if (p.days) Object.values(p.days).forEach(s => slots.add(s));
+    });
+    return Array.from(slots).sort((a, b) => {
+      const isALab = a.startsWith('L');
+      const isBLab = b.startsWith('L');
+      if (isALab && !isBLab) return 1;
+      if (!isALab && isBLab) return -1;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [theoryPeriods, labPeriods]);
 
   const getPeriodsForSlot = (slotName: string) => {
     const matchedPeriods: { day: string, startMin: number, endMin: number, type: 'theory' | 'lab', pIdx: number }[] = [];
@@ -363,6 +420,143 @@ export default function FFCSTimetableTab() {
 
   const getCourseForSlot = (slotName: string) => {
     return courses.find(c => c.slots.includes(slotName));
+  };
+
+  const uniqueCourseCodes = useMemo(() => {
+    const codes = Array.from(new Set(masterCourses.map(c => c.CODE)));
+    return codes.map(code => {
+      const course = masterCourses.find(c => c.CODE === code);
+      return { code, title: course?.TITLE || "" };
+    });
+  }, [masterCourses]);
+
+  const generateTimetables = async () => {
+    setIsGenerating(true);
+    // Yield to let UI update
+    await new Promise(r => setTimeout(r, 50));
+    
+    try {
+      const coursesByCode = new Map<string, ParsedCourse[]>();
+      masterCourses.forEach(c => {
+        if (!coursesByCode.has(c.CODE)) coursesByCode.set(c.CODE, []);
+        coursesByCode.get(c.CODE)!.push(c);
+      });
+
+      const targetCodes = generatorSelectedCourses;
+      if (targetCodes.length === 0) {
+        setError("Please select at least one course.");
+        setIsGenerating(false);
+        return;
+      }
+
+      const optionsPerCourse: ParsedCourse[][] = [];
+      for (const code of targetCodes) {
+        let options = coursesByCode.get(code) || [];
+        
+        // Ensure embedded courses are properly combined
+        options = options.filter(opt => {
+          if (opt.TYPE.toLowerCase().includes('embedded')) {
+            const parsedSlots = opt.SLOT.split('+').map(s => s.trim());
+            const hasTheory = parsedSlots.some(s => !s.startsWith('L') && s !== 'NIL');
+            const hasLab = parsedSlots.some(s => s.startsWith('L'));
+            return hasTheory && hasLab;
+          }
+          return true;
+        });
+        
+        if (generatorPreference === 'morning') {
+          options = options.filter(opt => {
+            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L'));
+            if (theorySlots.length > 0) return isMorningTheory(theorySlots[0]);
+            return opt.SLOT.split('+').map(s => s.trim()).some(s => isEveningLab(s));
+          });
+        } else if (generatorPreference === 'evening') {
+          options = options.filter(opt => {
+            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L'));
+            if (theorySlots.length > 0) return isEveningTheory(theorySlots[0]);
+            return opt.SLOT.split('+').map(s => s.trim()).some(s => isMorningLab(s));
+          });
+        }
+
+        options = options.filter(opt => {
+          const slots = opt.SLOT.split('+').map(s => s.trim());
+          return !slots.some(s => blockedSlots.has(s));
+        });
+
+        if (options.length === 0) {
+          setError(`No valid slots found for ${code} with current preferences and blocked slots.`);
+          setIsGenerating(false);
+          return;
+        }
+        optionsPerCourse.push(options);
+      }
+
+      const results: ParsedCourse[][] = [];
+      const MAX_RESULTS = generatorNoLimit ? 999999 : 50;
+
+      const usedFacultiesPerCourse = new Map<string, Set<string>>();
+      targetCodes.forEach(code => usedFacultiesPerCourse.set(code, new Set()));
+
+      const backtrack = (courseIndex: number, currentCombo: ParsedCourse[], currentSlots: Set<string>) => {
+        if (results.length >= MAX_RESULTS) return;
+        if (courseIndex === targetCodes.length) {
+          results.push([...currentCombo]);
+          if (generatorUniqueFaculties) {
+            currentCombo.forEach(c => usedFacultiesPerCourse.get(c.CODE)!.add(c.FACULTY));
+          }
+          return;
+        }
+
+        const options = optionsPerCourse[courseIndex];
+        for (const opt of options) {
+          if (generatorUniqueFaculties && usedFacultiesPerCourse.get(opt.CODE)!.has(opt.FACULTY)) {
+            continue;
+          }
+
+          const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
+          const hasConflict = slots.some(s => currentSlots.has(s));
+          
+          if (!hasConflict) {
+            slots.forEach(s => currentSlots.add(s));
+            currentCombo.push(opt);
+            backtrack(courseIndex + 1, currentCombo, currentSlots);
+            currentCombo.pop();
+            slots.forEach(s => currentSlots.delete(s));
+          }
+        }
+      };
+
+      backtrack(0, [], new Set<string>());
+
+      if (results.length === 0) {
+        setError("Could not generate any conflict-free timetables from the selected options.");
+      } else {
+        const newTts = results.map((combo, idx) => {
+          const tId = Math.random().toString(36).substr(2, 9);
+          const mappedCourses: AddedCourse[] = combo.map((c, i) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            code: c.CODE,
+            title: c.TITLE,
+            faculty: c.FACULTY,
+            venue: c.ROOM,
+            slots: c.SLOT.split('+').map(s => s.trim().toUpperCase()),
+            credits: c.CREDITS,
+            type: c.TYPE,
+            color: COLORS[i % COLORS.length]
+          }));
+          
+          return { id: tId, name: `Generated ${idx + 1}`, courses: mappedCourses };
+        });
+
+        setTimetables(prev => [...prev, ...newTts]);
+        setActiveTimetableId(newTts[0].id);
+        setSuccessMsg(`Successfully generated ${results.length} timetables!`);
+        setIsGeneratorOpen(false);
+      }
+    } catch (e) {
+      setError("An error occurred while generating timetables.");
+    }
+    setIsGenerating(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -971,6 +1165,12 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   <input type="file" accept=".json" onChange={importTimetables} className="absolute inset-0 opacity-0 cursor-pointer" />
                   <Upload className="w-3 h-3" /> Import Config
                 </label>
+                <button 
+                  onClick={() => setIsGeneratorOpen(true)}
+                  className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-medium py-2 rounded-lg border border-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Wand2 className="w-3 h-3" /> Auto-Generate
+                </button>
               </div>
 
               {isEditingName && (
@@ -1344,6 +1544,152 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
           </p>
         </div>
       </div>
+
+      {/* Auto-Generator Modal */}
+      {isGeneratorOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+                <Wand2 className="text-amber-500 w-6 h-6" /> Timetable Auto-Generator
+              </h2>
+              <button onClick={() => setIsGeneratorOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
+              <div>
+                <h3 className="font-semibold text-sm mb-3 text-foreground">1. Select Desired Courses</h3>
+                <p className="text-xs text-muted-foreground mb-4">Choose the courses you want to take. The generator will find all conflict-free combinations.</p>
+                <div className="border border-border rounded-xl max-h-60 overflow-y-auto bg-muted/10 p-2 grid grid-cols-1 md:grid-cols-2 gap-2 custom-scrollbar">
+                  {uniqueCourseCodes.map(c => (
+                    <label key={c.code} className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg cursor-pointer border border-transparent hover:border-border transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="mt-0.5 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
+                        checked={generatorSelectedCourses.includes(c.code)}
+                        onChange={(e) => {
+                          if (e.target.checked) setGeneratorSelectedCourses(prev => [...prev, c.code]);
+                          else setGeneratorSelectedCourses(prev => prev.filter(code => code !== c.code));
+                        }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm text-foreground">{c.code}</span>
+                        <span className="text-[11px] text-muted-foreground line-clamp-1">{c.title}</span>
+                      </div>
+                    </label>
+                  ))}
+                  {uniqueCourseCodes.length === 0 && (
+                    <div className="col-span-full p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                      Please upload a master course list first.
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 text-xs text-muted-foreground bg-amber-500/10 text-amber-500/90 py-1.5 px-3 rounded-lg w-max border border-amber-500/20 font-medium">
+                  Selected: {generatorSelectedCourses.length} courses
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-sm mb-3 text-foreground">2. Preferences</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">Time Preference</label>
+                    <select 
+                      value={generatorPreference} 
+                      onChange={e => setGeneratorPreference(e.target.value as any)}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-amber-500/50"
+                    >
+                      <option value="none">No Preference (Any combinations)</option>
+                      <option value="morning">Morning Theory Preferred</option>
+                      <option value="evening">Evening Theory Preferred</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-3 mt-4 mb-2">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center">
+                        <input 
+                          type="checkbox" 
+                          checked={generatorUniqueFaculties}
+                          onChange={e => setGeneratorUniqueFaculties(e.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </div>
+                      <span className="text-sm text-foreground group-hover:text-amber-500 transition-colors">Master Timetables (Unique Faculties)</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative flex items-center">
+                        <input 
+                          type="checkbox" 
+                          checked={generatorNoLimit}
+                          onChange={e => setGeneratorNoLimit(e.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </div>
+                      <span className="text-sm text-foreground group-hover:text-amber-500 transition-colors">Remove 50 Timetables Limit</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
+                      Blocked Slots Constraint
+                      <Info className="w-3 h-3" />
+                    </label>
+                    <div className="bg-muted/10 border border-border p-3 rounded-xl">
+                      <p className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
+                        Click slots below to block them. The generator will actively avoid these slots.
+                        <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold ml-auto">{blockedSlots.size} Blocked</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                        {allAvailableSlots.map(slot => {
+                          const isBlocked = blockedSlots.has(slot);
+                          return (
+                            <button
+                              key={slot}
+                              onClick={() => toggleBlockSlot(slot)}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors border ${
+                                isBlocked 
+                                  ? 'bg-red-500 text-white border-red-600 shadow-sm' 
+                                  : 'bg-background text-foreground/70 border-border hover:bg-muted hover:text-foreground'
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-border bg-muted/30 flex justify-between items-center">
+              <span className="text-xs text-muted-foreground pl-2">Caps at 50 combinations</span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsGeneratorOpen(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors border border-transparent hover:border-border"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={generateTimetables}
+                  disabled={isGenerating || generatorSelectedCourses.length === 0}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20"
+                >
+                  {isGenerating ? "Generating..." : "Generate Combinations"}
+                  <Wand2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
