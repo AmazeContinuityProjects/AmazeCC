@@ -500,7 +500,7 @@ export default function FFCSTimetableTab() {
         let options = coursesByCode.get(sel.code) || [];
         
         if (sel.offerings && sel.offerings.length > 0) {
-          options = options.filter(opt => sel.offerings.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.VENUE}`));
+          options = options.filter(opt => sel.offerings.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`));
         }
 
         // Ensure embedded courses are properly combined
@@ -2028,8 +2028,8 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                       
                       const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
                       const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
-                        const id = `${opt.FACULTY}|${opt.SLOT}|${opt.VENUE}`;
-                        return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.VENUE, id }];
+                        const id = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
+                        return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.ROOM, id }];
                       })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
 
                       const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
