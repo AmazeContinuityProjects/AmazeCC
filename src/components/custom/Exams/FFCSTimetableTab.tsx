@@ -55,7 +55,9 @@ type TimetableState = {
     halfDays: number;
     gaps: number;
     gapsPerDay: Record<string, number>;
+    gapDetails?: { day: string; startMin: number; endMin: number; durationMins: number }[];
     buildingDashes: number;
+    dashDetails?: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string }[];
     socialScore: number;
     bestFriendMatches: string[];
     isLongWeekend: boolean;
@@ -342,6 +344,10 @@ export default function FFCSTimetableTab() {
   const [socialTargetId, setSocialTargetId] = useState<string>("");
   const [pendingFriendTimetables, setPendingFriendTimetables] = useState<TimetableState[] | null>(null);
   const [pendingFriendName, setPendingFriendName] = useState("");
+  const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [selectedDashDetails, setSelectedDashDetails] = useState<NonNullable<TimetableState['metrics']>['dashDetails'] | null>(null);
+  const [selectedGapDetails, setSelectedGapDetails] = useState<NonNullable<TimetableState['metrics']>['gapDetails'] | null>(null);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
 
@@ -497,6 +503,7 @@ export default function FFCSTimetableTab() {
     setIsGenerating(true);
     setStagedTimetables([]);
     setSelectedStagedIds(new Set());
+    setSelectedTimetablesToCompare([]);
     // Yield to let UI update
     await new Promise(r => setTimeout(r, 50));
     
@@ -658,6 +665,8 @@ export default function FFCSTimetableTab() {
           let isMondayFree = true;
           let buildingDashes = 0;
           const gapsPerDay: Record<string, number> = {};
+          const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string }[] = [];
+          const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number }[] = [];
 
           const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
 
@@ -665,25 +674,42 @@ export default function FFCSTimetableTab() {
             let morningOccupied = false;
             let eveningOccupied = false;
             
-            type DailyClass = { startMins: number, endMins: number, venue: string };
+            type DailyClass = { startMins: number, endMins: number, venue: string, title: string, code: string, startTime: string, endTime: string };
             const dailyClasses: DailyClass[] = [];
 
             theoryPeriods.forEach((p, pIdx) => {
               const tSlot = p.days?.[day.id];
               const lSlot = labPeriods[pIdx]?.days?.[day.id];
-              const isMorning = timeToMinutes(p.start) < timeToMinutes("2:00 PM");
+              const isMorning = timeToMinutes(p.start as string) < timeToMinutes("2:00 PM");
               
               let slotOccupied = false;
               let venue = '';
+              let courseTitle = '';
+              let courseCode = '';
               
               if (tSlot && mySlots.has(tSlot)) {
                 slotOccupied = true;
                 const c = mappedCourses.find(mc => mc.slots.includes(tSlot));
-                if (c) venue = c.venue;
+                if (c) {
+                  venue = c.venue;
+                  courseTitle = c.title;
+                  courseCode = c.code;
+                  if (c.type?.toLowerCase().includes('embedded') && venue.includes('/')) {
+                    venue = venue.split('/')[0].trim();
+                  }
+                }
               } else if (lSlot && mySlots.has(lSlot)) {
                 slotOccupied = true;
                 const c = mappedCourses.find(mc => mc.slots.includes(lSlot));
-                if (c) venue = c.venue;
+                if (c) {
+                  venue = c.venue;
+                  courseTitle = c.title;
+                  courseCode = c.code;
+                  if (c.type?.toLowerCase().includes('embedded') && venue.includes('/')) {
+                    const parts = venue.split('/');
+                    venue = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+                  }
+                }
               }
 
               if (slotOccupied) {
@@ -694,9 +720,13 @@ export default function FFCSTimetableTab() {
                 else eveningOccupied = true;
 
                 dailyClasses.push({
-                  startMins: timeToMinutes(p.start),
-                  endMins: timeToMinutes(p.end),
-                  venue
+                  startMins: timeToMinutes(p.start as string),
+                  endMins: timeToMinutes(p.end as string),
+                  venue,
+                  title: courseTitle,
+                  code: courseCode,
+                  startTime: p.start as string,
+                  endTime: p.end as string
                 });
               }
             });
@@ -715,13 +745,28 @@ export default function FFCSTimetableTab() {
               
               if (gap > 0) {
                 dayGaps += gap;
-              } else if (gap === 0) {
+                gapDetails.push({
+                  day: day.id,
+                  startMin: prev.endMins,
+                  endMin: curr.startMins,
+                  durationMins: gap
+                });
+              }
+              
+              if (gap >= 0 && gap <= 15) {
                 const getBlock = (v: string) => v.split('-')[0].trim();
                 const prevBlock = getBlock(prev.venue);
                 const currBlock = getBlock(curr.venue);
                 // NIL or unassigned venues shouldn't trigger dashes
                 if (prevBlock && currBlock && prevBlock !== 'NIL' && currBlock !== 'NIL' && prevBlock !== currBlock) {
                   buildingDashes++;
+                  dashDetails.push({
+                    fromClass: `${prev.code} (${prev.title})`,
+                    toClass: `${curr.code} (${curr.title})`,
+                    fromTime: prev.endTime,
+                    toTime: curr.startTime,
+                    day: day.name
+                  });
                 }
               }
             }
@@ -774,7 +819,9 @@ export default function FFCSTimetableTab() {
               halfDays: halfDaysCount,
               gaps: gapsHours,
               gapsPerDay: gapsPerDay,
+              gapDetails: gapDetails,
               buildingDashes: buildingDashes,
+              dashDetails: dashDetails,
               socialScore: socialScore,
               bestFriendMatches: bestFriendMatches,
               isLongWeekend: isLongWeekend
@@ -1206,9 +1253,12 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
     setBlockedSlots(newBlocked);
   };
 
-  const renderUnifiedGrid = () => {
+  const renderUnifiedGrid = (customCourses?: AddedCourse[]) => {
+    const renderCourses = customCourses || courses;
+    const getCourse = (slotName: string) => renderCourses.find(c => c.slots.includes(slotName));
+
     return (
-      <div className="mb-8 overflow-x-auto rounded-xl border border-border shadow-2xl bg-background backdrop-blur-md">
+      <div className={`mb-8 overflow-x-auto rounded-xl border border-border shadow-2xl bg-background backdrop-blur-md ${customCourses ? 'scale-[0.85] origin-top-left -mb-10' : ''}`}>
         <div className="p-4 bg-muted/80 border-b border-border flex items-center justify-between">
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
             Unified Schedule
@@ -1248,8 +1298,8 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                       return <td key={pIdx} className="p-2 border-r border-border bg-black/20"></td>;
                     }
 
-                    const tCourse = theorySlotName ? getCourseForSlot(theorySlotName) : undefined;
-                    const lCourse = labSlotName ? getCourseForSlot(labSlotName) : undefined;
+                    const tCourse = theorySlotName ? getCourse(theorySlotName) : undefined;
+                    const lCourse = labSlotName ? getCourse(labSlotName) : undefined;
 
                     const isTBlocked = theorySlotName ? blockedSlots.has(theorySlotName) : false;
                     const isLBlocked = labSlotName ? blockedSlots.has(labSlotName) : false;
@@ -1260,13 +1310,13 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                           {/* Theory Half */}
                           {theorySlotName && (
                             <div 
-                              onClick={() => toggleBlockSlot(theorySlotName)}
-                              className={`flex-1 p-1 border-b border-border flex flex-col items-center justify-center transition-all duration-300 relative cursor-pointer ${
+                              onClick={() => !customCourses && toggleBlockSlot(theorySlotName)}
+                              className={`flex-1 p-1 border-b border-border flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
                                 isTBlocked 
                                   ? 'bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgogIDxwYXRoIGQ9Ik0tMiAxMEwxMCAteiIgIHN0cm9rZT0iI2ZmZmZmZjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+")] bg-red-950/40 border-red-500/30 text-red-200 shadow-inner'
                                   : tCourse 
                                     ? tCourse.color + ' shadow-lg text-foreground z-10' 
-                                    : 'bg-muted/20 text-muted-foreground hover:border-border/50 hover:bg-muted/30'
+                                    : (selectedGapDetails?.some(g => g.day === day.id && timeToMinutes(period.start as string) >= g.startMin && timeToMinutes(period.start as string) < g.endMin) ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 animate-pulse' : 'bg-muted/20 text-muted-foreground hover:border-border/50 hover:bg-muted/30')
                               }`}
                             >
                               <span className={`text-[11px] font-bold ${tCourse || isTBlocked ? 'opacity-100' : 'opacity-60'}`}>
@@ -1288,13 +1338,13 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                           {/* Lab Half */}
                           {labSlotName && (
                             <div 
-                              onClick={() => toggleBlockSlot(labSlotName)}
-                              className={`flex-1 p-1 flex flex-col items-center justify-center border-t border-dashed border-border transition-all duration-300 relative cursor-pointer ${
+                              onClick={() => !customCourses && toggleBlockSlot(labSlotName)}
+                              className={`flex-1 p-1 border-t border-dashed border-white/10 flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
                                 isLBlocked 
-                                  ? 'bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgogIDxwYXRoIGQ9Ik0tMiAxMEwxMCAteiIgIHN0cm9rZT0iI2ZmZmZmZjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+")] bg-red-950/40 border-red-500/30 text-red-200 shadow-inner'
+                                  ? 'bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgogIDxwYXRoIGQ9Ik0tMiAxMEwxMCAteiIgIHN0cm9rZT0iI2ZmZmZmZjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+")] bg-red-950/40 text-red-200 shadow-inner'
                                   : lCourse 
                                     ? lCourse.color + ' shadow-lg text-foreground z-10' 
-                                    : 'bg-muted/10 text-muted-foreground hover:border-border/40 hover:bg-muted/30'
+                                    : (selectedGapDetails?.some(g => g.day === day.id && timeToMinutes(period.start as string) >= g.startMin && timeToMinutes(period.start as string) < g.endMin) ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 animate-pulse' : 'bg-black/20 text-white/30 hover:bg-black/30')
                               }`}
                             >
                               <span className={`text-[11px] font-bold ${lCourse || isLBlocked ? 'opacity-100' : 'opacity-60'}`}>
@@ -2189,6 +2239,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
           )}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 flex justify-center bg-muted/5">
             {generatorPreviewTimetable ? (
+              <>
               <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-background p-6 rounded-2xl border border-border shadow-sm">
                   <div className="flex items-center gap-4">
@@ -2225,7 +2276,10 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                     <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Free Half-Days</span>
                   </div>
                   
-                  <div className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm relative group">
+                  <div 
+                    className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm relative group cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedGapDetails(generatorPreviewTimetable.metrics?.gapDetails || null)}
+                  >
                     <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.gaps}h</span>
                     <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -2239,7 +2293,10 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   </div>
 
                   {(generatorPreviewTimetable.metrics?.buildingDashes ?? 0) > 0 ? (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div 
+                      className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm cursor-pointer hover:bg-red-500/20 transition-colors"
+                      onClick={() => setSelectedDashDetails(generatorPreviewTimetable.metrics?.dashDetails || null)}
+                    >
                       <span className="text-2xl font-black text-red-500">{generatorPreviewTimetable.metrics?.buildingDashes}</span>
                       <span className="text-xs uppercase font-bold text-red-500/80 tracking-wider mt-1">Block Dashes</span>
                     </div>
@@ -2320,6 +2377,127 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   )}
                 </div>
               </div>
+
+              {/* Dash Details Modal */}
+              {selectedDashDetails && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+                      <h3 className="font-bold text-foreground flex items-center gap-2">
+                        <span className="text-xl">🏃</span> Block Dash Details
+                      </h3>
+                      <button 
+                        onClick={() => setSelectedDashDetails(null)}
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="p-4 overflow-y-auto">
+                      {selectedDashDetails.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">No block dashes in this timetable. Great!</p>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {selectedDashDetails.map((dash, i) => (
+                            <div key={i} className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col gap-2">
+                              <div className="flex justify-between items-center border-b border-red-500/10 pb-2 mb-1">
+                                <span className="font-bold text-red-400 text-sm">{dash.day}</span>
+                                <span className="text-xs font-semibold bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full">{dash.fromTime} - {dash.toTime}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 flex flex-col overflow-hidden">
+                                  <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">From</span>
+                                  <span className="text-sm font-medium text-foreground truncate block" title={dash.fromClass}>{dash.fromClass}</span>
+                                </div>
+                                <div className="text-red-500/50">→</div>
+                                <div className="flex-1 flex flex-col text-right overflow-hidden">
+                                  <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">To</span>
+                                  <span className="text-sm font-medium text-foreground truncate block" title={dash.toClass}>{dash.toClass}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Gap Details Modal */}
+              {selectedGapDetails && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+                      <h3 className="font-bold text-foreground flex items-center gap-2">
+                        <span className="text-xl">⏳</span> Gap Hours Detail
+                      </h3>
+                      <button 
+                        onClick={() => setSelectedGapDetails(null)}
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="p-4 overflow-y-auto">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        We have highlighted the empty gap slots in <span className="text-yellow-500 font-bold">yellow</span> on the unified schedule grid behind this modal!
+                      </p>
+                      {selectedGapDetails.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">No gaps in this timetable. Perfect!</p>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {selectedGapDetails.map((gap, i) => (
+                            <div key={i} className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex justify-between items-center">
+                              <span className="font-bold text-yellow-500/80 uppercase">{gap.day}</span>
+                              <span className="text-sm font-semibold text-foreground">Gap of <span className="text-yellow-500">{gap.durationMins}</span> mins</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              </>
+            ) : isCompareModalOpen ? (
+              <div className="w-full flex flex-col h-full animate-in slide-in-from-right duration-300">
+                <div className="flex items-center justify-between mb-4 px-4 sm:px-6 pt-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">Compare Options</h2>
+                    <p className="text-xs text-muted-foreground mt-1">Comparing {selectedTimetablesToCompare.length} timetables side-by-side</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsCompareModalOpen(false)} 
+                    className="p-2 bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 custom-scrollbar">
+                  <div className={`grid grid-cols-1 ${selectedTimetablesToCompare.length === 2 ? 'xl:grid-cols-2' : 'xl:grid-cols-3'} gap-6`}>
+                    {selectedTimetablesToCompare.map(id => {
+                      const tt = stagedTimetables.find(t => t.id === id);
+                      if (!tt) return null;
+                      return (
+                        <div key={id} className="flex flex-col bg-background border border-border rounded-2xl overflow-hidden shadow-sm">
+                          <div className="p-4 bg-muted/30 border-b border-border flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
+                            <div className="flex gap-2">
+                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.halfDays} Half Days</span>
+                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.gaps}h Gaps</span>
+                            </div>
+                          </div>
+                          <div className="p-4 overflow-x-auto custom-scrollbar">
+                            {renderUnifiedGrid(tt.courses)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             ) : stagedTimetables.length > 0 ? (
               <div className="w-full max-w-6xl flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
                 {/* Header */}
@@ -2372,8 +2550,23 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                       <div className="p-5 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-4">
                           <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
-                          <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedStagedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
-                            {selectedStagedIds.has(tt.id) && <Check className="w-4 h-4" />}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTimetablesToCompare(prev => {
+                                  if (prev.includes(tt.id)) return prev.filter(id => id !== tt.id);
+                                  if (prev.length >= 3) return prev; // max 3
+                                  return [...prev, tt.id];
+                                });
+                              }}
+                              className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${selectedTimetablesToCompare.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border hover:border-purple-500/50'}`}
+                            >
+                              Compare
+                            </button>
+                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedStagedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
+                              {selectedStagedIds.has(tt.id) && <Check className="w-4 h-4" />}
+                            </div>
                           </div>
                         </div>
 
@@ -2421,6 +2614,27 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                     </div>
                   ))}
                 </div>
+
+                {/* Floating Compare Bar */}
+                {selectedTimetablesToCompare.length > 0 && (
+                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[250] bg-background border-2 border-purple-500 rounded-full px-6 py-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                    <span className="text-sm font-semibold text-foreground">
+                      {selectedTimetablesToCompare.length} selected to compare (Max 3)
+                    </span>
+                    <button
+                      onClick={() => setIsCompareModalOpen(true)}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-[0_0_15px_rgba(168,85,247,0.4)] flex items-center gap-2"
+                    >
+                      Compare Options
+                    </button>
+                    <button
+                      onClick={() => setSelectedTimetablesToCompare([])}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors ml-2"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
             <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
