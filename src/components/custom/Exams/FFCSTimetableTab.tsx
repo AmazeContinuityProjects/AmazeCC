@@ -308,6 +308,7 @@ export default function FFCSTimetableTab() {
   const [friendsManagerTab, setFriendsManagerTab] = useState<"friends" | "groups">("friends");
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupFriends, setNewGroupFriends] = useState<string[]>([]);
+  const [socialTargetId, setSocialTargetId] = useState<string>("");
   const [pendingFriendTimetables, setPendingFriendTimetables] = useState<TimetableState[] | null>(null);
   const [pendingFriendName, setPendingFriendName] = useState("");
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
@@ -1157,6 +1158,67 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
     );
   };
 
+  // Dynamic Social Score Calculation
+  let dynamicSocialScore = 0;
+  let isCalculatingSocialScore = false;
+  if (socialTargetId) {
+    isCalculatingSocialScore = true;
+    const activeCourses = timetables.find(t => t.id === activeTimetableId)?.courses || [];
+    const mySlots = new Set(activeCourses.flatMap(c => c.slots));
+    
+    const targetFriend = friends.find(f => f.id === socialTargetId);
+    const targetGroup = friendGroups.find(g => g.id === socialTargetId);
+
+    if (targetFriend) {
+      let maxFriendScore = 0;
+      (targetFriend.timetables || []).forEach(ft => {
+        const fSlots = new Set(ft.courses.flatMap(c => c.slots));
+        const unionSize = new Set([...mySlots, ...fSlots]).size;
+        const score = 60 - unionSize;
+        if (score > maxFriendScore) maxFriendScore = score;
+      });
+      dynamicSocialScore = maxFriendScore;
+    } else if (targetGroup) {
+      if (socialScoreGroupMethod === "cumulative") {
+        let total = 0;
+        targetGroup.friendIds.forEach(fid => {
+          const f = friends.find(fr => fr.id === fid);
+          if (f) {
+            let maxScore = 0;
+            (f.timetables || []).forEach(ft => {
+              const fSlots = new Set(ft.courses.flatMap(c => c.slots));
+              const unionSize = new Set([...mySlots, ...fSlots]).size;
+              const score = 60 - unionSize;
+              if (score > maxScore) maxScore = score;
+            });
+            total += maxScore;
+          }
+        });
+        dynamicSocialScore = total;
+      } else {
+        let groupUnionSlots = new Set([...mySlots]);
+        targetGroup.friendIds.forEach(fid => {
+          const f = friends.find(fr => fr.id === fid);
+          if (f && f.timetables && f.timetables.length > 0) {
+            let bestFt = f.timetables[0];
+            let minUnionSize = 999;
+            f.timetables.forEach(ft => {
+              const fSlots = new Set(ft.courses.flatMap(c => c.slots));
+              const unionSize = new Set([...mySlots, ...fSlots]).size;
+              if (unionSize < minUnionSize) {
+                minUnionSize = unionSize;
+                bestFt = ft;
+              }
+            });
+            const bestFSlots = new Set(bestFt.courses.flatMap(c => c.slots));
+            bestFSlots.forEach(s => groupUnionSlots.add(s));
+          }
+        });
+        dynamicSocialScore = 60 - groupUnionSlots.size;
+      }
+    }
+  }
+
   return (
     <div className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
@@ -1436,23 +1498,66 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
 
         {/* Right Panel: The Grid and Export */}
         <div className="w-full space-y-6">
-          <div className="flex flex-wrap justify-end gap-2 mb-2">
-            <button 
-              onClick={downloadPDF}
-              disabled={isDownloading || courses.length === 0}
-              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
-            >
-              <Download className="w-4 h-4" /> 
-              {isDownloading ? "Exporting..." : "Download PDF"}
-            </button>
-            <button 
-              onClick={downloadImage}
-              disabled={isDownloading || courses.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
-            >
-              <Download className="w-4 h-4" /> 
-              {isDownloading ? "Capturing..." : "Download JPG"}
-            </button>
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+            {/* Social Score Widget */}
+            <div className="flex items-center gap-3 bg-muted/20 border border-border p-2 rounded-xl w-full md:w-auto flex-1 max-w-md print:hidden">
+              <div className="flex flex-col gap-1 w-full">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3 text-pink-500" /> Social Score</label>
+                  {isCalculatingSocialScore && (
+                    <span className="text-xs font-bold text-pink-500 bg-pink-500/10 px-2 py-0.5 rounded-full animate-pulse border border-pink-500/20">
+                      Score: {dynamicSocialScore}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={socialTargetId}
+                    onChange={(e) => setSocialTargetId(e.target.value)}
+                    className="flex-1 bg-background border border-border rounded-lg text-sm text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
+                  >
+                    <option value="">Select Friend/Group...</option>
+                    {friends.length > 0 && <optgroup label="Friends">
+                      {friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </optgroup>}
+                    {friendGroups.length > 0 && <optgroup label="Groups">
+                      {friendGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </optgroup>}
+                  </select>
+                  
+                  {friendGroups.find(g => g.id === socialTargetId) && (
+                    <select
+                      value={socialScoreGroupMethod}
+                      onChange={(e) => setSocialScoreGroupMethod(e.target.value as any)}
+                      className="w-24 bg-background border border-border rounded-lg text-[10px] text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
+                      title="Calculation Method"
+                    >
+                      <option value="intersection">Intersection</option>
+                      <option value="cumulative">Cumulative</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 shrink-0 ml-auto">
+              <button 
+                onClick={downloadPDF}
+                disabled={isDownloading || courses.length === 0}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
+              >
+                <Download className="w-4 h-4" /> 
+                {isDownloading ? "Exporting..." : "Download PDF"}
+              </button>
+              <button 
+                onClick={downloadImage}
+                disabled={isDownloading || courses.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+              >
+                <Download className="w-4 h-4" /> 
+                {isDownloading ? "Capturing..." : "Download JPG"}
+              </button>
+            </div>
           </div>
           
           <div ref={captureRef} className="space-y-6 rounded-xl">
