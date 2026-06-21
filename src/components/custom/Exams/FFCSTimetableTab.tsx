@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock } from "lucide-react";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
@@ -9,114 +9,13 @@ import FFCSGuideModal from "./FFCSGuideModal";
 
 import timetableSchema from "@/app/data/chennai.json";
 
-// Types
-interface GenCourseSelection {
-  code: string;
-  offerings: string[];
-}
+import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup } from "./FFCS/types";
+import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
+import { isCourseFullyAdded } from "./FFCS/utils";
 
-type SlotMap = {
-  [day: string]: string;
-};
 
-type TimetablePeriod = {
-  start?: string;
-  end?: string;
-  lunch?: boolean;
-  days?: SlotMap;
-};
 
-type ParsedCourse = {
-  CODE: string;
-  TITLE: string;
-  TYPE: string;
-  CREDITS: string;
-  ROOM: string;
-  SLOT: string;
-  FACULTY: string;
-};
 
-type AddedCourse = {
-  id: string;
-  code: string;
-  title: string;
-  slots: string[];
-  faculty: string;
-  venue: string;
-  credits: string;
-  type: string;
-  color: string;
-};
-
-type TimetableState = {
-  id: string;
-  name: string;
-  courses: AddedCourse[];
-  metrics?: {
-    halfDays: number;
-    gaps: number;
-    gapsPerDay: Record<string, number>;
-    gapDetails?: { day: string; startMin: number; endMin: number; durationMins: number }[];
-    buildingDashes: number;
-    dashDetails?: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string }[];
-    socialScore: number;
-    bestFriendMatches: string[];
-    isLongWeekend: boolean;
-  };
-};
-
-interface Friend {
-  id: string;
-  name: string;
-  timetables: TimetableState[];
-}
-
-interface FriendGroup {
-  id: string;
-  name: string;
-  friendIds: string[];
-}
-
-const DAYS = [
-  { id: "mon", name: "Monday" },
-  { id: "tue", name: "Tuesday" },
-  { id: "wed", name: "Wednesday" },
-  { id: "thu", name: "Thursday" },
-  { id: "fri", name: "Friday" },
-];
-
-const COLORS = [
-  "bg-blue-500", "bg-purple-500", "bg-green-500", "bg-red-500", 
-  "bg-yellow-500", "bg-pink-500", "bg-indigo-500", "bg-teal-500", "bg-orange-500"
-];
-
-const typeLabels: Record<string, string> = {
-  SS: "Soft Skills",
-  TH: "Theory Only",
-  LO: "Lab Only",
-  PJT: "Project",
-  ETH: "Embedded Theory",
-  ELA: "Embedded Lab",
-  EPJ: "Embedded Project",
-  OC: "Option Course",
-  "ETH+ELA": "Embedded Theory and Lab",
-  "TH+LO": "Theory + Lab"
-};
-
-const typeColors: Record<string, { bg: string; text: string; border: string }> = {
-  SS: { bg: "bg-teal-500/10 dark:bg-teal-400/10", text: "text-teal-600 dark:text-teal-400", border: "border-teal-500/30" },
-  TH: { bg: "bg-blue-500/10 dark:bg-blue-400/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/30" },
-  LO: { bg: "bg-purple-500/10 dark:bg-purple-400/10", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500/30" },
-  PJT: { bg: "bg-pink-500/10 dark:bg-pink-400/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/30" },
-  ETH: { bg: "bg-amber-500/10 dark:bg-amber-400/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30" },
-  ELA: { bg: "bg-indigo-500/10 dark:bg-indigo-400/10", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/30" },
-  EPJ: { bg: "bg-rose-500/10 dark:bg-rose-400/10", text: "text-rose-600 dark:text-rose-400", border: "border-rose-500/30" },
-  OC: { bg: "bg-emerald-500/10 dark:bg-emerald-400/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30" },
-  "ETH+ELA": { bg: "bg-cyan-500/10 dark:bg-cyan-400/10", text: "text-cyan-600 dark:text-cyan-400", border: "border-cyan-500/30" },
-  "TH+LO": { bg: "bg-violet-500/10 dark:bg-violet-400/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/30" }
-};
-
-const defaultColor = { bg: "bg-slate-500/10 dark:bg-slate-400/10", text: "text-slate-600 dark:text-slate-400", border: "border-slate-500/30" };
 
 const renderTypeChips = (typesInput: string | string[], size: 'sm' | 'md' = 'md') => {
   if (!typesInput) return null;
@@ -507,6 +406,7 @@ export default function FFCSTimetableTab() {
     { id: "default", name: "Timetable 1", courses: [] }
   ]);
   const [activeTimetableId, setActiveTimetableId] = useState<string>("default");
+  const [courseLocks, setCourseLocks] = useState<import('./FFCS/types').CourseLock[]>([]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
 
@@ -529,7 +429,8 @@ export default function FFCSTimetableTab() {
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [generatorSelectedCourses, setGeneratorSelectedCourses] = useState<GenCourseSelection[]>([]);
+  const [isCourseLockOpen, setIsCourseLockOpen] = useState(false);
+
   const [generatorPreference, setGeneratorPreference] = useState<'none' | 'morning' | 'evening'>('none');
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
   const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
@@ -632,6 +533,8 @@ export default function FFCSTimetableTab() {
     if (savedFriendGroups) setFriendGroups(JSON.parse(savedFriendGroups));
     const savedMethod = localStorage.getItem("ffcs_socialScoreGroupMethod");
     if (savedMethod) setSocialScoreGroupMethod(savedMethod as "intersection" | "cumulative");
+    const savedCourseLocks = localStorage.getItem("ffcs_courseLocks");
+    if (savedCourseLocks) setCourseLocks(JSON.parse(savedCourseLocks));
 
     setIsLoaded(true);
   }, []);
@@ -671,6 +574,12 @@ export default function FFCSTimetableTab() {
       localStorage.setItem("ffcs_socialScoreGroupMethod", socialScoreGroupMethod);
     }
   }, [friends, friendGroups, socialScoreGroupMethod, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("ffcs_courseLocks", JSON.stringify(courseLocks));
+    }
+  }, [courseLocks, isLoaded]);
 
   const updateActiveTimetableCourses = (newCourses: AddedCourse[]) => {
     setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
@@ -776,6 +685,10 @@ export default function FFCSTimetableTab() {
     return uniqueCourses;
   }, [uniqueCourses]);
 
+  const generatorDisplayCourses = courseLocks.length > 0 
+    ? uniqueCourseCodes.filter(c => courseLocks.some(l => l.code === c.code))
+    : uniqueCourseCodes;
+
   const generateTimetables = async () => {
     setIsGenerating(true);
     setStagedTimetables([]);
@@ -791,7 +704,8 @@ export default function FFCSTimetableTab() {
         coursesByCode.get(c.CODE)!.push(c);
       });
 
-      const targetCodes = generatorSelectedCourses.map(c => c.code);
+      const targetCodes = courseLocks.map(c => c.code);
+      
       if (targetCodes.length === 0) {
         setError("Please select at least one course.");
         setIsGenerating(false);
@@ -799,11 +713,25 @@ export default function FFCSTimetableTab() {
       }
 
       const optionsPerCourse: ParsedCourse[][] = [];
-      for (const sel of generatorSelectedCourses) {
+      for (const sel of courseLocks) {
         let options = coursesByCode.get(sel.code) || [];
         
+        // Handle slot constraints
+        if (sel.allowedSlots && sel.allowedSlots.length > 0) {
+          options = options.filter(opt => {
+            const individualSlots = opt.SLOT.split('+').map(sl => sl.trim());
+            return individualSlots.some(sl => sel.allowedSlots.includes(sl));
+          });
+        }
+        
+        // Handle faculty constraints
+        if (sel.allowedFaculty && sel.allowedFaculty.length > 0) {
+          options = options.filter(opt => sel.allowedFaculty.includes(opt.FACULTY));
+        }
+        
+        // Handle offering constraints (from auto-generator UI)
         if (sel.offerings && sel.offerings.length > 0) {
-          options = options.filter(opt => sel.offerings.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`));
+          options = options.filter(opt => sel.offerings!.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`));
         }
 
         // Ensure embedded courses are properly combined
@@ -1406,8 +1334,24 @@ export default function FFCSTimetableTab() {
   // Available Slot Rows for Selected Course
   const availableSlots = useMemo(() => {
     if (!selectedCourseCode) return [];
-    return masterCourses.filter(c => c.CODE === selectedCourseCode);
-  }, [masterCourses, selectedCourseCode]);
+    let slots = masterCourses.filter(c => c.CODE === selectedCourseCode);
+    
+    if (courseLocks.length > 0) {
+      const lock = courseLocks.find(l => l.code === selectedCourseCode);
+      if (lock) {
+        if (lock.allowedSlots && lock.allowedSlots.length > 0) {
+          slots = slots.filter(s => {
+            const individualSlots = s.SLOT.split('+').map(sl => sl.trim());
+            return individualSlots.some(sl => lock.allowedSlots.includes(sl));
+          });
+        }
+        if (lock.allowedFaculty && lock.allowedFaculty.length > 0) {
+          slots = slots.filter(s => lock.allowedFaculty.includes(s.FACULTY));
+        }
+      }
+    }
+    return slots;
+  }, [masterCourses, selectedCourseCode, courseLocks]);
 
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1781,6 +1725,17 @@ export default function FFCSTimetableTab() {
                   className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 text-xs font-medium py-2 rounded-lg border border-pink-500/20 transition-colors flex items-center justify-center gap-1"
                 >
                   <Users className="w-3 h-3" /> Friends
+                </button>
+                <button 
+                  onClick={() => setIsCourseLockOpen(true)}
+                  className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-xs font-medium py-2 rounded-lg border border-purple-500/20 transition-colors flex items-center justify-center gap-1 relative"
+                >
+                  <Lock className="w-3 h-3" /> Target Courses
+                  {courseLocks.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                      {courseLocks.length}
+                    </span>
+                  )}
                 </button>
                 <button 
                   onClick={() => setIsGeneratorOpen(true)}
@@ -2202,6 +2157,140 @@ export default function FFCSTimetableTab() {
       </div>
 
       {/* Auto-Generator Modal */}
+      {/* Target Courses Modal */}
+      {isCourseLockOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+                <Lock className="text-purple-500 w-6 h-6" /> Target Courses
+              </h2>
+              <button onClick={() => setIsCourseLockOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4 custom-scrollbar">
+              <p className="text-sm text-muted-foreground">
+                Select the courses you intend to take. Both the manual planner and auto-generator will filter results based on your target courses.
+              </p>
+
+              {courseLocks.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {courseLocks.map(lock => (
+                    <div key={lock.code} className="bg-purple-500/10 border border-purple-500/30 text-purple-500 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium">
+                      <span>{lock.code}</span>
+                      <button 
+                        onClick={() => setCourseLocks(prev => prev.filter(p => p.code !== lock.code))}
+                        className="hover:bg-purple-500/20 p-0.5 rounded-full transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="relative mb-2">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input 
+                  type="text"
+                  placeholder="Search master course list..."
+                  value={generatorCourseSearchQuery}
+                  onChange={e => setGeneratorCourseSearchQuery(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-purple-500/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                {uniqueCourseCodes.filter(c => 
+                  c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
+                  c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No courses found matching "{generatorCourseSearchQuery}"
+                  </div>
+                )}
+                {uniqueCourseCodes.filter(c => 
+                  c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
+                  c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
+                ).slice(0, 50).map(c => {
+                  const sel = courseLocks.find(s => s.code === c.code);
+                  const isSelected = !!sel;
+                  
+                  const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
+                  const uniqueSlots = Array.from(new Set(courseOpts.map(opt => {
+                    return opt.SLOT.split('+').map(s => s.trim());
+                  }).flat())).sort();
+
+                  return (
+                    <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-purple-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="mt-1 rounded bg-background border-border text-purple-500 focus:ring-purple-500/30"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [] }]);
+                            else setCourseLocks(prev => prev.filter(s => s.code !== c.code));
+                          }}
+                        />
+                        <div className="flex flex-col flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-base text-foreground">{c.code}</span>
+                             {renderTypeChips(c.types || [], 'sm')}
+                          </div>
+                          <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
+                        </div>
+                      </label>
+
+                      {isSelected && uniqueSlots.length > 1 && (
+                        <div className="pl-8 mt-2">
+                          <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Slots (Optional)</div>
+                          <div className="flex flex-wrap gap-2 pr-1">
+                            {uniqueSlots.map(slot => {
+                              const isOffChecked = sel.allowedSlots.includes(slot);
+                              return (
+                                <label key={slot} className={`flex items-center gap-2 cursor-pointer border rounded-md p-1.5 px-3 transition-colors ${isOffChecked ? 'bg-purple-500/10 border-purple-500/30 text-purple-600' : 'hover:bg-muted/50 text-muted-foreground border-border/50'}`}>
+                                  <input 
+                                    type="checkbox" 
+                                    className="rounded w-3.5 h-3.5 border-border text-purple-500 focus:ring-purple-500/30"
+                                    checked={isOffChecked}
+                                    onChange={(e) => {
+                                      setCourseLocks(prev => prev.map(p => {
+                                        if (p.code !== c.code) return p;
+                                        if (e.target.checked) return { ...p, allowedSlots: [...p.allowedSlots, slot] };
+                                        return { ...p, allowedSlots: p.allowedSlots.filter(s => s !== slot) };
+                                      }));
+                                    }}
+                                  />
+                                  <span className="text-xs font-bold">{slot}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t border-border bg-muted/20 flex justify-between items-center">
+              <span className="text-sm font-medium text-foreground">
+                <span className="text-purple-500 font-bold">{courseLocks.length}</span> courses selected
+              </span>
+              <button 
+                onClick={() => setIsCourseLockOpen(false)}
+                className="bg-foreground text-background px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-foreground/90 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isFriendsManagerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
@@ -2435,7 +2524,7 @@ export default function FFCSTimetableTab() {
             </div>
             <button 
               onClick={generateTimetables}
-              disabled={isGenerating || generatorSelectedCourses.length === 0}
+              disabled={isGenerating || courseLocks.length === 0}
               className="w-full lg:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
@@ -2857,11 +2946,15 @@ export default function FFCSTimetableTab() {
               {/* Left Column: Courses Selection */}
               <div className="flex flex-col gap-6">
                 <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
-                  <h3 className="font-semibold text-lg mb-2 text-foreground flex items-center gap-2">
-                    <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
-                    Select Desired Courses
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">Choose the courses you want to take. The generator will find all conflict-free combinations.</p>
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2 text-foreground flex items-center gap-2">
+                        <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
+                        Target Courses
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Select the courses you want to take and optionally filter faculties/slots.</p>
+                    </div>
+                  </div>
                   
                   <div className="relative mb-3">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -2875,7 +2968,7 @@ export default function FFCSTimetableTab() {
                   </div>
 
                   <div className="border border-border rounded-xl max-h-[60vh] overflow-y-auto bg-muted/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
-                    {uniqueCourseCodes.filter(c => 
+                    {generatorDisplayCourses.filter(c => 
                       c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
                       c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
                     ).length === 0 && (
@@ -2883,99 +2976,99 @@ export default function FFCSTimetableTab() {
                         No courses found matching "{generatorCourseSearchQuery}"
                       </div>
                     )}
-                    {uniqueCourseCodes.filter(c => 
+                    {generatorDisplayCourses.filter(c => 
                       c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
                       c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
                     ).map(c => {
-                      const sel = generatorSelectedCourses.find(s => s.code === c.code);
-                      const isSelected = !!sel;
-                      
-                      const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
-                      const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
-                        const id = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
-                        return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.ROOM, id }];
-                      })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
+                      const sel = courseLocks.find(s => s.code === c.code);
+                          const isSelected = !!sel;
+                          
+                          const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
+                          const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
+                            const id = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
+                            return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.ROOM, id }];
+                          })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
 
-                      const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
-                        if (!acc[curr.faculty]) acc[curr.faculty] = [];
-                        acc[curr.faculty].push(curr);
-                        return acc;
-                      }, {} as Record<string, typeof uniqueOfferings>);
+                          const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
+                            if (!acc[curr.faculty]) acc[curr.faculty] = [];
+                            acc[curr.faculty].push(curr);
+                            return acc;
+                          }, {} as Record<string, typeof uniqueOfferings>);
 
-                      const sortedFacs = Object.keys(offeringsByFac).sort();
+                          const sortedFacs = Object.keys(offeringsByFac).sort();
 
-                      return (
-                        <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-amber-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
-                          <label className="flex items-start gap-3 cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="mt-1 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) setGeneratorSelectedCourses(prev => [...prev, { code: c.code, offerings: [] }]);
-                                else setGeneratorSelectedCourses(prev => prev.filter(s => s.code !== c.code));
-                              }}
-                            />
-                            <div className="flex flex-col flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-base text-foreground">{c.code}</span>
-                                 {renderTypeChips(c.types || [], 'sm')}
-                              </div>
-                              <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
-                            </div>
-                          </label>
-
-                          {isSelected && uniqueOfferings.length > 1 && (
-                            <div className="pl-8 mt-2">
-                              <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
-                              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
-                                {sortedFacs.map(fac => (
-                                  <div key={fac} className="flex flex-col gap-1.5">
-                                    <div className="text-xs font-semibold text-foreground/90 pb-1 border-b border-border/50">{fac}</div>
-                                    {offeringsByFac[fac].map(offering => {
-                                      const isOffChecked = sel.offerings.includes(offering.id);
-                                      return (
-                                        <label key={offering.id} className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 p-1.5 rounded-md transition-colors">
-                                          <input 
-                                            type="checkbox" 
-                                            className="mt-0.5 rounded w-3.5 h-3.5 border-border text-amber-500 focus:ring-amber-500/30"
-                                            checked={isOffChecked}
-                                            onChange={(e) => {
-                                              setGeneratorSelectedCourses(prev => prev.map(p => {
-                                                if (p.code !== c.code) return p;
-                                                if (e.target.checked) return { ...p, offerings: [...p.offerings, offering.id] };
-                                                return { ...p, offerings: p.offerings.filter(o => o !== offering.id) };
-                                              }));
-                                            }}
-                                          />
-                                          <div className="flex flex-col">
-                                            <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-foreground/80'}`}>{offering.slot}</span>
-                                            <span className="text-[10px] text-muted-foreground">{offering.venue}</span>
-                                          </div>
-                                        </label>
-                                      );
-                                    })}
+                          return (
+                            <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-amber-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
+                              <label className="flex items-start gap-3 cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  className="mt-1 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
+                                    else setCourseLocks(prev => prev.filter(s => s.code !== c.code));
+                                  }}
+                                />
+                                <div className="flex flex-col flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-base text-foreground">{c.code}</span>
+                                     {renderTypeChips(c.types || [], 'sm')}
                                   </div>
-                                ))}
-                              </div>
-                              {sel.offerings.length > 0 && (
-                                <div className="text-xs text-amber-500 mt-2 font-medium">
-                                  ✓ Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
+                                  <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
+                                </div>
+                              </label>
+
+                              {isSelected && uniqueOfferings.length > 1 && (
+                                <div className="pl-8 mt-2">
+                                  <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
+                                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
+                                    {sortedFacs.map(fac => (
+                                      <div key={fac} className="flex flex-col gap-1.5">
+                                        <div className="text-xs font-semibold text-foreground/90 pb-1 border-b border-border/50">{fac}</div>
+                                        {offeringsByFac[fac].map(offering => {
+                                          const isOffChecked = sel.offerings?.includes(offering.id) || false;
+                                          return (
+                                            <label key={offering.id} className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 p-1.5 rounded-md transition-colors">
+                                              <input 
+                                                type="checkbox" 
+                                                className="mt-0.5 rounded w-3.5 h-3.5 border-border text-amber-500 focus:ring-amber-500/30"
+                                                checked={isOffChecked}
+                                                onChange={(e) => {
+                                                  setCourseLocks(prev => prev.map(p => {
+                                                    if (p.code !== c.code) return p;
+                                                    if (e.target.checked) return { ...p, offerings: [...(p.offerings || []), offering.id] };
+                                                    return { ...p, offerings: (p.offerings || []).filter(o => o !== offering.id) };
+                                                  }));
+                                                }}
+                                              />
+                                              <div className="flex flex-col">
+                                                <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-foreground/80'}`}>{offering.slot}</span>
+                                                <span className="text-[10px] text-muted-foreground">{offering.venue}</span>
+                                              </div>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {sel.offerings && sel.offerings.length > 0 && (
+                                    <div className="text-xs text-amber-500 mt-2 font-medium">
+                                      ✓ Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {uniqueCourseCodes.length === 0 && (
-                      <div className="col-span-full p-10 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
-                        Please upload a master course list first.
-                      </div>
-                    )}
+                          );
+                        })}
+                        {uniqueCourseCodes.length === 0 && (
+                          <div className="col-span-full p-10 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+                            Please upload a master course list first.
+                          </div>
+                        )}
                   </div>
                   <div className="mt-4 text-sm text-muted-foreground bg-amber-500/10 text-amber-500/90 py-2 px-4 rounded-xl w-max border border-amber-500/20 font-bold">
-                    Selected: {generatorSelectedCourses.length} courses
+                    Selected: {courseLocks.length} target courses
                   </div>
                 </div>
               </div>
@@ -3416,32 +3509,44 @@ export default function FFCSTimetableTab() {
             </div>
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
               {uniqueCourses.filter(c => 
+                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
-              ).slice(0, 100).map(c => (
+                )
+              ).slice(0, 100).map(c => {
+                const fullyAdded = isCourseFullyAdded(c.code, c.types, activeTimetable.courses);
+                return (
                 <button
                   key={c.code}
+                  disabled={fullyAdded}
                   onClick={() => {
+                    if (fullyAdded) return;
                     setSelectedCourseCode(c.code);
                     setSelectedSlotIndex("-1");
                     setIsCourseSearchOpen(false);
                     setCourseSearchQuery("");
                   }}
-                  className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
+                  className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? 'opacity-50 cursor-not-allowed bg-muted/30 border border-border/50' : selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-foreground text-sm">{c.code}</span>
+                      <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-foreground'}`}>{c.code}</span>
                        {renderTypeChips(c.types || [], 'sm')}
                     </div>
-                    {selectedCourseCode === c.code && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>}
+                    {fullyAdded ? (
+                      <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">Fully Added</span>
+                    ) : selectedCourseCode === c.code && (
+                      <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
                 </button>
-              ))}
+              )})}
               {uniqueCourses.filter(c => 
+                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+                )
               ).length === 0 && (
                 <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
                   <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
@@ -3450,8 +3555,10 @@ export default function FFCSTimetableTab() {
                 </div>
               )}
               {uniqueCourses.filter(c => 
+                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
+                )
               ).length > 100 && (
                 <div className="text-center py-4 text-xs text-muted-foreground font-medium flex items-center justify-center gap-2 border-t border-border/30 mt-2">
                   <Info className="w-3 h-3" /> Showing first 100 results. Refine search.
