@@ -41,8 +41,8 @@ export default function FFCSGuideModal({ onClose }: FFCSGuideModalProps) {
             </h4>
             <ul className="space-y-3 text-muted-foreground">
               <li className="flex gap-2">
-                <strong className="text-foreground shrink-0">1. Master Spreadsheet:</strong>
-                <span>Upload your Master Excel file at the top. The planner parses thousands of slots instantly.</span>
+                <strong className="text-foreground shrink-0">1. Master Database:</strong>
+                <span>The planner automatically loads the latest course report database from the server instantly.</span>
               </li>
               <li className="flex gap-2">
                 <strong className="text-foreground shrink-0">2. Search & Filter:</strong>

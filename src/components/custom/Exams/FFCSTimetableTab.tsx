@@ -90,6 +90,47 @@ const COLORS = [
   "bg-yellow-500", "bg-pink-500", "bg-indigo-500", "bg-teal-500", "bg-orange-500"
 ];
 
+const typeLabels: Record<string, string> = {
+  SS: "Soft Skills",
+  TH: "Theory Only",
+  LO: "Lab Only",
+  PJT: "Project",
+  ETH: "Embedded Theory",
+  ELA: "Embedded Lab",
+  EPJ: "Embedded Project",
+  OC: "Option Course"
+};
+
+const typeColors: Record<string, { bg: string; text: string; border: string }> = {
+  SS: { bg: "bg-teal-500/10 dark:bg-teal-400/10", text: "text-teal-600 dark:text-teal-400", border: "border-teal-500/30" },
+  TH: { bg: "bg-blue-500/10 dark:bg-blue-400/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/30" },
+  LO: { bg: "bg-purple-500/10 dark:bg-purple-400/10", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500/30" },
+  PJT: { bg: "bg-pink-500/10 dark:bg-pink-400/10", text: "text-pink-600 dark:text-pink-400", border: "border-pink-500/30" },
+  ETH: { bg: "bg-amber-500/10 dark:bg-amber-400/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30" },
+  ELA: { bg: "bg-indigo-500/10 dark:bg-indigo-400/10", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/30" },
+  EPJ: { bg: "bg-rose-500/10 dark:bg-rose-400/10", text: "text-rose-600 dark:text-rose-400", border: "border-rose-500/30" },
+  OC: { bg: "bg-emerald-500/10 dark:bg-emerald-400/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30" }
+};
+
+const defaultColor = { bg: "bg-slate-500/10 dark:bg-slate-400/10", text: "text-slate-600 dark:text-slate-400", border: "border-slate-500/30" };
+
+const renderTypeChips = (typeStr: string) => {
+  if (!typeStr) return null;
+  const types = typeStr.split("+").map(t => t.trim().toUpperCase());
+  return (
+    <div className="flex flex-wrap gap-1">
+      {types.map(t => {
+        const color = typeColors[t] || defaultColor;
+        return (
+          <span key={t} className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
+            {t}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 // Helper to convert time strings (e.g., "8:00 AM", "12:35 PM") to minutes from midnight
 const timeToMinutes = (timeStr: string) => {
   if (!timeStr) return 0;
@@ -274,8 +315,7 @@ const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
 };
 
 const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
-
-  // 2. Combine embedded theory and lab
+  // Combine embedded theory and lab
   const combined: ParsedCourse[] = [];
   const byCode = new Map<string, ParsedCourse[]>();
   parsed.forEach(c => {
@@ -284,8 +324,11 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
   });
 
   byCode.forEach((coursesList) => {
-    const type = coursesList[0].TYPE;
-    if (type.toLowerCase().includes('embedded theory / embedded lab') || type.toLowerCase().includes('embedded')) {
+    const hasEmbedded = coursesList.some(c => {
+      const t = c.TYPE.trim().toUpperCase();
+      return t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED");
+    });
+    if (hasEmbedded) {
       const byFac = new Map<string, ParsedCourse[]>();
       coursesList.forEach(c => {
         if (!byFac.has(c.FACULTY)) byFac.set(c.FACULTY, []);
@@ -293,8 +336,14 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
       });
 
       byFac.forEach((facCourses) => {
-        const theorySlots = facCourses.filter(c => !c.SLOT.startsWith('L'));
-        const labSlots = facCourses.filter(c => c.SLOT.startsWith('L'));
+        const theorySlots = facCourses.filter(c => {
+          const t = c.TYPE.trim().toUpperCase();
+          return t === "ETH" || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
+        });
+        const labSlots = facCourses.filter(c => {
+          const t = c.TYPE.trim().toUpperCase();
+          return t === "ELA" || c.SLOT.startsWith('L');
+        });
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
           let bestMatch: { tIdx: number, lIdx: number }[] = [];
@@ -334,6 +383,7 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
               const l = labSlots[m.lIdx];
               combined.push({
                 ...t,
+                TYPE: `${t.TYPE}+${l.TYPE}`,
                 CREDITS: String(Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
                 ROOM: `${t.ROOM} / ${l.ROOM}`
@@ -368,6 +418,7 @@ export default function FFCSTimetableTab() {
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [isGroupingEnabled, setIsGroupingEnabled] = useState(true);
   const [blockedSlots, setBlockedSlots] = useState<Set<string>>(new Set());
   
@@ -439,10 +490,46 @@ export default function FFCSTimetableTab() {
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
-  // Load from local storage on mount
+  // Load from local storage on mount and fetch course list
   useEffect(() => {
-    const savedRaw = localStorage.getItem("ffcs_raw_courses");
-    if (savedRaw) setRawParsedCourses(JSON.parse(savedRaw));
+    const loadHardcodedCSV = async () => {
+      setIsLoadingCourses(true);
+      setError(null);
+      try {
+        const response = await fetch("/ffcs/ffcsReport.csv");
+        if (!response.ok) throw new Error("Failed to fetch /ffcs/ffcsReport.csv");
+        const arrayBuffer = await response.arrayBuffer();
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
+        
+        if (jsonData.length === 0) {
+          setError("The course report file is empty.");
+          return;
+        }
+
+        const parsed: ParsedCourse[] = jsonData.map((row: any) => ({
+          CODE: row.CODE || row["COURSE CODE"] || row.Code || "",
+          TITLE: row.TITLE || row["COURSE TITLE"] || row.Title || "",
+          TYPE: row.TYPE || row.Type || "",
+          CREDITS: row.CREDITS || row.Credits || "0",
+          ROOM: row.VENUE || row.ROOM || row.Room || row.Venue || "",
+          SLOT: row.SLOT || row.Slot || "",
+          FACULTY: row.FACULTY || row.Faculty || ""
+        })).filter(c => c.CODE);
+
+        setRawParsedCourses(parsed);
+      } catch (err) {
+        console.error(err);
+        setError("Error loading course report. Please ensure public/ffcs/ffcsReport.csv exists and is valid.");
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    loadHardcodedCSV();
 
     const savedTimetables = localStorage.getItem("ffcs_timetables");
     if (savedTimetables) {
@@ -576,13 +663,26 @@ export default function FFCSTimetableTab() {
     return courses.find(c => c.slots.includes(slotName));
   };
 
-  const uniqueCourseCodes = useMemo(() => {
-    const codes = Array.from(new Set(masterCourses.map(c => c.CODE)));
-    return codes.map(code => {
-      const course = masterCourses.find(c => c.CODE === code);
-      return { code, title: course?.TITLE || "" };
+  // Unique Courses with their associated types
+  const uniqueCourses = useMemo(() => {
+    const map = new Map<string, { title: string; types: string[] }>();
+    rawParsedCourses.forEach(c => {
+      const existing = map.get(c.CODE);
+      const cType = c.TYPE.trim().toUpperCase();
+      if (existing) {
+        if (cType && !existing.types.includes(cType)) {
+          existing.types.push(cType);
+        }
+      } else {
+        map.set(c.CODE, { title: c.TITLE, types: cType ? [cType] : [] });
+      }
     });
-  }, [masterCourses]);
+    return Array.from(map.entries()).map(([code, { title, types }]) => ({ code, title, types })).sort((a, b) => a.code.localeCompare(b.code));
+  }, [rawParsedCourses]);
+
+  const uniqueCourseCodes = useMemo(() => {
+    return uniqueCourses;
+  }, [uniqueCourses]);
 
   const generateTimetables = async () => {
     setIsGenerating(true);
@@ -616,7 +716,9 @@ export default function FFCSTimetableTab() {
 
         // Ensure embedded courses are properly combined
         options = options.filter(opt => {
-          if (opt.TYPE.toLowerCase().includes('embedded')) {
+          const t = opt.TYPE.trim().toUpperCase();
+          const isEmbedded = t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED") || t.includes("+");
+          if (isEmbedded) {
             const parsedSlots = opt.SLOT.split('+').map(s => s.trim());
             const hasTheory = parsedSlots.some(s => !s.startsWith('L') && s !== 'NIL');
             const hasLab = parsedSlots.some(s => s.startsWith('L'));
@@ -949,54 +1051,7 @@ export default function FFCSTimetableTab() {
     setIsGenerating(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setError(null);
-    setSuccessMsg(null);
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json<any>(ws);
-
-        if (data.length === 0) {
-          setError("The uploaded file is empty.");
-          return;
-        }
-
-        let parsed: ParsedCourse[] = data.map((row: any) => ({
-          CODE: row.CODE || row["COURSE CODE"] || row.Code || "",
-          TITLE: row.TITLE || row["COURSE TITLE"] || row.Title || "",
-          TYPE: row.TYPE || row.Type || "",
-          CREDITS: row.CREDITS || row.Credits || "0",
-          ROOM: row.VENUE || row.ROOM || row.Room || row.Venue || "",
-          SLOT: row.SLOT || row.Slot || "",
-          FACULTY: row.FACULTY || row.Faculty || ""
-        })).filter(c => c.CODE);
-
-        setRawParsedCourses(parsed);
-        setSuccessMsg(`Successfully loaded ${parsed.length} slots from Excel.`);
-      } catch (err) {
-        setError("Error parsing the file. Please ensure it's a valid Excel or CSV file.");
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  const handleClearMaster = () => {
-    if (confirm("Are you sure you want to clear the uploaded course list?")) {
-      setMasterCourses([]);
-      setSelectedCourseCode("");
-      setSelectedSlotIndex("-1");
-      setSuccessMsg(null);
-    }
-  };
+  // File upload and clear master handlers removed as database is preloaded.
 
   const handleClearTimetable = () => {
     if (confirm(`Are you sure you want to clear ${activeTimetable.name}?`)) {
@@ -1118,19 +1173,7 @@ export default function FFCSTimetableTab() {
     setIsEditingName(false);
   };
 
-  const downloadSampleCSV = () => {
-    const csvContent = `CODE,TITLE,TYPE,CREDITS,SLOT,FACULTY,VENUE
-CSE1001,Problem Solving and Programming,Theory,3,A1+TA1,John Doe,AB1-101
-CSE1001,Problem Solving and Programming,Lab,1,L1+L2,John Doe,AB1-102
-CSE1002,Object Oriented Programming,Embedded Theory,3,B1+TB1,Jane Smith,AB1-201
-CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'sample_ffcs_courses.csv';
-    link.click();
-  };
+  // downloadSampleCSV removed as database is preloaded.
 
   const downloadImage = async () => {
     if (!captureRef.current) return;
@@ -1266,12 +1309,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
     }
   };
 
-  // Unique Courses for Dropdown
-  const uniqueCourses = useMemo(() => {
-    const map = new Map<string, string>();
-    masterCourses.forEach(c => map.set(c.CODE, c.TITLE));
-    return Array.from(map.entries()).map(([code, title]) => ({ code, title })).sort((a, b) => a.code.localeCompare(b.code));
-  }, [masterCourses]);
+  // uniqueCourses moved above.
 
   // Available Slot Rows for Selected Course
   const availableSlots = useMemo(() => {
@@ -1551,48 +1589,24 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
 
-            {masterCourses.length > 0 ? (
-              <div className="flex items-center gap-3 bg-background px-4 py-2 rounded-xl border border-border">
+            <div className="flex items-center gap-3 bg-background px-4 py-2 rounded-xl border border-border">
+              {isLoadingCourses ? (
+                <span className="text-amber-400 text-sm font-medium flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                  Loading course database...
+                </span>
+              ) : masterCourses.length > 0 ? (
                 <span className="text-green-400 text-sm font-medium flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  {masterCourses.length} slots loaded
+                  Course report loaded ({masterCourses.length} slots)
                 </span>
-                <div className="w-px h-4 bg-white/20 mx-1"></div>
-                <button 
-                  onClick={handleClearMaster}
-                  className="text-muted-foreground hover:text-red-400 text-sm font-medium transition-colors"
-                >
-                  Clear Data
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full">
-                <button 
-                  onClick={downloadSampleCSV}
-                  className="bg-muted hover:bg-muted/80 text-foreground text-sm font-medium py-2.5 px-4 rounded-xl border border-border transition-colors shadow-lg flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" /> Sample CSV
-                </button>
-                <label 
-                  className={`relative flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-medium py-2.5 px-6 rounded-xl shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${isDragging ? 'ring-4 ring-blue-500/50' : ''}`}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    const event = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
-                    handleFileUpload(event);
-                  }
-                }}
-              >
-                <input type="file" accept=".xlsx,.csv" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <UploadCloud className="w-5 h-5" />
-                <span>Upload Excel / CSV</span>
-              </label>
-              </div>
-            )}
+              ) : (
+                <span className="text-red-400 text-sm font-medium flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  No course report loaded
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1733,7 +1747,21 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   >
                     <span className="truncate text-sm font-medium">
                       {selectedCourseCode 
-                        ? `${selectedCourseCode} - ${uniqueCourses.find(c => c.code === selectedCourseCode)?.title}`
+                        ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
+                            <span className="flex gap-1">
+                              {uniqueCourses.find(c => c.code === selectedCourseCode)?.types?.map(t => {
+                                const color = typeColors[t] || defaultColor;
+                                return (
+                                  <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
+                                    {t}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          </div>
+                        )
                         : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
                     </span>
                     <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
@@ -1913,9 +1941,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                             </div>
                           </td>
                           <td className="py-3 px-2 text-sm text-foreground/80">
-                            <span className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-2 py-0.5 rounded-md">
-                              {c.type}
-                            </span>
+                            {renderTypeChips(c.type)}
                           </td>
                           <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
                           <td className="py-3 px-2">
@@ -2069,9 +2095,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                     <td className="py-3 px-4 font-medium">{c.code}</td>
                     <td className="py-3 px-4">{c.title}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-muted text-foreground/80">
-                        {c.type}
-                      </span>
+                      {renderTypeChips(c.type)}
                     </td>
                     <td className="py-3 px-4 text-foreground/80">{c.faculty}</td>
                     <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
@@ -2456,9 +2480,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                                   </div>
                                 </td>
                                 <td className="py-3 px-2 text-sm text-foreground/80">
-                                  <span className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-2 py-0.5 rounded-md">
-                                    {c.type}
-                                  </span>
+                                  {renderTypeChips(c.type)}
                                 </td>
                                 <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
                                 <td className="py-3 px-2">
@@ -2808,7 +2830,17 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                               }}
                             />
                             <div className="flex flex-col flex-1">
-                              <span className="font-bold text-base text-foreground">{c.code}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-base text-foreground">{c.code}</span>
+                                {c.types && c.types.map(t => {
+                                  const color = typeColors[t] || defaultColor;
+                                  return (
+                                    <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
+                                      {t}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                               <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
                             </div>
                           </label>
@@ -3142,9 +3174,7 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                             </div>
                           </td>
                           <td className="py-3 px-2 text-sm text-foreground/80">
-                            <span className="bg-accent/50 border border-border text-[10px] px-2 py-0.5 rounded-md">
-                              {c.type}
-                            </span>
+                            {renderTypeChips(c.type)}
                           </td>
                           <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
                           <td className="py-3 px-2">
@@ -3320,7 +3350,17 @@ CSE1002,Object Oriented Programming,Embedded Lab,1,L31+L32,Jane Smith,AB1-202`;
                   className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-foreground text-sm">{c.code}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-foreground text-sm">{c.code}</span>
+                      {c.types && c.types.map(t => {
+                        const color = typeColors[t] || defaultColor;
+                        return (
+                          <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
+                            {t}
+                          </span>
+                        );
+                      })}
+                    </div>
                     {selectedCourseCode === c.code && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>}
                   </div>
                   <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
