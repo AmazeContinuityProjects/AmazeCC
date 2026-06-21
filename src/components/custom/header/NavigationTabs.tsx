@@ -324,10 +324,10 @@ export default function NavigationTabs({
             <button
               onClick={() => setActiveTab("dayscholar")}
               className={navItemClass(activeTab === "dayscholar")}
-              title="Bus Pass"
+              title="Bus Info"
             >
               <Bus className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-              <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Bus Pass</span>
+              <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Bus Info</span>
             </button>
         )}
         <button

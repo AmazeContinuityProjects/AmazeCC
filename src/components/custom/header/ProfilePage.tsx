@@ -355,7 +355,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">AmazeCC</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 text-center">Your ultimate college companion.</p>
-                        <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider">MADE BY SUGEETHJSA</p>
+                        <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider">MADE WITH LOVE BY SUGEETHJSA AND DHIVYANJ</p>
                     </div>
                     <ListTile icon={Trophy} title="Hall of Fame" onClick={() => setShowHallOfFame(true)} />
                     <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
