@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.7.0",
+    "date": "2026-06-21",
+    "changes": [
+      "Integrated a hardcoded Verified FFCS Course List to streamline course selection and eliminate inconsistencies caused by unverified course entries.",
+      "Renamed the Dayscholar 'Bus Pass' tab to 'Bus Info' to better align with the available features.",
+      "Added a version-tracked browser cache variable to display the changelog modal exactly once per version bump, preventing repetitive popups."
+    ]
+  },
+  {
     "version": "v1.6.0",
     "date": "2026-06-20",
     "changes": [
