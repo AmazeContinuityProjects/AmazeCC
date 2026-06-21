@@ -1,9 +1,17 @@
 [
   {
+    "version": "v1.8.2",
+    "date": "2026-06-22",
+    "changes": [
+      "FFCS : Added a master target slot lock with the ability to lock specific courses alone. It will be stored in your local storage persistently and it will allow you to focus only on the courses that matter.",
+      "FFCS : Fixed an issue with the auto-generator pipeline."
+    ]
+  },
+  {
     "version": "v1.8.1",
     "date": "2026-06-21",
     "changes": [
-      "Fixed a critical bug in the master slot sheet where the slots column was cutoff due to the problem in the way the master excel sheet was released, now that has been fixed.",
+      "FFCS : Fixed a critical bug in the master slot sheet where the slots column was cutoff due to the problem in the way the master excel sheet was released, now that has been fixed.",
       "Fixed the FFCS planner credit calculator to correctly sum credits (e.g. Theory + Lab) when courses are grouped, rather than taking the maximum credit value.",
       "Ensured that pre-combined integrated courses (like IA/I-prefixed courses and B/BA-prefixed courses with Embedded components) are perfectly merged and do not double-count credits."
     ]

@@ -1667,81 +1667,110 @@ export default function FFCSTimetableTab() {
           <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
             <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
             <div className="space-y-3">
-              <select 
-                value={activeTimetableId}
-                onChange={e => setActiveTimetableId(e.target.value)}
-                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
-              >
-                {timetables.map(t => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.courses.length} courses)</option>
-                ))}
-              </select>
-              
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                <button 
-                  onClick={createNewTimetable}
-                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus className="w-3 h-3" /> New
-                </button>
-                <button 
-                  onClick={duplicateTimetable}
-                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
-                >
-                  <Copy className="w-3 h-3" /> Duplicate
-                </button>
-                <button 
-                  onClick={() => {
-                    setEditNameValue(activeTimetable.name);
-                    setIsEditingName(true);
-                  }}
-                  className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1"
-                >
-                  <Edit2 className="w-3 h-3" /> Rename
-                </button>
-                <button 
-                  onClick={() => deleteTimetable(activeTimetableId)}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium py-2 rounded-lg border border-red-500/20 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Trash2 className="w-3 h-3" /> Delete
-                </button>
+              {/* --- DESKTOP TOOLBAR (lg and up) --- */}
+              <div className="hidden lg:flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={activeTimetableId} 
+                    onChange={e => setActiveTimetableId(e.target.value)}
+                    className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
+                  >
+                    {timetables.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.courses.length} courses)</option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center justify-center bg-muted/30 rounded-xl border border-border p-1 shrink-0">
+                    <button title="New Timetable" onClick={createNewTimetable} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Plus className="w-4 h-4" /></button>
+                    <button title="Duplicate Timetable" onClick={duplicateTimetable} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Copy className="w-4 h-4" /></button>
+                    <button title="Rename Timetable" onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button title="Delete Timetable" onClick={() => deleteTimetable(activeTimetableId)} className="p-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-muted/30 rounded-xl border border-border p-1 w-full justify-between">
+                    <div className="flex items-center gap-1">
+                      <button title="Export Config" onClick={exportTimetables} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"><Save className="w-3.5 h-3.5" /> <span>Export</span></button>
+                      <label title="Import Config" className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors cursor-pointer"><input type="file" accept=".json" onChange={importTimetables} className="hidden" /><Upload className="w-3.5 h-3.5" /> <span>Import</span></label>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button title="Friends" onClick={() => setIsFriendsManagerOpen(true)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-pink-500 hover:bg-pink-500/10 rounded-lg transition-colors"><Users className="w-3.5 h-3.5" /> <span>Friends</span></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => setIsCourseLockOpen(true)}
+                    className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-sm font-medium py-3 rounded-xl border border-purple-500/20 transition-colors flex items-center justify-center gap-2 relative"
+                  >
+                    <Lock className="w-4 h-4" /> Target Courses
+                    {courseLocks.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-background">
+                        {courseLocks.length}
+                      </span>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => setIsGeneratorOpen(true)}
+                    className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-sm font-medium py-3 rounded-xl border border-amber-500/20 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Wand2 className="w-4 h-4" /> Auto-Generate
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
-                <button 
-                  onClick={exportTimetables}
-                  className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg border border-blue-500/20 transition-colors flex items-center justify-center gap-1"
+              {/* --- MOBILE TOOLBAR (below lg) --- */}
+              <div className="lg:hidden flex flex-col gap-3">
+                <select 
+                  value={activeTimetableId} 
+                  onChange={e => setActiveTimetableId(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
                 >
-                  <Save className="w-3 h-3" /> Export Config
-                </button>
-                <label 
-                  className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-medium py-2 rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-1 cursor-pointer relative overflow-hidden"
-                >
-                  <input type="file" accept=".json" onChange={importTimetables} className="absolute inset-0 opacity-0 cursor-pointer" />
-                  <Upload className="w-3 h-3" /> Import Config
-                </label>
-                <button 
-                  onClick={() => setIsFriendsManagerOpen(true)}
-                  className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 text-xs font-medium py-2 rounded-lg border border-pink-500/20 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Users className="w-3 h-3" /> Friends
-                </button>
-                <button 
-                  onClick={() => setIsCourseLockOpen(true)}
-                  className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-xs font-medium py-2 rounded-lg border border-purple-500/20 transition-colors flex items-center justify-center gap-1 relative"
-                >
-                  <Lock className="w-3 h-3" /> Target Courses
-                  {courseLocks.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                      {courseLocks.length}
-                    </span>
-                  )}
-                </button>
-                <button 
-                  onClick={() => setIsGeneratorOpen(true)}
-                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-medium py-2 rounded-lg border border-amber-500/20 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Wand2 className="w-3 h-3" /> Auto-Generate
+                  {timetables.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.courses.length} courses)</option>
+                  ))}
+                </select>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={createNewTimetable} className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1">
+                    <Plus className="w-3 h-3" /> New
+                  </button>
+                  <button onClick={duplicateTimetable} className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1">
+                    <Copy className="w-3 h-3" /> Duplicate
+                  </button>
+                  <button onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }} className="bg-accent/50 hover:bg-accent text-foreground text-xs font-medium py-2 rounded-lg border border-border transition-colors flex items-center justify-center gap-1">
+                    <Edit2 className="w-3 h-3" /> Rename
+                  </button>
+                  <button onClick={() => deleteTimetable(activeTimetableId)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium py-2 rounded-lg border border-red-500/20 transition-colors flex items-center justify-center gap-1">
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={exportTimetables} className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg border border-blue-500/20 transition-colors flex items-center justify-center gap-1">
+                    <Save className="w-3 h-3" /> Export Config
+                  </button>
+                  <label className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-medium py-2 rounded-lg border border-indigo-500/20 transition-colors flex items-center justify-center gap-1 cursor-pointer relative overflow-hidden">
+                    <input type="file" accept=".json" onChange={importTimetables} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    <Upload className="w-3 h-3" /> Import Config
+                  </label>
+                  <button onClick={() => setIsFriendsManagerOpen(true)} className="bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 text-xs font-medium py-2 rounded-lg border border-pink-500/20 transition-colors flex items-center justify-center gap-1">
+                    <Users className="w-3 h-3" /> Friends
+                  </button>
+                  <button onClick={() => setIsCourseLockOpen(true)} className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-xs font-medium py-2 rounded-lg border border-purple-500/20 transition-colors flex items-center justify-center gap-1 relative">
+                    <Lock className="w-3 h-3" /> Target Courses
+                    {courseLocks.length > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                        {courseLocks.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                <button onClick={() => setIsGeneratorOpen(true)} className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-sm font-medium py-3 rounded-xl border border-amber-500/20 transition-colors flex items-center justify-center gap-2">
+                  <Wand2 className="w-4 h-4" /> Auto-Generate
                 </button>
               </div>
 
