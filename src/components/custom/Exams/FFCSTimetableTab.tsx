@@ -98,7 +98,9 @@ const typeLabels: Record<string, string> = {
   ETH: "Embedded Theory",
   ELA: "Embedded Lab",
   EPJ: "Embedded Project",
-  OC: "Option Course"
+  OC: "Option Course",
+  "ETH+ELA": "Embedded Theory and Lab",
+  "TH+LO": "Theory + Lab"
 };
 
 const typeColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -109,25 +111,46 @@ const typeColors: Record<string, { bg: string; text: string; border: string }> =
   ETH: { bg: "bg-amber-500/10 dark:bg-amber-400/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30" },
   ELA: { bg: "bg-indigo-500/10 dark:bg-indigo-400/10", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/30" },
   EPJ: { bg: "bg-rose-500/10 dark:bg-rose-400/10", text: "text-rose-600 dark:text-rose-400", border: "border-rose-500/30" },
-  OC: { bg: "bg-emerald-500/10 dark:bg-emerald-400/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30" }
+  OC: { bg: "bg-emerald-500/10 dark:bg-emerald-400/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30" },
+  "ETH+ELA": { bg: "bg-cyan-500/10 dark:bg-cyan-400/10", text: "text-cyan-600 dark:text-cyan-400", border: "border-cyan-500/30" },
+  "TH+LO": { bg: "bg-violet-500/10 dark:bg-violet-400/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/30" }
 };
 
 const defaultColor = { bg: "bg-slate-500/10 dark:bg-slate-400/10", text: "text-slate-600 dark:text-slate-400", border: "border-slate-500/30" };
 
-const renderTypeChips = (typeStr: string) => {
-  if (!typeStr) return null;
-  const types = typeStr.split("+").map(t => t.trim().toUpperCase());
+const renderTypeChips = (typesInput: string | string[], size: 'sm' | 'md' = 'md') => {
+  if (!typesInput) return null;
+  let types = Array.isArray(typesInput) 
+    ? [...typesInput] 
+    : typesInput.split("+").map(t => t.trim().toUpperCase());
+  
+  types = types.map(t => t.trim().toUpperCase()).filter(Boolean);
+
+  if (types.includes("ETH") && types.includes("ELA")) {
+    types = types.filter(t => t !== "ETH" && t !== "ELA");
+    types.push("ETH+ELA");
+  }
+  if (types.includes("TH") && types.includes("LO")) {
+    types = types.filter(t => t !== "TH" && t !== "LO");
+    types.push("TH+LO");
+  }
+
+  const px = size === 'sm' ? 'px-1.5' : 'px-2';
+  const py = size === 'sm' ? 'py-0.5' : 'py-0.5';
+  const text = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+
   return (
-    <div className="flex flex-wrap gap-1">
+    <span className="flex flex-wrap gap-1">
       {types.map(t => {
         const color = typeColors[t] || defaultColor;
+        const displayName = typeLabels[t] || t;
         return (
-          <span key={t} className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
-            {t}
+          <span key={t} className={`inline-flex items-center font-bold rounded-md border ${px} ${py} ${text} ${color.bg} ${color.text} ${color.border}`} title={displayName}>
+            {displayName}
           </span>
         );
       })}
-    </div>
+    </span>
   );
 };
 
@@ -315,19 +338,55 @@ const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
 };
 
 const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
+  // 1. Find all codes that end with L or P
+  const hasL = new Set<string>();
+  const hasP = new Set<string>();
+  parsed.forEach(c => {
+    const code = c.CODE.trim().toUpperCase();
+    if (code.endsWith('L')) {
+      hasL.add(code.slice(0, -1));
+    } else if (code.endsWith('P')) {
+      hasP.add(code.slice(0, -1));
+    }
+  });
+
+  // 2. Identify mergeable base codes (must have both L and P)
+  const mergeableBases = new Set<string>();
+  hasL.forEach(base => {
+    if (hasP.has(base)) {
+      mergeableBases.add(base);
+    }
+  });
+
+  // 3. Pre-process parsed array: change CODE of mergeable courses to base, and track ORIGINAL_CODE
+  const mappedParsed = parsed.map(c => {
+    const code = c.CODE.trim().toUpperCase();
+    const base = (code.endsWith('L') || code.endsWith('P')) ? code.slice(0, -1) : code;
+    if (mergeableBases.has(base)) {
+      return {
+        ...c,
+        ORIGINAL_CODE: c.CODE, // Keep reference to original code ending in L or P
+        CODE: base
+      };
+    }
+    return c;
+  });
+
   // Combine embedded theory and lab
   const combined: ParsedCourse[] = [];
   const byCode = new Map<string, ParsedCourse[]>();
-  parsed.forEach(c => {
+  mappedParsed.forEach(c => {
     if (!byCode.has(c.CODE)) byCode.set(c.CODE, []);
     byCode.get(c.CODE)!.push(c);
   });
 
-  byCode.forEach((coursesList) => {
-    const hasEmbedded = coursesList.some(c => {
+  byCode.forEach((coursesList, codeKey) => {
+    const isMergedLPBase = mergeableBases.has(codeKey);
+    const hasEmbedded = isMergedLPBase || coursesList.some(c => {
       const t = c.TYPE.trim().toUpperCase();
       return t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED");
     });
+
     if (hasEmbedded) {
       const byFac = new Map<string, ParsedCourse[]>();
       coursesList.forEach(c => {
@@ -338,11 +397,13 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
       byFac.forEach((facCourses) => {
         const theorySlots = facCourses.filter(c => {
           const t = c.TYPE.trim().toUpperCase();
-          return t === "ETH" || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
+          const origCode = (c as any).ORIGINAL_CODE || c.CODE;
+          return t === "ETH" || t === "TH" || origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
         });
         const labSlots = facCourses.filter(c => {
           const t = c.TYPE.trim().toUpperCase();
-          return t === "ELA" || c.SLOT.startsWith('L');
+          const origCode = (c as any).ORIGINAL_CODE || c.CODE;
+          return t === "ELA" || t === "LO" || origCode.endsWith('P') || c.SLOT.startsWith('L');
         });
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
@@ -374,20 +435,37 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
 
           backtrack(0, [], new Set<number>());
 
-          if (bestMatch.length === theorySlots.length && theorySlots.length === labSlots.length) {
+          if (bestMatch.length > 0) {
             const matchedT = new Set(bestMatch.map(m => m.tIdx));
             const matchedL = new Set(bestMatch.map(m => m.lIdx));
             
             bestMatch.forEach(m => {
               const t = theorySlots[m.tIdx];
               const l = labSlots[m.lIdx];
+              
+              const tType = t.TYPE.trim().toUpperCase();
+              const lType = l.TYPE.trim().toUpperCase();
+              const combinedType = `${tType}+${lType}`;
+
+              let combinedTitle = t.TITLE;
+              if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
+                const typeLabel = (tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")) 
+                  ? "Embedded Theory and Lab" 
+                  : "Theory + Lab";
+                combinedTitle = `${t.TITLE} [${typeLabel}]`;
+              } else {
+                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
+              }
+
               combined.push({
                 ...t,
-                TYPE: `${t.TYPE}+${l.TYPE}`,
-                CREDITS: String(Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0"))),
+                TYPE: combinedType,
+                TITLE: combinedTitle,
+                CREDITS: String(parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
-                ROOM: `${t.ROOM} / ${l.ROOM}`
-              });
+                ROOM: `${t.ROOM} / ${l.ROOM}`,
+                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE
+              } as any);
             });
 
             theorySlots.forEach((t, i) => { if (!matchedT.has(i)) combined.push(t); });
@@ -666,19 +744,24 @@ export default function FFCSTimetableTab() {
   // Unique Courses with their associated types
   const uniqueCourses = useMemo(() => {
     const map = new Map<string, { title: string; types: string[] }>();
-    rawParsedCourses.forEach(c => {
+    masterCourses.forEach(c => {
       const existing = map.get(c.CODE);
-      const cType = c.TYPE.trim().toUpperCase();
+      const cTypes = c.TYPE.trim().toUpperCase().split("+").map(t => t.trim());
       if (existing) {
-        if (cType && !existing.types.includes(cType)) {
-          existing.types.push(cType);
+        cTypes.forEach(cType => {
+          if (cType && !existing.types.includes(cType)) {
+            existing.types.push(cType);
+          }
+        });
+        if (c.TITLE.includes("[Theory + Lab]") || c.TITLE.includes("[Embedded")) {
+          existing.title = c.TITLE;
         }
       } else {
-        map.set(c.CODE, { title: c.TITLE, types: cType ? [cType] : [] });
+        map.set(c.CODE, { title: c.TITLE, types: cTypes.filter(Boolean) });
       }
     });
     return Array.from(map.entries()).map(([code, { title, types }]) => ({ code, title, types })).sort((a, b) => a.code.localeCompare(b.code));
-  }, [rawParsedCourses]);
+  }, [masterCourses]);
 
   const uniqueCourseCodes = useMemo(() => {
     return uniqueCourses;
@@ -1419,7 +1502,7 @@ export default function FFCSTimetableTab() {
                     const labSlotName = labPeriods[pIdx]?.days?.[day.id];
                     
                     if (!theorySlotName && !labSlotName) {
-                      return <td key={pIdx} className="p-2 border-r border-border bg-black/20"></td>;
+                      return <td key={pIdx} className="border-r border-border bg-black/20 h-[76px] min-h-[76px]"></td>;
                     }
 
                     const tCourse = theorySlotName ? getCourse(theorySlotName) : undefined;
@@ -1429,13 +1512,13 @@ export default function FFCSTimetableTab() {
                     const isLBlocked = labSlotName ? blockedSlots.has(labSlotName) : false;
 
                     return (
-                      <td key={pIdx} className="border-r border-border text-center relative group min-w-[80px] align-top hover:z-50">
-                        <div className="w-full h-full min-h-[70px] flex flex-col items-stretch">
+                      <td key={pIdx} className="border-r border-border text-center relative group min-w-[80px] align-top hover:z-50 h-[76px] min-h-[76px]">
+                        <div className="w-full h-full flex flex-col items-stretch">
                           {/* Theory Half */}
-                          {theorySlotName && (
+                          {theorySlotName ? (
                             <div 
                               onClick={() => !customCourses && toggleBlockSlot(theorySlotName)}
-                              className={`flex-1 p-1 border-b border-border flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
+                              className={`h-[38px] p-1 border-b border-border flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
                                 isTBlocked 
                                   ? 'bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgogIDxwYXRoIGQ9Ik0tMiAxMEwxMCAteiIgIHN0cm9rZT0iI2ZmZmZmZjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+")] bg-red-950/40 border-red-500/30 text-red-200 shadow-inner'
                                   : tCourse 
@@ -1457,13 +1540,15 @@ export default function FFCSTimetableTab() {
                                 </div>
                               )}
                             </div>
+                          ) : (
+                            <div className="h-[38px] border-b border-border bg-black/10"></div>
                           )}
                           
                           {/* Lab Half */}
-                          {labSlotName && (
+                          {labSlotName ? (
                             <div 
                               onClick={() => !customCourses && toggleBlockSlot(labSlotName)}
-                              className={`flex-1 p-1 border-t border-dashed border-white/10 flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
+                              className={`h-[38px] p-1 flex flex-col items-center justify-center transition-all duration-300 relative ${!customCourses ? 'cursor-pointer' : ''} ${
                                 isLBlocked 
                                   ? 'bg-[url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgogIDxwYXRoIGQ9Ik0tMiAxMEwxMCAteiIgIHN0cm9rZT0iI2ZmZmZmZjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+")] bg-red-950/40 text-red-200 shadow-inner'
                                   : lCourse 
@@ -1485,6 +1570,8 @@ export default function FFCSTimetableTab() {
                                 </div>
                               )}
                             </div>
+                          ) : (
+                            <div className="h-[38px] bg-black/10"></div>
                           )}
                         </div>
                       </td>
@@ -1750,16 +1837,7 @@ export default function FFCSTimetableTab() {
                         ? (
                           <div className="flex items-center gap-2 flex-wrap">
                             <span>{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
-                            <span className="flex gap-1">
-                              {uniqueCourses.find(c => c.code === selectedCourseCode)?.types?.map(t => {
-                                const color = typeColors[t] || defaultColor;
-                                return (
-                                  <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
-                                    {t}
-                                  </span>
-                                );
-                              })}
-                            </span>
+                             {renderTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
                           </div>
                         )
                         : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
@@ -2832,14 +2910,7 @@ export default function FFCSTimetableTab() {
                             <div className="flex flex-col flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-base text-foreground">{c.code}</span>
-                                {c.types && c.types.map(t => {
-                                  const color = typeColors[t] || defaultColor;
-                                  return (
-                                    <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
-                                      {t}
-                                    </span>
-                                  );
-                                })}
+                                 {renderTypeChips(c.types || [], 'sm')}
                               </div>
                               <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
                             </div>
@@ -3352,14 +3423,7 @@ export default function FFCSTimetableTab() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-foreground text-sm">{c.code}</span>
-                      {c.types && c.types.map(t => {
-                        const color = typeColors[t] || defaultColor;
-                        return (
-                          <span key={t} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${color.bg} ${color.text} ${color.border}`} title={typeLabels[t] || t}>
-                            {t}
-                          </span>
-                        );
-                      })}
+                       {renderTypeChips(c.types || [], 'sm')}
                     </div>
                     {selectedCourseCode === c.code && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>}
                   </div>
