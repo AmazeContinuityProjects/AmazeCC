@@ -185,7 +185,7 @@ const getGroupedCourses = (courseList: AddedCourse[]) => {
         if (!g.slots.includes(s)) g.slots.push(s);
       });
       
-      g.credits = String(Math.max(parseFloat(g.credits || "0"), parseFloat(c.credits || "0")));
+      g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
     } else {
       groups.set(c.code, { ...c, ids: [c.id], faculty: c.faculty, venue: c.venue, type: c.type, slots: [...c.slots] });
     }
@@ -461,7 +461,9 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
                 ...t,
                 TYPE: combinedType,
                 TITLE: combinedTitle,
-                CREDITS: String(parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
+                CREDITS: String((tType.includes("EMBEDDED") && lType.includes("EMBEDDED")) ? 
+                                Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
+                                parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
                 ROOM: `${t.ROOM} / ${l.ROOM}`,
                 ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE
@@ -588,15 +590,22 @@ export default function FFCSTimetableTab() {
           return;
         }
 
-        const parsed: ParsedCourse[] = jsonData.map((row: any) => ({
-          CODE: row.CODE || row["COURSE CODE"] || row.Code || "",
-          TITLE: row.TITLE || row["COURSE TITLE"] || row.Title || "",
-          TYPE: row.TYPE || row.Type || "",
-          CREDITS: row.CREDITS || row.Credits || "0",
-          ROOM: row.VENUE || row.ROOM || row.Room || row.Venue || "",
-          SLOT: row.SLOT || row.Slot || "",
-          FACULTY: row.FACULTY || row.Faculty || ""
-        })).filter(c => c.CODE);
+        const parsed: ParsedCourse[] = jsonData.map((row: any) => {
+          const cleanRow: any = {};
+          for (const k in row) {
+            const cleanKey = k.replace(/^\uFEFF/, '').trim().toUpperCase();
+            cleanRow[cleanKey] = row[k];
+          }
+          return {
+            CODE: String(cleanRow.CODE || cleanRow["COURSE CODE"] || cleanRow.COURSE_CODE || "").trim(),
+            TITLE: String(cleanRow.TITLE || cleanRow["COURSE TITLE"] || cleanRow.COURSE_TITLE || "").trim(),
+            TYPE: String(cleanRow.TYPE || "").trim(),
+            CREDITS: String(cleanRow.CREDITS || "0").trim(),
+            ROOM: String(cleanRow.VENUE || cleanRow.ROOM || "").trim(),
+            SLOT: String(cleanRow.SLOT || "").trim(),
+            FACULTY: String(cleanRow.FACULTY || "").trim()
+          };
+        }).filter(c => c.CODE);
 
         setRawParsedCourses(parsed);
       } catch (err) {
@@ -2014,7 +2023,7 @@ export default function FFCSTimetableTab() {
                               <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                               <div>
                                 <p className="text-foreground font-semibold text-sm">{c.code}</p>
-                                <p className="text-muted-foreground text-xs truncate max-w-[200px]">{c.title}</p>
+                                <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                               </div>
                             </div>
                           </td>
@@ -2031,7 +2040,7 @@ export default function FFCSTimetableTab() {
                               ))}
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80 truncate max-w-[150px]">{c.venue}</td>
+                          <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
                           <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
                           <td className="py-3 px-2 text-right print:hidden">
                             <button 
@@ -2072,10 +2081,7 @@ export default function FFCSTimetableTab() {
         <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">{activeTimetable.name}</h1>
-            <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-foreground">Course List</h2>
-            <p className="text-muted-foreground">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
-          </div>
+
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-blue-400">AmazeCC FFCS</h2>
@@ -2150,7 +2156,10 @@ export default function FFCSTimetableTab() {
 
         {/* Selected Courses Table */}
         <div className="mb-10">
-          <h2 className="text-xl font-bold text-foreground mb-4">Selected Courses</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-foreground">Course List</h2>
+            <p className="text-muted-foreground font-medium">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
+          </div>
           <table className="w-full text-sm text-left border-collapse">
             <thead>
               <tr className="bg-muted border-b border-border text-foreground/80">
@@ -2553,7 +2562,7 @@ export default function FFCSTimetableTab() {
                                     <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                                     <div>
                                       <p className="text-foreground font-semibold text-sm">{c.code}</p>
-                                      <p className="text-muted-foreground text-xs truncate max-w-[200px]">{c.title}</p>
+                                      <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                                     </div>
                                   </div>
                                 </td>
@@ -2570,7 +2579,7 @@ export default function FFCSTimetableTab() {
                                     ))}
                                   </div>
                                 </td>
-                                <td className="py-3 px-2 text-sm text-foreground/80 truncate max-w-[150px]">{c.venue}</td>
+                                <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
                                 <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
                               </tr>
                             ))}
@@ -2912,7 +2921,7 @@ export default function FFCSTimetableTab() {
                                 <span className="font-bold text-base text-foreground">{c.code}</span>
                                  {renderTypeChips(c.types || [], 'sm')}
                               </div>
-                              <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
+                              <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
                             </div>
                           </label>
 
@@ -3240,7 +3249,7 @@ export default function FFCSTimetableTab() {
                               <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                               <div>
                                 <p className="text-foreground font-semibold text-sm">{c.code}</p>
-                                <p className="text-muted-foreground text-xs truncate max-w-[200px]">{c.title}</p>
+                                <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                               </div>
                             </div>
                           </td>
@@ -3257,7 +3266,7 @@ export default function FFCSTimetableTab() {
                               ))}
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80 truncate max-w-[150px]">{c.venue}</td>
+                          <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
                           <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
                         </tr>
                       ))}
@@ -3427,7 +3436,7 @@ export default function FFCSTimetableTab() {
                     </div>
                     {selectedCourseCode === c.code && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>}
                   </div>
-                  <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
+                  <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
                 </button>
               ))}
               {uniqueCourses.filter(c => 
@@ -3510,25 +3519,29 @@ export default function FFCSTimetableTab() {
                         setSlotSearchQuery("");
                       }
                     }}
-                    className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 
+                    className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1.5 
                       ${selectedSlotIndex === idx.toString() ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent'} 
                       ${isBlocked ? 'opacity-50 cursor-not-allowed bg-red-500/5 border-red-500/10' : 'hover:bg-muted/80'}`}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-bold text-foreground text-sm">
-                        {row?.SLOT}
-                      </span>
-                      {selectedSlotIndex === idx.toString() && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Selected</span>}
+                    <div className="flex flex-col w-full gap-1">
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-bold text-foreground text-sm">
+                          {row?.SLOT}
+                        </span>
+                        {selectedSlotIndex === idx.toString() && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Selected</span>}
+                      </div>
+                      {isBlocked && (
+                        <div className="w-full">
+                          <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded uppercase block w-full whitespace-normal break-words leading-tight">
+                            Clash: {clashError}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground flex justify-between w-full">
+                    <span className="text-xs text-muted-foreground flex justify-between w-full mt-1 border-t border-border/30 pt-1.5">
                       <span className="truncate pr-2">{row?.FACULTY}</span>
                       <span className="font-medium text-foreground/70 shrink-0">{row?.ROOM}</span>
                     </span>
-                    {isBlocked && (
-                      <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded uppercase w-fit mt-0.5">
-                        Clash: {clashError}
-                      </span>
-                    )}
                   </button>
                 );
               })}
