@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.8.0",
+    "date": "2026-06-21",
+    "changes": [
+      "Implemented smart course component clubbing to group theory and lab codes (e.g. BCSE426L + BCSE426P) into a unified entry with merged names, slots, and summed credits.",
+      "Replaced course type abbreviations with their full forms (e.g., Theory Only, Lab Only, Embedded Theory and Lab) across the course list, search, and previews.",
+      "Standardized timetable table cell heights and aligned vertical dividing lines across all days and columns for visual consistency.",
+      "Resolved build-time Vitest testing configuration and dependency errors."
+    ]
+  },
+  {
     "version": "v1.7.0",
     "date": "2026-06-21",
     "changes": [
