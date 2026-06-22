@@ -180,68 +180,60 @@ const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCourses: A
   return { percentage, actualScore, maxScore };
 };
 
-const isMorningTheory = (slot: string) => {
-  const main = slot.split('+').map(s => s.trim())[0];
-  return main.includes('1');
-};
-
-const isEveningTheory = (slot: string) => {
-  const main = slot.split('+').map(s => s.trim())[0];
-  return main.includes('2');
-};
-
-const isMorningLab = (slot: string) => {
-  const main = slot.split('+').map(s => s.trim())[0];
-  if (main.startsWith('L')) {
-    const num = parseInt(main.replace('L', ''), 10);
-    if (isNaN(num)) return false;
-    
-    if (num <= 30) {
-      const periodIndex = ((num - 1) % 6) + 1;
-      if (periodIndex <= 4) return true; // 8:00 AM to 11:30 AM
-    } else {
-      const periodIndex = ((num - 31) % 6) + 1;
-      if (periodIndex >= 5) return true; // After 5:40 PM
-    }
+const getPeriodsForSlotOuter = (slotName: string) => {
+  const matchedPeriods: { day: string, startMin: number, endMin: number }[] = [];
+  const schema = getTimetableSchema();
+  
+  if (schema.theory) {
+    (schema.theory as any[]).forEach((p) => {
+      if (!p.days || !p.start || !p.end || p.lunch) return;
+      Object.entries(p.days).forEach(([day, s]) => {
+        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
+        if (slotsInPeriod.includes(slotName)) {
+          matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string) });
+        }
+      });
+    });
   }
-  return false;
+
+  if (schema.lab) {
+    (schema.lab as any[]).forEach((p) => {
+      if (!p.days || !p.start || !p.end || p.lunch) return;
+      Object.entries(p.days).forEach(([day, s]) => {
+        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
+        if (slotsInPeriod.includes(slotName)) {
+          matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string) });
+        }
+      });
+    });
+  }
+  
+  return matchedPeriods;
 };
 
-const isEveningLab = (slot: string) => {
-  const main = slot.split('+').map(s => s.trim())[0];
-  if (main.startsWith('L')) {
-    const num = parseInt(main.replace('L', ''), 10);
-    if (isNaN(num)) return false;
+const isMorningSlot = (slot: string) => {
+  const periods = getPeriodsForSlotOuter(slot);
+  if (periods.length === 0) return true; // e.g., NIL
+  return periods.some(p => p.startMin < 840); // Before 2:00 PM
+};
 
-    if (num <= 30) {
-      const periodIndex = ((num - 1) % 6) + 1;
-      if (periodIndex >= 5) return true; // After 11:40 AM
-    } else {
-      const periodIndex = ((num - 31) % 6) + 1;
-      if (periodIndex <= 4) return true; // 2:00 PM to 5:30 PM
-    }
-  }
-  return false;
+const isEveningSlot = (slot: string) => {
+  const periods = getPeriodsForSlotOuter(slot);
+  if (periods.length === 0) return true;
+  return periods.some(p => p.startMin >= 840); // 2:00 PM or later
 };
 
 const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
-  const tSlots = theorySlotStr.split('+').map(s => s.trim());
-  const lSlots = labSlotStr.split('+').map(s => s.trim());
+  const tSlots = theorySlotStr.split('+').map(s => s.trim().toUpperCase());
+  const lSlots = labSlotStr.split('+').map(s => s.trim().toUpperCase());
   
-  const isMT = tSlots.some(s => isMorningTheory(s));
-  const isET = tSlots.some(s => isEveningTheory(s));
+  const tPeriods = tSlots.flatMap(getPeriodsForSlotOuter);
+  const lPeriods = lSlots.flatMap(getPeriodsForSlotOuter);
 
-  for (const l of lSlots) {
-    if (l.startsWith('L')) {
-      const num = parseInt(l.replace('L', ''), 10);
-      if (isNaN(num)) continue;
-      
-      if (num <= 30) {
-        const periodIndex = ((num - 1) % 6) + 1;
-        if (periodIndex <= 4 && isMT) return true;
-      } else {
-        const periodIndex = ((num - 31) % 6) + 1;
-        if (periodIndex <= 4 && isET) return true;
+  for (const t of tPeriods) {
+    for (const l of lPeriods) {
+      if (t.day === l.day && Math.max(t.startMin, l.startMin) < Math.min(t.endMin, l.endMin)) {
+        return true;
       }
     }
   }
@@ -479,6 +471,8 @@ export default function FFCSTimetableTab() {
   const [isSlotSearchOpen, setIsSlotSearchOpen] = useState(false);
   const [slotSearchQuery, setSlotSearchQuery] = useState("");
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
+  const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
+  const [variantSearchQuery, setVariantSearchQuery] = useState("");
 
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
@@ -624,7 +618,8 @@ export default function FFCSTimetableTab() {
     theoryPeriods.forEach((p, pIdx) => {
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
-        if (s === slotName) {
+        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
+        if (slotsInPeriod.includes(slotName)) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string), type: 'theory', pIdx });
         }
       });
@@ -633,7 +628,8 @@ export default function FFCSTimetableTab() {
     labPeriods.forEach((p, pIdx) => {
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
-        if (s === slotName) {
+        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
+        if (slotsInPeriod.includes(slotName)) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string), type: 'lab', pIdx });
         }
       });
@@ -758,18 +754,17 @@ export default function FFCSTimetableTab() {
           }
           return true;
         });
-        
         if (generatorPreference === 'morning') {
           options = options.filter(opt => {
-            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L'));
-            if (theorySlots.length > 0) return isMorningTheory(theorySlots[0]);
-            return opt.SLOT.split('+').map(s => s.trim()).some(s => isEveningLab(s));
+            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L') && s !== 'NIL');
+            if (theorySlots.length > 0) return isMorningSlot(theorySlots[0]);
+            return opt.SLOT.split('+').map(s => s.trim()).filter(s => s !== 'NIL').some(s => isEveningSlot(s));
           });
         } else if (generatorPreference === 'evening') {
           options = options.filter(opt => {
-            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L'));
-            if (theorySlots.length > 0) return isEveningTheory(theorySlots[0]);
-            return opt.SLOT.split('+').map(s => s.trim()).some(s => isMorningLab(s));
+            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L') && s !== 'NIL');
+            if (theorySlots.length > 0) return isEveningSlot(theorySlots[0]);
+            return opt.SLOT.split('+').map(s => s.trim()).filter(s => s !== 'NIL').some(s => isMorningSlot(s));
           });
         }
 
@@ -842,17 +837,11 @@ export default function FFCSTimetableTab() {
         if (results.length >= MAX_RESULTS) return;
         if (courseIndex === targetCodes.length) {
           results.push([...currentCombo]);
-          if (generatorUniqueFaculties) {
-            currentCombo.forEach(c => usedFacultiesPerCourse.get(c.CODE)!.add(c.FACULTY));
-          }
           return;
         }
 
         const options = optionsPerCourseWithPeriods[courseIndex];
         for (const opt of options) {
-          if (generatorUniqueFaculties && usedFacultiesPerCourse.get(opt.CODE)!.has(opt.FACULTY)) {
-            continue;
-          }
 
           let hasConflict = false;
           for (const np of opt.periods) {
@@ -1076,19 +1065,52 @@ export default function FFCSTimetableTab() {
           if (generatorSortBy === 'halfdays') return bm.halfDays - am.halfDays;
           if (generatorSortBy === 'compactness') return am.gaps - bm.gaps; // lower gaps is better
           
-          // Balanced: Normalize and combine. 
-          // HalfDays: 0-10 (* 10 points) = max 100
-          // Gaps: 0-20 hours (max 20) -> (20 - gaps) * 5 points
-          // Social Score: 0-100% -> score * 1
           const aBalanced = (am.halfDays * 10) + ((20 - am.gaps) * 5) + (am.socialScore);
           const bBalanced = (bm.halfDays * 10) + ((20 - bm.gaps) * 5) + (bm.socialScore);
           return bBalanced - aBalanced;
         });
 
-        newTts.forEach((t, i) => { t.name = `Option ${i + 1}`; });
+        let filteredTts = newTts;
 
-        setStagedTimetables(newTts);
-        setSuccessMsg(`Found ${newTts.length} valid timetables. Review them below!`);
+        if (generatorUniqueFaculties) {
+          const usedFaculties = new Map<string, Set<string>>();
+          targetCodes.forEach(c => usedFaculties.set(c, new Set()));
+          
+          filteredTts = filteredTts.filter(tt => {
+            let isUnique = true;
+            for (const c of tt.courses) {
+              if (usedFaculties.get(c.code)!.has(c.faculty)) {
+                isUnique = false;
+                break;
+              }
+            }
+            if (isUnique) {
+              tt.courses.forEach(c => usedFaculties.get(c.code)!.add(c.faculty));
+              return true;
+            }
+            return false;
+          });
+        }
+
+        // Group by identical physical slot layouts
+        const grouped = new Map<string, TimetableState>();
+        
+        filteredTts.forEach(combo => {
+          const signature = [...combo.courses.flatMap(c => c.slots)].sort().join('|');
+          
+          if (!grouped.has(signature)) {
+            grouped.set(signature, { ...combo, variants: [{ ...combo, name: `Variant 1` }] });
+          } else {
+            const existing = grouped.get(signature)!;
+            existing.variants!.push({ ...combo, name: `Variant ${existing.variants!.length + 1}` });
+          }
+        });
+
+        const groupedTts = Array.from(grouped.values());
+        groupedTts.forEach((t, i) => { t.name = `Option ${i + 1}`; });
+
+        setStagedTimetables(groupedTts);
+        setSuccessMsg(`Found ${groupedTts.length} unique timetables (${newTts.length} total variants). Review them below!`);
         // We do NOT close generator immediately so they can review.
       }
     } catch (e) {
@@ -2607,8 +2629,30 @@ export default function FFCSTimetableTab() {
                       <ArrowLeft className="w-4 h-4" /> Back to Generator
                     </button>
                     <div>
-                      <h2 className="text-xl font-bold text-foreground">Preview: {generatorPreviewTimetable.name}</h2>
-                      <p className="text-muted-foreground text-sm">Review this timetable before saving.</p>
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                        Preview: {generatorPreviewTimetable.name}
+                        {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
+                          <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            {generatorPreviewTimetable.variants.length} Faculty Variants
+                          </span>
+                        )}
+                      </h2>
+                      {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 ? (
+                        <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-1.5 max-w-xl">
+                          <p>These variants share the <strong>exact same physical time layout</strong> (same free time, same schedule), but use different combinations of <strong>faculties</strong>.</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="font-bold text-foreground uppercase tracking-wider">Select Variant:</span>
+                            <button 
+                              onClick={() => setIsVariantSearchOpen(true)}
+                              className="bg-muted border border-border rounded-lg px-4 py-2 text-foreground font-medium cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex items-center gap-2 shadow-sm"
+                            >
+                              <Search className="w-4 h-4" /> Change Variant
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">Review this timetable before saving.</p>
+                      )}
                     </div>
                   </div>
                   <button 
@@ -2876,9 +2920,18 @@ export default function FFCSTimetableTab() {
                     <button 
                       disabled={selectedStagedIds.size === 0}
                       onClick={() => {
-                        const selected = stagedTimetables.filter(t => selectedStagedIds.has(t.id));
+                        const selected: TimetableState[] = [];
+                        stagedTimetables.forEach(t => {
+                          if (t.variants && t.variants.length > 1) {
+                            t.variants.forEach(v => {
+                              if (selectedStagedIds.has(v.id)) selected.push(v);
+                            });
+                          } else if (selectedStagedIds.has(t.id)) {
+                            selected.push(t);
+                          }
+                        });
                         setTimetables(prev => [...prev, ...selected]);
-                        setActiveTimetableId(selected[0].id);
+                        if (selected.length > 0) setActiveTimetableId(selected[0].id);
                         setStagedTimetables([]);
                         setSelectedStagedIds(new Set());
                         setIsGeneratorOpen(false);
@@ -2898,8 +2951,13 @@ export default function FFCSTimetableTab() {
                       className={`relative flex flex-col bg-background rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedStagedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border hover:border-amber-500/50 hover:shadow-lg'}`}
                       onClick={() => {
                         const newSet = new Set(selectedStagedIds);
-                        if (newSet.has(tt.id)) newSet.delete(tt.id);
-                        else newSet.add(tt.id);
+                        if (newSet.has(tt.id)) {
+                          newSet.delete(tt.id);
+                          if (tt.variants) tt.variants.forEach(v => newSet.delete(v.id));
+                        } else {
+                          newSet.add(tt.id);
+                          if (tt.variants) tt.variants.forEach(v => newSet.add(v.id));
+                        }
                         setSelectedStagedIds(newSet);
                       }}
                       onDoubleClick={(e) => {
@@ -2961,12 +3019,48 @@ export default function FFCSTimetableTab() {
                         )}
 
                         {generatorMaximizeFreeTimeFriends.length > 0 && (
-                          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto">
+                          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
                             <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
                               <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate" title={tt.metrics?.bestFriendMatches.join(', ')}>
                               Matches best with: <span className="font-medium text-foreground">{tt.metrics?.bestFriendMatches.join(', ') || 'None'}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {tt.variants && tt.variants.length > 1 && (
+                          <div className="mt-auto pt-4 border-t border-border/50">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
+                              <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">{tt.variants.length} available</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
+                              {tt.variants.map((v, vIdx) => {
+                                const isSelected = selectedStagedIds.has(v.id);
+                                return (
+                                  <div 
+                                    key={v.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newSet = new Set(selectedStagedIds);
+                                      if (isSelected) newSet.delete(v.id);
+                                      else newSet.add(v.id);
+                                      
+                                      if (isSelected && newSet.has(tt.id)) newSet.delete(tt.id);
+                                      if (!isSelected && !newSet.has(tt.id)) newSet.add(tt.id);
+                                      
+                                      setSelectedStagedIds(newSet);
+                                    }}
+                                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? 'bg-amber-500/10 border-amber-500/50 text-foreground' : 'bg-background border-border text-muted-foreground hover:border-amber-500/30'}`}
+                                  >
+                                    <span className="font-medium">Variant {vIdx + 1}</span>
+                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
+                                      {isSelected && <Check className="w-3 h-3" />}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -3656,10 +3750,10 @@ export default function FFCSTimetableTab() {
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
               {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
                 if (slotFilter === "all") return true;
-                if (slotFilter === "morning") return isMorningTheory(row?.SLOT || "");
-                if (slotFilter === "evening") return isEveningTheory(row?.SLOT || "");
-                if (slotFilter === "morning_lab") return isMorningLab(row?.SLOT || "");
-                if (slotFilter === "evening_lab") return isEveningLab(row?.SLOT || "");
+                if (slotFilter === "morning") return isMorningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
+                if (slotFilter === "evening") return isEveningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
+                if (slotFilter === "morning_lab") return isMorningSlot(row?.SLOT || "") && (row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
+                if (slotFilter === "evening_lab") return isEveningSlot(row?.SLOT || "") && (row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
                 return true;
               }).filter(({ row }) => {
                 const query = slotSearchQuery.toLowerCase();
@@ -3720,6 +3814,107 @@ export default function FFCSTimetableTab() {
                   <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term or filter</span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Variant Search Modal */}
+      {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
+              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                <Search className="w-5 h-5 text-amber-500" /> Select Variant
+              </h3>
+              <button 
+                onClick={() => setIsVariantSearchOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-border bg-background">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input 
+                  type="text"
+                  placeholder="Search by faculty name..."
+                  value={variantSearchQuery}
+                  onChange={e => setVariantSearchQuery(e.target.value)}
+                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-muted-foreground"
+                  autoFocus
+                />
+              </div>
+            </div>
+            
+            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+              {(() => {
+                const differingCourseCodes: string[] = [];
+                const firstV = generatorPreviewTimetable.variants![0];
+                firstV.courses.forEach(baseCourse => {
+                  const hasDifference = generatorPreviewTimetable.variants!.some(v => {
+                    const vCourse = v.courses.find(c => c.code === baseCourse.code);
+                    return vCourse && vCourse.faculty !== baseCourse.faculty;
+                  });
+                  if (hasDifference) differingCourseCodes.push(baseCourse.code);
+                });
+
+                const filteredVariants = generatorPreviewTimetable.variants!.filter(v => {
+                  if (!variantSearchQuery) return true;
+                  const query = variantSearchQuery.toLowerCase();
+                  return v.courses.some(c => c.faculty.toLowerCase().includes(query));
+                });
+
+                if (filteredVariants.length === 0) {
+                  return (
+                    <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
+                      <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                      <span className="text-muted-foreground font-medium">No variants found</span>
+                      <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term</span>
+                    </div>
+                  );
+                }
+
+                return filteredVariants.map((v) => {
+                  const isSelected = generatorPreviewTimetable.id === v.id;
+                  
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => {
+                        setGeneratorPreviewTimetable({ ...v, variants: generatorPreviewTimetable.variants });
+                        setIsVariantSearchOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-2 
+                        ${isSelected ? 'bg-amber-500/10 border border-amber-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-foreground">
+                          Variant {generatorPreviewTimetable.variants!.findIndex(x => x.id === v.id) + 1}
+                        </span>
+                        {isSelected && (
+                          <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">Selected</span>
+                        )}
+                      </div>
+                      
+                      {differingCourseCodes.length > 0 && (
+                        <div className="flex flex-col gap-1 mt-1 border-t border-border/30 pt-2">
+                          {differingCourseCodes.map(code => {
+                            const c = v.courses.find(x => x.code === code);
+                            return c ? (
+                              <div key={code} className="flex justify-between items-center text-xs">
+                                <span className="font-medium text-muted-foreground">{code}</span>
+                                <span className="text-foreground">{c.faculty}</span>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
