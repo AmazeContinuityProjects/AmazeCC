@@ -52,6 +52,7 @@ export type TimetableState = {
     bestFriendMatches: string[];
     isLongWeekend: boolean;
   };
+  variants?: TimetableState[];
 };
 
 export interface Friend {

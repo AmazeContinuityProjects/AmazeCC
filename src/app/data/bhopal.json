@@ -1,0 +1,89 @@
+{
+  "theory": [
+    {
+      "start": "8:30 AM",
+      "end": "10:00 AM",
+      "days": {
+        "mon": "A11",
+        "tue": "D11",
+        "wed": "A12",
+        "thu": "D12",
+        "fri": "A13",
+        "sat": "D13"
+      }
+    },
+    {
+      "start": "10:05 AM",
+      "end": "11:35 AM",
+      "days": {
+        "mon": "B11",
+        "tue": "E11",
+        "wed": "B12",
+        "thu": "E12",
+        "fri": "B13",
+        "sat": "E13"
+      }
+    },
+    {
+      "start": "11:40 AM",
+      "end": "1:10 PM",
+      "days": {
+        "mon": "C11",
+        "tue": "F11",
+        "wed": "C12",
+        "thu": "F12",
+        "fri": "C13",
+        "sat": "F13"
+      }
+    },
+    {
+      "start": "1:15 PM",
+      "end": "2:45 PM",
+      "days": {
+        "mon": "A21",
+        "tue": "D21",
+        "wed": "A22",
+        "thu": "D22",
+        "fri": "A23",
+        "sat": "D23"
+      }
+    },
+    {
+      "start": "2:50 PM",
+      "end": "4:20 PM",
+      "days": {
+        "mon": "A14",
+        "tue": "E14",
+        "wed": "B14",
+        "thu": "F14",
+        "fri": "C14",
+        "sat": "D14"
+      }
+    },
+    {
+      "start": "4:25 PM",
+      "end": "5:55 PM",
+      "days": {
+        "mon": "B21",
+        "tue": "E21",
+        "wed": "B22",
+        "thu": "E22",
+        "fri": "B23",
+        "sat": "D24"
+      }
+    },
+    {
+      "start": "6:00 PM",
+      "end": "7:30 PM",
+      "days": {
+        "mon": "C21",
+        "tue": "F21",
+        "wed": "A24",
+        "thu": "F22",
+        "fri": "B24",
+        "sat": "E23"
+      }
+    }
+  ],
+  "lab": []
+}

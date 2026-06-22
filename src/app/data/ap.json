@@ -1,0 +1,203 @@
+{
+  "theory": [
+    {
+      "start": "8:00 AM",
+      "end": "8:50 AM",
+      "days": {
+        "tue": "TFF1",
+        "wed": "TGG1",
+        "thu": "TEE1",
+        "fri": "TCC1",
+        "sat": "TDD1"
+      }
+    },
+    {
+      "start": "9:00 AM",
+      "end": "9:50 AM",
+      "days": {
+        "tue": "A1",
+        "wed": "D1",
+        "thu": "C1",
+        "fri": "TB1",
+        "sat": "E1"
+      }
+    },
+    {
+      "start": "10:00 AM",
+      "end": "10:50 AM",
+      "days": {
+        "tue": "B1",
+        "wed": "F1",
+        "thu": "TG1",
+        "fri": "TA1",
+        "sat": "C1"
+      }
+    },
+    {
+      "start": "11:00 AM",
+      "end": "11:50 AM",
+      "days": {
+        "tue": "TC1",
+        "wed": "E1",
+        "thu": "TAA1",
+        "fri": "F1",
+        "sat": "TF1"
+      }
+    },
+    {
+      "start": "12:00 PM",
+      "end": "12:50 PM",
+      "days": {
+        "tue": "G1",
+        "wed": "SC2",
+        "thu": "ECS",
+        "fri": "TE1",
+        "sat": "G1"
+      }
+    },
+    {
+      "start": "1:00 PM",
+      "end": "1:50 PM",
+      "days": {
+        "tue": "D1",
+        "wed": "B1",
+        "thu": "TBB1",
+        "fri": "SD2",
+        "sat": "A1"
+      }
+    },
+    {
+      "start": "2:00 PM",
+      "end": "2:50 PM",
+      "days": {
+        "tue": "F2",
+        "wed": "D2",
+        "thu": "TE2",
+        "fri": "C2",
+        "sat": "D2"
+      }
+    },
+    {
+      "start": "3:00 PM",
+      "end": "3:50 PM",
+      "days": {
+        "tue": "A2",
+        "wed": "TF2",
+        "thu": "SE1",
+        "fri": "TB2",
+        "sat": "E2"
+      }
+    },
+    {
+      "start": "4:00 PM",
+      "end": "4:50 PM",
+      "days": {
+        "tue": "B2",
+        "wed": "G2",
+        "thu": "C2",
+        "fri": "TA2",
+        "sat": "SD1"
+      }
+    },
+    {
+      "start": "5:00 PM",
+      "end": "5:50 PM",
+      "days": {
+        "tue": "TC2",
+        "wed": "SC1",
+        "thu": "A2",
+        "fri": "F2",
+        "sat": "TAA2"
+      }
+    },
+    {
+      "start": "6:00 PM",
+      "end": "6:50 PM",
+      "days": {
+        "tue": "G2",
+        "wed": "B2",
+        "thu": "TD2",
+        "fri": "TEE2",
+        "sat": "ECS"
+      }
+    },
+    {
+      "start": "7:00 PM",
+      "end": "7:50 PM",
+      "days": {
+        "tue": "TDD2",
+        "wed": "TCC2",
+        "thu": "TGG2",
+        "sat": "TFF2"
+      }
+    }
+  ],
+  "lab": [
+    {
+      "start": "8:00 AM",
+      "end": "9:50 AM",
+      "days": {
+        "tue": "L1+L2",
+        "wed": "L7+L8",
+        "thu": "L13+L14",
+        "fri": "L19+L20",
+        "sat": "L25+L26"
+      }
+    },
+    {
+      "start": "10:00 AM",
+      "end": "11:50 AM",
+      "days": {
+        "tue": "L3+L4",
+        "wed": "L9+L10",
+        "thu": "L15+L16",
+        "fri": "L21+L22",
+        "sat": "L27+L28"
+      }
+    },
+    {
+      "start": "12:00 PM",
+      "end": "1:30 PM",
+      "days": {
+        "tue": "L5+L6",
+        "wed": "L11+L12",
+        "thu": "L17+L18",
+        "fri": "L23+L24",
+        "sat": "L29+L30"
+      }
+    },
+    {
+      "start": "2:00 PM",
+      "end": "3:40 PM",
+      "days": {
+        "tue": "L31+L32",
+        "wed": "L37+L38",
+        "thu": "L43+L44",
+        "fri": "L49+L50",
+        "sat": "L55+L56"
+      }
+    },
+    {
+      "start": "4:00 PM",
+      "end": "5:40 PM",
+      "days": {
+        "tue": "L33+L34",
+        "wed": "L39+L40",
+        "thu": "L45+L46",
+        "fri": "L51+L52",
+        "sat": "L57+L58"
+      }
+    },
+    {
+      "start": "6:00 PM",
+      "end": "7:30 PM",
+      "days": {
+        "tue": "L35+L36",
+        "wed": "L41+L42",
+        "thu": "L47+L48",
+        "fri": "L53+L54",
+        "sat": "L59+L60"
+      }
+    }
+  ]
+}
