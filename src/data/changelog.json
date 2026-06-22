@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.8.3",
+    "date": "2026-06-22",
+    "changes": [
+      "HOTFIX: Fixed AmazeCC from reloading frequently",
+      "FFCS: Implemented dynamic slot type filtering to show only appropriate selectors in the dropdown based on selected course types.",
+      "FFCS: Redesigned the Timetable Manager UI into a unified, responsive, and intuitive control panel.",
+      "Minor Cosmetic changes"
+    ]
+  },
+  {
     "version": "v1.8.2",
     "date": "2026-06-22",
     "changes": [

@@ -2,9 +2,10 @@
 import withSerwistInit from "@serwist/next";
 
 const withSerwist = withSerwistInit({
-  cacheOnNavigation: true,
+  cacheOnNavigation: false,
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
 });
 
 // Set to your repository name (e.g. '/AmazeCC') if deploying to <username>.github.io/<repo-name>
