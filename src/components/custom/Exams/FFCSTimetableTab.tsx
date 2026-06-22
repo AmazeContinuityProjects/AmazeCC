@@ -20,7 +20,7 @@ const CAMPUS_SCHEMAS: Record<string, any> = {
 export let GLOBAL_CAMPUS = "chennai";
 export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
 
-import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup } from "./FFCS/types";
+import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { exportTimetableIcal } from "@/lib/exportIcal";
@@ -240,7 +240,7 @@ const isOverlap = (theorySlotStr: string, labSlotStr: string) => {
   return false;
 };
 
-const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
+const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
   // 1. Find all codes that end with L or P
   const hasL = new Set<string>();
   const hasP = new Set<string>();
@@ -261,18 +261,27 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
     }
   });
 
-  // 3. Pre-process parsed array: change CODE of mergeable courses to base, and track ORIGINAL_CODE
   const mappedParsed = parsed.map(c => {
+    let resultCourse = { ...c };
     const code = c.CODE.trim().toUpperCase();
     const base = (code.endsWith('L') || code.endsWith('P')) ? code.slice(0, -1) : code;
     if (mergeableBases.has(base)) {
-      return {
-        ...c,
+      resultCourse = {
+        ...resultCourse,
         ORIGINAL_CODE: c.CODE, // Keep reference to original code ending in L or P
         CODE: base
       };
     }
-    return c;
+
+    // Attach LINK_ID if matching manual rule
+    const linkMatch = manualLinks.find(
+      l => l.CODE === c.CODE && l.TYPE === c.TYPE && l.SLOT === c.SLOT && l.FACULTY === c.FACULTY
+    );
+    if (linkMatch) {
+      resultCourse.LINK_ID = linkMatch.LINK_ID;
+    }
+
+    return resultCourse;
   });
 
   // Combine embedded theory and lab
@@ -312,17 +321,47 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
         if (theorySlots.length > 0 && labSlots.length > 0) {
           let bestMatch: { tIdx: number, lIdx: number }[] = [];
           
+          // --- MANUAL LINKER OVERRIDE ---
+          const manualMatches: { tIdx: number, lIdx: number }[] = [];
+          const manualUsedLabs = new Set<number>();
+          const manualUsedTheories = new Set<number>();
+
+          for (let i = 0; i < theorySlots.length; i++) {
+            const t = theorySlots[i];
+            if (t.LINK_ID) {
+              for (let j = 0; j < labSlots.length; j++) {
+                if (manualUsedLabs.has(j)) continue;
+                const l = labSlots[j];
+                if (l.LINK_ID === t.LINK_ID) {
+                  manualMatches.push({ tIdx: i, lIdx: j });
+                  manualUsedLabs.add(j);
+                  manualUsedTheories.add(i);
+                  break; // Found the manual pair
+                }
+              }
+            }
+          }
+
           const backtrack = (tIdx: number, currentMatch: { tIdx: number, lIdx: number }[], usedLabs: Set<number>) => {
             if (currentMatch.length > bestMatch.length) {
               bestMatch = [...currentMatch];
             }
             if (tIdx >= theorySlots.length) return;
 
+            // Skip manually paired theory
+            if (manualUsedTheories.has(tIdx)) {
+              backtrack(tIdx + 1, currentMatch, usedLabs);
+              return;
+            }
+
             const t = theorySlots[tIdx];
 
             for (let j = 0; j < labSlots.length; j++) {
-              if (usedLabs.has(j)) continue;
+              if (usedLabs.has(j) || manualUsedLabs.has(j)) continue;
               const l = labSlots[j];
+
+              // Skip manually linked labs that weren't matched above
+              if (l.LINK_ID) continue;
 
               if (!isOverlap(t.SLOT, l.SLOT)) {
                 usedLabs.add(j);
@@ -337,6 +376,8 @@ const processParsedCourses = (parsed: ParsedCourse[]): ParsedCourse[] => {
           };
 
           backtrack(0, [], new Set<number>());
+
+          bestMatch = [...manualMatches, ...bestMatch];
 
           if (bestMatch.length > 0) {
             const matchedT = new Set(bestMatch.map(m => m.tIdx));
@@ -473,6 +514,9 @@ export default function FFCSTimetableTab() {
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
+  const [manualLinks, setManualLinks] = useState<ManualLink[]>([]);
+  const [isManualLinkerOpen, setIsManualLinkerOpen] = useState(false);
+  const [manualLinkCsvText, setManualLinkCsvText] = useState("");
 
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
@@ -541,6 +585,14 @@ export default function FFCSTimetableTab() {
     if (savedMethod) setSocialScoreGroupMethod(savedMethod as "intersection" | "cumulative");
     const savedCourseLocks = localStorage.getItem("ffcs_courseLocks");
     if (savedCourseLocks) setCourseLocks(JSON.parse(savedCourseLocks));
+    const savedManualLinks = localStorage.getItem("ffcs_manual_links");
+    if (savedManualLinks) {
+      try {
+        const parsed = JSON.parse(savedManualLinks);
+        setManualLinks(parsed);
+        setManualLinkCsvText(parsed.map((l: ManualLink) => `${l.CODE},${l.TYPE},${l.SLOT},${l.ROOM},${l.FACULTY},${l.LINK_ID}`).join('\n'));
+      } catch(e) {}
+    }
 
     setIsLoaded(true);
   }, []);
@@ -549,7 +601,7 @@ export default function FFCSTimetableTab() {
   useEffect(() => {
     if (rawParsedCourses.length > 0) {
       if (isGroupingEnabled) {
-        setMasterCourses(processParsedCourses(rawParsedCourses));
+        setMasterCourses(processParsedCourses(rawParsedCourses, manualLinks));
       } else {
         // No grouping, just use the raw courses
         const copy = JSON.parse(JSON.stringify(rawParsedCourses)) as ParsedCourse[];
@@ -558,7 +610,7 @@ export default function FFCSTimetableTab() {
     } else {
       setMasterCourses([]);
     }
-  }, [rawParsedCourses, isGroupingEnabled]);
+  }, [rawParsedCourses, isGroupingEnabled, isLoaded, manualLinks]);
 
   // Save to local storage on change
   useEffect(() => {
@@ -586,6 +638,12 @@ export default function FFCSTimetableTab() {
       localStorage.setItem("ffcs_courseLocks", JSON.stringify(courseLocks));
     }
   }, [courseLocks, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("ffcs_manual_links", JSON.stringify(manualLinks));
+    }
+  }, [manualLinks, isLoaded]);
 
   const updateActiveTimetableCourses = (newCourses: AddedCourse[]) => {
     setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
@@ -1855,16 +1913,25 @@ export default function FFCSTimetableTab() {
               </div>
             ) : (
               <form onSubmit={handleAddCourse} className="space-y-4">
-                <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border">
-                  <span className="text-sm font-medium text-foreground flex items-center gap-2">
-                    Group Embedded Courses
-                  </span>
-                  <button 
+                <div className="flex items-center justify-between mb-4 bg-muted/30 p-3 rounded-xl border border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                      Group Embedded Courses
+                    </span>
+                    <button 
+                      type="button"
+                      onClick={() => setIsGroupingEnabled(!isGroupingEnabled)}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${isGroupingEnabled ? 'bg-blue-500' : 'bg-muted-foreground'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${isGroupingEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  <button
                     type="button"
-                    onClick={() => setIsGroupingEnabled(!isGroupingEnabled)}
-                    className={`w-11 h-6 rounded-full transition-colors relative ${isGroupingEnabled ? 'bg-blue-500' : 'bg-muted-foreground'}`}
+                    onClick={() => setIsManualLinkerOpen(true)}
+                    className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 text-foreground font-medium rounded-md transition-colors border border-border"
                   >
-                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${isGroupingEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    Advanced Linker
                   </button>
                 </div>
 
@@ -3915,6 +3982,98 @@ export default function FFCSTimetableTab() {
                   );
                 });
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Linker Modal */}
+      {isManualLinkerOpen && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
+              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                Advanced Course Linker
+              </h3>
+              <button 
+                onClick={() => setIsManualLinkerOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
+              <p className="text-sm text-muted-foreground mb-4">
+                Use this tool to forcefully pair specific theory and lab slots together. 
+                Paste a CSV with columns: <strong>CODE, TYPE, SLOT, ROOM, FACULTY, LINK_ID</strong>. 
+                Rows with the same LINK_ID will be combined into a single embedded course.
+              </p>
+              
+              <textarea
+                value={manualLinkCsvText}
+                onChange={(e) => {
+                  setManualLinkCsvText(e.target.value);
+                  try {
+                    const lines = e.target.value.split('\n').filter(l => l.trim() !== '');
+                    const newLinks: ManualLink[] = lines.map(line => {
+                      const [code, type, slot, room, faculty, linkId] = line.split(',');
+                      return {
+                        CODE: (code || "").trim(),
+                        TYPE: (type || "").trim(),
+                        SLOT: (slot || "").trim(),
+                        ROOM: (room || "").trim(),
+                        FACULTY: (faculty || "").trim(),
+                        LINK_ID: (linkId || "").trim(),
+                      };
+                    });
+                    setManualLinks(newLinks);
+                  } catch (err) {
+                    console.error("Failed to parse manual links CSV", err);
+                  }
+                }}
+                className="w-full h-64 bg-muted/30 border border-border rounded-xl p-3 text-sm font-mono text-foreground focus:outline-none focus:border-amber-500/50 transition-colors"
+                placeholder="CODE,TYPE,SLOT,ROOM,FACULTY,LINK_ID&#10;BAMEE201,ETH,D1+TD1,AB2-301,SREEKANTH DONDAPATI,SREEKANTH_LAB_A&#10;BAMEE201,ELA,L5+L6,AB1-006,SREEKANTH DONDAPATI,SREEKANTH_LAB_A"
+              />
+              
+              {manualLinks.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-semibold mb-2">Parsed Links Preview ({manualLinks.length})</h4>
+                  <div className="bg-muted/30 border border-border rounded-xl overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-muted/50 border-b border-border sticky top-0">
+                        <tr>
+                          <th className="p-2 font-medium">CODE</th>
+                          <th className="p-2 font-medium">TYPE</th>
+                          <th className="p-2 font-medium">SLOT</th>
+                          <th className="p-2 font-medium">FACULTY</th>
+                          <th className="p-2 font-medium text-amber-500">LINK_ID</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {manualLinks.map((link, idx) => (
+                          <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                            <td className="p-2">{link.CODE}</td>
+                            <td className="p-2">{link.TYPE}</td>
+                            <td className="p-2">{link.SLOT}</td>
+                            <td className="p-2 truncate max-w-[120px]" title={link.FACULTY}>{link.FACULTY}</td>
+                            <td className="p-2 font-mono text-amber-500/90">{link.LINK_ID}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-border bg-muted/10 rounded-b-2xl flex justify-end gap-3">
+              <button
+                onClick={() => setIsManualLinkerOpen(false)}
+                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors shadow-sm"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

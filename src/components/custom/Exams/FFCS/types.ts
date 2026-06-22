@@ -23,7 +23,17 @@ export type ParsedCourse = {
   SLOT: string;
   FACULTY: string;
   ORIGINAL_CODE?: string;
+  LINK_ID?: string;
 };
+
+export interface ManualLink {
+  CODE: string;
+  TYPE: string;
+  SLOT: string;
+  ROOM: string;
+  FACULTY: string;
+  LINK_ID: string;
+}
 
 export type AddedCourse = {
   id: string;
