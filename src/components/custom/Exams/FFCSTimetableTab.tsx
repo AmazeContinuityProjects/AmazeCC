@@ -7,11 +7,23 @@ import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
 import FFCSGuideModal from "./FFCSGuideModal";
 
-import timetableSchema from "@/app/data/chennai.json";
+import chennaiSchema from "@/app/data/chennai.json";
+import apSchema from "@/app/data/ap.json";
+import bhopalSchema from "@/app/data/bhopal.json";
+
+const CAMPUS_SCHEMAS: Record<string, any> = {
+  chennai: chennaiSchema,
+  ap: apSchema,
+  bhopal: bhopalSchema
+};
+
+export let GLOBAL_CAMPUS = "chennai";
+export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
 
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup } from "./FFCS/types";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
+import { exportTimetableIcal } from "@/lib/exportIcal";
 
 
 
@@ -94,8 +106,8 @@ const getGroupedCourses = (courseList: AddedCourse[]) => {
 
 const getFreeHalfDaysList = (slots: Set<string>): string[] => {
   const freeHalfDays: string[] = [];
-  const theoryPeriods = (timetableSchema.theory as TimetablePeriod[]).filter(p => !p.lunch);
-  const labPeriods = (timetableSchema.lab as TimetablePeriod[]).filter(p => !p.lunch);
+  const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
+  const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
 
   DAYS.forEach(day => {
     let morningOccupied = false;
@@ -585,8 +597,8 @@ export default function FFCSTimetableTab() {
     setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
   };
 
-  const theoryPeriods = (timetableSchema.theory as TimetablePeriod[]).filter(p => !p.lunch);
-  const labPeriods = (timetableSchema.lab as TimetablePeriod[]).filter(p => !p.lunch);
+  const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
+  const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
   const allPeriods = [...theoryPeriods, ...labPeriods];
 
   const allAvailableSlots = useMemo(() => {
@@ -774,8 +786,8 @@ export default function FFCSTimetableTab() {
           options = options.filter(opt => {
             const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
             return slots.every(slot => {
-              const theoryPeriods = (timetableSchema.theory as TimetablePeriod[]).filter(p => !p.lunch);
-              const labPeriods = (timetableSchema.lab as TimetablePeriod[]).filter(p => !p.lunch);
+              const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
+              const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
               
               const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).includes(slot));
               const lPeriod = labPeriods.find(p => Object.values(p.days || {}).includes(slot));
@@ -818,7 +830,15 @@ export default function FFCSTimetableTab() {
       const usedFacultiesPerCourse = new Map<string, Set<string>>();
       targetCodes.forEach(code => usedFacultiesPerCourse.set(code, new Set()));
 
-      const backtrack = (courseIndex: number, currentCombo: ParsedCourse[], currentSlots: Set<string>) => {
+      type ParsedCourseWithPeriods = ParsedCourse & { periods: {day: string, startMin: number, endMin: number}[] };
+      const optionsPerCourseWithPeriods: ParsedCourseWithPeriods[][] = optionsPerCourse.map(options => 
+        options.map(opt => {
+          const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
+          return { ...opt, periods: slots.flatMap(getPeriodsForSlot) };
+        })
+      );
+
+      const backtrack = (courseIndex: number, currentCombo: ParsedCourse[], currentPeriods: {day: string, startMin: number, endMin: number}[]) => {
         if (results.length >= MAX_RESULTS) return;
         if (courseIndex === targetCodes.length) {
           results.push([...currentCombo]);
@@ -828,26 +848,32 @@ export default function FFCSTimetableTab() {
           return;
         }
 
-        const options = optionsPerCourse[courseIndex];
+        const options = optionsPerCourseWithPeriods[courseIndex];
         for (const opt of options) {
           if (generatorUniqueFaculties && usedFacultiesPerCourse.get(opt.CODE)!.has(opt.FACULTY)) {
             continue;
           }
 
-          const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
-          const hasConflict = slots.some(s => currentSlots.has(s));
-          
+          let hasConflict = false;
+          for (const np of opt.periods) {
+            for (const ep of currentPeriods) {
+              if (np.day === ep.day && Math.max(np.startMin, ep.startMin) < Math.min(np.endMin, ep.endMin)) {
+                hasConflict = true;
+                break;
+              }
+            }
+            if (hasConflict) break;
+          }
+
           if (!hasConflict) {
-            slots.forEach(s => currentSlots.add(s));
             currentCombo.push(opt);
-            backtrack(courseIndex + 1, currentCombo, currentSlots);
+            backtrack(courseIndex + 1, currentCombo, currentPeriods.concat(opt.periods));
             currentCombo.pop();
-            slots.forEach(s => currentSlots.delete(s));
           }
         }
       };
 
-      backtrack(0, [], new Set<string>());
+      backtrack(0, [], []);
 
       if (results.length === 0) {
         setError("Could not generate any conflict-free timetables from the selected options.");
@@ -1683,6 +1709,7 @@ export default function FFCSTimetableTab() {
                   <div className="flex items-center justify-center bg-muted/30 rounded-xl border border-border p-1 shrink-0">
                     <button title="New Timetable" onClick={createNewTimetable} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Plus className="w-4 h-4" /></button>
                     <button title="Duplicate Timetable" onClick={duplicateTimetable} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Copy className="w-4 h-4" /></button>
+                    <button title="Export to Calendar (iCal)" onClick={() => exportTimetableIcal(activeTimetable, getTimetableSchema(), new Date().toISOString().split('T')[0], new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0])} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Download className="w-4 h-4" /></button>
                     <button title="Rename Timetable" onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button title="Delete Timetable" onClick={() => deleteTimetable(activeTimetableId)} className="p-2 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
