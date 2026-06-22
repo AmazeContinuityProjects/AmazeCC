@@ -51,3 +51,6 @@ certificates
 .wrangler
 .env*
 .env.local
+
+
+implementation_plan.md
