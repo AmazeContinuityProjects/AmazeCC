@@ -21,7 +21,7 @@ import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
 import { API_BASE } from "./Main";
 import MarksSubTab from "./Exams/MarksSubTab";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
@@ -98,6 +98,8 @@ export default function DashboardContent({
   setMoodleData,
   IDs,
   setIDs,
+  registeredEvents,
+  setRegisteredEvents,
   vitolData,
   setVitolData,
   settings,
@@ -493,6 +495,75 @@ export default function DashboardContent({
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
+              {(() => {
+                // Determine upcoming events within the next 7 days
+                if (!registeredEvents || !Array.isArray(registeredEvents) || registeredEvents.length === 0) return null;
+                const now = new Date();
+                now.setHours(0,0,0,0);
+                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                
+                const parseEventDate = (dateStr: string) => {
+                  const d = new Date(dateStr);
+                  if (!isNaN(d.getTime())) return d;
+                  
+                  // Try parsing DD-MM-YYYY or DD/MM/YYYY
+                  const parts = dateStr.split(/[-/]/);
+                  if (parts.length === 3) {
+                    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                  }
+                  return new Date(0); // fallback
+                };
+                
+                const upcoming = registeredEvents.filter(ev => {
+                  if (!ev.date) return false;
+                  const d = parseEventDate(ev.date);
+                  return d >= now && d <= nextWeek;
+                }).sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
+                
+                if (upcoming.length === 0) return null;
+                
+                return (
+                  <div className={`mb-8 ${isSubpageOpen ? "hidden" : ""}`}>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white">Upcoming Events</h3>
+                    </div>
+                    <div className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0">
+                      {upcoming.map((ev, i) => (
+                        <div 
+                          key={i} 
+                          onClick={() => {
+                            sessionStorage.setItem("pendingEventOpen", ev.name);
+                            setActiveTab("more");
+                            setActiveMoreSubTab("events");
+                          }}
+                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white dark:bg-slate-800 midnight:bg-black rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 midnight:hover:border-blue-500 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
+                        >
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 dark:bg-blue-400/10 midnight:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                          
+                          <div className="z-10">
+                            <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 midnight:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.date} • {ev.time}</span>
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300 midnight:text-gray-300 truncate pr-2">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.venue}</span>
+                            </span>
+                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 midnight:bg-green-900/20 midnight:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/20 midnight:text-red-400'}`}>
+                              {ev.paymentStatus}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>
                 <AttendanceSubTabs
                   activeSubTab={activeAttendanceSubTab}
@@ -532,6 +603,7 @@ export default function DashboardContent({
                     setMoodleData={setMoodleData}
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
+                    registeredEvents={registeredEvents}
                   />
                 </div>
               )}
@@ -586,7 +658,12 @@ export default function DashboardContent({
               <MoreTab 
                 attendanceData={attendanceData} 
                 activeMoreSubTab={activeMoreSubTab} 
-                setActiveMoreSubTab={setActiveMoreSubTab} 
+                setActiveMoreSubTab={setActiveMoreSubTab}
+                IDs={IDs}
+                isSubpageOpen={isSubpageOpen}
+                setIsSubpageOpen={setIsSubpageOpen}
+                registeredEvents={registeredEvents}
+                setRegisteredEvents={setRegisteredEvents}
               />
             </div>
           )}

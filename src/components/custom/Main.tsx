@@ -97,6 +97,7 @@ export default function LoginPage() {
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
   const [demoMode, setDemoMode] = useState<boolean>(false);
   const [settings, setSettings] = useState<settings>(defaultSettings);
+  const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -216,6 +217,7 @@ export default function LoginPage() {
     const VitolData = localStorage.getItem("vitolData");
     const settings = localStorage.getItem("settings");
     const IDs = localStorage.getItem("IDs");
+    const storedRegisteredEvents = localStorage.getItem("registeredEvents");
 
     const parsedStoredAttendance: attendanceRes | null = storedAttendance ? JSON.parse(storedAttendance) : null;
     if (parsedStoredAttendance && parsedStoredAttendance.attendance) {
@@ -229,6 +231,8 @@ export default function LoginPage() {
     if (calendar) setCalender(JSON.parse(calendar));
     if (MoodleData) setMoodleData(JSON.parse(MoodleData));
     if (VitolData) setVitolData(JSON.parse(VitolData));
+    if (storedRegisteredEvents) setRegisteredEvents(JSON.parse(storedRegisteredEvents));
+    
     setIDs({
       VtopUsername: storedUsername || "",
       VtopPassword: storedPassword || "",
@@ -309,13 +313,8 @@ export default function LoginPage() {
       setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
       setProgressBar(prev => prev + 10);
 
-      const [
-        gradesRes,
-        ScheduleRes,
-        HostelRes,
-        calenderRes,
-        allGradesRes
-      ] = await Promise.all([
+      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes] = await Promise.all([
+
         fetchWithTimeout(`${API_BASE}/api/grades`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -371,9 +370,20 @@ export default function LoginPage() {
         }).then(async r => {
           const j = await r.json();
           setMessage(prev => prev + "\n✅ All grades fetched");
-          setProgressBar(prev => prev + 10);
+          setProgressBar(prev => prev + 5);
           return j;
         }),
+        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
+        }).then(async r => {
+          if (!r.ok) return { events: [] };
+          const j = await r.json();
+          setMessage(prev => prev + "\n✅ Event Hub data fetched");
+          setProgressBar(prev => prev + 5);
+          return j;
+        }).catch(() => ({ events: [] })),
       ]);
 
       setMessage(prev => prev + "\nFinalizing and saving data...");
@@ -385,6 +395,7 @@ export default function LoginPage() {
       setScheduleData(ScheduleRes);
       sethostelData(HostelRes);
       setCalender(calenderRes);
+      if (eventsRes?.events) setRegisteredEvents(eventsRes.events);
 
       const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
       syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
@@ -396,6 +407,7 @@ export default function LoginPage() {
       localStorage.setItem("schedule", JSON.stringify(ScheduleRes));
       localStorage.setItem("hostel", JSON.stringify(HostelRes));
       localStorage.setItem("calender", JSON.stringify(calenderRes));
+      if (eventsRes?.events) localStorage.setItem("registeredEvents", JSON.stringify(eventsRes.events));
 
       setMessage(prev => prev + "\n✅ All data loaded successfully!");
       setProgressBar(100);
@@ -454,6 +466,23 @@ export default function LoginPage() {
       });
 
       const tasks: Promise<void>[] = [coreTask];
+      
+      tasks.push(
+        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
+        }).then(async r => {
+          if (!r.ok) return;
+          const { events } = await r.json();
+          if (events) {
+            setRegisteredEvents(events);
+            localStorage.setItem("registeredEvents", JSON.stringify(events));
+            setMessage(prev => prev + "\n✅ Registered events fetched");
+          }
+        }).catch(() => {})
+      );
+
       const moodleUsername = IDs.MoodleUsername;
       const moodlePassword = IDs.MoodlePassword;
 
@@ -759,6 +788,8 @@ export default function LoginPage() {
             setMoodleData={setMoodleData}
             IDs={IDs}
             setIDs={setIDs}
+            registeredEvents={registeredEvents}
+            setRegisteredEvents={setRegisteredEvents}
             vitolData={vitolData}
             setVitolData={setVitolData}
             settings={settings}

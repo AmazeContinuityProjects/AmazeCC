@@ -54,7 +54,7 @@ function isInstructionalEvent(e) {
     return false;
 }
 
-export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs }) {
+export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, registeredEvents }) {
     
     const [homeworkTracker, setHomeworkTracker] = useState(() => {
         if (typeof window !== "undefined") {
@@ -374,12 +374,29 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     });
                 }
 
+                if (registeredEvents && Array.isArray(registeredEvents)) {
+                    registeredEvents.forEach(ev => {
+                        if (!ev.date) return;
+                        const evDateParts = ev.date.split('-');
+                        if (evDateParts.length !== 3) return;
+                        // Assuming format DD-MMM-YYYY or YYYY-MM-DD - the scraper outputs things like '20-Oct-2023'
+                        const evDate = new Date(ev.date);
+                        if (evDate.getFullYear() === cYear && evDate.getMonth() === cMonth && evDate.getDate() === Number(d.date)) {
+                            extraEvents.push({
+                                type: "event",
+                                text: `[Event] ${ev.name}`,
+                                category: `${ev.time} | ${ev.venue}`
+                            });
+                        }
+                    });
+                }
+
                 return { ...d, events: [...d.events, ...extraEvents], fullDate: dayDate };
             });
 
             return { ...cal, days: newDays };
         });
-    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker]);
+    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker, registeredEvents]);
 
     const { wastedODsCount, validODsCount, recoveredODsCount, totalODHours } = useMemo(() => {
         let wastedCount = 0;
@@ -671,7 +688,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             <div className="flex gap-2 justify-center md:justify-end flex-wrap overflow-x-auto pb-2 scrollbar-hide">
                 {safeCalendars.map((calendar, idx) => (
                     <button
-                        key={calendar.id}
+                        key={calendar.id || idx}
                         onClick={() => setActiveIdx(idx)}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${idx === activeIdx
                             ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
@@ -845,6 +862,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                             else if(e.type === "attendance") {
                                                 style = e.isAbsent ? "bg-red-50 border-red-200 text-red-900 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-200" : "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-200";
                                             }
+                                            else if(e.type === "event") style = "bg-pink-50 border-pink-200 text-pink-900 dark:bg-pink-900/20 dark:border-pink-800/50 dark:text-pink-200 midnight:bg-pink-900/20 midnight:border-pink-800/50 midnight:text-pink-200";
                                             else if(isHol) style = 'bg-red-50 border-red-100 text-red-900 dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-200 midnight:bg-red-500/10 midnight:border-red-500/30 midnight:text-red-300';
                                             else if(isIns) style = 'bg-green-50 border-green-100 text-green-900 dark:bg-green-950/30 dark:border-green-900/50 dark:text-green-200 midnight:bg-green-500/10 midnight:border-green-500/30 midnight:text-green-300';
                                             

@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.9",
+    "date": "2026-06-23",
+    "changes": [
+      "Added EventHub integration to the more tab. Now you can register and pay for events, view upcoming events, download certificated all without leaving the app.",
+      "Added upcoming events to the dashboard and calendar view for quick access.",
+      "FFCS: Added a new 'Slot Series Locker' allowing you to lock a series of slots (e.g. all B series (B1, B2, etc.) slots of a particular course) in one go, instead of locking them individually.",
+      "FFCS: Added a advanced linker that allows you to link multiple courses together and lock their slots in a single action, ensuring that all linked courses share the same slot selection. This allows for more customisability than the algorithm can provide; similar to how VTOPREGCC internally links theory and lab components of a course together."
+    ]
+  },
+  {
     "version": "v1.8.3",
     "date": "2026-06-22",
     "changes": [

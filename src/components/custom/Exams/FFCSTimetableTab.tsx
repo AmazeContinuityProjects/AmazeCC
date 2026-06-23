@@ -300,8 +300,80 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
     });
 
     if (hasEmbedded) {
+      // 1. Cross-faculty manual pairing
+      const remainingCourses = [...coursesList];
+      
+      const manualTheories = remainingCourses.filter(c => {
+        const t = c.TYPE.trim().toUpperCase();
+        const origCode = (c as any).ORIGINAL_CODE || c.CODE;
+        return c.LINK_ID && (t === "ETH" || t === "TH" || origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL'));
+      });
+      const manualLabs = remainingCourses.filter(c => {
+        const t = c.TYPE.trim().toUpperCase();
+        const origCode = (c as any).ORIGINAL_CODE || c.CODE;
+        return c.LINK_ID && (t === "ELA" || t === "LO" || origCode.endsWith('P') || c.SLOT.startsWith('L'));
+      });
+
+      const linkIds = new Set<string>();
+      manualTheories.forEach(t => linkIds.add(t.LINK_ID!));
+      manualLabs.forEach(l => linkIds.add(l.LINK_ID!));
+
+      linkIds.forEach(id => {
+        const tMatches = manualTheories.filter(t => t.LINK_ID === id);
+        const lMatches = manualLabs.filter(l => l.LINK_ID === id);
+
+        if (tMatches.length > 0 && lMatches.length > 0) {
+          tMatches.forEach(t => {
+            lMatches.forEach(l => {
+              const tType = t.TYPE.trim().toUpperCase();
+              const lType = l.TYPE.trim().toUpperCase();
+              const combinedType = `${tType}+${lType}`;
+
+              let combinedTitle = t.TITLE;
+              if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
+                const typeLabel = (tType === "ETH" || tType.includes("EMBEDDED") || lType === "ELA" || lType.includes("EMBEDDED")) 
+                  ? "Embedded Theory and Lab" 
+                  : "Theory + Lab";
+                combinedTitle = `${t.TITLE} [${typeLabel}]`;
+              } else {
+                combinedTitle = `${t.TITLE} [Embedded Theory and Lab]`;
+              }
+
+              let combinedFac = t.FACULTY;
+              if (t.FACULTY !== l.FACULTY) {
+                combinedFac = `${t.FACULTY} / ${l.FACULTY}`;
+              }
+
+              combined.push({
+                ...t,
+                TYPE: combinedType,
+                TITLE: combinedTitle,
+                CREDITS: String((tType.includes("EMBEDDED") && lType.includes("EMBEDDED")) ? 
+                                Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
+                                parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
+                SLOT: `${t.SLOT}+${l.SLOT}`,
+                ROOM: `${t.ROOM} / ${l.ROOM}`,
+                ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
+                FACULTY: combinedFac
+              } as any);
+            });
+          });
+
+          // Remove all matched theories and labs from remainingCourses
+          tMatches.forEach(t => {
+            const idx = remainingCourses.indexOf(t);
+            if (idx > -1) remainingCourses.splice(idx, 1);
+          });
+          lMatches.forEach(l => {
+            const idx = remainingCourses.indexOf(l);
+            if (idx > -1) remainingCourses.splice(idx, 1);
+          });
+        }
+      });
+
+      // 2. Normal processing for the rest
       const byFac = new Map<string, ParsedCourse[]>();
-      coursesList.forEach(c => {
+      remainingCourses.forEach(c => {
         if (!byFac.has(c.FACULTY)) byFac.set(c.FACULTY, []);
         byFac.get(c.FACULTY)!.push(c);
       });
@@ -320,27 +392,6 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
           let bestMatch: { tIdx: number, lIdx: number }[] = [];
-          
-          // --- MANUAL LINKER OVERRIDE ---
-          const manualMatches: { tIdx: number, lIdx: number }[] = [];
-          const manualUsedLabs = new Set<number>();
-          const manualUsedTheories = new Set<number>();
-
-          for (let i = 0; i < theorySlots.length; i++) {
-            const t = theorySlots[i];
-            if (t.LINK_ID) {
-              for (let j = 0; j < labSlots.length; j++) {
-                if (manualUsedLabs.has(j)) continue;
-                const l = labSlots[j];
-                if (l.LINK_ID === t.LINK_ID) {
-                  manualMatches.push({ tIdx: i, lIdx: j });
-                  manualUsedLabs.add(j);
-                  manualUsedTheories.add(i);
-                  break; // Found the manual pair
-                }
-              }
-            }
-          }
 
           const backtrack = (tIdx: number, currentMatch: { tIdx: number, lIdx: number }[], usedLabs: Set<number>) => {
             if (currentMatch.length > bestMatch.length) {
@@ -348,20 +399,11 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
             }
             if (tIdx >= theorySlots.length) return;
 
-            // Skip manually paired theory
-            if (manualUsedTheories.has(tIdx)) {
-              backtrack(tIdx + 1, currentMatch, usedLabs);
-              return;
-            }
-
             const t = theorySlots[tIdx];
 
             for (let j = 0; j < labSlots.length; j++) {
-              if (usedLabs.has(j) || manualUsedLabs.has(j)) continue;
+              if (usedLabs.has(j)) continue;
               const l = labSlots[j];
-
-              // Skip manually linked labs that weren't matched above
-              if (l.LINK_ID) continue;
 
               if (!isOverlap(t.SLOT, l.SLOT)) {
                 usedLabs.add(j);
@@ -376,8 +418,6 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
           };
 
           backtrack(0, [], new Set<number>());
-
-          bestMatch = [...manualMatches, ...bestMatch];
 
           if (bestMatch.length > 0) {
             const matchedT = new Set(bestMatch.map(m => m.tIdx));
@@ -2434,11 +2474,67 @@ export default function FFCSTimetableTab() {
                         </div>
                       </label>
 
-                      {isSelected && uniqueSlots.length > 1 && (
-                        <div className="pl-8 mt-2">
-                          <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Slots (Optional)</div>
-                          <div className="flex flex-wrap gap-2 pr-1">
-                            {uniqueSlots.map(slot => {
+                      {isSelected && uniqueSlots.length > 1 && (() => {
+                        const availableSeries = Array.from(new Set(
+                          uniqueSlots.map(slot => {
+                            const firstSlot = slot.split('+')[0].trim().toUpperCase();
+                            const match = firstSlot.match(/^[T]?([A-G])/);
+                            return match ? match[1] : null;
+                          }).filter(Boolean) as string[]
+                        )).sort();
+
+                        return (
+                          <div className="pl-8 mt-2">
+                            <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Slots (Optional)</div>
+                            
+                            {availableSeries.length > 0 && (
+                              <div className="mb-3">
+                                <div className="text-[10px] font-bold text-foreground/70 mb-1.5 uppercase">Quick Select Series</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {availableSeries.map(series => {
+                                    const seriesSlots = uniqueSlots.filter(slot => {
+                                      const firstSlot = slot.split('+')[0].trim().toUpperCase();
+                                      const match = firstSlot.match(/^[T]?([A-G])/);
+                                      return match && match[1] === series;
+                                    });
+                                    const allSelected = seriesSlots.every(s => sel.allowedSlots.includes(s));
+                                    
+                                    return (
+                                      <button
+                                        key={series}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setCourseLocks(prev => prev.map(p => {
+                                            if (p.code !== c.code) return p;
+                                            let newSlots = [...p.allowedSlots];
+                                            if (allSelected) {
+                                              newSlots = newSlots.filter(s => !seriesSlots.includes(s));
+                                            } else {
+                                              seriesSlots.forEach(s => {
+                                                if (!newSlots.includes(s)) newSlots.push(s);
+                                              });
+                                            }
+                                            return { ...p, allowedSlots: newSlots };
+                                          }));
+                                        }}
+                                        className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
+                                          allSelected 
+                                            ? 'bg-purple-500 text-white shadow-sm' 
+                                            : 'bg-muted hover:bg-muted/80 text-foreground/70'
+                                        }`}
+                                      >
+                                        {series} Series
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap gap-2 pr-1">
+                              {uniqueSlots.map(slot => {
                               const isOffChecked = sel.allowedSlots.includes(slot);
                               return (
                                 <label key={slot} className={`flex items-center gap-2 cursor-pointer border rounded-md p-1.5 px-3 transition-colors ${isOffChecked ? 'bg-purple-500/10 border-purple-500/30 text-purple-600' : 'hover:bg-muted/50 text-muted-foreground border-border/50'}`}>
@@ -2460,7 +2556,7 @@ export default function FFCSTimetableTab() {
                             })}
                           </div>
                         </div>
-                      )}
+                      )})()}
                     </div>
                   );
                 })}
@@ -3280,10 +3376,66 @@ export default function FFCSTimetableTab() {
                                 </div>
                               </label>
 
-                              {isSelected && uniqueOfferings.length > 1 && (
-                                <div className="pl-8 mt-2">
-                                  <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
-                                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
+                              {isSelected && uniqueOfferings.length > 1 && (() => {
+                                const availableSeries = Array.from(new Set(
+                                  uniqueOfferings.map(o => {
+                                    const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
+                                    const match = firstSlot.match(/^[T]?([A-G])/);
+                                    return match ? match[1] : null;
+                                  }).filter(Boolean) as string[]
+                                )).sort();
+
+                                return (
+                                  <div className="pl-8 mt-2">
+                                    <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
+                                    
+                                    {availableSeries.length > 0 && (
+                                      <div className="mb-3">
+                                        <div className="text-[10px] font-bold text-foreground/70 mb-1.5 uppercase">Quick Select Series</div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {availableSeries.map(series => {
+                                            const seriesOfferings = uniqueOfferings.filter(o => {
+                                              const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
+                                              const match = firstSlot.match(/^[T]?([A-G])/);
+                                              return match && match[1] === series;
+                                            }).map(o => o.id);
+                                            const allSelected = seriesOfferings.every(id => sel.offerings?.includes(id));
+                                            
+                                            return (
+                                              <button
+                                                key={series}
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  setCourseLocks(prev => prev.map(p => {
+                                                    if (p.code !== c.code) return p;
+                                                    let newOfferings = [...(p.offerings || [])];
+                                                    if (allSelected) {
+                                                      newOfferings = newOfferings.filter(id => !seriesOfferings.includes(id));
+                                                    } else {
+                                                      seriesOfferings.forEach(id => {
+                                                        if (!newOfferings.includes(id)) newOfferings.push(id);
+                                                      });
+                                                    }
+                                                    return { ...p, offerings: newOfferings };
+                                                  }));
+                                                }}
+                                                className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
+                                                  allSelected 
+                                                    ? 'bg-amber-500 text-white shadow-sm' 
+                                                    : 'bg-muted hover:bg-muted/80 text-foreground/70'
+                                                }`}
+                                              >
+                                                {series} Series
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
                                     {sortedFacs.map(fac => (
                                       <div key={fac} className="flex flex-col gap-1.5">
                                         <div className="text-xs font-semibold text-foreground/90 pb-1 border-b border-border/50">{fac}</div>
@@ -3318,8 +3470,8 @@ export default function FFCSTimetableTab() {
                                       ✓ Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
                                     </div>
                                   )}
-                                </div>
-                              )}
+                                  </div>
+                                )})()}
                             </div>
                           );
                         })}

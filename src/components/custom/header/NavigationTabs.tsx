@@ -352,6 +352,12 @@ export default function NavigationTabs({
             >
               FFCS Planner
             </button>
+            <button
+              onClick={() => setActiveMoreSubTab("events")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "events" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Event Hub
+            </button>
           </div>
         )}
 
