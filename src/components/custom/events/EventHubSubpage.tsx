@@ -32,6 +32,15 @@ export default function EventHubSubpage({
   const [isRegistering, setIsRegistering] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<{title: string, message: string}>({title: "", message: ""});
+  const [pwaUrl, setPwaUrl] = useState<string | null>(null);
+  const [pwaMode, setPwaMode] = useState<"pay" | "view" | null>(null);
+
+  const isMobilePWA = () => {
+    if (typeof window === 'undefined') return false;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    return isMobile && isPWA;
+  };
 
   useEffect(() => {
     if (setIsSubpageOpen) setIsSubpageOpen(true);
@@ -78,6 +87,66 @@ export default function EventHubSubpage({
       setModalOpen(true);
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  const handleOpenInEventHub = () => {
+    if (!IDs?.VtopUsername || !IDs?.VtopPassword) {
+      setModalContent({ title: "Authentication Required", message: "Please save your VTOP credentials in the settings first." });
+      setModalOpen(true);
+      return;
+    }
+
+    const tcUrl = `https://eventhubcc.vit.ac.in/EventHub/eventPreview?eid=${selectedEvent.eid}`;
+    
+    if (isMobilePWA()) {
+      setPwaUrl(tcUrl);
+      setPwaMode("view");
+      return;
+    }
+
+    const htmlPayload = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Redirecting to Event Hub...</title>
+          <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #334155; }
+              .loader { border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-right: 12px; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+              .container { display: flex; align-items: center; background: white; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="loader"></div>
+              <p>Opening Event Hub Details...</p>
+          </div>
+          <form id="loginForm" action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST">
+              <input type="hidden" name="username" value="${IDs.VtopUsername.replace(/"/g, '&quot;')}" />
+              <input type="hidden" name="password" value="${IDs.VtopPassword.replace(/"/g, '&quot;')}" />
+              <input type="hidden" name="validateVitian" value="1" />
+          </form>
+          <script>
+              document.getElementById("loginForm").submit();
+          </script>
+      </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(htmlPayload);
+      setTimeout(() => {
+        try {
+          win.location.href = tcUrl;
+        } catch (e) {
+          console.error("Failed to redirect popup", e);
+        }
+      }, 3500);
+    } else {
+      setModalContent({ title: "Popup Blocked", message: "Please allow popups to proceed." });
+      setModalOpen(true);
     }
   };
 
@@ -202,6 +271,11 @@ export default function EventHubSubpage({
                                   if (data.status === "payment_required" || data.status === "redirect") {
                                     window.open(data.url, "_blank");
                                   } else if (data.status === "payment_form") {
+                                    if (isMobilePWA() && data.tcUrl) {
+                                      setPwaUrl(data.tcUrl);
+                                      setPwaMode("pay");
+                                      return;
+                                    }
                                     const win = window.open("", "_blank");
                                     if (win) {
                                       win.document.write(data.html);
@@ -287,17 +361,9 @@ export default function EventHubSubpage({
                   })()}
 
                   {/* Fallback Auto-Login Button */}
-                  <form 
-                    action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" 
-                    method="POST" 
-                    target="_blank"
-                    className="w-full xl:w-auto shrink-0"
-                  >
-                    {IDs?.VtopUsername && <input type="hidden" name="username" value={IDs.VtopUsername} />}
-                    {IDs?.VtopPassword && <input type="hidden" name="password" value={IDs.VtopPassword} />}
-                    <input type="hidden" name="validateVitian" value="1" />
+                  <div className="w-full xl:w-auto shrink-0">
                     <button 
-                      type="submit"
+                      onClick={handleOpenInEventHub}
                       disabled={isRegistering}
                       className="w-full xl:w-auto px-8 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 midnight:bg-gray-800 midnight:hover:bg-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-200 font-medium rounded-xl transition-colors text-center flex items-center justify-center gap-2 whitespace-nowrap"
                     >
@@ -306,7 +372,7 @@ export default function EventHubSubpage({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </button>
-                  </form>
+                  </div>
               </div>
             );
           };
@@ -434,6 +500,50 @@ export default function EventHubSubpage({
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Close
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PWA Mobile Fallback Modal */}
+      <Dialog open={!!pwaUrl} onOpenChange={(open) => !open && setPwaUrl(null)}>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 midnight:bg-black border-gray-200 dark:border-slate-800 midnight:border-gray-800 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-white midnight:text-white">Secure Access Required</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-2">
+              Because of Mobile App security policies, accessing Event Hub securely requires two steps. 
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 midnight:border-blue-900/30">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-300 midnight:text-blue-400 mb-1">Step 1: Authenticate</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-400 midnight:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' immediately when the dashboard appears.</strong></p>
+              
+              <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
+                <input type="hidden" name="username" value={IDs?.VtopUsername} />
+                <input type="hidden" name="password" value={IDs?.VtopPassword} />
+                <input type="hidden" name="validateVitian" value="1" />
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                  Login to Event Hub
+                </Button>
+              </form>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700 midnight:border-gray-800">
+              <h4 className="font-semibold text-gray-900 dark:text-white midnight:text-white mb-1">Step 2: Open Details</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">After completing Step 1, click here to proceed.</p>
+              <Button 
+                onClick={() => window.open(pwaUrl || "", "_blank")}
+                variant="outline" 
+                className="w-full border-gray-200 dark:border-slate-600 midnight:border-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800"
+              >
+                {pwaMode === "pay" ? "Proceed to Payment" : "View Event Details"}
+              </Button>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPwaUrl(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white midnight:hover:text-white">Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
