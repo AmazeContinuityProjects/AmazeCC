@@ -28,7 +28,7 @@ export default function TermsOfServicePage() {
               Terms of Service
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
-              Last updated: 11 Nov, 2025
+              Last updated: June 23, 2026
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function TermsOfServicePage() {
                 Purpose
               </h2>
               <p>
-                <strong>AmazeCC</strong> is an experimental web application created solely for educational and personal use. It provides tools to help students view and organize their academic data retrieved from <strong>VTOP</strong> (VIT’s official portal). This app is not an official VIT product and is <strong>not affiliated, endorsed, or maintained by Vellore Institute of Technology (VIT)</strong> in any manner.
+                <strong>AmazeCC</strong> is an experimental web application created solely for educational and personal use. It provides tools to help students view and organize their academic data retrieved from <strong>VTOP</strong> (VIT’s official portal). This app is not an official VIT product and is <strong>not affiliated, endorsed, or maintained by Vellore Institute of Technology (VIT)</strong> in any manner. 
               </p>
             </section>
 
@@ -51,10 +51,10 @@ export default function TermsOfServicePage() {
                 Data Handling
               </h2>
               <p>
-                The app does <strong>not collect, store, or transmit any personal information</strong> to any server. All your login credentials, academic data, and settings remain <strong>entirely on your local device</strong> via browser local storage. Once you close or clear your browser data, all information is removed.
+                The app does <strong>not collect, store, or transmit any personal information</strong> to any server. All your login credentials, academic data, and settings remain <strong>entirely on your local device</strong> via browser local storage. Once you close or clear your browser data, all information is removed. 
               </p>
               <p>
-                When you log in, the app connects directly to the official <strong>VTOP</strong> website to retrieve your academic data for display. This data is processed locally in your browser and never shared externally.
+                When you log in, the app connects directly to the official <strong>VTOP</strong> website to retrieve your academic data for display. This data is processed locally in your browser and never shared externally. At the same time, the applicatiion also connects to the <strong>Events Hub</strong> website to retrieve your registered events for display. It allows you to download your receipts, your certificates by streaming the download. The app does not handle payments gateway of any sort or kind, and will not receive or send payments. This app provides a beta feature - "Pay Now" button that redirects to the official payment portal, as such does not handle payments. By clicking the pay now button, you automatically accept to the Event Hub Terms and Conditions, and similarly thereof absolve the developer of this site of any responsibility. This data is also processed locally in your browser and never shared externally.
               </p>
             </section>
 
@@ -72,10 +72,10 @@ export default function TermsOfServicePage() {
                 Disclaimer of Liability
               </h2>
               <p>
-                The app is provided on an &ldquo;as-is&rdquo; basis with no guarantees of accuracy, reliability, or availability. The developer is <strong>not responsible for any data inaccuracies, login failures, or service interruptions</strong> that may occur due to VTOP updates or other external factors.
+                The app is provided on an &ldquo;as-is&rdquo; basis with no guarantees of accuracy, reliability, or availability. The developer is <strong>not responsible for any data inaccuracies, login failures, or service interruptions</strong> that may occur due to VTOP updates, VIT Event Hubs updates,or other external factors. 
               </p>
               <p>
-                Users are solely responsible for the use of their VTOP credentials within the app. It is recommended to use this app only on trusted devices and networks.
+                Users are solely responsible for the use of their VTOP credentials within the app. It is recommended to use this app only on trusted devices and networks. You use this application at your own risk and discretion.
               </p>
             </section>
 
@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
                 Affiliation
               </h2>
               <p>
-                This app is an <strong>independent student project</strong> and is in no way affiliated with, endorsed by, or supported by Vellore Institute of Technology (VIT) or any of its departments.
+                This app is an <strong>independent student project</strong> and is in no way affiliated with, endorsed by, or supported by Vellore Institute of Technology (VIT) or any of its departments. This project is created out of personal interest, curiosity and learning, and is not an official VIT product.
               </p>
             </section>
 

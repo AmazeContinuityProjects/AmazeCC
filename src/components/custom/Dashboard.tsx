@@ -527,7 +527,10 @@ export default function DashboardContent({
                     <div className="flex items-center justify-between mb-4 px-1">
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white">Upcoming Events</h3>
                     </div>
-                    <div className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0">
+                    <div 
+                      className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0"
+                      data-prevent-swipe="true"
+                    >
                       {upcoming.map((ev, i) => (
                         <div 
                           key={i} 
