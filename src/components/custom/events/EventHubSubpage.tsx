@@ -535,7 +535,7 @@ export default function EventHubSubpage({
               <Button 
                 onClick={() => window.open(pwaUrl || "", "_blank")}
                 variant="outline" 
-                className="w-full border-gray-200 dark:border-slate-600 midnight:border-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800"
+                className="w-full border-gray-200 dark:border-slate-600 midnight:border-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800 whitespace-normal h-auto py-3 text-center"
               >
                 {pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
               </Button>
