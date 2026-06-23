@@ -55,9 +55,9 @@ export type TimetableState = {
     halfDays: number;
     gaps: number;
     gapsPerDay: Record<string, number>;
-    gapDetails?: { day: string; startMin: number; endMin: number; durationMins: number }[];
+    gapDetails?: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[];
     buildingDashes: number;
-    dashDetails?: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string }[];
+    dashDetails?: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[];
     socialScore: number;
     bestFriendMatches: string[];
     isLongWeekend: boolean;
@@ -84,3 +84,5 @@ export interface CourseLock {
   allowedFaculty: string[]; // empty array means all faculty are allowed
   offerings?: string[]; // array of 'FACULTY|SLOT|ROOM'
 }
+
+

@@ -9,9 +9,32 @@ export const DAYS = [
 ];
 
 export const COLORS = [
-  "bg-blue-500", "bg-purple-500", "bg-green-500", "bg-red-500", 
-  "bg-yellow-500", "bg-pink-500", "bg-indigo-500", "bg-teal-500", "bg-orange-500"
+  "bg-blue-600", "bg-purple-600", "bg-emerald-500", "bg-red-600", 
+  "bg-amber-500", "bg-pink-500", "bg-indigo-600", "bg-teal-500", "bg-orange-500",
+  "bg-cyan-600", "bg-fuchsia-500", "bg-lime-500", "bg-rose-600", "bg-violet-600",
+  "bg-sky-500", "bg-yellow-500", "bg-green-600", "bg-magenta-500"
 ];
+
+export const COLOR_HEX_MAP: Record<string, string> = {
+  "bg-blue-600": "#2563eb",
+  "bg-purple-600": "#9333ea",
+  "bg-emerald-500": "#10b981",
+  "bg-red-600": "#dc2626",
+  "bg-amber-500": "#f59e0b",
+  "bg-pink-500": "#ec4899",
+  "bg-indigo-600": "#4f46e5",
+  "bg-teal-500": "#14b8a6",
+  "bg-orange-500": "#f97316",
+  "bg-cyan-600": "#0891b2",
+  "bg-fuchsia-500": "#d946ef",
+  "bg-lime-500": "#84cc16",
+  "bg-rose-600": "#e11d48",
+  "bg-violet-600": "#7c3aed",
+  "bg-sky-500": "#0ea5e9",
+  "bg-yellow-500": "#eab308",
+  "bg-green-600": "#16a34a",
+  "bg-magenta-500": "#d63384"
+};
 
 export const typeLabels: Record<string, string> = {
   SS: "Soft Skills",
