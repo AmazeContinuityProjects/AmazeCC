@@ -517,7 +517,7 @@ export default function EventHubSubpage({
           <div className="space-y-4 py-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 midnight:border-blue-900/30">
               <h4 className="font-semibold text-blue-900 dark:text-blue-300 midnight:text-blue-400 mb-1">Step 1: Authenticate</h4>
-              <p className="text-sm text-blue-700 dark:text-blue-400 midnight:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' immediately when the dashboard appears.</strong></p>
+              <p className="text-sm text-blue-700 dark:text-blue-400 midnight:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
               
               <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
                 <input type="hidden" name="username" value={IDs?.VtopUsername} />
@@ -537,7 +537,7 @@ export default function EventHubSubpage({
                 variant="outline" 
                 className="w-full border-gray-200 dark:border-slate-600 midnight:border-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800"
               >
-                {pwaMode === "pay" ? "Proceed to Payment" : "View Event Details"}
+                {pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
               </Button>
             </div>
           </div>
