@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown } from "lucide-react";
 import * as XLSX from "xlsx";
-import * as htmlToImage from "html-to-image";
 import { useTheme } from "next-themes";
 import FFCSGuideModal from "./FFCSGuideModal";
+import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 
 import chennaiSchema from "@/app/data/chennai.json";
 import apSchema from "@/app/data/ap.json";
@@ -16,6 +16,11 @@ const CAMPUS_SCHEMAS: Record<string, any> = {
   ap: apSchema,
   bhopal: bhopalSchema
 };
+
+import { AutoGeneratorModal } from './FFCS/components/modals/AutoGeneratorModal';
+import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
+import { SocialMatrixModal } from './FFCS/components/modals/SocialMatrixModal';
+import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal';
 
 export let GLOBAL_CAMPUS = "chennai";
 export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
@@ -135,7 +140,7 @@ const getFreeHalfDaysList = (slots: Set<string>): string[] => {
   return freeHalfDays;
 };
 
-const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCourses: AddedCourse[]): { percentage: number, actualScore: number, maxScore: number } => {
+export const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCourses: AddedCourse[]): { percentage: number, actualScore: number, maxScore: number } => {
   const mySlots = new Set(myCourses.flatMap(c => c.slots));
   const fSlots = new Set(friendCourses.flatMap(c => c.slots));
 
@@ -494,6 +499,7 @@ export default function FFCSTimetableTab() {
   const [courseLocks, setCourseLocks] = useState<import('./FFCS/types').CourseLock[]>([]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
+  const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
 
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
 
@@ -543,7 +549,7 @@ export default function FFCSTimetableTab() {
   const [selectedDashDetails, setSelectedDashDetails] = useState<NonNullable<TimetableState['metrics']>['dashDetails'] | null>(null);
   const [selectedGapDetails, setSelectedGapDetails] = useState<NonNullable<TimetableState['metrics']>['gapDetails'] | null>(null);
   const [isSocialMatrixOpen, setIsSocialMatrixOpen] = useState(false);
-  const [selectedFriendTimetablesData, setSelectedFriendTimetablesData] = useState<{name: string, timetables: TimetableState[], currentIndex: number} | null>(null);
+  const [selectedFriendTimetablesData, setSelectedFriendTimetablesData] = useState<SelectedFriendTimetableData | null>(null);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -998,8 +1004,8 @@ export default function FFCSTimetableTab() {
           let isMondayFree = true;
           let buildingDashes = 0;
           const gapsPerDay: Record<string, number> = {};
-          const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string }[] = [];
-          const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number }[] = [];
+          const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[] = [];
+          const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[] = [];
 
           const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
 
@@ -1076,13 +1082,17 @@ export default function FFCSTimetableTab() {
               const curr = dailyClasses[i];
               const gap = curr.startMins - prev.endMins;
               
-              if (gap > 0) {
+              if (gap > 5) {
                 dayGaps += gap;
                 gapDetails.push({
                   day: day.id,
                   startMin: prev.endMins,
                   endMin: curr.startMins,
-                  durationMins: gap
+                  durationMins: gap,
+                  fromClass: `${prev.code} (${prev.title})`,
+                  toClass: `${curr.code} (${curr.title})`,
+                  fromTime: prev.endTime,
+                  toTime: curr.startTime
                 });
               }
               
@@ -1098,7 +1108,9 @@ export default function FFCSTimetableTab() {
                     toClass: `${curr.code} (${curr.title})`,
                     fromTime: prev.endTime,
                     toTime: curr.startTime,
-                    day: day.name
+                    day: day.name,
+                    fromBlock: prevBlock,
+                    toBlock: currBlock
                   });
                 }
               }
@@ -1354,139 +1366,49 @@ export default function FFCSTimetableTab() {
 
   // downloadSampleCSV removed as database is preloaded.
 
-  const downloadImage = async () => {
+  const downloadImage = useCallback(async (format: 'jpg' | 'png' = 'jpg') => {
     if (!captureRef.current) return;
     setIsDownloading(true);
-    
-    const targetElement = captureRef.current;
-    const originalStyle = targetElement.style.cssText;
-    
-    // Temporarily remove constraints to allow full capture
-    const tableContainers = targetElement.querySelectorAll('.overflow-x-auto');
-    tableContainers.forEach(container => {
-      container.classList.remove('overflow-x-auto');
-    });
-
-    // Force the container to expand to fit its largest child, and make it flex
-    // so that its children naturally stretch to that maximum width (preventing right-side cutoffs on backgrounds/borders)
-    targetElement.classList.add('flex', 'flex-col', 'w-max', 'min-w-full');
-
     try {
-      // Yield to the browser to ensure layout paints the new widths before we measure
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      const scrollWidth = targetElement.scrollWidth;
-      const scrollHeight = targetElement.scrollHeight;
-      
-      // Calculate scale to fit within viewport to bypass browser's SVG foreignObject clipping bug
-      const viewportWidth = window.innerWidth;
-      const safeWidth = viewportWidth * 0.9; // 90% of viewport
-      const scale = scrollWidth > safeWidth ? safeWidth / scrollWidth : 1;
-
-      // Use html-to-image as html2canvas cannot parse modern oklch colors used by tailwind
-      const dataUrl = await htmlToImage.toJpeg(targetElement, { 
-        quality: 0.95,
-        backgroundColor: themeBgColor,
-        // Multiply by inverse of scale to restore original size, then double for Retina quality
-        pixelRatio: (1 / scale) * 2,
-        width: scrollWidth * scale,
-        height: scrollHeight * scale,
-        style: {
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          width: `${scrollWidth}px`,
-          height: `${scrollHeight}px`,
-          padding: '20px',
-          margin: '0',
-          maxWidth: 'none'
-        }
-      });
-      
-      const link = document.createElement('a');
-      link.download = `${activeTimetable.name.replace(/\\s+/g, '_')}_FFCS.jpg`;
-      link.href = dataUrl;
-      link.click();
+      await downloadTimetableImage(captureRef.current, activeTimetable.name, themeBgColor, format);
       setSuccessMsg("Timetable downloaded successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);
       setError("Failed to download timetable image.");
     } finally {
-      // Cleanup styles and classes
-      targetElement.style.cssText = originalStyle;
-      targetElement.classList.remove('flex', 'flex-col', 'w-max', 'min-w-full');
-      tableContainers.forEach(container => {
-        container.classList.add('overflow-x-auto');
-      });
       setIsDownloading(false);
     }
-  };
+  }, [activeTimetable.name, themeBgColor]);
 
-  const downloadPDF = async () => {
+  const openPrintablePage = useCallback(() => {
     if (!pdfCaptureRef.current) return;
     setIsDownloading(true);
-    
+
     try {
-      const printWindow = window.open('', '_blank');
+      const printWindow = openTimetablePrintablePage(
+        pdfCaptureRef.current.innerHTML,
+        activeTimetable.name,
+        themeHtmlClass,
+        themeBgColor,
+        themeTextColor
+      );
+
       if (!printWindow) {
-        setError("Please allow popups to export as PDF.");
+        setError("Please allow popups to open the printable view.");
         setIsDownloading(false);
         return;
       }
 
-      // Get all styles from the current document so Tailwind works in the popup
-      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-        .map(el => el.outerHTML)
-        .join('\n');
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html class="${themeHtmlClass}">
-          <head>
-            <title>${activeTimetable.name} - FFCS</title>
-            ${styles}
-            <style>
-              body { 
-                margin: 0; 
-                background-color: ${themeBgColor}; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-              }
-              @page {
-                size: landscape;
-                margin: 10mm;
-              }
-            </style>
-          </head>
-          <body>
-            <div style="background-color: ${themeBgColor}; color: ${themeTextColor}; padding: 40px; width: 100%; box-sizing: border-box;">
-              ${pdfCaptureRef.current.innerHTML}
-            </div>
-            <script>
-              window.onload = () => {
-                setTimeout(() => {
-                  window.print();
-                  window.close();
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `;
-
-      printWindow.document.open();
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      
-      setSuccessMsg("PDF print dialog opened!");
+      setSuccessMsg("Printable view opened in new tab!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);
-      setError("Failed to generate PDF.");
+      setError("Failed to open printable view.");
     } finally {
       setIsDownloading(false);
     }
-  };
+  }, [activeTimetable.name, themeHtmlClass, themeBgColor, themeTextColor]);
 
   // uniqueCourses moved above.
 
@@ -1826,22 +1748,19 @@ export default function FFCSTimetableTab() {
           <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
             <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
             <div className="space-y-4">
-              {/* Dropdown & New button row */}
+              {/* Timetable Selector as Modal Trigger */}
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <select 
-                    value={activeTimetableId} 
-                    onChange={e => setActiveTimetableId(e.target.value)}
-                    className="w-full bg-background border border-border rounded-xl pl-4 pr-10 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors appearance-none cursor-pointer"
-                  >
-                    {timetables.map(t => (
-                      <option key={t.id} value={t.id}>{t.name} ({t.courses.length} courses)</option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">
-                    <ChevronDown className="w-4 h-4" />
+                <button
+                  type="button"
+                  onClick={() => setIsTimetableModalOpen(true)}
+                  className="flex-1 bg-background border border-border rounded-xl pl-4 pr-3 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-all flex items-center justify-between gap-2 shadow-sm"
+                >
+                  <span className="truncate font-medium">{activeTimetable?.name || 'Select Timetable'}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{activeTimetable?.courses.length || 0} courses</span>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </div>
-                </div>
+                </button>
 
                 <button 
                   type="button"
@@ -2142,21 +2061,37 @@ export default function FFCSTimetableTab() {
 
             <div className="flex gap-2 shrink-0 ml-auto">
               <button 
-                onClick={downloadPDF}
+                onClick={openPrintablePage}
                 disabled={isDownloading || courses.length === 0}
                 className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
               >
                 <Download className="w-4 h-4" /> 
-                {isDownloading ? "Exporting..." : "Download PDF"}
+                {isDownloading ? "Opening..." : "Printable View"}
               </button>
-              <button 
-                onClick={downloadImage}
-                disabled={isDownloading || courses.length === 0}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
-              >
-                <Download className="w-4 h-4" /> 
-                {isDownloading ? "Capturing..." : "Download JPG"}
-              </button>
+              <div className="relative group">
+                <button 
+                  onClick={() => downloadImage('jpg')}
+                  disabled={isDownloading || courses.length === 0}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                >
+                  <Download className="w-4 h-4" /> 
+                  {isDownloading ? "Capturing..." : "Download JPG"}
+                </button>
+                <div className="absolute right-0 top-full mt-1 w-36 bg-background border border-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                  <button 
+                    onClick={() => downloadImage('jpg')}
+                    className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                  >
+                    Download as JPG
+                  </button>
+                  <button 
+                    onClick={() => downloadImage('png')}
+                    className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors border-t border-border"
+                  >
+                    Download as PNG
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -2205,9 +2140,8 @@ export default function FFCSTimetableTab() {
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
+                              <div className={`px-2.5 py-1 rounded-lg ${c.color} text-white text-xs font-bold shadow-sm shrink-0`}>{c.code}</div>
                               <div>
-                                <p className="text-foreground font-semibold text-sm">{c.code}</p>
                                 <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                               </div>
                             </div>
@@ -2307,11 +2241,11 @@ export default function FFCSTimetableTab() {
                       return (
                         <td key={idx} className="border border-border p-0 relative h-16 align-top">
                           {/* Theory Half */}
-                          <div className={`h-1/2 w-full border-b border-border/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? 'bg-blue-500/20 text-blue-300' : 'bg-transparent text-muted-foreground'}`}>
+                          <div className={`h-1/2 w-full border-b border-border/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? (tCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
                             {tCourse ? (
                               <>
                                 <span className="font-bold text-[10px] leading-tight">{tCourse.code}</span>
-                                <span className="text-[8px] opacity-75">{tSlot}</span>
+                                <span className="text-[8px] text-white/80">{tSlot}</span>
                               </>
                             ) : (
                               <span className="text-[9px]">{tSlot || '-'}</span>
@@ -2319,7 +2253,7 @@ export default function FFCSTimetableTab() {
                           </div>
                           
                           {/* Lab Half */}
-                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? 'bg-purple-500/20 text-purple-300' : 'bg-transparent text-muted-foreground'}`}>
+                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? (lCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
                             {lCourse ? (
                               <>
                                 <span className="font-bold text-[10px] leading-tight">{lCourse.code}</span>
@@ -2364,7 +2298,9 @@ export default function FFCSTimetableTab() {
               ) : (
                 getGroupedCourses(courses).map((c, i) => (
                   <tr key={i} className="border-b border-border hover:bg-muted/20">
-                    <td className="py-3 px-4 font-medium">{c.code}</td>
+                    <td className="py-3 px-4 font-medium">
+                      <div className={`inline-block px-2.5 py-1 rounded-lg ${c.color || 'bg-blue-600'} text-white text-xs font-bold shadow-sm`}>{c.code}</div>
+                    </td>
                     <td className="py-3 px-4">{c.title}</td>
                     <td className="py-3 px-4">
                       {renderTypeChips(c.type)}
@@ -2388,194 +2324,16 @@ export default function FFCSTimetableTab() {
 
       {/* Auto-Generator Modal */}
       {/* Target Courses Modal */}
-      {isCourseLockOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                <Lock className="text-purple-500 w-6 h-6" /> Target Courses
-              </h2>
-              <button onClick={() => setIsCourseLockOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-              <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4 custom-scrollbar">
-              <p className="text-sm text-muted-foreground">
-                Select the courses you intend to take. Both the manual planner and auto-generator will filter results based on your target courses.
-              </p>
-
-              {courseLocks.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {courseLocks.map(lock => (
-                    <div key={lock.code} className="bg-purple-500/10 border border-purple-500/30 text-purple-500 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm font-medium">
-                      <span>{lock.code}</span>
-                      <button 
-                        onClick={() => setCourseLocks(prev => prev.filter(p => p.code !== lock.code))}
-                        className="hover:bg-purple-500/20 p-0.5 rounded-full transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <div className="relative mb-2">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search master course list..."
-                  value={generatorCourseSearchQuery}
-                  onChange={e => setGeneratorCourseSearchQuery(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-purple-500/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-2">
-                {uniqueCourseCodes.filter(c => 
-                  c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                  c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                ).length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No courses found matching "{generatorCourseSearchQuery}"
-                  </div>
-                )}
-                {uniqueCourseCodes.filter(c => 
-                  c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                  c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                ).slice(0, 50).map(c => {
-                  const sel = courseLocks.find(s => s.code === c.code);
-                  const isSelected = !!sel;
-                  
-                  const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
-                  const uniqueSlots = Array.from(new Set(courseOpts.map(opt => {
-                    return opt.SLOT.split('+').map(s => s.trim());
-                  }).flat())).sort();
-
-                  return (
-                    <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-purple-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="mt-1 rounded bg-background border-border text-purple-500 focus:ring-purple-500/30"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [] }]);
-                            else setCourseLocks(prev => prev.filter(s => s.code !== c.code));
-                          }}
-                        />
-                        <div className="flex flex-col flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-base text-foreground">{c.code}</span>
-                             {renderTypeChips(c.types || [], 'sm')}
-                          </div>
-                          <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
-                        </div>
-                      </label>
-
-                      {isSelected && uniqueSlots.length > 1 && (() => {
-                        const availableSeries = Array.from(new Set(
-                          uniqueSlots.map(slot => {
-                            const firstSlot = slot.split('+')[0].trim().toUpperCase();
-                            const match = firstSlot.match(/^[T]?([A-G])/);
-                            return match ? match[1] : null;
-                          }).filter(Boolean) as string[]
-                        )).sort();
-
-                        return (
-                          <div className="pl-8 mt-2">
-                            <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Slots (Optional)</div>
-                            
-                            {availableSeries.length > 0 && (
-                              <div className="mb-3">
-                                <div className="text-[10px] font-bold text-foreground/70 mb-1.5 uppercase">Quick Select Series</div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {availableSeries.map(series => {
-                                    const seriesSlots = uniqueSlots.filter(slot => {
-                                      const firstSlot = slot.split('+')[0].trim().toUpperCase();
-                                      const match = firstSlot.match(/^[T]?([A-G])/);
-                                      return match && match[1] === series;
-                                    });
-                                    const allSelected = seriesSlots.every(s => sel.allowedSlots.includes(s));
-                                    
-                                    return (
-                                      <button
-                                        key={series}
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setCourseLocks(prev => prev.map(p => {
-                                            if (p.code !== c.code) return p;
-                                            let newSlots = [...p.allowedSlots];
-                                            if (allSelected) {
-                                              newSlots = newSlots.filter(s => !seriesSlots.includes(s));
-                                            } else {
-                                              seriesSlots.forEach(s => {
-                                                if (!newSlots.includes(s)) newSlots.push(s);
-                                              });
-                                            }
-                                            return { ...p, allowedSlots: newSlots };
-                                          }));
-                                        }}
-                                        className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
-                                          allSelected 
-                                            ? 'bg-purple-500 text-white shadow-sm' 
-                                            : 'bg-muted hover:bg-muted/80 text-foreground/70'
-                                        }`}
-                                      >
-                                        {series} Series
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex flex-wrap gap-2 pr-1">
-                              {uniqueSlots.map(slot => {
-                              const isOffChecked = sel.allowedSlots.includes(slot);
-                              return (
-                                <label key={slot} className={`flex items-center gap-2 cursor-pointer border rounded-md p-1.5 px-3 transition-colors ${isOffChecked ? 'bg-purple-500/10 border-purple-500/30 text-purple-600' : 'hover:bg-muted/50 text-muted-foreground border-border/50'}`}>
-                                  <input 
-                                    type="checkbox" 
-                                    className="rounded w-3.5 h-3.5 border-border text-purple-500 focus:ring-purple-500/30"
-                                    checked={isOffChecked}
-                                    onChange={(e) => {
-                                      setCourseLocks(prev => prev.map(p => {
-                                        if (p.code !== c.code) return p;
-                                        if (e.target.checked) return { ...p, allowedSlots: [...p.allowedSlots, slot] };
-                                        return { ...p, allowedSlots: p.allowedSlots.filter(s => s !== slot) };
-                                      }));
-                                    }}
-                                  />
-                                  <span className="text-xs font-bold">{slot}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )})()}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-between items-center">
-              <span className="text-sm font-medium text-foreground">
-                <span className="text-purple-500 font-bold">{courseLocks.length}</span> courses selected
-              </span>
-              <button 
-                onClick={() => setIsCourseLockOpen(false)}
-                className="bg-foreground text-background px-6 py-2 rounded-xl text-sm font-bold shadow hover:bg-foreground/90 transition-colors"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Target Courses Modal */}
+      <TargetCoursesModal
+        isOpen={isCourseLockOpen}
+        onClose={() => setIsCourseLockOpen(false)}
+        courseLocks={courseLocks}
+        setCourseLocks={setCourseLocks}
+        masterCourses={masterCourses}
+        uniqueCourseCodes={uniqueCourseCodes}
+        renderTypeChips={renderTypeChips}
+      />
 
       {isFriendsManagerOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -2791,1104 +2549,54 @@ export default function FFCSTimetableTab() {
         </div>
       )}
 
-      {isGeneratorOpen && (
-        <div className="fixed inset-0 z-[200] bg-background flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="p-4 border-b border-border flex flex-wrap justify-between items-center gap-4 bg-muted/30 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-center lg:justify-start">
-              <button 
-                onClick={() => setIsGeneratorOpen(false)} 
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 py-1.5 px-3 rounded-lg transition-all"
-              >
-                <X className="w-5 h-5" />
-                <span className="font-medium text-sm">Back</span>
-              </button>
-              <div className="hidden sm:block w-px h-6 bg-border mx-2"></div>
-              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-foreground">
-                <Wand2 className="text-amber-500 w-5 h-5 sm:w-6 sm:h-6" /> Advanced Timetable Generator
-              </h2>
-            </div>
-            <button 
-              onClick={generateTimetables}
-              disabled={isGenerating || courseLocks.length === 0}
-              className="w-full lg:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
-              {isGenerating ? "Processing Millions of Combinations..." : "Generate Timetables"}
-            </button>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/10 border-b border-red-500/20 text-red-500 px-6 py-3 flex items-center justify-center gap-2 text-sm font-medium z-10">
-              <AlertTriangle className="w-4 h-4" />
-              {error}
-            </div>
-          )}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 flex justify-center bg-muted/5">
-            {generatorPreviewTimetable ? (
-              <>
-              <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-background p-6 rounded-2xl border border-border shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <button 
-                      onClick={() => setGeneratorPreviewTimetable(null)} 
-                      className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 text-foreground font-medium rounded-xl transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back to Generator
-                    </button>
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                        Preview: {generatorPreviewTimetable.name}
-                        {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
-                          <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">
-                            {generatorPreviewTimetable.variants.length} Faculty Variants
-                          </span>
-                        )}
-                      </h2>
-                      {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 ? (
-                        <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-1.5 max-w-xl">
-                          <p>These variants share the <strong>exact same physical time layout</strong> (same free time, same schedule), but use different combinations of <strong>faculties</strong>.</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-bold text-foreground uppercase tracking-wider">Select Variant:</span>
-                            <button 
-                              onClick={() => setIsVariantSearchOpen(true)}
-                              className="bg-muted border border-border rounded-lg px-4 py-2 text-foreground font-medium cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex items-center gap-2 shadow-sm"
-                            >
-                              <Search className="w-4 h-4" /> Change Variant
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">Review this timetable before saving.</p>
-                      )}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setTimetables(prev => [...prev, generatorPreviewTimetable]);
-                      setActiveTimetableId(generatorPreviewTimetable.id);
-                      setStagedTimetables([]);
-                      setSelectedStagedIds(new Set());
-                      setGeneratorPreviewTimetable(null);
-                      setIsGeneratorOpen(false);
-                      setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
-                    }}
-                    className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors shadow-lg"
-                  >
-                    <Save className="w-4 h-4" /> Save & Use This
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm">
-                    <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.halfDays}</span>
-                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Free Half-Days</span>
-                  </div>
-                  
-                  <div 
-                    className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm relative group cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setSelectedGapDetails(generatorPreviewTimetable.metrics?.gapDetails || null)}
-                  >
-                    <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.gaps}h</span>
-                    <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
-                      {Object.entries(generatorPreviewTimetable.metrics?.gapsPerDay || {}).map(([day, gap]) => (
-                        <div key={day} className="flex justify-between gap-3">
-                          <span className="font-bold text-slate-400 uppercase">{day}</span>
-                          <span>{gap}h</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {(generatorPreviewTimetable.metrics?.buildingDashes ?? 0) > 0 ? (
-                    <div 
-                      className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm cursor-pointer hover:bg-red-500/20 transition-colors"
-                      onClick={() => setSelectedDashDetails(generatorPreviewTimetable.metrics?.dashDetails || null)}
-                    >
-                      <span className="text-2xl font-black text-red-500">{generatorPreviewTimetable.metrics?.buildingDashes}</span>
-                      <span className="text-xs uppercase font-bold text-red-500/80 tracking-wider mt-1">Block Dashes</span>
-                    </div>
-                  ) : (
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
-                      <span className="text-2xl font-black text-green-500">0</span>
-                      <span className="text-xs uppercase font-bold text-green-500/80 tracking-wider mt-1">Block Dashes</span>
-                    </div>
-                  )}
-
-                  <div 
-                    className="flex flex-col items-center justify-center p-3 bg-card border border-border/50 rounded-xl shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setIsSocialMatrixOpen(true)}
-                  >
-                    <span className="text-3xl font-black text-pink-500">{generatorPreviewTimetable.metrics?.socialScore}%</span>
-                    <span className="text-xs uppercase font-bold text-pink-500/80 tracking-wider mt-1">Social Score</span>
-                  </div>
-                </div>
-
-                <div className="w-full flex flex-col gap-6 pb-20">
-                  {renderUnifiedGrid()}
-
-                  {courses.length > 0 && (
-                    <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] overflow-x-auto">
-                      <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
-                        <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                          Selected Courses
-                          <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
-                            Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
-                          </span>
-                        </h2>
-                      </div>
-                      
-                      <div className="min-w-[600px]">
-                        <table className="w-full text-left">
-                          <thead>
-                            <tr className="border-b border-border">
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
-                              <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {getGroupedCourses(courses).map(c => (
-                              <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                                <td className="py-3 px-2">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
-                                    <div>
-                                      <p className="text-foreground font-semibold text-sm">{c.code}</p>
-                                      <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-2 text-sm text-foreground/80">
-                                  {renderTypeChips(c.type)}
-                                </td>
-                                <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
-                                <td className="py-3 px-2">
-                                  <div className="flex flex-wrap gap-1">
-                                    {c.slots.map(s => (
-                                      <span key={s} className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-1.5 py-0.5 rounded-md">
-                                        {s}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
-                                <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-
-
-              {/* Dash Details Modal */}
-              {selectedDashDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-                      <h3 className="font-bold text-foreground flex items-center gap-2">
-                        <span className="text-xl">🏃</span> Block Dash Details
-                      </h3>
-                      <button 
-                        onClick={() => setSelectedDashDetails(null)}
-                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="p-4 overflow-y-auto">
-                      {selectedDashDetails.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">No block dashes in this timetable. Great!</p>
-                      ) : (
-                        <div className="flex flex-col gap-3">
-                          {selectedDashDetails.map((dash, i) => (
-                            <div key={i} className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col gap-2">
-                              <div className="flex justify-between items-center border-b border-red-500/10 pb-2 mb-1">
-                                <span className="font-bold text-red-400 text-sm">{dash.day}</span>
-                                <span className="text-xs font-semibold bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full">{dash.fromTime} - {dash.toTime}</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1 flex flex-col overflow-hidden">
-                                  <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">From</span>
-                                  <span className="text-sm font-medium text-foreground truncate block" title={dash.fromClass}>{dash.fromClass}</span>
-                                </div>
-                                <div className="text-red-500/50">→</div>
-                                <div className="flex-1 flex flex-col text-right overflow-hidden">
-                                  <span className="text-[10px] text-red-500/70 font-bold uppercase tracking-wider">To</span>
-                                  <span className="text-sm font-medium text-foreground truncate block" title={dash.toClass}>{dash.toClass}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Gap Details Modal */}
-              {selectedGapDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-                      <h3 className="font-bold text-foreground flex items-center gap-2">
-                        <span className="text-xl">⏳</span> Gap Hours Detail
-                      </h3>
-                      <button 
-                        onClick={() => setSelectedGapDetails(null)}
-                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="p-4 overflow-y-auto">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        We have highlighted the empty gap slots in <span className="text-yellow-500 font-bold">yellow</span> on the unified schedule grid behind this modal!
-                      </p>
-                      {selectedGapDetails.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">No gaps in this timetable. Perfect!</p>
-                      ) : (
-                        <div className="flex flex-col gap-3">
-                          {selectedGapDetails.map((gap, i) => (
-                            <div key={i} className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex justify-between items-center">
-                              <span className="font-bold text-yellow-500/80 uppercase">{gap.day}</span>
-                              <span className="text-sm font-semibold text-foreground">Gap of <span className="text-yellow-500">{gap.durationMins}</span> mins</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-              </>
-            ) : isCompareModalOpen ? (
-              <div className="w-full flex flex-col h-full animate-in slide-in-from-right duration-300">
-                <div className="flex items-center justify-between mb-4 px-4 sm:px-6 pt-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">Compare Options</h2>
-                    <p className="text-xs text-muted-foreground mt-1">Comparing {selectedTimetablesToCompare.length} timetables side-by-side</p>
-                  </div>
-                  <button 
-                    onClick={() => setIsCompareModalOpen(false)} 
-                    className="p-2 bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 custom-scrollbar">
-                  <div className={`grid grid-cols-1 ${selectedTimetablesToCompare.length === 2 ? 'xl:grid-cols-2' : 'xl:grid-cols-3'} gap-6`}>
-                    {selectedTimetablesToCompare.map(id => {
-                      const tt = stagedTimetables.find(t => t.id === id);
-                      if (!tt) return null;
-                      return (
-                        <div key={id} className="flex flex-col bg-background border border-border rounded-2xl overflow-hidden shadow-sm">
-                          <div className="p-4 bg-muted/30 border-b border-border flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
-                            <div className="flex gap-2">
-                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.halfDays} Half Days</span>
-                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.gaps}h Gaps</span>
-                            </div>
-                          </div>
-                          <div className="p-4 overflow-x-auto custom-scrollbar">
-                            {renderUnifiedGrid(tt.courses)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : stagedTimetables.length > 0 ? (
-              <div className="w-full max-w-6xl flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-background p-6 rounded-2xl border border-border shadow-sm">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">Review Timetables</h2>
-                    <p className="text-muted-foreground mt-1">Select the ones you like, or <b className="text-foreground">double-click</b> any card to instantly save and view it.</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button 
-                      onClick={() => setStagedTimetables([])}
-                      className="px-4 py-2 text-sm font-bold bg-muted hover:bg-muted/80 text-muted-foreground rounded-xl transition-colors"
-                    >
-                      Discard All
-                    </button>
-                    <button 
-                      disabled={selectedStagedIds.size === 0}
-                      onClick={() => {
-                        const selected: TimetableState[] = [];
-                        stagedTimetables.forEach(t => {
-                          if (t.variants && t.variants.length > 1) {
-                            t.variants.forEach(v => {
-                              if (selectedStagedIds.has(v.id)) selected.push(v);
-                            });
-                          } else if (selectedStagedIds.has(t.id)) {
-                            selected.push(t);
-                          }
-                        });
-                        setTimetables(prev => [...prev, ...selected]);
-                        if (selected.length > 0) setActiveTimetableId(selected[0].id);
-                        setStagedTimetables([]);
-                        setSelectedStagedIds(new Set());
-                        setIsGeneratorOpen(false);
-                      }}
-                      className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
-                    >
-                      <Save className="w-4 h-4" /> Save Selected ({selectedStagedIds.size})
-                    </button>
-                  </div>
-                </div>
-
-                {/* Grid of Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                  {stagedTimetables.map(tt => (
-                    <div 
-                      key={tt.id} 
-                      className={`relative flex flex-col bg-background rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedStagedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border hover:border-amber-500/50 hover:shadow-lg'}`}
-                      onClick={() => {
-                        const newSet = new Set(selectedStagedIds);
-                        if (newSet.has(tt.id)) {
-                          newSet.delete(tt.id);
-                          if (tt.variants) tt.variants.forEach(v => newSet.delete(v.id));
-                        } else {
-                          newSet.add(tt.id);
-                          if (tt.variants) tt.variants.forEach(v => newSet.add(v.id));
-                        }
-                        setSelectedStagedIds(newSet);
-                      }}
-                      onDoubleClick={(e) => {
-                        e.preventDefault();
-                        setGeneratorPreviewTimetable(tt);
-                      }}
-                    >
-                      <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedTimetablesToCompare(prev => {
-                                  if (prev.includes(tt.id)) return prev.filter(id => id !== tt.id);
-                                  if (prev.length >= 3) return prev; // max 3
-                                  return [...prev, tt.id];
-                                });
-                              }}
-                              className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${selectedTimetablesToCompare.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border hover:border-purple-500/50'}`}
-                            >
-                              Compare
-                            </button>
-                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedStagedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
-                              {selectedStagedIds.has(tt.id) && <Check className="w-4 h-4" />}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
-                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
-                            <span className="text-2xl font-black text-foreground">{tt.metrics?.halfDays}</span>
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
-                          </div>
-                          <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
-                            <span className="text-2xl font-black text-foreground">{tt.metrics?.gaps}h</span>
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
-                              {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
-                                <div key={day} className="flex justify-between gap-3">
-                                  <span className="font-bold text-slate-400 uppercase">{day}</span>
-                                  <span>{gap}h</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {tt.metrics?.isLongWeekend && (
-                          <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
-                            🎉 Long Weekend!
-                          </div>
-                        )}
-                        {(tt.metrics?.buildingDashes ?? 0) > 0 && (
-                          <div className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
-                            🏃 {tt.metrics?.buildingDashes} Block Dash{(tt.metrics?.buildingDashes ?? 0) > 1 ? 'es' : ''}
-                          </div>
-                        )}
-
-                        {generatorMaximizeFreeTimeFriends.length > 0 && (
-                          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
-                            <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
-                              <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate" title={tt.metrics?.bestFriendMatches.join(', ')}>
-                              Matches best with: <span className="font-medium text-foreground">{tt.metrics?.bestFriendMatches.join(', ') || 'None'}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {tt.variants && tt.variants.length > 1 && (
-                          <div className="mt-auto pt-4 border-t border-border/50">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
-                              <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">{tt.variants.length} available</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
-                              {tt.variants.map((v, vIdx) => {
-                                const isSelected = selectedStagedIds.has(v.id);
-                                return (
-                                  <div 
-                                    key={v.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const newSet = new Set(selectedStagedIds);
-                                      if (isSelected) newSet.delete(v.id);
-                                      else newSet.add(v.id);
-                                      
-                                      if (isSelected && newSet.has(tt.id)) newSet.delete(tt.id);
-                                      if (!isSelected && !newSet.has(tt.id)) newSet.add(tt.id);
-                                      
-                                      setSelectedStagedIds(newSet);
-                                    }}
-                                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? 'bg-amber-500/10 border-amber-500/50 text-foreground' : 'bg-background border-border text-muted-foreground hover:border-amber-500/30'}`}
-                                  >
-                                    <span className="font-medium">Variant {vIdx + 1}</span>
-                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
-                                      {isSelected && <Check className="w-3 h-3" />}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Floating Compare Bar */}
-                {selectedTimetablesToCompare.length > 0 && (
-                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[250] bg-background border-2 border-purple-500 rounded-full px-6 py-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
-                    <span className="text-sm font-semibold text-foreground">
-                      {selectedTimetablesToCompare.length} selected to compare (Max 3)
-                    </span>
-                    <button
-                      onClick={() => setIsCompareModalOpen(true)}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-5 py-2 rounded-full text-sm font-bold transition-colors shadow-[0_0_15px_rgba(168,85,247,0.4)] flex items-center gap-2"
-                    >
-                      Compare Options
-                    </button>
-                    <button
-                      onClick={() => setSelectedTimetablesToCompare([])}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors ml-2"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-            <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
-              
-              {/* Left Column: Courses Selection */}
-              <div className="flex flex-col gap-6">
-                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2 text-foreground flex items-center gap-2">
-                        <span className="bg-amber-500/10 text-amber-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span> 
-                        Target Courses
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Select the courses you want to take and optionally filter faculties/slots.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="relative mb-3">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input 
-                      type="text"
-                      placeholder="Search by course code or title..."
-                      value={generatorCourseSearchQuery}
-                      onChange={e => setGeneratorCourseSearchQuery(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-amber-500/50"
-                    />
-                  </div>
-
-                  <div className="border border-border rounded-xl max-h-[60vh] overflow-y-auto bg-muted/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
-                    {generatorDisplayCourses.filter(c => 
-                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                    ).length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
-                        No courses found matching "{generatorCourseSearchQuery}"
-                      </div>
-                    )}
-                    {generatorDisplayCourses.filter(c => 
-                      c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
-                      c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
-                    ).map(c => {
-                      const sel = courseLocks.find(s => s.code === c.code);
-                          const isSelected = !!sel;
-                          
-                          const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
-                          const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
-                            const id = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
-                            return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.ROOM, id }];
-                          })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
-
-                          const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
-                            if (!acc[curr.faculty]) acc[curr.faculty] = [];
-                            acc[curr.faculty].push(curr);
-                            return acc;
-                          }, {} as Record<string, typeof uniqueOfferings>);
-
-                          const sortedFacs = Object.keys(offeringsByFac).sort();
-
-                          return (
-                            <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-amber-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
-                              <label className="flex items-start gap-3 cursor-pointer">
-                                <input 
-                                  type="checkbox" 
-                                  className="mt-1 rounded bg-background border-border text-amber-500 focus:ring-amber-500/30"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
-                                    else setCourseLocks(prev => prev.filter(s => s.code !== c.code));
-                                  }}
-                                />
-                                <div className="flex flex-col flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-bold text-base text-foreground">{c.code}</span>
-                                     {renderTypeChips(c.types || [], 'sm')}
-                                  </div>
-                                  <span className="text-xs text-muted-foreground line-clamp-1">{c.title}</span>
-                                </div>
-                              </label>
-
-                              {isSelected && uniqueOfferings.length > 1 && (() => {
-                                const availableSeries = Array.from(new Set(
-                                  uniqueOfferings.map(o => {
-                                    const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
-                                    const match = firstSlot.match(/^[T]?([A-G])/);
-                                    return match ? match[1] : null;
-                                  }).filter(Boolean) as string[]
-                                )).sort();
-
-                                return (
-                                  <div className="pl-8 mt-2">
-                                    <div className="text-[11px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Filter Offerings (Optional)</div>
-                                    
-                                    {availableSeries.length > 0 && (
-                                      <div className="mb-3">
-                                        <div className="text-[10px] font-bold text-foreground/70 mb-1.5 uppercase">Quick Select Series</div>
-                                        <div className="flex flex-wrap gap-1.5">
-                                          {availableSeries.map(series => {
-                                            const seriesOfferings = uniqueOfferings.filter(o => {
-                                              const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
-                                              const match = firstSlot.match(/^[T]?([A-G])/);
-                                              return match && match[1] === series;
-                                            }).map(o => o.id);
-                                            const allSelected = seriesOfferings.every(id => sel.offerings?.includes(id));
-                                            
-                                            return (
-                                              <button
-                                                key={series}
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.preventDefault();
-                                                  e.stopPropagation();
-                                                  setCourseLocks(prev => prev.map(p => {
-                                                    if (p.code !== c.code) return p;
-                                                    let newOfferings = [...(p.offerings || [])];
-                                                    if (allSelected) {
-                                                      newOfferings = newOfferings.filter(id => !seriesOfferings.includes(id));
-                                                    } else {
-                                                      seriesOfferings.forEach(id => {
-                                                        if (!newOfferings.includes(id)) newOfferings.push(id);
-                                                      });
-                                                    }
-                                                    return { ...p, offerings: newOfferings };
-                                                  }));
-                                                }}
-                                                className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
-                                                  allSelected 
-                                                    ? 'bg-amber-500 text-white shadow-sm' 
-                                                    : 'bg-muted hover:bg-muted/80 text-foreground/70'
-                                                }`}
-                                              >
-                                                {series} Series
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-background/50 border border-border/50 rounded-lg p-3">
-                                    {sortedFacs.map(fac => (
-                                      <div key={fac} className="flex flex-col gap-1.5">
-                                        <div className="text-xs font-semibold text-foreground/90 pb-1 border-b border-border/50">{fac}</div>
-                                        {offeringsByFac[fac].map(offering => {
-                                          const isOffChecked = sel.offerings?.includes(offering.id) || false;
-                                          return (
-                                            <label key={offering.id} className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 p-1.5 rounded-md transition-colors">
-                                              <input 
-                                                type="checkbox" 
-                                                className="mt-0.5 rounded w-3.5 h-3.5 border-border text-amber-500 focus:ring-amber-500/30"
-                                                checked={isOffChecked}
-                                                onChange={(e) => {
-                                                  setCourseLocks(prev => prev.map(p => {
-                                                    if (p.code !== c.code) return p;
-                                                    if (e.target.checked) return { ...p, offerings: [...(p.offerings || []), offering.id] };
-                                                    return { ...p, offerings: (p.offerings || []).filter(o => o !== offering.id) };
-                                                  }));
-                                                }}
-                                              />
-                                              <div className="flex flex-col">
-                                                <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-foreground/80'}`}>{offering.slot}</span>
-                                                <span className="text-[10px] text-muted-foreground">{offering.venue}</span>
-                                              </div>
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    ))}
-                                  </div>
-                                  {sel.offerings && sel.offerings.length > 0 && (
-                                    <div className="text-xs text-amber-500 mt-2 font-medium">
-                                      ✓ Filtering by {sel.offerings.length} selected offering{sel.offerings.length === 1 ? '' : 's'}
-                                    </div>
-                                  )}
-                                  </div>
-                                )})()}
-                            </div>
-                          );
-                        })}
-                        {uniqueCourseCodes.length === 0 && (
-                          <div className="col-span-full p-10 text-center text-sm text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
-                            Please upload a master course list first.
-                          </div>
-                        )}
-                  </div>
-                  <div className="mt-4 text-sm text-muted-foreground bg-amber-500/10 text-amber-500/90 py-2 px-4 rounded-xl w-max border border-amber-500/20 font-bold">
-                    Selected: {courseLocks.length} target courses
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Preferences & Social */}
-              <div className="flex flex-col gap-6">
-                
-                {/* General Preferences */}
-                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
-                  <h3 className="font-semibold text-lg mb-4 text-foreground flex items-center gap-2">
-                    <span className="bg-blue-500/10 text-blue-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span> 
-                    Preferences
-                  </h3>
-                  
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-foreground block mb-1.5">Sort Timetables By</label>
-                        <select 
-                          value={generatorSortBy} 
-                          onChange={e => setGeneratorSortBy(e.target.value as any)}
-                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                        >
-                          <option value="balanced">Balanced (All Metrics)</option>
-                          <option value="compactness">Max Compactness (Fewer Gaps)</option>
-                          <option value="halfdays">Max Free Half-Days</option>
-                          <option value="social">Max Social Score</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
-                          Min Free Half-Days
-                        </label>
-                        <input 
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="1"
-                          value={generatorMinHalfDays}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            setGeneratorMinHalfDays(isNaN(val) ? 0 : Math.max(0, Math.min(10, val)));
-                          }}
-                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
-                          Min Start Time
-                        </label>
-                        <input 
-                          type="time"
-                          value={generatorMinStartTime}
-                          onChange={(e) => setGeneratorMinStartTime(e.target.value)}
-                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
-                          Max End Time
-                        </label>
-                        <input 
-                          type="time"
-                          value={generatorMaxEndTime}
-                          onChange={(e) => setGeneratorMaxEndTime(e.target.value)}
-                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all [color-scheme:dark]"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-foreground block mb-1.5">Time Preference</label>
-                      <select 
-                        value={generatorPreference} 
-                        onChange={e => setGeneratorPreference(e.target.value as any)}
-                        className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                      >
-                        <option value="none">No Preference (Any combinations)</option>
-                        <option value="morning">Morning Theory Preferred</option>
-                        <option value="evening">Evening Theory Preferred</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <label className="flex items-center gap-3 cursor-pointer group bg-muted/20 p-3 rounded-xl border border-transparent hover:border-border transition-all">
-                        <div className="relative flex items-center">
-                          <input 
-                            type="checkbox" 
-                            checked={generatorUniqueFaculties}
-                            onChange={e => setGeneratorUniqueFaculties(e.target.checked)}
-                            className="peer sr-only"
-                          />
-                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                        <span className="text-sm font-medium text-foreground">Master Timetables <span className="text-muted-foreground font-normal">(Unique Faculties)</span></span>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer group bg-muted/20 p-3 rounded-xl border border-transparent hover:border-border transition-all">
-                        <div className="relative flex items-center">
-                          <input 
-                            type="checkbox" 
-                            checked={generatorNoLimit}
-                            onChange={e => setGeneratorNoLimit(e.target.checked)}
-                            className="peer sr-only"
-                          />
-                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                        <span className="text-sm font-medium text-foreground">Remove 50 Timetables Limit</span>
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5 mb-2">
-                        Blocked Slots Constraint
-                        <Info className="w-4 h-4 text-muted-foreground" />
-                      </label>
-                      <div className="bg-muted/10 border border-border p-4 rounded-xl">
-                        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
-                          Click slots below to block them.
-                          <span className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded-md font-bold ml-auto">{blockedSlots.size} Blocked</span>
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {allAvailableSlots.map(slot => {
-                            const isBlocked = blockedSlots.has(slot);
-                            return (
-                              <button
-                                key={slot}
-                                onClick={() => toggleBlockSlot(slot)}
-                                className={`px-2 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
-                                  isBlocked 
-                                    ? 'bg-red-500 text-white border-red-600 shadow-sm' 
-                                    : 'bg-background text-foreground/70 border-border hover:bg-muted hover:text-foreground'
-                                }`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Preferences */}
-                <div className="bg-background rounded-2xl border border-border p-6 shadow-sm">
-                  <h3 className="font-semibold text-lg mb-4 text-foreground flex items-center gap-2">
-                    <span className="bg-pink-500/10 text-pink-500 w-7 h-7 rounded-full flex items-center justify-center text-sm">3</span> 
-                    Social Preferences
-                  </h3>
-                  
-                  {friends.length === 0 ? (
-                    <div className="text-sm text-muted-foreground p-4 bg-muted/20 rounded-xl border border-dashed border-border text-center">
-                      Add friends from the dashboard to unlock social generation features.
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      <label className="flex items-start gap-3 cursor-pointer group bg-muted/20 p-4 rounded-xl border border-transparent hover:border-pink-500/30 transition-all">
-                        <div className="relative flex items-center mt-0.5">
-                          <input 
-                            type="checkbox" 
-                            checked={generatorSyncFriendsClasses}
-                            onChange={e => setGeneratorSyncFriendsClasses(e.target.checked)}
-                            className="peer sr-only"
-                          />
-                          <div className="w-10 h-6 bg-muted rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-foreground">Auto-Sync Shared Classes</span>
-                          <span className="text-xs text-muted-foreground mt-1">If your friends are taking a course you select, force the exact same slot and faculty.</span>
-                        </div>
-                      </label>
-
-                      <div>
-                        <label className="text-sm font-bold text-foreground block mb-2">Maximize Shared Free Time</label>
-                        <p className="text-xs text-muted-foreground mb-3">Timetables will be sorted to show the ones where you and these friends have the most mutual free time.</p>
-                        <div className="flex flex-col gap-2">
-                          {friends.map(f => {
-                            const isChecked = generatorMaximizeFreeTimeFriends.includes(f.id);
-                            return (
-                              <label key={f.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isChecked ? 'bg-pink-500/10 border-pink-500/30' : 'bg-muted/10 border-border hover:bg-muted/30'}`}>
-                                <input 
-                                  type="checkbox" 
-                                  className="w-4 h-4 rounded border-border text-pink-500 focus:ring-pink-500/30 bg-background"
-                                  checked={isChecked}
-                                  onChange={(e) => {
-                                    if (e.target.checked) setGeneratorMaximizeFreeTimeFriends(prev => [...prev, f.id]);
-                                    else setGeneratorMaximizeFreeTimeFriends(prev => prev.filter(id => id !== f.id));
-                                  }}
-                                />
-                                <span className={`text-sm ${isChecked ? 'font-bold text-pink-500' : 'text-foreground'}`}>{f.name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Auto-Generator Modal */}
+      <AutoGeneratorModal
+          isOpen={isGeneratorOpen}
+          onClose={() => setIsGeneratorOpen(false)}
+          courseLocks={courseLocks}
+          setCourseLocks={setCourseLocks}
+          friends={friends}
+          socialScoreGroupMethod={socialScoreGroupMethod}
+          friendGroups={friendGroups}
+          masterCourses={masterCourses}
+          blockedSlots={blockedSlots}
+          timetables={timetables}
+          setTimetables={setTimetables}
+          setActiveTimetableId={setActiveTimetableId}
+          error={error}
+          setError={setError}
+          successMsg={successMsg}
+          setSuccessMsg={setSuccessMsg}
+          renderTypeChips={renderTypeChips}
+          getGroupedCourses={getGroupedCourses}
+          generatorDisplayCourses={generatorDisplayCourses}
+          theoryPeriods={theoryPeriods}
+          labPeriods={labPeriods}
+          toggleBlockSlot={toggleBlockSlot}
+      />
 
       {/* Friend Timetable View Modal */}
-      {selectedFriendTimetablesData && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-              <div className="flex items-center gap-4">
-                <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-blue-500" /> {selectedFriendTimetablesData.name}'s Timetable {selectedFriendTimetablesData.timetables.length > 1 ? `(${selectedFriendTimetablesData.currentIndex + 1}/${selectedFriendTimetablesData.timetables.length})` : ''}
-                </h3>
-                {selectedFriendTimetablesData.timetables.length > 1 && (
-                  <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-                    <button
-                      onClick={() => setSelectedFriendTimetablesData(prev => prev ? {...prev, currentIndex: (prev.currentIndex - 1 + prev.timetables.length) % prev.timetables.length} : null)}
-                      className="p-1 hover:bg-background rounded-md transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </button>
-                    <span className="text-xs font-semibold px-2">Cycle Options</span>
-                    <button
-                      onClick={() => setSelectedFriendTimetablesData(prev => prev ? {...prev, currentIndex: (prev.currentIndex + 1) % prev.timetables.length} : null)}
-                      className="p-1 hover:bg-background rounded-md transition-colors"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={() => setSelectedFriendTimetablesData(null)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-auto bg-muted/5 custom-scrollbar relative">
-              <div className="flex flex-col gap-6 w-max min-w-full pb-4">
-                {renderUnifiedGrid(selectedFriendTimetablesData.timetables[selectedFriendTimetablesData.currentIndex].courses as AddedCourse[], true)}
-
-                <div className="bg-background border border-border rounded-xl shadow-sm flex flex-col">
-                  <div className="p-4 border-b border-border bg-muted/30 rounded-t-xl">
-                    <h3 className="font-bold text-foreground">Course List</h3>
-                  </div>
-                  <div>
-                    <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead className="bg-muted/50 border-b border-border">
-                      <tr>
-                        <th className="py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {getGroupedCourses(selectedFriendTimetablesData.timetables[selectedFriendTimetablesData.currentIndex].courses as AddedCourse[]).map(c => (
-                        <tr key={c.id} className="hover:bg-muted/10 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
-                              <div>
-                                <p className="text-foreground font-semibold text-sm">{c.code}</p>
-                                <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">
-                            {renderTypeChips(c.type)}
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
-                          <td className="py-3 px-2">
-                            <div className="flex flex-wrap gap-1">
-                              {c.slots.map(s => (
-                                <span key={s} className="bg-accent/50 border border-border text-[10px] px-1.5 py-0.5 rounded-md">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Friend Timetable View Modal */}
+      <FriendTimetableViewModal
+        data={selectedFriendTimetablesData}
+        setData={setSelectedFriendTimetablesData}
+        theoryPeriods={theoryPeriods}
+        labPeriods={labPeriods}
+        renderTypeChips={renderTypeChips}
+      />
       {/* Social Matrix Modal */}
-      {isSocialMatrixOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Users className="w-5 h-5 text-pink-500" /> Social Score Breakdown
-              </h3>
-              <button 
-                onClick={() => setIsSocialMatrixOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-auto custom-scrollbar flex-1">
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">How it works</h4>
-                  <p className="text-sm text-foreground/80 leading-relaxed max-w-3xl">
-                    The Social Score is a percentage indicating how well your timetable aligns with your friends' timetables.
-                    It awards points for <strong className="text-foreground">Shared Classes</strong> (+3 per slot), 
-                    <strong className="text-foreground"> Shared Free Half-Days</strong> (+5), and 
-                    <strong className="text-foreground"> Mutually Free Slots</strong> (+1), measured against the maximum possible score if you had the exact same timetable.
-                  </p>
-                </div>
-                
-                {friends.length === 0 ? (
-                  <div className="text-center py-12 border border-dashed border-border rounded-xl">
-                    <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                    <p className="text-muted-foreground font-medium">You have no friends imported.</p>
-                    <p className="text-sm text-muted-foreground/80 mt-1">Add friends in the Social tab to see the comparison matrix!</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-border custom-scrollbar">
-                    <table className="w-full text-sm text-center border-collapse">
-                      <thead className="bg-muted/50 border-b border-border">
-                        <tr>
-                          <th className="py-3 px-4 text-left font-semibold border-r border-border min-w-[200px] sticky left-0 bg-muted/95 z-20">My Options \ Friends</th>
-                          {friends.map(f => (
-                            f.timetables?.map((ft, fIdx) => (
-                              <th key={`${f.id}-${ft.id}`} className="py-3 px-4 font-semibold whitespace-nowrap border-r border-border/50 last:border-r-0">
-                                <div className="flex flex-col items-center gap-1">
-                                  <span>{f.name}</span>
-                                  <span className="text-xs text-muted-foreground font-normal">{ft.name || `Option ${fIdx + 1}`}</span>
-                                </div>
-                              </th>
-                            ))
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {Array.from(new Map([...(generatorPreviewTimetable ? [generatorPreviewTimetable] : []), ...timetables, ...stagedTimetables]
-                          .filter(t => t && t.courses && t.courses.length > 0)
-                          .map(t => [t.id, t])).values())
-                          .map((mt, rIdx) => (
-                          <tr key={mt.id} className="hover:bg-muted/10 transition-colors">
-                            <td className="py-3 px-4 text-left font-medium border-r border-border whitespace-nowrap sticky left-0 bg-background/95 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                              {mt.name || (mt.id === activeTimetableId ? 'Active Timetable' : `Option ${rIdx + 1}`)}
-                              {mt.id === activeTimetableId && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Active</span>}
-                            </td>
-                            {friends.map(f => (
-                              f.timetables?.map(ft => {
-                                const score = calculatePairwiseSocialScore(mt.courses as AddedCourse[], ft.courses as AddedCourse[]);
-                                const pct = score.percentage;
-                                let colorClass = "text-muted-foreground";
-                                let bgClass = "";
-                                if (pct >= 80) { colorClass = "text-emerald-700 dark:text-emerald-400 font-bold"; bgClass = "bg-emerald-500/10"; }
-                                else if (pct >= 60) { colorClass = "text-yellow-700 dark:text-yellow-400 font-bold"; bgClass = "bg-yellow-500/10"; }
-                                else if (pct >= 40) { colorClass = "text-orange-700 dark:text-orange-400 font-medium"; bgClass = "bg-orange-500/10"; }
-                                else if (pct > 0) { colorClass = "text-red-700 dark:text-red-400"; bgClass = "bg-red-500/10"; }
-                                
-                                return (
-                                  <td key={`${mt.id}-${f.id}-${ft.id}`} className={`py-3 px-4 transition-colors group relative border-r border-border/50 last:border-r-0 ${bgClass}`}>
-                                    <span className={colorClass}>{pct}%</span>
-                                    {/* Tooltip for breakdown */}
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-foreground text-background text-xs p-3 rounded-lg shadow-xl pointer-events-none z-50">
-                                      <div className="font-bold border-b border-background/20 pb-2 mb-2 text-center uppercase tracking-wider text-[10px]">Score Breakdown</div>
-                                      <div className="flex justify-between items-center mb-1">
-                                        <span className="text-background/80">Actual Score:</span> 
-                                        <span className="font-bold">{score.actualScore} pts</span>
-                                      </div>
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-background/80">Max Potential:</span> 
-                                        <span className="font-bold">{score.maxScore} pts</span>
-                                      </div>
-                                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground"></div>
-                                    </div>
-                                  </td>
-                                );
-                              })
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Social Matrix Modal */}
+      <SocialMatrixModal
+        isOpen={isSocialMatrixOpen}
+        onClose={() => setIsSocialMatrixOpen(false)}
+        timetables={timetables}
+        friends={friends}
+        friendGroups={friendGroups}
+        socialScoreGroupMethod={socialScoreGroupMethod}
+        generatorPreviewTimetable={generatorPreviewTimetable}
+        stagedTimetables={stagedTimetables}
+        activeTimetableId={activeTimetableId}
+      />
 
       {/* Guide Modal */}
       {isGuideModalOpen && <FFCSGuideModal onClose={() => setIsGuideModalOpen(false)} />}
@@ -4078,6 +2786,70 @@ export default function FFCSTimetableTab() {
                   <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term or filter</span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Timetable Selection Modal */}
+      {isTimetableModalOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
+              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                Select Timetable
+              </h3>
+              <button 
+                onClick={() => setIsTimetableModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+              {timetables.map(t => {
+                const isActive = t.id === activeTimetableId;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setActiveTimetableId(t.id);
+                      setIsTimetableModalOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex items-center justify-between gap-3 ${
+                      isActive 
+                        ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' 
+                        : 'border border-transparent hover:bg-muted/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-blue-500' : 'bg-muted-foreground/30'}`} />
+                      <div className="min-w-0">
+                        <span className={`font-bold text-sm block truncate ${isActive ? 'text-foreground' : 'text-foreground/80'}`}>
+                          {t.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{t.courses.length} course{t.courses.length !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    {isActive && (
+                      <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Active</span>
+                    )}
+                  </button>
+                );
+              })}
+              {timetables.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No timetables yet. Create one!
+                </div>
+              )}
+            </div>
+            <div className="p-3 border-t border-border bg-muted/10 flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
+              <button
+                onClick={() => { createNewTimetable(); setIsTimetableModalOpen(false); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> New
+              </button>
             </div>
           </div>
         </div>
