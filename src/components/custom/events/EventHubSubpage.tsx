@@ -203,8 +203,20 @@ export default function EventHubSubpage({
                                     window.open(data.url, "_blank");
                                   } else if (data.status === "payment_form") {
                                     const win = window.open("", "_blank");
-                                    if (win) win.document.write(data.html);
-                                    else {
+                                    if (win) {
+                                      win.document.write(data.html);
+                                      if (data.tcUrl) {
+                                        // Wait 3.5 seconds for the Event Hub login to finish in the new tab, 
+                                        // then redirect that same tab to the TC page. 
+                                        setTimeout(() => {
+                                          try {
+                                            win.location.href = data.tcUrl;
+                                          } catch (e) {
+                                            console.error("Failed to redirect popup cross-origin", e);
+                                          }
+                                        }, 3500);
+                                      }
+                                    } else {
                                       setModalContent({ title: "Popup Blocked", message: "Please allow popups to proceed to the payment gateway." });
                                       setModalOpen(true);
                                     }
