@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react";
-import { Building2, Clock, ChevronDown, ChevronUp, ChevronLeft, User, Star, Calendar, Calendar as CalendarIcon, AlertCircle, CheckCircle2, FileText, List, CalendarDays, Grid3x3 } from "lucide-react"
+import { Building2, Clock, ChevronDown, ChevronUp, User, Star, Calendar, Calendar as CalendarIcon, AlertCircle, CheckCircle2, FileText, List, CalendarDays, Grid3x3 } from "lucide-react"
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
-import { Button } from "@/components/ui/button";
 import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
 import "react-circular-progressbar/dist/styles.css"
+import SubpageLayout from "../shared/SubpageLayout";
 
 type CalendarEvent = {
     text: string;
@@ -405,42 +405,30 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
     }, [analyzeCalendars]);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6 pb-20">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                {onBack && (
-                    <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
-                        <ChevronLeft size={20} />
-                    </Button>
-                )}
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
-                        {a.courseTitle}
-                    </h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
-                        {a.courseCode.slice(0, -3)} <span className="mx-1">•</span> {a.courseCode.endsWith('(L)') ? "Lab" : "Theory"} <span className="mx-1">•</span> {a.credits} Credits
-                    </p>
-                </div>
-            </div>
+        <SubpageLayout
+            title={a.courseTitle}
+            subtitle={`${a.courseCode.slice(0, -3)} • ${a.courseCode.endsWith('(L)') ? "Lab" : "Theory"} • ${a.credits} Credits`}
+            onBack={onBack}
+        >
 
             {/* Badges Row */}
-            <div className="flex flex-wrap gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 midnight:bg-blue-950/30 border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 text-sm font-medium text-blue-700 dark:text-blue-300 midnight:text-blue-300">
+            <div className="flex flex-wrap gap-3 mb-8">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 midnight:bg-blue-950/30 border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 text-sm font-medium text-blue-700 dark:text-blue-300 midnight:text-blue-300">
                     <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {a.slotName}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 midnight:bg-purple-950/30 border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 text-sm font-medium text-purple-700 dark:text-purple-300 midnight:text-purple-300">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 midnight:bg-purple-950/30 border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 text-sm font-medium text-purple-700 dark:text-purple-300 midnight:text-purple-300">
                     <Building2 className="w-4 h-4 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {a.slotVenue}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 midnight:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 text-sm font-medium text-amber-700 dark:text-amber-300 midnight:text-amber-300">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 midnight:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 text-sm font-medium text-amber-700 dark:text-amber-300 midnight:text-amber-300">
                     <Clock className="w-4 h-4 text-orange-500 dark:text-amber-400 midnight:text-amber-400" /> {a.time}
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 midnight:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 text-sm font-medium text-emerald-700 dark:text-emerald-300 midnight:text-emerald-300">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 midnight:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 text-sm font-medium text-emerald-700 dark:text-emerald-300 midnight:text-emerald-300">
                     <User className="w-4 h-4 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {a.faculty}
                 </div>
             </div>
 
             {/* Metrics Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {/* Attendance Dial Card */}
                 <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
                     <div>
@@ -710,6 +698,6 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                     </div>
                 </div>
             </div>
-        </div>
+        </SubpageLayout>
     );
 }

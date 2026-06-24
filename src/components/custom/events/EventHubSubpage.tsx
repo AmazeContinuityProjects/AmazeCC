@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { API_BASE } from "../Main";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SubpageLayout from "../shared/SubpageLayout";
 
 interface EventHubSubpageProps {
   selectedEvent: EventHubEvent;
@@ -206,34 +207,15 @@ export default function EventHubSubpage({
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 w-full max-w-6xl xl:max-w-7xl mx-auto pb-20 pt-4"
-    >
-      <button
-        onClick={onClose}
-        className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Back to Events
-      </button>
-
+    <SubpageLayout title={selectedEvent.title} onBack={onClose} className="max-w-6xl xl:max-w-7xl mx-auto">
       <div className="bg-white dark:bg-slate-800 midnight:bg-black rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800">
-        <div className="flex justify-between items-start mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white midnight:text-white leading-tight">
-            {selectedEvent.title}
-          </h2>
-          <div className="flex gap-2">
-            {selectedEvent.eligibility && (
-              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/20 midnight:text-blue-300">
-                <Users className="w-4 h-4" /> {selectedEvent.eligibility}
-              </span>
-            )}
+        {selectedEvent.eligibility && (
+          <div className="flex justify-end mb-6">
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/20 midnight:text-blue-300">
+              <Users className="w-4 h-4" /> {selectedEvent.eligibility}
+            </span>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons extracted to a function to render in multiple places */}
         {(() => {
@@ -547,6 +529,6 @@ export default function EventHubSubpage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </SubpageLayout>
   );
 }

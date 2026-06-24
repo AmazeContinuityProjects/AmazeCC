@@ -41,6 +41,7 @@
     "framer-motion": "^12.36.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
     "https": "^1.0.0",
     "jotai": "^2.15.0",
     "jspdf": "^4.2.1",

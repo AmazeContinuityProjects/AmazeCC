@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Printer, ClipboardList } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
+import FetchButton from "../shared/FetchButton";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 import { useTheme } from "next-themes";
 
@@ -63,9 +63,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
           {/* Mobile View: Inline Center */}
           <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-            Exam Schedule <button onClick={handleScheduleFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-              <RefreshCcw className={`w-4 h-4`} />
-            </button>
+            Exam Schedule <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
           </h1>
           
           {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -73,9 +71,9 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
             Exam Schedule
           </h1>
           <div className="hidden md:flex items-center justify-end">
-            <button onClick={handleScheduleFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-              <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-            </button>
+            <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+              <span className="text-sm">Reload</span>
+            </FetchButton>
           </div>
         </div>
         <NoContentFound />
@@ -227,9 +225,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
             <button onClick={handlePrint} disabled={isDownloading} className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white transition-colors" title="Print / PDF">
               <Printer className="w-4 h-4" />
             </button>
-            <button onClick={handleScheduleFetch} className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-              <RefreshCcw className="w-4 h-4" />
-            </button>
+            <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="p-2" />
           </div>
         </div>
         
@@ -260,9 +256,9 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
           >
             <Printer className="w-4 h-4" /> <span className="text-sm">{isDownloading ? "..." : "Print / PDF"}</span>
           </button>
-          <button onClick={handleScheduleFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-            <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-          </button>
+          <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+            <span className="text-sm">Reload</span>
+          </FetchButton>
         </div>
       </div>
 
@@ -369,7 +365,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
                   : subj.seatLocation;
 
                 return (
-                  <div key={idx} className={cardClass}>
+                  <div key={idx} className={`stagger-enter ${cardClass}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-blue-700 dark:text-blue-400 midnight:text-blue-400'}`}>

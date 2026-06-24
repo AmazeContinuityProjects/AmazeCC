@@ -3,6 +3,7 @@ import { FileText, Search, UploadCloud, BookOpen, ArrowLeft, ChevronRight, Gradu
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
+import SubpageLayout from "../shared/SubpageLayout";
 
 type ViewState = "courses" | "course-detail";
 
@@ -208,32 +209,19 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
 
   // ─── COURSE DETAIL VIEW ───
   return (
-    <div className="py-2">
-      {/* Back + Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleGoBack}
-            className="p-2 bg-gray-100 dark:bg-slate-800 midnight:bg-slate-900 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-slate-800 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 midnight:text-gray-400" />
-          </button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-              {selectedCourse?.code}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500">
-              {selectedCourse?.title}
-            </p>
-          </div>
-        </div>
+    <SubpageLayout
+      title={selectedCourse?.code || ""}
+      subtitle={selectedCourse?.title || undefined}
+      onBack={handleGoBack}
+      action={
         <button
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
         >
           <UploadCloud className="w-4 h-4" /> Upload Paper
         </button>
-      </div>
+      }
+    >
 
       {/* Papers / Questions Toggle */}
       <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-black rounded-lg p-1 w-full md:w-max mb-6">
@@ -327,6 +315,6 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
           username={username}
         />
       )}
-    </div>
+    </SubpageLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import FetchButton from "../shared/FetchButton";
 
 export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData }) {
     if (!vitolData || vitolData.length === 0) {
@@ -9,9 +10,7 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                     {/* Mobile View: Inline Center */}
                     <h1 className="md:hidden font-bold">
                         Vitol/LMS Data
-                        <button onClick={() => handleFetchVitol()} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-                            <RefreshCcw className={`w-4 h-4`} />
-                        </button>
+                        <FetchButton onClick={() => handleFetchVitol()} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -19,9 +18,9 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                         Vitol/LMS Data
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
-                        <button onClick={() => handleFetchVitol()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-                            <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-                        </button>
+                        <FetchButton onClick={() => handleFetchVitol()} icon={<RefreshCcw className="w-4 h-4" />}>
+                            <span className="text-sm">Reload</span>
+                        </FetchButton>
                     </div>
                 </div>
                 <h3 className="font-normal text-base p-2">
@@ -41,12 +40,12 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                 {/* Mobile View: Inline Center */}
                 <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
                     Vitol Upcoming Exams / Assignments
-                    <button
+                    <FetchButton
                         onClick={() => handleFetchVitol()}
-                        className="inline-flex ml-2 items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition align-middle"
-                    >
-                        <RefreshCcw size={16} />
-                    </button>
+                        size="sm"
+                        icon={<RefreshCcw size={16} />}
+                        className="ml-2 align-middle"
+                    />
                 </h1>
                 
                 {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -54,9 +53,9 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                     Vitol Upcoming Exams / Assignments
                 </h1>
                 <div className="hidden md:flex items-center justify-end">
-                    <button onClick={() => handleFetchVitol()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-                        <RefreshCcw size={16} /> <span className="text-sm">Reload</span>
-                    </button>
+                    <FetchButton onClick={() => handleFetchVitol()} icon={<RefreshCcw size={16} />}>
+                        <span className="text-sm">Reload</span>
+                    </FetchButton>
                 </div>
             </div>
 

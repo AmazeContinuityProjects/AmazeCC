@@ -3,9 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { Building2, Clock, ChevronDown, ChevronUp } from "lucide-react"
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import "react-circular-progressbar/dist/styles.css"
+import Modal from "../shared/Modal";
 
 type CalendarEvent = {
     text: string;
@@ -93,16 +92,8 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
     const toggleDropdown = (key) => setOpenDropdown(openDropdown === key ? null : key);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
-            <div className="bg-gray-100 dark:bg-gray-800 midnight:bg-black rounded-2xl shadow-2xl p-5 w-[90%] max-w-md relative max-h-[90vh] overflow-hidden flex flex-col overflow-y-auto">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setExpandedIdx(null)}
-                    className="top-2 right-2 absolute cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-800 midnight:hover:bg-gray-900"
-                >
-                    <X size={22} className="text-gray-600 dark:text-gray-300 midnight:text-gray-200" />
-                </Button>
+        <Modal onClose={() => setExpandedIdx(null)} className="max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="overflow-y-auto flex-1 pr-1">
 
                 <div
                     className="rounded-xl mb-4 transition-all duration-300"
@@ -289,7 +280,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                     </ul>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }
 

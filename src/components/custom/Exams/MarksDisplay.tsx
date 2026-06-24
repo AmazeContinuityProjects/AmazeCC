@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, Info, Activity, ChevronDown, ChevronUp } from "lucide-react";
+import { Info, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import Image from "next/image";
 import { API_BASE } from "../Main";
 import { motion, AnimatePresence } from "framer-motion";
+import SubpageLayout from "../shared/SubpageLayout";
 
 const formatNumber = (num) => {
   const numericValue = Number(num);
@@ -505,26 +505,8 @@ function MarksSubpage({ group, allStats, onBack }) {
       exit={{ opacity: 0, x: 20 }}
       className="p-2 space-y-6 max-w-5xl mx-auto"
     >
-      <div className="flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onBack}
-          className="rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 midnight:hover:bg-gray-900"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </Button>
-        <div>
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
-            {group.courseCode}
-          </h1>
-          <p className="text-sm md:text-base font-medium text-gray-600 dark:text-gray-400 midnight:text-gray-400">
-            {group.courseTitle}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <SubpageLayout title={group.courseCode} subtitle={group.courseTitle} onBack={onBack}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
         <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Course Type</p>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 line-clamp-1">{courseType}</p>
@@ -715,6 +697,7 @@ function MarksSubpage({ group, allStats, onBack }) {
           </div>
         </div>
       </div>
+    </SubpageLayout>
     </motion.div>
   );
 }

@@ -48,8 +48,17 @@ export default function NavigationTabs({
     };
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);
+    
+    try {
+      const stored = localStorage.getItem("profile");
+      if (stored) setProfileData(JSON.parse(stored));
+    } catch(e){}
+    
     return () => window.removeEventListener("app-icon-changed", updateIcon);
   }, []);
+
+  const [profileData, setProfileData] = useState<any>(null);
+  const isHosteller = profileData?.isHosteller;
 
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -285,7 +294,7 @@ export default function NavigationTabs({
         )}
 
 
-        {settings?.residentialStatus !== "dayscholar" && (
+        {isHosteller === true && (
           <>
             <button
               onClick={() => setActiveTab("hostel")}

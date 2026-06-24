@@ -138,9 +138,20 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "academics", "hostel", "dayscholar", "more", "profile"];
-  if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
-  if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
+  const tabsOrder = ["attendance", "academics", "more", "profile"];
+  
+  const [profileData, setProfileData] = useState<any>(null);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("profile");
+      if (stored) setProfileData(JSON.parse(stored));
+    } catch(e){}
+  }, []);
+
+  const isHosteller = profileData?.isHosteller;
+  
+  if (isHosteller === true) tabsOrder.push("hostel");
+  if (isHosteller === false) tabsOrder.push("dayscholar");
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];

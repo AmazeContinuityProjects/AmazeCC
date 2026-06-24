@@ -5,7 +5,6 @@ import PopupCard from "./PopupCard";
 import config from '../../../../config.json';
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
-import { Button } from "@/components/ui/button";
 import { X, BadgeQuestionMark, Calendar, Users, ClipboardList, Building2 } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import { getFriends, Friend } from "../../../lib/socialUtils";
@@ -14,6 +13,7 @@ import AttendanceSubpage from "./AttendanceSubpage";
 import ODTrackerSubpage from "./ODTrackerSubpage";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/Skeleton";
+import Modal from "../shared/Modal";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
@@ -277,8 +277,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+    <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         {/* Mobile View: Inline Center */}
         <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
           <button onClick={() => setShowTimetable(true)} className="inline-flex mr-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
@@ -316,7 +316,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         </div>
       </div>
 
-      <div className="flex gap-2 mb-3 justify-center flex-wrap">
+      <div className="flex gap-3 mb-6 justify-center flex-wrap">
         {daysWithClasses.map((d) => (
           <button
             key={d}
@@ -333,9 +333,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
       </div>
 
       {/* Mobile View: Grid of cards */}
-      <div className="grid grid-cols-1 md:hidden gap-4 p-2">
+      <div className="grid grid-cols-1 md:hidden gap-6 px-1">
         {dayCardsMap[activeDay]?.map((a, idx) => (
-          <div key={idx}>
+          <div key={idx} className="stagger-enter">
             <CourseCard
               a={a}
               onClick={() => setExpandedIdx(idx)}
@@ -350,7 +350,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
       {/* Desktop View: Side-by-side Timeline (Left) and Details Panel (Right) */}
       {dayCardsMap[activeDay] && dayCardsMap[activeDay].length > 0 ? (
-        <div className="hidden md:grid md:grid-cols-[300px_1fr] gap-8 p-2 items-start">
+        <div className="hidden md:grid md:grid-cols-[300px_1fr] gap-8 p-0 items-start">
           {/* Left Column: Timeline Schedule */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Today's Schedule</h3>
@@ -407,7 +407,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                     </div>
 
                     {/* Timeline Card */}
-                    <div className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${cardStyle} ${textOpacity}`}>
+                    <div className={`stagger-enter p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${cardStyle} ${textOpacity}`}>
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -478,17 +478,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
       )}
 
       {showPredictor && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-center items-center">
-          <div className="relative w-[95%] max-w-4xl max-h-[95vh] overflow-y-auto bg-gray-100 dark:bg-slate-800 midnight:bg-black rounded-2xl shadow-2xl p-5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowPredictor(false)}
-              className="absolute top-3 right-3 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
-            >
-              <X size={22} className="text-gray-700 dark:text-gray-200 midnight:text-gray-200" />
-            </Button>
-
+        <Modal onClose={() => setShowPredictor(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
             <OverallAttendancePredictor
               attendanceData={data.attendance}
               analyzeCalendars={results}
@@ -496,24 +486,12 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
               impDates={impDates}
               isDayscholarWithBus={isDayscholarWithBus}
             />
-          </div>
-        </div>
+        </Modal>
       )}
       {showTimetable && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-center items-center">
-          <div className="relative w-[95%] max-h-[95vh] overflow-y-auto bg-gray-100 dark:bg-slate-800 midnight:bg-black rounded-2xl shadow-2xl p-5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowTimetable(false)}
-              className="absolute top-3 right-3 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
-            >
-              <X size={22} className="text-gray-700 dark:text-gray-200 midnight:text-gray-200" />
-            </Button>
-
+        <Modal onClose={() => setShowTimetable(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
             <TimetableGrid attendance={data.attendance} />
-          </div>
-        </div>
+        </Modal>
       )}
       {showCommonFree && (
         <CommonFreeSlotsModal

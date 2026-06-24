@@ -23,6 +23,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     const [appIcon, setAppIcon] = useState<string>("default");
     const [isEditingName, setIsEditingName] = useState<boolean>(false);
     const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
+    const [profileData, setProfileData] = useState<any>(null);
 
     // Footer Modals State
     const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
@@ -40,6 +41,14 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     useEffect(() => {
         setSelectedSemester(currSemesterID);
         setAppIcon(localStorage.getItem("app-icon") || "default");
+        const storedProfile = localStorage.getItem("profile");
+        if (storedProfile) {
+            try {
+                setProfileData(JSON.parse(storedProfile));
+            } catch (e) {
+                console.error(e);
+            }
+        }
     }, [currSemesterID]);
 
     const handleIconChange = (icon: string) => {
@@ -111,9 +120,13 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 {/* Student Card */}
                 <CardContainer>
                     <div className="p-6 flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
-                            <User size={36} className="text-white" />
-                        </div>
+                        {profileData?.image ? (
+                            <img src={profileData.image} alt="Profile" className="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white dark:border-gray-800" />
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
+                                <User size={36} className="text-white" />
+                            </div>
+                        )}
                         <div className="flex-1 min-w-0">
                             {isEditingName ? (
                                 <div className="flex items-center gap-2 max-w-sm">
@@ -139,9 +152,26 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     <button onClick={() => setIsEditingName(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded hover:bg-blue-100 transition-colors">Edit</button>
                                 </div>
                             )}
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">{friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">
+                                {friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}
+                                {profileData?.branch ? ` • ${profileData.branch}` : ""}
+                            </p>
                         </div>
                     </div>
+                    {profileData && (
+                        <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 mt-4 pt-4">
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Blood Group</p>
+                                <p className="font-medium text-gray-800 dark:text-gray-200">{profileData.bloodGroup || "N/A"}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Hostel Status</p>
+                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                    {profileData.isHosteller ? `${profileData.blockName} - ${profileData.roomNo}` : "Day Scholar"}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </CardContainer>
 
                 {/* Preferences */}

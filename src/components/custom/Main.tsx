@@ -313,6 +313,26 @@ export default function LoginPage() {
       setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
       setProgressBar(prev => prev + 10);
 
+      let profileRes = JSON.parse(localStorage.getItem("profile") || "null");
+      if (!profileRes) {
+        try {
+          const studentFetch = await fetchWithTimeout(`${API_BASE}/api/student`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          });
+          const studentData = await studentFetch.json();
+          if (studentData && studentData.profile) {
+            profileRes = studentData.profile;
+            localStorage.setItem("profile", JSON.stringify(profileRes));
+            setMessage(prev => prev + "\n✅ Profile details fetched");
+            setProgressBar(prev => prev + 5);
+          }
+        } catch (e) {
+          console.error("Failed to fetch profile", e);
+        }
+      }
+
       const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes] = await Promise.all([
 
         fetchWithTimeout(`${API_BASE}/api/grades`, {
@@ -337,7 +357,7 @@ export default function LoginPage() {
           return j;
         }),
 
-        fetchWithTimeout(`${API_BASE}/api/hostel`, {
+        (profileRes?.isHosteller) ? fetchWithTimeout(`${API_BASE}/api/hostel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
@@ -346,7 +366,7 @@ export default function LoginPage() {
           setMessage(prev => prev + "\n✅ Hostel details fetched");
           setProgressBar(prev => prev + 5);
           return j;
-        }),
+        }) : Promise.resolve({}),
 
         fetchWithTimeout(`${API_BASE}/api/calendar`, {
           method: "POST",

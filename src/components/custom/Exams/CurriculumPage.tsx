@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap, ChevronLeft } from "lucide-react";
+import { RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap } from "lucide-react";
+import FetchButton from "../shared/FetchButton";
+import SubpageLayout from "../shared/SubpageLayout";
 
 // ── helpers ──────────────────────────────────────────────────────────
 const normalizeDistributionType = (raw?: string) => {
@@ -151,9 +152,9 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       <div className="py-12 text-center">
         <GraduationCap className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <p className="text-gray-600 dark:text-gray-300 midnight:text-gray-400 mb-4">No curriculum data available.</p>
-        <button onClick={handleFetchGrades} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
-          <RefreshCcw className="w-4 h-4" /> Load Grades Data
-        </button>
+        <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="px-5 py-2.5 rounded-xl">
+          Load Grades Data
+        </FetchButton>
       </div>
     );
   }
@@ -167,40 +168,16 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
   ];
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        {/* Mobile View */}
-        <div className="md:hidden flex items-center justify-between w-full">
-            <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => setActiveSubTab("overview")} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
-                    <ChevronLeft size={20} />
-                </Button>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                    Curriculum Map
-                </h1>
-            </div>
-            <button onClick={handleFetchGrades} className="inline-flex px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-                <RefreshCcw className={`w-4 h-4`} />
-            </button>
-        </div>
-        
-        {/* Desktop View */}
-        <div className="hidden md:flex items-center gap-4 w-full justify-between">
-            <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => setActiveSubTab("overview")} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
-                    <ChevronLeft size={20} />
-                </Button>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Curriculum Overview</h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">Track your degree progress across all credit baskets</p>
-                </div>
-            </div>
-            <button onClick={handleFetchGrades} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm text-sm">
-                <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-            </button>
-        </div>
-      </div>
+    <SubpageLayout
+      title="Curriculum Overview"
+      subtitle="Track your degree progress across all credit baskets"
+      onBack={() => setActiveSubTab("overview")}
+      action={
+        <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="rounded-xl">
+          <span className="text-sm">Reload</span>
+        </FetchButton>
+      }
+    >
 
       {/* ── Total Credits Summary ── */}
       <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-slate-900 dark:to-indigo-950/30 midnight:from-black midnight:to-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 midnight:border-indigo-900/30 rounded-2xl shadow-sm overflow-hidden">
@@ -300,7 +277,7 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
           </div>
         </div>
       )}
-    </div>
+    </SubpageLayout>
   );
 }
 

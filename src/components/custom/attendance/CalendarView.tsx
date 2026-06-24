@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { eachDayOfInterval, endOfMonth, getDay, isSameDay } from "date-fns";
 import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Calendar as CalendarIcon, Info, ChevronRight, BookOpen, Clock, EyeOff, Plus, CheckCircle2, ShieldAlert, Award } from "lucide-react";
+import FetchButton from "../shared/FetchButton";
 import { motion, AnimatePresence } from "framer-motion";
 import ExamsScheduleDisplay from "../Exams/SchduleDisplay";
 import { MoodleUserPassForm } from "../Exams/moodleDisplay";
@@ -534,12 +535,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             <option key={value} value={value}>{label}</option>
                         ))}
                     </select>
-                    <button
+                    <FetchButton
                         onClick={() => handleCalendarFetch(selectedType)}
-                        className="px-6 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors"
+                        className="px-6 py-2"
                     >
                         Load Calendar
-                    </button>
+                    </FetchButton>
                 </div>
                 <div className="mt-20">
                     <NoContentFound />

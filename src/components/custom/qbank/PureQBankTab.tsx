@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Search, BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
+import SubpageLayout from "../shared/SubpageLayout";
 
 type ViewState = "courses" | "questions";
 
@@ -175,23 +176,11 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
 
   // ─── QUESTIONS VIEW ───
   return (
-    <div className="py-2">
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={handleGoBack}
-          className="p-2 bg-gray-100 dark:bg-slate-800 midnight:bg-slate-900 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-slate-800 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 midnight:text-gray-400" />
-        </button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-            {selectedCourse?.code}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500">
-            {selectedCourse?.title} — {questions.length} questions
-          </p>
-        </div>
-      </div>
+    <SubpageLayout
+      title={selectedCourse?.code || ""}
+      subtitle={selectedCourse?.title ? `${selectedCourse.title} — ${questions.length} questions` : undefined}
+      onBack={handleGoBack}
+    >
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -210,6 +199,6 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
           ))}
         </div>
       )}
-    </div>
+    </SubpageLayout>
   );
 }

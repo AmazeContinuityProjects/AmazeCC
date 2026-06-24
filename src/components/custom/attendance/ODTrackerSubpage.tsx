@@ -1,11 +1,11 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, List, CalendarDays, Grid3x3, CheckCircle2, ShieldAlert, Award } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { List, CalendarDays, Grid3x3, CheckCircle2, ShieldAlert, Award } from "lucide-react";
 import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
 import config from "../../../../config.json";
+import SubpageLayout from "../shared/SubpageLayout";
 
 export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeCalendars, onBack }) {
     const [viewMode, setViewMode] = useState<"list" | "heatmap" | "calendar">("list");
@@ -143,11 +143,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
     }, [masterODHistory]);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6 pb-20">
-            <Button variant="ghost" onClick={onBack} className="mb-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white midnight:hover:text-white">
-                <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
-            </Button>
-
+        <SubpageLayout title="OD Tracker" subtitle="Track your approved On-Duty hours and find out if you attended classes while on OD." onBack={onBack}>
             <div className="grid xl:grid-cols-3 gap-6 items-start h-full">
                 {/* Left Pane (Stats) */}
                 <div className="xl:col-span-1 space-y-6">
@@ -155,8 +151,6 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                         <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 midnight:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400 flex items-center justify-center mb-4">
                             <Award size={32} />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-2">OD Tracker</h2>
-                        <p className="text-sm text-gray-500 midnight:text-gray-400 mb-6">Track your approved On-Duty hours and find out if you attended classes while on OD.</p>
                         
                         <div className="grid grid-cols-2 gap-4 w-full">
                             <div className={`p-4 bg-emerald-50 border border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/10 midnight:bg-gray-900 rounded-xl ${recoveredODsCount > 0 ? "col-span-2" : "col-span-2"}`}>
@@ -317,6 +311,6 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                     </div>
                 </div>
             </div>
-        </div>
+        </SubpageLayout>
     );
 }
