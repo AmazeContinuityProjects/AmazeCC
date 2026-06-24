@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/Skeleton";
+import InfoRow from "../shared/InfoRow";
 import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
@@ -412,10 +413,7 @@ export default function EventHubSubpage({
 
                     return (
                       <div key={key} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 text-sm text-gray-500 midnight:text-gray-400 mb-1">
-                          <Icon className="w-4 h-4 text-blue-500" /> {key}
-                        </div>
-                        <p className="font-semibold text-gray-900 dark:text-white midnight:text-white line-clamp-2" title={value}>{value}</p>
+                        <InfoRow icon={<Icon className="w-4 h-4" />}>{key}: {value}</InfoRow>
                       </div>
                     );
                   })}
@@ -423,28 +421,16 @@ export default function EventHubSubpage({
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 midnight:text-gray-400 mb-1">
-                      <Calendar className="w-4 h-4" /> Date
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white midnight:text-white truncate" title={selectedEvent.date}>{selectedEvent.date}</p>
+                    <InfoRow icon={<Calendar className="w-4 h-4" />}>Date: {selectedEvent.date}</InfoRow>
                   </div>
                   <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 midnight:text-gray-400 mb-1">
-                      <MapPin className="w-4 h-4" /> Location
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white midnight:text-white truncate" title={selectedEvent.location}>{selectedEvent.location}</p>
+                    <InfoRow icon={<MapPin className="w-4 h-4" />}>Location: {selectedEvent.location}</InfoRow>
                   </div>
                   <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 midnight:text-gray-400 mb-1">
-                      <IndianRupee className="w-4 h-4" /> Price
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white midnight:text-white">{selectedEvent.price || "Free"}</p>
+                    <InfoRow icon={<IndianRupee className="w-4 h-4" />}>Price: {selectedEvent.price || "Free"}</InfoRow>
                   </div>
                   <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 midnight:text-gray-400 mb-1">
-                      <Tag className="w-4 h-4" /> Type
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white midnight:text-white">{selectedEvent.type}</p>
+                    <InfoRow icon={<Tag className="w-4 h-4" />}>Type: {selectedEvent.type}</InfoRow>
                   </div>
                 </div>
               )}

@@ -14,6 +14,7 @@ import ODTrackerSubpage from "./ODTrackerSubpage";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Modal from "../shared/Modal";
+import Badge from "../shared/Badge";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
@@ -386,11 +387,11 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                   textOpacity = "opacity-60";
                 }
 
-                const attendanceColor = a.attendancePercentage < (isDayscholarWithBus ? 85 : 75)
-                  ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+                const attendanceVariant = a.attendancePercentage < (isDayscholarWithBus ? 85 : 75)
+                  ? "danger"
                   : a.attendancePercentage < (isDayscholarWithBus ? 90 : 85)
-                    ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400"
-                    : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400";
+                    ? "warning"
+                    : "success";
 
                 return (
                   <div 
@@ -429,9 +430,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                         </div>
 
                         {/* Attendance Pill */}
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${attendanceColor}`}>
+                        <Badge variant={attendanceVariant} className="font-bold shrink-0">
                           {a.attendancePercentage}%
-                        </span>
+                        </Badge>
                       </div>
 
                       {/* Small badge overlay if ongoing */}

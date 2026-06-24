@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Award, History, BookOpen, TrendingUp, Database, ChevronRight, Trophy } from "lucide-react";
+import { Award, History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import GradesModal from "./GradesModal";
@@ -47,6 +47,46 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       icon: Database,
       color: "text-red-600 dark:text-red-400",
       bg: "bg-red-100 dark:bg-red-900/30",
+    },
+    {
+      id: "arrear",
+      title: "Arrear Management",
+      description: "View arrear schedule, details and grades.",
+      icon: AlertTriangle,
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+    },
+    {
+      id: "makeup-compre",
+      title: "Makeup & Compre",
+      description: "Makeup exam eligibility, schedule and compre info.",
+      icon: GraduationCap,
+      color: "text-cyan-600 dark:text-cyan-400",
+      bg: "bg-cyan-100 dark:bg-cyan-900/30",
+    },
+    {
+      id: "course-mgmt",
+      title: "Course Management",
+      description: "Course options, extracurriculars, minor/honour courses.",
+      icon: ScrollText,
+      color: "text-indigo-600 dark:text-indigo-400",
+      bg: "bg-indigo-100 dark:bg-indigo-900/30",
+    },
+    {
+      id: "projects",
+      title: "Projects",
+      description: "View your projects and project courses.",
+      icon: FileCode,
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-100 dark:bg-rose-900/30",
+    },
+    {
+      id: "wishlist",
+      title: "Wishlist & Learning",
+      description: "Wishlist, registration and additional learning courses.",
+      icon: BookMarked,
+      color: "text-teal-600 dark:text-teal-400",
+      bg: "bg-teal-100 dark:bg-teal-900/30",
     },
   ];
 

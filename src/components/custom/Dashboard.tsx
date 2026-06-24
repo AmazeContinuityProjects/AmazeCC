@@ -48,11 +48,22 @@ const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
   )
 });
 import QBankSubTabs from "./qbank/QBankSubTabs";
-import ProfilePage from "./header/ProfilePage";
+import PaymentsTab from "./PaymentsTab";
+import LibrariesTab from "./Libraries/LibrariesTab";
+import ArrearTab from "./Exams/ArrearTab";
+import MakeupCompreTab from "./Exams/MakeupCompreTab";
+import CourseMgmtTab from "./Exams/CourseMgmtTab";
+import ProjectsTab from "./Exams/ProjectsTab";
+import WishlistTab from "./Exams/WishlistTab";
+import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
+import FresherWelcomePage, { hasFutureExam } from "./FresherWelcomePage";
+import FeedbackStatusModal from "./profile/FeedbackStatusModal";
+import GenericApiView from "./Exams/GenericApiView";
 
 export default function DashboardContent({
+  demoMode = false,
   activeTab,
   setActiveTab,
   handleLogOutRequest,
@@ -105,6 +116,77 @@ export default function DashboardContent({
   settings,
   setSettings
 }) {
+  const [showFresherWelcome, setShowFresherWelcome] = useState(false);
+  const [fresherEptData, setFresherEptData] = useState<any>(null);
+  const [fresherAckData, setFresherAckData] = useState<any>(null);
+  const [fresherResources, setFresherResources] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (demoMode) {
+      setFresherEptData({
+        title: "EPT Schedule",
+        tables: [{
+          caption: "English Proficiency Test",
+          headers: ["Course Code", "Course Title", "Exam Date", "Exam Session", "Venue"],
+          rows: [
+            { "Course Code": "ENG101", "Course Title": "Communicative English", "Exam Date": new Date(Date.now() + 86400000 * 7).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), "Exam Session": "FN (09:00 - 12:00)", "Venue": "AB1-101" },
+            { "Course Code": "ENG102", "Course Title": "Professional English", "Exam Date": new Date(Date.now() + 86400000 * 9).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), "Exam Session": "AN (14:00 - 17:00)", "Venue": "AB2-205" },
+          ]
+        }],
+        keyValuePairs: { programme: "B.Tech CSE", campus: "Chennai", year: "2025-26" },
+      });
+      setFresherAckData({
+        title: "Acknowledgment Details",
+        tables: [{
+          headers: ["1.", "Mark List - HSC / +2", "Submitted"],
+          rows: [
+            { "1.": "1.", "Mark List - HSC / +2": "Mark List - HSC / +2", "Submitted": "Submitted" },
+            { "1.": "2.", "Mark List - HSC / +2": "Transfer Certificate", "Submitted": "Submitted" },
+            { "1.": "3.", "Mark List - HSC / +2": "Migration Certificate", "Submitted": "Not Applicable" },
+            { "1.": "4.", "Mark List - HSC / +2": "Community Certificate", "Submitted": "Submitted" },
+          ]
+        }],
+      });
+      setFresherResources([
+        { id: 1, title: "Transport & Bus Guide", description: "View bus routes, boarding points, and schedules.", url: "https://vtopcc.vit.ac.in", icon: "Bus" },
+        { id: 2, title: "Campus Map", description: "Navigate your way around VIT Chennai campus.", url: "https://vit.ac.in/campus", icon: "MapPin" },
+        { id: 3, title: "Academic Calendar", description: "Important dates and academic schedule.", url: "https://vtopcc.vit.ac.in", icon: "CalendarDays" },
+        { id: 4, title: "Student Handbook", description: "Rules, regulations, and guidelines for students.", url: "https://vit.ac.in", icon: "BookOpen" },
+      ]);
+      setShowFresherWelcome(true);
+      return;
+    }
+
+    const credsRaw = localStorage.getItem("IDs");
+    if (!credsRaw) return;
+    let creds;
+    try { creds = JSON.parse(credsRaw); } catch { return; }
+    if (!creds.VtopUsername || !creds.VtopPassword) return;
+
+    loginToVTOP().then(c => {
+      return Promise.all([
+        fetch(`${API_BASE}/api/ept-schedule`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
+        }).then(r => r.json()),
+        fetch(`${API_BASE}/api/acknowledgement`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
+        }).then(r => r.json()),
+        fetch(`${API_BASE}/api/fresher-resources`).then(r => r.json()),
+      ]);
+    }).then(([eptRes, ackRes, resRes]) => {
+      if (eptRes.success && hasFutureExam(eptRes.tables)) {
+        setFresherEptData(eptRes);
+        if (ackRes.success) setFresherAckData(ackRes);
+        setFresherResources(resRes.resources || []);
+        setShowFresherWelcome(true);
+      }
+    }).catch(() => {});
+  }, []);
+
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);
@@ -124,6 +206,10 @@ export default function DashboardContent({
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
+  const [activeProfileSubTab, setActiveProfileSubTab] = useState("info");
+  const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
+  const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
+  const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
 
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
 
@@ -138,7 +224,7 @@ export default function DashboardContent({
       .catch(err => console.error("Failed to fetch buses from API:", err));
   }, []);
 
-  const tabsOrder = ["attendance", "academics", "more", "profile"];
+  const tabsOrder = ["attendance", "academics", "payments", "libraries", "more", "profile"];
   
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -381,6 +467,19 @@ export default function DashboardContent({
     }
   };
 
+  if (showFresherWelcome) {
+    return (
+      <FresherWelcomePage
+        onDismiss={() => setShowFresherWelcome(false)}
+        username={IDs?.VtopUsername || ""}
+        friendlyName={settings?.friendlyName || ""}
+        eptData={fresherEptData}
+        acknowledgementData={fresherAckData}
+        resources={fresherResources}
+      />
+    );
+  }
+
   return (
     <div
       className="w-full max-w-md md:max-w-full mx-auto overflow-hidden"
@@ -433,6 +532,9 @@ export default function DashboardContent({
         setActiveQBankSubTab={setActiveQBankSubTab}
         activeMoreSubTab={activeMoreSubTab}
         setActiveMoreSubTab={setActiveMoreSubTab}
+        activeProfileSubTab={activeProfileSubTab}
+        setActiveProfileSubTab={setActiveProfileSubTab}
+        onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
       />
 
       <div 
@@ -486,6 +588,7 @@ export default function DashboardContent({
             localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: val }))
             }
           }
+          onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
         />
         </div>
 
@@ -502,7 +605,7 @@ export default function DashboardContent({
 
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <ChangelogModal />
-
+        <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
@@ -644,6 +747,21 @@ export default function DashboardContent({
                   <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
                 </div>
               )}
+              {activeSubTab === "arrear" && (
+                <ArrearTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "makeup-compre" && (
+                <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "course-mgmt" && (
+                <CourseMgmtTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "projects" && (
+                <ProjectsTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "wishlist" && (
+                <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
             </div>
           )}
 
@@ -658,12 +776,39 @@ export default function DashboardContent({
               {HostelActiveSubTab === "mess" && <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
               {HostelActiveSubTab === "laundry" && <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
               {HostelActiveSubTab === "leave" && <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
+              {HostelActiveSubTab === "counselling" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Hostel Counselling</h2>
+                    <button
+                      onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
+                      className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+                      title="Reload"
+                    >
+                      <RefreshCcw className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === "dayscholar" && (
             <div className="animate-fadeIn">
               <BusFinder buses={dayscholarBuses} />
+            </div>
+          )}
+
+          {activeTab === "payments" && (
+            <div className="animate-fadeIn">
+              <PaymentsTab loginToVTOP={loginToVTOP} />
+            </div>
+          )}
+
+          {activeTab === "libraries" && (
+            <div className="animate-fadeIn">
+              <LibrariesTab loginToVTOP={loginToVTOP} />
             </div>
           )}
 
@@ -686,8 +831,11 @@ export default function DashboardContent({
 
           {activeTab === "profile" && (
             <div className="animate-fadeIn">
-              <ProfilePage
+              <ProfileTab
+                activeProfileSubTab={activeProfileSubTab}
+                setActiveProfileSubTab={setActiveProfileSubTab}
                 isLoggedIn={true}
+                loginToVTOP={loginToVTOP}
                 currSemesterID={settings.currSemesterID}
                 setCurrSemesterID={(val: string) => {
                   setSettings(prev => ({ ...prev, currSemesterID: val }))
@@ -752,5 +900,13 @@ export default function DashboardContent({
       </div>
     </div>
   );
+}
+
+function HostelCounsellingView({ loginToVTOP, refreshKey }: { loginToVTOP: () => Promise<any>; refreshKey: number }) {
+  const [creds, setCreds] = useState<any>(null);
+  useEffect(() => { loginToVTOP().then(setCreds).catch(() => {}); }, [refreshKey]);
+
+  if (!creds) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  return <GenericApiView endpoint="hostel-counselling" title="" creds={creds} refreshKey={refreshKey} />;
 }
 

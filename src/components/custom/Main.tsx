@@ -333,7 +333,7 @@ export default function LoginPage() {
         }
       }
 
-      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes] = await Promise.all([
+      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, profileImagesRes] = await Promise.all([
 
         fetchWithTimeout(`${API_BASE}/api/grades`, {
           method: "POST",
@@ -404,6 +404,20 @@ export default function LoginPage() {
           setProgressBar(prev => prev + 5);
           return j;
         }).catch(() => ({ events: [] })),
+        fetchWithTimeout(`${API_BASE}/api/profile-images`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies, authorizedID, csrf }),
+        }).then(async r => {
+          if (!r.ok) return null;
+          const j = await r.json();
+          if (j?.success) {
+            setMessage(prev => prev + "\n✅ Profile images cached");
+            setProgressBar(prev => prev + 3);
+            return j;
+          }
+          return null;
+        }).catch(() => null),
       ]);
 
       setMessage(prev => prev + "\nFinalizing and saving data...");
@@ -416,6 +430,7 @@ export default function LoginPage() {
       sethostelData(HostelRes);
       setCalender(calenderRes);
       if (eventsRes?.events) setRegisteredEvents(eventsRes.events);
+      if (profileImagesRes?.success) localStorage.setItem("profileImages", JSON.stringify(profileImagesRes));
 
       const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
       syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
@@ -763,6 +778,7 @@ export default function LoginPage() {
             ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
           </div>}
           <DashboardContent
+            demoMode={demoMode}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             handleLogOutRequest={handleLogOutRequest}

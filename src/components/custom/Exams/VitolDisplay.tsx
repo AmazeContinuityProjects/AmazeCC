@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
+import EmptyState from "../shared/EmptyState";
 
 export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData }) {
     if (!vitolData || vitolData.length === 0) {
@@ -23,10 +24,11 @@ export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData
                         </FetchButton>
                     </div>
                 </div>
-                <h3 className="font-normal text-base p-2">
-                    Nothing here yet? Try refreshing.
-                </h3>
-                <VitolUserPassForm handleFetchVitol={handleFetchVitol} />
+                <EmptyState
+                    title="Nothing here yet? Try refreshing."
+                    action={<VitolUserPassForm handleFetchVitol={handleFetchVitol} />}
+                    className="py-4"
+                />
             </div>
         );
     }

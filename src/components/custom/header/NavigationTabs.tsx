@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getAssetPath } from "@/lib/utils";
-import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
+import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid, Wallet } from "lucide-react";
 
 import { IconToggle } from "../toggle";
 
@@ -36,7 +36,10 @@ export default function NavigationTabs({
   activeQBankSubTab,
   setActiveQBankSubTab,
   activeMoreSubTab,
-  setActiveMoreSubTab
+  setActiveMoreSubTab,
+  activeProfileSubTab,
+  setActiveProfileSubTab,
+  onOpenFeedbackStatus
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
@@ -195,7 +198,7 @@ export default function NavigationTabs({
           </div>
 
           {feedbackStatus && (
-            <div className="flex flex-col mt-2 pt-3 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+            <div onClick={onOpenFeedbackStatus} className="flex flex-col mt-2 pt-3 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 rounded-lg px-2 -mx-2 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Feedback</span>
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-gray-500">Mid Sem</span>
@@ -209,6 +212,7 @@ export default function NavigationTabs({
                   {feedbackStatus?.EndSem?.Curriculum && feedbackStatus?.EndSem?.Course ? "Given" : "Pending"}
                 </span>
               </div>
+              <span className="text-[10px] text-blue-500 font-medium mt-1.5 text-center">View all semesters →</span>
               </div>
             )}
             </>
@@ -290,9 +294,58 @@ export default function NavigationTabs({
             >
               Question Bank
             </button>
+            <div className="border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 my-1.5" />
+            <button
+              onClick={() => setActiveSubTab("arrear")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "arrear" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Arrear
+            </button>
+            <button
+              onClick={() => setActiveSubTab("makeup-compre")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "makeup-compre" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Makeup & Compre
+            </button>
+            <button
+              onClick={() => setActiveSubTab("course-mgmt")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "course-mgmt" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Course Mgmt
+            </button>
+            <button
+              onClick={() => setActiveSubTab("projects")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "projects" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Projects
+            </button>
+            <button
+              onClick={() => setActiveSubTab("wishlist")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "wishlist" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Wishlist
+            </button>
           </div>
         )}
 
+
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={navItemClass(activeTab === "payments")}
+          title="Payments"
+        >
+          <Wallet className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Payments</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("libraries")}
+          className={navItemClass(activeTab === "libraries")}
+          title="Libraries"
+        >
+          <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Libraries</span>
+        </button>
 
         {isHosteller === true && (
           <>
@@ -323,6 +376,12 @@ export default function NavigationTabs({
                   className={`text-left text-sm py-1.5 transition-colors ${HostelActiveSubTab === "leave" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
                 >
                   Leave
+                </button>
+                <button
+                  onClick={() => setHostelActiveSubTab("counselling")}
+                  className={`text-left text-sm py-1.5 transition-colors ${HostelActiveSubTab === "counselling" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+                >
+                  Counselling
                 </button>
               </div>
             )}
@@ -370,15 +429,32 @@ export default function NavigationTabs({
           </div>
         )}
 
-        <div className="hidden md:block w-full flex-grow"></div>
-
         <button
           onClick={() => setActiveTab("profile")}
-          className={`${navItemClass(activeTab === "profile")} md:hidden`}
+          className={navItemClass(activeTab === "profile")}
+          title="Profile"
         >
           <User className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className="hidden md:block text-[10px] md:text-sm font-medium">Profile</span>
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Profile</span>
         </button>
+        {activeTab === "profile" && !settings.isSidebarCollapsed && (
+          <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
+            <button
+              onClick={() => setActiveProfileSubTab("info")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeProfileSubTab === "info" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              My Info
+            </button>
+            <button
+              onClick={() => setActiveProfileSubTab("credentials")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeProfileSubTab === "credentials" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Credentials
+            </button>
+          </div>
+        )}
+
+        <div className="hidden md:block w-full flex-grow"></div>
 
       </div>
     </>

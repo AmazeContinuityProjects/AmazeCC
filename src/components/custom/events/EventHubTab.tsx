@@ -6,6 +6,8 @@ import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import EventHubSubpage from "./EventHubSubpage";
+import SearchInput from "../shared/SearchInput";
+import EmptyState from "../shared/EmptyState";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -266,13 +268,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
           
           {viewMode === "all" && (
             <>
-              <input
-                type="text"
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-4 py-2 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-slate-700 midnight:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64"
-              />
+              <SearchInput placeholder="Search events..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full sm:w-64" />
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
@@ -299,11 +295,10 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
           {registeredError}
         </div>
       ) : displayEvents.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-slate-700 midnight:border-gray-800">
-          <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-            {viewMode === "registered" ? "You haven't registered for any events yet." : "No events found matching your criteria."}
-          </p>
-        </div>
+        <EmptyState
+          title={viewMode === "registered" ? "You haven't registered for any events yet." : "No events found matching your criteria."}
+          className="py-12 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-slate-700 midnight:border-gray-800"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {displayEvents.map((event: any) => (

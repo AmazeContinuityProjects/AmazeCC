@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Search, UploadCloud, BookOpen, ArrowLeft, ChevronRight, GraduationCap } from "lucide-react";
+import { FileText, UploadCloud, BookOpen, ArrowLeft, ChevronRight, GraduationCap } from "lucide-react";
+import EmptyState from "../shared/EmptyState";
+import SearchInput from "../shared/SearchInput";
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
@@ -150,24 +152,15 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
         </div>
 
         {/* Search */}
-        <div className="relative mb-5">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by course code or title..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 midnight:bg-slate-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          />
-        </div>
+        <SearchInput placeholder="Search by course code or title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} containerClassName="mb-5" />
 
         {/* Course Grid */}
         {filteredCourses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500 midnight:text-gray-600">
-            <GraduationCap className="w-12 h-12 mb-3 opacity-50" />
-            <p className="font-medium">No courses found</p>
-            <p className="text-sm mt-1">Load your grades data or upload a paper for any course.</p>
-          </div>
+          <EmptyState
+            icon={<GraduationCap className="w-12 h-12" />}
+            title="No courses found"
+            description="Load your grades data or upload a paper for any course."
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredCourses.map((c) => (
@@ -253,16 +246,18 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
         </div>
       ) : detailTab === "papers" ? (
         papers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
-            <FileText className="w-12 h-12 mb-3 opacity-50" />
-            <p className="font-medium">No papers yet for this course</p>
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="mt-3 text-blue-500 hover:underline text-sm"
-            >
-              Be the first to upload one!
-            </button>
-          </div>
+          <EmptyState
+            icon={<FileText className="w-12 h-12" />}
+            title="No papers yet for this course"
+            action={
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="text-blue-500 hover:underline text-sm"
+              >
+                Be the first to upload one!
+              </button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {papers.map((p) => (
@@ -294,11 +289,11 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
           </div>
         )
       ) : questions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
-          <BookOpen className="w-12 h-12 mb-3 opacity-50" />
-          <p className="font-medium">No extracted questions found</p>
-          <p className="text-sm mt-1">Questions will appear here once an admin approves them.</p>
-        </div>
+        <EmptyState
+          icon={<BookOpen className="w-12 h-12" />}
+          title="No extracted questions found"
+          description="Questions will appear here once an admin approves them."
+        />
       ) : (
         <div className="space-y-4">
           {questions.map((q, idx) => (

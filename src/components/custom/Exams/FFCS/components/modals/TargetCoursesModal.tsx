@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Lock, X, Search } from "lucide-react";
+import { Lock, X } from "lucide-react";
+import SearchInput from "../../../../shared/SearchInput";
 import { CourseLock, ParsedCourse } from "../../types";
 
 interface TargetCoursesModalProps {
@@ -58,16 +59,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
             </div>
           )}
           
-          <div className="relative mb-2">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input 
-              type="text"
-              placeholder="Search master course list..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-purple-500/50"
-            />
-          </div>
+          <SearchInput placeholder="Search master course list..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} containerClassName="mb-2" />
 
           <div className="grid grid-cols-1 gap-2">
             {uniqueCourseCodes.filter(c => 

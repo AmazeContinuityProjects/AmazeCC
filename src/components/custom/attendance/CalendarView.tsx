@@ -10,6 +10,8 @@ import { MoodleUserPassForm } from "../Exams/moodleDisplay";
 import config from "../../../../config.json";
 import OverallTrackerSubpage from "./OverallTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
+import Badge from "../shared/Badge";
+import EmptyState from "../shared/EmptyState";
 const CALENDAR_TYPES = {
     ALL: "General Semester",
     ALL02: "General Flexible",
@@ -665,9 +667,9 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                         <CalendarIcon className="text-blue-500 shrink-0" />
                         <span>Super Calendar</span>
                     </div>
-                    <span className="text-xs md:text-sm font-medium px-2 py-1 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 rounded-md text-gray-600 dark:text-gray-300 midnight:text-gray-400 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 whitespace-nowrap">
+                    <Badge variant="default" className="rounded-md border border-gray-200 dark:border-gray-700 midnight:border-gray-800 font-medium">
                         {CALENDAR_TYPES[calendarType || "ALL"]}
-                    </span>
+                    </Badge>
                 </h1>
                 
                 <div className="flex items-center gap-2">
@@ -847,7 +849,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
                         <div className="flex-1 overflow-y-auto pr-2 space-y-5">
                             {!selectedDay || selectedDay.events.length === 0 ? (
-                                <div className="text-center text-gray-500 dark:text-gray-400 mt-10 midnight:text-gray-400">No events for this day.</div>
+                                <EmptyState title="No events for this day." className="mt-10" />
                             ) : (
                                 <>
                                     {/* Render Helper for an Event */}
@@ -1075,7 +1077,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                         <div className="flex-1 min-w-0 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700 pt-2 sm:pt-0 sm:pl-3 midnight:border-gray-800">
                                             <p className="font-bold text-gray-900 dark:text-gray-100 truncate midnight:text-gray-100">{ex.courseTitle}</p>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium midnight:bg-gray-700 midnight:text-gray-300">{ex.courseCode}</span>
+                                                <Badge variant="default" size="sm" className="bg-gray-200 dark:bg-gray-700 midnight:bg-gray-700 rounded font-medium">{ex.courseCode}</Badge>
                                                 <span className="text-xs text-gray-500 dark:text-gray-400 truncate midnight:text-gray-400">{ex.examTime} | {ex.venue}</span>
                                             </div>
                                         </div>

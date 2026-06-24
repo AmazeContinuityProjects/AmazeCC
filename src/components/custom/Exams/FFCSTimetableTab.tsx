@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown } from "lucide-react";
 import * as XLSX from "xlsx";
+import SearchInput from "../shared/SearchInput";
+import EmptyState from "../shared/EmptyState";
 import { useTheme } from "next-themes";
 import FFCSGuideModal from "./FFCSGuideModal";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
@@ -1904,9 +1906,10 @@ export default function FFCSTimetableTab() {
             </h2>
             
             {!masterCourses.length ? (
-              <div className="bg-background border border-border p-4 rounded-xl text-center">
-                <p className="text-muted-foreground text-sm">Please upload a master slots file first.</p>
-              </div>
+              <EmptyState
+                title="Please upload a master slots file first."
+                className="bg-background border border-border rounded-xl"
+              />
             ) : (
               <form onSubmit={handleAddCourse} className="space-y-4">
                 <div className="flex items-center justify-between mb-4 bg-muted/30 p-3 rounded-xl border border-border">
@@ -2617,17 +2620,7 @@ export default function FFCSTimetableTab() {
               </button>
             </div>
             <div className="p-4 border-b border-border bg-background">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search by course code or title..."
-                  value={courseSearchQuery}
-                  onChange={e => setCourseSearchQuery(e.target.value)}
-                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
+              <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
               {uniqueCourses.filter(c => 
@@ -2670,11 +2663,12 @@ export default function FFCSTimetableTab() {
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
                 )
               ).length === 0 && (
-                <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
-                  <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                  <span className="text-muted-foreground font-medium">No courses found</span>
-                  <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term</span>
-                </div>
+                <EmptyState
+                  icon={<Search className="w-8 h-8" />}
+                  title="No courses found"
+                  description="Try a different search term"
+                  className="py-12 border border-dashed border-border/50 rounded-xl m-2"
+                />
               )}
               {uniqueCourses.filter(c => 
                 (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
@@ -2707,17 +2701,7 @@ export default function FFCSTimetableTab() {
               </button>
             </div>
             <div className="p-4 border-b border-border bg-background">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search by slot, faculty, or room..."
-                  value={slotSearchQuery}
-                  onChange={e => setSlotSearchQuery(e.target.value)}
-                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-colors placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
+              <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
               {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
@@ -2780,11 +2764,12 @@ export default function FFCSTimetableTab() {
                        row?.FACULTY?.toLowerCase().includes(query) || 
                        row?.ROOM?.toLowerCase().includes(query);
               }).length === 0 && (
-                <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
-                  <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                  <span className="text-muted-foreground font-medium">No slots found</span>
-                  <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term or filter</span>
-                </div>
+                <EmptyState
+                  icon={<Search className="w-8 h-8" />}
+                  title="No slots found"
+                  description="Try a different search term or filter"
+                  className="py-12 border border-dashed border-border/50 rounded-xl m-2"
+                />
               )}
             </div>
           </div>
@@ -2871,17 +2856,7 @@ export default function FFCSTimetableTab() {
             </div>
             
             <div className="p-4 border-b border-border bg-background">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search by faculty name..."
-                  value={variantSearchQuery}
-                  onChange={e => setVariantSearchQuery(e.target.value)}
-                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
+              <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">

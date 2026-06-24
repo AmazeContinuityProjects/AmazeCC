@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE } from "../Main";
 import { X, Save, LogOut, Eye, User, Link2, ExternalLink, Github, Database, Shield, FileText, ChevronRight, History, RefreshCcw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "../../ui/button";
@@ -14,17 +15,17 @@ import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import { Trophy } from "lucide-react";
+import ProfileStatusCards from "../profile/ProfileStatusCards";
+import AcknowledgementCards from "../profile/AcknowledgementCards";
+import { Badge } from "../shared";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName, loginToVTOP, creds, refreshKey, onCardClick, onCredentialsClick, onReload }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
-    const [changeUsername, setChangedUsername] = useState<string>(username);
-    const [changedPassword, setChangedPassword] = useState<string>(password);
-    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [appIcon, setAppIcon] = useState<string>("default");
     const [isEditingName, setIsEditingName] = useState<boolean>(false);
     const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
     const [profileData, setProfileData] = useState<any>(null);
-
+    const [profileImages, setProfileImages] = useState<any>(null);
     // Footer Modals State
     const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
     const [storageData, setStorageData] = useState<Record<string, string | null>>({});
@@ -45,6 +46,14 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
         if (storedProfile) {
             try {
                 setProfileData(JSON.parse(storedProfile));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        const storedImages = localStorage.getItem("profileImages");
+        if (storedImages) {
+            try {
+                setProfileImages(JSON.parse(storedImages));
             } catch (e) {
                 console.error(e);
             }
@@ -174,6 +183,80 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                     )}
                 </CardContainer>
 
+                {/* Faculty & Mentors */}
+                {profileImages?.proctor && (
+                    <>
+                        <SectionTitle title="Faculty & Mentors" />
+                        <CardContainer>
+                            {[{
+                                role: "Proctor",
+                                photo: profileImages.proctor.photoBase64,
+                                details: profileImages.proctor.details || {}
+                            }, ...(profileImages.hodDean?.people?.map((p: any) => ({
+                                role: p.role,
+                                photo: p.photoBase64,
+                                details: p.details || {}
+                            })) || [])].map((person, idx, arr) => (
+                                <div key={idx} className={`p-4 ${idx < arr.length - 1 ? 'border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800' : ''}`}>
+                                    <div className="flex items-center gap-4">
+                                        {person.photo ? (
+                                            <img src={person.photo} alt={person.role} className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white dark:border-gray-800" />
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                                <User size={28} className="text-white" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{person.role}</p>
+                                            <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">{person.details.name || "N/A"}</p>
+                                            {person.details.designation && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">{person.details.designation}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                                        {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([key, val]) => (
+                                            <div key={key} className="truncate">
+                                                <span className="text-xs text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                                                <span className="text-gray-700 dark:text-gray-300 midnight:text-gray-300">{String(val)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContainer>
+                    </>
+                )}
+
+                {creds && (
+                  <>
+                    <SectionTitle title="Quick Overview" />
+                    <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
+                    <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
+                    <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+                      <div onClick={() => onCredentialsClick && onCredentialsClick()} className="p-5 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30">
+                              <User className="w-5 h-5 text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Your Credentials</h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">Click to view VTOP credentials and app logins</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="info" size="sm">Tap to open</Badge>
+                            <button onClick={(e) => { e.stopPropagation(); onReload && onReload(); }} className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+                              <RefreshCcw className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {/* Preferences */}
                 <SectionTitle title="Preferences" />
                 <CardContainer>
@@ -200,36 +283,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         </div>
                     </div>
                     
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                        <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Update VTOP Credentials</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Change credentials stored inside AmazeCC</span>
-                            <div className="flex flex-col gap-2">
-                                <input
-                                    type="text"
-                                    value={changeUsername}
-                                    onChange={(e) => setChangedUsername(e.target.value)}
-                                    placeholder="Username"
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
-                                />
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={changedPassword}
-                                        onChange={(e) => setChangedPassword(e.target.value)}
-                                        placeholder="Password"
-                                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
-                                    />
-                                    <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                                        <Eye size={16} />
-                                    </button>
-                                </div>
-                                <Button onClick={() => setPassword([changeUsername, changedPassword])} disabled={!changeUsername || !changedPassword || (changeUsername === username && changedPassword === password)} className="bg-blue-600 hover:bg-blue-700 midnight:bg-blue-700 midnight:hover:bg-blue-600 text-white mt-1">
-                                    <Save size={16} className="mr-2" /> Update Credentials
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
                         <div className="flex flex-col mb-2">

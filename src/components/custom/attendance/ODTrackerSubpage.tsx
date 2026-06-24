@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { List, CalendarDays, Grid3x3, CheckCircle2, ShieldAlert, Award } from "lucide-react";
+import ViewModeToggle from "../shared/ViewModeToggle";
 import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
 import config from "../../../../config.json";
@@ -187,17 +188,16 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                         OD History Log
                                     </h2>
                                 </div>
-                                <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto shrink-0">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <CalendarDays size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <Grid3x3 size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <List size={18} />
-                                    </button>
-                                </div>
+                                <ViewModeToggle
+                                    options={[
+                                        { key: "calendar", icon: <CalendarDays size={18} /> },
+                                        { key: "heatmap", icon: <Grid3x3 size={18} /> },
+                                        { key: "list", icon: <List size={18} /> },
+                                    ]}
+                                    value={viewMode}
+                                    onChange={(key) => setViewMode(key as "list" | "heatmap" | "calendar")}
+                                    className="self-start sm:self-auto shrink-0"
+                                />
                             </div>
                         </div>
 

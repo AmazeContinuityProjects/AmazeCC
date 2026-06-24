@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react";
-import { List, CalendarDays, Grid3x3, CheckCircle2, FileText, ChevronDown, ChevronUp } from "lucide-react"
+import { List, CalendarDays, Grid3x3, CheckCircle2, FileText } from "lucide-react"
+import ExpandableSection from "../shared/ExpandableSection"
+import ViewModeToggle from "../shared/ViewModeToggle"
 import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
 import SubpageLayout from "../shared/SubpageLayout";
@@ -9,8 +11,6 @@ import SubpageLayout from "../shared/SubpageLayout";
 export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, analyzeCalendars, onBack }) {
     const [viewMode, setViewMode] = useState<"list" | "heatmap" | "calendar">("list");
     const [notesTracker, setNotesTracker] = useState({});
-    const [expandedDates, setExpandedDates] = useState({});
-
     // Load notes tracker from localStorage on mount
     useEffect(() => {
         try {
@@ -43,10 +43,6 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
         updatedTracker[courseCode][dateStr] = !updatedTracker[courseCode][dateStr];
         setNotesTracker(updatedTracker);
         localStorage.setItem("uniCC_notes_tracker", JSON.stringify(updatedTracker));
-    };
-
-    const toggleExpand = (dateStr) => {
-        setExpandedDates(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
     };
 
     const masterHistory = useMemo(() => {
@@ -212,17 +208,16 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                         Aggregated Log
                                     </h2>
                                 </div>
-                                <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <CalendarDays size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <Grid3x3 size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <List size={18} />
-                                    </button>
-                                </div>
+                                <ViewModeToggle
+                                    options={[
+                                        { key: "calendar", icon: <CalendarDays size={18} /> },
+                                        { key: "heatmap", icon: <Grid3x3 size={18} /> },
+                                        { key: "list", icon: <List size={18} /> },
+                                    ]}
+                                    value={viewMode}
+                                    onChange={(key) => setViewMode(key as "list" | "heatmap" | "calendar")}
+                                    className="self-start sm:self-auto"
+                                />
                             </div>
                         </div>
 
@@ -270,7 +265,6 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                     {masterHistory.map((d, i) => {
                                         const isPresent = d.overallStatus === "present";
                                         const allSecured = d.missedClasses.length > 0 && d.missedClasses.every(c => notesTracker[c.courseCode]?.[d.date] === true);
-                                        const isExpanded = expandedDates[d.date];
 
                                         let dotColor = "bg-emerald-500";
                                         let textCol = "text-emerald-600 dark:text-emerald-400";
@@ -279,9 +273,29 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                         else if (d.overallStatus.includes("partial absent")) { dotColor = "bg-rose-500"; textCol = "text-rose-600 dark:text-rose-400"; }
                                         else if (d.overallStatus.includes("od")) { dotColor = "bg-yellow-500"; textCol = "text-yellow-600 dark:text-yellow-400"; }
 
+                                        if (isPresent) {
+                                            return (
+                                                <div key={i} className="flex flex-col p-4">
+                                                    <div className="flex sm:items-center justify-between gap-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-2 h-10 rounded-full ${dotColor}`}></div>
+                                                            <div>
+                                                                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
+                                                                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${textCol}`}>
+                                                                    {d.overallStatus}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
                                         return (
-                                            <div key={i} className="flex flex-col p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer" onClick={() => !isPresent && toggleExpand(d.date)}>
-                                                <div className="flex sm:items-center justify-between gap-4">
+                                            <ExpandableSection
+                                                key={i}
+                                                title=""
+                                                icon={
                                                     <div className="flex items-center gap-4">
                                                         <div className={`w-2 h-10 rounded-full ${dotColor}`}></div>
                                                         <div>
@@ -291,52 +305,45 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    
-                                                    {!isPresent && (
-                                                        <div className="flex items-center gap-2">
-                                                            <button 
-                                                                onClick={(e) => toggleMasterNotes(d.date, d.missedClasses, e)}
-                                                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
-                                                                    allSecured 
-                                                                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
-                                                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
-                                                                }`}
-                                                            >
-                                                                {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
-                                                                <span className="hidden sm:inline">{allSecured ? "All Secured" : "Get Notes"}</span>
-                                                            </button>
-                                                            {isExpanded ? <ChevronUp size={16} className="text-gray-400 midnight:text-gray-500" /> : <ChevronDown size={16} className="text-gray-400 midnight:text-gray-500" />}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Expanded Details */}
-                                                {!isPresent && isExpanded && (
-                                                    <div className="mt-4 pl-6 border-l-2 border-gray-100 dark:border-gray-800 midnight:border-gray-800 ml-1 space-y-3">
-                                                        {d.missedClasses.map((c, idx) => {
-                                                            const isSecured = notesTracker[c.courseCode]?.[d.date] === true;
-                                                            return (
-                                                                <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-2 rounded-lg">
-                                                                    <div>
-                                                                        <p className="text-xs font-bold text-gray-900 dark:text-gray-200 midnight:text-gray-200">{c.courseTitle}</p>
-                                                                        <p className="text-[10px] text-gray-500 midnight:text-gray-400 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
-                                                                    </div>
-                                                                    <button 
-                                                                        onClick={(e) => toggleIndividualNote(d.date, c.courseCode, e)}
-                                                                        className={`flex items-center justify-center p-1.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
-                                                                            isSecured 
-                                                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" 
-                                                                                : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-400 midnight:hover:bg-gray-700"
-                                                                        }`}
-                                                                    >
-                                                                        {isSecured ? <CheckCircle2 size={12} /> : <FileText size={12} />}
-                                                                    </button>
+                                                }
+                                                badge={
+                                                    <button 
+                                                        onClick={(e) => toggleMasterNotes(d.date, d.missedClasses, e)}
+                                                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
+                                                            allSecured 
+                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
+                                                        }`}
+                                                    >
+                                                        {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
+                                                        <span className="hidden sm:inline">{allSecured ? "All Secured" : "Get Notes"}</span>
+                                                    </button>
+                                                }
+                                            >
+                                                <div className="pl-6 border-l-2 border-gray-100 dark:border-gray-800 midnight:border-gray-800 ml-1 space-y-3">
+                                                    {d.missedClasses.map((c, idx) => {
+                                                        const isSecured = notesTracker[c.courseCode]?.[d.date] === true;
+                                                        return (
+                                                            <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-2 rounded-lg">
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-200 midnight:text-gray-200">{c.courseTitle}</p>
+                                                                    <p className="text-[10px] text-gray-500 midnight:text-gray-400 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
                                                                 </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
+                                                                <button 
+                                                                    onClick={(e) => toggleIndividualNote(d.date, c.courseCode, e)}
+                                                                    className={`flex items-center justify-center p-1.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
+                                                                        isSecured 
+                                                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" 
+                                                                            : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-400 midnight:hover:bg-gray-700"
+                                                                    }`}
+                                                                >
+                                                                    {isSecured ? <CheckCircle2 size={12} /> : <FileText size={12} />}
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </ExpandableSection>
                                         );
                                     })}
                                 </div>

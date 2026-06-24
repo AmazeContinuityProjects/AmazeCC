@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, Clock, User, Star, AlertCircle, FileText, CheckCircle2, CalendarDays, ExternalLink, HelpCircle, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import Badge from "../shared/Badge";
+import { Building2, Clock, User, Star, AlertCircle, FileText, CheckCircle2, CalendarDays, ExternalLink, HelpCircle, Calendar as CalendarIcon } from "lucide-react";
+import ExpandableSection from "../shared/ExpandableSection";
+import CircularProgress from "../shared/CircularProgress";
+import EmptyState from "../shared/EmptyState";
 import { countRemainingClasses } from "./AttendanceSubpage";
-import "react-circular-progressbar/dist/styles.css";
 
 const normalize = (d: Date) => {
     const x = new Date(d);
@@ -111,9 +113,9 @@ function UpcomingClassesList({
                     <span className="text-emerald-600 dark:text-emerald-400">Attending: <strong>{attending}</strong></span>
                     <span className="text-red-500 dark:text-red-400">Skipping: <strong>{missed}</strong></span>
                 </div>
-                <div className={`px-3 py-1 rounded-full border text-xs font-bold ${predictedPercent >= thresholdPct ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-950/20 midnight:text-emerald-400 midnight:border-emerald-800/50" : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-950/20 midnight:text-red-400 midnight:border-red-800/50"}`}>
+                <Badge variant={predictedPercent >= thresholdPct ? "success" : "danger"} className={`border font-bold ${predictedPercent >= thresholdPct ? "border-emerald-200 dark:border-emerald-800/50 midnight:border-emerald-800/50" : "border-red-200 dark:border-red-800/50 midnight:border-red-800/50"}`}>
                     Predicted: {predictedPercent}%
-                </div>
+                </Badge>
             </div>
 
             <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5">
@@ -172,9 +174,6 @@ export default function DesktopCourseDetail({
     const isTheory = a.courseCode.endsWith("(T)");
     const thresholdPct = isDayscholarWithBus ? 85 : 75;
     const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
-
-    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-    const toggleDropdown = (key: string) => setOpenDropdown(openDropdown === key ? null : key);
 
     // Calculate remaining classes till milestones
     const countTillDate = (endDate: any) => {
@@ -263,15 +262,15 @@ export default function DesktopCourseDetail({
 
             {/* Badges Row */}
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 midnight:bg-blue-950/30 border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 text-blue-700 dark:text-blue-300 midnight:text-blue-300">
+                <Badge variant="info" className="rounded-lg border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {a.slotName} ({a.time})
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 midnight:bg-purple-950/30 border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 text-purple-700 dark:text-purple-300 midnight:text-purple-300">
+                </Badge>
+                <Badge variant="purple" className="rounded-lg border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 gap-1.5">
                     <Building2 className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {a.slotVenue}
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 midnight:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 text-emerald-700 dark:text-emerald-300 midnight:text-emerald-300">
+                </Badge>
+                <Badge variant="success" className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 gap-1.5">
                     <User className="w-3.5 h-3.5 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {a.faculty}
-                </div>
+                </Badge>
             </div>
 
             {/* Premium Stat Boxes */}
@@ -284,17 +283,13 @@ export default function DesktopCourseDetail({
                         <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1 font-semibold">{a.attendedClasses} / {a.totalClasses} Classes</p>
                     </div>
                     <div className="w-16 h-16">
-                        <CircularProgressbar
+                        <CircularProgress
                             value={a.attendancePercentage}
                             text={`${!decimalValues ? a.attendancePercentage : (a.attendedClasses/a.totalClasses * 100).toFixed(1)}%`}
+                            size={64}
                             strokeWidth={10}
-                            styles={buildStyles({
-                                pathColor: a.attendancePercentage < thresholdPct ? "#EF4444" : a.attendancePercentage < thresholdPct + 10 ? "#FACC15" : "#10B981",
-                                textColor: "currentColor",
-                                trailColor: "rgba(163, 198, 240, 0.1)",
-                                strokeLinecap: "round",
-                                pathTransitionDuration: 0.5,
-                            })}
+                            threshold={thresholdPct}
+                            midThreshold={thresholdPct + 10}
                         />
                     </div>
                 </div>
@@ -371,33 +366,22 @@ export default function DesktopCourseDetail({
                             { key: "LID", label: "Classes before FAT", data: classesTillLID },
                         ].map(({ key, label, data }) => (
                             Array.isArray(data) && data.length > 0 ? (
-                                <div key={key} className="w-full">
-                                    <button
-                                        onClick={() => toggleDropdown(key)}
-                                        className="flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900 transition-colors"
-                                    >
-                                        <span className="flex items-center gap-2 text-xs font-bold">
-                                            <CalendarIcon size={16} className="text-blue-500" />
-                                            {label}
-                                        </span>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-bold bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>
-                                            {openDropdown === key ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-                                        </div>
-                                    </button>
-                                    <div className={`transition-all duration-300 ease-in-out ${openDropdown === key ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"} overflow-hidden`}>
-                                        <div className="p-4 bg-gray-50/50 dark:bg-slate-800/20 midnight:bg-gray-900/20 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800/60">
-                                            <UpcomingClassesList
-                                                classes={data}
-                                                attendedClasses={a.attendedClasses}
-                                                totalClasses={a.totalClasses}
-                                                isLab={lab}
-                                                impDates={impDates}
-                                                isDayscholarWithBus={isDayscholarWithBus}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                <ExpandableSection
+                                    key={key}
+                                    title={label}
+                                    icon={<CalendarIcon size={16} className="text-blue-500" />}
+                                    badge={<Badge variant="default" size="sm" className="rounded-md font-bold">{data.length} Left</Badge>}
+                                    contentClassName="border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800/60"
+                                >
+                                    <UpcomingClassesList
+                                        classes={data}
+                                        attendedClasses={a.attendedClasses}
+                                        totalClasses={a.totalClasses}
+                                        isLab={lab}
+                                        impDates={impDates}
+                                        isDayscholarWithBus={isDayscholarWithBus}
+                                    />
+                                </ExpandableSection>
                             ) : null
                         ))}
                     </div>
@@ -411,7 +395,7 @@ export default function DesktopCourseDetail({
                     <span className="text-[10px] text-gray-400 font-medium">{historyList.length} total records</span>
                 </div>
                 {recentHistory.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-gray-500">No attendance history records found.</div>
+                    <EmptyState title="No attendance history records found" className="p-6" />
                 ) : (
                     <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800/60">
                         {recentHistory.map((d: any, idx: number) => {

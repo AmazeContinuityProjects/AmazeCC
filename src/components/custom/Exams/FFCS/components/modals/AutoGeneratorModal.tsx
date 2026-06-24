@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from '../../types';
 import { generateTimetablesAsync } from '../../logic/generator';
+import SearchInput from "../../../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
 import { COLORS, DAYS } from '../../constants';
 import { TimetableGrid, GapDetail } from '../TimetableGrid';
@@ -1161,16 +1162,7 @@ export function AutoGeneratorModal({
                     </div>
                   </div>
                   
-                  <div className="relative mb-3">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input 
-                      type="text"
-                      placeholder="Search by course code or title..."
-                      value={generatorCourseSearchQuery}
-                      onChange={e => setGeneratorCourseSearchQuery(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-amber-500/50"
-                    />
-                  </div>
+                  <SearchInput placeholder="Search by course code or title..." value={generatorCourseSearchQuery} onChange={e => setGeneratorCourseSearchQuery(e.target.value)} containerClassName="mb-3" />
 
                   <div className="border border-border rounded-xl max-h-[60vh] overflow-y-auto bg-muted/10 p-3 grid grid-cols-1 gap-2 custom-scrollbar">
                     {generatorDisplayCourses.filter(c => 
@@ -1558,17 +1550,7 @@ export function AutoGeneratorModal({
             </div>
             
             <div className="p-4 border-b border-border bg-background">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search by faculty name..."
-                  value={variantSearchQuery}
-                  onChange={e => setVariantSearchQuery(e.target.value)}
-                  className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
+              <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">

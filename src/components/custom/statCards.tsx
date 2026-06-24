@@ -13,6 +13,7 @@ export default function StatsCards({
   setCGPAHidden,
   attendancePercentageOrString,
   setAttendancePercentageOrString,
+  onOpenFeedbackStatus,
 }) {
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -40,7 +41,7 @@ export default function StatsCards({
     {
       key: "feedback",
       label: "Feedback",
-      onClick: () => console.log("Feedback Status was clicked"),
+      onClick: onOpenFeedbackStatus,
       show: !!feedbackStatus,
       customContent: (
         <div className="flex items-center justify-center gap-3 mt-2 text-center">

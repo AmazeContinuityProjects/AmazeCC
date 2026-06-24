@@ -3,6 +3,8 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, MapPin, Phone, MessageCircle, BusFront, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from "../shared/Modal";
+import SearchInput from "../shared/SearchInput";
+import EmptyState from "../shared/EmptyState";
 
 interface BusRoute {
   id: string;
@@ -38,18 +40,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses }) => {
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 midnight:text-gray-100">
           VIT Bus Finder
         </h1>
-        <div className="relative w-full md:w-80">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-700 midnight:border-gray-800 rounded-xl leading-5 bg-white dark:bg-gray-800/50 midnight:bg-gray-900/50 text-gray-900 dark:text-gray-100 midnight:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm backdrop-blur-sm"
-            placeholder="Search boarding point or route..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <SearchInput placeholder="Search boarding point or route..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} containerClassName="w-full md:w-80" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -95,15 +86,13 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-16 text-center"
+              className="col-span-1 md:col-span-2"
             >
-              <div className="bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900/50 p-4 rounded-full mb-4">
-                <Search className="w-8 h-8 text-gray-400 dark:text-gray-500 midnight:text-gray-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-200 mb-1">No buses found</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500">
-                We couldn't find any buses matching "{searchQuery}". Try a different boarding point or route.
-              </p>
+              <EmptyState
+                icon={<Search className="w-8 h-8" />}
+                title="No buses found"
+                description={`We couldn't find any buses matching "${searchQuery}". Try a different boarding point or route.`}
+              />
             </motion.div>
           )}
         </AnimatePresence>

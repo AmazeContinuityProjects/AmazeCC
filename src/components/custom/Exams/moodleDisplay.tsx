@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock, Eye, EyeOff, Undo2, LogOut } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
+import EmptyState from "../shared/EmptyState";
 
 export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodleData, IDs }) {
     const [showHidden, setShowHidden] = useState(false);
@@ -25,10 +26,11 @@ export default function MoodleDisplay({ moodleData, handleFetchMoodle, setMoodle
                         </FetchButton>
                     </div>
                 </div>
-                <h3 className="font-normal text-base p-2">
-                    Nothing here yet? Try refreshing.
-                </h3>
-                <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
+                <EmptyState
+                    title="Nothing here yet? Try refreshing."
+                    action={<MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />}
+                    className="py-4"
+                />
             </div>
         );
     }
