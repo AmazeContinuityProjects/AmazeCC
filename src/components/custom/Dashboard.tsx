@@ -19,8 +19,9 @@ import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
+
 import { API_BASE } from "./Main";
-import MarksSubTab from "./Exams/MarksSubTab";
+import CourseDashboard from "./Exams/CourseDashboard";
 import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
@@ -55,6 +56,10 @@ import MakeupCompreTab from "./Exams/MakeupCompreTab";
 import CourseMgmtTab from "./Exams/CourseMgmtTab";
 import ProjectsTab from "./Exams/ProjectsTab";
 import WishlistTab from "./Exams/WishlistTab";
+import CircularsTab from "./Exams/CircularsTab";
+import FacultyInfoTab from "./Exams/FacultyInfoTab";
+import QCMViewTab from "./Exams/QCMViewTab";
+
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
@@ -123,68 +128,9 @@ export default function DashboardContent({
 
   useEffect(() => {
     if (demoMode) {
-      setFresherEptData({
-        title: "EPT Schedule",
-        tables: [{
-          caption: "English Proficiency Test",
-          headers: ["Course Code", "Course Title", "Exam Date", "Exam Session", "Venue"],
-          rows: [
-            { "Course Code": "ENG101", "Course Title": "Communicative English", "Exam Date": new Date(Date.now() + 86400000 * 7).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), "Exam Session": "FN (09:00 - 12:00)", "Venue": "AB1-101" },
-            { "Course Code": "ENG102", "Course Title": "Professional English", "Exam Date": new Date(Date.now() + 86400000 * 9).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), "Exam Session": "AN (14:00 - 17:00)", "Venue": "AB2-205" },
-          ]
-        }],
-        keyValuePairs: { programme: "B.Tech CSE", campus: "Chennai", year: "2025-26" },
-      });
-      setFresherAckData({
-        title: "Acknowledgment Details",
-        tables: [{
-          headers: ["1.", "Mark List - HSC / +2", "Submitted"],
-          rows: [
-            { "1.": "1.", "Mark List - HSC / +2": "Mark List - HSC / +2", "Submitted": "Submitted" },
-            { "1.": "2.", "Mark List - HSC / +2": "Transfer Certificate", "Submitted": "Submitted" },
-            { "1.": "3.", "Mark List - HSC / +2": "Migration Certificate", "Submitted": "Not Applicable" },
-            { "1.": "4.", "Mark List - HSC / +2": "Community Certificate", "Submitted": "Submitted" },
-          ]
-        }],
-      });
-      setFresherResources([
-        { id: 1, title: "Transport & Bus Guide", description: "View bus routes, boarding points, and schedules.", url: "https://vtopcc.vit.ac.in", icon: "Bus" },
-        { id: 2, title: "Campus Map", description: "Navigate your way around VIT Chennai campus.", url: "https://vit.ac.in/campus", icon: "MapPin" },
-        { id: 3, title: "Academic Calendar", description: "Important dates and academic schedule.", url: "https://vtopcc.vit.ac.in", icon: "CalendarDays" },
-        { id: 4, title: "Student Handbook", description: "Rules, regulations, and guidelines for students.", url: "https://vit.ac.in", icon: "BookOpen" },
-      ]);
       setShowFresherWelcome(true);
       return;
     }
-
-    const credsRaw = localStorage.getItem("IDs");
-    if (!credsRaw) return;
-    let creds;
-    try { creds = JSON.parse(credsRaw); } catch { return; }
-    if (!creds.VtopUsername || !creds.VtopPassword) return;
-
-    loginToVTOP().then(c => {
-      return Promise.all([
-        fetch(`${API_BASE}/api/ept-schedule`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
-        }).then(r => r.json()),
-        fetch(`${API_BASE}/api/acknowledgement`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
-        }).then(r => r.json()),
-        fetch(`${API_BASE}/api/fresher-resources`).then(r => r.json()),
-      ]);
-    }).then(([eptRes, ackRes, resRes]) => {
-      if (eptRes.success && hasFutureExam(eptRes.tables)) {
-        setFresherEptData(eptRes);
-        if (ackRes.success) setFresherAckData(ackRes);
-        setFresherResources(resRes.resources || []);
-        setShowFresherWelcome(true);
-      }
-    }).catch(() => {});
   }, []);
 
   const touchStartX = useRef(0);
@@ -212,16 +158,25 @@ export default function DashboardContent({
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
 
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
+  const [transportData, setTransportData] = useState<any>(null);
+  const [transportLoading, setTransportLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/buses`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.buses) {
-          setDayscholarBuses(data.buses);
-        }
-      })
-      .catch(err => console.error("Failed to fetch buses from API:", err));
+    const cachedBuses = localStorage.getItem("cache_buses");
+    if (cachedBuses) {
+      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
+    }
+
+    const cached = localStorage.getItem("transportData");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setTransportData(parsed);
+      } catch (e) {
+        localStorage.removeItem("transportData");
+      }
+    }
+    setTransportLoading(false);
   }, []);
 
   const tabsOrder = ["attendance", "academics", "payments", "libraries", "more", "profile"];
@@ -235,9 +190,12 @@ export default function DashboardContent({
   }, []);
 
   const isHosteller = profileData?.isHosteller;
-  
+  const residentialStatus = settings?.residentialStatus;
+
   if (isHosteller === true) tabsOrder.push("hostel");
-  if (isHosteller === false) tabsOrder.push("dayscholar");
+  else if (isHosteller === false) tabsOrder.push("dayscholar");
+  else if (residentialStatus === "dayscholar") tabsOrder.push("dayscholar");
+  else if (residentialStatus === "hosteller") tabsOrder.push("hostel");
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
@@ -592,6 +550,8 @@ export default function DashboardContent({
         />
         </div>
 
+
+
         {GradesDisplayIsOpen && (
           <GradesModal
             allGradesData={allGradesData}
@@ -721,7 +681,14 @@ export default function DashboardContent({
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
                     registeredEvents={registeredEvents}
+                    setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                   />
+                </div>
+              )}
+
+              {activeAttendanceSubTab === "circulars" && (
+                <div className="animate-fadeIn">
+                  <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
                 </div>
               )}
             </div>
@@ -738,9 +705,9 @@ export default function DashboardContent({
                 hideMobileHeader={settings.hideMobileHeader} 
                 handleFetchGrades={handleAllGradesFetch} 
               />}
-              {activeSubTab === "marks" && <MarksSubTab data={marksData} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "course-dashboard" && <CourseDashboard marksData={marksData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />}
               {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
-              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />}
               {activeSubTab === "predictor" && <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />}
               {activeSubTab === "qbank" && (
                 <div className="animate-fadeIn">
@@ -761,6 +728,13 @@ export default function DashboardContent({
               )}
               {activeSubTab === "wishlist" && (
                 <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+
+              {activeSubTab === "faculty-info" && (
+                <FacultyInfoTab loginToVTOP={loginToVTOP} />
+              )}
+              {activeSubTab === "qcm-view" && (
+                <QCMViewTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
               )}
             </div>
           )}
@@ -795,8 +769,8 @@ export default function DashboardContent({
           )}
 
           {activeTab === "dayscholar" && (
-            <div className="animate-fadeIn">
-              <BusFinder buses={dayscholarBuses} />
+            <div className="animate-fadeIn space-y-8">
+              <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
             </div>
           )}
 

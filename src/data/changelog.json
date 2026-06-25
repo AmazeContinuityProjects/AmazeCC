@@ -1,5 +1,15 @@
 [
   {
+    "version": "v2.0.0",
+    "date": "2026-06-25",
+    "changes": [
+      "Added 136 VTOP Endpoints to the app and API for seamless integration with VTOP services. Reload the data to experience the best of the app.",
+      "Componentised UI and using reusable elements.",
+      "FFCS: Fixed slots not being auto-generated properly error.",
+      "Library Endpoints: Now you can search through Library Books from within the app."
+    ]
+  },
+  {
     "version": "v1.9",
     "date": "2026-06-23",
     "changes": [

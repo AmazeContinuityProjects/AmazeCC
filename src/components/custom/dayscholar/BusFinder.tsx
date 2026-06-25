@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Modal from "../shared/Modal";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
+import TransportRegistration from "./TransportRegistration";
 
 interface BusRoute {
   id: string;
@@ -17,11 +18,28 @@ interface BusRoute {
   busLocation: string;
 }
 
-interface BusFinderProps {
-  buses: BusRoute[];
+interface TransportData {
+  hasRegistration: boolean;
+  registerNumber?: string;
+  name?: string;
+  programme?: string;
+  branch?: string;
+  routeSelected?: string;
+  fpReference?: string;
+  paymentStatus?: string;
+  busRouteId?: string;
+  qrCode?: string;
+  pageCsrf?: string;
 }
 
-const BusFinder: React.FC<BusFinderProps> = ({ buses }) => {
+interface BusFinderProps {
+  buses: BusRoute[];
+  transportData?: TransportData | null;
+  transportLoading?: boolean;
+  loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
+}
+
+const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLoading, loginToVTOP }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBus, setSelectedBus] = useState<BusRoute | null>(null);
 
@@ -36,12 +54,14 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses }) => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-          VIT Bus Finder
+          Dayscholar Bus Hub
         </h1>
         <SearchInput placeholder="Search boarding point or route..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} containerClassName="w-full md:w-80" />
       </div>
+
+      <TransportRegistration data={transportData ?? null} loading={transportLoading ?? false} loginToVTOP={loginToVTOP ?? (async () => ({ cookies: [], authorizedID: "", csrf: "" }))} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence mode="popLayout">

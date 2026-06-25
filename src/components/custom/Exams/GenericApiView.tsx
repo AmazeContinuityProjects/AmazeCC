@@ -32,8 +32,13 @@ interface GenericApiViewProps {
   writable?: boolean;
 }
 
+const LS_PREFIX = "uni_cc_generic_";
 const cache = new Map<string, any>();
-export const clearApiCache = () => cache.clear();
+export const clearApiCache = () => {
+  cache.clear();
+  const keys = Object.keys(localStorage).filter(k => k.startsWith(LS_PREFIX) || k.startsWith("cache_"));
+  keys.forEach(k => localStorage.removeItem(k));
+};
 
 export default function GenericApiView({ endpoint, title, creds, extraParams, refreshKey = 0, writable = false }: GenericApiViewProps) {
   const [data, setData] = useState<any>(null);
@@ -66,6 +71,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
         setData(result);
         const ck = `${endpoint}:${semesterId || ""}:${JSON.stringify(extraParams || {})}`;
         cache.set(ck, result);
+        localStorage.setItem(LS_PREFIX + ck, JSON.stringify(result));
       }
     } catch (err: any) {
       setError(err.message || "Network error");
@@ -77,8 +83,28 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
   const restoreCache = useCallback(() => {
     const cached = cache.get(cacheKey);
     if (cached) { setData(cached); return true; }
+    try {
+      const raw = localStorage.getItem(LS_PREFIX + cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        cache.set(cacheKey, parsed);
+        setData(parsed);
+        return true;
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem("cache_" + endpoint);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.success !== false) {
+          cache.set(cacheKey, parsed);
+          setData(parsed);
+          return true;
+        }
+      }
+    } catch {}
     return false;
-  }, [cacheKey]);
+  }, [cacheKey, endpoint]);
 
   useEffect(() => {
     if (!restoreCache()) fetchData(selectedSemester || undefined);
@@ -222,8 +248,17 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     );
   };
 
+  const semesterHasContent = (semData: any) => {
+    if (semData.error) return true;
+    return semData.tables?.length > 0
+      || Object.keys(semData.keyValuePairs || {}).length > 0
+      || !!semData.formFields
+      || (semData?.selectOptions && Object.values(semData.selectOptions).some((v: any) => Array.isArray(v) && v.length > 0))
+      || (semData?.cascadingOptions && Object.keys(semData.cascadingOptions).length > 0);
+  };
+
   const renderSingleSemester = (semData: any, semName: string) => {
-    const hasContent = semData.tables?.length > 0 || Object.keys(semData.keyValuePairs || {}).length > 0 || semData.formFields;
+    const hasContent = semesterHasContent(semData);
     const semSelectOptions = semData?.selectOptions
       ? Object.entries(semData.selectOptions).filter(([key, val]: any) =>
           Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"))
@@ -337,19 +372,21 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
       {hasSemestersResponse ? (
         semestersKeys.length > 0 ? (
-          Object.entries(data.semesters).map(([semName, semData]: [string, any]) => {
-            if (semData.error) {
-              return (
-                <CardShell key={semName}>
-                  <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
-                    <p className="text-sm text-red-500">{semData.error}</p>
-                  </div>
-                </CardShell>
-              );
-            }
-            return renderSingleSemester(semData, semName);
-          })
+          Object.entries(data.semesters)
+            .filter(([, semData]: [string, any]) => semesterHasContent(semData))
+            .map(([semName, semData]: [string, any]) => {
+              if (semData.error) {
+                return (
+                  <CardShell key={semName}>
+                    <div className="p-5">
+                      <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
+                      <p className="text-sm text-red-500">{semData.error}</p>
+                    </div>
+                  </CardShell>
+                );
+              }
+              return renderSingleSemester(semData, semName);
+            })
         ) : (
           <CardShell>
             <div className="flex flex-col items-center py-12 text-gray-400 dark:text-gray-500 midnight:text-gray-500">

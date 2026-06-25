@@ -5,7 +5,7 @@ import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
 import ProfileSubTabs from "./ProfileSubTabs";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Card, Badge, Modal } from "../shared";
-import { RefreshCcw, Eye, EyeOff, Save, CheckCircle, AlertCircle, User, Clock, Copy, Lock } from "lucide-react";
+import { RefreshCcw, Eye, EyeOff, Save, CheckCircle, AlertCircle, User, Clock, Copy, Lock, BookOpen } from "lucide-react";
 import { API_BASE } from "../Main";
 
 interface ProfileTabProps {
@@ -60,22 +60,17 @@ function ChangeDetector({ endpoint, creds }: { endpoint: string; creds: any }) {
   useEffect(() => {
     if (!creds || checkedRef.current) return;
     checkedRef.current = true;
-    const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookies, authorizedID, csrf }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (!res || res.success === false) return;
-        const key = `_prev_${endpoint}`;
-        const stored = localStorage.getItem(key);
-        const current = JSON.stringify(res);
-        if (stored && stored !== current) setChanged(true);
-        localStorage.setItem(key, current);
-      })
-      .catch(() => {});
+    const cacheKey = `cache_${endpoint.replace(/-/g, "_")}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return;
+    try {
+      const res = JSON.parse(cached);
+      if (!res || res.success === false) return;
+      const key = `_prev_${endpoint}`;
+      const stored = localStorage.getItem(key);
+      if (stored && stored !== cached) setChanged(true);
+      localStorage.setItem(key, cached);
+    } catch (e) {}
   }, [creds]);
 
   if (!changed) return null;
@@ -114,26 +109,21 @@ export default function ProfileTab(props: ProfileTabProps) {
   useEffect(() => {
     if (!creds || regAutoChecked.current) return;
     regAutoChecked.current = true;
-    const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/registration-schedule`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookies, authorizedID, csrf }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (!res || res.success === false) return;
-        const key = "_prev_registration-schedule";
-        const stored = localStorage.getItem(key);
-        const current = JSON.stringify(res);
-        if (stored && stored !== current) {
-          const lastRead = localStorage.getItem("_reg_update_read");
-          if (!lastRead || Date.now() - Number(lastRead) > 60000) {
-            setActiveModal("reg");
-          }
+    const cached = localStorage.getItem("cache_registration_schedule");
+    if (!cached) return;
+    try {
+      const res = JSON.parse(cached);
+      if (!res || res.success === false) return;
+      const key = "_prev_registration-schedule";
+      const stored = localStorage.getItem(key);
+      if (stored && stored !== cached) {
+        const lastRead = localStorage.getItem("_reg_update_read");
+        if (!lastRead || Date.now() - Number(lastRead) > 60000) {
+          setActiveModal("reg");
         }
-        localStorage.setItem(key, current);
-      })
-      .catch(() => {});
+      }
+      localStorage.setItem(key, cached);
+    } catch (e) {}
   }, [creds]);
 
   const handleSaveAppLogins = () => {
@@ -361,6 +351,22 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
   const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
   const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [kohaCard, setKohaCard] = useState("");
+  const [kohaPassword, setKohaPassword] = useState("");
+  const [kohaSaved, setKohaSaved] = useState(false);
+
+  useEffect(() => {
+    setKohaCard(localStorage.getItem("koha_card") || "");
+    setKohaPassword(localStorage.getItem("koha_password") || "");
+  }, []);
+
+  const saveKoha = () => {
+    localStorage.setItem("koha_card", kohaCard);
+    localStorage.setItem("koha_password", kohaPassword);
+    setKohaSaved(true);
+    setTimeout(() => setKohaSaved(false), 2000);
+  };
 
   const toggleShow = (idx: number) => setShowPasswords(p => ({ ...p, [idx]: !p[idx] }));
 
@@ -407,15 +413,51 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    clearApiCache();
+    const { cookies, authorizedID, csrf } = creds;
+    try {
+      const res = await fetch(`${API_BASE}/api/credentials`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies, authorizedID, csrf }),
+      });
+      const fresh = await res.json();
+      setData(fresh);
+    } catch (e) {
+      console.error("Refresh failed", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     setChangedUsername(username);
     setChangedPassword(Array.isArray(password) ? password[0] : password);
+
+    if (refreshKey === 0) {
+      const cached = localStorage.getItem("cache_credentials");
+      if (cached) {
+        try {
+          setData(JSON.parse(cached));
+          setLoading(false);
+          return;
+        } catch (e) {}
+      }
+    }
+
     const { cookies, authorizedID, csrf } = creds;
     fetch(`${API_BASE}/api/credentials`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cookies, authorizedID, csrf }),
-    }).then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+    }).then(r => r.json()).then(res => {
+      if (res?.credentials || res?.ranks || res?.tables) {
+        setData(res);
+      } else {
+        console.warn("Credentials API returned unexpected format:", res);
+      }
+    }).catch((e) => console.error("Credentials fetch error:", e)).finally(() => setLoading(false));
   }, [refreshKey, creds]);
 
   if (loading) {
@@ -426,76 +468,89 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     );
   }
 
-  const accounts = data?.tables?.[0]?.rows || [];
+  const accounts = data?.credentials ||
+    data?.tables?.[0]?.rows?.map((r: any) => {
+      const h = data.tables[0].headers || [];
+      return { account: r[h[0]] || "", username: r[h[1]] || "", defaultCredentials: r[h[2]] || "", url: r[h[3]] || "", venueDate: r[h[4]] || "", seatLocation: r[h[5]] || "" };
+    }) ||
+    [];
 
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-end mb-2">
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-all text-sm font-semibold disabled:opacity-50"
+        >
+          <RefreshCcw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
       {accounts.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {accounts.map((row: any, idx: number) => {
-            const h = data.tables[0].headers;
-            const accountName = row[h[0]] || "";
-            const userName = row[h[1]] || "";
-            const pass = row[h[2]] || "";
-            const url = row[h[3]] || "";
-            const venueDate = row[h[4]] || "";
-            const seat = row[h[5]] || "";
+            const accountName = row.account || "";
+            const userName = row.username || "";
+            const pass = row.defaultCredentials || "";
+            const url = row.url || "";
+            const venueDate = row.venueDate || "";
+            const seat = row.seatLocation || "";
             return (
-              <div key={idx} className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50">
+              <div key={idx} className="relative group bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">{accountName}</h4>
                 </div>
-                <div className="p-4 space-y-3">
-                  {/* Username */}
+                <div className="p-5 space-y-4">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-0.5">Username</p>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate">{userName}</p>
+                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Username</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate">{userName}</p>
                     </div>
-                    <button onClick={() => copyToClipboard(userName)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-colors shrink-0" title="Copy username">
+                    <button onClick={() => copyToClipboard(userName)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all shrink-0 active:scale-90" title="Copy username">
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  {/* Password */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-0.5">Password</p>
+                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Password</p>
                       <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate font-mono tracking-wider">
                         {showPasswords[idx] ? pass : "•".repeat(Math.min(pass.length, 16))}
                       </p>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={() => toggleShow(idx)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-colors" title={showPasswords[idx] ? "Hide" : "Show"}>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button onClick={() => toggleShow(idx)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-amber-500 transition-all active:scale-90" title={showPasswords[idx] ? "Hide" : "Show"}>
                         {showPasswords[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
-                      <button onClick={() => copyToClipboard(pass)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-colors" title="Copy password">
+                      <button onClick={() => copyToClipboard(pass)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all active:scale-90" title="Copy password">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                  {/* URL */}
                   {url && url !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-0.5">URL</p>
+                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">URL</p>
                       {url.toLowerCase().startsWith("http") ? (
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:underline truncate block">{url}</a>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:underline truncate block">{url}</a>
                       ) : (
-                        <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200">{url}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{url}</p>
                       )}
                     </div>
                   )}
-                  {/* Venue & Date */}
                   {venueDate && venueDate !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-0.5">Venue & Date</p>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200">{venueDate}</p>
+                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Venue & Date</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{venueDate}</p>
                     </div>
                   )}
-                  {/* Seat */}
                   {seat && seat !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-0.5">Seat</p>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200">{seat}</p>
+                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Seat</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{seat}</p>
                     </div>
                   )}
                 </div>
@@ -506,56 +561,81 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       )}
 
       {/* App Logins */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 p-5">
-        <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <User className="w-4 h-4" />
-          App Logins
-        </h4>
-        <div className="space-y-3 max-w-md">
+      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">App Logins</h4>
+        </div>
+        <div className="p-5 space-y-4 max-w-md">
           <div>
             <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Username</label>
-            <input type="text" value={changedUsername} onChange={(e) => setChangedUsername(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700" />
+            <input type="text" value={changedUsername} onChange={(e) => setChangedUsername(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Password</label>
             <div className="relative">
-              <input type={showAppPassword ? "text" : "password"} value={changedPassword} onChange={(e) => setChangedPassword(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700" />
-              <button onClick={() => setShowAppPassword(!showAppPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title={showAppPassword ? "Hide" : "Show"}>
+              <input type={showAppPassword ? "text" : "password"} value={changedPassword} onChange={(e) => setChangedPassword(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+              <button onClick={() => setShowAppPassword(!showAppPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title={showAppPassword ? "Hide" : "Show"}>
                 {showAppPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-          <button onClick={() => setPassword([changedUsername, changedPassword])} disabled={!changedUsername || !changedPassword} className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+          <button onClick={() => setPassword([changedUsername, changedPassword])} disabled={!changedUsername || !changedPassword} className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition-all active:scale-[0.98]">
             <Save className="w-4 h-4 inline mr-1.5" />Save
           </button>
         </div>
       </div>
 
       {/* Change VTOP Password */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 p-5">
-        <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Lock className="w-4 h-4" />
-          Change VTOP Password
-        </h4>
-        <div className="space-y-3 max-w-md">
-          <input type="password" value={vtopOldPassword} onChange={(e) => setVtopOldPassword(e.target.value)} placeholder="Current password" className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700" />
-          <input type="password" value={vtopNewPassword} onChange={(e) => setVtopNewPassword(e.target.value)} placeholder="New password" className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700" />
-          <input type="password" value={vtopConfirmPassword} onChange={(e) => setVtopConfirmPassword(e.target.value)} placeholder="Confirm new password" className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700" />
+      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
+            <Lock className="w-4 h-4 text-white" />
+          </div>
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">Change VTOP Password</h4>
+        </div>
+        <div className="p-5 space-y-4 max-w-md">
+          <input type="password" value={vtopOldPassword} onChange={(e) => setVtopOldPassword(e.target.value)} placeholder="Current password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          <input type="password" value={vtopNewPassword} onChange={(e) => setVtopNewPassword(e.target.value)} placeholder="New password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          <input type="password" value={vtopConfirmPassword} onChange={(e) => setVtopConfirmPassword(e.target.value)} placeholder="Confirm new password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
           {passwordChangeError && (
-            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 px-4 py-3 rounded-xl">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {passwordChangeError}
             </div>
           )}
           {passwordChangeSuccess && (
-            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500 midnight:text-green-500 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-500 midnight:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/20 px-4 py-3 rounded-xl">
               <CheckCircle className="w-4 h-4 shrink-0" />
               {passwordChangeSuccess}
             </div>
           )}
-          <button onClick={handleChangeVtopPassword} disabled={passwordChangeLoading || !vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword} className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+          <button onClick={handleChangeVtopPassword} disabled={passwordChangeLoading || !vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword} className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition-all active:scale-[0.98]">
             <Lock className="w-4 h-4 inline mr-1.5" />{passwordChangeLoading ? "Changing..." : "Change Password"}
           </button>
+        </div>
+      </div>
+
+      <div className="relative bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
+            <BookOpen className="w-4 h-4 text-white" />
+          </div>
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">Library Card</h4>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" value={kohaCard} onChange={(e) => setKohaCard(e.target.value)} placeholder="Card Number (e.g. 25BLC1081)" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+            <input type="password" value={kohaPassword} onChange={(e) => setKohaPassword(e.target.value)} placeholder="Library Password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500">Used to log into your Koha library account</p>
+            <button onClick={saveKoha} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all active:scale-[0.98] flex items-center gap-1.5">
+              <Save className="w-4 h-4" />{kohaSaved ? "Saved!" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

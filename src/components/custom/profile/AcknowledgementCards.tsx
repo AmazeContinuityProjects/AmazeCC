@@ -11,6 +11,17 @@ export default function AcknowledgementCards({ creds, refreshKey }: { creds: any
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (refreshKey === 0) {
+      const cached = localStorage.getItem("cache_acknowledgement");
+      if (cached) {
+        try {
+          setData(JSON.parse(cached));
+          setLoading(false);
+          return;
+        } catch (e) {}
+      }
+    }
+
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
     fetch(`${API_BASE}/api/acknowledgement`, {

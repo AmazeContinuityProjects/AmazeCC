@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getAssetPath } from "@/lib/utils";
-import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid, Wallet } from "lucide-react";
+import { RefreshCcw, User, CalendarCheck, Building, Bus, Menu, BookOpen, LayoutGrid, Wallet } from "lucide-react";
 
 import { IconToggle } from "../toggle";
 
@@ -265,10 +265,10 @@ export default function NavigationTabs({
               Overview
             </button>
             <button
-              onClick={() => setActiveSubTab("marks")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "marks" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+              onClick={() => setActiveSubTab("course-dashboard")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "course-dashboard" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
             >
-              Current Sem Marks
+              Course Dashboard
             </button>
             <button
               onClick={() => setActiveSubTab("grades")}
@@ -325,6 +325,13 @@ export default function NavigationTabs({
             >
               Wishlist
             </button>
+            <button
+              onClick={() => setActiveSubTab("faculty-info")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "faculty-info" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Faculty Info
+            </button>
+
           </div>
         )}
 

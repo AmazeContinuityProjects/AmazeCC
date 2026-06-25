@@ -251,41 +251,47 @@ export default function LoginPage() {
     setTimeout(() => setIsLoading(false), 300);
   }, []);
 
+  let loginPromise: Promise<any> | null = null;
+
   const loginToVTOP = async (retry = false) => {
-    try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      setProgressBar(10);
-      setMessage("Logging in and fetching data...");
-      const loginRes = await fetchWithTimeout(`${API_BASE}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword
-        }),
-      }, 60000);
+    if (loginPromise) return loginPromise;
+    loginPromise = (async () => {
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setProgressBar(10);
+        setMessage("Logging in and fetching data...");
+        const loginRes = await fetchWithTimeout(`${API_BASE}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: IDs.VtopUsername,
+            password: IDs.VtopPassword
+          }),
+        }, 60000);
 
-      const data = await loginRes.json();
+        const data = await loginRes.json();
 
-      if (data.message?.includes("Invalid Captcha") && !retry) {
-        console.warn("Invalid Captcha. Retrying once...");
-        return await loginToVTOP(true);
+        if (data.message?.includes("Invalid Captcha") && !retry) {
+          loginPromise = null;
+          return await loginToVTOP(true);
+        }
+
+        if (!data.success || !data.authorizedID || !data.cookies)
+          throw new Error(data.message || "Login failed.");
+
+        setMessage((prev) => prev + "\n✅ Login successful");
+        setProgressBar((prev) => prev + 30);
+
+        return {
+          cookies: data.cookies,
+          authorizedID: data.authorizedID,
+          csrf: data.csrf,
+        };
+      } finally {
+        loginPromise = null;
       }
-
-      if (!data.success || !data.authorizedID || !data.cookies)
-        throw new Error(data.message || "Login failed.");
-
-      setMessage((prev) => prev + "\n✅ Login successful");
-      setProgressBar((prev) => prev + 30);
-
-      return {
-        cookies: data.cookies,
-        authorizedID: data.authorizedID,
-        csrf: data.csrf,
-      };
-    } catch (err: any) {
-      throw err;
-    }
+    })();
+    return loginPromise;
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
@@ -314,23 +320,21 @@ export default function LoginPage() {
       setProgressBar(prev => prev + 10);
 
       let profileRes = JSON.parse(localStorage.getItem("profile") || "null");
-      if (!profileRes) {
-        try {
-          const studentFetch = await fetchWithTimeout(`${API_BASE}/api/student`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          });
-          const studentData = await studentFetch.json();
-          if (studentData && studentData.profile) {
-            profileRes = studentData.profile;
-            localStorage.setItem("profile", JSON.stringify(profileRes));
-            setMessage(prev => prev + "\n✅ Profile details fetched");
-            setProgressBar(prev => prev + 5);
-          }
-        } catch (e) {
-          console.error("Failed to fetch profile", e);
+      try {
+        const studentFetch = await fetchWithTimeout(`${API_BASE}/api/student`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies, authorizedID, csrf }),
+        });
+        const studentData = await studentFetch.json();
+        if (studentData && studentData.profile) {
+          profileRes = studentData.profile;
+          localStorage.setItem("profile", JSON.stringify(profileRes));
+          setMessage(prev => prev + "\n✅ Profile details fetched");
+          setProgressBar(prev => prev + 5);
         }
+      } catch (e) {
+        console.error("Failed to fetch profile", e);
       }
 
       const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, profileImagesRes] = await Promise.all([
@@ -444,6 +448,59 @@ export default function LoginPage() {
       localStorage.setItem("calender", JSON.stringify(calenderRes));
       if (eventsRes?.events) localStorage.setItem("registeredEvents", JSON.stringify(eventsRes.events));
 
+      // Fresher / EPT data
+      try {
+        const [eptRes, ackRes] = await Promise.all([
+          fetch(`${API_BASE}/api/ept-schedule`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          }).then(r => r.json()),
+          fetch(`${API_BASE}/api/acknowledgement`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          }).then(r => r.json()),
+        ]);
+        if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
+        if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
+        setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
+      } catch {}
+
+      // Bus routes
+      try {
+        const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
+        if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
+        setMessage(prev => prev + "\n✅ Bus routes fetched");
+      } catch {}
+
+      // All other VTOP-scoped endpoints (cached for GenericApiView)
+      const bulkEndpoints = [
+        "arrear-schedule", "arrear-details", "arrear-grade",
+        "course-option-change", "exc-registration", "minor-honour", "course-completion",
+        "wishlist", "additional-learning",
+        "project", "project-course",
+        "makeup-exam", "makeup-schedule", "compre-info",
+        "hostel-counselling",
+        "credentials", "registration-schedule", "dayboarder", "bank-info",
+        "library-due",
+      ];
+      await Promise.allSettled(
+        bulkEndpoints.map(path =>
+          fetch(`${API_BASE}/api/${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.success !== false) {
+                localStorage.setItem("cache_" + path, JSON.stringify(data));
+              }
+            })
+            .catch(() => {})
+        )
+      );
+      setMessage(prev => prev + "\n✅ All tab data cached");
+
       setMessage(prev => prev + "\n✅ All data loaded successfully!");
       setProgressBar(100);
       setIsLoggedIn(true);
@@ -464,6 +521,68 @@ export default function LoginPage() {
     }
   };
 
+  const fetchTransportData = async () => {
+    try {
+      const { cookies, authorizedID, csrf } = await loginToVTOP();
+      const res = await fetch(`${API_BASE}/api/transport`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies, authorizedID, csrf }),
+      });
+      const result = await res.json();
+      localStorage.setItem("transportData", JSON.stringify(result));
+
+      if (result.success && result.hasRegistration === true) {
+        if (true !== settings.isDayscholarWithBus) {
+          setSettings(prev => ({
+            ...prev,
+            isDayscholarWithBus: true,
+            residentialStatus: "dayscholar",
+          }));
+          const updated = {
+            ...settings,
+            isDayscholarWithBus: true,
+            residentialStatus: "dayscholar",
+          };
+          localStorage.setItem("settings", JSON.stringify(updated));
+        }
+      }
+
+      setMessage(prev => prev + "\n✅ Transport data fetched");
+      setProgressBar(prev => prev + 5);
+    } catch (err) {
+      console.error("Failed to fetch transport data:", err);
+    }
+  };
+
+  const fetchProfileData = async () => {
+    try {
+      const { cookies, authorizedID, csrf } = await loginToVTOP();
+      const endpoints = [
+        "ept-schedule", "registration-schedule", "bank-info",
+        "dayboarder", "acknowledgement", "credentials",
+      ];
+      const results = await Promise.allSettled(
+        endpoints.map(path =>
+          fetch(`${API_BASE}/api/${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          }).then(r => r.json())
+        )
+      );
+      endpoints.forEach((path, i) => {
+        if (results[i].status === "fulfilled") {
+          localStorage.setItem(`cache_${path.replace(/-/g, "_")}`, JSON.stringify((results[i] as any).value));
+        }
+      });
+      setMessage(prev => prev + "\n✅ Profile data fetched");
+      setProgressBar(prev => prev + 10);
+    } catch (err) {
+      console.error("Failed to fetch profile data:", err);
+    }
+  };
+
   // --- Event Handlers ---
   const handleReloadRequest = async () => {
     setIsReloading(true);
@@ -474,6 +593,8 @@ export default function LoginPage() {
     try {
       if ((settings as any).reloadAllData) {
         await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
+        await fetchTransportData();
+        await fetchProfileData();
         return;
       }
 
@@ -520,6 +641,9 @@ export default function LoginPage() {
 
       const moodleUsername = IDs.MoodleUsername;
       const moodlePassword = IDs.MoodlePassword;
+
+      tasks.push(fetchTransportData());
+      tasks.push(fetchProfileData());
 
       if (moodleUsername && moodlePassword) {
         tasks.push(
@@ -582,6 +706,70 @@ export default function LoginPage() {
       //   })()
       // )
       await Promise.all(tasks);
+
+      // Fresher / EPT data
+      try {
+        const [eptRes, ackRes] = await Promise.all([
+          fetch(`${API_BASE}/api/ept-schedule`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          }).then(r => r.json()),
+          fetch(`${API_BASE}/api/acknowledgement`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          }).then(r => r.json()),
+        ]);
+        if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
+        if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
+        setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
+      } catch {}
+
+      // Bus routes
+      try {
+        const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
+        if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
+        setMessage(prev => prev + "\n✅ Bus routes fetched");
+      } catch {}
+
+      // Library data
+      try {
+        const dueRes = await fetch(`${API_BASE}/api/library-due`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies, authorizedID, csrf }),
+        });
+        const dueData = await dueRes.json();
+        if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
+        setMessage(prev => prev + "\n✅ Library data fetched");
+      } catch {}
+
+      // All other VTOP-scoped endpoints (cached for GenericApiView)
+      const bulkEndpoints = [
+        "arrear-schedule", "arrear-details", "arrear-grade",
+        "course-option-change", "exc-registration", "minor-honour", "course-completion",
+        "wishlist", "additional-learning",
+        "project", "project-course",
+        "makeup-exam", "makeup-schedule", "compre-info",
+        "hostel-counselling",
+        "credentials", "registration-schedule", "dayboarder", "bank-info",
+      ];
+      await Promise.allSettled(
+        bulkEndpoints.map(path =>
+          fetch(`${API_BASE}/api/${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.success !== false) {
+                localStorage.setItem("cache_" + path, JSON.stringify(data));
+              }
+            })
+            .catch(() => {})
+        )
+      );
+      setMessage(prev => prev + "\n✅ All tab data cached");
 
       setProgressBar(100);
       setIsLoggedIn(true);

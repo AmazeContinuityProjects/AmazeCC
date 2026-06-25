@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { eachDayOfInterval, endOfMonth, getDay, isSameDay } from "date-fns";
 import NoContentFound from "../NoContentFound";
-import { RefreshCcw, Download, Calendar as CalendarIcon, Info, ChevronRight, BookOpen, Clock, EyeOff, Plus, CheckCircle2, ShieldAlert, Award } from "lucide-react";
+import { RefreshCcw, Download, Calendar as CalendarIcon, Info, ChevronRight, BookOpen, Clock, EyeOff, Plus, CheckCircle2, ShieldAlert, Award, FileText } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import { motion, AnimatePresence } from "framer-motion";
 import ExamsScheduleDisplay from "../Exams/SchduleDisplay";
@@ -57,7 +57,7 @@ function isInstructionalEvent(e) {
     return false;
 }
 
-export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, registeredEvents }) {
+export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, registeredEvents, setActiveAttendanceSubTab }) {
     
     const [homeworkTracker, setHomeworkTracker] = useState(() => {
         if (typeof window !== "undefined") {
@@ -673,6 +673,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                 </h1>
                 
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setActiveAttendanceSubTab?.("circulars")} 
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm"
+                    >
+                        <FileText size={16} /> <span className="text-sm">Circulars</span>
+                    </button>
                     <button 
                         onClick={generateCalendarICS} 
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-500/10 midnight:text-emerald-400 border border-emerald-200 dark:border-emerald-800 midnight:border-emerald-500/30 transition-colors text-sm font-medium"

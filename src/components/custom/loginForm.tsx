@@ -89,51 +89,54 @@ export default function LoginForm({
           </div>
         </div>
 
-        {/* Residential Status Switches */}
-        <div className="flex bg-gray-100/60 dark:bg-slate-950/40 midnight:bg-white/[0.03] backdrop-blur-xs border border-gray-200/30 dark:border-gray-800/40 midnight:border-white/[0.05] rounded-xl p-1 text-xs sm:text-sm">
-          <button
-            type="button"
-            onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
-            className={`flex-1 py-2 font-semibold rounded-lg transition-all ${
-              residentialStatus === "hosteller" 
-                ? "bg-white dark:bg-slate-800 midnight:bg-white/10 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50 midnight:border-white/10" 
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
-            }`}
-          >
-            Hosteller
-          </button>
-          <button
-            type="button"
-            onClick={() => { setResidentialStatus("dayscholar"); setIsDayscholarWithBus(false); }}
-            className={`flex-1 py-2 font-semibold rounded-lg transition-all ${
-              residentialStatus === "dayscholar" && !isDayscholarWithBus 
-                ? "bg-white dark:bg-slate-800 midnight:bg-white/10 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50 midnight:border-white/10" 
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
-            }`}
-          >
-            Dayscholar
-          </button>
-          <button
-            type="button"
-            onClick={() => { setResidentialStatus("dayscholar"); setIsDayscholarWithBus(true); }}
-            className={`flex-1 py-2 font-semibold rounded-lg transition-all ${
-              residentialStatus === "dayscholar" && isDayscholarWithBus 
-                ? "bg-white dark:bg-slate-800 midnight:bg-white/10 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shadow-sm border border-gray-200/50 dark:border-slate-700/50 midnight:border-white/10" 
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 midnight:text-gray-400 midnight:hover:text-gray-200"
-            }`}
-          >
-            DS (Bus)
-          </button>
-        </div>
-
         {!isLoading && (
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 midnight:bg-blue-600 midnight:hover:bg-blue-500 py-3 rounded-xl font-bold text-white transition-all shadow-md shadow-blue-500/10 active:scale-[0.98] focus:ring-2 focus:ring-blue-400/50 cursor-pointer"
-          >
-            Login
-          </button>
+          <>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider">Residential Status</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                    residentialStatus === "hosteller"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                      : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                  }`}
+                >
+                  Hosteller
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResidentialStatus("dayscholar")}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                    residentialStatus === "dayscholar"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                      : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                  }`}
+                >
+                  Dayscholar
+                </button>
+              </div>
+              {residentialStatus === "dayscholar" && (
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 border border-gray-200/80 dark:border-gray-800 midnight:border-white/10 cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-700">
+                  <input
+                    type="checkbox"
+                    checked={isDayscholarWithBus}
+                    onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/50"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">I have bus registration</span>
+                </label>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 midnight:bg-blue-600 midnight:hover:bg-blue-500 py-3 rounded-xl font-bold text-white transition-all shadow-md shadow-blue-500/10 active:scale-[0.98] focus:ring-2 focus:ring-blue-400/50 cursor-pointer"
+            >
+              Login
+            </button>
+          </>
         )}
 
         {message && (
