@@ -24,7 +24,7 @@ export default function Card({
     default:
       "bg-white dark:bg-slate-800 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 shadow-sm",
     glass:
-      "bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]",
+      "glass-card",
     gradient: gradient
       ? `border-none text-white shadow-md ${gradient}`
       : "bg-gradient-to-r from-blue-600 to-indigo-600 border-none text-white shadow-md",

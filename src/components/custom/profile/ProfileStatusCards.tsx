@@ -67,7 +67,7 @@ export default function ProfileStatusCards({ creds, refreshKey, onCardClick }: {
       .finally(() => setLoading(false));
   }, [refreshKey, creds]);
 
-  const statCard = "bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
+  const statCard = "glass-card p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
 
   const hasEpt = ept?.tables?.length > 0 && ept.tables.some((t: any) => t.rows?.length > 0);
   const hasReg = reg?.tables?.length > 0 && reg.tables.some((t: any) => t.rows?.length > 0);

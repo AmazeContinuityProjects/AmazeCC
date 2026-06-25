@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { API_BASE } from "../Main";
-import { Bus, MapPin, CreditCard, QrCode, ExternalLink, User, GraduationCap, BookOpen, CheckCircle2, XCircle, Loader2, Navigation } from "lucide-react";
+import { Bus, MapPin, CreditCard, QrCode, ExternalLink, User, GraduationCap, BookOpen, CheckCircle2, XCircle, Navigation, Loader2 } from "lucide-react";
+import { LoadingSpinner } from "../shared";
 
 interface TransportData {
   hasRegistration: boolean;
@@ -24,7 +25,7 @@ interface TransportRegistrationProps {
 }
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden mb-5 ${className}`}>
+  <div className={`glass-card mb-5 ${className}`}>
     {children}
   </div>
 );
@@ -67,8 +68,7 @@ export default function TransportRegistration({ data, loading, loginToVTOP }: Tr
     return (
       <CardShell>
         <div className="flex flex-col items-center justify-center py-16 px-6">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">Loading transport details...</p>
+          <LoadingSpinner size="lg" label="Loading transport details..." />
         </div>
       </CardShell>
     );

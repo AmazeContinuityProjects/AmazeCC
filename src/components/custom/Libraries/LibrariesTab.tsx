@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
 import SubpageLayout from "../shared/SubpageLayout";
+import { LoadingSpinner } from "../shared";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { RefreshCcw, BookOpen, Search, ChevronLeft, ChevronRight, User, LogOut, Library } from "lucide-react";
 import { API_BASE } from "../Main";
@@ -127,7 +128,7 @@ function BookSearch() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {books.map((book, i) => (
               <div key={book.biblionumber || `book-${i}`} onClick={() => openDetail(book.biblionumber)}
-                className="relative flex gap-4 p-4 rounded-2xl bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 cursor-pointer hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all"
+                className="relative flex gap-4 p-4 glass-card cursor-pointer hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all"
               >
                 {book.coverUrl ? (
                   <img src={book.coverUrl} alt="" className="w-16 h-24 object-cover rounded-lg shadow-sm shrink-0" />
@@ -144,7 +145,7 @@ function BookSearch() {
                 </div>
                 {loadingDetail === book.biblionumber && (
                   <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 rounded-2xl flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <LoadingSpinner size="sm" />
                   </div>
                 )}
               </div>
@@ -298,7 +299,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
     <SubpageLayout title="Library Account" onBack={onBack}>
       <div className="space-y-4">
         {!loggedIn ? (
-          <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 space-y-4">
+          <div className="glass-card p-5 space-y-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
                 <Library className="w-5 h-5 text-white" />
@@ -310,7 +311,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
             </div>
             {loading ? (
               <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner size="sm" />
                 Logging in with saved credentials...
               </div>
             ) : (
@@ -737,7 +738,7 @@ export default function LibrariesTab({ loginToVTOP }: LibrariesTabProps) {
         </div>
 
         <button onClick={() => setShowPatron(true)}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all text-left"
+          className="w-full flex items-center gap-4 p-4 glass-card hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all text-left"
         >
           <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm shrink-0">
             <Library className="w-6 h-6 text-white" />

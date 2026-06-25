@@ -13,3 +13,8 @@ export { default as CircularProgress } from "./CircularProgress";
 export { default as ExpandableSection } from "./ExpandableSection";
 export { default as InfoRow } from "./InfoRow";
 export { default as ViewModeToggle } from "./ViewModeToggle";
+export { default as DataTable } from "./DataTable";
+export { default as LoadingSpinner } from "./LoadingSpinner";
+export { default as ErrorDisplay } from "./ErrorDisplay";
+export { default as SectionHeader } from "./SectionHeader";
+export { default as CommandPalette } from "./CommandPalette";

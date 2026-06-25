@@ -127,7 +127,7 @@ export default function MarksDisplay({ data }) {
     const uniqueCourses = [];
     const codeMap = new Map();
     data.courses.forEach(c => {
-      const isLab = c.courseType.toLowerCase().includes("lab");
+      const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
       if (!codeMap.has(c.courseCode)) {
         codeMap.set(c.courseCode, {
           courseCode: c.courseCode,
@@ -177,7 +177,7 @@ export default function MarksDisplay({ data }) {
   const uniqueCourses = [];
   const codeMap = new Map();
   data.courses.forEach(c => {
-    const isLab = c.courseType.toLowerCase().includes("lab");
+    const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
     if (!codeMap.has(c.courseCode)) {
       codeMap.set(c.courseCode, {
         courseCode: c.courseCode,

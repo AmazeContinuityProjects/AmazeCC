@@ -498,7 +498,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             const venueDate = row.venueDate || "";
             const seat = row.seatLocation || "";
             return (
-              <div key={idx} className="relative group bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden hover:shadow-lg transition-shadow">
+              <div key={idx} className="relative group glass-card hover:shadow-lg transition-shadow">
                 <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
                     <User className="w-4 h-4 text-white" />
@@ -561,7 +561,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       )}
 
       {/* App Logins */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+      <div className="glass-card">
         <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <User className="w-4 h-4 text-white" />
@@ -589,7 +589,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       </div>
 
       {/* Change VTOP Password */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+      <div className="glass-card">
         <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
             <Lock className="w-4 h-4 text-white" />
@@ -618,7 +618,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
         </div>
       </div>
 
-      <div className="relative bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden">
+      <div className="relative glass-card">
         <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <BookOpen className="w-4 h-4 text-white" />

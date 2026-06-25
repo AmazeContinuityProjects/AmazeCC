@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ReloadModal } from "./reloadModel";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
@@ -11,6 +11,7 @@ import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
 import demoData from '../../app/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
+import { CommandPalette } from "@/components/custom/shared";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
@@ -98,6 +99,12 @@ export default function LoginPage() {
   const [demoMode, setDemoMode] = useState<boolean>(false);
   const [settings, setSettings] = useState<settings>(defaultSettings);
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
+  const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
+  const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [kohaBooks, setKohaBooks] = useState<any[]>([]);
+  const [kohaLoading, setKohaLoading] = useState(false);
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -337,7 +344,7 @@ export default function LoginPage() {
         console.error("Failed to fetch profile", e);
       }
 
-      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, profileImagesRes] = await Promise.all([
+      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, eventHubRes, profileImagesRes] = await Promise.all([
 
         fetchWithTimeout(`${API_BASE}/api/grades`, {
           method: "POST",
@@ -408,6 +415,15 @@ export default function LoginPage() {
           setProgressBar(prev => prev + 5);
           return j;
         }).catch(() => ({ events: [] })),
+        fetch(`${API_BASE}/api/events`).then(async r => {
+          if (!r.ok) return [];
+          const events = await r.json();
+          if (Array.isArray(events)) {
+            setEventHubEvents(events);
+            setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
+          }
+          return events;
+        }).catch(() => []),
         fetchWithTimeout(`${API_BASE}/api/profile-images`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -635,6 +651,17 @@ export default function LoginPage() {
             setRegisteredEvents(events);
             localStorage.setItem("registeredEvents", JSON.stringify(events));
             setMessage(prev => prev + "\n✅ Registered events fetched");
+          }
+        }).catch(() => {})
+      );
+
+      tasks.push(
+        fetch(`${API_BASE}/api/events`).then(async r => {
+          if (!r.ok) return;
+          const events = await r.json();
+          if (Array.isArray(events) && events.length) {
+            setEventHubEvents(events);
+            setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
           }
         }).catch(() => {})
       );
@@ -870,6 +897,841 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [isReloading]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // ── Dynamic palette search (KOHA catalog via "koha" prefix) ──
+  useEffect(() => {
+    if (!commandPaletteOpen) { setKohaBooks([]); setKohaLoading(false); return; }
+    const lower = paletteQuery.toLowerCase();
+    const kohaIdx = lower.indexOf("koha");
+    if (kohaIdx === -1) { setKohaBooks([]); setKohaLoading(false); return; }
+    const searchTerm = paletteQuery.slice(kohaIdx + 4).trim().replace(/^[:;,\-\s]+/, "");
+    if (!searchTerm) { setKohaBooks([]); setKohaLoading(true); return; }
+    setKohaLoading(true);
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/koha/search?q=${encodeURIComponent(searchTerm)}&count=10`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(data => { setKohaBooks(data?.success && Array.isArray(data?.books) ? data.books : []); setKohaLoading(false); })
+      .catch(() => { if (!controller.signal.aborted) { setKohaBooks([]); setKohaLoading(false); } });
+    return () => controller.abort();
+  }, [paletteQuery, commandPaletteOpen]);
+
+  const cmds = useMemo(() => {
+    const result: any[] = [];
+
+    // ── Detail helper components (used by data commands) ──
+    const attDetail = (course: any) => {
+      const a = course.attendedClasses || 0;
+      const t = course.totalClasses || 0;
+      const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
+      const canMiss = t > 0 ? Math.max(0, Math.floor((a - 0.75 * t) / 0.75)) : 0;
+      const needAttend = canMiss === 0 && t > 0 ? Math.ceil((0.75 * t - a) / 0.25) : 0;
+      return (
+        <div className="text-xs space-y-1.5">
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.courseTitle}</p>
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Code</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.courseCode}</span>
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Slot</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.slotName || course.slotVenue || "N/A"}</span>
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Attendance</span><span className={`font-bold ${parseFloat(p) >= 80 ? "text-green-600 dark:text-green-400 midnight:text-green-300" : parseFloat(p) >= 75 ? "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-300" : "text-red-600 dark:text-red-400 midnight:text-red-300"}`}>{p}%</span>
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Classes</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{a}/{t}</span>
+            {course.faculty && <><span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Faculty</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.faculty}</span></>}
+          </div>
+          {canMiss > 0 && <p className="text-green-600 dark:text-green-400 midnight:text-green-300 font-medium mt-1">✅ You can miss {canMiss} more class{canMiss > 1 ? "es" : ""}</p>}
+          {needAttend > 0 && <p className="text-red-600 dark:text-red-400 midnight:text-red-300 font-medium mt-1">⚠️ Need to attend {needAttend} more to reach 75%</p>}
+        </div>
+      );
+    };
+    const markDetail = (course: any) => {
+      const assessments = course.assessments || [];
+      return (
+        <div className="text-xs space-y-1.5">
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.courseTitle}</p>
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Code</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.courseCode}</span>
+            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Type</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.courseType || "N/A"}</span>
+            {course.credits && <><span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Credits</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{course.credits}</span></>}
+          </div>
+          {assessments.length > 0 && (
+            <div className="mt-2">
+              <p className="text-gray-400 dark:text-gray-500 midnight:text-gray-500 font-semibold mb-1">Assessments ({assessments.length})</p>
+              <div className="space-y-1 max-h-28 overflow-y-auto">
+                {assessments.map((a: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-gray-100/50 dark:bg-gray-800/40 midnight:bg-gray-800/50 text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+                    <span className="truncate mr-2">{a.name || `Assessment ${i + 1}`}</span>
+                    <span className="font-medium shrink-0 text-gray-900 dark:text-gray-100 midnight:text-gray-100">{a.scoredMark || "?"}/{a.maxMark || "?"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+    const gradeDetail = (g: any) => (
+      <div className="text-xs space-y-1.5">
+        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100">{g.courseTitle}</p>
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+          <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Code</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{g.courseCode}</span>
+          <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Grade</span><span className="font-bold text-lg text-gray-900 dark:text-gray-100 midnight:text-gray-100">{g.grade || "N/A"}</span>
+          {g.grandTotal && <><span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Total</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{g.grandTotal}</span></>}
+          {g.courseType && <><span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">Type</span><span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{g.courseType}</span></>}
+        </div>
+      </div>
+    );
+
+    // ── Navigation (main tabs) ──
+    const nav = [
+      { id: "nav-profile", label: "Profile", description: "View your profile and personal info", icon: "👤", category: "Navigation" },
+      { id: "nav-attendance", label: "Attendance", description: "Track your attendance records", icon: "📋", category: "Navigation" },
+      { id: "nav-academics", label: "Academics Hub", description: "Marks, curriculum, timetable & more", icon: "📚", category: "Navigation" },
+      { id: "nav-payments", label: "Payments", description: "Dues, receipts & wallet", icon: "💳", category: "Navigation" },
+      { id: "nav-libraries", label: "Libraries", description: "Search books & library account", icon: "📖", category: "Navigation" },
+      { id: "nav-hostel", label: "Hostel", description: "Mess, laundry & leave", icon: "🏠", category: "Navigation" },
+      { id: "nav-dayscholar", label: "Day Scholar", description: "Bus finder & transport", icon: "🚌", category: "Navigation" },
+      { id: "nav-more", label: "More", description: "Events, social & schedules", icon: "➕", category: "Navigation" },
+    ];
+    nav.forEach(c => result.push({ ...c, onSelect: () => setActiveTab(c.id.replace("nav-", "")) }));
+
+    // ── All sub-tab navigation ──
+    result.push(
+      { id: "acad-marks", label: "Marks Overview", description: "Course marks & assessments overview", icon: "📊", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); } },
+      { id: "acad-curriculum", label: "Curriculum", description: "Course curriculum & structure", icon: "📜", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("curriculum"); } },
+      { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("timetable"); } },
+      { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },
+      { id: "acad-gpa-predictor", label: "GPA Predictor", description: "Predict your GPA for this semester", icon: "📈", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("gpa"); } },
+      { id: "acad-course-dashboard", label: "Course Dashboard", description: "Detailed per-course view", icon: "📘", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
+      { id: "acad-circulars", label: "Academic Circulars", description: "View academic circulars & notices", icon: "📢", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("circulars"); } },
+      { id: "acad-faculty", label: "Faculty Info", description: "Faculty contact & information", icon: "👨‍🏫", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("faculty"); } },
+      { id: "acad-qcm", label: "QCM View", description: "Question category mapping view", icon: "📝", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qcm"); } },
+      { id: "acad-arrear", label: "Arrear Exams", description: "View arrear examination details", icon: "🔄", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("arrear"); } },
+      { id: "acad-makeup-compre", label: "Makeup Compre", description: "Makeup comprehensive exam info", icon: "📋", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("makeup-compre"); } },
+      { id: "acad-course-mgmt", label: "Course Management", description: "Manage course registrations", icon: "⚙️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-mgmt"); } },
+      { id: "acad-projects", label: "Projects", description: "View project submissions & details", icon: "💻", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("projects"); } },
+      { id: "acad-wishlist", label: "Course Wishlist", description: "Wishlist for future courses", icon: "⭐", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("wishlist"); } },
+      { id: "attendance-view", label: "Attendance Today", description: "Today's attendance overview", icon: "📋", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+      { id: "attendance-calendar", label: "Calendar View", description: "Academic calendar & events", icon: "📅", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+      { id: "attendance-circulars", label: "Attendance Circulars", description: "Circulars related to attendance", icon: "📢", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
+      { id: "profile-info", label: "Profile Info", description: "View profile information", icon: "👤", category: "Profile", onSelect: () => { setActiveTab("profile"); } },
+      { id: "profile-settings", label: "Profile Settings", description: "App settings & preferences", icon: "⚙️", category: "Profile", onSelect: () => { setActiveTab("profile"); } },
+    );
+
+    // ── Tabs that depend on residential status ──
+    result.push(
+      { id: "hostel-mess", label: "Hostel Mess", description: "Mess menu, feedback & details", icon: "🍽️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); } },
+      { id: "hostel-laundry", label: "Laundry", description: "Laundry service status", icon: "👕", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); } },
+      { id: "hostel-leave", label: "Leave", description: "Leave applications & history", icon: "✈️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); } },
+      { id: "hostel-counselling", label: "Hostel Counselling", description: "Hostel counselling sessions", icon: "🤝", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("counselling"); } },
+      { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); } },
+      { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("registration"); } },
+      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("qbank"); setActiveQBankSubTab("archive"); } },
+      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("qbank"); setActiveQBankSubTab("pure"); } },
+      { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
+      { id: "more-events", label: "Events Hub", description: "Registered events & activities", icon: "🎉", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); } },
+      { id: "more-schedules", label: "My Schedules", description: "Personal schedules & plans", icon: "🗓️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("schedules"); } },
+    );
+
+    // ── Tools & Modals ──
+    result.push(
+      { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
+      { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
+      { id: "tool-gpa-predictor", label: "GPA Predictor Tool", description: "Calculate and predict your GPA", icon: "🔮", category: "Tools", onSelect: () => { setActiveTab("academics"); setActiveSubTab("gpa"); } },
+      { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
+      { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
+    );
+
+    // ── Settings toggles ──
+    const toggle = (label: string, key: keyof typeof settings, category: string, icon: string, invertDesc = false) => {
+      const current = settings[key] as boolean;
+      result.push({
+        id: `setting-${key}-on`,
+        label: `${current ? "✅" : "☐"} ${label}`,
+        description: invertDesc
+          ? (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on")
+          : (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on"),
+        icon, category: `Settings`,
+        rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${current ? "text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800"}`}>{current ? "ON" : "OFF"}</span>,
+        onSelect: () => {
+          const newVal = !current as any;
+          setSettings(prev => ({ ...prev, [key]: newVal }));
+          localStorage.setItem("settings", JSON.stringify({ ...settings, [key]: newVal }));
+        }
+      });
+    };
+    toggle("Decimal Values in Attendance", "decimalValues", "Settings", "🔢");
+    toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
+    toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
+    toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
+
+    // ── Settings: Attendance Display Mode ──
+    ["percentage", "str"].forEach(mode => {
+      result.push({
+        id: `setting-att-display-${mode}`,
+        label: `Show Attendance as ${mode === "percentage" ? "Percentage" : "Fraction (X/Y)"}`,
+        description: settings.attendancePercentageOrString === mode ? "Currently active" : "Switch to this display mode",
+        icon: mode === "percentage" ? "📊" : "📏",
+        category: "Settings",
+        rightSlot: settings.attendancePercentageOrString === mode ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        onSelect: () => {
+          setSettings(prev => ({ ...prev, attendancePercentageOrString: mode as "percentage" | "str" }));
+          localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: mode }));
+        }
+      });
+    });
+
+    // ── Settings: Residential Status ──
+    ["hosteller", "dayscholar"].forEach(status => {
+      result.push({
+        id: `setting-res-status-${status}`,
+        label: `Set Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        description: settings.residentialStatus === status ? "Currently set" : "Switch to this residential status",
+        icon: status === "hosteller" ? "🏠" : "🚶",
+        category: "Settings",
+        rightSlot: settings.residentialStatus === status ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        onSelect: () => {
+          setSettings(prev => ({ ...prev, residentialStatus: status as "hosteller" | "dayscholar" }));
+          localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: status }));
+        }
+      });
+    });
+
+    // ── Settings: Calendar Type ──
+    const calTypes = ["ALL", "ALL02", "ALL03", "ALL05", "ALL06", "ALL08", "ALL11", "WEI"];
+    calTypes.forEach(ct => {
+      result.push({
+        id: `setting-cal-${ct}`,
+        label: `Calendar: ${ct}`,
+        description: settings.calendarType === ct ? "Currently selected" : "Switch to this calendar type",
+        icon: "📅",
+        category: "Settings",
+        rightSlot: settings.calendarType === ct ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        onSelect: () => {
+          setSettings(prev => ({ ...prev, calendarType: ct as any }));
+          localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: ct }));
+        }
+      });
+    });
+
+    // ── Settings: Semester Selection ──
+    const semIds = config.semesterIDs as string[];
+    if (Array.isArray(semIds)) {
+      semIds.forEach(sem => {
+        result.push({
+          id: `setting-sem-${sem}`,
+          label: `Semester: ${sem}`,
+          description: settings.currSemesterID === sem ? "Currently active" : "Switch to this semester",
+          icon: "📖",
+          category: "Settings",
+          rightSlot: settings.currSemesterID === sem ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+          onSelect: () => {
+            setSettings(prev => ({ ...prev, currSemesterID: sem }));
+            localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: sem }));
+          }
+        });
+      });
+    }
+
+    // ── Per-Course Attendance Commands (smart) ──
+    if (attendanceData?.attendance?.length) {
+      attendanceData.attendance.forEach((course, idx) => {
+        const attended = course.attendedClasses || 0;
+        const total = course.totalClasses || 0;
+        const percNum = total > 0 ? (attended / total) * 100 : 0;
+        const percStr = course.attendancePercentage || percNum.toFixed(1);
+        const shortName = course.courseTitle?.length > 30 ? course.courseTitle.substring(0, 28) + "…" : course.courseTitle;
+        const code = course.courseCode;
+
+        let canMiss = 0;
+        if (total > 0 && attended > 0) {
+          canMiss = Math.max(0, Math.floor((attended - 0.75 * total) / 0.75));
+        }
+        const percColor = percNum >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : percNum >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+        result.push({
+          id: `course-att-${code}-${idx}`,
+          label: `Att: ${shortName} (${code})`,
+          description: `${percStr}% · ${attended}/${total} classes`,
+          icon: "📋",
+          category: `Courses · Attendance`,
+          rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${percColor}`}>{percStr}%</span>,
+          detail: attDetail(course),
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+        });
+
+        // "Miss N classes" what-if commands (1 through max 5 or canMiss+2)
+        const maxMiss = Math.min(canMiss + 2, 5);
+        for (let miss = 1; miss <= maxMiss; miss++) {
+          const newPerc = total > 0 ? (attended / (total + miss) * 100) : 0;
+          const newPercStr = newPerc.toFixed(1);
+          const newColor = newPerc >= 75 ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+          result.push({
+            id: `course-miss-${code}-${miss}`,
+            label: `Miss ${miss} class${miss > 1 ? "es" : ""} in ${shortName}`,
+            description: `Currently ${percStr}%`,
+            icon: "🟡",
+            category: `What-If · Attendance`,
+            rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${newColor}`}>{newPercStr}%</span>,
+            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+          });
+        }
+
+        // "Recover by attending" for courses below 75%
+        if (canMiss === 0 && total > 0) {
+          const needToAttend = Math.ceil((0.75 * total - attended) / 0.25);
+          result.push({
+            id: `course-recover-${code}`,
+            label: `Need to attend ${needToAttend} more classes in ${shortName}`,
+            description: `To reach 75% · Currently ${percStr}%`,
+            icon: "📈",
+            category: `What-If · Attendance`,
+            rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">🎯 75%</span>,
+            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+          });
+        }
+      });
+
+      // Overall attendance summary
+      const overallAttended = attendanceData.attendance.reduce((s, c) => s + (c.attendedClasses || 0), 0);
+      const overallTotal = attendanceData.attendance.reduce((s, c) => s + (c.totalClasses || 0), 0);
+      const overallPerc = overallTotal > 0 ? ((overallAttended / overallTotal) * 100).toFixed(1) : "N/A";
+      const below75 = attendanceData.attendance.filter(c => {
+        const a = c.attendedClasses || 0; const t = c.totalClasses || 0; return t > 0 && (a / t) < 0.75;
+      });
+      const overallColor = parseFloat(overallPerc) >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : parseFloat(overallPerc) >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+      result.push({
+        id: "att-summary",
+        label: "📊 Attendance Summary",
+        description: `${overallAttended}/${overallTotal} classes · ${below75.length} below 75%`,
+        icon: "📊",
+        category: `Courses · Attendance`,
+        rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${overallColor}`}>{overallPerc}%</span>,
+        onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+      });
+      below75.forEach((c, i) => {
+        const a = c.attendedClasses || 0; const t = c.totalClasses || 0; const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
+        result.push({
+          id: `att-below75-${c.courseCode}-${i}`,
+          label: `⚠️ ${c.courseTitle} (${c.courseCode})`,
+          description: `${a}/${t} classes`,
+          icon: "🔴",
+          category: "⚠️ Courses Below 75%",
+          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20">{p}%</span>,
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+        });
+      });
+    }
+
+    // ── Per-Course Marks Commands ──
+    const courses = (marksData as any)?.courses;
+    if (Array.isArray(courses)) {
+      courses.forEach((course, idx) => {
+        const isLab = course.courseType?.toLowerCase().includes("lab") || course.slot?.toLowerCase().startsWith("l");
+        const shortName = course.courseTitle?.length > 30 ? course.courseTitle.substring(0, 28) + "…" : course.courseTitle;
+        const assessments = course.assessments || [];
+        const totalWeighted = assessments.reduce((s: number, a: any) => s + parseFloat(a.weightageMark || "0"), 0);
+        const totalMax = assessments.reduce((s: number, a: any) => s + parseFloat(a.weightagePercent || "0"), 0);
+        const scorePerc = totalMax > 0 ? ((totalWeighted / totalMax) * 100) : 0;
+        const scoreColor = scorePerc >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : scorePerc >= 60 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+        result.push({
+          id: `course-mark-${course.courseCode}-${idx}`,
+          label: `Mark: ${shortName} (${course.courseCode})`,
+          description: isLab ? "Lab course" : `${assessments.length} assessments`,
+          icon: "📊",
+          category: `Courses · Marks`,
+          rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${scoreColor}`}>{totalWeighted.toFixed(1)}/{totalMax.toFixed(0)}</span>,
+          detail: markDetail(course),
+          onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); }
+        });
+      });
+    }
+
+    // ── Per-Course Grade Commands from AllGradesData ──
+    if (AllGradesData?.grades) {
+      Object.entries(AllGradesData.grades).forEach(([semester, semData]: [string, any]) => {
+        if (!semData?.grades) return;
+        semData.grades.forEach((g: any, idx: number) => {
+          const grade = g.grade || "?";
+          const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 midnight:bg-gray-800";
+          result.push({
+            id: `grade-${semester}-${g.courseCode}-${idx}`,
+            label: `Grade: ${g.courseTitle} (${g.courseCode})`,
+            description: semester,
+            icon: "🎓",
+            category: `Grades · ${semester}`,
+            rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${gradeColor}`}>{grade}</span>,
+            detail: gradeDetail(g),
+            onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); }
+          });
+        });
+      });
+    }
+
+    // ── Current Semester Grade Commands ──
+    if ((GradesData as any)?.courses) {
+      (GradesData as any).courses.forEach((g: any, idx: number) => {
+        const grade = g.grade || "?";
+        const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 midnight:bg-gray-800";
+        result.push({
+          id: `cur-grade-${g.courseCode}-${idx}`,
+          label: `Current Grade: ${g.courseTitle} (${g.courseCode})`,
+          description: `Total: ${g.grandTotal || "N/A"}`,
+          icon: "📊",
+          category: "Grades · Current Semester",
+          rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${gradeColor}`}>{grade}</span>,
+          detail: gradeDetail(g),
+          onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); }
+        });
+      });
+    }
+
+    // ── Registered Events ──
+    if (Array.isArray(registeredEvents)) {
+      registeredEvents.forEach((ev, idx) => {
+        const posterUrl = ev.poster || ev.image || ev.coverUrl || "";
+        result.push({
+          id: `event-${idx}`,
+          label: `Event: ${ev.name || ev.title || "Untitled"}`,
+          description: `${ev.date || ""} · ${ev.time || ""} · ${ev.venue || ""}`,
+          icon: "🎉",
+          category: "Events",
+          detail: (
+            <div className="space-y-2">
+              {posterUrl ? (
+                <img src={posterUrl} alt="" className="w-full h-28 object-cover rounded-xl" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              ) : (
+                <div className="w-full h-20 rounded-xl bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <span className="text-3xl">🎉</span>
+                </div>
+              )}
+              <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1">
+                {ev.description && <p className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{ev.description}</p>}
+                {ev.date && <p>📅 {ev.date}{ev.time ? ` · ${ev.time}` : ""}</p>}
+                {ev.venue && <p>📍 {ev.venue}</p>}
+                {ev.paymentStatus && <p>💰 {ev.paymentStatus}</p>}
+              </div>
+            </div>
+          ),
+          onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); }
+        });
+      });
+    }
+
+    // ── EventHub Events (with poster preview) ──
+    if (Array.isArray(eventHubEvents)) {
+      eventHubEvents.forEach((ev: any, idx: number) => {
+        result.push({
+          id: `eh-event-${idx}`,
+          label: `🎪 ${ev.title || ev.name || "Untitled Event"}`,
+          description: `${ev.date || ""} · ${ev.location || ev.venue || ""} · ${ev.price || ev.type || ""}`,
+          icon: "🎪",
+          category: "EventHub · Discover",
+          rightSlot: ev.price ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-purple-600 dark:text-purple-400 midnight:text-purple-300 bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/20">{ev.price}</span> : undefined,
+          detail: ev.eid ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{ev.title}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">{ev.eligibility || ev.type || ""}</p>
+            </div>
+          ) : undefined,
+          onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); }
+        });
+      });
+    }
+
+    // ── Exam Schedule ──
+    const scheduleEntries = ScheduleData as Record<string, any[]>;
+    if (scheduleEntries && typeof scheduleEntries === "object") {
+      Object.entries(scheduleEntries).forEach(([key, exams]) => {
+        if (!Array.isArray(exams)) return;
+        exams.forEach((exam: any, idx: number) => {
+          result.push({
+            id: `exam-${key}-${idx}`,
+            label: `📝 Exam: ${exam.courseCode || ""} ${exam.courseTitle || ""}`,
+            description: `${exam.examDate || ""} · ${exam.examSession || ""} · ${exam.venue || ""}`,
+            icon: "📝",
+            category: "Exam Schedule",
+            detail: (
+              <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100">{exam.courseTitle}</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  <span className="text-gray-400">Code</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.courseCode}</span>
+                  <span className="text-gray-400">Date</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.examDate}</span>
+                  <span className="text-gray-400">Session</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.examSession}</span>
+                  {exam.examTime && <><span className="text-gray-400">Time</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.examTime}</span></>}
+                  {exam.venue && <><span className="text-gray-400">Venue</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.venue}</span></>}
+                  {exam.seatNo && <><span className="text-gray-400">Seat</span><span className="font-medium text-gray-900 dark:text-gray-100">{exam.seatNo}</span></>}
+                </div>
+              </div>
+            ),
+            onSelect: () => { setActiveTab("academics"); setActiveSubTab("timetable"); }
+          });
+        });
+      });
+    }
+
+    // ── Calendar Events ──
+    const calData = Calender as any;
+    if (calData?.results && Array.isArray(calData.results)) {
+      calData.results.forEach((month: any) => {
+        if (!month?.days) return;
+        month.days.forEach((day: any) => {
+          if (!day?.events) return;
+          day.events.forEach((ev: any, ei: number) => {
+            result.push({
+              id: `cal-${month.month}-${day.date}-${ei}`,
+              label: `📅 ${ev.text || "Calendar event"}`,
+              description: `${day.date} ${month.month} ${month.year || ""} · ${ev.type || ""}`,
+              icon: ev.type === "Holiday" ? "🎉" : ev.type === "Instructional Day" ? "📚" : "📌",
+              category: "Academic Calendar",
+              detail: (
+                <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">{ev.text}</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <span className="text-gray-400">Date</span><span className="font-medium text-gray-900 dark:text-gray-100">{day.date} {month.month} {month.year || ""}</span>
+                    <span className="text-gray-400">Type</span><span className="font-medium text-gray-900 dark:text-gray-100">{ev.type || "N/A"}</span>
+                    {ev.category && <><span className="text-gray-400">Category</span><span className="font-medium text-gray-900 dark:text-gray-100">{ev.category}</span></>}
+                  </div>
+                </div>
+              ),
+              onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
+            });
+          });
+        });
+      });
+    }
+
+    // ── Hostel Data ──
+    const hData = hostelData as any;
+    if (hData && Object.keys(hData).length > 0) {
+      if (hData.blockName || hData.roomNo) {
+        result.push({
+          id: "hostel-info",
+          label: `🏠 Hostel: ${hData.blockName || "N/A"} · Room ${hData.roomNo || "N/A"}`,
+          description: `${hData.messInfo || ""}`,
+          icon: "🏠",
+          category: "Hostel",
+          detail: (
+            <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                {hData.blockName && <><span className="text-gray-400">Block</span><span className="font-medium text-gray-900 dark:text-gray-100">{hData.blockName}</span></>}
+                {hData.roomNo && <><span className="text-gray-400">Room</span><span className="font-medium text-gray-900 dark:text-gray-100">{hData.roomNo}</span></>}
+                {hData.messInfo && <><span className="text-gray-400">Mess</span><span className="font-medium text-gray-900 dark:text-gray-100">{hData.messInfo}</span></>}
+              </div>
+            </div>
+          ),
+          onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }
+        });
+      }
+      if (hData.leaveHistory || hData.leaves) {
+        const leaves = hData.leaves || hData.leaveHistory || [];
+        if (Array.isArray(leaves)) {
+          leaves.forEach((l: any, i: number) => {
+            result.push({
+              id: `hostel-leave-${i}`,
+              label: `✈️ Leave: ${l.reason || l.visitPlace || "Leave"}`,
+              description: `${l.from || ""} → ${l.to || ""} · ${l.status || ""}`,
+              icon: l.status === "Approved" ? "✅" : l.status === "Pending" ? "⏳" : "✈️",
+              category: "Hostel · Leave",
+              detail: (
+                <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {l.reason && <><span className="text-gray-400">Reason</span><span className="font-medium text-gray-900 dark:text-gray-100">{l.reason}</span></>}
+                    {l.visitPlace && <><span className="text-gray-400">Place</span><span className="font-medium text-gray-900 dark:text-gray-100">{l.visitPlace}</span></>}
+                    {l.from && <><span className="text-gray-400">From</span><span className="font-medium text-gray-900 dark:text-gray-100">{l.from}</span></>}
+                    {l.to && <><span className="text-gray-400">To</span><span className="font-medium text-gray-900 dark:text-gray-100">{l.to}</span></>}
+                    {l.status && <><span className="text-gray-400">Status</span><span className={`font-medium ${l.status === "Approved" ? "text-green-600" : l.status === "Pending" ? "text-yellow-600" : "text-red-600"}`}>{l.status}</span></>}
+                  </div>
+                </div>
+              ),
+              onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); }
+            });
+          });
+        }
+      }
+    }
+
+    // ── Moodle / LMS Assignments ──
+    if (Array.isArray(moodleData) && moodleData.length > 0) {
+      const pending = moodleData.filter((a: any) => !a.done);
+      const completed = moodleData.filter((a: any) => a.done);
+      if (pending.length > 0) {
+        result.push({
+          id: "moodle-summary",
+          label: `📚 LMS: ${pending.length} pending assignment${pending.length !== 1 ? "s" : ""}`,
+          description: `${completed.length} completed · ${moodleData.length} total`,
+          icon: "📚",
+          category: "LMS · Assignments",
+          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 midnight:text-orange-300 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20">{pending.length}</span>,
+          onSelect: () => {}
+        });
+      }
+      moodleData.forEach((a: any, i: number) => {
+        const nameParts = (a.name || "").split("/");
+        const shortName = nameParts.length >= 3 ? nameParts[2] : nameParts[nameParts.length - 1] || "Assignment";
+        const courseCode = nameParts[0] || "";
+        result.push({
+          id: `moodle-${i}`,
+          label: `${a.done ? "✅" : "📝"} ${shortName}`,
+          description: `${courseCode} · Due: ${a.due || "N/A"}`,
+          icon: a.done ? "✅" : "📝",
+          category: `LMS · ${a.done ? "Completed" : "Pending"}`,
+          rightSlot: a.due ? <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${a.done ? "text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20"}`}>{a.due}</span> : undefined,
+          detail: (
+            <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100">{shortName}</p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                {courseCode && <><span className="text-gray-400">Course</span><span className="font-medium text-gray-900 dark:text-gray-100">{courseCode}</span></>}
+                {a.due && <><span className="text-gray-400">Due</span><span className="font-medium text-gray-900 dark:text-gray-100">{a.due}</span></>}
+                <span className="text-gray-400">Status</span><span className={`font-medium ${a.done ? "text-green-600" : "text-orange-600"}`}>{a.done ? "Completed" : "Pending"}</span>
+                {a.teachers?.length > 0 && <><span className="text-gray-400">Faculty</span><span className="font-medium text-gray-900 dark:text-gray-100">{a.teachers.join(", ")}</span></>}
+              </div>
+            </div>
+          ),
+          onSelect: () => { if (a.url) window.open(a.url, "_blank"); }
+        });
+      });
+    }
+
+    try {
+      const pagesRaw = localStorage.getItem("koha_patron_pages");
+      if (pagesRaw) {
+        const pages = JSON.parse(pagesRaw);
+        // Charges / dues
+        const chargesPage = pages.charges;
+        if (chargesPage?.tables) {
+          chargesPage.tables.forEach((table: any, ti: number) => {
+            (table.rows || []).forEach((row: any[], ri: number) => {
+              const gi = (i: string) => { const idx = (table.headers || []).indexOf(i); return idx >= 0 ? row[idx] || "" : ""; };
+              const type = gi("Type");
+              const desc = gi("Description");
+              const amount = gi("Amount");
+              const outstanding = gi("Amount outstanding");
+              const created = gi("Created");
+              const isFine = type?.toLowerCase().includes("fine");
+              const paidOff = outstanding === "0.00";
+              if (!type && !desc) return;
+              result.push({
+                id: `lib-charge-${ti}-${ri}`,
+                label: `📚 ${isFine ? "Fine" : "Dues"}: ${desc || type || "Library charge"}`,
+                description: `₹${parseFloat(amount || "0").toFixed(2)} · ${created || ""}`,
+                icon: isFine ? "💰" : "📖",
+                category: "Library · Dues & Charges",
+                rightSlot: (
+                  <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${paidOff ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20"}`}>
+                    {paidOff ? "Paid" : `₹${parseFloat(outstanding || amount || "0").toFixed(2)}`}
+                  </span>
+                ),
+                detail: (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <span className="text-gray-400">Type</span><span className="font-medium text-gray-900 dark:text-gray-100">{type || "N/A"}</span>
+                      {desc && <><span className="text-gray-400">Description</span><span className="font-medium text-gray-900 dark:text-gray-100">{desc}</span></>}
+                      <span className="text-gray-400">Amount</span><span className="font-medium text-gray-900 dark:text-gray-100">₹{parseFloat(amount || "0").toFixed(2)}</span>
+                      {outstanding && <><span className="text-gray-400">Outstanding</span><span className={`font-medium ${paidOff ? "text-green-600" : "text-red-600"}`}>₹{parseFloat(outstanding).toFixed(2)}</span></>}
+                      {created && <><span className="text-gray-400">Created</span><span className="font-medium text-gray-900 dark:text-gray-100">{created}</span></>}
+                    </div>
+                  </div>
+                ),
+                onSelect: () => setActiveTab("libraries")
+              });
+            });
+          });
+        }
+        // Checkouts (books currently checked out)
+        const checkoutsPage = pages.checkouts;
+        if (checkoutsPage?.tables) {
+          checkoutsPage.tables.forEach((table: any, ti: number) => {
+            (table.rows || []).forEach((row: any[], ri: number) => {
+              const gi = (i: string) => { const idx = (table.headers || []).indexOf(i); return idx >= 0 ? row[idx] || "" : ""; };
+              const title = gi("Title")?.replace(/\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+.*/, "") || "Untitled";
+              const author = gi("Author");
+              const date = gi("Date");
+              const callNo = gi("Call number")?.replace(/^Call number:\s*/i, "");
+              const itemType = gi("Item type")?.replace(/^Item type:\s*/i, "");
+              result.push({
+                id: `lib-checkout-${ti}-${ri}`,
+                label: `📕 Checked out: ${title}`,
+                description: author ? `by ${author}` : "",
+                icon: "📚",
+                category: "Library · Checked Out",
+                detail: (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{title}</p>
+                    {author && <p className="italic">by {author}</p>}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2">
+                      {callNo && <><span className="text-gray-400">Call No</span><span className="font-medium text-gray-900 dark:text-gray-100">{callNo}</span></>}
+                      {itemType && <><span className="text-gray-400">Type</span><span className="font-medium text-gray-900 dark:text-gray-100">{itemType}</span></>}
+                      {date && !date.includes("Check-in") && <><span className="text-gray-400">Date</span><span className="font-medium text-gray-900 dark:text-gray-100">{date}</span></>}
+                    </div>
+                  </div>
+                ),
+                onSelect: () => setActiveTab("libraries")
+              });
+            });
+          });
+        }
+      }
+    } catch {}
+
+    // ── Cached library due data ──
+    try {
+      const libDueRaw = localStorage.getItem("cache_library_due");
+      if (libDueRaw) {
+        const libDue = JSON.parse(libDueRaw);
+        if (libDue?.success && libDue.books?.length > 0) {
+          const totalDue = libDue.books.reduce((s: number, b: any) => s + parseFloat(b.dueAmount || "0"), 0);
+          result.push({
+            id: "lib-due-summary",
+            label: `📚 Library Dues Summary`,
+            description: `${libDue.books.length} book${libDue.books.length !== 1 ? "s" : ""} · Total: ₹${totalDue.toFixed(2)}`,
+            icon: "💰",
+            category: "Library · Dues & Charges",
+            rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20">₹{totalDue.toFixed(2)}</span>,
+            onSelect: () => setActiveTab("libraries")
+          });
+          libDue.books.forEach((b: any, i: number) => {
+            result.push({
+              id: `lib-due-book-${i}`,
+              label: `📖 Due: ${b.title || "Unknown"}`,
+              description: `₹${parseFloat(b.dueAmount || "0").toFixed(2)} · ${b.author || ""}`,
+              icon: "📖",
+              category: "Library · Dues & Charges",
+              rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20">₹{parseFloat(b.dueAmount || "0").toFixed(2)}</span>,
+              detail: (
+                <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">{b.title}</p>
+                  {b.author && <p>by {b.author}</p>}
+                  {b.isbn && <p>ISBN: {b.isbn}</p>}
+                  {b.daysOverdue ? <p className="text-red-500 font-medium">⏰ {b.daysOverdue} days overdue</p> : null}
+                  <p className="font-bold text-red-600">Due: ₹{parseFloat(b.dueAmount || "0").toFixed(2)}</p>
+                </div>
+              ),
+              onSelect: () => setActiveTab("libraries")
+            });
+          });
+        }
+      }
+    } catch {}
+
+    // ── Profile data from localStorage ──
+    try {
+      const profileRaw = localStorage.getItem("profile");
+      if (profileRaw) {
+        const p = JSON.parse(profileRaw);
+        if (p?.regNo) {
+          result.push({
+            id: "profile-regno",
+            label: `👤 Profile: ${p.regNo}`,
+            description: `${p.name || ""} · ${p.program || ""} · ${p.campus || ""}`,
+            icon: "👤",
+            category: "Profile",
+            detail: (
+              <div className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400 space-y-1.5">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  {p.name && <><span className="text-gray-400">Name</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.name}</span></>}
+                  {p.regNo && <><span className="text-gray-400">Reg No</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.regNo}</span></>}
+                  {p.email && <><span className="text-gray-400">Email</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.email}</span></>}
+                  {p.mobile && <><span className="text-gray-400">Mobile</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.mobile}</span></>}
+                  {p.program && <><span className="text-gray-400">Program</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.program}</span></>}
+                  {p.campus && <><span className="text-gray-400">Campus</span><span className="font-medium text-gray-900 dark:text-gray-100">{p.campus}</span></>}
+                </div>
+              </div>
+            ),
+            onSelect: () => setActiveTab("profile")
+          });
+        }
+      }
+    } catch {}
+
+    // ── Bus routes from cache ──
+    try {
+      const busesRaw = localStorage.getItem("cache_buses");
+      if (busesRaw) {
+        const buses = JSON.parse(busesRaw);
+        if (Array.isArray(buses)) {
+          const routeLabels = new Set<string>();
+          buses.forEach((b: any, i: number) => {
+            const label = `${b.routeNo || b.route || b.name || `Route ${i + 1}`}`;
+            if (routeLabels.has(label)) return;
+            routeLabels.add(label);
+            result.push({
+              id: `bus-${i}`,
+              label: `🚍 Bus: ${label}`,
+              description: `${b.startPoint || ""} → ${b.endPoint || ""} · ${b.timing || ""}`,
+              icon: "🚍",
+              category: "Bus Routes",
+              detail: (
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">{label}</p>
+                  {b.startPoint && b.endPoint && <p>📍 {b.startPoint} → {b.endPoint}</p>}
+                  {b.timing && <p>🕐 {b.timing}</p>}
+                  {b.stops?.length > 0 && <p className="text-gray-400 mt-1">Stops: {b.stops.join(", ")}</p>}
+                </div>
+              ),
+              onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); }
+            });
+          });
+        }
+      }
+    } catch {}
+
+    return result;
+  }, [
+    setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab,
+    setActiveDayscholarSubTab, setActiveMoreSubTab, setActiveQBankSubTab,
+    attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
+    ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest
+  ]);
+
+  const mergedCommands = useMemo(() => {
+    const result = [...cmds];
+    const hasKoha = paletteQuery.toLowerCase().indexOf("koha") !== -1;
+    if (hasKoha) {
+      const searchTerm = paletteQuery.slice(paletteQuery.toLowerCase().indexOf("koha") + 4).trim().replace(/^[:;,\\-s]+/, "");
+      if (!searchTerm && !kohaLoading) {
+        result.push({ id: "koha-prompt", label: "📖 Type after koha: to search the library catalog", description: "e.g. koha: harry potter", icon: "📖", category: "📚 Library Catalog", onSelect: () => {} });
+      } else if (kohaLoading) {
+        result.push({ id: "koha-loading", label: "🔍 Searching library catalog...", description: `Looking for "${searchTerm}"`, icon: "🔍", category: "📚 Library Catalog", onSelect: () => {} });
+      } else if (searchTerm && kohaBooks.length === 0) {
+        result.push({ id: "koha-none", label: "📭 No books found in library catalog", description: "Try different search terms after koha:", icon: "📭", category: "📚 Library Catalog", onSelect: () => {} });
+      }
+    }
+    kohaBooks.forEach((book, i) => {
+      result.push({
+        id: `koha-${i}`,
+        label: `📖 ${book.title || "Unknown Book"}`,
+        description: book.author ? `by ${book.author}${book.publisher ? " · " + book.publisher : ""}` : book.publisher || "",
+        icon: "📖",
+        category: "📚 Library Catalog",
+        rightSlot: book.isbn ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 midnight:text-blue-300 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20">ISBN</span> : undefined,
+        detail: (
+          <div className="flex gap-3 text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            {book.coverUrl && (
+              <div className="shrink-0 w-20 h-28 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900">
+                <img src={book.coverUrl} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">{book.title}</p>
+              {book.author && <p className="italic">by {book.author}</p>}
+              {book.publisher && <p className="truncate">{book.publisher}</p>}
+              {book.isbn && <p>ISBN: {book.isbn}</p>}
+              {book.biblionumber && <p className="text-blue-500 mt-1">Click to view details</p>}
+            </div>
+          </div>
+        ),
+        onSelect: () => { setActiveTab("libraries"); }
+      });
+    });
+    return result;
+  }, [cmds, paletteQuery, kohaBooks, kohaLoading]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 midnight:bg-black">
@@ -1030,6 +1892,41 @@ export default function LoginPage() {
           <LoginFooter />
         </div>
       )}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        commands={mergedCommands}
+        onQueryChange={setPaletteQuery}
+      />
     </motion.div>
+  );
+}
+
+function EventPreviewCard({ eid, username, password }: { eid: string; username: string; password: string }) {
+  const [data, setData] = useState<{ imageSrc: string; description: string; metaDetails: Record<string, string> } | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/events/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, eid }),
+      signal: controller.signal
+    }).then(async r => { if (!r.ok) return null; return r.json(); }).then(j => {
+      if (!cancelled) { setData(j); setLoading(false); }
+    }).catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [eid, username, password]);
+  if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 animate-pulse" />;
+  if (!data?.imageSrc) return null;
+  return (
+    <div className="space-y-2">
+      <img src={data.imageSrc} alt="" className="w-full h-28 object-cover rounded-xl" />
+      {data.description && <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{data.description}</p>}
+      {data.metaDetails && Object.entries(data.metaDetails).map(([k, v]) => (
+        <p key={k} className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
+      ))}
+    </div>
   );
 }

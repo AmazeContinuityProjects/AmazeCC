@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
 import EmptyState from "../shared/EmptyState";
 import SearchInput from "../shared/SearchInput";
+import { LoadingSpinner } from "../shared";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
 import SubpageLayout from "../shared/SubpageLayout";
@@ -177,7 +178,7 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <LoadingSpinner size="lg" />
         </div>
       ) : questions.length === 0 ? (
         <EmptyState

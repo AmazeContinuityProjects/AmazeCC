@@ -2,13 +2,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { API_BASE } from "../Main";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { FileText, XCircle, ChevronDown, Inbox, BookOpen, Send } from "lucide-react";
-
-const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden mb-5 ${className}`}>
-    {children}
-  </div>
-);
+import { ChevronDown, Inbox, Send } from "lucide-react";
+import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/shared";
 
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-0">
@@ -164,28 +159,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     const { warning, error: msgError, success } = msgs;
     return (
       <>
-        {warning && (
-          <CardShell>
-            <div className="p-4 text-sm text-amber-700 dark:text-amber-400 midnight:text-amber-400 flex items-center gap-2">
-              <span dangerouslySetInnerHTML={{ __html: warning }} />
-            </div>
-          </CardShell>
-        )}
-        {msgError && (
-          <CardShell>
-            <div className="p-4 text-sm text-red-600 dark:text-red-400 midnight:text-red-500 flex items-center gap-2">
-              <XCircle className="w-4 h-4 shrink-0" />
-              <span dangerouslySetInnerHTML={{ __html: msgError }} />
-            </div>
-          </CardShell>
-        )}
-        {success && (
-          <CardShell>
-            <div className="p-4 text-sm text-green-700 dark:text-green-400 midnight:text-green-400">
-              <span dangerouslySetInnerHTML={{ __html: success }} />
-            </div>
-          </CardShell>
-        )}
+        {warning && <div className="warning-banner mb-5" dangerouslySetInnerHTML={{ __html: warning }} />}
+        {msgError && <ErrorDisplay message={msgError} />}
+        {success && <div className="success-banner mb-5" dangerouslySetInnerHTML={{ __html: success }} />}
       </>
     );
   };
@@ -194,8 +170,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     if (!tables || tables.length === 0) return null;
     return tables.map((table: any, idx: number) => {
       const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
+      const columns = table.headers.map((h: string) => ({ key: h, label: h }));
       return (
-        <CardShell key={idx}>
+        <div key={idx} className="glass-card mb-5">
           <div className="p-5">
             {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
             {hasRows ? (
@@ -210,7 +187,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   </thead>
                   <tbody>
                     {table.rows.map((row: any, ri: number) => (
-                      <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 last:border-0">
+                      <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                         {table.headers.map((h: string, ci: number) => (
                           <td key={ci} className="py-2.5 px-2 text-gray-800 dark:text-gray-200 midnight:text-gray-200 whitespace-nowrap">
                             {typeof row === "object" ? (row[h] || row[ci] || "") : (Array.isArray(row) ? row[ci] || "" : "")}
@@ -222,10 +199,10 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </table>
               </div>
             ) : (
-              <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500 text-center py-4">No data available</p>
+              <EmptyState title="No data available" className="py-4" />
             )}
           </div>
-        </CardShell>
+        </div>
       );
     });
   };
@@ -235,7 +212,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     const entries = Object.entries(kv).filter(([k]) => !k.toLowerCase().includes("semester"));
     if (entries.length === 0) return null;
     return (
-      <CardShell>
+      <div className="glass-card mb-5">
         <div className="p-5">
           <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -244,7 +221,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             ))}
           </div>
         </div>
-      </CardShell>
+      </div>
     );
   };
 
@@ -264,7 +241,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"))
       : [];
     return (
-      <CardShell key={semName}>
+      <div className="glass-card mb-5" key={semName}>
         <div className="p-5">
           <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
           {renderMessages(semData.messages)}
@@ -281,7 +258,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               )}
             </>
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500 text-center py-4">No data available</p>
+            <EmptyState title="No data available" className="py-4" />
           )}
           {semSelectOptions.length > 0 && (
             <div className="space-y-3 mt-4">
@@ -334,7 +311,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             </div>
           )}
         </div>
-      </CardShell>
+      </div>
     );
   };
 
@@ -352,12 +329,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     return (
       <div>
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-4">{title}</h3>
-        <CardShell>
-          <div className="flex items-center gap-3 p-4 text-red-600 dark:text-red-500 midnight:text-red-500">
-            <XCircle className="w-5 h-5 shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
-          </div>
-        </CardShell>
+        <div className="glass-card mb-5">
+          <ErrorDisplay message={error} />
+        </div>
       </div>
     );
   }
@@ -377,30 +351,31 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             .map(([semName, semData]: [string, any]) => {
               if (semData.error) {
                 return (
-                  <CardShell key={semName}>
+                  <div className="glass-card mb-5" key={semName}>
                     <div className="p-5">
                       <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
-                      <p className="text-sm text-red-500">{semData.error}</p>
+                      <p className="error-banner">{semData.error}</p>
                     </div>
-                  </CardShell>
+                  </div>
                 );
               }
               return renderSingleSemester(semData, semName);
             })
         ) : (
-          <CardShell>
-            <div className="flex flex-col items-center py-12 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
-              <Inbox className="w-10 h-10 mb-3" />
-              <p className="text-sm font-medium">No data found</p>
-            </div>
-          </CardShell>
+          <div className="glass-card mb-5">
+            <EmptyState
+              icon={<Inbox className="w-10 h-10" />}
+              title="No data found"
+              className="py-12"
+            />
+          </div>
         )
       ) : (
         <>
           {renderMessages(data.messages)}
 
           {semesterOptions && (
-            <CardShell>
+            <div className="glass-card mb-5">
               <div className="p-4">
                 <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
                 <div className="relative">
@@ -414,21 +389,17 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
               </div>
-            </CardShell>
-          )}
-
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
+
+          {loading && <LoadingSpinner size="lg" className="py-8" />}
 
           {!loading && (
             <>
               {renderKeyValues(data.keyValuePairs)}
               {renderTables(data.tables)}
               {allSelectOptions.length > 0 && (
-                <CardShell>
+                <div className="glass-card mb-5">
                   <div className="p-5">
                     <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Available Options</h4>
                     <div className="space-y-3">
@@ -444,21 +415,15 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                       ))}
                     </div>
                   </div>
-                </CardShell>
+                </div>
               )}
               {data.formFields && Object.keys(data.formFields).length > 0 && (writable ? (
-                <CardShell>
+                <div className="glass-card mb-5">
                   <form onSubmit={handleSubmit} className="p-5 space-y-4">
                     <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Submit Form</h4>
-                    {submitResult?.messages?.success && (
-                      <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20 text-sm text-green-700 dark:text-green-400 midnight:text-green-400">{submitResult.messages.success}</div>
-                    )}
-                    {submitResult?.messages?.error && (
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 text-sm text-red-600 dark:text-red-400 midnight:text-red-500">{submitResult.messages.error}</div>
-                    )}
-                    {submitResult?.error && (
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 text-sm text-red-600 dark:text-red-400 midnight:text-red-500">{submitResult.error}</div>
-                    )}
+                    {submitResult?.messages?.success && <div className="success-banner">{submitResult.messages.success}</div>}
+                    {submitResult?.messages?.error && <div className="error-banner">{submitResult.messages.error}</div>}
+                    {submitResult?.error && <div className="error-banner">{submitResult.error}</div>}
                     {Object.entries(data.formFields).map(([key, val]: any) => (
                       <div key={key}>
                         <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">{key.replace(/-/g, " ")}</label>
@@ -477,9 +442,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                       {submitting ? "Submitting..." : "Submit"}
                     </button>
                   </form>
-                </CardShell>
+                </div>
               ) : (
-                <CardShell>
+                <div className="glass-card mb-5">
                   <div className="p-5">
                     <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Form Fields</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -488,15 +453,16 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                       ))}
                     </div>
                   </div>
-                </CardShell>
+                </div>
               ))}
               {!allSelectOptions.length && !data.tables?.length && !Object.keys(data.keyValuePairs || {}).length && !data.formFields && !data.messages && (
-                <CardShell>
-                  <div className="flex flex-col items-center py-12 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
-                    <Inbox className="w-10 h-10 mb-3" />
-                    <p className="text-sm font-medium">No data found</p>
-                  </div>
-                </CardShell>
+                <div className="glass-card mb-5">
+                  <EmptyState
+                    icon={<Inbox className="w-10 h-10" />}
+                    title="No data found"
+                    className="py-12"
+                  />
+                </div>
               )}
             </>
           )}

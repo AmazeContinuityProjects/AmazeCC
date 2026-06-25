@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { API_BASE } from "../Main";
 import { FileText } from "lucide-react";
 
-const cardBase = "bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden";
+const cardBase = "glass-card";
 
 export default function AcknowledgementCards({ creds, refreshKey }: { creds: any; refreshKey: number }) {
   const [data, setData] = useState<any>(null);

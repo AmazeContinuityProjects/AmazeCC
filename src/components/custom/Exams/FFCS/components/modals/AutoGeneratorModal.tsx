@@ -722,7 +722,7 @@ export function AutoGeneratorModal({
                   />
 
                   {generatorPreviewTimetable?.courses && generatorPreviewTimetable.courses.length > 0 && (
-                    <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] overflow-x-auto">
+                    <div className="glass-card p-6 overflow-x-auto">
                       <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
                         <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           Selected Courses

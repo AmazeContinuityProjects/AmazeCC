@@ -64,7 +64,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
   return (
     <div className="w-full space-y-6 pb-8 animate-fadeIn">
       {/* Header */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
+      <div className="glass-card p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
                   <div
                     key={group.id}
                     onClick={() => setSelectedGroup({ group, friends: groupFriends, name: group.name })}
-                    className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-md transition-all flex flex-col cursor-pointer group"
+                    className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer group"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-foreground leading-tight text-lg">{group.name}</h3>
@@ -179,7 +179,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
               <div
                 key={friend.id}
                 onClick={() => setSelectedFriend(friend)}
-                className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
+                className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">

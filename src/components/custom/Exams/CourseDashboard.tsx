@@ -105,28 +105,28 @@ const formatTitle = (title: string) => {
 };
 
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden mb-5 ${className}`}>
+  <div className={`glass-card mb-5 ${className}`}>
     {children}
   </div>
 );
 
 const TabButton = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
+    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800"}`}>
     {label}
   </button>
 );
 
 const TypeBadge = ({ label }: { label: string }) => {
   const colors: Record<string, string> = {
-    "Embedded": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-    "Theory Only": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    "Lab Only": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-    "Embedded Theory": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    "Embedded Lab": "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
+    "Embedded": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 midnight:bg-indigo-900/30 midnight:text-indigo-300",
+    "Theory Only": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/30 midnight:text-blue-300",
+    "Lab Only": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/30 midnight:text-emerald-300",
+    "Embedded Theory": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/30 midnight:text-purple-300",
+    "Embedded Lab": "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 midnight:bg-teal-900/30 midnight:text-teal-300",
   };
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${colors[label] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${colors[label] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 midnight:bg-gray-800 midnight:text-gray-400"}`}>
       {label}
     </span>
   );
@@ -195,7 +195,7 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
       badge={
         <div className="text-right">
           <p className="text-xl font-black text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 font-semibold">/ {formatNumber(detail.maxMark)}</span>
+            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500 font-semibold">/ {formatNumber(detail.maxMark)}</span>
           </p>
           <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
             Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
@@ -288,7 +288,7 @@ export default function CourseDashboard({
     const map = new Map();
     if (marksData?.courses) {
       (marksData.courses as any[]).forEach(c => {
-        const isLab = c.courseType?.toLowerCase().includes("lab");
+        const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
         const key = c.courseCode;
         if (!map.has(key)) {
           map.set(key, {
@@ -606,7 +606,7 @@ export default function CourseDashboard({
     return (
       <SubpageLayout title="Course Dashboard" onBack={() => setActiveSubTab("overview")}>
         {uniqueCourses.length === 0 ? (
-          <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" /><p className="text-sm text-gray-400">No course data available</p></div></Card>
+          <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300 dark:text-gray-600 midnight:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No course data available</p></div></Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {uniqueCourses.map((group: any, idx: number) => {
@@ -670,9 +670,9 @@ export default function CourseDashboard({
                         )}
                         {att && (
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                            Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" :
-                            Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" :
-                            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                            Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/30 midnight:text-emerald-300" :
+                            Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/30 midnight:text-blue-300" :
+                            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 midnight:bg-red-900/30 midnight:text-red-300"
                           }`}>
                             {att.attendancePercentage}% att
                           </span>
@@ -704,7 +704,7 @@ export default function CourseDashboard({
       </div>
 
       {error && (
-        <div className="p-4 text-sm text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
@@ -719,13 +719,13 @@ export default function CourseDashboard({
                 <div className="flex items-center gap-5">
                   <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={80} />
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
-                    <p className="text-xs text-gray-500">{attendanceItem.attendancePercentage || "0"}% attendance</p>
-                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400">Venue: {attendanceItem.slotVenue}</p>}
-                    {attendanceItem.faculty && <p className="text-xs text-gray-400 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
+                    <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
+                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
+                    {attendanceItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
                   </div>
                 </div>
-              ) : <p className="text-sm text-gray-400">No attendance data</p>}
+              ) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No attendance data</p>}
             </div>
           </Card>
           <Card>
@@ -733,28 +733,28 @@ export default function CourseDashboard({
               <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Course Info</h4>
               {mainCourse ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400">Course Type</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400">Slot</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{mainCourse.slot}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400">Faculty</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[200px]">{mainCourse.faculty}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400">System</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{mainCourse.courseSystem}</span></div>
-                  {attendanceItem?.credits && <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400">Credits</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{attendanceItem.credits}</span></div>}
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Course Type</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Slot</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{mainCourse.slot}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Faculty</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate max-w-[200px]">{mainCourse.faculty}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">System</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{mainCourse.courseSystem}</span></div>
+                  {attendanceItem?.credits && <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Credits</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{attendanceItem.credits}</span></div>}
                   {isEmbedded && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Components</p>
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 midnight:border-gray-800">
+                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-2">Components</p>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">{selectedGroup.theory?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
+                          <span className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">{selectedGroup.theory?.courseType}</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">{selectedGroup.lab?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
+                          <span className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">{selectedGroup.lab?.courseType}</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-              ) : <p className="text-sm text-gray-400">No marks data</p>}
+              ) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No marks data</p>}
             </div>
           </Card>
           <Card className="md:col-span-2">
@@ -766,13 +766,13 @@ export default function CourseDashboard({
               {planLoading ? <Skeleton className="h-24 w-full rounded-xl" />
               : coursePlan ? coursePlan.map((cp: any, i: number) => (
                 cp.data.tables?.map((t: any) => t.rows?.slice(0, 2).map((r: any, ri: number) => (
-                  <div key={`${i}-${ri}`} className="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 mb-2">
-                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">{cp.type}</p>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
-                    <p className="text-xs text-gray-500">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
+                  <div key={`${i}-${ri}`} className="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 mb-2">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase mb-1">{cp.type}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
                   </div>
                 )))
-              )) : <p className="text-sm text-gray-400">Course plan loads automatically</p>}
+              )) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">Course plan loads automatically</p>}
             </div>
           </Card>
           {viewDetail && (
@@ -798,7 +798,7 @@ export default function CourseDashboard({
                     ))}
                   </div>
                 ))}
-                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-sm text-gray-400">No schedule data</p>}
+                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No schedule data</p>}
               </div>
             </Card>
           )}
@@ -842,7 +842,7 @@ export default function CourseDashboard({
           {renderAssessmentTable(selectedGroup?.lab?.assessments, "Lab")}
 
           {(!selectedGroup?.theory?.assessments?.length && !selectedGroup?.lab?.assessments?.length) && (
-            <Card><div className="p-5 text-sm text-gray-400">No assessment data available</div></Card>
+            <Card><div className="p-5 text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No assessment data available</div></Card>
           )}
 
           {/* Grade Insights - Full replication from MarksSubpage */}
