@@ -446,7 +446,7 @@ export default function NavigationTabs({
               id: "settings.info",
               label: "My Info",
               short: "I",
-              isActive: () => false,
+              isActive: () => activeTab === "profile" && activeProfileSubTab === "info",
               onSelect: () => {
                 selectTab("profile");
                 setActiveProfileSubTab("info");
@@ -466,7 +466,7 @@ export default function NavigationTabs({
               id: "settings.preferences",
               label: "Preferences",
               short: "P",
-              isActive: () => activeTab === "profile" && activeProfileSubTab === "info",
+              isActive: () => false,
               onSelect: () => {
                 selectTab("profile");
                 setActiveProfileSubTab("info");
@@ -530,8 +530,8 @@ export default function NavigationTabs({
         data-sidebar-nav="true"
         onClick={() => selectChild(child)}
         onKeyDown={(event) => handleNavKeyDown(event, () => selectChild(child))}
-        className={`group/child relative flex w-full items-center rounded-lg py-1.5 text-left text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-          nested ? "pl-8 pr-2" : "px-3"
+        className={`group/child relative flex w-full items-center rounded-lg py-1.5 text-left text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+          nested ? "pl-8 pr-2" : "pl-7 pr-3"
         } ${
           active
             ? "text-blue-600 dark:text-blue-400"
@@ -607,12 +607,13 @@ export default function NavigationTabs({
           data-sidebar-nav="true"
           onClick={() => toggleParent(parent)}
           onKeyDown={(event) => handleNavKeyDown(event, () => toggleParent(parent))}
-          className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+          className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
             active
               ? "bg-blue-50 text-gray-900 dark:bg-blue-950/25 dark:text-gray-100"
               : "text-gray-600 hover:translate-x-0.5 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900/80 dark:hover:text-gray-100"
           }`}
         >
+          {active && <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-blue-600 dark:bg-blue-400" />}
           <ParentIcon className={`h-4.5 w-4.5 shrink-0 transition-colors ${active ? "text-blue-600 dark:text-blue-400" : "text-gray-500 group-hover:text-gray-800 dark:text-gray-500 dark:group-hover:text-gray-200"}`} />
           <span className="min-w-0 flex-1 truncate text-left">{parent.label}</span>
           {hasChildren && (
@@ -651,7 +652,7 @@ export default function NavigationTabs({
     ];
 
     return (
-      <div className="fixed bottom-6 left-4 right-4 z-40 flex items-center justify-around rounded-full border border-gray-200/50 bg-white/90 px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-black/80 md:hidden">
+      <div className="fixed bottom-6 left-4 right-4 z-40 flex items-center justify-around rounded-full border border-gray-200 bg-white px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:border-gray-800 dark:bg-gray-950 md:hidden">
         {items.map(item => {
           const Icon = item.icon;
           return (
@@ -676,7 +677,7 @@ export default function NavigationTabs({
       {renderMobileNav()}
 
       <aside
-        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-3xl border border-gray-200/50 bg-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-[width] duration-200 dark:border-white/10 dark:bg-black/70 dark:shadow-[0_8px_30px_rgba(255,255,255,0.05)] md:flex ${
+        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-3xl border border-gray-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-950 dark:shadow-[0_8px_30px_rgba(255,255,255,0.05)] md:flex ${
           isExpandedMode ? "w-[280px]" : "w-[72px]"
         }`}
         style={{ scrollbarWidth: "none" }}
