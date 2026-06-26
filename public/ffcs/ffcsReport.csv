@@ -1,7 +1,7 @@
-CODE,TITLE,Type,CREDITS,SLOT,FACULTY,VENUE
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT),AB3-103
+CODE,TITLE,TYPE,CREDITS,SLOT,FACULTY,VENUE
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-103
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB3-104
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-105
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB3-105
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT),AB3-106
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB3-107
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-108
@@ -9,7 +9,7 @@ BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT)
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB3-203
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-204
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT),AB3-205
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB3-206
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-206
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB3-207
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,ETHNUS (APT),AB3-103
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,FACE (APT),AB3-104
@@ -24,7 +24,7 @@ BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,ETHNUS (APT)
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,FACE (APT),AB3-206
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,SIXPHRASE(APT),AB3-207
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,ETHNUS (APT),AB3-208
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,FACE (APT),AB2-301
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT),AB2-301
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,SIXPHRASE(APT),AB2-302
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT),AB2-303
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,FACE (APT),AB1-402
@@ -39,12 +39,12 @@ BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT)
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,FACE (APT),AB1-608
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,SIXPHRASE(APT),AB1-609
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT),AB1-610
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,FACE (APT),AB4-514
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,SIXPHRASE(APT),AB4-514
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,SIXPHRASE(APT),AB1-301
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,ETHNUS (APT),AB1-302
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,FACE (APT),AB1-308
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,SIXPHRASE(APT),AB1-309
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,ETHNUS (APT),AB1-608
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,FACE (APT),AB1-608
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,FACE (APT),AB1-609
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT),AB1-702
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,FACE (APT),AB2-401
@@ -55,7 +55,7 @@ BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,SIXPHRASE(AP
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B1+TB1,ETHNUS (APT),ADB-702
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,FACE (APT),AB3-208
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,SIXPHRASE(APT),AB3-209
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,ETHNUS (APT),AB3-211
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,FACE (APT),AB3-211
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,FACE (APT),AB3-303
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,SIXPHRASE(APT),AB3-304
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,ETHNUS (APT),AB3-305
@@ -65,18 +65,22 @@ BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,ETHNUS (APT)
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,FACE (APT),AB3-309
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,SIXPHRASE(APT),AB3-313
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,ETHNUS (APT),AB3-403
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,FACE (APT),AB3-404
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,SIXPHRASE(APT),AB3-209
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,ETHNUS (APT),AB3-211
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E1+TE1,SIXPHRASE(APT),AB3-404
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,ETHNUS (APT),AB3-209
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,FACE (APT),AB3-211
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,FACE (APT),AB3-303
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,SIXPHRASE(APT),AB3-304
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,ETHNUS (APT),AB3-305
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,FACE (APT),AB3-305
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,FACE (APT),AB3-306
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,SIXPHRASE(APT),AB3-307
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,ETHNUS (APT),AB3-308
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,SIXPHRASE(APT),AB3-308
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,FACE (APT),AB3-309
-BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,SIXPHRASE(APT),AB3-313
+BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,E2+TE2,ETHNUS (APT),AB3-313
 BASTS101,Qualitative and Quantitative Skills Practice I,SS,1,B2+TB2,ETHNUS (APT),AB2-406
+BSTS101P,Quantitative Skills Practice I,SS,1.5,G1+TG1,SIXPHRASE(APT),AB3-108
+BSTS102P,Quantitative Skills Practice II,SS,1.5,E2+TE2,SIXPHRASE(APT),AB3-507
+BSTS201P,Qualitative Skills Practice I,SS,1.5,B2+TB2,SIXPHRASE(APT),AB3-104
+BSTS202P,Qualitative Skills Practice II,SS,1.5,F2+TF2,SIXPHRASE(APT),AB3-403
 BSTS301P,Advanced Competitive Coding - I,SS,1.5,D1+TD1,ETHNUS (APT),AB2-304
 BSTS301P,Advanced Competitive Coding - I,SS,1.5,D1+TD1,FACE (APT),AB2-305
 BSTS301P,Advanced Competitive Coding - I,SS,1.5,D1+TD1,ETHNUS (APT),AB2-306
@@ -152,91 +156,25 @@ BSTS301P,Advanced Competitive Coding - I,SS,1.5,C2+TC2,FACE (APT),AB3-607
 BSTS301P,Advanced Competitive Coding - I,SS,1.5,C2+TC2,FACE (APT),AB3-608
 BSTS301P,Advanced Competitive Coding - I,SS,1.5,C2+TC2,ETHNUS (APT),AB3-609
 IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT),AB4-504
-IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,FACE (APT),AB4-505
+IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB4-505
 IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,SIXPHRASE(APT),AB4-502
 IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F1+TF1,ETHNUS (APT),AB4-503
 IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,FACE (APT),AB4-504
 IASTS101,Qualitative and Quantitative Skills Practice I,SS,1,F2+TF2,SIXPHRASE(APT),AB4-502
-ISTS301P,Advanced Competitive Coding – I,SS,1.5,F1+TF1,ETHNUS (APT),AB4-506
-ISTS301P,Advanced Competitive Coding – I,SS,1.5,F1+TF1,FACE (APT),AB4-512
-ISTS301P,Advanced Competitive Coding – I,SS,1.5,F1+TF1,ETHNUS (APT),AB4-513
-ISTS301P,Advanced Competitive Coding – I,SS,1.5,F2+TF2,FACE (APT),AB4-506
-ISTS301P,Advanced Competitive Coding – I,SS,1.5,F2+TF2,ETHNUS (APT),AB4-513
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F1+TF1,ETHNUS (APT),AB4-506
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F1+TF1,FACE (APT),AB4-512
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F1+TF1,ETHNUS (APT),AB4-513
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F2+TF2,FACE (APT),AB4-506
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F2+TF2,ETHNUS (APT),AB4-513
+ISTS301P,Advanced Competitive Coding â€“ I,SS,1.5,F1+TF1,FACE (APT),AB4-518
 STS4021,Preparedness for External Opportunities,SS,1,E1+TE1,ETHNUS (APT),MAB3-103
 STS4021,Preparedness for External Opportunities,SS,1,E2+TE2,ETHNUS (APT),MAB3-103
 STS4021,Preparedness for External Opportunities,SS,1,E1+TE1,FACE (APT),MAB3-102
 USTS301P,Advanced Competitive Coding-I,SS,1.5,F1+TF1,FACE (APT),AB3-706
-BACHY102,Organic Chemistry for Biotechnologists,ETH,3,E1+TE1,SATHIYANARAYANAN K,AB2-208
-BACHY102,Organic Chemistry for Biotechnologists,ELA,1,L5+L6,SATHIYANARAYANAN K,AB1-102L
-BACHY102,Organic Chemistry for Biotechnologists,ELA,1,L5+L6,SUBHAYAN DEY,AB1-102L
-BACHY103,Chemistry for Civil Engineers,ETH,3,E1+TE1,SANTOSH G,AB1-701
-BACHY103,Chemistry for Civil Engineers,ELA,1,L11+L12,SANTOSH G,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,TANUSHREE CHOUDHRY,AB4-319
-BACHY105,Applied Chemistry,ELA,1,L43+L44,TANUSHREE CHOUDHRY,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,TANUSHREE CHOUDHRY,AB4-319
-BACHY105,Applied Chemistry,ELA,1,L29+L30,TANUSHREE CHOUDHRY,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,KRISHNENDU BISWAS,AB4-320
-BACHY105,Applied Chemistry,ELA,1,L49+L50,KRISHNENDU BISWAS,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,KRISHNENDU BISWAS,AB4-320
-BACHY105,Applied Chemistry,ELA,1,L23+L24,KRISHNENDU BISWAS,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,MILIND SHRINIVAS DANGATE,AB4-401
-BACHY105,Applied Chemistry,ELA,1,L49+L50,MILIND SHRINIVAS DANGATE,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,MILIND SHRINIVAS DANGATE,AB4-401
-BACHY105,Applied Chemistry,ELA,1,L13+L14,MILIND SHRINIVAS DANGATE,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,SHYAMAPADA NANDI,AB4-402
-BACHY105,Applied Chemistry,ELA,1,L51+L52,SHYAMAPADA NANDI,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,SHYAMAPADA NANDI,AB4-402
-BACHY105,Applied Chemistry,ELA,1,L3+L4,SHYAMAPADA NANDI,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,KIRAN KUMAR TADI,AB4-403
-BACHY105,Applied Chemistry,ELA,1,L33+L34,KIRAN KUMAR TADI,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,KIRAN KUMAR TADI,AB4-403
-BACHY105,Applied Chemistry,ELA,1,L7+L8,KIRAN KUMAR TADI,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,SAHELI KARMAKAR,AB4-404
-BACHY105,Applied Chemistry,ELA,1,L51+L52,SAHELI KARMAKAR,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,SAHELI KARMAKAR,AB4-404
-BACHY105,Applied Chemistry,ELA,1,L3+L4,SAHELI KARMAKAR,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,KARTHIKA PICHAIMUTHU,AB4-405
-BACHY105,Applied Chemistry,ELA,1,L53+L54,KARTHIKA PICHAIMUTHU,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,KARTHIKA PICHAIMUTHU,AB4-405
-BACHY105,Applied Chemistry,ELA,1,L21+L22,KARTHIKA PICHAIMUTHU,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,SANTOSH G,AB4-317
-BACHY105,Applied Chemistry,ELA,1,L45+L46,SANTOSH G,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,ILAIYARAJA PERUMAL,AB4-318
-BACHY105,Applied Chemistry,ELA,1,L5+L6,ILAIYARAJA PERUMAL,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,SUJOY SARKAR,AB4-406
-BACHY105,Applied Chemistry,ELA,1,L33+L34,SUJOY SARKAR,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,BUTHANAPALLI RAMAKRISHNA,AB4-406
-BACHY105,Applied Chemistry,ELA,1,L13+L14,BUTHANAPALLI RAMAKRISHNA,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,GANESAN,AB4-412
-BACHY105,Applied Chemistry,ELA,1,L41+L42,GANESAN,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,VINU MOHAN A M,AB4-413
-BACHY105,Applied Chemistry,ELA,1,L39+L40,VINU MOHAN A M,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,JAYANTA PARUI,AB4-417
-BACHY105,Applied Chemistry,ELA,1,L37+L38,JAYANTA PARUI,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,RAJESHKUMAR T,AB4-417
-BACHY105,Applied Chemistry,ELA,1,L9+L10,RAJESHKUMAR T,AB1-102L
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,PERUMAL D,AB4-416
-BACHY105,Applied Chemistry,ELA,1,L47+L48,PERUMAL D,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,PERUMAL D,AB4-416
-BACHY105,Applied Chemistry,ELA,1,L25+L26,PERUMAL D,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F1+TF1,SIVASUBRAMANIAN R,AB4-414
-BACHY105,Applied Chemistry,ELA,1,L35+L36,SIVASUBRAMANIAN R,AB1-102
-BACHY105,Applied Chemistry,ETH,3,F2+TF2,SIVASUBRAMANIAN R,AB4-414
-BACHY105,Applied Chemistry,ELA,1,L25+L26,SIVASUBRAMANIAN R,AB1-102L
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E2+TE2,SUBHAYAN DEY,AB2-204
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L1+L2,SUBHAYAN DEY,AB1-102
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E1+TE1,SARAVANAKUMAR R,AB2-205
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L37+L38,SARAVANAKUMAR R,AB1-102
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E2+TE2,SARAVANAKUMAR R,AB2-205
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L29+L30,SARAVANAKUMAR R,AB1-102L
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E1+TE1,LAKKOJI SATISH,AB2-206
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L31+L32,LAKKOJI SATISH,AB1-102
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E2+TE2,LAKKOJI SATISH,AB2-206
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L27+L28,LAKKOJI SATISH,AB1-102
-BACHY106,Chemistry for Electrical and Electronics Engineering,ETH,3,E1+TE1,RAMACHANDRAN,AB2-204
-BACHY106,Chemistry for Electrical and Electronics Engineering,ELA,1,L1+L2,RAMACHANDRAN,AB1-102L
-BACHY108,Chemistry for Textile Technology,ETH,3,E2+TE2,MAHALAKSHMI S,ADB-604
-BACHY108,Chemistry for Textile Technology,ELA,1,L23+L24,MAHALAKSHMI S,AB1-102
+BAMAT101,Multivariable Calculus and Differential Equations,ETH,3,G1+TG1,PARTHIBAN V,AB3-509
+BAMAT101,Multivariable Calculus and Differential Equations,ELA,1,L47+L48,PARTHIBAN V,AB1-507B
+BAMAT201,Complex Variables and Linear Algebra,TH,4,D1+TD1+TDD1,DHIVYA M,AB4-501
+BAMAT201,Complex Variables and Linear Algebra,TH,4,D2+TD2+TDD2,VIJAY KUMAR P,AB3-605
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,RAJESH KUMAR MOHAPATRA,AB3-208
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,RADHA S,AB3-304
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,ASHISH KUMAR,AB3-208
@@ -252,21 +190,23 @@ BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,AVINASH KUMAR 
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,SRIRAMAN R,AB3-404
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,NATHIYA N,AB3-209
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,RAJIVGANTHI,AB3-303
-BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,SUKAVANAM N,AB3-305
-BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,DAVID MAXIM GURURAJ A,AB3-306
+BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,VIDHYA V,AB3-305
+BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,HANNAH GRACE G,AB3-306
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,UMA MAHESWARI S,AB3-307
-BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,DHANASEKAR S,AB3-308
+BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D2+TD2+TDD2,SAGITHYA,AB3-308
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,RUPCHAND SUTRADHAR,AB3-209
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,MEGALA M,AB3-211
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,SHARATH JOSE,AB3-303
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,DHANASEKAR S,AB3-403
 BAMAT205,Discrete Mathematics and Linear Algebra,TH,4,D1+TD1+TDD1,SARANYA G,AB3-308
+BAMAT207,Probability and Statistics,ETH,3,E2+TE2,MYTHILI G Y,AB3-613
+BAMAT207,Probability and Statistics,ELA,1,L47+L48,MYTHILI G Y,AB1-514
 BAMAT209,Mathematical Foundations for Computation,TH,4,D1+TD1+TDD1,SOMNATH BERA,AB1-608
 BAMAT209,Mathematical Foundations for Computation,TH,4,D1+TD1+TDD1,DHIVYA P,AB1-609
 BAMAT209,Mathematical Foundations for Computation,TH,4,D1+TD1+TDD1,NATHIYA N,AB1-610
 BAMAT209,Mathematical Foundations for Computation,TH,4,D2+TD2+TDD2,DEVI YAMINI S,AB1-608
 BAMAT209,Mathematical Foundations for Computation,TH,4,D2+TD2+TDD2,ABHISHEK KUMAR SINGH,AB1-609
-BCHY102N,Environmental Sciences,OC,2,NIL,SUNIT KUMAR,NIL
+BCHY102N,Environmental Sciences,OC,2,NIL,SAHELI KARMAKAR,NIL
 BMAT202L,Probability and Statistics,TH,3,F2+TF2,BALAJI,AB3-508
 BMAT202L,Probability and Statistics,TH,3,F2+TF2,PAVITHRA R,AB3-509
 BMAT202L,Probability and Statistics,TH,3,F2+TF2,JAYAGOPAL R,AB3-513
@@ -341,41 +281,28 @@ BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,PULAK KONAR,AB3-
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,PROSENJIT,AB2-407
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,BERIN GREENI A,AB3-406
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,PROSENJIT,AB3-405
-BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,DHIVYA P,AB3-407
+BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,PAVITHRA R,AB3-407
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,SAURABH CHANDRA MAURY,AB3-408
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,ANKIT KUMAR,AB3-409
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,SURATH,AB3-413
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,SANDIP DALUI,AB3-503
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,SANDIP KUMAR DAS,AB3-504
-BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,SAGITHYA,AB3-505
+BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,NATHIYA N,AB3-505
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,P MOHAN,AB3-506
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,KOMAL KUMAR,AB3-403
 BMAT205L,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,MOHIT KUMAR,AB3-404
-IACHY101,Environmental Sciences,OC,2,NIL,ARULMANI S,NIL
-IACHY102,Engineering Chemistry,ETH,3,G1+TG1,JAYANTA PARUI,AB4-419
-IACHY102,Engineering Chemistry,ELA,1,L31+L32,JAYANTA PARUI,AB1-102L
-IACHY102,Engineering Chemistry,ETH,3,G1+TG1,ARULMANI S,AB4-501
-IACHY102,Engineering Chemistry,ELA,1,L55+L56,ARULMANI S,AB1-102
-IACHY102,Engineering Chemistry,ETH,3,G1+TG1,SUNIT KUMAR,AB4-418
-IACHY102,Engineering Chemistry,ELA,1,L43+L44,SUNIT KUMAR,AB1-102L
-IACHY102,Engineering Chemistry,ETH,3,G2+TG2,SUNIT KUMAR,AB4-418
-IACHY102,Engineering Chemistry,ELA,1,L9+L10,SUNIT KUMAR,AB1-102
-IACHY102,Engineering Chemistry,ETH,3,G1+TG1,RAJESHKUMAR T,AB4-420
-IACHY102,Engineering Chemistry,ELA,1,L55+L56,RAJESHKUMAR T,AB1-102L
-IACHY102,Engineering Chemistry,ETH,3,G2+TG2,ACAD FACULTY,AB4-420
-IACHY102,Engineering Chemistry,ELA,1,L15+L16,ACAD FACULTY,AB1-102
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,MOHD IMRAN IDRISI,AB4-502
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,BHARANIDHARAN R,AB4-503
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,NAZEER ANSARI,AB4-504
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C1+TC1+TCC1,POULOMI DE,AB4-505
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,KARTHICK G,AB4-502
 IAMAT202,Discrete Mathematics and Graph Theory,TH,4,C2+TC2+TCC2,ARNAB KAYAL,AB4-504
-ICHY102N,Environmental Sciences,OC,2,NIL,VINU MOHAN A M,NIL
+ICHY102N,Environmental Sciences,OC,2,NIL,ARULMANI S,NIL
 IMAT201L,Complex Variables and Linear Algebra,TH,4,C1+TC1+TCC1,MANIMARAN J,MAB3-101
 IMAT201L,Complex Variables and Linear Algebra,TH,4,C1+TC1+TCC1,HANNAH GRACE G,MAB3-102
 IMAT201L,Complex Variables and Linear Algebra,TH,4,C2+TC2+TCC2,MANIMARAN J,MAB3-101
-PCHY698J,Internship I/ Dissertation I,PJT,4,NIL,ACAD FACULTY,NIL
-PCHY698J,Internship I/ Dissertation I,PJT,4,NIL,PAT,NIL
+PCHY698J,Internship I/ Dissertation  I,PJT,4,NIL,ACAD FACULTY,NIL
+PCHY698J,Internship I/ Dissertation  I,PJT,4,NIL,PAT,NIL
 PMDS698J,Internship I/ Dissertation I,PJT,4,NIL,ACAD FACULTY,NIL
 PMDS698J,Internship I/ Dissertation I,PJT,4,NIL,PAT,NIL
 PPHY698J,Internship I/ Dissertation I,PJT,4,NIL,ACAD FACULTY,NIL
@@ -384,13 +311,13 @@ TCHY140L,Environmental Studies,TH,3,E1+TE1,SUBHAYAN DEY,AB2-605
 UMAT201L,Linear Algebra,TH,3,G1+TG1,KARTHIK S,AB3-708
 BABIT314,"Food, Nutrition and Health",TH,4,D1+TD1+TDD1,JAYARAMAN G,AB3-405
 BABIT314,"Food, Nutrition and Health",TH,4,D2+TD2+TDD2,SIVAKAMAVALLI J,AB3-405
-BBIT414L,Bioinspired Design,TH,3,G1+TG1,UNNIKRISHNAN B S,AB3-303
-BBIT414L,Bioinspired Design,TH,3,G2+TG2,UNNIKRISHNAN B S,AB3-303
-BBIT414L,Bioinspired Design,TH,3,F2+TF2,UNNIKRISHNAN B S,AB3-303
 BBIT415L,"Food, Nutrition and Health",TH,3,G1+TG1,YASHAVANTH P R,AB3-304
 BBIT415L,"Food, Nutrition and Health",TH,3,G2+TG2,YASHAVANTH P R,AB3-304
 BBIT415L,"Food, Nutrition and Health",TH,3,F1+TF1,YASHAVANTH P R,AB3-303
-BACLE102,Environmental Engineering,ETH,3,E1+TE1,ANJALI GOPAKUMAR,AB1-709
+BBIT415L,"Food, Nutrition and Health",TH,3,G1+TG1,UNNIKRISHNAN B S,AB3-303
+BBIT415L,"Food, Nutrition and Health",TH,3,G2+TG2,UNNIKRISHNAN B S,AB3-303
+BBIT415L,"Food, Nutrition and Health",TH,3,F2+TF2,UNNIKRISHNAN B S,AB3-303
+BACLE102,Environmental Engineering,ETH,3,G1+TG1,ANJALI GOPAKUMAR,AB1-702
 BACLE102,Environmental Engineering,ELA,1,L49+L50,ANJALI GOPAKUMAR,AB1-703
 BACLE102,Environmental Engineering,ELA,1,L37+L38,ANJALI GOPAKUMAR,AB1-703
 BACLE104,Waste Management,TH,3,F1+TF1,SENTHILPANDIAN M,AB1-702
@@ -403,6 +330,7 @@ BACLE402,Engineering Geology,TH,4,A1+TA1+TAA1,MOHAN K,AB1-702
 BACLE416,Building Information Modelling in Construction,ETH,3,C1+TC1,VASUGI V,AB1-709
 BACLE416,Building Information Modelling in Construction,ELA,1,L43+L44,VASUGI V,AB1-703
 BACLE422,"Critical Thinking, Design Thinking, Leadership & Teamwork",TH,2,A1,SARAVANAN K,AB1-709
+BCLE202L,Fluid Mechanics,TH,3,G1+TG1,SARAVANAN K,AB1-709
 BCLE210L,AI in Civil Engineering,TH,3,E1+TE1,VASUGI K,AB1-708
 BCLE211L,Urban Planning and Development,TH,3,F1+TF1,SHANMUGA SUNDARAM,AB1-709
 BCLE214L,Global Warming,TH,3,G1+TG1,HELEN SANTHI M,AB2-405
@@ -413,6 +341,8 @@ BCLE215L,Waste Management,TH,3,G1+TG1,KARTHIYAINI S,AB3-313
 BCLE215L,Waste Management,TH,3,F2+TF2,SENTHILPANDIAN M,AB2-405
 BCLE216L,Water Resource Management,TH,3,G1+TG1,ELAVENIL S,AB3-513
 BCLE216L,Water Resource Management,TH,3,F2+TF2,YAMINI SREEVALLI I,AB1-411
+BCLE301L,Concrete Technology,TH,3,D1+TD1,VASUGI V,AB1-709
+BCLE301P,Concrete Technology Lab,LO,1,L37+L38,VASUGI V,AB2-003
 BCLE303L,Foundation Engineering,TH,3,G1+TG1,GOPIKA RAJAGOPAL,AB1-708
 BCLE304L,Design of Reinforced Concrete Structures,TH,3,A1+TA1,KARTHIKEYAN K,AB1-708
 BCLE304P,Reinforced Concrete Structures Lab,LO,1,L31+L32,KARTHIKEYAN K,AB1-514
@@ -482,27 +412,25 @@ BACSE102,Problem Solving Using Java,LO,2,L39+L40+L57+L58,KIRUTHIKA,AB1-607B
 BACSE102,Problem Solving Using Java,LO,2,L5+L6+L43+L44,KIRUTHIKA,AB1-607B
 BACSE102,Problem Solving Using Java,LO,2,L13+L14+L27+L28,KIRUTHIKA,AB1-607B
 BACSE102,Problem Solving Using Java,LO,2,L11+L12+L23+L24,CHENDUR KUMARAN R,AB1-603A
-BACSE103,Computation Structures,ETH,3,G1+TG1,NITHYA DARISINI P S,AB3-207
-BACSE103,Computation Structures,ELA,1,L43+L44,NITHYA DARISINI P S,AB1-207
-BACSE103,Computation Structures,ETH,3,C2+TC2,NIVEDITA M,AB3-613
-BACSE103,Computation Structures,ELA,1,L5+L6,NIVEDITA M,AB1-207
+BACSE103,Computation Structures,ETH,3,G1+TG1,NITHYA DARISINI  P S,AB3-207
+BACSE103,Computation Structures,ELA,1,L43+L44,NITHYA DARISINI  P S,AB1-207
 BACSE105,Data Structures and Algorithms,ELA,1,L31+L32,ANGELINE EZHILARASI G,AB1-603A
 BACSE105,Data Structures and Algorithms,ETH,3,C1+TC1,ANGELINE EZHILARASI G,AB2-406
 BACSE105,Data Structures and Algorithms,ETH,3,C2+TC2,CHENDUR KUMARAN R,AB2-406
 BACSE105,Data Structures and Algorithms,ELA,1,L25+L26,CHENDUR KUMARAN R,AB1-607
 BACSE105,Data Structures and Algorithms,ETH,3,F1+TF1,MERCY RAJASELVI BEAULAH P,AB1-609
 BACSE105,Data Structures and Algorithms,ETH,3,F1+TF1,SANTHI V,AB1-608
-BACSE105,Data Structures and Algorithms,ETH,3,F1+TF1,ANANDAN P,AB1-610
+BACSE105,Data Structures and Algorithms,ETH,3,F1+TF1,VALARMATHI SUDHAKAR,AB1-610
 BACSE105,Data Structures and Algorithms,ELA,1,L51+L52,SANTHI V,AB1-607B
-BACSE105,Data Structures and Algorithms,ELA,1,L49+L50,ANANDAN P,AB1-607B
+BACSE105,Data Structures and Algorithms,ELA,1,L49+L50,VALARMATHI SUDHAKAR,AB1-607B
 BACSE105,Data Structures and Algorithms,ETH,3,F2+TF2,SANTHI V,AB1-608
 BACSE105,Data Structures and Algorithms,ETH,3,F2+TF2,POONKODI,AB1-609
 BACSE105,Data Structures and Algorithms,ELA,1,L9+L10,SANTHI V,AB1-607B
 BACSE105,Data Structures and Algorithms,ELA,1,L7+L8,POONKODI,AB4-411
 BACSE105,Data Structures and Algorithms,ELA,1,L11+L12,MERCY RAJASELVI BEAULAH P,AB1-607B
-BACSE106,Operating Systems,ETH,3,E1+TE1,SIVAGAMI M,AB3-204
-BACSE106,Operating Systems,ETH,3,E2+TE2,SIVAGAMI M,AB3-107
-BACSE106,Operating Systems,ELA,1,L43+L44,SIVAGAMI M,AB3-202
+BACSE106,Operating Systems,ETH,3,E1+TE1,SIVAGAMI   M,AB3-204
+BACSE106,Operating Systems,ETH,3,E2+TE2,SIVAGAMI   M,AB3-107
+BACSE106,Operating Systems,ELA,1,L43+L44,SIVAGAMI   M,AB3-202
 BACSE106,Operating Systems,ETH,3,E1+TE1,THOMAS ABRAHAM J V,AB3-103
 BACSE106,Operating Systems,ETH,3,E1+TE1,RABINDRA KUMAR SINGH,AB3-104
 BACSE106,Operating Systems,ETH,3,E2+TE2,RABINDRA KUMAR SINGH,AB3-204
@@ -568,7 +496,7 @@ BACSE106,Operating Systems,ETH,3,C2+TC2,VATCHALA S,AB3-209
 BACSE106,Operating Systems,ETH,3,C1+TC1,KARTHIK R,AB1-608
 BACSE106,Operating Systems,ETH,3,C2+TC2,SUGANYA R,AB3-211
 BACSE106,Operating Systems,ELA,1,L55+L56,KARTHIK R,AB4-407
-BACSE106,Operating Systems,ELA,1,L15+L16,SIVAGAMI M,AB3 - 402
+BACSE106,Operating Systems,ELA,1,L15+L16,SIVAGAMI   M,AB3 - 402
 BACSE106,Operating Systems,ELA,1,L33+L34,THOMAS ABRAHAM J V,AB1-605A
 BACSE106,Operating Systems,ELA,1,L43+L44,RABINDRA KUMAR SINGH,AB3-302
 BACSE106,Operating Systems,ELA,1,L15+L16,RABINDRA KUMAR SINGH,AB3 - 412
@@ -736,7 +664,7 @@ BACSE202,Database Systems,ETH,3,F1+TF1,SUHAIL K,AB3-413
 BACSE202,Database Systems,ELA,1,L49+L50,SUHAIL K,AB3-311
 BACSE202,Database Systems,ETH,3,F1+TF1,RAJALAKSHMI V,AB3-505
 BACSE202,Database Systems,ELA,1,L51+L52,RAJALAKSHMI V,AB3-310
-BACSE202,Database Systems,ETH,3,F1+TF1,BENILA S,AB3-705
+BACSE202,Database Systems,ETH,3,F1+TF1,BENILA S,AB2-408
 BACSE202,Database Systems,ETH,3,F2+TF2,HEMALATHA K,AB3-703
 BACSE202,Database Systems,ELA,1,L21+L22,HEMALATHA K,AB1-605B
 BACSE202,Database Systems,ELA,1,L49+L50,BENILA S,AB1-313
@@ -753,42 +681,40 @@ BACSE202,Database Systems,ELA,1,L25+L26,REENA ROY R,AB1-605B
 BACSE202,Database Systems,ELA,1,L25+L26,SOBITHA AHILA S,AB3-311
 BACSE202,Database Systems,ELA,1,L25+L26,MALATHI D,AB3-602
 BACSE202,Database Systems,ELA,1,L37+L38,BHUVANESWARI,AB1-506A
-BACSE202,Database Systems,ETH,3,D2+TD2,VISWANATHAN V,AB3-707
-BACSE202,Database Systems,ELA,1,L7+L8,VISWANATHAN V,AB3-611
+BACSE202,Database Systems,ETH,3,D2+TD2,RANJITH R,AB3-707
+BACSE202,Database Systems,ELA,1,L7+L8,RANJITH R,AB3-611
 BACSE291,Innovative Design Project,PJT,2,NIL,ACAD FACULTY,NIL
 BACSE291,Innovative Design Project,PJT,2,NIL,PAT,NIL
-BACSE341,Fundamentals of Augmented and Virtual Reality,ETH,3,C2+TC2,PRIYAADHARSHINI M,AB3-105
-BACSE341,Fundamentals of Augmented and Virtual Reality,ELA,1,L15+L16,PRIYAADHARSHINI M,AB1-307
-BACSE341,Fundamentals of Augmented and Virtual Reality,ETH,3,C1+TC1,SRIDHAR R,AB3-104
-BACSE341,Fundamentals of Augmented and Virtual Reality,ELA,1,L23+L24,SRIDHAR R,AB1-307
-BACSE341,Fundamentals of Augmented and Virtual Reality,ETH,3,C2+TC2,SRIDHAR R,AB3-104
-BACSE341,Fundamentals of Augmented and Virtual Reality,ELA,1,L19+L20,SRIDHAR R,AB1-307
-BACSE341,Fundamentals of Augmented and Virtual Reality,ETH,3,C1+TC1,SIVAKUMAR,AB3-103
-BACSE341,Fundamentals of Augmented and Virtual Reality,ELA,1,L33+L34,SIVAKUMAR,AB1-307
-BACSE341,Fundamentals of Augmented and Virtual Reality,ETH,3,C2+TC2,SIVAKUMAR,AB3-103
-BACSE341,Fundamentals of Augmented and Virtual Reality,ELA,1,L1+L2,SIVAKUMAR,AB1-307
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ETH,3,C2+TC2,PRIYAADHARSHINI M,AB3-105
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ELA,1,L15+L16,PRIYAADHARSHINI M,AB1-307
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ETH,3,C1+TC1,SRIDHAR R,AB3-104
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ELA,1,L23+L24,SRIDHAR R,AB1-307
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ETH,3,C2+TC2,SRIDHAR R,AB3-104
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ELA,1,L19+L20,SRIDHAR R,AB1-307
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ETH,3,C1+TC1,SIVAKUMAR,AB3-103
+BACSE341,Fundamentals of Augmented and Virtual  Reality,ELA,1,L33+L34,SIVAKUMAR,AB1-307
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C1+TC1+TCC1,ABDUL QUADIR MD,AB3-203
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C1+TC1+TCC1,ANANDAN P,AB3-204
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C1+TC1+TCC1,SANDOSH,AB3-205
-BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,PRASSANNA J,AB3-205
+BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,ANANDAN P,AB3-205
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,SENTHIL KUMAR A M,AB3-207
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,YOGESH C,AB3-208
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,MANIKANDAN P,AB3-204
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C1+TC1+TCC1,BHULAKSHMI BONTHU,AB3-206
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C2+TC2+TCC2,BHULAKSHMI BONTHU,AB3-206
 BACSE344,Cloud Infrastructure and Architecture,TH,4,C1+TC1+TCC1,MEIGNANAMOORTHI D,AB3-207
-BACSE350,Blockchain Architecture and Design,TH,4,C1+TC1+TCC1,MALATHI G,AB3-106
-BACSE350,Blockchain Architecture and Design,TH,4,C1+TC1+TCC1,GANESAN R,AB3-105
-BACSE350,Blockchain Architecture and Design,TH,4,C1+TC1+TCC1,SANDHYA P,AB3-109
-BACSE350,Blockchain Architecture and Design,TH,4,C2+TC2+TCC2,SANDHYA P,AB3-108
-BACSE350,Blockchain Architecture and Design,TH,4,C2+TC2+TCC2,NOEL JEYGAR ROBERT V,AB3-106
-BACSE350,Blockchain Architecture and Design,TH,4,C2+TC2+TCC2,SENTHIL PRAKASH P N,AB3-109
-BACSE350,Blockchain Architecture and Design,TH,4,C1+TC1+TCC1,PRIYANKA MISHRA,AB3-108
-BACSE350,Blockchain Architecture and Design,TH,4,C1+TC1+TCC1,SARANYA M,AB3-107
-BACSE350,Blockchain Architecture and Design,TH,4,C2+TC2+TCC2,VISWANATHAN V,AB3-107
-BACSE350,Blockchain Architecture and Design,TH,4,C2+TC2+TCC2,VISWANATHAN V,AB3-203
-BCSE103E,Computer Programming: Java,ETH,1,TCC1,VISWANATHAN V,MAB3-202
-BCSE103E,Computer Programming: Java,ELA,2,L7+L8+L19+L20,VISWANATHAN V,AB3-202
+BACSE350,Blockchain Architecture and  Design,TH,4,C1+TC1+TCC1,MALATHI G,AB3-106
+BACSE350,Blockchain Architecture and  Design,TH,4,C1+TC1+TCC1,GANESAN R,AB3-105
+BACSE350,Blockchain Architecture and  Design,TH,4,C1+TC1+TCC1,SANDHYA P,AB3-109
+BACSE350,Blockchain Architecture and  Design,TH,4,C2+TC2+TCC2,SANDHYA P,AB3-108
+BACSE350,Blockchain Architecture and  Design,TH,4,C2+TC2+TCC2,NOEL JEYGAR ROBERT V,AB3-106
+BACSE350,Blockchain Architecture and  Design,TH,4,C2+TC2+TCC2,SENTHIL PRAKASH P N,AB3-109
+BACSE350,Blockchain Architecture and  Design,TH,4,C1+TC1+TCC1,PRIYANKA MISHRA,AB3-108
+BACSE350,Blockchain Architecture and  Design,TH,4,C1+TC1+TCC1,SARANYA M,AB3-107
+BACSE350,Blockchain Architecture and  Design,TH,4,C2+TC2+TCC2,SARANYA M,AB3-107
+BACSE350,Blockchain Architecture and  Design,TH,4,C2+TC2+TCC2,ANUBHA PEARLINE S,AB3-203
+BCSE103E,Computer Programming: Java,ETH,1,TCC1,SRINIVASAN B,MAB3-202
+BCSE103E,Computer Programming: Java,ELA,2,L7+L8+L19+L20,SRINIVASAN B,AB3-202
 BCSE202L,Data Structures and Algorithms,TH,3,A1+TA1,AMRIT PAL,MAB3-302
 BCSE202P,Data Structures and Algorithms Lab,LO,1,L51+L52,AMRIT PAL,AB3 - 412
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,OM KUMAR C U,AB3-508
@@ -804,13 +730,13 @@ BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,KALAIPRIYAN,AB3-405
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,SAKTHIVEL R,AB3-406
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,JEIPRATHA P N,AB3-407
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,K UMA MAHESWARI,AB3-408
-BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,,AB3-409
+BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,JOSHUA SUNDER DAVID REDDIPOGU,AB3-409
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,SUDHA C,AB3-413
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,KALAIPRIYAN,AB3-403
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,SAKTHIVEL R,AB3-404
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,JEIPRATHA P N,AB3-405
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,K UMA MAHESWARI,AB3-406
-BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,,AB3-407
+BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,JOSHUA SUNDER DAVID REDDIPOGU,AB3-407
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,SUDHA C,AB3-408
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,SUDHEER KUMAR E,AB3-604
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,VALARMATHI K,AB3-606
@@ -820,7 +746,7 @@ BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,SELVAM D,AB3-605
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,PRAVIN RENOLD A,AB3-606
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,KAJA MOHIDEEN A,AB3-607
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,JAYARAM B,AB3-608
-BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,VISWANATHAN V,AB3-608
+BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,RANJITH R,AB3-608
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,AARTHI B,AB3-609
 BCSE204L,Design and Analysis of Algorithms,TH,3,A1+TA1,PANDIYARAJU V,AB3-613
 BCSE204L,Design and Analysis of Algorithms,TH,3,A2+TA2,MALINI A,AB3-609
@@ -839,15 +765,15 @@ BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L11+L12,KALAIPRIYAN,AB3 - 40
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L11+L12,SAKTHIVEL R,AB3 - 412
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L11+L12,JEIPRATHA P N,AB3-612
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L11+L12,K UMA MAHESWARI,AB3-611
-BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L39+L40,,AB1-210
+BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L39+L40,JOSHUA SUNDER DAVID REDDIPOGU,AB1-210
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L39+L40,SUDHA C,AB1-209
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,KALAIPRIYAN,AB3-202
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L7+L8,SAKTHIVEL R,AB1-210
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,JEIPRATHA P N,AB3-602
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L7+L8,K UMA MAHESWARI,AB1-311
-BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L19+L20,,AB3-302
+BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L19+L20,JOSHUA SUNDER DAVID REDDIPOGU,AB3-302
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L19+L20,SUDHA C,AB1-311
-BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,SUDHEER KUMAR E,AB1-210
+BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,SUDHEER KUMAR E,AB1-506A
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L23+L24,VALARMATHI K,AB3-302
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L49+L50,MALINI A,AB3-410
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L23+L24,BALASARASWATHI,AB1-210
@@ -855,7 +781,7 @@ BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L9+L10,SELVAM D,AB3-202
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,PRAVIN RENOLD A,AB1-209
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L7+L8,KAJA MOHIDEEN A,AB1-208
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L23+L24,JAYARAM B,AB3 - 402
-BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,VISWANATHAN V,AB1-605A
+BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L3+L4,RANJITH R,AB1-605A
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L37+L38,AARTHI B,AB3-202
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L39+L40,PANDIYARAJU V,AB1-208
 BCSE204P,Design and Analysis of Algorithms Lab,LO,1,L21+L22,MALINI A,AB3-511
@@ -877,7 +803,7 @@ BCSE209L,Machine Learning,TH,3,B1+TB1,R JOTHI,AB3-513
 BCSE209L,Machine Learning,TH,3,B2+TB2,SALEENA B,AB3-513
 BCSE209L,Machine Learning,TH,3,B1+TB1,SHRIDEVI S,AB3-603
 BCSE209L,Machine Learning,TH,3,B2+TB2,SRIDEVI S,AB3-603
-BCSE209L,Machine Learning,TH,3,B1+TB1,TULASI PRASAD SARIKI,AB3-705
+BCSE209L,Machine Learning,TH,3,B1+TB1,TULASI PRASAD SARIKI,AB3-207
 BCSE209L,Machine Learning,TH,3,B1+TB1,PRIYADARSHINI J,AB3-404
 BCSE209P,Machine Learning Lab,LO,1,L25+L26,MAHESWARI N,AB1-208
 BCSE209P,Machine Learning Lab,LO,1,L43+L44,PRAKASH B,AB1-605B
@@ -994,6 +920,7 @@ BCSE302P,Database Systems Lab,LO,1,L21+L22,RISHIKESHAN C A,AB4-411
 BCSE302P,Database Systems Lab,LO,1,L23+L24,RADHIKA R,AB4-411
 BCSE302P,Database Systems Lab,LO,1,L7+L8,AKKARAPAKKAM SUNEESH JACOB,AB1-607B
 BCSE302P,Database Systems Lab,LO,1,L19+L20,RADHIKA R,AB4-411
+BCSE304L,Theory of Computation,TH,3,C2+TC2,SIVAKUMAR,AB3-613
 BCSE305L,Embedded Systems,TH,3,D2+TD2,SHARON GIFTSY A L,AB3-403
 BCSE305L,Embedded Systems,TH,3,G1+TG1,BALAKRISHNAN R,AB3-208
 BCSE305L,Embedded Systems,TH,3,G2+TG2,BALAKRISHNAN R,AB3-208
@@ -1020,7 +947,7 @@ BCSE305L,Embedded Systems,TH,3,G1+TG1,VENKATESAN C,AB3-403
 BCSE305L,Embedded Systems,TH,3,G2+TG2,VENKATESAN C,AB3-306
 BCSE305L,Embedded Systems,TH,3,D2+TD2,BIBHUTI BHUSAN PRADHAN,AB3-703
 BCSE305L,Embedded Systems,TH,3,D2+TD2,MANIGANDAN M,AB3-704
-BCSE305L,Embedded Systems,TH,3,D2+TD2,REVATHI S,AB3-705
+BCSE305L,Embedded Systems,TH,3,D2+TD2,REVATHI S,AB3-603
 BCSE305L,Embedded Systems,TH,3,D1+TD1,SINDHUJA M,AB3-603
 BCSE305L,Embedded Systems,TH,3,D1+TD1,SUHASINI S,AB3-605
 BCSE305L,Embedded Systems,TH,3,D1+TD1,BIBHUTI BHUSAN PRADHAN,AB3-606
@@ -1069,6 +996,7 @@ BCSE308L,Computer Networks,TH,3,A1+TA1,SARANYA NAIR M,AB1-809
 BCSE308L,Computer Networks,TH,3,A2+TA2,HEMANTH C,AB1-802
 BCSE308L,Computer Networks,TH,3,A2+TA2,JAYA VIGNESH T,AB1-808
 BCSE308L,Computer Networks,TH,3,A2+TA2,LATHA P,AB1-809
+BCSE308L,Computer Networks,TH,3,B2+TB2,KANCHANA DEVI V,AB3-207
 BCSE308P,Computer Networks Lab,LO,1,L11+L12,MEENAKSHI J,AB1-607
 BCSE308P,Computer Networks Lab,LO,1,L49+L50,HEMANTH C,AB4-407
 BCSE308P,Computer Networks Lab,LO,1,L37+L38,JAYA VIGNESH T,AB4-407
@@ -1076,6 +1004,7 @@ BCSE308P,Computer Networks Lab,LO,1,L39+L40,SARANYA NAIR M,AB4-407
 BCSE308P,Computer Networks Lab,LO,1,L3+L4,HEMANTH C,AB4-407
 BCSE308P,Computer Networks Lab,LO,1,L9+L10,JAYA VIGNESH T,AB4-407
 BCSE308P,Computer Networks Lab,LO,1,L7+L8,LATHA P,AB4-407
+BCSE308P,Computer Networks Lab,LO,1,L27+L28,KANCHANA DEVI V,AB3-310
 BCSE309L,Cryptography and Network Security,TH,3,B2+TB2,KARTHIKA V,AB3-609
 BCSE309L,Cryptography and Network Security,TH,3,B1+TB1,NITHYANANDAM P,AB3-703
 BCSE309L,Cryptography and Network Security,TH,3,B1+TB1,KARTHIKA V,AB3-704
@@ -1085,7 +1014,7 @@ BCSE309P,Cryptography and Network Security Lab,LO,1,L43+L44,KARTHIKA V,AB3-511
 BCSE316L,Design of Smart Cities,TH,3,F1+TF1,SUSEELA S,AB3-409
 BCSE316L,Design of Smart Cities,TH,3,F2+TF2,VALLIDEVI K,AB3-413
 BCSE316L,Design of Smart Cities,TH,3,F2+TF2,SUSEELA S,AB3-503
-BCSE324L,Foundations of Blockchain Technology,TH,3,G2+TG2,VISWANATHAN V,AB4-518
+BCSE324L,Foundations of Blockchain Technology,TH,3,G2+TG2,DHIVYA R,AB4-518
 BCSE331L,Exploratory Data Analysis,TH,2,E1,PRETHIJA G,MAB3-303
 BCSE331L,Exploratory Data Analysis,TH,2,E2,VALARMATHI SUDHAKAR,MAB3-302
 BCSE331P,Exploratory Data Analysis Lab,LO,1,L29+L30,PRETHIJA G,AB1-209
@@ -1102,7 +1031,7 @@ BCSE335L,Healthcare Data Analytics,TH,3,B1+TB1,ASWIGA,MAB3-302
 BCSE335L,Healthcare Data Analytics,TH,3,B2+TB2,PUNITHA K,MAB3-302
 BCSE335L,Healthcare Data Analytics,TH,3,A1+TA1,MAHESWARI S,MAB3-202
 BCSE335L,Healthcare Data Analytics,TH,3,A2+TA2,SUGUNA,MAB3-202
-BCSE335L,Healthcare Data Analytics,TH,3,B2+TB2,VISWANATHAN V,MAB3-303
+BCSE335L,Healthcare Data Analytics,TH,3,B2+TB2,NIVEDITA M,MAB3-303
 BCSE336L,Financial Data Analytics,TH,2,F1,NACHIYAPPAN S,MAB3-203
 BCSE336P,Financial Data Analytics Lab,LO,1,L11+L12,NACHIYAPPAN S,AB3-202
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,PRADEEP K,AB3-508
@@ -1134,7 +1063,7 @@ BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,S VIGNESHWARI,AB3-409
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,PREETHA EVANGELINE D,AB3-413
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,MAHESWARI P,AB3-503
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,PREMANAND V,AB3-504
-BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,VISWANATHAN V,AB3-505
+BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,LOGESWARI G,AB3-505
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,VIJAYARAJ J,AB3-506
 BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,RAJKUMAR R,AB3-507
 BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,SELLAM V,AB3-403
@@ -1147,20 +1076,17 @@ BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,MAHESWARI P,AB3-409
 BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,RAJKUMAR R,AB3-503
 BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,S VIGNESHWARI,AB3-505
 BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,POORNIMA S,AB3-506
-BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,KRITHIGA R,AB3-705
+BCSE355L,Cloud Architecture Design,TH,3,E1+TE1,KRITHIGA R,AB3-707
 BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,PALANI THANARAJ K,AB3-703
-BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,VISWANATHAN V,AB3-413
-BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,VISWANATHAN V,AB3-504
-BCSE399J,Summer Industrial Internship,PJT,1,NIL,ACAD FACULTY,NIL
-BCSE402L,Big Data Analytics,TH,3,E1+TE1,SRINIVASAN B,AB4-518
+BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,THANIKACHALAM V,AB3-413
+BCSE355L,Cloud Architecture Design,TH,3,E2+TE2,SIVA PRIYA M S,AB3-504
+BCSE402L,Big Data Analytics,TH,3,E1+TE1,DHARINI R,AB4-518
 BCSE402L,Big Data Analytics,TH,3,E2+TE2,DHARINI R,AB4-518
 BCSE404L,Internet and Web Programming,TH,3,C1+TC1,SINDHU RAVINDRAN,AB4-518
 BCSE406L,NoSQL Databases,TH,3,D2+TD2,GEETHA S,MAB3-301
 BCSE406L,NoSQL Databases,TH,3,D1+TD1,MANJULA V,MAB3-302
-BCSE406L,NoSQL Databases,TH,3,D2+TD2,SELLAM V,MAB3-302
 BCSE407L,Computer vision,TH,3,C2+TC2,KULANDAI JOSEPHINE JULINA J,AB4-518
 BCSE408L,Cloud Computing,TH,3,D1+TD1,DINAKARAN M,MAB3-201
-BCSE408L,Cloud Computing,TH,3,D1+TD1,RAJKUMAR R,MAB3-202
 BCSE408L,Cloud Computing,TH,3,D2+TD2,INDRA PRIYADHARSHINI,MAB3-201
 BCSE409L,Natural Language Processing,TH,3,F2+TF2,VIJAYAPRABAKARAN K,AB3-504
 BCSE409L,Natural Language Processing,TH,3,F2+TF2,JANAKI MEENA M,AB3-505
@@ -1171,7 +1097,7 @@ BCSE410L,Cyber Security,TH,3,F2+TF2,SUBBULAKSHMI T,AB3-506
 BCSE415L,Human Computer Interaction,TH,3,D1+TD1,ANITA CHRISTALINE J,MAB3-203
 BCSE415L,Human Computer Interaction,TH,3,D1+TD1,KABILAN K,MAB3-301
 BCSE415L,Human Computer Interaction,TH,3,D2+TD2,ANITA CHRISTALINE J,MAB3-202
-BCSE415L,Human Computer Interaction,TH,3,D2+TD2,PREMANAND V,MAB3-203
+BCSE415L,Human Computer Interaction,TH,3,D2+TD2,PRASSANNA J,MAB3-203
 BCSE416L,Game Programming,TH,3,A2+TA2,MANIMEGALAI,MAB3-201
 BCSE416L,Game Programming,TH,3,A1+TA1,SANGEETHA N,MAB3-201
 BCSE416P,Game Programming Lab,LO,1,L19+L20,MANIMEGALAI,AB1-210
@@ -1191,11 +1117,9 @@ BCSE421L,"Robotics: Kinematics, Dynamics and Motion Control",TH,3,G1+TG1,ARUNKUM
 BCSE422L,Robot Modeling and Simulation,TH,2,C1,GANALA SANTOSHI,MAB3-301
 BCSE422L,Robot Modeling and Simulation,TH,2,C1,PRABHA B,MAB3-302
 BCSE422L,Robot Modeling and Simulation,TH,2,C2,PRABHA B,MAB3-203
-BCSE422L,Robot Modeling and Simulation,TH,2,C2,GANALA SANTOSHI,MAB3-301
 BCSE422P,Robot Modeling and Simulation Lab,LO,1,L33+L34,GANALA SANTOSHI,AB3-410
 BCSE422P,Robot Modeling and Simulation Lab,LO,1,L31+L32,PRABHA B,AB3-410
 BCSE422P,Robot Modeling and Simulation Lab,LO,1,L1+L2,PRABHA B,AB3-311
-BCSE422P,Robot Modeling and Simulation Lab,LO,1,L3+L4,GANALA SANTOSHI,AB3-410
 BCSE423L,Robot Programming,TH,2,G2,SARANYARAJ D,AB3-606
 BCSE423L,Robot Programming,TH,2,G1,GANALA SANTOSHI,AB3-608
 BCSE423L,Robot Programming,TH,2,G2,SUVIDHA RUPESH KUMAR,AB3-605
@@ -1212,13 +1136,11 @@ BCSE426L,Robotic Process Automation,TH,2,C1,UMESH K,MAB3-303
 BCSE426L,Robotic Process Automation,TH,2,C2,REKHA D,MAB3-302
 BCSE426P,Robotic Process Automation Lab,LO,1,L9+L10,UMESH K,AB3-410
 BCSE426P,Robotic Process Automation Lab,LO,1,L13+L14,REKHA D,AB3-311
-BCSE427L,Cognitive Robotics,TH,2,D1,PAVITHRA S,MAB3-401
 BCSE427L,Cognitive Robotics,TH,2,D1,UMESH K,MAB3-402
 BCSE427L,Cognitive Robotics,TH,2,D2,UMESH K,MAB3-401
 BCSE427L,Cognitive Robotics,TH,2,D1,HARINI S,MAB3-403
 BCSE427L,Cognitive Robotics,TH,2,D2,PAVITHRA L K,MAB3-403
 BCSE427L,Cognitive Robotics,TH,2,D2,PAVITHRA S,MAB3-402
-BCSE427P,Cognitive Robotics Lab,LO,1,L39+L40,PAVITHRA S,AB3-311
 BCSE427P,Cognitive Robotics Lab,LO,1,L37+L38,UMESH K,AB3-410
 BCSE427P,Cognitive Robotics Lab,LO,1,L21+L22,UMESH K,AB3-311
 BCSE427P,Cognitive Robotics Lab,LO,1,L23+L24,HARINI S,AB3-311
@@ -1248,8 +1170,8 @@ BCSE428P,Autonomous Drones Lab,LO,1,L27+L28,SATHIAN D,AB3-710
 BCSE428P,Autonomous Drones Lab,LO,1,L55+L56,SATHIAN D,AB3-710
 BCSE428P,Autonomous Drones Lab,LO,1,L29+L30,PRASAD M,AB3-710
 BCSE428P,Autonomous Drones Lab,LO,1,L49+L50,PRASAD M,AB3-710
-BCSE429L,Cyber Physical Systems Design,TH,2,D1,PRADEEP KUMAR T S,MAB3-303
-BCSE429P,Cyber Physical System Design Lab,LO,1,L29+L30,PRADEEP KUMAR T S,AB3-310
+BCSE429L,Cyber Physical Systems Design,TH,2,D1,PRADEEP KUMAR  T S,MAB3-303
+BCSE429P,Cyber Physical System Design Lab,LO,1,L29+L30,PRADEEP KUMAR  T S,AB3-310
 BCSE430L,Distributed Real Time Systems,TH,2,G1,RADHA R,MAB3-201
 BCSE430P,Distributed Real Time Systems Lab,LO,1,L23+L24,RADHA R,AB3-612
 BCSE432E,Reinforcement Learning,ETH,3,E1+TE1,BHARADWAJA KUMAR,MAB3-201
@@ -1279,12 +1201,16 @@ BCSE432E,Reinforcement Learning,ELA,1,L11+L12,SARANYA G,AB3-302
 BCSE497J,Project - I,PJT,3,NIL,ACAD FACULTY,NIL
 BCSE497J,Project - I,PJT,3,NIL,PAT,NIL
 BCSE498J,Project - II / Internship,PJT,5,NIL,ACAD FACULTY,NIL
-CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,KARTHIKA V,MAB3-103
-CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,KARTHIKA V,NIL
-CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,VISWANATHAN V,MAB3-201
-CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,VISWANATHAN V,NIL
-CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC2,VISWANATHAN V,MAB3-103
-CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,VISWANATHAN V,NIL
+CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,NIVEDITA M,AB4-512
+CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,NIVEDITA M,NIL
+CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,GANALA SANTOSHI,AB4-516
+CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,GANALA SANTOSHI,NIL
+CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,ARAVINDKUMAR S,AB4-517
+CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,ARAVINDKUMAR S,NIL
+CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,PRIYAADHARSHINI M,AB4-518
+CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,PRIYAADHARSHINI M,NIL
+CSE1905,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,PRASSANNA J,AB4-513
+CSE1905,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,PRASSANNA J,NIL
 CSE1906,Mini Project,PJT,4,NIL,ACAD FACULTY,NIL
 CSE1906,Mini Project,PJT,4,NIL,PAT,NIL
 CSE3068,Sequential and Spatial data mining,TH,4,D2+TD2+TDD2,SARANYA G,MAB3-103
@@ -1308,8 +1234,8 @@ CSE4068,Healthcare Analytics,ETH,3,C1+TC1,DEEPIKA ROSELIND J,MAB3-103
 CSE4068,Healthcare Analytics,EPJ,1,NIL,DEEPIKA ROSELIND J,NIL
 CSE4074,Forensics analytics,ETH,3,C2+TC2,JOHANAN JOYSINGH S,MAB3-103
 CSE4074,Forensics analytics,EPJ,1,NIL,JOHANAN JOYSINGH S,NIL
-CSE4074,Forensics analytics,ETH,3,C1+TC1,VISWANATHAN V,MAB3-401
-CSE4074,Forensics analytics,EPJ,1,NIL,VISWANATHAN V,NIL
+CSE4074,Forensics analytics,ETH,3,C1+TC1,JOHANAN JOYSINGH S,MAB3-401
+CSE4074,Forensics analytics,EPJ,1,NIL,JOHANAN JOYSINGH S,NIL
 CSE4076,Image and Video Analytics,ETH,2,G1,ASNATH VICTY PHAMILA Y,MAB3-101
 CSE4076,Image and Video Analytics,ELA,1,L5+L6,ASNATH VICTY PHAMILA Y,AB1-209
 CSE4076,Image and Video Analytics,EPJ,1,NIL,ASNATH VICTY PHAMILA Y,NIL
@@ -1329,9 +1255,9 @@ IACSI201,Design and Analysis of Algorithms,ETH,3,D1+TD1,SIVARAMAKRISHNAN N,AB4-5
 IACSI201,Design and Analysis of Algorithms,ELA,1,L37+L38,SIVARAMAKRISHNAN N,AB1-208
 IACSI201,Design and Analysis of Algorithms,ETH,3,D2+TD2,SIVARAMAKRISHNAN N,AB4-504
 IACSI201,Design and Analysis of Algorithms,ELA,1,L9+L10,SIVARAMAKRISHNAN N,AB1-313
-IACSI203,Advanced Computer Architecture and Organization,TH,4,A1+TA1+TAA1,VERGIN RAJA SAROBIN M,AB4-504
-IACSI203,Advanced Computer Architecture and Organization,TH,4,A1+TA1+TAA1,KHADAR NAWAS K,AB4-505
-IACSI203,Advanced Computer Architecture and Organization,TH,4,A2+TA2+TAA2,VERGIN RAJA SAROBIN M,AB4-504
+IACSI203,Computer Organization and Architecture,TH,4,A1+TA1+TAA1,VERGIN RAJA SAROBIN M,AB4-504
+IACSI203,Computer Organization and Architecture,TH,4,A1+TA1+TAA1,KHADAR NAWAS K,AB4-505
+IACSI203,Computer Organization and Architecture,TH,4,A2+TA2+TAA2,VERGIN RAJA SAROBIN M,AB4-504
 IACSI204,Database Systems Design,ETH,3,E1+TE1,TRILOK NATH PANDEY,AB4-504
 IACSI204,Database Systems Design,ELA,1,L49+L50,TRILOK NATH PANDEY,AB1-209
 IACSI204,Database Systems Design,ETH,3,E1+TE1,MARIA ANU,AB4-505
@@ -1352,30 +1278,21 @@ IASWE206,Database Systems,ETH,3,B1+TB1,ASHA JERLIN M,AB4-503
 IASWE206,Database Systems,ELA,1,L43+L44,ASHA JERLIN M,AB1-209
 IBSA301L,Exploratory Data Analysis,TH,3,B1+TB1,MAHESWARI N,AB4-513
 IBSA301L,Exploratory Data Analysis,TH,3,B2+TB2,PRETHIJA G,AB4-513
-IBSA301L,Exploratory Data Analysis,TH,3,B1+TB1,VALARMATHI SUDHAKAR,AB4-518
 IBSA301P,Exploratory Data Analysis Lab,LO,1,L29+L30,MAHESWARI N,AB1-208
-IBSA301P,Exploratory Data Analysis Lab,LO,1,L3+L4,PRETHIJA G,AB1-506A
-IBSA301P,Exploratory Data Analysis Lab,LO,1,L11+L12,VALARMATHI SUDHAKAR,AB1-208
+IBSA301P,Exploratory Data Analysis Lab,LO,1,L3+L4,PRETHIJA G,AB1-210
 IBSA302L,Artificial Intelligence,TH,3,F1+TF1,DEEPIKA ROSELIND J,AB4-514
 IBSA302L,Artificial Intelligence,TH,3,F2+TF2,DEEPIKA ROSELIND J,AB4-514
-IBSA302L,Artificial Intelligence,TH,3,F2+TF2,SHERLY A,AB4-512
 IBSA303L,Information Visualization,TH,3,C1+TC1,PARVATHI R,AB4-513
-IBSA303L,Information Visualization,TH,3,C2+TC2,ANUBHA PEARLINE S,AB4-513
-IBSA303L,Information Visualization,TH,3,C1+TC1,SHRUTI MISHRA,AB4-517
+IBSA303L,Information Visualization,TH,3,C2+TC2,SHRUTI MISHRA,AB4-513
 IBSA303P,Information Visualization Lab,LO,1,L55+L56,PARVATHI R,AB1-208
-IBSA303P,Information Visualization Lab,LO,1,L21+L22,ANUBHA PEARLINE S,AB1-208
-IBSA303P,Information Visualization Lab,LO,1,L49+L50,SHRUTI MISHRA,AB1-210
+IBSA303P,Information Visualization Lab,LO,1,L21+L22,SHRUTI MISHRA,AB1-208
 IMGT301L,Introduction to Business Analytics,TH,3,D2+TD2,ANU C H,AB4-513
 IMGT301L,Introduction to Business Analytics,TH,3,D1+TD1,ANBUMATHI R,AB4-513
-IMGT301L,Introduction to Business Analytics,TH,3,D1+TD1,BALAJI J,AB4-519
 IMGT303L,Production and Operations Management,TH,3,E1+TE1,STEPHAN THANGAIAH,AB4-517
-IMGT303L,Production and Operations Management,TH,3,E2+TE2,WAQAS NIAZI,AB4-512
-IMGT303L,Production and Operations Management,TH,3,E1+TE1,RIJAS B M,AB4-519
+IMGT303L,Production and Operations Management,TH,3,E2+TE2,RIJAS B M,AB4-517
 IMGT304L,Financial Management,TH,3,A1+TA1,SHARON SOPHIA,AB4-513
-IMGT304L,Financial Management,TH,3,A1+TA1,SREEYA B,AB4-517
 IMGT304L,Financial Management,TH,3,A2+TA2,BUVANESH,AB4-513
 IMGT305L,Human Recourse Management,TH,3,G1+TG1,BHAVANI J,AB4-513
-IMGT305L,Human Recourse Management,TH,3,G1+TG1,TISHA MERIAM CHERIAN,AB4-517
 IMGT305L,Human Recourse Management,TH,3,G2+TG2,TISHA MERIAM CHERIAN,AB4-513
 ISWE205L,Computer Networks,TH,3,B1+TB1,SUBBULAKSHMI P,AB4-506
 ISWE205L,Computer Networks,TH,3,B1+TB1,KANCHANA DEVI V,AB4-512
@@ -1386,7 +1303,7 @@ ISWE205P,Computer Networks Lab,LO,1,L27+L28,VISWANATHAN V,AB1-307
 ISWE208L,Optimization Techniques,TH,3,E2+TE2,PADMAVATHY T V,MAB3-101
 ISWE208L,Optimization Techniques,TH,3,G1+TG1,PADMAVATHY T V,AB4-506
 ISWE208L,Optimization Techniques,TH,3,G2+TG2,SARASWATHI D,AB4-506
-ISWE208L,Optimization Techniques,TH,3,E1+TE1,SARASWATHI D,AB4-201
+ISWE208L,Optimization Techniques,TH,3,E1+TE1,SURESHKUMAR WI,AB4-201
 ISWE210L,R for Data Science,TH,3,G1+TG1,PRADEEP K V,AB4-512
 ISWE302L,Artificial Intelligence,TH,3,A1+TA1,ABISHI CHOWDHURY,AB4-506
 ISWE302L,Artificial Intelligence,TH,3,A2+TA2,KHADAR NAWAS K,AB4-506
@@ -1430,21 +1347,20 @@ ISWE407P,UI and UX Programming Lab,LO,1,L3+L4,NEELANARAYANAN V,AB1-311
 ISWE407P,UI and UX Programming Lab,LO,1,L29+L30,SIVABALAKRISHNAN M,AB1-210
 MACSE698,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
 MACSE698,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
+MCSE699J,Internship II/ Dissertation II,PJT,12,NIL,ACAD FACULTY,NIL
 PAMCA698,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
 PAMCA698,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
-SWE1901,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,M. PREMALATHA,AB4-506
-SWE1901,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,M. PREMALATHA,NIL
-SWE1903,Comprehensive Examination,PJT,1,NIL,ACAD FACULTY,NIL
-SWE1903,Comprehensive Examination,PJT,1,NIL,PAT,NIL
+SWE1017,Natural Language Processing,ETH,2,A1,MANJULA V,AB4-518
+SWE1017,Natural Language Processing,EPJ,1,NIL,MANJULA V,NIL
+SWE1017,Natural Language Processing,ETH,2,A2,MANJULA V,AB4-512
+SWE1017,Natural Language Processing,EPJ,1,NIL,MANJULA V,NIL
+SWE1017,Natural Language Processing,ETH,2,A2,PREMANAND V,AB4-517
+SWE1017,Natural Language Processing,EPJ,1,NIL,PREMANAND V,NIL
+SWE1901,Technical Answers for Real World Problems (TARP),ETH,1,TCC1,KARTHIKA V,AB4-506
+SWE1901,Technical Answers for Real World Problems (TARP),EPJ,1,NIL,KARTHIKA V,NIL
 SWE3004,Software Design and Development Project,PJT,10,NIL,ACAD FACULTY,NIL
 SWE3004,Software Design and Development Project,PJT,10,NIL,PAT,NIL
 SWE4007,Storage Technologies,TH,3,C1+TC1,AHADIT,MAB3-402
-SWE4009,Linux Programming,ETH,3,A1+TA1,VISWANATHAN V,MAB3-303
-SWE4009,Linux Programming,ELA,1,L3+L4,VISWANATHAN V,AB3-003
-UACSA101,Programming in Python,ETH,3,C1+TC1,MUTHUKUMARAN K,AB3-705
-UACSA101,Programming in Python,ELA,1,L5+L6,MUTHUKUMARAN K,AB1-506A
-UACSA102,Computer Organization and Architecture,TH,4,A1+TA1+TAA1,POONKODI,AB3-705
-UACSA103,Software Engineering,TH,4,D1+TD1+TDD1,SUDHARSON S,AB3-705
 UCSC201L,Operating Systems,TH,3,B1+TB1,SREEJA P S,AB3-706
 UCSC201P,Operating Systems Lab,LO,1,L55+L56,SREEJA P S,AB1-311
 UCSC203L,Computer Networks,TH,3,E1+TE1,RUKMANI P,AB3-706
@@ -1466,8 +1382,8 @@ UCSC320P,NoSQL Databases Lab,LO,1,L5+L6,RAJALAKSHMI V,AB1-313
 UCSC321L,Social Network Analytics,TH,4,D1+TD1+TDD1,JAYARAM B,AB3-708
 UCSC326L,Applied Machine Learning,TH,3,D1+TD1,VISWANATHAN V,AB3-706
 UCSC326P,Applied Machine Learning Lab,LO,1,L31+L32,VISWANATHAN V,AB1-605A
-UCSC399J,Summer Internship,PJT,2,NIL,ACAD FACULTY,NIL
-UCSC399J,Summer Internship,PJT,2,NIL,PAT,NIL
+UCSC413E,Time Series Analyses,ETH,3,B1+TB1,MALLIKA SINHA,AB2-701
+UCSC413E,Time Series Analyses,ELA,1,L45+L46,MALLIKA SINHA,ADB - 404
 BAEEE102,Circuit Theory,ETH,3,D1+TD1,VIT USER,AB2-408
 BAEEE102,Circuit Theory,ELA,1,L29+L30,VIT USER,AB2-016
 BAEEE103,Analog Electronics,ETH,3,F2+TF2,FEBIN DAYA J L,AB2-401
@@ -1483,7 +1399,7 @@ BAEEE103,Analog Electronics,ELA,1,L49+L50,SEBINA YESMIN,AB1-306
 BAEEE103,Analog Electronics,ETH,3,F1+TF1,D V SUDARSANREDDY,AB2-406
 BAEEE103,Analog Electronics,ELA,1,L51+L52,D V SUDARSANREDDY,AB1-306
 BAEEE201,Digital Electronics,ETH,3,B2+TB2,VIT USER,AB2-408
-BAEEE201,Digital Electronics,ELA,1,L45+L46,VIT USER,AB1-306
+BAEEE201,Digital Electronics,ELA,1,L31+L32,VIT USER,AB1-603
 BAEEE202,Control Systems,ETH,3,A1+TA1,DEEPA T,AB2-401
 BAEEE202,Control Systems,ELA,1,L5+L6,DEEPA T,AB1-306
 BAEEE202,Control Systems,ETH,3,A2+TA2,JAYAPRAGASH R,AB2-401
@@ -1498,8 +1414,8 @@ BAEEE202,Control Systems,ETH,3,A1+TA1,ARNAB PAL,AB2-406
 BAEEE202,Control Systems,ELA,1,L29+L30,ARNAB PAL,AB1-306
 BAEEE203,Microcontrollers and Embedded Programming,ETH,3,C2+TC2,SUMATHI V,AB2-401
 BAEEE203,Microcontrollers and Embedded Programming,ELA,1,L1+L2,SUMATHI V,AB1-603A
-BAEEE203,Microcontrollers and Embedded Programming,ETH,3,C2+TC2,SRIMATHI R,AB2-402
-BAEEE203,Microcontrollers and Embedded Programming,ELA,1,L25+L26,SRIMATHI R,AB1-603A
+BAEEE203,Microcontrollers and Embedded Programming,ETH,3,C2+TC2,SRIMATHI  R,AB2-402
+BAEEE203,Microcontrollers and Embedded Programming,ELA,1,L25+L26,SRIMATHI  R,AB1-603A
 BAEEE203,Microcontrollers and Embedded Programming,ETH,3,C1+TC1,VIJAYAPRIYA R,AB2-401
 BAEEE203,Microcontrollers and Embedded Programming,ELA,1,L43+L44,VIJAYAPRIYA R,AB1-603A
 BAEEE203,Microcontrollers and Embedded Programming,ETH,3,C1+TC1,INAYATHULLAAH ABDUL KAREEM,AB2-402
@@ -1585,6 +1501,7 @@ MAELM504,Electric Motor Drives,ELA,1,L33+L34,INAYATHULLAAH ABDUL KAREEM,AB2-016
 MAELM601,Artificial Intelligence for Electric Mobility,ETH,3,A2+TA2,BALAMURUGAN P,AB2-705
 MAELM601,Artificial Intelligence for Electric Mobility,ELA,1,L45+L46,BALAMURUGAN P,AB2-016
 MAELM698,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
+MAELM698,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
 BAECE201,Probability Theory and Random Processes,TH,4,D1+TD1+TDD1,MOHANAPRASAD K,AB1-301
 BAECE201,Probability Theory and Random Processes,TH,4,D1+TD1+TDD1,SANKAR GANESH,AB1-302
 BAECE201,Probability Theory and Random Processes,TH,4,D1+TD1+TDD1,IDAYACHANDRAN G,AB1-308
@@ -1593,24 +1510,25 @@ BAECE201,Probability Theory and Random Processes,TH,4,D2+TD2+TDD2,IDAYACHANDRAN 
 BAECE201,Probability Theory and Random Processes,TH,4,D2+TD2+TDD2,KALAIVANAN K,AB1-302
 BAECE201,Probability Theory and Random Processes,TH,4,D2+TD2+TDD2,MARKKANDAN,AB1-308
 BAECE201,Probability Theory and Random Processes,TH,4,D2+TD2+TDD2,VETRIVELAN P,AB1-309
+BAECE202,Engineering Electromagnetics,TH,4,C1+TC1+TCC1,RICHARDS JOE STANISLAUS,AB4-519
 BAECE203,Analog Electronics,ETH,3,A1+TA1,V.R BALAJI,AB1-301
 BAECE203,Analog Electronics,ETH,3,A1+TA1,BINDU B,AB1-302
-BAECE203,Analog Electronics,ETH,3,A1+TA1,BRINTHA THERESE A,AB1-308
+BAECE203,Analog Electronics,ETH,3,A1+TA1,BRINTHA THERESE  A,AB1-308
 BAECE203,Analog Electronics,ETH,3,A1+TA1,CHANDRAMAULESHWAR ROY,AB1-309
 BAECE203,Analog Electronics,ETH,3,A1+TA1,SANGEETHA R G,AB1-608
 BAECE203,Analog Electronics,ETH,3,A1+TA1,SATHYA SREE J,AB1-609
 BAECE203,Analog Electronics,ETH,3,A1+TA1,B PRASHANTH KUMAR,AB1-610
-BAECE203,Analog Electronics,ETH,3,A2+TA2,LAKSHMI B,AB1-301
-BAECE203,Analog Electronics,ETH,3,A2+TA2,BRINTHA THERESE A,AB1-302
+BAECE203,Analog Electronics,ETH,3,A2+TA2,LAKSHMI B,AB1-608
+BAECE203,Analog Electronics,ETH,3,A2+TA2,BRINTHA THERESE  A,AB1-302
 BAECE203,Analog Electronics,ETH,3,A2+TA2,CHANDRAMAULESHWAR ROY,AB1-309
-BAECE203,Analog Electronics,ETH,3,A2+TA2,RAHUL NARASIMHAN,AB1-608
+BAECE203,Analog Electronics,ETH,3,A2+TA2,RAHUL NARASIMHAN,AB1-301
 BAECE203,Analog Electronics,ETH,3,A2+TA2,SANGEETHA R G,AB1-609
 BAECE203,Analog Electronics,ETH,3,A2+TA2,SATHYA SREE J,AB1-610
 BAECE203,Analog Electronics,ELA,1,L31+L32,V.R BALAJI,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L31+L32,GIRIJA SHANKAR SAHOO,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L23+L24,BINDU B,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L23+L24,PAPANASAM E,AB1-307A
-BAECE203,Analog Electronics,ELA,1,L11+L12,BRINTHA THERESE A,AB1-307A
+BAECE203,Analog Electronics,ELA,1,L11+L12,BRINTHA THERESE  A,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L11+L12,JEAN JENIFER NESAM J,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L39+L40,CHANDRAMAULESHWAR ROY,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L39+L40,VIJAYAKUMAR P,AB1-307A
@@ -1622,7 +1540,7 @@ BAECE203,Analog Electronics,ELA,1,L45+L46,B PRASHANTH KUMAR,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L45+L46,ABHIJIT MISHRA,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L29+L30,LAKSHMI B,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L29+L30,SRIDHAR C,AB1-307A
-BAECE203,Analog Electronics,ELA,1,L3+L4,BRINTHA THERESE A,AB1-307A
+BAECE203,Analog Electronics,ELA,1,L3+L4,BRINTHA THERESE  A,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L3+L4,FLORENCE GNANA POOVATHY J,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L9+L10,CHANDRAMAULESHWAR ROY,AB1-307A
 BAECE203,Analog Electronics,ELA,1,L9+L10,TANMOY MAJUMDER,AB1-307A
@@ -1669,12 +1587,12 @@ BAECE206,Digital Signal Processing,ETH,3,G1+TG1,SOURABH PAUL,AB1-309
 BAECE206,Digital Signal Processing,ELA,1,L55+L56,ANNIS FATHIMA A,AB1-707
 BAECE206,Digital Signal Processing,ELA,1,L43+L44,RAMESH R,AB1-707
 BAECE206,Digital Signal Processing,ELA,1,L45+L46,SOURABH PAUL,AB1-707
-BAECE206,Digital Signal Processing,ETH,3,G2+TG2,ANNIS FATHIMA A,AB1-302
 BAECE206,Digital Signal Processing,ETH,3,G2+TG2,RAMESH R,AB1-308
 BAECE206,Digital Signal Processing,ETH,3,G2+TG2,SOURABH PAUL,AB1-309
-BAECE206,Digital Signal Processing,ELA,1,L29+L30,ANNIS FATHIMA A,AB1-707
 BAECE206,Digital Signal Processing,ELA,1,L13+L14,RAMESH R,AB1-707
 BAECE206,Digital Signal Processing,ELA,1,L15+L16,SOURABH PAUL,AB1-707
+BAECE206,Digital Signal Processing,ETH,3,G2+TG2,PRANABA KUMAR MISHRO,AB1-302
+BAECE206,Digital Signal Processing,ELA,1,L29+L30,PRANABA KUMAR MISHRO,AB1-707
 BAEVD201,Electronic Circuits,ETH,3,G1+TG1,MANIKANDAN P,AB4-514
 BAEVD201,Electronic Circuits,ETH,3,G2+TG2,MANIKANDAN P,AB4-514
 BAEVD201,Electronic Circuits,ELA,1,L55+L56,MANIKANDAN P,AB1-307A
@@ -1685,8 +1603,8 @@ BAEVD203,Communication Systems,TH,4,D1+TD1+TDD1,S SELVENDRAN,AB4-514
 BAEVD203,Communication Systems,TH,4,D2+TD2+TDD2,AMIT KUMAR,AB4-514
 BAEVD204,Signal Processing,ETH,3,A1+TA1,SUCHETHA M,AB4-514
 BAEVD204,Signal Processing,ELA,1,L49+L50,SUCHETHA M,AB1-707
-BAEVD204,Signal Processing,ETH,3,A2+TA2,PRANABA KUMAR MISHRO,AB4-514
-BAEVD204,Signal Processing,ELA,1,L21+L22,PRANABA KUMAR MISHRO,AB1-707
+BAEVD204,Signal Processing,ETH,3,A2+TA2,ANNIS FATHIMA A,AB4-514
+BAEVD204,Signal Processing,ELA,1,L23+L24,ANNIS FATHIMA A,AB1-707
 BECE103L,Analog and Digital Electronics,TH,3,F2+TF2,SHAIK AHMADSAIDULU,AB1-410
 BECE103P,Analog and Digital Electronics Lab,LO,1,L59+L60,SHAIK AHMADSAIDULU,AB1-307A
 BECE203L,Circuit Theory,TH,4,C1+TC1+TCC1,CHANDRASEKARAN N,AB1-811
@@ -1775,8 +1693,8 @@ BECE306P,Digital Communication Systems Lab,LO,1,L23+L24,P NIRMALA,AB4-410
 BECE306P,Digital Communication Systems Lab,LO,1,L55+L56,USHA RANI S,AB4-410
 BECE306P,Digital Communication Systems Lab,LO,1,L49+L50,ILAVARASAN T,AB4-410
 BECE306P,Digital Communication Systems Lab,LO,1,L9+L10,B. NAGAJAYANTHI,AB4-410
-BECE306P,Digital Communication Systems Lab,LO,1,L7+L8,P NIRMALA,AB4-410
-BECE306P,Digital Communication Systems Lab,LO,1,L19+L20,USHA RANI S,AB4-410
+BECE306P,Digital Communication Systems Lab,LO,1,L19+L20,P NIRMALA,AB4-410
+BECE306P,Digital Communication Systems Lab,LO,1,L7+L8,USHA RANI S,AB4-410
 BECE306P,Digital Communication Systems Lab,LO,1,L25+L26,ILAVARASAN T,AB4-410
 BECE309L,Artificial Intelligence and Machine Learning,TH,3,G1+TG1,VIJAYARAJAN R,AB1-711
 BECE309L,Artificial Intelligence and Machine Learning,TH,3,G2+TG2,VIJAYARAJAN R,AB1-710
@@ -1789,8 +1707,8 @@ BECE312L,Robotics and Automation,TH,3,E2+TE2,A BHARATHI SANKAR,AB1-811
 BECE313L,Information Theory and Coding,TH,3,E1+TE1,MARKKANDAN,AB1-811
 BECE320E,Embedded C Programming,ETH,2,G1,FLORENCE GNANA POOVATHY J,AB1-611
 BECE320E,Embedded C Programming,ELA,1,L45+L46,FLORENCE GNANA POOVATHY J,AB3-102
-BECE320E,Embedded C Programming,ETH,2,G2,MANOJ KUMAR R,AB1-711
-BECE320E,Embedded C Programming,ELA,1,L5+L6,MANOJ KUMAR R,AB4-411
+BECE320E,Embedded C Programming,ETH,2,G2,MANMOHAN SHARMA,AB1-711
+BECE320E,Embedded C Programming,ELA,1,L5+L6,MANMOHAN SHARMA,AB4-411
 BECE320E,Embedded C Programming,ETH,2,G1,PUGAZHENTHI R,AB1-710
 BECE320E,Embedded C Programming,ELA,1,L43+L44,PUGAZHENTHI R,AB3-102
 BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,GNANA SWATHIKA O V,AB2-403
@@ -1809,24 +1727,22 @@ BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,PRASANNA BHARATHI,AB1-801
 BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,RAJU PATEL,AB1-802
 BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,SRITAMA ROY,AB1-808
 BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,SRITAMA ROY,AB1-808
-BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,LTI SCOPE1,AB1-809
-BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,LTI SCOPE1,AB1-809
-BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,LTI SCOPE2,AB4-516
-BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,LTI SCOPE2,AB4-516
-BECE402L,Communication for Cyber Physical Systems,TH,2,B2,KANCHANA DEVI V,MAB3-102
+BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,DHIVYA R,AB1-809
+BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,DHIVYA R,AB1-809
+BECE355L,Advanced Cloud Computing,TH,3,C1+TC1,PRIYAADHARSHINI M,AB4-516
+BECE355L,Advanced Cloud Computing,TH,3,C2+TC2,RADHIKA SELVAMANI,AB4-516
 BECE402L,Communication for Cyber Physical Systems,TH,2,B1,PRIYADARSHINI R,MAB4-101
-BECE402P,Communication for Cyber Physical Systems Lab,LO,1,L27+L28,KANCHANA DEVI V,AB3-310
 BECE402P,Communication for Cyber Physical Systems Lab,LO,1,L37+L38,PRIYADARSHINI R,AB3-310
 BECE403E,Embedded Systems Design,ETH,3,G1+TG1,MUTHULAKSHMI S,AB1-610
-BECE403E,Embedded Systems Design,ELA,1,L11+L12,MUTHULAKSHMI S,AB4-411
+BECE403E,Embedded Systems Design,ELA,1,L11+L12,MUTHULAKSHMI S,AB1-606A
 BECE406E,FPGA Based System Design,ETH,2,F1,HARIHARAN,AB1-808
 BECE406E,FPGA Based System Design,ETH,2,F2,HARIHARAN,AB1-808
-BECE406E,FPGA Based System Design,ELA,1,L11+L12,HARIHARAN,AB4-409
-BECE406E,FPGA Based System Design,ELA,1,L21+L22,HARIHARAN,AB4-409
+BECE406E,FPGA Based System Design,ELA,1,L11+L12,HARIHARAN,AB1-706
+BECE406E,FPGA Based System Design,ELA,1,L21+L22,HARIHARAN,AB1-706
 BECE406E,FPGA Based System Design,ETH,2,G1,JEAN JENIFER NESAM J,AB1-809
-BECE406E,FPGA Based System Design,ELA,1,L43+L44,JEAN JENIFER NESAM J,AB4-409
+BECE406E,FPGA Based System Design,ELA,1,L43+L44,JEAN JENIFER NESAM J,AB1-706
 BECE406E,FPGA Based System Design,ETH,2,G2,JEAN JENIFER NESAM J,AB1-801
-BECE406E,FPGA Based System Design,ELA,1,L27+L28,JEAN JENIFER NESAM J,AB4-409
+BECE406E,FPGA Based System Design,ELA,1,L27+L28,JEAN JENIFER NESAM J,AB1-706
 BECE407E,ASIC Design,ETH,2,G1,PRATHIBA A,AB1-801
 BECE407E,ASIC Design,ELA,1,L43+L44,PRATHIBA A,AB3-312
 BECE407E,ASIC Design,ETH,2,F1,PRITAM BHATTACHARJEE,AB1-802
@@ -1836,8 +1752,6 @@ BECE407E,ASIC Design,ELA,1,L19+L20,PRITAM BHATTACHARJEE,AB3-312
 BECE411L,Cryptography and Network Security,TH,3,G1+TG1,VIJAYAKUMAR P,AB4-518
 BECE497J,Project - I,PJT,3,NIL,ACAD FACULTY,NIL
 BECE497J,Project - I,PJT,3,NIL,PAT,NIL
-BECM302E,Augmented and Virtual Reality,ETH,3,A1+TA1,PRIYAADHARSHINI M,MAB3-203
-BECM302E,Augmented and Virtual Reality,ELA,1,L51+L52,PRIYAADHARSHINI M,AB1-307
 BECM497J,Project - I,PJT,3,NIL,ACAD FACULTY,NIL
 BECM497J,Project - I,PJT,3,NIL,PAT,NIL
 BEVD207L,Computer Architecture,TH,3,E1+TE1,MOHAMMED AARIF K O,AB4-516
@@ -1854,14 +1768,18 @@ BEVD309L,Testing of VLSI Circuits,TH,3,D2+TD2,PAPANASAM E,AB4-517
 BEVD402L,AI and Machine Learning for IC,TH,3,D1+TD1,G LAKSHMI PRIYA,AB4-517
 BEVD497J,Project - I,PJT,3,NIL,ACAD FACULTY,NIL
 BEVD497J,Project - I,PJT,3,NIL,PAT,NIL
+MAEDS698,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
+MAEDS698,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
+MAVLD698,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
+MAVLD698,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
 BABMH102,Mechanical System Design and Analysis,TH,4,A1+TA1+TAA1,DAVIDSON JEBASEELAN,AB1-402
 BABMH102,Mechanical System Design and Analysis,TH,4,A2+TA2+TAA2,KRISHANU GANGULY,AB1-402
 BABMH102,Mechanical System Design and Analysis,TH,4,A1+TA1+TAA1,ANAND KUMAR AGRAWAL,AB1-408
 BABMH202,Sensors and Signals,ETH,3,D1+TD1,ESWARAN M,AB1-408
-BABMH202,Sensors and Signals,ETH,3,D2+TD2,,AB1-402
+BABMH202,Sensors and Signals,ETH,3,D2+TD2,BONDA ATCHUTA GANESH YUVA RAJU,AB1-402
 BABMH202,Sensors and Signals,ETH,3,D1+TD1,SUGUMARAN,AB1-402
-BABMH202,Sensors and Signals,ELA,1,L13+L14,,AB1-803A
-BABMH202,Sensors and Signals,ELA,1,L27+L28,,AB1-803A
+BABMH202,Sensors and Signals,ELA,1,L13+L14,BONDA ATCHUTA GANESH YUVA RAJU,AB1-803A
+BABMH202,Sensors and Signals,ELA,1,L27+L28,BONDA ATCHUTA GANESH YUVA RAJU,AB1-803A
 BABMH202,Sensors and Signals,ELA,1,L29+L30,ESWARAN M,AB1-803A
 BABMH202,Sensors and Signals,ELA,1,L49+L50,ESWARAN M,AB1-803A
 BABMH202,Sensors and Signals,ELA,1,L31+L32,SUGUMARAN,AB1-803A
@@ -1869,16 +1787,13 @@ BABMH202,Sensors and Signals,ELA,1,L37+L38,SUGUMARAN,AB1-803A
 BABMH203,Intelligent Systems,TH,4,C1+TC1+TCC1,JEGADEESHWARAN R,AB1-408
 BABMH203,Intelligent Systems,TH,4,C1+TC1+TCC1,MOGANA PRIYA C,AB1-402
 BABMH203,Intelligent Systems,TH,4,C2+TC2+TCC2,SANTHOSH N,AB1-402
-BABMH310,Embedded Systems and Programming,ETH,3,F1+TF1,MAHESWARI C,AB1-402
+BABMH310,Embedded Systems and Programming,ETH,3,F1+TF1,MAHESWARI  C,AB1-402
 BABMH310,Embedded Systems and Programming,ETH,3,F2+TF2,MATHIYAZHAGAN R,AB1-402
 BABMH310,Embedded Systems and Programming,ELA,1,L9+L10,MATHIYAZHAGAN R,AB1-707B
 BABMH310,Embedded Systems and Programming,ELA,1,L15+L16,MATHIYAZHAGAN R,AB1-707B
-BABMH310,Embedded Systems and Programming,ELA,1,L39+L40,MAHESWARI C,AB1-707B
-BABMH310,Embedded Systems and Programming,ELA,1,L43+L44,MAHESWARI C,AB1-707B
+BABMH310,Embedded Systems and Programming,ELA,1,L39+L40,MAHESWARI  C,AB1-707B
+BABMH310,Embedded Systems and Programming,ELA,1,L43+L44,MAHESWARI  C,AB1-707B
 BABMH311,Fluid and Thermal Systems,ETH,3,F1+TF1,PRITAM DAS,AB1-408
-BABMH311,Fluid and Thermal Systems,ETH,3,F2+TF2,IMMANUEL SELWYN RAJ A,AB1-408
-BABMH311,Fluid and Thermal Systems,ELA,1,L27+L28,IMMANUEL SELWYN RAJ A,AB2-014
-BABMH311,Fluid and Thermal Systems,ELA,1,L41+L42,IMMANUEL SELWYN RAJ A,AB2-014
 BABMH311,Fluid and Thermal Systems,ELA,1,L5+L6,PRITAM DAS,AB2-014
 BABMH311,Fluid and Thermal Systems,ELA,1,L45+L46,PRITAM DAS,AB2-014
 BAMEE201,Mechanics of Materials,ETH,3,D1+TD1,SREEKANTH DONDAPATI,AB2-301
@@ -1896,28 +1811,23 @@ BAMEE201,Mechanics of Materials,ELA,1,L9+L10,JEYANTHI S,AB1-006
 BAMEE201,Mechanics of Materials,ELA,1,L13+L14,JEYANTHI S,AB1-006
 BAMEE201,Mechanics of Materials,ELA,1,L1+L2,AWANI BHUSHAN,AB1-006
 BAMEE201,Mechanics of Materials,ELA,1,L21+L22,AWANI BHUSHAN,AB1-006
-BAMEE203,Thermodynamics and Thermal Systems,ETH,3,F1+TF1,JOSEPH DANIEL,AB2-301
-BAMEE203,Thermodynamics and Thermal Systems,ETH,3,F1+TF1,FEROSKHAN M,AB2-302
-BAMEE203,Thermodynamics and Thermal Systems,ETH,3,F1+TF1,MANAVALLA SREEKANTH,AB2-303
-BAMEE203,Thermodynamics and Thermal Systems,ETH,3,F2+TF2,SAURABH YADAV,AB2-301
-BAMEE203,Thermodynamics and Thermal Systems,ETH,3,F2+TF2,AVADHESH KUMAR SHARMA,AB2-302
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L5+L6,JOSEPH DANIEL,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L49+L50,JOSEPH DANIEL,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L23+L24,FEROSKHAN M,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L43+L44,FEROSKHAN M,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L37+L38,MANAVALLA SREEKANTH,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L51+L52,MANAVALLA SREEKANTH,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L1+L2,SAURABH YADAV,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L21+L22,SAURABH YADAV,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L3+L4,AVADHESH KUMAR SHARMA,AB1-005
-BAMEE203,Thermodynamics and Thermal Systems,ELA,1,L15+L16,AVADHESH KUMAR SHARMA,AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L5+L6,JOSEPH DANIEL,AB2-301 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L49+L50,JOSEPH DANIEL,AB2-301 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L23+L24,FEROSKHAN M,AB2-302 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L43+L44,FEROSKHAN M,AB2-302 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L37+L38,MANAVALLA SREEKANTH,AB2-303 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F1+TF1+L45+L46,MANAVALLA SREEKANTH,AB2-303 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F2+TF2+L1+L2,SAURABH YADAV,AB2-301 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F2+TF2+L21+L22,SAURABH YADAV,AB2-301 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F2+TF2+L3+L4,AVADHESH KUMAR SHARMA,AB2-302 / AB1-005
+BAMEE203,Thermodynamics and Thermal Systems,ETH + ELA,4,F2+TF2+L15+L16,AVADHESH KUMAR SHARMA,AB2-301 / AB1-005
 BAMEE301,Computational Engineering,ETH,3,C1+TC1,LAKSHMI PATHI JAKKAMPUTI,AB2-302
 BAMEE301,Computational Engineering,ETH,3,C2+TC2,LAKSHMI PATHI JAKKAMPUTI,AB2-302
 BAMEE301,Computational Engineering,ELA,1,L31+L32,LAKSHMI PATHI JAKKAMPUTI,AB1-406C
 BAMEE301,Computational Engineering,ELA,1,L19+L20,LAKSHMI PATHI JAKKAMPUTI,AB1-406C
-BAMEE301,Computational Engineering,ETH,3,C1+TC1,N.GOBINATH,AB2-301
+BAMEE301,Computational Engineering,ETH,3,C1+TC1,N.GOBINATH,AB2-303
 BAMEE301,Computational Engineering,ELA,1,L57+L58,N.GOBINATH,AB1-406B
-BAMEE301,Computational Engineering,ETH,3,C1+TC1,LENIN BABU M C,AB2-303
+BAMEE301,Computational Engineering,ETH,3,C1+TC1,LENIN BABU M C,AB2-301
 BAMEE301,Computational Engineering,ELA,1,L51+L52,LENIN BABU M C,AB1-513
 BAMEE301,Computational Engineering,ETH,3,C2+TC2,LENIN BABU M C,AB2-301
 BAMEE301,Computational Engineering,ELA,1,L27+L28,LENIN BABU M C,AB1-406B
@@ -1955,7 +1865,7 @@ BMEE304L,Metal Forming and Machining,TH,3,A2+TA2,DEIVANATHAN R,AB2-304
 BMEE304L,Metal Forming and Machining,TH,3,A2+TA2,PONNUSAMY P,AB2-305
 BMEE304P,Metal Forming and Machining Lab,LO,1,L31+L32,BHUPESH SINGH KATIYAR,AB1-003
 BMEE304P,Metal Forming and Machining Lab,LO,1,L37+L38,BHUPESH SINGH KATIYAR,AB1-003
-BMEE304P,Metal Forming and Machining Lab,LO,1,L11+L12,ANSHUMAN DAS,AB1-003
+BMEE304P,Metal Forming and Machining Lab,LO,1,L39+L40,ANSHUMAN DAS,AB1-003
 BMEE304P,Metal Forming and Machining Lab,LO,1,L55+L56,ANSHUMAN DAS,AB1-003
 BMEE304P,Metal Forming and Machining Lab,LO,1,L29+L30,MOHAN R,AB1-003
 BMEE304P,Metal Forming and Machining Lab,LO,1,L49+L50,MOHAN R,AB1-003
@@ -1965,7 +1875,7 @@ BMEE304P,Metal Forming and Machining Lab,LO,1,L9+L10,PONNUSAMY P,AB1-003
 BMEE304P,Metal Forming and Machining Lab,LO,1,L21+L22,PONNUSAMY P,AB1-003
 BMEE321L,Composite Materials,TH,3,F1+TF1,VENKATACHALAM G,AB2-305
 BMEE325L,Internal Combustion Engines,TH,3,F2+TF2,VENUGOPAL T,AB2-305
-BMEE326L,Power Plant Engineering,TH,3,F1+TF1,KARUNAMURTHY K,AB2-304
+BMEE326L,Power Plant Engineering,TH,3,F1+TF1,IMMANUEL SELWYN RAJ A,AB2-304
 BMEE355E,Cloud Computing,ETH,1,TAA1,RADHA,AB2-306
 BMEE355E,Cloud Computing,ELA,2,L31+L32+L51+L52,RADHA,AB1-406B
 BMEE355E,Cloud Computing,ETH,1,TAA1,PRADEEP N,AB1-409
@@ -1976,11 +1886,11 @@ BMEE355E,Cloud Computing,ETH,1,TAA1,ESWARAN M,AB1-410
 BMEE355E,Cloud Computing,ELA,2,L37+L38+L45+L46,ESWARAN M,AB1-406B
 BMEE355E,Cloud Computing,ETH,1,TAA1,MANIMARAN R,AB2-304
 BMEE355E,Cloud Computing,ETH,1,TAA2,MANIMARAN R,AB2-304
-BMEE355E,Cloud Computing,ELA,2,L29+L30+L49+L50,MANIMARAN R,AB1-406B
+BMEE355E,Cloud Computing,ELA,2,L49+L50+L55+L56,MANIMARAN R,AB1-406B
 BMEE355E,Cloud Computing,ELA,2,L5+L6+L19+L20,MANIMARAN R,AB1-406B
 BMEE355E,Cloud Computing,ETH,1,TAA1,RAGHUKIRAN NADIMPALLI,AB2-305
 BMEE355E,Cloud Computing,ETH,1,TAA2,RAGHUKIRAN NADIMPALLI,AB2-305
-BMEE355E,Cloud Computing,ELA,2,L39+L40+L55+L56,RAGHUKIRAN NADIMPALLI,AB1-406B
+BMEE355E,Cloud Computing,ELA,2,L29+L30+L39+L40,RAGHUKIRAN NADIMPALLI,AB1-406B
 BMEE355E,Cloud Computing,ELA,2,L7+L8+L21+L22,RAGHUKIRAN NADIMPALLI,AB1-406B
 BMEE355E,Cloud Computing,ETH,1,TDD1,ANJALI GOPAKUMAR,AB1-708
 BMEE355E,Cloud Computing,ELA,2,L43+L44+L55+L56,ANJALI GOPAKUMAR,AB1-514
@@ -2033,11 +1943,11 @@ BMHA301P,Fluid Power Systems Lab,LO,1,L27+L28,ELANGO M,AB1-707B
 BMHA304L,Mechatronic Systems Design,TH,3,C1+TC1,SARAVANAKUMAR D,AB1-411
 BMHA304L,Mechatronic Systems Design,TH,3,C2+TC2,ESWARAN M,AB1-411
 BMHA308L,Machine Vision,TH,3,B1+TB1,MATHIYAZHAGAN R,AB1-409
-BMHA308L,Machine Vision,TH,3,B2+TB2,MAHESWARI C,AB1-409
+BMHA308L,Machine Vision,TH,3,B2+TB2,MAHESWARI  C,AB1-409
 BMHA314E,Autonomous Mobile Robots,ETH,3,G1+TG1,AROCKIA SELVAKUMAR,AB1-411
 BMHA314E,Autonomous Mobile Robots,ELA,1,L45+L46,AROCKIA SELVAKUMAR,AB3-311
 BMHA404L,Biomechatronics,TH,3,E2+TE2,G MURALIMOHAN,AB1-411
-BMHA405L,Industrial Internet of Things and Smart Manufacturing,TH,3,E1+TE1,,AB1-411
+BMHA405L,Industrial Internet of Things and Smart Manufacturing,TH,3,E1+TE1,BONDA ATCHUTA GANESH YUVA RAJU,AB1-411
 BMHA407L,Agriculture Automation,TH,3,F1+TF1,SAKTHIVEL G,AB1-409
 BMHA408E,Unmanned Aerial Vehicles,ETH,2,F2,PRADEEP N,AB1-409
 BMHA408E,Unmanned Aerial Vehicles,ELA,1,L5+L6,PRADEEP N,AB3-710
@@ -2047,7 +1957,7 @@ MCDM698J,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
 MCDM698J,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
 MMHA698J,Internship I/ Dissertation I,PJT,10,NIL,ACAD FACULTY,NIL
 MMHA698J,Internship I/ Dissertation I,PJT,10,NIL,PAT,NIL
-BACHY101,Environmental Sciences,OC,2,NIL,KARTHIKA PICHAIMUTHU,NIL
+BACHY101,Environmental Sciences,OC,2,NIL,SUBHAYAN DEY,NIL
 BAESP101,Spanish Level I,ETH,1,TB1,SAVARIAH XAVIER Y C,AB3-309
 BAESP101,Spanish Level I,ELA,1,L37+L38,SAVARIAH XAVIER Y C,AB1-404 A
 BAESP101,Spanish Level I,ETH,1,TB1,SHALINI SUPRIYA,AB3-313
@@ -2136,7 +2046,7 @@ BAGER101,German Level I,ETH,1,TE2,ASHUTOSH KUMAR TRIPATHI,AB1-308
 BAGER101,German Level I,ELA,1,L29+L30,ASHUTOSH KUMAR TRIPATHI,AB1-404B
 BAGER101,German Level I,ETH,1,TE2,VEENA PANI,AB1-309
 BAGER101,German Level I,ELA,1,L5+L6,VEENA PANI,AB1-404B
-BAHUM101,India Studies,OC,1,NIL,SUBBU LAKSHMI M,NIL
+BAHUM101,India Studies,OC,1,NIL,VIJAYALAKSHMI V,NIL
 BAHUM103,Ethics and Values,TH,2,G1,NITHYA VENKATESAN,AB2-401
 BAHUM103,Ethics and Values,TH,2,G1,LENIN N C,AB2-402
 BAHUM103,Ethics and Values,TH,2,G1,JANANI C,AB2-406
@@ -2163,29 +2073,45 @@ BFRE101L,French I,TH,2,E1,INL-FRENCH02,AB3-513
 BFRE101L,French I,TH,2,E2,INL-FRENCH02,AB3-509
 BGER101L,German I,TH,2,B1,INL-GERMAN01,AB3-508
 BGER101L,German I,TH,2,B2,INL-GERMAN01,AB3-504
-BHUM101N,Ethics and Values,OC,2,NIL,PREETHA R,NIL
+BHUM101N,Ethics and Values,OC,2,NIL,VIJAYALAKSHMI V,NIL
 BHUM103L,Micro Economics,TH,3,F1+TF1,RAJA RAJESWARI G,AB3-406
 BHUM104L,Macro Economics,TH,3,F2+TF2,MUHAMMED NAJEEB K K,AB3-408
 BHUM108L,URBAN COMMUNITY DEVELOPMENT,TH,3,F2+TF2,SWATI,AB3-409
 BHUM109L,SOCIAL WORK AND SUSTAINABILITY,TH,3,F1+TF1,BINU SAHAYAM D,AB3-506
 BHUM109L,SOCIAL WORK AND SUSTAINABILITY,TH,3,F2+TF2,BINU SAHAYAM D,AB2-404
 BHUM110L,Cognitive Psychology,TH,3,F1+TF1,MAYA RATHNASABAPATHY,AB3-507
-BHUM215L,International Relations,TH,3,F1+TF1,JUSTIN JOSEPH,AB3-503
-BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,ALAN G,NIL
-BSSC102N,Indian Constitution,OC,2,NIL,JAYA PRIYA S,NIL
-IAHUM101,India Studies,OC,1,NIL,TARANG MAHAJAN,NIL
-IAHUM101,India Studies,OC,1,NIL,PREETHA R,NIL
+BHUM215L,International Relations,TH,3,F1+TF1,GOKUL K S,AB3-503
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,ARUN KUMAR G,NIL
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,ROOPESH O B,NIL
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,TARANG MAHAJAN,NIL
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,MAHARISHI R,NIL
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,MOHAMMAD ANAS,NIL
+BSSC101N,Essence of Traditional Knowledge,OC,2,NIL,DURGA R P,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,ANKIT ANAND,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,SHERIN PRIYAN,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,SONY RAJ S S,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,BILAL A NAZEER,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,POOJA,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,POURNA DHEVI N,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,BERTILA A,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,SHASHIKANT SAURAV,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,KOWSHIKAA A S,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,VANMATHI M,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,MANJARI SUGIRTHA A,NIL
+BSSC102N,Indian Constitution,OC,2,NIL,AYUSHI SRIVASTAVA,NIL
+IAHUM101,India Studies,OC,1,NIL,BINU SAHAYAM D,NIL
+IAHUM101,India Studies,OC,1,NIL,RAJEESH C S,NIL
 IAHUM106,Micro Economics,TH,3,G1+TG1,RAJA RAJESWARI G,AB4-505
 IAHUM107,Macro Economics,TH,3,G1+TG1,MALLIKA SINHA,AB4-502
 IAHUM107,Macro Economics,TH,3,G2+TG2,SHIWANGI,AB4-502
 IAHUM112,Psychology in Everyday Life,TH,3,G1+TG1,VIJAYABANU U,AB4-504
 IAHUM119,International Relations,TH,3,G1+TG1,RAJEESH C S,AB4-503
 IAHUM119,International Relations,TH,3,G2+TG2,RAJEESH C S,AB4-503
-IHUM101N,Ethics and Values,OC,2,NIL,DAISY GOHAIN,NIL
+IHUM101N,Ethics and Values,OC,2,NIL,BINU SAHAYAM D,NIL
 IHUM211L,Behavioral Economics,TH,3,A2+TA2,MALLIKA SINHA,AB2-605
-IHUM217L,Contemporary India,TH,3,A2+TA2,JUSTIN JOSEPH,AB2-606
-ISSC101N,Essence of Traditional Knowledge,OC,2,NIL,ALLI P,NIL
-ISSC102N,Indian Constitution,OC,2,NIL,CHANDRIKA MEHTA,NIL
+IHUM217L,Contemporary India,TH,3,A2+TA2,GOKUL K S,AB2-606
+ISSC101N,Essence of Traditional Knowledge,OC,2,NIL,TIWARI MAHALAXMI SHIVSHANKAR,NIL
+ISSC102N,Indian Constitution,OC,2,NIL,HELEN P AZYU,NIL
 STS2011,Reasoning Skill Enhancement,SS,1,D1+TD1,FACE (APT),ADB-701
 STS3003,Soft Skills for Professional Development,SS,1,B1+TB1,FACE (APT),ADB-403
 TAPS109E,Conflict Management,ETH,1,TD1,VIJAYABANU U,AB2-605
@@ -2206,18 +2132,14 @@ UCSC228E,R Programming,ETH,3,C1+TC1,MANIKANDAN P,AB2-701
 UCSC228E,R Programming,ELA,1,L33+L34,MANIKANDAN P,ADB - 404
 UCSC230E,Machine Learning,ETH,3,D1+TD1,PANDIYARAJU V,AB2-701
 UCSC230E,Machine Learning,ELA,1,L57+L58,PANDIYARAJU V,ADB - 404
-UCSC413E,Time Series Analyses,ETH,3,B1+TB1,MALLIKA SINHA,AB2-701
-UCSC413E,Time Series Analyses,ELA,1,L45+L46,MALLIKA SINHA,ADB - 404
 UECH201L,History of Economic Thought,TH,4,B1+TB1+TBB1,SATHIS KUMAR G,AB2-608
 UECH202L,Money and Banking,TH,4,D1+TD1+TDD1,MAGULSHA GEORGE,AB2-608
 UECH203L,Econometrics,TH,4,A1+TA1+TAA1,MUHAMMED NAJEEB K K,AB2-608
 UECH204L,Indian Economy,TH,4,C1+TC1+TCC1,ALLI P,AB2-608
-UECH205L,Operational Research,TH,3,E1+TE1,SUJATHA MANOHAR,AB2-608
+UECH205L,Operational Research,TH,3,E1+TE1,WAQAS NIAZI,AB2-608
 UECH213L,Derivatives and Risk Management,TH,4,D1+TD1+TDD1,NISHA R,AB2-702
 UECH299J,Minor Project,PJT,2,NIL,ACAD FACULTY,NIL
 UECH299J,Minor Project,PJT,2,NIL,PAT,NIL
-UECH307L,International Finance,TH,4,B1+TB1+TBB1,BHAVANI J,AB2-702
-UECH413L,Mergers & Acquisitions,TH,4,C1+TC1+TCC1,TISHA MERIAM CHERIAN,AB2-702
 UENG102L,Technical English Communication,TH,2,G1,JAISHREE KARTHIGA R K,AB2-608
 UENG102P,Technical English Communication Lab,LO,1,L43+L44,JAISHREE KARTHIGA R K,AB1-405
 UHUM112L,International Economic Relations,TH,3,F1+TF1,JAYARAJ R,AB2-608
@@ -2234,22 +2156,22 @@ BAFST309,Textile and Apparel Quality Evaluation,ETH,2,A2,VASANTH KUMAR,ADB-702
 BAFST309,Textile and Apparel Quality Evaluation,ELA,2,L11+L12+L27+L28,VASANTH KUMAR,ADB-602
 BAHUM136,Ethics in Fashion Industry,TH,2,D1,SELVAKUMAR,ADB-702
 BFST107L,Apparel Merchandising and Costing,TH,4,C1+TC1+TCC1,RATHINAMOORTHY R,ADB-704
-BFST204P,Women’s Wear and Lingerie,LO,3,L31+L32+L49+L50+L55+L,5C6HARMINI B,ADB - 801
+BFST204P,Womenâ€™s Wear and Lingerie,LO,3,L31+L32+L49+L50+L55+L56,CHARMINI B,ADB - 801
 BFST212L,Fashion Communication,TH,3,B1+TB1,CHARMINI B,ADB-704
 BFST301L,Fabric Manufacturing,TH,3,F1+TF1,PALANI RAJAN T,ADB-704
 BFST301P,Fabric Manufacturing Lab,LO,1,L29+L30,PALANI RAJAN T,ADB-602
-BFST302P,Digital Fashion and Apparel Design Lab,LO,3,L33+L34+L51+L52+L57+L,5R8AJA BALASARASWATHI S,ADB - 802
+BFST302P,Digital Fashion and Apparel Design Lab,LO,3,L33+L34+L51+L52+L57+L58,RAJA BALASARASWATHI S,ADB - 802
 BFST305L,Industrial Engineering in Apparel Industry,TH,4,A1+TA1+TAA1,RAJA BALASARASWATHI S,ADB-704
 BFST306L,Quality Assurance in Apparel Industry,TH,3,D1+TD1,VASANTH KUMAR,ADB-704
 BFST399J,Summer Industrial Internship,PJT,1,NIL,ACAD FACULTY,NIL
 BFST405P,Fashion Design Portfolio,LO,3,L3+L4+L19+L20+L43+L44,MAANVIZHI M,ADB - 802
 BFST406L,Brand Management,TH,3,A1+TA1,CHARMINI B,ADB-705
 BFST497J,Project - I,PJT,3,NIL,ACAD FACULTY,NIL
-FSD1003,Basic Fashion Illustration,LO,3,L33+L34+L45+L46+L57+L,5V8ASANTH KUMAR,ADB-706
+FSD1003,Basic Fashion Illustration,LO,3,L33+L34+L45+L46+L57+L58,VASANTH KUMAR,ADB-706
 FSD1004,Pattern making Fundamentals,ETH,2,C2,JESICA ROSHIMA,ADB-703
 FSD1004,Pattern making Fundamentals,ELA,2,L11+L12+L37+L38,JESICA ROSHIMA,ADB-805
 FSD1006,"Product Design, Development and Display",PJT,2,NIL,ACAD FACULTY,NIL
-FSD2001,Garment Components Construction,LO,3,L11+L12+L37+L38+L43+L,4R4AJESH KUMAR K,ADB - 801
+FSD2001,Garment Components Construction,LO,3,L11+L12+L37+L38+L43+L44,RAJESH KUMAR K,ADB - 801
 FSD2011,Fabric Structure and Analysis,ELA,1,L49+L50,BHUVANESHWARI,ADB-602
 FSD2011,Fabric Structure and Analysis,ETH,3,F1+TF1,BHUVANESHWARI,ADB-701
 FSD2013,Fashion and Apparel Export Merchandising,TH,3,B1+TB1,RATHINAMOORTHY R,ADB-701
@@ -2262,9 +2184,9 @@ FSD2019,Costume Designing,EPJ,1,NIL,APARNA GOVIND,NIL
 FSD2022,Fashion styling and make up,TH,3,A1+TA1,JESICA ROSHIMA,ADB-701
 FSD2029,Fashion Communication and Boutique Management,TH,3,C1+TC1,BANUMATHY S,ADB-701
 FSD2030,Fashion Entrepreneurship,TH,3,D1+TD1,BANUMATHY S,ADB-703
-FSD3001,Digital Fashion Illustration,LO,3,L23+L24+L29+L30+L55+L,5S6AROJ K M,ADB - 802
+FSD3001,Digital Fashion Illustration,LO,3,L23+L24+L29+L30+L55+L56,SAROJ K M,ADB - 802
 FSD3001,Digital Fashion Illustration,LO,3,L5+L6+L39+L40+L45+L46,SAROJ K M,ADB - 802
-FSD3002,Mens wear and intimate fashion,LO,4,L9+L10+L13+L14+L23+L2,4B+HL2U9V+ALN30ESHWARI,ADB - 801
+FSD3002,Mens wear and intimate fashion,LO,4,L9+L10+L13+L14+L23+L24+L29+L30,BHUVANESHWARI,ADB - 801
 FSD3004,Computer Aided Designing,ETH,2,E2,S.VINUSOWNDARYA,ADB-703
 FSD3004,Computer Aided Designing,ELA,2,L31+L32+L49+L50,S.VINUSOWNDARYA,ADB - 802
 FSD3004,Computer Aided Designing,ELA,2,L11+L12+L37+L38,S.VINUSOWNDARYA,ADB - 802
@@ -2277,11 +2199,11 @@ BAHUM202,Security Analysis and Portfolio Management,TH,3,G2+TG2,MOHD HAMMAD NAEE
 BAHUM204,Fixed Income Securities,TH,3,G1+TG1,BUVANESH,AB2-708
 BAHUM204,Fixed Income Securities,TH,3,G2+TG2,BUVANESH,AB2-708
 BAMGT211,Negotiation and Selling: Tactics and Practice,TH,3,G1+TG1,THANGARAJA ARUMUGAM,AB3-703
-BAMGT211,Negotiation and Selling: Tactics and Practice,TH,3,G2+TG2,ANBUMATHI R,AB3-703
-BAMGT213,Content and Brand Storytelling,TH,3,G1+TG1,PADMAVATHY C,AB2-706
-BAMGT213,Content and Brand Storytelling,TH,3,G2+TG2,PADMAVATHY C,AB2-705
-BAMGT213,Content and Brand Storytelling,TH,3,G1+TG1,SUDHEER MUHAMMED K M,AB2-704
-BAMGT213,Content and Brand Storytelling,TH,3,G2+TG2,SUDHEER MUHAMMED K M,AB2-704
+BAMGT211,Negotiation and Selling: Tactics and Practice,TH,3,G2+TG2,BHAVANI J,AB3-703
+BAMGT213,Content and Brand Storytelling,TH,3,G1+TG1,KISHORE THOMAS JOHN,AB2-706
+BAMGT213,Content and Brand Storytelling,TH,3,G2+TG2,ARSHIYA FATHIMA M S,AB2-705
+BAMGT213,Content and Brand Storytelling,TH,3,G1+TG1,SUJATHA MANOHAR,AB2-704
+BAMGT213,Content and Brand Storytelling,TH,3,G2+TG2,MANU JOSE,AB2-704
 BAMGT215,Emotional Intelligence,TH,3,G2+TG2,BHARATH SANKAR S,AB2-707
 BAMGT216,Coping Strategies for Wellness,TH,3,G1+TG1,ASI VASU DEVA REDDY,AB2-707
 BAMGT216,Coping Strategies for Wellness,TH,3,G2+TG2,ASI VASU DEVA REDDY,AB2-703
@@ -2294,10 +2216,14 @@ BMGT101L,Principles of Management,TH,3,F1+TF1,WASI YAZDANI,AB3-404
 BMGT101L,Principles of Management,TH,3,F2+TF2,WASI YAZDANI,AB3-404
 BMGT102L,Human Resource Management,TH,3,F1+TF1,NISHA R,AB3-405
 BMGT102L,Human Resource Management,TH,3,F2+TF2,MOHD HAMMAD NAEEM,AB3-406
-BMGT102L,Human Resource Management,TH,3,F2+TF2,MOHD NADEEM BHAT,AB3-407
+BMGT102L,Human Resource Management,TH,3,F2+TF2,BHARATH SANKAR S,AB3-407
 BMGT104L,Marketing Management,TH,3,G1+TG1,RAJKUMAR MURUGESAN,AB3-603
-BMGT104L,Marketing Management,TH,3,F2+TF2,ARSHIYA FATHIMA M S,AB3-405
+BMGT104L,Marketing Management,TH,3,F2+TF2,PADMAVATHY C,AB3-405
 BMGT104L,Marketing Management,TH,3,G2+TG2,SHAMAL S,AB3-603
+BMGT104L,Marketing Management,TH,3,G1+TG1,SAJU B,AB3-508
+BMGT105L,Consumer Behavior,TH,3,G2+TG2,ANBUMATHI R,AB3-607
+BMGT106L,Digital Marketing,TH,3,G2+TG2,SUDHEER MUHAMMED K M,AB3-513
+BMGT107L,Business Analytics,TH,3,G2+TG2,BALAJI J,AB3-507
 MGT1022,Lean Start-up Management,ETH,1,TG1,BALAJI J,AB3-604
 MGT1022,Lean Start-up Management,EPJ,1,NIL,BALAJI J,NIL
 MGT3003,Customer Relationship Management,ETH,3,F2+TF2,SHAMAL S,AB2-707
@@ -2306,9 +2232,10 @@ MGT3003,Customer Relationship Management,ETH,3,F1+TF1,ARCHANA SINGH,AB3-708
 MGT3003,Customer Relationship Management,EPJ,1,NIL,ARCHANA SINGH,NIL
 MGT4003,Lean Six Sigma Principles,ETH,3,F1+TF1,VADIVEL S M,AB2-708
 MGT4003,Lean Six Sigma Principles,EPJ,1,NIL,VADIVEL S M,NIL
+UECH307L,International Finance,TH,4,B1+TB1+TBB1,BHAVANI J,AB2-702
+UECH413L,Mergers & Acquisitions,TH,4,C1+TC1+TCC1,SREEYA B,AB2-702
 UHUM102L,Company Secretarial Practice,TH,3,A1+TA1,ARCHANA SINGH,AB3-708
 UHUM103L,International Business,TH,3,E1+TE1,REEVES WESLEY J,AB2-604
-USSC101L,Indian Constitution,TH,2,F1,P C ABIRAMI,AB5-107
 TLAW161L,Colonialism in India,TH,4,A+TA+TAA,KUMAR MUKUL CHOUDHARY,AB5-204
 TLAW161L,Colonialism in India,TH,4,C+TC+TCC,BILAL A NAZEER,AB5-204
 TLAW164L,Social Process and Social Change,TH,4,C+TC+TCC,TIWARI MAHALAXMI SHIVSHANKAR,AB5-205
@@ -2320,46 +2247,46 @@ TLAW183L,Entrepreneurship Development,TH,4,C+TC+TCC,ANU C H,AB5-207
 TLAW183L,Entrepreneurship Development,TH,4,A+TA+TAA,VIJAYAN L,AB5-208
 TLAW185L,Organizational Behaviour,TH,4,E+TE+TEE,SRILALITHA R,AB5-208
 TLAW185L,Organizational Behaviour,TH,4,E+TE+TEE,MEKHALA,AB5-207
-TLAW185L,Organizational Behaviour,TH,4,B+TB+TBB,APD,AB5-108
+TLAW185L,Organizational Behaviour,TH,4,B+TB+TBB,UDAY KIRAN KOMMURI,AB5-108
 TLAW203L,Constitutional Law- I,ETH,3,E+TE,ARJUN PHILIP GEORGE,AB5-203
 TLAW203L,Constitutional Law- I,ETH,3,E+TE,NIKHIL G,AB5-204
 TLAW203L,Constitutional Law- I,ETH,3,D+TD,K KAMBAN SOCRETES,AB5-206
 TLAW203L,Constitutional Law- I,ETH,3,D+TD,KAVI SHANKAR,AB5-205
 TLAW203L,Constitutional Law- I,ETH,3,E+TE,KOWSHIKAA A S,AB5-206
-TLAW203L,Constitutional Law- I,ELA,1,L49+L50,K KAMBAN SOCRETES,001
-TLAW203L,Constitutional Law- I,ELA,1,L49+L50,NIKHIL G,002
-TLAW203L,Constitutional Law- I,ELA,1,L49+L50,ARJUN PHILIP GEORGE,003
-TLAW203L,Constitutional Law- I,ELA,1,L49+L50,KAVI SHANKAR,004
-TLAW203L,Constitutional Law- I,ELA,1,L49+L50,KOWSHIKAA A S,005
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ETH,3,F+TF,AMBIKA R NAIR,AB5-208
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ETH,3,F+TF,SAIJI J S,AB5-207
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ETH,3,F+TF,SHARMILA M S,AB5-206
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ETH,3,F+TF,SAJI SIVAN S,AB5-205
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ETH,3,F+TF,SWARLATA PANDEY,AB5-204
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ELA,1,L43+L44,AMBIKA R NAIR,001
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ELA,1,L43+L44,SHARMILA M S,002
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ELA,1,L43+L44,SAIJI J S,003
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ELA,1,L43+L44,SAJI SIVAN S,004
-TLAW204L,"Family Law – I (Marriage, Legitimacy and Guardianship",ELA,1,L43+L44,SWARLATA PANDEY,005
-TLAW205L,Law of Crimes – II (Cr.P.C.),TH,4,D+TD+TDD,GANESAN K,AB5-208
-TLAW205L,Law of Crimes – II (Cr.P.C.),TH,4,D+TD+TDD,RAJAVENKATESAN P R L,AB5-207
-TLAW205L,Law of Crimes – II (Cr.P.C.),TH,4,B+TB+TBB,ABHISHEK RAJ,AB5-207
-TLAW205L,Law of Crimes – II (Cr.P.C.),TH,4,B+TB+TBB,ASWATHY,AB5-206
-TLAW205L,Law of Crimes – II (Cr.P.C.),TH,4,B+TB+TBB,MANJARI SUGIRTHA A,AB5-205
+TLAW203L,Constitutional Law- I,ELA,1,L49+L50,K KAMBAN SOCRETES,1
+TLAW203L,Constitutional Law- I,ELA,1,L49+L50,NIKHIL G,2
+TLAW203L,Constitutional Law- I,ELA,1,L49+L50,ARJUN PHILIP GEORGE,3
+TLAW203L,Constitutional Law- I,ELA,1,L49+L50,KAVI SHANKAR,4
+TLAW203L,Constitutional Law- I,ELA,1,L49+L50,KOWSHIKAA A S,5
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ETH,3,F+TF,AMBIKA R NAIR,AB5-208
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ETH,3,F+TF,SAIJI J S,AB5-207
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ETH,3,F+TF,SHARMILA M S,AB5-206
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ETH,3,F+TF,SAJI SIVAN S,AB5-205
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ETH,3,F+TF,SWARLATA PANDEY,AB5-204
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ELA,1,L43+L44,AMBIKA R NAIR,1
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ELA,1,L43+L44,SHARMILA M S,2
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ELA,1,L43+L44,SAIJI J S,3
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ELA,1,L43+L44,SAJI SIVAN S,4
+TLAW204L,"Family Law - I (Marriage, Legitimacy and Guardianship)",ELA,1,L43+L44,SWARLATA PANDEY,5
+TLAW205L,Law of Crimes - II (Cr.P.C.),TH,4,D+TD+TDD,GANESAN K,AB5-208
+TLAW205L,Law of Crimes - II (Cr.P.C.),TH,4,D+TD+TDD,RAJAVENKATESAN P R L,AB5-207
+TLAW205L,Law of Crimes - II (Cr.P.C.),TH,4,B+TB+TBB,ABHISHEK RAJ,AB5-207
+TLAW205L,Law of Crimes - II (Cr.P.C.),TH,4,B+TB+TBB,ASWATHY,AB5-206
+TLAW205L,Law of Crimes - II (Cr.P.C.),TH,4,D+TD+TDD,MANJARI SUGIRTHA A,AB5-204
 TLAW282L,Strategic Management,TH,4,B+TB+TBB,WAQAS NIAZI,AB5-303
 TLAW282L,Strategic Management,TH,4,B+TB+TBB,SRILALITHA R,AB5-304
 TLAW282L,Strategic Management,TH,4,D+TD+TDD,WAQAS NIAZI,AB5-303
 TLAW283L,Marketing Management,TH,4,A+TA+TAA,ANBUMATHI R,AB5-207
 TLAW283L,Marketing Management,TH,4,A+TA+TAA,SHAMAL S,AB5-206
-TLAW283L,Marketing Management,TH,4,C+TC+TCC,UDAY KIRAN KOMMURI,AB5-206
+TLAW283L,Marketing Management,TH,4,C+TC+TCC,SUDHEER MUHAMMED K M,AB5-206
 TLAW301L,Constitutional Law II,ETH,3,F+TF,ARJUN SHAJI,AB5-307
 TLAW301L,Constitutional Law II,ETH,3,F+TF,MRUDHUL M SHENOY,AB5-306
 TLAW301L,Constitutional Law II,ETH,3,A+TA,NIKHIL G,AB5-302
 TLAW301L,Constitutional Law II,ETH,3,A+TA,ARJUN PHILIP GEORGE,AB5-203
-TLAW301L,Constitutional Law II,ELA,1,L55+L56,MRUDHUL M SHENOY,001
-TLAW301L,Constitutional Law II,ELA,1,L55+L56,NIKHIL G,002
-TLAW301L,Constitutional Law II,ELA,1,L55+L56,ARJUN SHAJI,003
-TLAW301L,Constitutional Law II,ELA,1,L55+L56,ARJUN PHILIP GEORGE,004
+TLAW301L,Constitutional Law II,ELA,1,L55+L56,MRUDHUL M SHENOY,1
+TLAW301L,Constitutional Law II,ELA,1,L55+L56,NIKHIL G,2
+TLAW301L,Constitutional Law II,ELA,1,L55+L56,ARJUN SHAJI,3
+TLAW301L,Constitutional Law II,ELA,1,L55+L56,ARJUN PHILIP GEORGE,4
 TLAW302L,Law of Evidence,TH,4,B+TB+TBB,GANESAN K,AB5-302
 TLAW302L,Law of Evidence,TH,4,B+TB+TBB,RESHMA SURESH,AB5-208
 TLAW302L,Law of Evidence,TH,4,D+TD+TDD,ABHISHEK RAJ,AB5-302
@@ -2387,17 +2314,17 @@ TLAW401L,Company Law,TH,4,B+TB+TBB,LALITH KUMAR J,AB5-406
 TLAW401L,Company Law,TH,4,B+TB+TBB,DULUNG SENGUPTA,AB5-407
 TLAW401L,Company Law,TH,4,B+TB+TBB,P C ABIRAMI,AB5-307
 TLAW402L,Law of Taxation,TH,4,A+TA+TAA,ESAKKI AMMAL K,AB5-405
-TLAW402L,Law of Taxation,TH,4,A+TA+TAA,SANTHOSH V,AB5-406
+TLAW402L,Law of Taxation,TH,4,A+TA+TAA,SANTHOSH  V,AB5-406
 TLAW402L,Law of Taxation,TH,4,A+TA+TAA,SHANTHI,AB5-407
 TLAW402L,Law of Taxation,TH,4,A+TA+TAA,VANMATHI M,AB5-307
 TLAW403L,"Drafting, Pleading and Conveyancing",ETH,3,D+TD,K NIDHI MOHAN,AB5-401
 TLAW403L,"Drafting, Pleading and Conveyancing",ETH,3,D+TD,AYUSHI SRIVASTAVA,AB5-402
 TLAW403L,"Drafting, Pleading and Conveyancing",ETH,3,D+TD,ANKIT ANAND,AB5-403
 TLAW403L,"Drafting, Pleading and Conveyancing",ETH,3,D+TD,SHERIN PRIYAN,AB5-404
-TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,K NIDHI MOHAN,001
-TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,AYUSHI SRIVASTAVA,002
-TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,SHERIN PRIYAN,003
-TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,ANKIT ANAND,004
+TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,K NIDHI MOHAN,1
+TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,AYUSHI SRIVASTAVA,2
+TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,SHERIN PRIYAN,3
+TLAW403L,"Drafting, Pleading and Conveyancing",ELA,1,L31+L32,ANKIT ANAND,4
 TLAW406L,Service Law,TH,4,E+TE+TEE,NAVYA BENNY,AB5-401
 TLAW408L,Right to Education,TH,4,B+TB+TBB,SAJI SIVAN S,AB5-401
 TLAW410L,Citizenship and Emigration Law,TH,4,F+TF+TFF,KUMAR MUKUL CHOUDHARY,AB5-401
@@ -2406,11 +2333,11 @@ TLAW417L,International Trade Law,TH,4,F+TF+TFF,POOJA,AB5-402
 TLAW421L,Farmers and Breeders right,TH,4,E+TE+TEE,VIJAYA BHARATHI,AB5-403
 TLAW422L,Biodiversity Protection,TH,4,E+TE+TEE,SAIJI J S,AB5-404
 TLAW425L,Investment Law,ETH,3,F+TF,ZAKKARIYA T H,AB5-403
-TLAW425L,Investment Law,ELA,1,L45+L46,ZAKKARIYA T H,001
+TLAW425L,Investment Law,ELA,1,L45+L46,ZAKKARIYA T H,1
 TLAW429L,Corporate Finance,TH,4,B+TB+TBB,JAYENDRA KASTURE,AB5-402
 TLAW436L,Criminology,TH,4,F+TF+TFF,RESHMA SURESH,AB5-404
 TLAW442L,White Collar Crime,TH,4,B+TB+TBB,BIJOY SHARMA,AB5-403
-TLAW443L,Data Protection Law,TH,4,B+TB+TBB,SANTHOSH V,AB5-404
+TLAW443L,Data Protection Law,TH,4,B+TB+TBB,SANTHOSH  V,AB5-404
 TLAW450L,Interpretation of Statues,TH,4,A+TA+TAA,ADITYA,AB5-305
 TLAW450L,Interpretation of Statues,TH,4,F+TF+TFF,ESAKKI AMMAL K,AB5-304
 TLAW450L,Interpretation of Statues,TH,4,A+TA+TAA,KAVI SHANKAR,AB5-306
@@ -2423,9 +2350,9 @@ TLAW508L,Air and Space Law,ETH,3,F+TF,PREMA E,AB5-303
 TLAW508L,Air and Space Law,ELA,1,L55+L56,PREMA E,5
 TLAW510L,Trade in Intellectual Property,TH,4,A+TA+TAA,CHANDRIKA MEHTA,AB5-404
 TLAW511L,IP / Competition Law,TH,4,F+TF+TFF,JISHNU J R,AB5-405
-TLAW513L,Rights of the Accused under National and International Legal System,TH,4,C+TC+TCC,KOWSHIKAA A S,AB5-403
+TLAW513L,Rights of the Accused under National and International Legal Systems,TH,4,C+TC+TCC,KOWSHIKAA A S,AB5-403
 TLAW514L,India and International Law,TH,4,C+TC+TCC,SEZOLU NYEKHA,AB5-404
 TLAW516L,Government Regulation of Industry,TH,4,A+TA+TAA,POURNA DHEVI N,AB5-402
 TLAW521L,Law of Mergers and Acquisitions,TH,4,A+TA+TAA,LALITH KUMAR J,AB5-401
 TLAW524L,Mediation and Conciliation,ETH,3,A+TA,SHASHIKANT SAURAV,AB5-403
-TLAW524L,Mediation and Conciliation,ELA,1,L31+L32,SHASHIKANT SAURAV,005
+TLAW524L,Mediation and Conciliation,ELA,1,L57+L58,SHASHIKANT SAURAV,5
