@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Search, CalendarDays, MapPin, DollarSign, X, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, CalendarDays, MapPin, DollarSign, X, Sparkles, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EventItem {
@@ -16,24 +16,164 @@ interface EventItem {
   posterUrl?: string;
   paymentStatus?: string;
   eid?: string;
+  orderId?: string;
+  eligibility?: string;
+  receiptLink?: string;
+  certificateLink?: string;
+  payNowLink?: string;
+  payLaterLink?: string;
   _source?: "registered" | "discover";
 }
 
 interface EventSearchPaletteProps {
-  registeredEvents: EventItem[];
-  eventHubEvents: EventItem[];
+  apiBase: string;
 }
 
-export default function EventSearchPalette({ registeredEvents, eventHubEvents }: EventSearchPaletteProps) {
+const badge = {
+  violet: "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-800/70 dark:text-violet-200 dark:border-violet-700/50 midnight:bg-violet-900/80 midnight:text-violet-300 midnight:border-violet-800/50",
+  rose: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-800/70 dark:text-rose-200 dark:border-rose-700/50 midnight:bg-rose-900/80 midnight:text-rose-300 midnight:border-rose-800/50",
+  amber: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-800/70 dark:text-amber-200 dark:border-amber-700/50 midnight:bg-amber-900/80 midnight:text-amber-300 midnight:border-amber-800/50",
+  emerald: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/70 dark:text-emerald-200 dark:border-emerald-700/50 midnight:bg-emerald-900/80 midnight:text-emerald-300 midnight:border-emerald-800/50",
+  indigo: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-800/70 dark:text-indigo-200 dark:border-indigo-700/50 midnight:bg-indigo-900/80 midnight:text-indigo-300 midnight:border-indigo-800/50",
+  gray: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700/70 dark:text-gray-200 dark:border-gray-600/50 midnight:bg-gray-800/80 midnight:text-gray-300 midnight:border-gray-700/50",
+};
+
+function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[-–—/\\,.:;+]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function namesMatch(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+function mergeEvents(events: EventItem[]): EventItem[] {
+  const byEid = new Map<string, EventItem>();
+  const noEid: EventItem[] = [];
+
+  for (const ev of events) {
+    if (ev.eid) {
+      if (!byEid.has(ev.eid)) {
+        byEid.set(ev.eid, { ...ev });
+      } else {
+        const existing = byEid.get(ev.eid)!;
+        byEid.set(ev.eid, { ...existing, ...ev, _source: existing._source === "registered" || ev._source === "registered" ? "registered" : "discover" });
+      }
+    } else {
+      noEid.push(ev);
+    }
+  }
+
+  const byName = new Map<string, EventItem>();
+  for (const ev of noEid) {
+    const name = (ev.name || ev.title || "").toLowerCase().trim();
+    if (!name) continue;
+
+    let matched = false;
+    for (const [, eidEv] of byEid) {
+      const eidName = (eidEv.name || eidEv.title || "").toLowerCase().trim();
+      if (namesMatch(name, eidName)) {
+        byEid.set(eidEv.eid!, { ...eidEv, ...ev, _source: eidEv._source === "registered" || ev._source === "registered" ? "registered" : "discover" });
+        matched = true;
+        break;
+      }
+    }
+    if (matched) continue;
+
+    for (const [, existing] of byName) {
+      const prevName = (existing.name || existing.title || "").toLowerCase().trim();
+      if (namesMatch(name, prevName)) {
+        const merged = { ...existing, ...ev, _source: (existing._source === "registered" || ev._source === "registered" ? "registered" : "discover") as "registered" | "discover" };
+        const key = existing.name || existing.title || name;
+        byName.delete(key);
+        byName.set(name, merged);
+        matched = true;
+        break;
+      }
+    }
+    if (matched) continue;
+
+    byName.set(name, { ...ev });
+  }
+
+  const unnamed = noEid.filter(ev => !ev.name && !ev.title);
+  return [...Array.from(byEid.values()), ...Array.from(byName.values()), ...unnamed];
+}
+
+export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "registered" | "discover">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [registeredEvents, setRegisteredEvents] = useState<EventItem[]>([]);
+  const [eventHubEvents, setEventHubEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<{ imageSrc?: string; description?: string } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    const stored = localStorage.getItem("registeredEvents");
+    let reg: EventItem[] = [];
+    try { if (stored) reg = JSON.parse(stored); } catch {}
+    setRegisteredEvents(reg);
+    fetch(`${apiBase}/api/events`).then(r => r.json()).then(data => {
+      if (cancelled) return;
+      setEventHubEvents(Array.isArray(data) ? data : []);
+      setLoading(false);
+    }).catch(() => { if (!cancelled) { setEventHubEvents([]); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [apiBase]);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Fetch preview data when event is selected
+  useEffect(() => {
+    if (!selectedEvent?.eid) { setPreviewData(null); setPreviewError(null); return; }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewData(null);
+    setPreviewError(null);
+    let username = localStorage.getItem("username") || "";
+    let password = localStorage.getItem("password") || "";
+    if (!username || !password) {
+      try {
+        const ids = JSON.parse(localStorage.getItem("IDs") || "{}");
+        username = ids.VtopUsername || "";
+        password = ids.VtopPassword || "";
+      } catch {}
+    }
+    if (!username || !password) { setPreviewLoading(false); setPreviewError("VTOP credentials not found. Login to view posters."); return; }
+    fetch(`${apiBase}/api/events/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, eid: selectedEvent.eid }),
+    }).then(async r => {
+      if (cancelled) return;
+      if (!r.ok) { setPreviewError(`Preview fetch failed (${r.status})`); setPreviewLoading(false); return; }
+      const data = await r.json();
+      if (cancelled) return;
+      if (data?.imageSrc || data?.description) setPreviewData({ imageSrc: data.imageSrc, description: data.description });
+      else setPreviewError("No poster or description available");
+      setPreviewLoading(false);
+    }).catch(() => { if (!cancelled) { setPreviewError("Network error fetching poster"); setPreviewLoading(false); } });
+    return () => { cancelled = true; };
+  }, [selectedEvent?.eid, apiBase]);
+
+  const totalCount = (registeredEvents?.length || 0) + (eventHubEvents?.length || 0);
   const tabs = [
-    { id: "all" as const, label: "All Events", count: 0 },
+    { id: "all" as const, label: "All Events", count: totalCount },
     { id: "registered" as const, label: "Registered", count: registeredEvents?.length || 0 },
     { id: "discover" as const, label: "Discover", count: eventHubEvents?.length || 0 },
   ];
@@ -41,7 +181,7 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
   const allEvents = useMemo(() => {
     const registered = (registeredEvents || []).map(e => ({ ...e, _source: "registered" as const }));
     const discover = (eventHubEvents || []).map(e => ({ ...e, _source: "discover" as const }));
-    return [...registered, ...discover];
+    return mergeEvents([...registered, ...discover]);
   }, [registeredEvents, eventHubEvents]);
 
   const results = useMemo(() => {
@@ -53,7 +193,10 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
       e => (e.title || e.name || "").toLowerCase().includes(query.toLowerCase()) ||
            (e.description || "").toLowerCase().includes(query.toLowerCase()) ||
            (e.venue || e.location || "").toLowerCase().includes(query.toLowerCase()) ||
-           (e.type || "").toLowerCase().includes(query.toLowerCase())
+           (e.type || "").toLowerCase().includes(query.toLowerCase()) ||
+           (e.price || "").toLowerCase().includes(query.toLowerCase()) ||
+           (e.paymentStatus || "").toLowerCase().includes(query.toLowerCase()) ||
+           (e.eligibility || "").toLowerCase().includes(query.toLowerCase())
     );
   }, [query, activeTab, allEvents]);
 
@@ -68,20 +211,33 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (selectedEvent) {
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setSelectedEvent(null); setTimeout(() => inputRef.current?.focus(), 0); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); setTimeout(() => inputRef.current?.focus(), 0); }
       return;
     }
     switch (e.key) {
       case "ArrowDown": e.preventDefault(); setSelectedIndex(prev => Math.min(prev + 1, results.length - 1)); break;
       case "ArrowUp": e.preventDefault(); setSelectedIndex(prev => Math.max(prev - 1, 0)); break;
-      case "ArrowLeft": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx > 0) { setActiveTab(tabs[idx - 1].id); setSelectedEvent(null); } } break;
-      case "ArrowRight": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx < tabs.length - 1) { setActiveTab(tabs[idx + 1].id); setSelectedEvent(null); } } break;
-      case "Enter": e.preventDefault(); if (results[safeIndex]) { setSelectedEvent(results[safeIndex]); } break;
+      case "ArrowLeft": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx > 0) { setActiveTab(tabs[idx - 1].id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); } } break;
+      case "ArrowRight": e.preventDefault(); if (!query) { const idx = tabs.findIndex(t => t.id === activeTab); if (idx < tabs.length - 1) { setActiveTab(tabs[idx + 1].id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); } } break;
+      case "Enter": e.preventDefault(); if (results[safeIndex]) { setSelectedEvent(results[safeIndex]); setPreviewData(null); setPreviewError(null); } break;
       case "Escape": break;
     }
   }, [results, safeIndex, selectedEvent, activeTab, query, tabs]);
 
   const getTitle = (e: EventItem) => e.title || e.name || "Untitled Event";
+  const posterSrc = previewData?.imageSrc || selectedEvent?.posterUrl || "";
+  const [posterFailed, setPosterFailed] = useState(false);
+  const [showEnlarged, setShowEnlarged] = useState(false);
+  useEffect(() => { setPosterFailed(false); }, [posterSrc]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full min-h-[320px] items-center justify-center">
+        <Loader2 className="w-6 h-6 text-fuchsia-500 animate-spin" />
+        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-3 animate-pulse">Loading events...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-[320px]" onKeyDown={handleKeyDown}>
@@ -92,7 +248,6 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
         </div>
         <input
           ref={inputRef}
-          autoFocus
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -112,10 +267,10 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
 
       {/* Tab bar */}
       <div className="flex gap-1 px-4 py-2.5 border-b border-gray-100/80 dark:border-gray-800/30 midnight:border-gray-800/30 bg-gray-50/30 dark:bg-gray-900/20">
-        {tabs.map((tab, ti) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSelectedEvent(null); inputRef.current?.focus(); }}
+            onClick={() => { setActiveTab(tab.id); setSelectedEvent(null); setPreviewData(null); setPreviewError(null); inputRef.current?.focus(); }}
             className={cn(
               "relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
               activeTab === tab.id
@@ -146,7 +301,7 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
         /* Detail view */
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <button
-            onClick={() => { setSelectedEvent(null); setTimeout(() => inputRef.current?.focus(), 0); }}
+            onClick={() => { setSelectedEvent(null); setPreviewData(null); setPreviewError(null); setTimeout(() => inputRef.current?.focus(), 0); }}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 midnight:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-300 transition-colors group"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -154,38 +309,68 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
             <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-[10px] text-gray-400">esc</kbd>
           </button>
 
+          {previewLoading && (
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Loading poster details...
+            </div>
+          )}
+          {previewError && !previewLoading && (
+            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 midnight:text-amber-300 bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 px-3 py-2 rounded-lg">
+              {previewError}
+            </div>
+          )}
+
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "p-3 rounded-xl shrink-0 shadow-sm",
-                selectedEvent._source === "registered"
-                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
-                  : "bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600"
-              )}>
-                <CalendarDays className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{getTitle(selectedEvent)}</p>
-                <span className={cn(
-                  "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-semibold",
-                  selectedEvent._source === "registered"
-                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                    : "bg-fuchsia-50 dark:bg-fuchsia-900/20 text-fuchsia-600 dark:text-fuchsia-400"
-                )}>
-                  {selectedEvent._source === "registered" ? "Registered" : "Discover"}
-                </span>
+            <div className="flex gap-4">
+              {posterSrc && !posterFailed ? (
+                <button onClick={() => setShowEnlarged(true)} className="shrink-0 w-28 h-36 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 shadow-md ring-1 ring-black/5 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                  <img src={posterSrc} alt="" className="w-full h-full object-cover" onError={() => setPosterFailed(true)} />
+                </button>
+              ) : (
+                <div className="shrink-0 w-28 h-36 rounded-xl bg-gray-100 dark:bg-gray-800/60 midnight:bg-gray-900/60 flex items-center justify-center shadow-sm ring-1 ring-black/5">
+                  <CalendarDays className="w-8 h-8 text-gray-400 dark:text-gray-500/60 midnight:text-gray-500/60" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  {!posterSrc && !selectedEvent.eid && (
+                    <div className={cn(
+                      "p-3 rounded-xl shrink-0 shadow-sm",
+                      selectedEvent._source === "registered"
+                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
+                        : "bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600"
+                    )}>
+                      <CalendarDays className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{getTitle(selectedEvent)}</p>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[10px] font-semibold",
+                      selectedEvent._source === "registered"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-800/70 dark:text-emerald-200 midnight:bg-emerald-900/80 midnight:text-emerald-300"
+                        : "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-800/70 dark:text-fuchsia-200 midnight:bg-fuchsia-900/80 midnight:text-fuchsia-300"
+                    )}>
+                      {selectedEvent._source === "registered" ? "Registered" : "Discover"}
+                    </span>
+                  </div>
+                </div>
+                {selectedEvent.eligibility && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">Eligibility: <span className="font-medium text-gray-700 dark:text-gray-300">{selectedEvent.eligibility}</span></p>
+                )}
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {(selectedEvent.date || selectedEvent.time) && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-violet-50 dark:bg-violet-900/20 midnight:bg-violet-900/10 text-violet-700 dark:text-violet-400 midnight:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.violet}`}>
                   <CalendarDays className="w-3 h-3" />
                   {selectedEvent.date}{selectedEvent.time ? ` · ${selectedEvent.time}` : ""}
                 </span>
               )}
               {(selectedEvent.venue || selectedEvent.location) && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-900/20 midnight:bg-rose-900/10 text-rose-700 dark:text-rose-400 midnight:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.rose}`}>
                   <MapPin className="w-3 h-3" />
                   {selectedEvent.venue || selectedEvent.location}
                 </span>
@@ -194,24 +379,35 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
                 <span className={cn(
                   "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border",
                   (selectedEvent.paymentStatus || "").toLowerCase().includes("paid")
-                    ? "bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border-amber-200/50 dark:border-amber-800/30"
-                    : "bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30"
+                    ? badge.amber
+                    : badge.emerald
                 )}>
                   <DollarSign className="w-3 h-3" />
                   {selectedEvent.paymentStatus || selectedEvent.price}
                 </span>
               )}
               {selectedEvent.type && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.indigo}`}>
                   {selectedEvent.type}
+                </span>
+              )}
+              {selectedEvent.eligibility && !selectedEvent.type && (
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}>
+                  {selectedEvent.eligibility}
                 </span>
               )}
             </div>
 
-            {selectedEvent.description && (
+            {(previewData?.description || selectedEvent.description) && (
               <div className="px-4 py-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
                 <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1.5 uppercase tracking-wider">Description</p>
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-white leading-relaxed">{selectedEvent.description}</p>
+                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-white leading-relaxed">{previewData?.description || selectedEvent.description}</p>
+              </div>
+            )}
+
+            {selectedEvent.eid && (
+              <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}>
+                Event ID: {selectedEvent.eid}
               </div>
             )}
           </div>
@@ -227,8 +423,8 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
           )}
           {results.map((ev, idx) => (
             <button
-              key={`${ev._source}-${ev.eid || idx}`}
-              onClick={() => setSelectedEvent(ev)}
+              key={`${ev.eid || ev._source}-${idx}`}
+              onClick={() => { setSelectedEvent(ev); setPreviewData(null); }}
               onMouseEnter={() => setSelectedIndex(idx)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group",
@@ -237,18 +433,24 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
                   : "text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 midnight:hover:bg-gray-800/30"
               )}
             >
-              <span className={cn(
-                "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all",
-                idx === safeIndex
-                  ? "bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5"
-                  : "bg-gray-100/80 dark:bg-gray-800/60 midnight:bg-gray-900/60"
-              )}>
-                {ev._source === "registered" ? (
-                  <span className="text-sm">✅</span>
-                ) : (
-                  <span className="text-sm">🎪</span>
-                )}
-              </span>
+              {ev.posterUrl ? (
+                <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5">
+                  <img src={ev.posterUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </span>
+              ) : (
+                <span className={cn(
+                  "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all",
+                  idx === safeIndex
+                    ? "bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5"
+                    : "bg-gray-100/80 dark:bg-gray-800/60 midnight:bg-gray-900/60"
+                )}>
+                  {ev._source === "registered" ? (
+                    <span className="text-sm">✅</span>
+                  ) : (
+                    <span className="text-sm">🎪</span>
+                  )}
+                </span>
+              )}
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   "text-sm font-semibold truncate leading-tight",
@@ -263,14 +465,14 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
                   <span className={cn(
                     "px-1.5 py-0.5 rounded text-[9px] font-bold",
                     ev._source === "registered"
-                      ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                      : "bg-fuchsia-50 dark:bg-fuchsia-900/20 text-fuchsia-600 dark:text-fuchsia-400"
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-800/70 dark:text-emerald-200 midnight:bg-emerald-900/80 midnight:text-emerald-300"
+                      : "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-800/70 dark:text-fuchsia-200 midnight:bg-fuchsia-900/80 midnight:text-fuchsia-300"
                   )}>
                     {ev._source === "registered" ? "REG" : "DSC"}
                   </span>
                 )}
                 {ev.price && (
-                  <span className="inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-[10px] font-bold text-purple-600 dark:text-purple-400 midnight:text-purple-300 bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/20">
+                  <span className={`inline-flex items-center justify-center min-w-[2.5rem] h-7 rounded-lg text-[10px] font-bold border ${badge.gray}`}>
                     {ev.price}
                   </span>
                 )}
@@ -293,11 +495,31 @@ export default function EventSearchPalette({ registeredEvents, eventHubEvents }:
               )}
             </div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300 mt-2">
-              {query ? "No events found" : "Event Search"}
+              {allEvents.length === 0 ? "No events available" : query ? "No events found" : "Event Search"}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500 text-center max-w-[260px]">
-              {query ? "Try a different name, venue, or category" : `Search through ${allEvents.length} available events`}
+              {allEvents.length === 0 ? "Check back later for new events" : query ? "Try a different name, venue, or category" : `Search through ${allEvents.length} available events`}
             </p>
+          </div>
+        </div>
+      )}
+
+      {showEnlarged && posterSrc && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShowEnlarged(false)}
+          onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setShowEnlarged(false); } }}
+          tabIndex={0}
+          role="dialog"
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black/10" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowEnlarged(false)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <img src={posterSrc} alt="" className="w-auto h-auto max-w-full max-h-[85vh] object-contain" />
           </div>
         </div>
       )}

@@ -1162,7 +1162,7 @@ export default function LoginPage() {
         icon: "🎪",
         category: "Search",
         onSelect: () => {},
-        subpage: <EventSearchPalette registeredEvents={registeredEvents} eventHubEvents={eventHubEvents} />,
+        subpage: <EventSearchPalette apiBase={API_BASE} />,
       },
     );
 
@@ -1409,78 +1409,8 @@ export default function LoginPage() {
       });
     }
 
-    // ── Registered Events ──
-    if (Array.isArray(registeredEvents)) {
-      registeredEvents.forEach((ev, idx) => {
-        const posterUrl = ev.poster || ev.image || ev.coverUrl || "";
-        result.push({
-          id: `event-${idx}`,
-          label: `Event: ${ev.name || ev.title || "Untitled"}`,
-          description: `${ev.date || ""} · ${ev.time || ""} · ${ev.venue || ""}`,
-          icon: "🎉",
-          category: "Events",
-          detail: (
-            <div className="space-y-2.5">
-              {posterUrl ? (
-                <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
-                  <img src={posterUrl} alt="" className="w-full h-28 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                </div>
-              ) : (
-                <div className="w-full h-20 rounded-xl bg-gradient-to-br from-blue-500/15 via-purple-500/15 to-pink-500/15 flex items-center justify-center border border-white/10">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-2xl">🎉</span>
-                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500">Event Poster</span>
-                  </div>
-                </div>
-              )}
-              {ev.description && <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-white leading-relaxed">{ev.description}</p>}
-              <div className="flex flex-wrap gap-1.5">
-                {ev.date && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 text-blue-700 dark:text-blue-400 midnight:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
-                    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
-                    {ev.date}{ev.time ? ` · ${ev.time}` : ""}
-                  </span>
-                )}
-                {ev.venue && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-900/20 midnight:bg-rose-900/10 text-rose-700 dark:text-rose-400 midnight:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
-                    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                    {ev.venue}
-                  </span>
-                )}
-                {ev.paymentStatus && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? "bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : "bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border-amber-200/50 dark:border-amber-800/30"}`}>
-                    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd" /></svg>
-                    {ev.paymentStatus}
-                  </span>
-                )}
-              </div>
-            </div>
-          ),
-          onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); }
-        });
-      });
-    }
-
-    // ── EventHub Events (with poster preview) ──
-    if (Array.isArray(eventHubEvents)) {
-      eventHubEvents.forEach((ev: any, idx: number) => {
-        result.push({
-          id: `eh-event-${idx}`,
-          label: `🎪 ${ev.title || ev.name || "Untitled Event"}`,
-          description: `${ev.date || ""} · ${ev.location || ev.venue || ""} · ${ev.price || ev.type || ""}`,
-          icon: "🎪",
-          category: "EventHub · Discover",
-          rightSlot: ev.price ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-purple-600 dark:text-purple-400 midnight:text-purple-300 bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/20">{ev.price}</span> : undefined,
-          detail: ev.eid ? (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{ev.title}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">{ev.eligibility || ev.type || ""}</p>
-            </div>
-          ) : undefined,
-          onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); }
-        });
-      });
-    }
+    // ── Registered Events & EventHub Events removed from main palette ──
+    // Event search is handled by the dedicated EventSearchPalette subpage.
 
     // ── Exam Schedule ──
     const scheduleEntries = ScheduleData as Record<string, any[]>;
