@@ -1,6 +1,6 @@
 # AmazeCC — Complete Feature Documentation
 
-> **Version:** 1.8.3  
+> **Version:** 2.1.0  
 > **Stack:** Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 + PostgreSQL  
 > **Frontend:** AmazeCC (`:3001`)  
 > **Backend/API:** AmazeCC-API (`:3000`)  
@@ -1295,4 +1295,4 @@ PWA:
 *Generated from codebase analysis.  
 Frontend: 190+ components across 40+ directories  
 API: 130+ endpoints across 40+ feature categories  
-Commit: This document covers ALL features implemented as of v1.8.3*
+Commit: This document covers ALL features implemented as of v2.1.0*

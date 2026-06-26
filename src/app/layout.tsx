@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Geist, Geist_Mono, Roboto } from 'next/font/google';
+import { Inter, Geist_Mono, Roboto } from 'next/font/google';
 import { ThemeProvider } from "../components/themeprovider";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
@@ -18,8 +18,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head />
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
+        className={`${inter.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
       >
         <IconUpdater />
         <ThemeProvider

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
 import { ReloadModal } from "./reloadModel";
+import { getMinimalMessage } from "@/lib/utils";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
 import LoginFooter from "./footer/LoginFooter";
@@ -2086,7 +2087,7 @@ export default function LoginPage() {
                 className="w-full z-50 bg-blue-500 text-white shadow-lg"
               >
                 <div className="flex flex-col items-center justify-center py-2 px-4 text-sm font-medium">
-                  <span className="whitespace-pre-wrap">{message}</span>
+                  <span className="whitespace-pre-wrap">{getMinimalMessage(message)}</span>
 
                   {progressBar !== undefined && (
                     <div className="w-full max-w-xl mt-2 h-2 bg-blue-300/40 rounded overflow-hidden">

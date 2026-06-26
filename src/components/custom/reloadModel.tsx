@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import ReelsScroller from "./ReelScroller";
 import { X } from "lucide-react";
+import { getMinimalMessage } from "@/lib/utils";
 
 export function ReloadModal({ message, onClose, progressBar }) {
     useEffect(() => {
@@ -34,7 +35,7 @@ export function ReloadModal({ message, onClose, progressBar }) {
                                 style={{ width: `${progressBar}%` }}
                             ></div>
                         </div>
-                        <span className="whitespace-pre-wrap">{message}</span>
+                        <span className="whitespace-pre-wrap">{getMinimalMessage(message)}</span>
                     </div>
                 )}
             </div>

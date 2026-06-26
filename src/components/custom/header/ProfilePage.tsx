@@ -701,11 +701,8 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider text-center">MADE WITH LOVE BY SUGEETHJSA AND DHIVYANJ</p>
                     </div>
                     <ListTile icon={Trophy} title="Hall of Fame" onClick={() => setShowHallOfFame(true)} />
-                    <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer">
                         <ListTile icon={Github} title="View Source on GitHub" onClick={() => {}} />
-                    </a>
-                    <a href="https://amaze-cc.vercel.app" target="_blank" rel="noopener noreferrer">
-                        <ListTile icon={ExternalLink} title="Visit Official Website" onClick={() => {}} />
                     </a>
                     <ListTile icon={Database} title="Local Storage Viewer" onClick={openStoragePage} />
                     <ListTile icon={FileText} title="Privacy Policy" onClick={() => window.open("/privacy", "_blank")} />

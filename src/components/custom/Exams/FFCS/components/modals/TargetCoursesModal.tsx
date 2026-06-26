@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Lock, X } from "lucide-react";
 import SearchInput from "../../../../shared/SearchInput";
 import { CourseLock, ParsedCourse } from "../../types";
+import { getBatchColorClass } from "@/lib/utils";
 
 interface TargetCoursesModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface TargetCoursesModalProps {
   courseLocks: CourseLock[];
   setCourseLocks: React.Dispatch<React.SetStateAction<CourseLock[]>>;
   masterCourses: ParsedCourse[];
-  uniqueCourseCodes: { code: string; title: string; types?: string[] }[];
+  uniqueCourseCodes: { code: string; title: string; types?: string[]; batches?: string[] }[];
   renderTypeChips: (typesInput: string | string[], size?: 'sm' | 'md') => React.ReactNode;
 }
 
@@ -95,9 +96,18 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                       }}
                     />
                     <div className="flex flex-col flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-base text-foreground">{c.code}</span>
-                         {renderTypeChips(c.types || [], 'sm')}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-base text-foreground">{c.code}</span>
+                           {renderTypeChips(c.types || [], 'sm')}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
+                          {c.batches && c.batches.length > 0 && c.batches.map(b => (
+                            <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                              {b}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                       <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
                     </div>
