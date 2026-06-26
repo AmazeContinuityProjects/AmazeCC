@@ -492,16 +492,16 @@ export default function TimetableVtop({ attendance }) {
             {uniqueCourses.length > 0 && (
                 <div className="bg-white  dark:bg-[#03070e] border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden shadow-sm">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-55  dark:bg-[#04070a] border-b border-gray-200  dark:border-gray-800/80">
-                        <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Course Reference</h3>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Course Reference</h3>
                     </div>
                     <table className="w-full text-sm text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50  dark:bg-[#050a15] border-b border-gray-150 dark:border-gray-800">
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Course</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Type</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Faculty</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Slots</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Venue</th>
+                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Course</th>
+                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Type</th>
+                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
+                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Slots</th>
+                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Venue</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100  dark:divide-gray-800/40">
@@ -687,11 +687,11 @@ export default function TimetableVtop({ attendance }) {
 
                                         <div className="flex items-center gap-4 text-[11px] text-gray-500 dark:text-gray-400 flex-wrap">
                                             <div className="flex items-center gap-1">
-                                                <MapPin size={12} className="text-gray-400" />
+                                                <MapPin size={12} className="text-gray-400 dark:text-gray-500" />
                                                 <span>{c.slotVenue}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <User size={12} className="text-gray-400" />
+                                                <User size={12} className="text-gray-400 dark:text-gray-500" />
                                                 <span>{c.faculty}</span>
                                             </div>
                                             <div className="text-[10px] font-bold text-gray-400 dark:text-gray-550">

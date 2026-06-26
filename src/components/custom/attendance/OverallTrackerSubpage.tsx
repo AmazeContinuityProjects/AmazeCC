@@ -335,7 +335,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                             allSecured
                                                                 ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}

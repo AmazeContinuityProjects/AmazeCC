@@ -164,13 +164,13 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                             </div>
                             <div className="p-4 bg-red-50  border border-red-100 dark:border-red-900/30 dark:bg-gray-900 rounded-xl relative group">
                                 <div className="absolute top-2 right-2 text-red-400 opacity-50"><ShieldAlert size={14} /></div>
-                                <p className="text-[10px] sm:text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Wasted Hours</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-red-500 dark:text-red-400 uppercase tracking-wider mb-1">Wasted Hours</p>
                                 <p className="text-xl sm:text-2xl font-black text-red-600 dark:text-red-400">{wastedODsCount}</p>
                             </div>
                             {recoveredODsCount > 0 && (
                                 <div className="p-4 bg-purple-50  border border-purple-100 dark:border-purple-900/30 dark:bg-gray-900 rounded-xl relative group col-span-2">
                                     <div className="absolute top-2 right-2 text-purple-400 opacity-50"><CheckCircle2 size={14} /></div>
-                                    <p className="text-[10px] sm:text-xs font-bold text-purple-500 uppercase tracking-wider mb-1">Recovered Hours</p>
+                                    <p className="text-[10px] sm:text-xs font-bold text-purple-500 dark:text-purple-400 uppercase tracking-wider mb-1">Recovered Hours</p>
                                     <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">{recoveredODsCount}</p>
                                 </div>
                             )}
@@ -257,7 +257,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                             ) : (
                                 <div className="divide-y divide-gray-100  dark:divide-gray-800 min-w-0">
                                     {masterODHistory.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500">No OD hours recorded. Please reload data.</div>
+                                        <div className="p-8 text-center text-gray-500 dark:text-gray-400">No OD hours recorded. Please reload data.</div>
                                     ) : (
                                         masterODHistory.map((d, i) => {
                                             let dotColor = "bg-emerald-500";
@@ -301,7 +301,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, analyzeC
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">{c.type}</p>
+                                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{c.type}</p>
                                                                 </div>
                                                                 {c.isWasted && (
                                                                     <span className="shrink-0 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded flex items-center gap-1   dark:bg-red-900/30 dark:text-red-400">

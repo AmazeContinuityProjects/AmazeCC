@@ -101,10 +101,10 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                     </CardHeader>
 
                     <CardContent className="p-0 text-xs text-gray-500  dark:text-gray-400 space-y-1.5 mt-2">
-                        <InfoRow icon={<Building2 className="w-3.5 h-3.5 text-gray-400" />}>{a.slotVenue}</InfoRow>
-                        <InfoRow icon={<Clock className="w-3.5 h-3.5 text-gray-400" />}>{a.time}</InfoRow>
+                        <InfoRow icon={<Building2 className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}>{a.slotVenue}</InfoRow>
+                        <InfoRow icon={<Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}>{a.time}</InfoRow>
                         <p className="truncate">
-                            <strong className="text-gray-700 dark:text-gray-300 dark:text-gray-300">Faculty:</strong> {a.faculty}
+                            <strong className="text-gray-700 dark:text-gray-300">Faculty:</strong> {a.faculty}
                         </p>
                         <p className="text-xs font-semibold text-gray-700  dark:text-gray-300 mt-1">
                             Classes: <span className="font-bold text-gray-900  dark:text-white">{a.attendedClasses}/{total}</span>

@@ -228,7 +228,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                             }`}
                         >
                             <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${isSkipped ? "text-red-700  dark:text-red-400" : "text-gray-800  dark:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500  dark:text-red-500" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-400" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
@@ -456,7 +456,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         <div key={key} className={`space-y-3 ${idx > 0 ? 'pt-5' : ''}`}>
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                                                    <CalendarIcon size={16} className="text-blue-500" />
+                                                    <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
                                                     <span>{label}</span>
                                                 </h3>
                                                 <span className="text-[11px] font-extrabold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
@@ -605,7 +605,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                                         return (
-                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-900/30 transition-colors">
+                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                                     <div>
@@ -622,7 +622,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                             hasNotes
                                                                 ? "bg-emerald-55/10 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={14} /> : <FileText size={14} />}

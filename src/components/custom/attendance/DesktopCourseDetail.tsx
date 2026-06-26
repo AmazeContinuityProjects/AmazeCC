@@ -142,7 +142,7 @@ function UpcomingClassesList({
                             }`}
                         >
                             <span className={`font-bold text-xs ${isSkipped ? "text-red-700  dark:text-red-400" : "text-gray-800  dark:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${isSkipped ? "text-red-500" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
+                            <span className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${isSkipped ? "text-red-500 dark:text-red-400" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
@@ -291,7 +291,7 @@ export default function DesktopCourseDetail({
 
                 <button
                     onClick={onViewFullPage}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/45 bg-blue-50/60 hover:bg-blue-100/70 text-blue-700  dark:hover:bg-blue-950/25 dark:text-blue-300 dark:border-blue-500/35 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-xs shrink-0 self-start cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/45 bg-blue-50/60 hover:bg-blue-100/70 text-blue-700  dark:text-blue-300 dark:border-blue-500/35 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-xs shrink-0 self-start cursor-pointer"
                 >
                     Full History & Heatmap →
                 </button>
@@ -345,7 +345,7 @@ export default function DesktopCourseDetail({
                                 <span className="text-gray-400 dark:text-gray-555 font-bold uppercase tracking-wider text-[9px]">
                                     {isSafe ? "Safe Buffer" : "Shortage"}
                                 </span>
-                                <span className={`font-extrabold ${isSafe ? "text-emerald-600 dark:text-emerald-450" : "text-red-500 dark:text-red-400"}`}>
+                                                <span className={`font-extrabold ${isSafe ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
                                     {isSafe
                                         ? (canMissClasses === 0 ? "No buffer" : `Can skip ${canMissClasses} class${canMissClasses !== 1 ? 'es' : ''}`)
                                         : `Need +${neededClasses} class${neededClasses !== 1 ? 'es' : ''}`}
@@ -453,8 +453,8 @@ export default function DesktopCourseDetail({
             {/* Quick History Log */}
             <div className="bg-transparent border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden">
                 <div className="p-4 bg-gray-50/50  dark:bg-gray-950 border-b border-gray-200  dark:border-gray-800 flex justify-between items-center">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Recent Attendance History</h3>
-                    <span className="text-[10px] text-gray-400 font-medium">{historyList.length} total records</span>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Recent Attendance History</h3>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{historyList.length} total records</span>
                 </div>
                 {recentHistory.length === 0 ? (
                     <EmptyState title="No attendance history records found" className="p-6" />
@@ -467,7 +467,7 @@ export default function DesktopCourseDetail({
                             const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                             return (
-                                <div key={idx} className="flex items-center justify-between p-3.5 hover:bg-gray-50/50 dark:hover:bg-slate-800/10 dark:hover:bg-gray-950/30 transition-colors">
+                                <div key={idx} className="flex items-center justify-between p-3.5 hover:bg-gray-50/50 dark:hover:bg-gray-950/30 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-1.5 h-7 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                         <div>

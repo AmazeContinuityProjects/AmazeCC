@@ -52,7 +52,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
     }, [activeMonth, historyList]);
 
     if (safeCalendars.length === 0 || !monthData) {
-        return <div className="p-8 text-center text-gray-500">No calendar data available for this semester.</div>;
+        return <div className="p-8 text-center text-gray-500 dark:text-gray-400">No calendar data available for this semester.</div>;
     }
 
     return (
@@ -104,7 +104,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 const status = dataObj?.status;
                                 const entry = dataObj?.entry;
 
-                                let bgClass = "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-800/50 dark:hover:bg-gray-900/50";
+                                let bgClass = "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-900/50";
                                 let dotColor = "";
 
                                 if (isODTracker) {
@@ -159,7 +159,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                         className={`relative flex flex-col p-1.5 h-16 sm:h-20 border-b border-gray-100  dark:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
                                     >
                                         <div className="w-full flex justify-between items-start">
-                                            <span className={`text-[11px] sm:text-xs font-semibold ${status ? 'text-gray-900  dark:text-gray-100' : 'text-gray-500  dark:text-gray-500'}`}>
+                                            <span className={`text-[11px] sm:text-xs font-semibold ${status ? 'text-gray-900  dark:text-gray-100' : 'text-gray-500  dark:text-gray-400'}`}>
                                                 {date}
                                             </span>
                                             {dotColor && <div className={`w-2 h-2 rounded-full mt-1 ${dotColor}`} />}
@@ -192,7 +192,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                                         className={`flex items-center justify-center gap-1 p-1 sm:px-2 sm:py-1 rounded-md border text-[9px] sm:text-[10px] font-semibold transition-all shrink-0 mt-auto ${
                                                             hasNotes
                                                                 ? "bg-emerald-50 border border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={12} /> : <FileText size={12} />}
@@ -224,7 +224,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">
                                     {selectedOverallDate.date}
                                 </h3>
-                                <button onClick={() => setSelectedOverallDate(null)} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                <button onClick={() => setSelectedOverallDate(null)} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
                                     <X size={20} />
                                 </button>
                             </div>

@@ -419,8 +419,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         title="Weekly attendance"
         meta={overallSimStats.hasSimulation && (
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/85 dark:bg-slate-800/80 px-2 py-0.5 rounded border border-gray-200/60 dark:border-gray-700/60">
-              Simulated: <span className={overallSimStats.simAvg >= (isDayscholarWithBus ? 85 : 75) ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}>{overallSimStats.simAvg}%</span>
-              <span className="text-[9px] text-gray-400 font-medium">(Original: {overallSimStats.originalAvg}%)</span>
+              Simulated: <span className={overallSimStats.simAvg >= (isDayscholarWithBus ? 85 : 75) ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}>{overallSimStats.simAvg}%</span>
+              <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">(Original: {overallSimStats.originalAvg}%)</span>
             </span>
         )}
         actions={
@@ -560,7 +560,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8 p-0 items-start">
           {/* Left Column: Timeline Schedule */}
           <div className="hidden md:block space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Today's Schedule</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Today's Schedule</h3>
             <div className="relative pl-8 space-y-4">
               {/* Vertical timeline line */}
               <div className="absolute left-[11px] top-3 bottom-3 w-[2px] bg-gray-200  dark:bg-gray-800/80" />
@@ -659,11 +659,11 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                             </h4>
                             <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold">
                               <span className="flex items-center gap-2 min-w-0">
-                                <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                                 <span>{a.time}</span>
                               </span>
                               <span className="flex items-center gap-2 min-w-0">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                                 <span className="truncate">{a.slotVenue}</span>
                               </span>
                             </div>
@@ -673,7 +673,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                             <Badge variant={attendanceVariant} className="font-extrabold text-xs">
                               {simulatedPercentage}%
                             </Badge>
-                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                            <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                           </div>
                         </div>
 
@@ -682,7 +682,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                             <div className="mt-4 border-t border-gray-200  dark:border-gray-800 pt-4 space-y-3">
                               {a.faculty && (
                                 <div className="flex items-center gap-2 text-xs font-semibold text-gray-600  dark:text-gray-300">
-                                  <User className="w-3.5 h-3.5 text-gray-400" />
+                                  <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                                   <span className="truncate">{a.faculty}</span>
                                 </div>
                               )}
@@ -730,7 +730,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                 }}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 py-20">
+              <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 py-20">
                 <p>Select a class on the timeline to view details.</p>
               </div>
             )}

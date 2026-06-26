@@ -204,7 +204,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                                         key={key}
                                         title={label}
                                         badge={<strong>{data.length}</strong>}
-                                        headerClassName="px-3 py-2 font-medium hover:bg-gray-200 dark:hover:bg-slate-700 dark:hover:bg-gray-900"
+                                        headerClassName="px-3 py-2 font-medium hover:bg-gray-200 dark:hover:bg-gray-900"
                                         contentClassName="px-3 pb-2 bg-gray-50  dark:bg-black rounded-b-lg"
                                         className="rounded-lg overflow-hidden"
                                     >
@@ -243,15 +243,15 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                         {a.viewLink?.map((d, i) => (
                             <li
                                 key={i}
-                                className={
-                                    d.status.toLowerCase() === "absent"
-                                        ? "text-red-500"
-                                        : d.status.toLowerCase() === "present"
-                                            ? "text-green-500"
-                                            : d.status.toLowerCase() === "on duty"
-                                                ? "text-yellow-500"
-                                                : "text-gray-700  dark:text-gray-300"
-                                }
+                                                className={
+                                                    d.status.toLowerCase() === "absent"
+                                                        ? "text-red-500 dark:text-red-400"
+                                                        : d.status.toLowerCase() === "present"
+                                                            ? "text-green-500 dark:text-green-400"
+                                                            : d.status.toLowerCase() === "on duty"
+                                                                ? "text-yellow-500 dark:text-yellow-400"
+                                                                : "text-gray-700  dark:text-gray-300"
+                                                }
                             >
                                 {d.date} – {d.status}
                             </li>

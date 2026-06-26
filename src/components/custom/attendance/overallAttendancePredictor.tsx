@@ -214,7 +214,7 @@ export default function OverallAttendancePredictor({
               onClick={() => setMode(type)}
               className={`text-xs ${mode === type
                 ? "bg-blue-600 text-white  dark:bg-blue-700"
-                : "bg-gray-200  dark:bg-gray-900 text-gray-700  dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-blue-800 dark:hover:bg-gray-800"
+                : "bg-gray-200  dark:bg-gray-900 text-gray-700  dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-gray-800"
                 }`}
             >
               {type === "CAT1"
@@ -231,7 +231,7 @@ export default function OverallAttendancePredictor({
             variant="ghost"
             size="sm"
             onClick={() => setMonthIdx((i) => Math.max(0, i - 1))}
-            className="dark:hover:bg-slate-700 dark:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
           >
             <ChevronLeft />
           </Button>
@@ -244,7 +244,7 @@ export default function OverallAttendancePredictor({
             onClick={() =>
               setMonthIdx((i) => Math.min(monthsAvailable.length - 1, i + 1))
             }
-            className="dark:hover:bg-slate-700 dark:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
           >
             <ChevronRight />
           </Button>
@@ -253,7 +253,7 @@ export default function OverallAttendancePredictor({
             variant="ghost"
             size="sm"
             onClick={resetSelected}
-            className="dark:hover:bg-slate-700 dark:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
             title="Reset selections"
           >
             <RotateCcw size={16} />
@@ -285,7 +285,7 @@ export default function OverallAttendancePredictor({
                     ? "bg-gray-500 text-white opacity-70"
                     : d.date.toDateString() === new Date().toDateString()
                       ? "bg-blue-500 text-white font-bold"
-                      : "bg-white  dark:bg-gray-950 text-gray-700  dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900/30 dark:hover:bg-gray-800"
+                      : "bg-white  dark:bg-gray-950 text-gray-700  dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-800"
                 }`}
             >
               <span className="text-base">{formatted}</span>
@@ -340,10 +340,10 @@ export default function OverallAttendancePredictor({
             </span>
             <span
               className={`font-semibold ${p.predictedPercent < (isDayscholarWithBus ? 85 : 75)
-                ? "text-red-500"
+                ? "text-red-500 dark:text-red-400"
                 : p.predictedPercent < (isDayscholarWithBus ? 90 : 85)
-                  ? "text-yellow-400"
-                  : "text-green-400"
+                  ? "text-yellow-400 dark:text-yellow-300"
+                  : "text-green-400 dark:text-green-300"
                 }`}
             >
               {p.predictedAttended}/{p.predictedTotal} ({p.predictedPercent}%)

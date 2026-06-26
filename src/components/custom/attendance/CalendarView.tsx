@@ -942,7 +942,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                         <button
                                             key={date}
                                             onClick={() => setSelectedDay({ date, dayType, events, fullDate: dayInfo?.fullDate || dateObj })}
-                                            className={`group relative flex min-h-20 cursor-pointer flex-col border-b border-r border-gray-100 p-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:z-20 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:min-h-28 sm:p-3 lg:min-h-32 ${
+                                            className={`group relative flex min-h-20 cursor-pointer flex-col border-b border-r border-gray-100 p-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:z-20 hover:bg-gray-50 dark:hover:bg-gray-900/30 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 sm:min-h-28 sm:p-3 lg:min-h-32 ${
                                                 isWeekend ? "bg-gray-50/70  dark:bg-gray-900/25" : "bg-white  dark:bg-black"
                                             } ${isLastCol ? "border-r-0" : ""}  dark:border-gray-800/50 ${
                                                 isSelected ? "z-10 ring-2 ring-inset ring-blue-600 dark:ring-blue-400" : ""
@@ -964,7 +964,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                                     <EventTypePill event={priorityEvent} compact />
                                                 )}
                                                 {hiddenSummary && (
-                                                    <span className="text-xs font-semibold text-gray-400">{hiddenSummary}</span>
+                                                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500">{hiddenSummary}</span>
                                                 )}
                                             </div>
 
@@ -986,7 +986,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                                             </div>
                                                         ))}
                                                         {tooltipMoreCount > 0 && (
-                                                            <p className="text-xs font-bold text-gray-400">{tooltipMoreCount} more events</p>
+                                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500">{tooltipMoreCount} more events</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1051,7 +1051,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                 <p className="text-sm font-black text-gray-900 dark:text-gray-100">Attendance Timeline</p>
                                 <p className="mt-1 text-xs font-medium leading-5 text-gray-500 dark:text-gray-400">View heatmap, recovered classes and attendance history</p>
                             </div>
-                            <ChevronRight className="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                            <ChevronRight className="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                         </button>
                     </div>
                 </div>
@@ -1072,7 +1072,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
                         {!selectedDay ? (
                             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:bg-gray-950/50">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
                                     <CalendarIcon className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -1082,7 +1082,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             </div>
                         ) : selectedDay.events.length === 0 ? (
                             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:bg-gray-950/50">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
                                     <CalendarIcon className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -1120,7 +1120,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                         const canAddHomework = e.type === "attendance" || e.type === "od";
                                         return (
                                             <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                                                {e.hidden && <EyeOff size={14} className="shrink-0 text-gray-400" />}
+                                                {e.hidden && <EyeOff size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
                                                 {canAddHomework && (
                                                     <button
                                                         onClick={() => addHomework(e.courseTitle || e.text, selectedDay.date, selectedDay.fullDate)}
@@ -1255,7 +1255,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                                             </button>
                                                         )}
                                                         {md.type === "moodle" && !md.hidden && md.url && (
-                                                            <a href={md.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-xl border border-gray-200 bg-white p-2 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400">
+                                                            <a href={md.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-xl border border-gray-200 bg-white p-2 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400 dark:hover:bg-gray-950">
                                                                 <ChevronRight size={16} />
                                                             </a>
                                                         )}
