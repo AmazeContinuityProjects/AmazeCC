@@ -503,21 +503,21 @@ export default function DashboardContent({
       />
 
       <div 
-        className={`relative bg-gray-50/50 dark:bg-gray-900/50 midnight:bg-black min-h-[100dvh] text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full overflow-hidden`}
+        className={`relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full overflow-hidden`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Ambient Background Glows */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 dark:bg-blue-500/10 midnight:bg-blue-500/5 blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 dark:bg-emerald-500/10 midnight:bg-emerald-500/5 blur-[120px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10  dark:bg-blue-500/5 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
         <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
           <div className="px-6 pt-6 pb-2 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
               <div>
-                <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight leading-tight">AmazeCC</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate max-w-[180px] font-semibold mt-0.5">
+                <h2 className="text-xl font-black text-gray-900  dark:text-white tracking-tight leading-tight">AmazeCC</h2>
+                <p className="text-xs text-gray-500  dark:text-gray-400 truncate max-w-[180px] font-semibold mt-0.5">
                   {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
                 </p>
               </div>
@@ -528,7 +528,7 @@ export default function DashboardContent({
                 await handleReloadRequest();
                 setTimeout(() => setIsSpinning(false), 600);
               }}
-              className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
               title="Reload Data"
             >
               <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
@@ -606,7 +606,7 @@ export default function DashboardContent({
                 return (
                   <div className={`mb-8 ${isSubpageOpen ? "hidden" : ""}`}>
                     <div className="flex items-center justify-between mb-4 px-1">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white">Upcoming Events</h3>
+                      <h3 className="text-lg font-bold text-gray-900  dark:text-white">Upcoming Events</h3>
                     </div>
                     <div 
                       className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0"
@@ -620,24 +620,24 @@ export default function DashboardContent({
                             setActiveTab("more");
                             setActiveMoreSubTab("events");
                           }}
-                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white dark:bg-slate-800 midnight:bg-black rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 midnight:hover:border-blue-500 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
+                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white  dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 dark:hover:border-blue-500 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
                         >
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 dark:bg-blue-400/10 midnight:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10  dark:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                           
                           <div className="z-10">
-                            <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 midnight:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 flex items-center gap-1.5">
+                            <h4 className="font-bold text-lg mb-2 text-gray-900  dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
+                            <p className="text-sm text-gray-500  dark:text-gray-400 mb-4 flex items-center gap-1.5">
                               <Calendar className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">{ev.date} • {ev.time}</span>
                             </p>
                           </div>
                           
-                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
-                            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300 midnight:text-gray-300 truncate pr-2">
+                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100  dark:border-gray-800/50">
+                            <span className="flex items-center gap-1 text-gray-600  dark:text-gray-300 truncate pr-2">
                               <MapPin className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">{ev.venue}</span>
                             </span>
-                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 midnight:bg-green-900/20 midnight:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/20 midnight:text-red-400'}`}>
+                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? 'bg-green-100 text-green-700   dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700   dark:bg-red-900/20 dark:text-red-400'}`}>
                               {ev.paymentStatus}
                             </span>
                           </div>
@@ -760,10 +760,10 @@ export default function DashboardContent({
               {HostelActiveSubTab === "counselling" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Hostel Counselling</h2>
+                    <h2 className="text-xl font-bold text-gray-900  dark:text-gray-100">Hostel Counselling</h2>
                     <button
                       onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+                      className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
                       title="Reload"
                     >
                       <RefreshCcw className="w-5 h-5" />

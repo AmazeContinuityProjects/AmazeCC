@@ -37,7 +37,7 @@ export default function ProgressBar({
     <div className={cn("w-full", className)}>
       <div
         className={cn(
-          "w-full rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 midnight:bg-gray-800",
+          "w-full rounded-full overflow-hidden bg-gray-200  dark:bg-gray-800",
           sizes[size]
         )}
       >
@@ -51,7 +51,7 @@ export default function ProgressBar({
         />
       </div>
       {showLabel && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+        <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">
           {Math.round(pct)}%
         </p>
       )}

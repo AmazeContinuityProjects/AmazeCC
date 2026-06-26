@@ -9,8 +9,7 @@ import './globals.css';
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#111827" },
-    { media: "(prefers-color-scheme: midnight)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
   ],
   width: "device-width",
   initialScale: 1.0,
@@ -77,10 +76,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <IconUpdater />
         <ThemeProvider
           attribute="class"
-          defaultTheme="midnight"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
-          value={{ light: "light", dark: "dark", midnight: "midnight" }}
+          value={{ light: "light", dark: "dark" }}
         >
           {children}
         </ThemeProvider>

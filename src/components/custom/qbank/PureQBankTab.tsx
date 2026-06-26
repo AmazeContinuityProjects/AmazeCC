@@ -124,15 +124,15 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
       <div className="py-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-center gap-3 mb-6 px-4 md:px-0">
           {setActiveSubTab && (
-            <button onClick={() => setActiveSubTab("overview")} className="hidden md:block p-2 rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
+            <button onClick={() => setActiveSubTab("overview")} className="hidden md:block p-2 rounded-full bg-white  dark:bg-gray-900 shadow-sm border border-gray-200  dark:border-gray-800 hover:bg-gray-100">
               <ArrowLeft size={20} />
             </button>
           )}
           <div>
-            <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900  dark:text-white">
               Pure Question Bank
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-1">
+            <p className="text-sm text-gray-500  dark:text-gray-500 mt-1">
               Browse all extracted questions by course — no PDFs, just problems
             </p>
           </div>
@@ -177,12 +177,12 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
               <button
                 key={c.code}
                 onClick={() => handleSelectCourse(c)}
-                className="group rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-slate-900 dark:hover:bg-slate-800/70 midnight:border-gray-800 midnight:bg-black"
+                className="group rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-slate-800/70 dark:border-gray-800 dark:bg-black"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{c.code}</p>
-                    <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-500">{c.title}</p>
+                    <p className="text-sm font-black text-gray-900  dark:text-gray-100">{c.code}</p>
+                    <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-500  dark:text-gray-500">{c.title}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 shrink-0 text-gray-400 transition-colors group-hover:text-purple-500" />
                 </div>

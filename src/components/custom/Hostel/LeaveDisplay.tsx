@@ -8,7 +8,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
 
     if (!leaveData || leaveData.length === 0) {
         return (
-            <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            <p className="text-center text-gray-600  dark:text-gray-400">
                 No leave history available{" "}
                 <button onClick={handleHostelDetailsFetch} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
                     <RefreshCcw className={`w-4 h-4`} />
@@ -63,14 +63,14 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
         <div>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 {/* Mobile View: Inline Center */}
-                <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
                     Leave Details <button onClick={handleHostelDetailsFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
                         <RefreshCcw className={`w-4 h-4`} />
                     </button>
                 </h1>
                 
                 {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                <h1 className="hidden md:block text-2xl lg:text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                <h1 className="hidden md:block text-2xl lg:text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
                     Leave Details
                 </h1>
                 <div className="hidden md:flex items-center justify-end">
@@ -81,7 +81,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
             </div>
 
             {activeLeave ? (
-                <div className="max-w-xl mx-auto mb-4 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-2xl p-4 bg-white dark:bg-slate-800 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                <div className="max-w-xl mx-auto mb-4 border border-gray-300  dark:border-gray-700 rounded-2xl p-4 bg-white  dark:bg-black text-gray-900  dark:text-gray-100">
                     <h2 className="text-lg font-semibold text-center mb-3">
                         Active Leave
                     </h2>
@@ -110,7 +110,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
                     </p>
                 </div>
             ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400 mb-4">
+                <p className="text-center text-gray-600  dark:text-gray-400 mb-4">
                     No active leave currently.
                 </p>
             )}
@@ -128,8 +128,8 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }) {
 
             {showHistory && pastLeaves.length > 0 && (
                 <div data-scrollable className="mt-6 overflow-x-auto">
-                    <table className="min-w-full border-collapse table-auto bg-white dark:bg-slate-800 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                        <thead className="bg-gray-100 dark:bg-slate-700 midnight:bg-slate-900">
+                    <table className="min-w-full border-collapse table-auto bg-white  dark:bg-black text-gray-900  dark:text-gray-100">
+                        <thead className="bg-gray-100  dark:bg-slate-900">
                             <tr>
                                 <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-700">
                                     Leave ID

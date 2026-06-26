@@ -60,7 +60,7 @@ export default function SyncNotification({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -12, scale: 0.98 }}
           transition={{ duration: 0.18 }}
-          className="fixed right-4 top-4 z-[100] w-[calc(100vw-2rem)] max-w-[360px] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black"
+          className="fixed right-4 top-4 z-[100] w-[calc(100vw-2rem)] max-w-[360px] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg   dark:border-gray-800 dark:bg-black"
         >
           <div className="flex items-start gap-3">
             <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl ${
@@ -76,7 +76,7 @@ export default function SyncNotification({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                  <p className="truncate text-sm font-black text-gray-900  dark:text-gray-100">
                     {isError ? "Sync failed" : isComplete ? "Sync completed successfully." : "Syncing with VTOP..."}
                   </p>
                   {!isComplete && !isError && activeStep && (

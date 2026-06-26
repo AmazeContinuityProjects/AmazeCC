@@ -112,21 +112,21 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
 
 const TabButton = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800"}`}>
+    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500  dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-800"}`}>
     {label}
   </button>
 );
 
 const TypeBadge = ({ label }: { label: string }) => {
   const colors: Record<string, string> = {
-    "Embedded": "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 midnight:bg-indigo-900/30 midnight:text-indigo-300",
-    "Theory Only": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/30 midnight:text-blue-300",
-    "Lab Only": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/30 midnight:text-emerald-300",
-    "Embedded Theory": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/30 midnight:text-purple-300",
-    "Embedded Lab": "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 midnight:bg-teal-900/30 midnight:text-teal-300",
+    "Embedded": "bg-indigo-100 text-indigo-700   dark:bg-indigo-900/30 dark:text-indigo-300",
+    "Theory Only": "bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-300",
+    "Lab Only": "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-300",
+    "Embedded Theory": "bg-purple-100 text-purple-700   dark:bg-purple-900/30 dark:text-purple-300",
+    "Embedded Lab": "bg-teal-100 text-teal-700   dark:bg-teal-900/30 dark:text-teal-300",
   };
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${colors[label] || "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 midnight:bg-gray-800 midnight:text-gray-400"}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${colors[label] || "bg-gray-100 text-gray-600   dark:bg-gray-800 dark:text-gray-400"}`}>
       {label}
     </span>
   );
@@ -166,10 +166,10 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
       else gradePlacement = "F";
 
       gradeBounds = [
-        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}`, color: 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/20' },
-        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}`, color: 'text-green-600 dark:text-green-400 midnight:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20' },
-        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}`, color: 'text-blue-600 dark:text-blue-400 midnight:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20' },
-        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}`, color: 'text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/20' },
+        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
+        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
+        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
+        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
       ];
     }
   } else {
@@ -182,10 +182,10 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
     else gradePlacement = "F";
 
     gradeBounds = [
-      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}`, color: 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/20' },
-      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}`, color: 'text-green-600 dark:text-green-400 midnight:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20' },
-      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}`, color: 'text-blue-600 dark:text-blue-400 midnight:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20' },
-      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}`, color: 'text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/20' },
+      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
+      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
+      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
+      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
     ];
   }
 
@@ -194,20 +194,20 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
       title={shortenedTitle}
       badge={
         <div className="text-right">
-          <p className="text-xl font-black text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500 font-semibold">/ {formatNumber(detail.maxMark)}</span>
+          <p className="text-xl font-black text-gray-800  dark:text-gray-100">
+            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400  dark:text-gray-500 font-semibold">/ {formatNumber(detail.maxMark)}</span>
           </p>
-          <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
+          <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600  dark:text-blue-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
             Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
           </p>
         </div>
       }
-      className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-gray-700 midnight:border-gray-800 overflow-hidden"
-      headerClassName="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-bold uppercase tracking-wider"
-      contentClassName="border-t border-gray-200 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-slate-900 midnight:bg-black"
+      className="bg-gray-50  dark:bg-slate-800/50 rounded-xl border border-gray-100  dark:border-gray-800 overflow-hidden"
+      headerClassName="text-xs text-gray-500  dark:text-gray-400 font-bold uppercase tracking-wider"
+      contentClassName="border-t border-gray-200  dark:border-gray-800 bg-white  dark:bg-black"
     >
       {(isRelative && (!aStat || aStat.count === 0)) ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 italic text-center py-2">
+        <p className="text-sm text-gray-500  dark:text-gray-400 italic text-center py-2">
           Not enough data to calculate class statistics for this assessment yet.
         </p>
       ) : (
@@ -215,18 +215,18 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
           {isRelative && aStat && (
             <div className="flex justify-between items-center text-sm">
               <div>
-                <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs uppercase font-bold tracking-wider">Class Avg</p>
-                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-xs font-normal text-gray-500">({formatNumber(aStat.mean)}%)</span></p>
+                <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Class Avg</p>
+                <p className="font-bold text-gray-900  dark:text-gray-100">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-xs font-normal text-gray-500">({formatNumber(aStat.mean)}%)</span></p>
               </div>
               <div className="text-right">
-                <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs uppercase font-bold tracking-wider">Std Dev</p>
-                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
+                <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Std Dev</p>
+                <p className="font-bold text-gray-900  dark:text-gray-100">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
               </div>
             </div>
           )}
 
           <div>
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">
+            <p className="text-gray-500  dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">
               {isRelative ? "Grade Placement Preview" : "Absolute Grade Range Preview"}
             </p>
             <div className="flex gap-2">
@@ -238,7 +238,7 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
               ))}
             </div>
             {gradePlacement !== "?" && (
-              <p className="text-center text-xs mt-3 text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400 font-bold">
+              <p className="text-center text-xs mt-3 text-indigo-600  dark:text-indigo-400 font-bold">
                 Hypothetical Placement: Grade {gradePlacement}
               </p>
             )}
@@ -579,9 +579,9 @@ export default function CourseDashboard({
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
     return (
-      <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-5 shadow-sm mt-6">
+      <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-5 shadow-sm mt-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
             <Activity className="w-5 h-5" /> {typeLabel} Assessments
           </h3>
           <div className="flex items-center gap-3">
@@ -596,9 +596,9 @@ export default function CourseDashboard({
             return <AssessmentCard key={idx} detail={detail} typeLabel={typeLabel} aStat={aStat} isRelative={isRelative} />;
           })}
         </div>
-        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex justify-end">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-            Max Possible Score: <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
+        <div className="mt-4 pt-3 border-t border-gray-100  dark:border-gray-800 flex justify-end">
+          <p className="text-sm font-semibold text-gray-700  dark:text-gray-300">
+            Max Possible Score: <span className="font-bold text-gray-900  dark:text-gray-100">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
           </p>
         </div>
       </div>
@@ -610,7 +610,7 @@ export default function CourseDashboard({
     return (
       <SubpageLayout title="Course Dashboard" onBack={() => setActiveSubTab("overview")}>
         {uniqueCourses.length === 0 ? (
-          <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300 dark:text-gray-600 midnight:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No course data available</p></div></Card>
+          <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300  dark:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400  dark:text-gray-500">No course data available</p></div></Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {uniqueCourses.map((group: any, idx: number) => {
@@ -668,13 +668,13 @@ export default function CourseDashboard({
 
               return (
                 <div key={group.courseCode} onClick={() => handleSelectCourse(group.courseCode)}
-                  className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-slate-900 dark:hover:bg-slate-800/70 midnight:border-gray-800 midnight:bg-black">
+                  className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-slate-800/70 dark:border-gray-800 dark:bg-black">
                   <div className="flex items-start gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{group.courseCode}</p>
-                          <h3 className="mt-0.5 line-clamp-2 text-base font-bold leading-tight text-gray-700 dark:text-gray-300 midnight:text-gray-300">{group.courseTitle}</h3>
+                          <p className="text-sm font-black text-gray-900  dark:text-gray-100">{group.courseCode}</p>
+                          <h3 className="mt-0.5 line-clamp-2 text-base font-bold leading-tight text-gray-700  dark:text-gray-300">{group.courseTitle}</h3>
                         </div>
                         <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusTone}`}>
                           {statusLabel}
@@ -688,7 +688,7 @@ export default function CourseDashboard({
                               event.stopPropagation();
                               setActiveSubTab("predictor");
                             }}
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 midnight:text-indigo-300 uppercase tracking-wider transition-colors"
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100  dark:hover:bg-indigo-900/50 dark:bg-indigo-900/30 text-indigo-700  dark:text-indigo-300 uppercase tracking-wider transition-colors"
                             title="Open GPA Predictor"
                           >
                             Pred: {predictedGrade}
@@ -701,9 +701,9 @@ export default function CourseDashboard({
                               handleSelectCourseTab(group.courseCode, "attendance");
                             }}
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider transition-colors ${
-                            Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/30 midnight:text-emerald-300" :
-                            Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/30 midnight:text-blue-300" :
-                            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 midnight:bg-red-900/30 midnight:text-red-300"
+                            Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-300" :
+                            Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-300" :
+                            "bg-red-100 text-red-700   dark:bg-red-900/30 dark:text-red-300"
                           }`}
                             title="Open course attendance"
                           >
@@ -769,7 +769,7 @@ export default function CourseDashboard({
       </div>
 
       {error && (
-        <div className="p-4 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
@@ -784,13 +784,13 @@ export default function CourseDashboard({
                 <div className="flex items-center gap-5">
                   <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={80} />
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
-                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
-                    {attendanceItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
+                    <p className="text-sm text-gray-800  dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
+                    <p className="text-xs text-gray-500  dark:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
+                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
+                    {attendanceItem.faculty && <p className="text-xs text-gray-400  dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
                   </div>
                 </div>
-              ) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No attendance data</p>}
+              ) : <p className="text-sm text-gray-400  dark:text-gray-500">No attendance data</p>}
             </div>
           </Card>
           <Card>
@@ -798,28 +798,28 @@ export default function CourseDashboard({
               <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Course Info</h4>
               {mainCourse ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Course Type</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Slot</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{mainCourse.slot}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Faculty</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate max-w-[200px]">{mainCourse.faculty}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">System</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{mainCourse.courseSystem}</span></div>
-                  {attendanceItem?.credits && <div className="flex items-center justify-between"><span className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">Credits</span><span className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{attendanceItem.credits}</span></div>}
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Course Type</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Slot</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{mainCourse.slot}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Faculty</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200 truncate max-w-[200px]">{mainCourse.faculty}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">System</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{mainCourse.courseSystem}</span></div>
+                  {attendanceItem?.credits && <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Credits</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{attendanceItem.credits}</span></div>}
                   {isEmbedded && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 midnight:border-gray-800">
-                      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-2">Components</p>
+                    <div className="mt-3 pt-3 border-t border-gray-100  dark:border-gray-800">
+                      <p className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2">Components</p>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">{selectedGroup.theory?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
+                          <span className="text-gray-600  dark:text-gray-400">{selectedGroup.theory?.courseType}</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400 midnight:text-gray-400">{selectedGroup.lab?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
+                          <span className="text-gray-600  dark:text-gray-400">{selectedGroup.lab?.courseType}</span>
+                          <span className="font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-              ) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No marks data</p>}
+              ) : <p className="text-sm text-gray-400  dark:text-gray-500">No marks data</p>}
             </div>
           </Card>
           <Card className="md:col-span-2">
@@ -831,13 +831,13 @@ export default function CourseDashboard({
               {planLoading ? <Skeleton className="h-24 w-full rounded-xl" />
               : coursePlan ? coursePlan.map((cp: any, i: number) => (
                 cp.data.tables?.map((t: any) => t.rows?.slice(0, 2).map((r: any, ri: number) => (
-                  <div key={`${i}-${ri}`} className="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 mb-2">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase mb-1">{cp.type}</p>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
+                  <div key={`${i}-${ri}`} className="p-3 rounded-xl bg-gray-50  dark:bg-slate-800/50 mb-2">
+                    <p className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase mb-1">{cp.type}</p>
+                    <p className="text-sm font-semibold text-gray-800  dark:text-gray-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
+                    <p className="text-xs text-gray-500  dark:text-gray-400">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
                   </div>
                 )))
-              )) : <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">Course plan loads automatically</p>}
+              )) : <p className="text-sm text-gray-400  dark:text-gray-500">Course plan loads automatically</p>}
             </div>
           </Card>
           {viewDetail && (
@@ -863,7 +863,7 @@ export default function CourseDashboard({
                     ))}
                   </div>
                 ))}
-                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No schedule data</p>}
+                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-sm text-gray-400  dark:text-gray-500">No schedule data</p>}
               </div>
             </Card>
           )}
@@ -875,31 +875,31 @@ export default function CourseDashboard({
         <div>
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Course Type</p>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 line-clamp-1">{courseTypeLabel}</p>
+              <p className="text-sm font-semibold text-gray-900  dark:text-gray-100 line-clamp-1">{courseTypeLabel}</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Total Score</p>
-              <p className="text-sm font-bold text-blue-600 dark:text-blue-400 midnight:text-blue-400">{courseTotalString}</p>
+              <p className="text-sm font-bold text-blue-600  dark:text-blue-400">{courseTotalString}</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Projected %</p>
-              <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400">{courseStats.projected}%</p>
+              <p className="text-sm font-bold text-indigo-600  dark:text-indigo-400">{courseStats.projected}%</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Max Grade Achievable</p>
-              <p className="text-sm font-bold text-orange-600 dark:text-orange-400 midnight:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
+              <p className="text-sm font-bold text-orange-600  dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Grading Mode</p>
-              <p className={`text-sm font-bold ${isRelative ? 'text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
+              <p className={`text-sm font-bold ${isRelative ? 'text-indigo-600  dark:text-indigo-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
                 {isRelative ? "Relative" : "Absolute"}
               </p>
             </div>
-            <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Slot</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{mainCourse?.slot}</p>
+              <p className="text-sm font-medium text-gray-900  dark:text-gray-100">{mainCourse?.slot}</p>
             </div>
           </div>
 
@@ -907,20 +907,20 @@ export default function CourseDashboard({
           {renderAssessmentTable(selectedGroup?.lab?.assessments, "Lab")}
 
           {(!selectedGroup?.theory?.assessments?.length && !selectedGroup?.lab?.assessments?.length) && (
-            <Card><div className="p-5 text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No assessment data available</div></Card>
+            <Card><div className="p-5 text-sm text-gray-400  dark:text-gray-500">No assessment data available</div></Card>
           )}
 
           {/* Grade Insights - Full replication from MarksSubpage */}
-          <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm mt-6">
-            <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
-                Grade Insights <Badge variant="info" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-900/30 midnight:text-blue-400 font-bold">BETA</Badge>
+          <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm mt-6">
+            <div className="p-5 border-b border-gray-100  dark:border-gray-800">
+              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
+                Grade Insights <Badge variant="info" className="bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-400 font-bold">BETA</Badge>
               </h3>
-              <details className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-2 leading-relaxed cursor-pointer group">
-                <summary className="font-semibold text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
+              <details className="text-xs text-gray-500  dark:text-gray-400 mt-2 leading-relaxed cursor-pointer group">
+                <summary className="font-semibold text-indigo-600  dark:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
                   <Info size={14} /> How this works & why it is safe
                 </summary>
-                <div className="mt-3 p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 midnight:border-gray-700 space-y-2">
+                <div className="mt-3 p-4 bg-gray-50  dark:bg-slate-800 rounded-lg border border-gray-200  dark:border-gray-700 space-y-2">
                   <p>
                     <strong>Proof of Concept:</strong> To calculate an accurate class curve, we need to know the class average and standard deviation.
                     This requires aggregating the marks of all students in the class. It is mathematically impossible to do this securely strictly on your local device,
@@ -939,25 +939,25 @@ export default function CourseDashboard({
               )}
             </div>
 
-            <div className="p-5 bg-gray-50/50 dark:bg-slate-900/50 midnight:bg-black/50">
+            <div className="p-5 bg-gray-50/50  dark:bg-black/50">
               {isRelative ? (
                 <div className="flex flex-wrap gap-4 mb-6 text-sm">
-                  <div className="flex-1 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase font-bold">Samples</p>
-                    <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{stats ? stats.count : "N/A"}</p>
+                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Samples</p>
+                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? stats.count : "N/A"}</p>
                   </div>
-                  <div className="flex-1 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase font-bold">Mean</p>
-                    <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{stats ? formatNumber(stats.mean) : "N/A"}</p>
+                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Mean</p>
+                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.mean) : "N/A"}</p>
                   </div>
-                  <div className="flex-1 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase font-bold">Std Dev</p>
-                    <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{stats ? formatNumber(stats.sd) : "N/A"}</p>
+                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Std Dev</p>
+                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.sd) : "N/A"}</p>
                   </div>
                 </div>
               ) : (
-                <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 midnight:border-emerald-800/50 flex flex-col md:flex-row items-center gap-4 text-emerald-800 dark:text-emerald-400 midnight:text-emerald-400">
-                  <div className="p-3 bg-white dark:bg-emerald-950 midnight:bg-emerald-950 rounded-full shadow-sm">
+                <div className="mb-6 p-4 rounded-xl bg-emerald-50  dark:bg-emerald-900/20 border border-emerald-200  dark:border-emerald-800/50 flex flex-col md:flex-row items-center gap-4 text-emerald-800  dark:text-emerald-400">
+                  <div className="p-3 bg-white  dark:bg-emerald-950 rounded-full shadow-sm">
                     <Activity size={24} className="text-emerald-500" />
                   </div>
                   <div>
@@ -984,13 +984,13 @@ export default function CourseDashboard({
                   }
 
                   const boundaries = [
-                    { grade: 'S', limit: sBoundary, color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-900/20 midnight:text-emerald-400 midnight:border-emerald-800/50', range: `>= ${sBoundary.toFixed(0)}` },
-                    { grade: 'A', limit: aLower, color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50 midnight:bg-green-900/20 midnight:text-green-400 midnight:border-green-800/50', range: `>= ${aLower.toFixed(0)}` },
-                    { grade: 'B', limit: bLower, color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50 midnight:bg-blue-900/20 midnight:text-blue-400 midnight:border-blue-800/50', range: `>= ${bLower.toFixed(0)}` },
-                    { grade: 'C', limit: cLower, color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 midnight:bg-indigo-900/20 midnight:text-indigo-400 midnight:border-indigo-800/50', range: `>= ${cLower.toFixed(0)}` },
-                    { grade: 'D', limit: dLower, color: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50 midnight:bg-purple-900/20 midnight:text-purple-400 midnight:border-purple-800/50', range: `>= ${dLower.toFixed(0)}` },
-                    { grade: 'E', limit: eLower, color: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 midnight:bg-orange-900/20 midnight:text-orange-400 midnight:border-orange-800/50', range: `>= ${eLower.toFixed(0)}` },
-                    { grade: 'F', limit: 0, color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-900/20 midnight:text-red-400 midnight:border-red-800/50', range: `< ${eLower.toFixed(0)}` },
+                    { grade: 'S', limit: sBoundary, color: 'bg-emerald-50 text-emerald-700 border-emerald-200    dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50', range: `>= ${sBoundary.toFixed(0)}` },
+                    { grade: 'A', limit: aLower, color: 'bg-green-50 text-green-700 border-green-200    dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50', range: `>= ${aLower.toFixed(0)}` },
+                    { grade: 'B', limit: bLower, color: 'bg-blue-50 text-blue-700 border-blue-200    dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50', range: `>= ${bLower.toFixed(0)}` },
+                    { grade: 'C', limit: cLower, color: 'bg-indigo-50 text-indigo-700 border-indigo-200    dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50', range: `>= ${cLower.toFixed(0)}` },
+                    { grade: 'D', limit: dLower, color: 'bg-purple-50 text-purple-700 border-purple-200    dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50', range: `>= ${dLower.toFixed(0)}` },
+                    { grade: 'E', limit: eLower, color: 'bg-orange-50 text-orange-700 border-orange-200    dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50', range: `>= ${eLower.toFixed(0)}` },
+                    { grade: 'F', limit: 0, color: 'bg-red-50 text-red-700 border-red-200    dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50', range: `< ${eLower.toFixed(0)}` },
                   ];
 
                   const targetBoundary = boundaries.find(b => b.grade === targetGrade)?.limit || 0;
@@ -1019,29 +1019,29 @@ export default function CourseDashboard({
                           <span className="text-[10px] font-bold tracking-wider">{b.range}</span>
                         </div>
                       ))}
-                      <div className="col-span-full mt-4 bg-white dark:bg-slate-800 midnight:bg-slate-800 border border-gray-200 dark:border-gray-700 midnight:border-gray-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                      <div className="col-span-full mt-4 bg-white  dark:bg-slate-800 border border-gray-200  dark:border-gray-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                         <div>
-                          <h4 className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Target Grade Calculator</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">See how many weightage points you need for your goal.</p>
+                          <h4 className="font-bold text-gray-900  dark:text-gray-100">Target Grade Calculator</h4>
+                          <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">See how many weightage points you need for your goal.</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <select
                             value={targetGrade}
                             onChange={(e) => setTargetGrade(e.target.value)}
-                            className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 midnight:border-gray-600 bg-gray-50 dark:bg-slate-900 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 font-bold"
+                            className="px-3 py-1.5 rounded-lg border border-gray-300  dark:border-gray-600 bg-gray-50  dark:bg-black text-gray-900  dark:text-gray-100 font-bold"
                           >
                             {['S', 'A', 'B', 'C', 'D', 'E'].map(g => <option key={g} value={g}>Grade {g}</option>)}
                           </select>
                           {remainingWeightagePoints <= 0 ? (
-                            <div className="px-4 py-2 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 midnight:bg-emerald-900/50 midnight:text-emerald-300 font-bold rounded-lg text-sm">
+                            <div className="px-4 py-2 bg-emerald-100 text-emerald-800   dark:bg-emerald-900/50 dark:text-emerald-300 font-bold rounded-lg text-sm">
                               Target Achieved!
                             </div>
                           ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
-                            <div className="px-4 py-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 midnight:bg-red-900/50 midnight:text-red-300 font-bold rounded-lg text-sm">
+                            <div className="px-4 py-2 bg-red-100 text-red-800   dark:bg-red-900/50 dark:text-red-300 font-bold rounded-lg text-sm">
                               Impossible to achieve
                             </div>
                           ) : (
-                            <div className="px-4 py-2 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 midnight:bg-indigo-900/50 midnight:text-indigo-300 font-bold rounded-lg text-sm">
+                            <div className="px-4 py-2 bg-indigo-100 text-indigo-800   dark:bg-indigo-900/50 dark:text-indigo-300 font-bold rounded-lg text-sm">
                               Need <span className="text-lg">{remainingWeightagePoints.toFixed(1)}</span> more weightage pts
                             </div>
                           )}
@@ -1061,27 +1061,27 @@ export default function CourseDashboard({
         <div>
           {/* Badges Row */}
           <div className="flex flex-wrap gap-3 mb-8">
-            <Badge variant="info" className="rounded-lg border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 gap-1.5">
-              <CalendarIcon className="w-4 h-4 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {attendanceItem.slotName}
+            <Badge variant="info" className="rounded-lg border border-blue-100  dark:border-blue-900/40 gap-1.5">
+              <CalendarIcon className="w-4 h-4 text-blue-500  dark:text-blue-400" /> {attendanceItem.slotName}
             </Badge>
-            <Badge variant="purple" className="rounded-lg border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 gap-1.5">
-              <Building2 className="w-4 h-4 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {attendanceItem.slotVenue}
+            <Badge variant="purple" className="rounded-lg border border-purple-100  dark:border-purple-900/40 gap-1.5">
+              <Building2 className="w-4 h-4 text-purple-500  dark:text-purple-400" /> {attendanceItem.slotVenue}
             </Badge>
-            <Badge variant="warning" className="rounded-lg border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 gap-1.5">
-              <Clock className="w-4 h-4 text-orange-500 dark:text-amber-400 midnight:text-amber-400" /> {attendanceItem.time}
+            <Badge variant="warning" className="rounded-lg border border-amber-100  dark:border-amber-900/40 gap-1.5">
+              <Clock className="w-4 h-4 text-orange-500  dark:text-amber-400" /> {attendanceItem.time}
             </Badge>
-            <Badge variant="success" className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 gap-1.5">
-              <User className="w-4 h-4 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {attendanceItem.faculty}
+            <Badge variant="success" className="rounded-lg border border-emerald-100  dark:border-emerald-900/40 gap-1.5">
+              <User className="w-4 h-4 text-green-500  dark:text-emerald-400" /> {attendanceItem.faculty}
             </Badge>
           </div>
 
           {/* Metrics Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
+            <div className="bg-white  dark:bg-gray-900 rounded-2xl p-6 border border-gray-200  dark:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
               <div>
-                <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
-                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{attendanceItem.attendancePercentage}%</p>
-                <p className="text-sm text-gray-500 midnight:text-gray-400 font-medium mt-1">{attendanceItem.attendedClasses} / {attendanceItem.totalClasses} Classes</p>
+                <h3 className="text-gray-500  dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
+                <p className="text-3xl font-black text-gray-900  dark:text-gray-100">{attendanceItem.attendancePercentage}%</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">{attendanceItem.attendedClasses} / {attendanceItem.totalClasses} Classes</p>
               </div>
               <div className="w-24 h-24">
                 <CircularProgress
@@ -1094,8 +1094,8 @@ export default function CourseDashboard({
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 shadow-sm md:col-span-2 flex flex-col justify-center">
-              <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
+            <div className="bg-white  dark:bg-gray-900 rounded-2xl p-6 border border-gray-200  dark:border-gray-800 shadow-sm md:col-span-2 flex flex-col justify-center">
+              <h3 className="text-gray-500  dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
               {attendanceItem.totalClasses > 0 && (() => {
                 const attended = attendanceItem.attendedClasses;
                 const total = attendanceItem.totalClasses;
@@ -1105,12 +1105,12 @@ export default function CourseDashboard({
                   const neededValue = isLabAtt ? Math.ceil(needed / 2) : needed;
                   return (
                     <div className="flex items-start gap-4">
-                      <div className="p-3 bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/30 text-red-600 dark:text-red-400 midnight:text-red-400 rounded-xl">
+                      <div className="p-3 bg-red-100  dark:bg-red-900/30 text-red-600  dark:text-red-400 rounded-xl">
                         <AlertCircle size={24} />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Critical Status</p>
-                        <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {isLabAtt ? "lab" : "class"}{neededValue > 1 && (isLabAtt ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
+                        <p className="text-xl font-bold text-gray-900  dark:text-gray-100">Critical Status</p>
+                        <p className="text-gray-600  dark:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {isLabAtt ? "lab" : "class"}{neededValue > 1 && (isLabAtt ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
                       </div>
                     </div>
                   );
@@ -1120,24 +1120,24 @@ export default function CourseDashboard({
                   if (canMissValue === 0) {
                     return (
                       <div className="flex items-start gap-4">
-                        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 midnight:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400 rounded-xl">
+                        <div className="p-3 bg-yellow-100  dark:bg-yellow-900/30 text-yellow-600  dark:text-yellow-400 rounded-xl">
                           <AlertCircle size={24} />
                         </div>
                         <div>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">On the Edge</p>
-                          <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You cannot afford to miss the next {isLabAtt ? "lab" : "class"}. Attend to build a safety buffer.</p>
+                          <p className="text-xl font-bold text-gray-900  dark:text-gray-100">On the Edge</p>
+                          <p className="text-gray-600  dark:text-gray-400 mt-1">You cannot afford to miss the next {isLabAtt ? "lab" : "class"}. Attend to build a safety buffer.</p>
                         </div>
                       </div>
                     );
                   }
                   return (
                     <div className="flex items-start gap-4">
-                      <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 rounded-xl">
+                      <div className="p-3 bg-emerald-100  dark:bg-emerald-900/30 text-emerald-600  dark:text-emerald-400 rounded-xl">
                         <Star size={24} />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Safe Margin</p>
-                        <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {isLabAtt ? "lab" : "class"}{canMissValue !== 1 && (isLabAtt ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
+                        <p className="text-xl font-bold text-gray-900  dark:text-gray-100">Safe Margin</p>
+                        <p className="text-gray-600  dark:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {isLabAtt ? "lab" : "class"}{canMissValue !== 1 && (isLabAtt ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
                       </div>
                     </div>
                   );
@@ -1150,12 +1150,12 @@ export default function CourseDashboard({
           <div className={`grid grid-cols-1 gap-6 ${hasPredictor ? 'xl:grid-cols-3' : ''}`}>
             {hasPredictor && (
               <div className="xl:col-span-2">
-                <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
-                  <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Interactive Predictor</h2>
-                    <p className="text-sm text-gray-500 midnight:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+                <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
+                  <div className="p-5 border-b border-gray-100  dark:border-gray-800">
+                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">Interactive Predictor</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                   </div>
-                  <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                  <div className="divide-y divide-gray-100  dark:divide-gray-800">
                     {[
                       { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
                       { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
@@ -1167,7 +1167,7 @@ export default function CourseDashboard({
                           <ExpandableSection
                             title={label}
                             icon={<CalendarIcon size={18} className="text-blue-500" />}
-                            badge={<span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
+                            badge={<span className="text-sm font-medium bg-gray-100  dark:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
                           >
                             <div className="p-4 space-y-2">
                               {data.map((cls: any, ci: number) => {
@@ -1179,7 +1179,7 @@ export default function CourseDashboard({
                                   <div key={ci} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                                     isPast ? 'bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700/50 opacity-60' :
                                     isSkipped ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' :
-                                    'bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 border-gray-100 dark:border-gray-700'
+                                    'bg-gray-50  dark:bg-slate-800/50 border-gray-100 dark:border-gray-700'
                                   }`}>
                                     <div className="flex items-center gap-3">
                                       <div className={`w-2 h-2 rounded-full ${
@@ -1206,21 +1206,21 @@ export default function CourseDashboard({
             )}
 
             <div className={`${hasPredictor ? "xl:col-span-1" : ""} min-w-0 w-full`}>
-              <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
+              <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
+                <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
                         Attendance Log
                         {missingNotesCount > 0 && (
-                          <Badge variant="danger" className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 font-bold">
+                          <Badge variant="danger" className="bg-red-100 text-red-600   dark:bg-red-900/30 dark:text-red-400 font-bold">
                             {missingNotesCount} Missing Notes
                           </Badge>
                         )}
                       </h2>
-                      {!hasPredictor && <p className="text-sm text-gray-500 midnight:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
+                      {!hasPredictor && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
                     </div>
-                    <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg">
+                    <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg">
                       {[
                         { key: "calendar" as const, icon: <CalendarIcon size={18} /> },
                         { key: "heatmap" as const, icon: <Grid3x3 size={18} /> },
@@ -1229,7 +1229,7 @@ export default function CourseDashboard({
                         <button
                           key={opt.key}
                           onClick={() => setViewMode(opt.key)}
-                          className={`p-1.5 rounded-md transition-colors ${viewMode === opt.key ? 'bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                          className={`p-1.5 rounded-md transition-colors ${viewMode === opt.key ? 'bg-white  dark:bg-black text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                         >
                           {opt.icon}
                         </button>
@@ -1238,12 +1238,12 @@ export default function CourseDashboard({
                   </div>
 
                   {viewMode === "list" && (
-                    <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
+                    <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
                       {["All", "Present", "Absent", "On Duty"].map(f => (
                         <button
                           key={f}
                           onClick={() => setAttFilter(f)}
-                          className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${attFilter === f ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}
+                          className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${attFilter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-100 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
                         >
                           {f}
                         </button>
@@ -1291,23 +1291,23 @@ export default function CourseDashboard({
                       </div>
                     </div>
                   ) : filteredHistory.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                    <div className="p-8 text-center text-gray-500  dark:text-gray-400">
                       No records found for "{attFilter}".
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                    <div className="divide-y divide-gray-100  dark:divide-gray-800">
                       {filteredHistory.map((d: any, i: number) => {
                         const status = d.status.toLowerCase();
                         const isPresent = status === "present";
                         const isAbsent = status === "absent";
                         const hasNotes = notesTracker[attendanceItem?.courseCode || ""]?.[d.date] === true;
                         return (
-                          <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-900/30 transition-colors">
+                          <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-900/30 transition-colors">
                             <div className="flex items-center gap-4">
                               <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`} />
                               <div>
-                                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
-                                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400 midnight:text-red-400" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"}`}>
+                                <p className="font-bold text-gray-900  dark:text-gray-100">{d.date}</p>
+                                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
                                   {d.status}
                                 </p>
                               </div>
@@ -1317,8 +1317,8 @@ export default function CourseDashboard({
                                 onClick={() => toggleNotes(d.date)}
                                 className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                   hasNotes
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400"
-                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
+                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                 }`}
                               >
                                 {hasNotes ? <CheckCircle2 size={14} /> : <FileTextIcon size={14} />}

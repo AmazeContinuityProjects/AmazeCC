@@ -481,11 +481,10 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
 export default function FFCSTimetableTab() {
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
-  const isMidnight = currentTheme === "midnight";
-  const isDark = currentTheme === "dark" || isMidnight;
-  const themeBgColor = isMidnight ? "#020617" : isDark ? "#0f172a" : "#ffffff";
-  const themeTextColor = isDark ? "#ffffff" : "#000000";
-  const themeHtmlClass = isMidnight ? "dark midnight" : isDark ? "dark" : "light";
+  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
+  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+  const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);

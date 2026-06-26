@@ -83,9 +83,9 @@ export default function ErrorDiagnosticCard({
   };
 
   return (
-    <main className="min-h-screen w-full bg-gray-100 px-4 text-foreground transition-colors duration-300 dark:bg-slate-900 midnight:bg-black">
+    <main className="min-h-screen w-full bg-gray-100 px-4 text-foreground transition-colors duration-300  dark:bg-black">
       <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center py-10">
-        <Card className="w-full border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 midnight:border-gray-800 midnight:bg-[#0a0a0a]">
+        <Card className="w-full border-gray-300 bg-white shadow-lg   dark:border-gray-800 dark:bg-[#0a0a0a]">
           <CardHeader>
             <p className="text-sm font-medium text-muted-foreground">AmazeCC Error Inspector</p>
             <CardTitle className="text-2xl tracking-tight md:text-3xl">{title}</CardTitle>

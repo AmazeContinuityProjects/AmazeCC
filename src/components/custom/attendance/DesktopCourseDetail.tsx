@@ -52,7 +52,7 @@ function UpcomingClassesList({
 
     if (!classes || classes.length === 0) {
         return (
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs text-center py-4">
+            <p className="text-gray-500  dark:text-gray-400 text-xs text-center py-4">
                 No upcoming classes 🎉
             </p>
         );
@@ -108,12 +108,12 @@ function UpcomingClassesList({
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50 dark:bg-slate-800/40 midnight:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-800/80 midnight:border-gray-800/80 text-gray-800 dark:text-gray-200 midnight:text-gray-200">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50  dark:bg-gray-950 p-4 rounded-xl border border-gray-100  dark:border-gray-800/80 text-gray-800  dark:text-gray-200">
                 <div className="flex gap-4">
                     <span className="text-emerald-600 dark:text-emerald-400">Attending: <strong>{attending}</strong></span>
                     <span className="text-red-500 dark:text-red-400">Skipping: <strong>{missed}</strong></span>
                 </div>
-                <Badge variant={predictedPercent >= thresholdPct ? "success" : "danger"} className={`border font-bold ${predictedPercent >= thresholdPct ? "border-emerald-200 dark:border-emerald-800/50 midnight:border-emerald-800/50" : "border-red-200 dark:border-red-800/50 midnight:border-red-800/50"}`}>
+                <Badge variant={predictedPercent >= thresholdPct ? "success" : "danger"} className={`border font-bold ${predictedPercent >= thresholdPct ? "border-emerald-200  dark:border-emerald-800/50" : "border-red-200  dark:border-red-800/50"}`}>
                     Predicted: {predictedPercent}%
                 </Badge>
             </div>
@@ -135,14 +135,14 @@ function UpcomingClassesList({
                             onClick={() => toggleAttendance(time)}
                             className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center cursor-pointer select-none transition-all duration-150 hover:scale-[1.03] active:scale-[0.97] ${
                                 isSkipped
-                                    ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-900/10 dark:border-red-900/50 midnight:bg-red-950/20 midnight:border-red-900/40 midnight:text-red-400"
+                                    ? "bg-red-50/50 border-red-200 text-red-700   dark:bg-red-950/20 dark:border-red-900/40 dark:text-red-400"
                                     : isIgnored
-                                        ? "bg-gray-100 border-gray-200 dark:bg-slate-800 dark:border-slate-700 text-gray-400 midnight:text-gray-500 midnight:bg-gray-900 midnight:border-gray-800 opacity-50"
-                                        : "bg-white border-gray-200 dark:bg-slate-900 dark:border-gray-800 midnight:bg-black midnight:border-gray-800/80 text-gray-800 dark:text-gray-200 midnight:text-gray-300 hover:border-blue-400 midnight:hover:border-blue-500"
+                                        ? "bg-gray-100 border-gray-200   text-gray-400 dark:text-gray-500 dark:bg-gray-900 dark:border-gray-800 opacity-50"
+                                        : "bg-white border-gray-200   dark:bg-black dark:border-gray-800/80 text-gray-800  dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500"
                             }`}
                         >
-                            <span className={`font-bold text-xs ${isSkipped ? "text-red-700 dark:text-red-400 midnight:text-red-400" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${isSkipped ? "text-red-500" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400"}`}>{weekday}</span>
+                            <span className={`font-bold text-xs ${isSkipped ? "text-red-700  dark:text-red-400" : "text-gray-800  dark:text-gray-200"}`}>{dateStr}</span>
+                            <span className={`text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60 ${isSkipped ? "text-red-500" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
@@ -265,12 +265,12 @@ export default function DesktopCourseDetail({
     return (
         <div className="space-y-6">
             {/* Header info */}
-            <div className="flex items-start justify-between gap-4 border-b border-gray-150 dark:border-gray-800/80 midnight:border-gray-800/80 pb-3">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-150  dark:border-gray-800/80 pb-3">
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-black font-[family-name:var(--font-outfit)] text-gray-900 dark:text-gray-105 midnight:text-gray-105 leading-tight">
+                    <h2 className="text-xl font-black font-[family-name:var(--font-outfit)] text-gray-900  dark:text-gray-105 leading-tight">
                         {a.courseTitle}
                     </h2>
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+                    <p className="text-xs font-semibold text-gray-500  dark:text-gray-400 mt-1">
                         {a.courseCode.slice(0, -3)} <span className="mx-1">•</span> {lab ? "Lab" : "Theory"} <span className="mx-1">•</span> {a.credits} Credits
                     </p>
                     {/* Tags row integrated right below details */}
@@ -291,7 +291,7 @@ export default function DesktopCourseDetail({
 
                 <button
                     onClick={onViewFullPage}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/45 bg-blue-50/60 hover:bg-blue-100/70 text-blue-700 dark:bg-blue-950/15 dark:hover:bg-blue-950/25 dark:text-blue-300 dark:border-blue-500/35 midnight:bg-blue-950/10 midnight:hover:bg-blue-950/20 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-xs shrink-0 self-start cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/45 bg-blue-50/60 hover:bg-blue-100/70 text-blue-700  dark:hover:bg-blue-950/25 dark:text-blue-300 dark:border-blue-500/35 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-xs shrink-0 self-start cursor-pointer"
                 >
                     Full History & Heatmap →
                 </button>
@@ -300,11 +300,11 @@ export default function DesktopCourseDetail({
             {/* Premium Stat Boxes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Attendance Status Card */}
-                <div className="bg-gray-50/50 dark:bg-slate-800/25 midnight:bg-gray-950 border border-gray-200 dark:border-gray-800/80 midnight:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs gap-3">
+                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs gap-3">
                     <div className="flex-1 min-w-0">
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 midnight:text-gray-500 mb-1">Attendance</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Attendance</h4>
                         <div className="flex items-baseline gap-2">
-                            <p className="text-2xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{simulatedPercentage}%</p>
+                            <p className="text-2xl font-black text-gray-900  dark:text-gray-100">{simulatedPercentage}%</p>
                             {simulatedSkips > 0 && (
                                 <span className="text-xs text-gray-400 dark:text-gray-555 line-through font-bold">
                                     {originalPercentage}%
@@ -330,7 +330,7 @@ export default function DesktopCourseDetail({
                         </div>
 
                         {/* Status & Buffer metrics */}
-                        <div className="mt-4 pt-3.5 border-t border-gray-200/60 dark:border-gray-800 midnight:border-gray-800/60 flex flex-col gap-2 text-xs">
+                        <div className="mt-4 pt-3.5 border-t border-gray-200/60  dark:border-gray-800/60 flex flex-col gap-2 text-xs">
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-400 dark:text-gray-550 font-bold uppercase tracking-wider text-[9px]">Status</span>
                                 <span className={`font-black uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded ${
@@ -356,12 +356,12 @@ export default function DesktopCourseDetail({
 
                                        {/* Inline Skip Predictor Widget for Desktop */}
                     {onSimulateSkipsChange && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200/60 dark:border-gray-800/85 midnight:border-gray-800/80 mt-1">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-white  dark:bg-black border border-gray-200/60  dark:border-gray-800/80 mt-1">
                             <span className="text-[10px] font-black text-gray-400 dark:text-gray-555 uppercase tracking-wider">Simulate Skips</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips - 1)}
-                                    className="p-1 rounded bg-gray-55 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/80 midnight:bg-gray-900 midnight:border-gray-800 cursor-pointer"
+                                    className="p-1 rounded bg-gray-55  border border-gray-200  hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
                                     title="Decrease simulated skips"
                                 >
                                     <Minus className="w-3 h-3 text-gray-655 dark:text-gray-300" />
@@ -383,7 +383,7 @@ export default function DesktopCourseDetail({
                                 </span>
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips + 1)}
-                                    className="p-1 rounded bg-gray-55 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/80 midnight:bg-gray-900 midnight:border-gray-800 cursor-pointer"
+                                    className="p-1 rounded bg-gray-55  border border-gray-200  hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
                                     title="Increase simulated skips"
                                 >
                                     <Plus className="w-3 h-3 text-gray-655 dark:text-gray-300" />
@@ -394,8 +394,8 @@ export default function DesktopCourseDetail({
                 </div>
 
                 {/* Info Card */}
-                <div className="bg-gray-50/50 dark:bg-slate-800/25 midnight:bg-gray-950 border border-gray-200 dark:border-gray-800/80 midnight:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs md:col-span-2">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 midnight:text-gray-500 mb-3">Next Class Impact</h4>
+                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs md:col-span-2">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Next Class Impact</h4>
                     {total > 0 && (() => {
                         const percentage = simulatedPercentage;
                         const CLASS_WEIGHT = lab ? 2 : 1;
@@ -451,15 +451,15 @@ export default function DesktopCourseDetail({
             </div>
 
             {/* Quick History Log */}
-            <div className="bg-transparent border border-gray-200 dark:border-gray-800 midnight:border-gray-800/80 rounded-xl overflow-hidden">
-                <div className="p-4 bg-gray-50/50 dark:bg-slate-800/25 midnight:bg-gray-950 border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800 flex justify-between items-center">
+            <div className="bg-transparent border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden">
+                <div className="p-4 bg-gray-50/50  dark:bg-gray-950 border-b border-gray-200  dark:border-gray-800 flex justify-between items-center">
                     <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Recent Attendance History</h3>
                     <span className="text-[10px] text-gray-400 font-medium">{historyList.length} total records</span>
                 </div>
                 {recentHistory.length === 0 ? (
                     <EmptyState title="No attendance history records found" className="p-6" />
                 ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800/60">
+                    <div className="divide-y divide-gray-100  dark:divide-gray-800/60">
                         {recentHistory.map((d: any, idx: number) => {
                             const status = d.status.toLowerCase();
                             const isPresent = status === "present";
@@ -467,12 +467,12 @@ export default function DesktopCourseDetail({
                             const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                             return (
-                                <div key={idx} className="flex items-center justify-between p-3.5 hover:bg-gray-50/50 dark:hover:bg-slate-800/10 midnight:hover:bg-gray-950/30 transition-colors">
+                                <div key={idx} className="flex items-center justify-between p-3.5 hover:bg-gray-50/50 dark:hover:bg-slate-800/10 dark:hover:bg-gray-950/30 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-1.5 h-7 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                         <div>
-                                            <p className="font-bold text-xs text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
-                                            <p className={`text-[9px] font-extrabold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400 midnight:text-red-400" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"}`}>
+                                            <p className="font-bold text-xs text-gray-900  dark:text-gray-100">{d.date}</p>
+                                            <p className={`text-[9px] font-extrabold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
                                                 {d.status}
                                             </p>
                                         </div>
@@ -483,8 +483,8 @@ export default function DesktopCourseDetail({
                                             onClick={() => toggleNotes(d.date)}
                                             className={`flex items-center justify-center gap-1 px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all ${
                                                 hasNotes
-                                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-950/30 midnight:border-emerald-900/40 midnight:text-emerald-400"
-                                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 midnight:bg-black midnight:border-gray-800 midnight:text-gray-400 midnight:hover:bg-gray-900"
+                                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-400"
+                                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-black dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-900"
                                             }`}
                                         >
                                             {hasNotes ? <CheckCircle2 size={11} /> : <FileText size={11} />}

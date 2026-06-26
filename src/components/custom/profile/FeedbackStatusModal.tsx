@@ -82,13 +82,13 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-3 p-4 text-red-600 dark:text-red-400 midnight:text-red-500">
+          <div className="flex items-center gap-3 p-4 text-red-600  dark:text-red-500">
             <XCircle className="w-5 h-5 shrink-0" />
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
         {!loading && !error && totalRows === 0 && (
-          <div className="flex flex-col items-center py-8 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
+          <div className="flex flex-col items-center py-8 text-gray-400  dark:text-gray-500">
             <Clock className="w-10 h-10 mb-3" />
             <p className="text-sm font-medium">No feedback data available</p>
           </div>
@@ -106,7 +106,7 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300">{sem.label}</h4>
+                      <h4 className="text-sm font-semibold text-gray-700  dark:text-gray-300">{sem.label}</h4>
                     </div>
                     <Badge variant={done === sem.rows.length && sem.rows.length > 0 ? "success" : "danger"} size="sm">
                       {done}/{sem.rows.length} done
@@ -118,10 +118,10 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
                         const midGiven = (row.midSemester || "").toLowerCase().includes("given");
                         const teeGiven = (row.teeSemester || "").toLowerCase().includes("given");
                         return (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 midnight:bg-gray-800/50 border border-gray-100 dark:border-gray-700 midnight:border-gray-700">
+                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/50  dark:bg-gray-800/50 border border-gray-100  dark:border-gray-700">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <BookOpen className="w-4 h-4 text-gray-400 shrink-0" />
-                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate">{row.feedbackType || "N/A"}</p>
+                              <p className="text-sm font-medium text-gray-800  dark:text-gray-200 truncate">{row.feedbackType || "N/A"}</p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-3">
                               <Badge variant={midGiven ? "success" : "danger"} size="sm">
@@ -140,7 +140,7 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
                   )}
                   {isExpanded && sem.rows.length === 0 && (
                     <div className="px-4 pb-4">
-                      <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500 text-center py-2">No courses found</p>
+                      <p className="text-sm text-gray-400  dark:text-gray-500 text-center py-2">No courses found</p>
                     </div>
                   )}
                 </Card>

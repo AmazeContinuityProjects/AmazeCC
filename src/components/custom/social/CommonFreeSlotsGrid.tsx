@@ -188,15 +188,15 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
     };
 
     const headerClass =
-        "border px-1 py-1 bg-[#eef2ff] dark:bg-[#071925] midnight:bg-[#04070a] min-w-[100px] text-[11px]";
+        "border px-1 py-1 bg-[#eef2ff]  dark:bg-[#04070a] min-w-[100px] text-[11px]";
     const lunchHeaderClass =
-        "border px-1 py-1 bg-gray-300 dark:bg-[#162029] midnight:bg-[#0b1a22] min-w-[100px] text-[11px] font-semibold";
+        "border px-1 py-1 bg-gray-300  dark:bg-[#0b1a22] min-w-[100px] text-[11px] font-semibold";
     const cellBase =
         "border px-2 py-1 min-w-[100px] h-[56px] text-[12px] relative group";
 
     return (
         <div className="overflow-x-auto mt-3 w-full animate-fadeIn">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-2">
+            <h2 className="text-lg font-semibold text-gray-800  dark:text-gray-100 mb-2">
                 Common Free Slots
             </h2>
             <div className="flex gap-4 mb-3 text-xs font-medium">
@@ -207,7 +207,7 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
             <table data-scrollable className="border-collapse w-full text-center">
                 <thead>
                     <tr>
-                        <th className="border px-3 py-2 bg-gray-200 dark:bg-gray-800 midnight:bg-black">
+                        <th className="border px-3 py-2 bg-gray-200  dark:bg-black">
                             DAY
                         </th>
 
@@ -240,16 +240,16 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
                 <tbody>
                     {days.map((day) => (
                         <tr key={day}>
-                            <td className="border font-semibold bg-gray-100 dark:bg-[#07101a] midnight:bg-[#020409]">
+                            <td className="border font-semibold bg-gray-100  dark:bg-[#020409]">
                                 {day}
                             </td>
 
                             {beforeLunch.map((p, i) => {
                                 const { slotLabel, busyCount, freeCount, totalPeople, busyNames, freeNames } = buildCell(day, p);
-                                let colorClass = "bg-white dark:bg-[#061017] midnight:bg-[#030507]";
-                                if (freeCount === totalPeople) colorClass = "bg-green-200 dark:bg-green-900/40 midnight:bg-green-900/40 text-green-900 dark:text-green-100";
-                                else if (freeCount === 0) colorClass = "bg-red-200 dark:bg-red-900/40 midnight:bg-red-900/40 text-red-900 dark:text-red-100";
-                                else colorClass = "bg-yellow-200 dark:bg-yellow-900/40 midnight:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100";
+                                let colorClass = "bg-white  dark:bg-[#030507]";
+                                if (freeCount === totalPeople) colorClass = "bg-green-200  dark:bg-green-900/40 text-green-900 dark:text-green-100";
+                                else if (freeCount === 0) colorClass = "bg-red-200  dark:bg-red-900/40 text-red-900 dark:text-red-100";
+                                else colorClass = "bg-yellow-200  dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100";
 
                                 const isActive = activeCell === `${day}-${slotLabel}`;
 
@@ -276,10 +276,10 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
 
                             {afterLunch.map((p, i) => {
                                 const { slotLabel, busyCount, freeCount, totalPeople, busyNames, freeNames } = buildCell(day, p);
-                                let colorClass = "bg-white dark:bg-[#061017] midnight:bg-[#030507]";
-                                if (freeCount === totalPeople) colorClass = "bg-green-200 dark:bg-green-900/40 midnight:bg-green-900/40 text-green-900 dark:text-green-100";
-                                else if (freeCount === 0) colorClass = "bg-red-200 dark:bg-red-900/40 midnight:bg-red-900/40 text-red-900 dark:text-red-100";
-                                else colorClass = "bg-yellow-200 dark:bg-yellow-900/40 midnight:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100";
+                                let colorClass = "bg-white  dark:bg-[#030507]";
+                                if (freeCount === totalPeople) colorClass = "bg-green-200  dark:bg-green-900/40 text-green-900 dark:text-green-100";
+                                else if (freeCount === 0) colorClass = "bg-red-200  dark:bg-red-900/40 text-red-900 dark:text-red-100";
+                                else colorClass = "bg-yellow-200  dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100";
 
                                 const isActive = activeCell === `${day}-${slotLabel}`;
 

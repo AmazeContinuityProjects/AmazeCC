@@ -183,11 +183,10 @@ Input controls for data entry.
  
  ### Structure
  * **Container**:
-   - Uses flat Material-like pastel colors (e.g., `bg-indigo-50/40` in light mode, `bg-indigo-950/20` in dark/midnight mode) to create a soft, clean UI block.
+   - Uses flat Material-like pastel colors (e.g., `bg-indigo-50/40` in light mode, `bg-indigo-950/20` in dark mode) to create a soft, clean UI block.
    - Configured in a **Semi-Pill format** originating from the top (`rounded-b-2xl`) with no gradient overlays to maintain a flat, modern aesthetic.
    - Generously proportioned with custom vertical and horizontal paddings (`py-4.5 px-6`) and a subtle shadow (`shadow-sm`) to stand out.
  * **Layout**:
    - **Metas & Title**: Uses the Display & Heading font (`Outfit`) in `font-black` weight to highlight the primary title (e.g., "Weekly attendance"), paired with inline simulation metrics for immediate feedback.
    - **Action Buttons**: Expanded in size to match the header container (`px-3.5 py-2` padding, `text-[11px] font-extrabold` caps, `w-4 h-4` icons) to maintain balance.
    - **Responsive**: Adapts gracefully to narrower viewports, preserving paddings and layout alignment.
-

@@ -116,7 +116,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {groups.length === 0 ? (
-              <div className="col-span-full py-6 flex flex-col items-center justify-center text-center bg-white/40 dark:bg-slate-900/30 midnight:bg-white/[0.02] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 border-dashed rounded-2xl">
+              <div className="col-span-full py-6 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02] backdrop-blur-2xl border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
                 <p className="text-muted-foreground text-sm">No groups created. Create a group to easily compare schedules for project teams!</p>
               </div>
             ) : (
@@ -165,7 +165,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {friends.length === 0 ? (
-            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-white/40 dark:bg-slate-900/30 midnight:bg-white/[0.02] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 border-dashed rounded-2xl">
+            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02] backdrop-blur-2xl border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
               <Users className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
               <h3 className="text-lg font-bold text-foreground mb-1">
                 No friends added yet

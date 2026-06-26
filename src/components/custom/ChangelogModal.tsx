@@ -32,7 +32,7 @@ export default function ChangelogModal() {
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
+                        className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
                     >
                         {/* Background Decoration */}
                         <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[40px] pointer-events-none" />
@@ -40,7 +40,7 @@ export default function ChangelogModal() {
 
                         <button 
                             onClick={handleClose}
-                            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 midnight:bg-gray-900 midnight:hover:bg-gray-800 rounded-full transition-colors z-10"
+                            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200  dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 rounded-full transition-colors z-10"
                         >
                             <X size={16} />
                         </button>
@@ -50,7 +50,7 @@ export default function ChangelogModal() {
                                 <Sparkles size={20} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white midnight:text-gray-100">
+                                <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100">
                                     What's New!
                                 </h3>
                                 <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
@@ -67,12 +67,12 @@ export default function ChangelogModal() {
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.1 + idx * 0.05 }}
-                                        className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/50 midnight:bg-gray-900/50 border border-gray-100 dark:border-gray-800/80"
+                                        className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/80  dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800/80"
                                     >
                                         <div className="mt-0.5 shrink-0">
                                             <CheckCircle2 size={16} className="text-emerald-500" />
                                         </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300 leading-snug">
+                                        <p className="text-sm text-gray-700  dark:text-gray-300 leading-snug">
                                             {change}
                                         </p>
                                     </motion.div>

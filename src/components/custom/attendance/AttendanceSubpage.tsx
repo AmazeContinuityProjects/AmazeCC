@@ -141,7 +141,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     if (!classes || classes.length === 0) {
         return (
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs text-center py-4">
+            <p className="text-gray-500  dark:text-gray-400 text-xs text-center py-4">
                 No upcoming classes 🎉
             </p>
         );
@@ -196,12 +196,12 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50  dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100  dark:border-gray-800">
                 <div className="flex gap-4">
                     <span className="text-emerald-600 dark:text-emerald-400">Attending: <strong>{attending}</strong></span>
                     <span className="text-red-500 dark:text-red-400">Skipping: <strong>{missed}</strong></span>
                 </div>
-                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-900/30 midnight:text-emerald-400 midnight:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-900/30 midnight:text-red-400 midnight:border-red-800/50"}`}>
+                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200    dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200    dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50"}`}>
                     Predicted: {predictedPercent}%
                 </div>
             </div>
@@ -222,21 +222,21 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                             key={i}
                             onClick={() => toggleAttendance(time)}
                             className={`flex flex-col items-center justify-center rounded-xl border p-2 sm:p-2.5 shadow-sm cursor-pointer select-none transform-gpu transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98] ${
-                                isSkipped ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/50 midnight:bg-red-950 midnight:border-red-900" :
-                                isIgnored ? "bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700 midnight:bg-gray-900 midnight:border-gray-800 opacity-60" :
-                                "bg-white border-gray-200 dark:bg-slate-800 dark:border-gray-700 midnight:bg-gray-950 midnight:border-gray-800"
+                                isSkipped ? "bg-red-50 border-red-200   dark:bg-red-950 dark:border-red-900" :
+                                isIgnored ? "bg-gray-100 border-gray-200   dark:bg-gray-900 dark:border-gray-800 opacity-60" :
+                                "bg-white border-gray-200   dark:bg-gray-950 dark:border-gray-800"
                             }`}
                         >
-                            <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${isSkipped ? "text-red-700 dark:text-red-400 midnight:text-red-400" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-500 midnight:text-red-500" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400"}`}>{weekday}</span>
+                            <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${isSkipped ? "text-red-700  dark:text-red-400" : "text-gray-800  dark:text-gray-200"}`}>{dateStr}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500  dark:text-red-500" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
             </div>
-            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300 dark:bg-slate-800 dark:border-gray-600 midnight:bg-gray-900 midnight:border-gray-700"></div>Attending</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300 dark:bg-red-900/40 dark:border-red-800 midnight:bg-red-900/40 midnight:border-red-800"></div>Skipping</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 midnight:bg-gray-800 midnight:border-gray-700"></div>Ignored</div>
+            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500  dark:text-gray-400">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300   dark:bg-gray-900 dark:border-gray-700"></div>Attending</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300   dark:bg-red-900/40 dark:border-red-800"></div>Skipping</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300   dark:bg-gray-800 dark:border-gray-700"></div>Ignored</div>
             </div>
         </div>
     );
@@ -420,17 +420,17 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
             {/* Badges Row */}
             <div className="flex flex-wrap gap-3 mb-8">
-                <Badge variant="info" className="rounded-lg border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 gap-1.5">
-                    <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {a.slotName}
+                <Badge variant="info" className="rounded-lg border border-blue-100  dark:border-blue-900/40 gap-1.5">
+                    <Calendar className="w-4 h-4 text-blue-500  dark:text-blue-400" /> {a.slotName}
                 </Badge>
-                <Badge variant="purple" className="rounded-lg border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 gap-1.5">
-                    <Building2 className="w-4 h-4 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {a.slotVenue}
+                <Badge variant="purple" className="rounded-lg border border-purple-100  dark:border-purple-900/40 gap-1.5">
+                    <Building2 className="w-4 h-4 text-purple-500  dark:text-purple-400" /> {a.slotVenue}
                 </Badge>
-                <Badge variant="warning" className="rounded-lg border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 gap-1.5">
-                    <Clock className="w-4 h-4 text-orange-500 dark:text-amber-400 midnight:text-amber-400" /> {a.time}
+                <Badge variant="warning" className="rounded-lg border border-amber-100  dark:border-amber-900/40 gap-1.5">
+                    <Clock className="w-4 h-4 text-orange-500  dark:text-amber-400" /> {a.time}
                 </Badge>
-                <Badge variant="success" className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 gap-1.5">
-                    <User className="w-4 h-4 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {a.faculty}
+                <Badge variant="success" className="rounded-lg border border-emerald-100  dark:border-emerald-900/40 gap-1.5">
+                    <User className="w-4 h-4 text-green-500  dark:text-emerald-400" /> {a.faculty}
                 </Badge>
             </div>
 
@@ -440,12 +440,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                 {/* Left Pane (Predictor) - Always Active, flat list */}
                 {hasPredictor && (
                     <div className="lg:col-span-6 w-full">
-                        <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-                            <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-105 midnight:text-gray-105">Interactive Predictor</h2>
-                                <p className="text-sm text-gray-500 midnight:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+                        <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="p-5 border-b border-gray-100  dark:border-gray-800">
+                                <h2 className="text-lg font-bold text-gray-900  dark:text-gray-105">Interactive Predictor</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                             </div>
-                            <div className="p-5 space-y-6 divide-y divide-gray-100 dark:divide-gray-800/80 midnight:divide-gray-800/80">
+                            <div className="p-5 space-y-6 divide-y divide-gray-100  dark:divide-gray-800/80">
                                 {[
                                     { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
                                     { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
@@ -481,19 +481,19 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
                 {/* Right Pane (Attendance Log) */}
                 <div className={`${hasPredictor ? "lg:col-span-6" : "lg:col-span-12"} min-w-0 w-full`}>
-                    <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
+                    <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+                        <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-105 midnight:text-gray-105 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-105 flex items-center gap-2">
                                         Attendance Log
                                         {missingNotesCount > 0 && (
-                                            <Badge variant="danger" className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 font-bold">
+                                            <Badge variant="danger" className="bg-red-100 text-red-600   dark:bg-red-900/30 dark:text-red-400 font-bold">
                                                 {missingNotesCount} Missing Notes
                                             </Badge>
                                         )}
                                     </h2>
-                                    {!hasPredictor && <p className="text-sm text-gray-500 midnight:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
+                                    {!hasPredictor && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
                                 </div>
                                 <ViewModeToggle
                                     options={[
@@ -509,12 +509,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
                             {/* Filters (only in list mode) */}
                             {viewMode === "list" && (
-                                <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
+                                <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
                                     {["All", "Present", "Absent", "On Duty"].map(f => (
                                         <button
                                             key={f}
                                             onClick={() => setFilter(f)}
-                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-105 midnight:text-gray-105 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-105 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
                                         >
                                             {f}
                                         </button>
@@ -575,7 +575,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                 3: "#EAB308", // On Duty (Yellow)
                                             }}
                                         />
-                                        <div className="flex flex-wrap items-center justify-center gap-5 mt-5 text-xs font-semibold text-gray-550 dark:text-gray-400 midnight:text-gray-400">
+                                        <div className="flex flex-wrap items-center justify-center gap-5 mt-5 text-xs font-semibold text-gray-550  dark:text-gray-400">
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
                                                 <span>Present</span>
@@ -592,11 +592,11 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                     </div>
                                 </div>
                             ) : filteredHistory.length === 0 ? (
-                                <div className="p-8 text-center text-gray-550 dark:text-gray-400 midnight:text-gray-400">
+                                <div className="p-8 text-center text-gray-550  dark:text-gray-400">
                                     No records found for "{filter}".
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                                <div className="divide-y divide-gray-100  dark:divide-gray-800">
                                     {filteredHistory.map((d, i) => {
                                         const status = d.status.toLowerCase();
                                         const isPresent = status === "present";
@@ -605,12 +605,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                                         return (
-                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-900/30 transition-colors">
+                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-900/30 transition-colors">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                                     <div>
-                                                        <p className="font-bold text-gray-950 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
-                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400 midnight:text-red-400" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"}`}>
+                                                        <p className="font-bold text-gray-950  dark:text-gray-100">{d.date}</p>
+                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
                                                             {d.status}
                                                         </p>
                                                     </div>
@@ -621,8 +621,8 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                         onClick={() => toggleNotes(d.date)}
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
                                                             hasNotes
-                                                                ? "bg-emerald-55/10 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400"
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
+                                                                ? "bg-emerald-55/10 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={14} /> : <FileText size={14} />}

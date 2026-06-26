@@ -939,9 +939,9 @@ export default function LoginPage() {
       const needAttend = canMiss === 0 && t > 0 ? Math.ceil((0.75 * t - a) / 0.25) : 0;
       const color = pNum >= 80 ? "emerald" : pNum >= 75 ? "amber" : "red";
       const colorClasses = {
-        emerald: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/15 border-emerald-200/50 dark:border-emerald-800/30",
-        amber: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/15 border-amber-200/50 dark:border-amber-800/30",
-        red: "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/15 border-red-200/50 dark:border-red-800/30",
+        emerald: "text-emerald-700 dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/15 border-emerald-200/50 dark:border-emerald-800/30",
+        amber: "text-amber-700 dark:text-amber-400 bg-amber-50  dark:bg-amber-900/15 border-amber-200/50 dark:border-amber-800/30",
+        red: "text-red-700 dark:text-red-400 bg-red-50  dark:bg-red-900/15 border-red-200/50 dark:border-red-800/30",
       }[color];
       const barColor = pNum >= 80 ? "bg-emerald-500" : pNum >= 75 ? "bg-amber-500" : "bg-red-500";
       return (
@@ -949,18 +949,18 @@ export default function LoginPage() {
           <div className="flex items-center gap-3">
             <div className="relative w-12 h-12 shrink-0">
               <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3" className="text-gray-200 dark:text-gray-700 midnight:text-gray-800" />
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3" className="text-gray-200  dark:text-gray-800" />
                 <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray={`${!isNaN(pNum) ? (pNum / 100) * 97.4 : 0} 97.4`} strokeLinecap="round" className={barColor.replace("bg-", "text-")} />
               </svg>
               <span className={`absolute inset-0 flex items-center justify-center text-[11px] font-bold ${color === "red" ? "text-red-600 dark:text-red-400" : color === "amber" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{!isNaN(pNum) ? Math.round(pNum) : "?"}%</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{course.courseTitle}</p>
+              <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{course.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">{course.courseCode}</span>
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">·</span>
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">{course.slotName || course.slotVenue || "—"}</span>
-                {course.faculty && <><span className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">·</span><span className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">{course.faculty}</span></>}
+                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
+                <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
+                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{course.slotName || course.slotVenue || "—"}</span>
+                {course.faculty && <><span className="text-[11px] text-gray-400  dark:text-gray-500">·</span><span className="text-[11px] text-gray-500  dark:text-gray-400 truncate">{course.faculty}</span></>}
               </div>
             </div>
           </div>
@@ -969,18 +969,18 @@ export default function LoginPage() {
               <span className="font-medium">Classes attended</span>
               <span className="font-bold">{a}/{t}</span>
             </div>
-            <div className="mt-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/10 midnight:bg-white/5 overflow-hidden">
+            <div className="mt-1.5 h-1.5 rounded-full bg-black/10  dark:bg-white/5 overflow-hidden">
               <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${!isNaN(pNum) ? Math.min(pNum, 100) : 0}%` }} />
             </div>
           </div>
           {canMiss > 0 && (
-            <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-900/10 midnight:bg-emerald-900/5 px-3 py-2 rounded-xl border border-emerald-200/30 dark:border-emerald-800/20">
+            <div className="flex items-center gap-2 text-xs text-emerald-700  dark:text-emerald-300 bg-emerald-50/50  dark:bg-emerald-900/5 px-3 py-2 rounded-xl border border-emerald-200/30 dark:border-emerald-800/20">
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
               <span className="font-semibold">You can miss {canMiss} more class{canMiss > 1 ? "es" : ""}</span>
             </div>
           )}
           {needAttend > 0 && (
-            <div className="flex items-center gap-2 text-xs text-red-700 dark:text-red-400 midnight:text-red-300 bg-red-50/50 dark:bg-red-900/10 midnight:bg-red-900/5 px-3 py-2 rounded-xl border border-red-200/30 dark:border-red-800/20">
+            <div className="flex items-center gap-2 text-xs text-red-700  dark:text-red-300 bg-red-50/50  dark:bg-red-900/5 px-3 py-2 rounded-xl border border-red-200/30 dark:border-red-800/20">
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
               <span className="font-semibold">Need to attend {needAttend} more to reach 75%</span>
             </div>
@@ -1002,38 +1002,38 @@ export default function LoginPage() {
               <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{course.courseTitle}</p>
+              <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{course.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">{course.courseCode}</span>
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">·</span>
-                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${course.courseType?.toLowerCase().includes("lab") ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 midnight:bg-purple-900/20 midnight:text-purple-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-900/20 midnight:text-blue-400"}`}>{course.courseType || "Theory"}</span>
-                {course.credits && <><span className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">·</span><span className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{course.credits} cr</span></>}
+                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{course.courseCode}</span>
+                <span className="text-[11px] text-gray-400  dark:text-gray-500">·</span>
+                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${course.courseType?.toLowerCase().includes("lab") ? "bg-purple-100 text-purple-700   dark:bg-purple-900/20 dark:text-purple-400" : "bg-blue-100 text-blue-700   dark:bg-blue-900/20 dark:text-blue-400"}`}>{course.courseType || "Theory"}</span>
+                {course.credits && <><span className="text-[11px] text-gray-400  dark:text-gray-500">·</span><span className="text-[11px] text-gray-500  dark:text-gray-400">{course.credits} cr</span></>}
               </div>
             </div>
           </div>
-          <div className="px-3 py-2.5 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+          <div className="px-3 py-2.5 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">Overall Score</span>
+              <span className="font-medium text-gray-500  dark:text-gray-400">Overall Score</span>
               <span className={`font-bold text-sm ${scoreColor === "emerald" ? "text-emerald-600 dark:text-emerald-400" : scoreColor === "amber" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>{totalWeighted.toFixed(1)} / {totalMax.toFixed(0)}</span>
             </div>
-            <div className="h-2 rounded-full bg-black/10 dark:bg-white/10 midnight:bg-white/5 overflow-hidden">
+            <div className="h-2 rounded-full bg-black/10  dark:bg-white/5 overflow-hidden">
               <div className={`h-full rounded-full transition-all ${scoreBar}`} style={{ width: `${Math.min(scorePerc, 100)}%` }} />
             </div>
           </div>
           {assessments.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider">Assessments</span>
-                <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 px-1.5 py-0.5 rounded-full">{assessments.length}</span>
+                <span className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">Assessments</span>
+                <span className="text-[10px] font-medium text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900 px-1.5 py-0.5 rounded-full">{assessments.length}</span>
               </div>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {assessments.map((a: any, i: number) => {
                   const aPerc = a.maxMark ? (parseFloat(a.scoredMark || "0") / parseFloat(a.maxMark)) * 100 : 0;
                   const aColor = aPerc >= 80 ? "emerald" : aPerc >= 60 ? "amber" : "red";
                   return (
-                    <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800/60 midnight:bg-gray-900/60 border border-gray-100 dark:border-gray-700/30 midnight:border-gray-800/30">
+                    <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg bg-white  dark:bg-gray-900/60 border border-gray-100  dark:border-gray-800/30">
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${aColor === "emerald" ? "bg-emerald-500" : aColor === "amber" ? "bg-amber-500" : "bg-red-500"}`} />
-                      <span className="flex-1 text-[11px] text-gray-700 dark:text-gray-300 midnight:text-gray-300 truncate">{a.name || `Assessment ${i + 1}`}</span>
+                      <span className="flex-1 text-[11px] text-gray-700  dark:text-gray-300 truncate">{a.name || `Assessment ${i + 1}`}</span>
                       <span className={`text-[11px] font-bold shrink-0 ${aColor === "emerald" ? "text-emerald-600 dark:text-emerald-400" : aColor === "amber" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>{a.scoredMark || "?"}/{a.maxMark || "?"}</span>
                     </div>
                   );
@@ -1046,13 +1046,13 @@ export default function LoginPage() {
     };
     const gradeDetail = (g: any) => {
       const gradeColors: Record<string, string> = {
-        S: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 midnight:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/30",
-        A: "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/20 border-blue-200/50 dark:border-blue-800/30",
-        B: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 midnight:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30",
-        C: "text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 midnight:bg-orange-900/20 border-orange-200/50 dark:border-orange-800/30",
-        D: "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 midnight:bg-red-900/20 border-red-200/50 dark:border-red-800/30",
-        F: "text-red-800 dark:text-red-300 bg-red-100 dark:bg-red-900/40 midnight:bg-red-900/30 border-red-300/50 dark:border-red-800/40",
-        N: "text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 midnight:bg-gray-800/40 border-gray-300/50 dark:border-gray-700/30",
+        S: "text-emerald-700 dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/30",
+        A: "text-blue-700 dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-800/30",
+        B: "text-amber-700 dark:text-amber-400 bg-amber-50  dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30",
+        C: "text-orange-700 dark:text-orange-400 bg-orange-50  dark:bg-orange-900/20 border-orange-200/50 dark:border-orange-800/30",
+        D: "text-red-700 dark:text-red-400 bg-red-50  dark:bg-red-900/20 border-red-200/50 dark:border-red-800/30",
+        F: "text-red-800 dark:text-red-300 bg-red-100  dark:bg-red-900/30 border-red-300/50 dark:border-red-800/40",
+        N: "text-gray-700 dark:text-gray-400 bg-gray-100  dark:bg-gray-800/40 border-gray-300/50 dark:border-gray-700/30",
       };
       const gc = gradeColors[g.grade] || gradeColors.N;
       return (
@@ -1062,21 +1062,21 @@ export default function LoginPage() {
               {g.grade || "?"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{g.courseTitle}</p>
+              <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{g.courseTitle}</p>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">{g.courseCode}</span>
-                {g.courseType && <><span className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">·</span><span className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{g.courseType}</span></>}
+                <span className="text-[11px] font-medium text-gray-500  dark:text-gray-400">{g.courseCode}</span>
+                {g.courseType && <><span className="text-[11px] text-gray-400  dark:text-gray-500">·</span><span className="text-[11px] text-gray-500  dark:text-gray-400">{g.courseType}</span></>}
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800/60 midnight:bg-gray-900/60 border border-gray-100 dark:border-gray-700/30 midnight:border-gray-800/30">
-              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wide">Grade</p>
+            <div className="px-3 py-2 rounded-xl bg-white  dark:bg-gray-900/60 border border-gray-100  dark:border-gray-800/30">
+              <p className="text-[10px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Grade</p>
               <p className={`text-lg font-black mt-0.5 ${gc.split(" ")[0]}`}>{g.grade || "N/A"}</p>
             </div>
-            <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800/60 midnight:bg-gray-900/60 border border-gray-100 dark:border-gray-700/30 midnight:border-gray-800/30">
-              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wide">Total</p>
-              <p className="text-lg font-black mt-0.5 text-gray-900 dark:text-gray-100 midnight:text-white">{g.grandTotal || "—"}</p>
+            <div className="px-3 py-2 rounded-xl bg-white  dark:bg-gray-900/60 border border-gray-100  dark:border-gray-800/30">
+              <p className="text-[10px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wide">Total</p>
+              <p className="text-lg font-black mt-0.5 text-gray-900  dark:text-white">{g.grandTotal || "—"}</p>
             </div>
           </div>
         </div>
@@ -1175,7 +1175,7 @@ export default function LoginPage() {
           ? (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on")
           : (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on"),
         icon, category: `Settings`,
-        rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${current ? "text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800"}`}>{current ? "ON" : "OFF"}</span>,
+        rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${current ? "text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20" : "text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-800"}`}>{current ? "ON" : "OFF"}</span>,
         onSelect: () => {
           const newVal = !current as any;
           setSettings(prev => ({ ...prev, [key]: newVal }));
@@ -1196,7 +1196,7 @@ export default function LoginPage() {
         description: settings.attendancePercentageOrString === mode ? "Currently active" : "Switch to this display mode",
         icon: mode === "percentage" ? "📊" : "📏",
         category: "Settings",
-        rightSlot: settings.attendancePercentageOrString === mode ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        rightSlot: settings.attendancePercentageOrString === mode ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
           setSettings(prev => ({ ...prev, attendancePercentageOrString: mode as "percentage" | "str" }));
           localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: mode }));
@@ -1212,7 +1212,7 @@ export default function LoginPage() {
         description: settings.residentialStatus === status ? "Currently set" : "Switch to this residential status",
         icon: status === "hosteller" ? "🏠" : "🚶",
         category: "Settings",
-        rightSlot: settings.residentialStatus === status ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        rightSlot: settings.residentialStatus === status ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
           setSettings(prev => ({ ...prev, residentialStatus: status as "hosteller" | "dayscholar" }));
           localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: status }));
@@ -1229,7 +1229,7 @@ export default function LoginPage() {
         description: settings.calendarType === ct ? "Currently selected" : "Switch to this calendar type",
         icon: "📅",
         category: "Settings",
-        rightSlot: settings.calendarType === ct ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+        rightSlot: settings.calendarType === ct ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
           setSettings(prev => ({ ...prev, calendarType: ct as any }));
           localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: ct }));
@@ -1247,7 +1247,7 @@ export default function LoginPage() {
           description: settings.currSemesterID === sem ? "Currently active" : "Switch to this semester",
           icon: "📖",
           category: "Settings",
-          rightSlot: settings.currSemesterID === sem ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">Active</span> : undefined,
+          rightSlot: settings.currSemesterID === sem ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
           onSelect: () => {
             setSettings(prev => ({ ...prev, currSemesterID: sem }));
             localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: sem }));
@@ -1270,7 +1270,7 @@ export default function LoginPage() {
         if (total > 0 && attended > 0) {
           canMiss = Math.max(0, Math.floor((attended - 0.75 * total) / 0.75));
         }
-        const percColor = percNum >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : percNum >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+        const percColor = percNum >= 80 ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : percNum >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
         result.push({
           id: `course-att-${code}-${idx}`,
           label: `Att: ${shortName} (${code})`,
@@ -1287,7 +1287,7 @@ export default function LoginPage() {
         for (let miss = 1; miss <= maxMiss; miss++) {
           const newPerc = total > 0 ? (attended / (total + miss) * 100) : 0;
           const newPercStr = newPerc.toFixed(1);
-          const newColor = newPerc >= 75 ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+          const newColor = newPerc >= 75 ? "text-blue-600 dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
           result.push({
             id: `course-miss-${code}-${miss}`,
             label: `Miss ${miss} class${miss > 1 ? "es" : ""} in ${shortName}`,
@@ -1308,7 +1308,7 @@ export default function LoginPage() {
             description: `To reach 75% · Currently ${percStr}%`,
             icon: "📈",
             category: `What-If · Attendance`,
-            rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20">🎯 75%</span>,
+            rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20">🎯 75%</span>,
             onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
           });
         }
@@ -1321,7 +1321,7 @@ export default function LoginPage() {
       const below75 = attendanceData.attendance.filter(c => {
         const a = c.attendedClasses || 0; const t = c.totalClasses || 0; return t > 0 && (a / t) < 0.75;
       });
-      const overallColor = parseFloat(overallPerc) >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : parseFloat(overallPerc) >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+      const overallColor = parseFloat(overallPerc) >= 80 ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : parseFloat(overallPerc) >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
       result.push({
         id: "att-summary",
         label: "📊 Attendance Summary",
@@ -1339,7 +1339,7 @@ export default function LoginPage() {
           description: `${a}/${t} classes`,
           icon: "🔴",
           category: "⚠️ Courses Below 75%",
-          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20">{p}%</span>,
+          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20">{p}%</span>,
           onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
         });
       });
@@ -1355,7 +1355,7 @@ export default function LoginPage() {
         const totalWeighted = assessments.reduce((s: number, a: any) => s + parseFloat(a.weightageMark || "0"), 0);
         const totalMax = assessments.reduce((s: number, a: any) => s + parseFloat(a.weightagePercent || "0"), 0);
         const scorePerc = totalMax > 0 ? ((totalWeighted / totalMax) * 100) : 0;
-        const scoreColor = scorePerc >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : scorePerc >= 60 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20";
+        const scoreColor = scorePerc >= 80 ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : scorePerc >= 60 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
         result.push({
           id: `course-mark-${course.courseCode}-${idx}`,
           label: `Mark: ${shortName} (${course.courseCode})`,
@@ -1375,7 +1375,7 @@ export default function LoginPage() {
         if (!semData?.grades) return;
         semData.grades.forEach((g: any, idx: number) => {
           const grade = g.grade || "?";
-          const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 midnight:bg-gray-800";
+          const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50  dark:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50  dark:bg-gray-800";
           result.push({
             id: `grade-${semester}-${g.courseCode}-${idx}`,
             label: `Grade: ${g.courseTitle} (${g.courseCode})`,
@@ -1394,7 +1394,7 @@ export default function LoginPage() {
     if ((GradesData as any)?.courses) {
       (GradesData as any).courses.forEach((g: any, idx: number) => {
         const grade = g.grade || "?";
-        const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 midnight:bg-gray-800";
+        const gradeColor = grade === "S" ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : grade === "A" ? "text-blue-600 dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20" : grade === "B" ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : grade === "C" ? "text-orange-600 dark:text-orange-400 bg-orange-50  dark:bg-orange-900/20" : grade === "F" || grade === "N" ? "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20" : "text-gray-600 dark:text-gray-400 bg-gray-50  dark:bg-gray-800";
         result.push({
           id: `cur-grade-${g.courseCode}-${idx}`,
           label: `Current Grade: ${g.courseTitle} (${g.courseCode})`,
@@ -1430,40 +1430,40 @@ export default function LoginPage() {
                     <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{exam.courseTitle}</p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{exam.courseCode}</p>
+                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{exam.courseTitle}</p>
+                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{exam.courseCode}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {exam.examDate && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50 dark:bg-violet-900/20 midnight:bg-violet-900/10 text-violet-700 dark:text-violet-400 midnight:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                       {exam.examDate}
                     </span>
                   )}
                   {exam.examSession && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${exam.examSession?.toLowerCase().includes("fn") ? "bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 text-blue-700 dark:text-blue-400 midnight:text-blue-300 border-blue-200/50 dark:border-blue-800/30"}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${exam.examSession?.toLowerCase().includes("fn") ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30"}`}>
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                       {exam.examSession}
                     </span>
                   )}
                   {exam.venue && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-900/20 midnight:bg-rose-900/10 text-rose-700 dark:text-rose-400 midnight:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                       {exam.venue}
                     </span>
                   )}
                   {exam.seatNo && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /><path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" /></svg>
                       Seat: {exam.seatNo}
                     </span>
                   )}
                 </div>
                 {exam.examTime && (
-                  <div className="px-3 py-2 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30 flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">Exam Time</span>
-                    <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-white">{exam.examTime}</span>
+                  <div className="px-3 py-2 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30 flex items-center justify-between text-xs">
+                    <span className="text-gray-500  dark:text-gray-400 font-medium">Exam Time</span>
+                    <span className="font-bold text-gray-900  dark:text-white">{exam.examTime}</span>
                   </div>
                 )}
               </div>
@@ -1495,21 +1495,21 @@ export default function LoginPage() {
                       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{ev.text}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{ev.type || "Event"}</p>
+                      <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{ev.text}</p>
+                      <p className="text-[11px] text-gray-500  dark:text-gray-400">{ev.type || "Event"}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50 dark:bg-violet-900/20 midnight:bg-violet-900/10 text-violet-700 dark:text-violet-400 midnight:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-violet-50  dark:bg-violet-900/10 text-violet-700  dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                       {day.date} {month.month} {month.year || ""}
                     </span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${ev.type === "Holiday" ? "bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : ev.type === "Instructional Day" ? "bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 text-blue-700 dark:text-blue-400 midnight:text-blue-300 border-blue-200/50 dark:border-blue-800/30" : "bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/10 text-purple-700 dark:text-purple-400 midnight:text-purple-300 border-purple-200/50 dark:border-purple-800/30"}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${ev.type === "Holiday" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : ev.type === "Instructional Day" ? "bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border-blue-200/50 dark:border-blue-800/30" : "bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border-purple-200/50 dark:border-purple-800/30"}`}>
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
                       {ev.type || "N/A"}
                     </span>
                     {ev.category && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" /><path d="M3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" /><path d="M14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" /></svg>
                         {ev.category}
                       </span>
@@ -1541,25 +1541,25 @@ export default function LoginPage() {
                   <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{hData.blockName || "Hostel"}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">Room {hData.roomNo || "N/A"}</p>
+                  <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{hData.blockName || "Hostel"}</p>
+                  <p className="text-[11px] text-gray-500  dark:text-gray-400">Room {hData.roomNo || "N/A"}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {hData.blockName && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" /></svg>
                     {hData.blockName}
                   </span>
                 )}
                 {hData.roomNo && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /><path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" /></svg>
                     Room {hData.roomNo}
                   </span>
                 )}
                 {hData.messInfo && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
                     {hData.messInfo}
                   </span>
@@ -1587,35 +1587,35 @@ export default function LoginPage() {
                       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{l.reason || l.visitPlace || "Leave"}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{l.from || ""} → {l.to || ""}</p>
+                      <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{l.reason || l.visitPlace || "Leave"}</p>
+                      <p className="text-[11px] text-gray-500  dark:text-gray-400">{l.from || ""} → {l.to || ""}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {l.reason && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
                         {l.reason}
                       </span>
                     )}
                     {l.visitPlace && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50 dark:bg-rose-900/20 midnight:bg-rose-900/10 text-rose-700 dark:text-rose-400 midnight:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-rose-50  dark:bg-rose-900/10 text-rose-700  dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                         {l.visitPlace}
                       </span>
                     )}
                     {l.status && (
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${l.status === "Approved" ? "bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : l.status === "Pending" ? "bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-700 dark:text-red-400 midnight:text-red-300 border-red-200/50 dark:border-red-800/30"}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${l.status === "Approved" ? "bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/30" : l.status === "Pending" ? "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}>
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                         {l.status}
                       </span>
                     )}
                   </div>
                   {(l.from || l.to) && (
-                    <div className="px-3 py-2 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30 text-xs">
+                    <div className="px-3 py-2 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">Duration</span>
-                        <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-white">{l.from || ""} → {l.to || ""}</span>
+                        <span className="text-gray-500  dark:text-gray-400 font-medium">Duration</span>
+                        <span className="font-bold text-gray-900  dark:text-white">{l.from || ""} → {l.to || ""}</span>
                       </div>
                     </div>
                   )}
@@ -1639,7 +1639,7 @@ export default function LoginPage() {
           description: `${completed.length} completed · ${moodleData.length} total`,
           icon: "📚",
           category: "LMS · Assignments",
-          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 midnight:text-orange-300 bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/20">{pending.length}</span>,
+          rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-orange-600  dark:text-orange-300 bg-orange-50  dark:bg-orange-900/20">{pending.length}</span>,
           onSelect: () => {}
         });
       }
@@ -1653,7 +1653,7 @@ export default function LoginPage() {
           description: `${courseCode} · Due: ${a.due || "N/A"}`,
           icon: a.done ? "✅" : "📝",
           category: `LMS · ${a.done ? "Completed" : "Pending"}`,
-          rightSlot: a.due ? <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${a.done ? "text-green-600 dark:text-green-400 midnight:text-green-300 bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/20" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 midnight:bg-yellow-900/20"}`}>{a.due}</span> : undefined,
+          rightSlot: a.due ? <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${a.done ? "text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20" : "text-yellow-600  dark:text-yellow-300 bg-yellow-50  dark:bg-yellow-900/20"}`}>{a.due}</span> : undefined,
           detail: (
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
@@ -1661,32 +1661,32 @@ export default function LoginPage() {
                   <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{shortName}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{courseCode || ""}</p>
+                  <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{shortName}</p>
+                  <p className="text-[11px] text-gray-500  dark:text-gray-400">{courseCode || ""}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {courseCode && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 text-blue-700 dark:text-blue-400 midnight:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" /></svg>
                     {courseCode}
                   </span>
                 )}
                 {a.due && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/10 text-green-700 dark:text-green-400 midnight:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border-amber-200/50 dark:border-amber-800/30"}`}>
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border-amber-200/50 dark:border-amber-800/30"}`}>
                     <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                     Due: {a.due}
                   </span>
                 )}
-                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/10 text-green-700 dark:text-green-400 midnight:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-orange-50 dark:bg-orange-900/20 midnight:bg-orange-900/10 text-orange-700 dark:text-orange-400 midnight:text-orange-300 border-orange-200/50 dark:border-orange-800/30"}`}>
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${a.done ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-orange-50  dark:bg-orange-900/10 text-orange-700  dark:text-orange-300 border-orange-200/50 dark:border-orange-800/30"}`}>
                   <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                   {a.done ? "Completed" : "Pending"}
                 </span>
               </div>
               {a.teachers?.length > 0 && (
-                <div className="px-3 py-2 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30 flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">Faculty</span>
-                  <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-white text-right truncate max-w-[60%]">{a.teachers.join(", ")}</span>
+                <div className="px-3 py-2 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30 flex items-center justify-between text-xs">
+                  <span className="text-gray-500  dark:text-gray-400 font-medium">Faculty</span>
+                  <span className="font-bold text-gray-900  dark:text-white text-right truncate max-w-[60%]">{a.teachers.join(", ")}</span>
                 </div>
               )}
             </div>
@@ -1732,23 +1732,23 @@ export default function LoginPage() {
                         <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd" /></svg>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{desc || type || "Library charge"}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{type || "N/A"}</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{desc || type || "Library charge"}</p>
+                        <p className="text-[11px] text-gray-500  dark:text-gray-400">{type || "N/A"}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/20 midnight:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50  dark:bg-indigo-900/10 text-indigo-700  dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                         ₹{parseFloat(amount || "0").toFixed(2)}
                       </span>
                       {outstanding && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${paidOff ? "bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/10 text-green-700 dark:text-green-400 midnight:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-700 dark:text-red-400 midnight:text-red-300 border-red-200/50 dark:border-red-800/30"}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border ${paidOff ? "bg-green-50  dark:bg-green-900/10 text-green-700  dark:text-green-300 border-green-200/50 dark:border-green-800/30" : "bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border-red-200/50 dark:border-red-800/30"}`}>
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
                           O/s: ₹{parseFloat(outstanding).toFixed(2)}
                         </span>
                       )}
                       {created && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
                           {created}
                         </span>
@@ -1785,25 +1785,25 @@ export default function LoginPage() {
                         <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{title}</p>
-                        {author && <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">by {author}</p>}
+                        <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{title}</p>
+                        {author && <p className="text-[11px] text-gray-500  dark:text-gray-400 truncate">by {author}</p>}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {callNo && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /><path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" /></svg>
                           {callNo}
                         </span>
                       )}
                       {itemType && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/10 text-purple-700 dark:text-purple-400 midnight:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" /></svg>
                           {itemType}
                         </span>
                       )}
                       {date && !date.includes("Check-in") && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                           <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                           {date}
                         </span>
@@ -1850,24 +1850,24 @@ export default function LoginPage() {
                       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{b.title || "Unknown"}</p>
-                      {b.author && <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">by {b.author}</p>}
+                      <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{b.title || "Unknown"}</p>
+                      {b.author && <p className="text-[11px] text-gray-500  dark:text-gray-400 truncate">by {b.author}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {b.isbn && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /><path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" /></svg>
                         ISBN: {b.isbn}
                       </span>
                     )}
                     {b.daysOverdue && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-700 dark:text-red-400 midnight:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                         {b.daysOverdue} days overdue
                       </span>
                     )}
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-700 dark:text-red-400 midnight:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50  dark:bg-red-900/10 text-red-700  dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                       ₹{parseFloat(b.dueAmount || "0").toFixed(2)}
                     </span>
@@ -1900,31 +1900,31 @@ export default function LoginPage() {
                     <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{p.name || p.regNo}</p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{p.regNo}</p>
+                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{p.name || p.regNo}</p>
+                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{p.regNo}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {p.email && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-cyan-50 dark:bg-cyan-900/20 midnight:bg-cyan-900/10 text-cyan-700 dark:text-cyan-400 midnight:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-cyan-50  dark:bg-cyan-900/10 text-cyan-700  dark:text-cyan-300 border border-cyan-200/50 dark:border-cyan-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>
                       {p.email}
                     </span>
                   )}
                   {p.mobile && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50  dark:bg-emerald-900/10 text-emerald-700  dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                       {p.mobile}
                     </span>
                   )}
                   {p.program && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50 dark:bg-purple-900/20 midnight:bg-purple-900/10 text-purple-700 dark:text-purple-400 midnight:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-purple-50  dark:bg-purple-900/10 text-purple-700  dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" /></svg>
                       {p.program}
                     </span>
                   )}
                   {p.campus && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 midnight:bg-amber-900/10 text-amber-700 dark:text-amber-400 midnight:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-amber-50  dark:bg-amber-900/10 text-amber-700  dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
                       <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                       {p.campus}
                     </span>
@@ -1962,28 +1962,28 @@ export default function LoginPage() {
                       <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" /></svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white truncate">{label}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">{b.timing || ""}</p>
+                      <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{label}</p>
+                      <p className="text-[11px] text-gray-500  dark:text-gray-400">{b.timing || ""}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {b.startPoint && b.endPoint && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 text-blue-700 dark:text-blue-400 midnight:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-50  dark:bg-blue-900/10 text-blue-700  dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                         {b.startPoint} → {b.endPoint}
                       </span>
                     )}
                     {b.timing && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-gray-600 dark:text-gray-400 midnight:text-gray-400 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100  dark:bg-gray-900 text-gray-600  dark:text-gray-400 border border-gray-200/50  dark:border-gray-800/30">
                         <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                         {b.timing}
                       </span>
                     )}
                   </div>
                   {b.stops?.length > 0 && (
-                    <div className="px-3 py-2 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
-                      <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1">Stops</p>
-                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-white">{b.stops.join(" · ")}</p>
+                    <div className="px-3 py-2 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
+                      <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1">Stops</p>
+                      <p className="text-xs font-medium text-gray-900  dark:text-white">{b.stops.join(" · ")}</p>
                     </div>
                   )}
                 </div>
@@ -2023,16 +2023,16 @@ export default function LoginPage() {
         description: book.author ? `by ${book.author}${book.publisher ? " · " + book.publisher : ""}` : book.publisher || "",
         icon: "📖",
         category: "📚 Library Catalog",
-        rightSlot: book.isbn ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 midnight:text-blue-300 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/20">ISBN</span> : undefined,
+        rightSlot: book.isbn ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-blue-600  dark:text-blue-300 bg-blue-50  dark:bg-blue-900/20">ISBN</span> : undefined,
         detail: (
-          <div className="flex gap-3 text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+          <div className="flex gap-3 text-xs text-gray-600  dark:text-gray-400">
             {book.coverUrl && (
-              <div className="shrink-0 w-20 h-28 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900">
+              <div className="shrink-0 w-20 h-28 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900">
                 <img src={book.coverUrl} alt="" className="w-full h-full object-cover" />
               </div>
             )}
             <div className="flex-1 min-w-0 space-y-1.5">
-              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">{book.title}</p>
+              <p className="font-semibold text-sm text-gray-900  dark:text-gray-100 leading-tight">{book.title}</p>
               {book.author && <p className="italic">by {book.author}</p>}
               {book.publisher && <p className="truncate">{book.publisher}</p>}
               {book.isbn && <p>ISBN: {book.isbn}</p>}
@@ -2048,7 +2048,7 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 midnight:bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50  dark:bg-black">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent border-gray-500"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading app...</p>
@@ -2059,7 +2059,7 @@ export default function LoginPage() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 dark:bg-gray-900 midnight:bg-black flex flex-col text-gray-900 dark:text-gray-100 midnight:text-gray-100 transition-colors"
+      className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
     >
       {isAPIworking && !isOffline && (
         <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
@@ -2205,14 +2205,14 @@ function EventPreviewCard({ eid, username, password }: { eid: string; username: 
     }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; controller.abort(); };
   }, [eid, username, password]);
-  if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 animate-pulse" />;
+  if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100  dark:bg-gray-900 animate-pulse" />;
   if (!data?.imageSrc) return null;
   return (
     <div className="space-y-2">
       <img src={data.imageSrc} alt="" className="w-full h-28 object-cover rounded-xl" />
-      {data.description && <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">{data.description}</p>}
+      {data.description && <p className="text-xs font-medium text-gray-900  dark:text-gray-100">{data.description}</p>}
       {data.metaDetails && Object.entries(data.metaDetails).map(([k, v]) => (
-        <p key={k} className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
+        <p key={k} className="text-xs text-gray-600  dark:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
       ))}
     </div>
   );

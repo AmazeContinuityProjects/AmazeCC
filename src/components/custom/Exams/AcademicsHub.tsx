@@ -24,88 +24,88 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       title: "Grade History",
       description: "Analyze your academic performance and past grades.",
       icon: History,
-      color: "text-purple-600 dark:text-purple-400 midnight:text-purple-400",
-      bg: "bg-purple-100 dark:bg-purple-900/30 midnight:bg-purple-900/20",
+      color: "text-purple-600  dark:text-purple-400",
+      bg: "bg-purple-100  dark:bg-purple-900/20",
     },
     {
       id: "curriculum",
       title: "Curriculum",
       description: "Track your completed courses and credit requirements.",
       icon: BookOpen,
-      color: "text-green-600 dark:text-green-400 midnight:text-green-400",
-      bg: "bg-green-100 dark:bg-green-900/30 midnight:bg-green-900/20",
+      color: "text-green-600  dark:text-green-400",
+      bg: "bg-green-100  dark:bg-green-900/20",
     },
     {
       id: "predictor",
       title: "CGPA Predictor",
       description: "Estimate your future CGPA based on expected grades.",
       icon: TrendingUp,
-      color: "text-orange-600 dark:text-orange-400 midnight:text-orange-400",
-      bg: "bg-orange-100 dark:bg-orange-900/30 midnight:bg-orange-900/20",
+      color: "text-orange-600  dark:text-orange-400",
+      bg: "bg-orange-100  dark:bg-orange-900/20",
     },
     {
       id: "qbank",
       title: "Question Bank",
       description: "Access and search past year question papers.",
       icon: Database,
-      color: "text-red-600 dark:text-red-400 midnight:text-red-400",
-      bg: "bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/20",
+      color: "text-red-600  dark:text-red-400",
+      bg: "bg-red-100  dark:bg-red-900/20",
     },
     {
       id: "arrear",
       title: "Arrear Management",
       description: "View arrear schedule, details and grades.",
       icon: AlertTriangle,
-      color: "text-amber-600 dark:text-amber-400 midnight:text-amber-400",
-      bg: "bg-amber-100 dark:bg-amber-900/30 midnight:bg-amber-900/20",
+      color: "text-amber-600  dark:text-amber-400",
+      bg: "bg-amber-100  dark:bg-amber-900/20",
     },
     {
       id: "makeup-compre",
       title: "Makeup & Compre",
       description: "Makeup exam eligibility, schedule and compre info.",
       icon: GraduationCap,
-      color: "text-cyan-600 dark:text-cyan-400 midnight:text-cyan-400",
-      bg: "bg-cyan-100 dark:bg-cyan-900/30 midnight:bg-cyan-900/20",
+      color: "text-cyan-600  dark:text-cyan-400",
+      bg: "bg-cyan-100  dark:bg-cyan-900/20",
     },
     {
       id: "course-mgmt",
       title: "Course Management",
       description: "Course options, extracurriculars, minor/honour courses.",
       icon: ScrollText,
-      color: "text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400",
-      bg: "bg-indigo-100 dark:bg-indigo-900/30 midnight:bg-indigo-900/20",
+      color: "text-indigo-600  dark:text-indigo-400",
+      bg: "bg-indigo-100  dark:bg-indigo-900/20",
     },
     {
       id: "projects",
       title: "Projects",
       description: "View your projects and project courses.",
       icon: FileCode,
-      color: "text-rose-600 dark:text-rose-400 midnight:text-rose-400",
-      bg: "bg-rose-100 dark:bg-rose-900/30 midnight:bg-rose-900/20",
+      color: "text-rose-600  dark:text-rose-400",
+      bg: "bg-rose-100  dark:bg-rose-900/20",
     },
     {
       id: "wishlist",
       title: "Wishlist & Learning",
       description: "Wishlist, registration and additional learning courses.",
       icon: BookMarked,
-      color: "text-teal-600 dark:text-teal-400 midnight:text-teal-400",
-      bg: "bg-teal-100 dark:bg-teal-900/30 midnight:bg-teal-900/20",
+      color: "text-teal-600  dark:text-teal-400",
+      bg: "bg-teal-100  dark:bg-teal-900/20",
     },
     {
       id: "faculty-info",
       title: "Faculty Info",
       description: "Search and view faculty contact details.",
       icon: UserCheck,
-      color: "text-sky-600 dark:text-sky-400 midnight:text-sky-400",
-      bg: "bg-sky-100 dark:bg-sky-900/30 midnight:bg-sky-900/20",
+      color: "text-sky-600  dark:text-sky-400",
+      bg: "bg-sky-100  dark:bg-sky-900/20",
     },
     {
       id: "qcm-view",
       title: "QCM View",
       description: "Quality Circle Meeting records and feedback.",
       icon: ScrollText,
-      color: "text-violet-600 dark:text-violet-400 midnight:text-violet-400",
-      bg: "bg-violet-100 dark:bg-violet-900/30 midnight:bg-violet-900/20",
+      color: "text-violet-600  dark:text-violet-400",
+      bg: "bg-violet-100  dark:bg-violet-900/20",
     },
   ];
 
@@ -201,7 +201,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       <PageHeader
         icon={<GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
         title="Academics Hub"
-        meta={<Badge variant="default" className="rounded-xl border border-gray-200 font-semibold dark:border-gray-700 midnight:border-gray-800">Student OS</Badge>}
+        meta={<Badge variant="default" className="rounded-xl border border-gray-200 font-semibold  dark:border-gray-800">Student OS</Badge>}
         actions={
           <button
             onClick={() => setActiveSubTab("course-dashboard")}
@@ -213,7 +213,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       />
 
       {savedGoal && (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20 midnight:border-blue-900/50 midnight:bg-blue-950/20">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
               <Trophy className="w-5 h-5" />
@@ -229,7 +229,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <button
           onClick={() => { setActiveSubTab("course-dashboard"); window.scrollTo(0, 0); }}
-          className="group rounded-2xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/70 midnight:border-gray-800 midnight:bg-black"
+          className="group rounded-2xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-gray-800/70 dark:border-gray-800 dark:bg-black"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -254,13 +254,13 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-blue-600 dark:text-blue-400"],
             ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-600 dark:text-purple-400"],
           ].map(([label, value, Icon, color]: any) => (
-            <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black">
+            <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm   dark:border-gray-800 dark:bg-black">
               <Icon className={`h-4 w-4 ${color}`} />
               <p className={`mt-3 text-2xl font-black ${color}`}>{value}</p>
               <p className="mt-1 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
             </div>
           ))}
-          <div className="col-span-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/20 midnight:border-blue-900/50 midnight:bg-blue-950/20">
+          <div className="col-span-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
             <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Academic Flow</p>
             <div className="mt-4 space-y-3">
               {[
@@ -292,12 +292,12 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               <button
                 key={card.id}
                 onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
-                className={`group rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800/70 midnight:bg-black ${
+                className={`group rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50  dark:hover:bg-gray-800/70 dark:bg-black ${
                   card.id === "qbank"
                     ? "border-purple-200 bg-purple-50/50 dark:border-purple-900/50 dark:bg-purple-950/20"
                     : card.id === "predictor"
                       ? "border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-950/20"
-                      : "border-gray-200 dark:border-gray-800 midnight:border-gray-800"
+                      : "border-gray-200  dark:border-gray-800"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -326,7 +326,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             <button
               key={card.id}
               onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
-              className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800/70 midnight:border-gray-800 midnight:bg-black"
+              className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-gray-800/70 dark:border-gray-800 dark:bg-black"
             >
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${card.bg} ${card.color}`}>
                 <card.icon className="h-4 w-4" />
@@ -342,10 +342,10 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
       <section>
         {hideMobileHeader && (
-            <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm mb-8">
+            <Card className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl shadow-sm mb-8">
             <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold uppercase text-gray-800 dark:text-gray-100 midnight:text-gray-100 tracking-wide">Overall<br/>Performance</h2>
+                <h2 className="text-xl font-bold uppercase text-gray-800  dark:text-gray-100 tracking-wide">Overall<br/>Performance</h2>
                 <div className="relative w-16 h-16 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -367,7 +367,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute flex flex-col items-center justify-center">
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{degreeCompletePercent.toFixed(0)}%</span>
+                        <span className="text-xs font-bold text-gray-900  dark:text-gray-100">{degreeCompletePercent.toFixed(0)}%</span>
                         <span className="text-[8px] text-gray-500 uppercase leading-none">Complete</span>
                     </div>
                 </div>
@@ -383,20 +383,20 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
                 <div className="grid grid-cols-2 gap-4 mt-6">
                     <div 
-                    className="border-t border-gray-200 dark:border-gray-800 pt-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900/50 rounded-b-lg transition-colors p-2 -mx-2 -mb-2"
+                    className="border-t border-gray-200 dark:border-gray-800 pt-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 dark:hover:bg-gray-900/50 rounded-b-lg transition-colors p-2 -mx-2 -mb-2"
                     onClick={() => setIsModalOpen(true)}
                     >
                         <p className="text-xs text-gray-500 mb-1">Credits Earned</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{creditsEarned.toFixed(1)} / {requiredCredits.toFixed(1)}</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{creditsEarned.toFixed(1)} / {requiredCredits.toFixed(1)}</p>
                     </div>
                     <div className="border-t border-gray-200 dark:border-gray-800 pt-3 p-2 -mx-2 -mb-2 flex justify-between">
                         <div>
                         <p className="text-xs text-gray-500 mb-1">Total Courses</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{totalCourses}</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{totalCourses}</p>
                         </div>
                         <div className="text-right">
                         <p className="text-xs text-gray-500 mb-1">Pass Rate</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{passRate}%</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{passRate}%</p>
                         </div>
                     </div>
                 </div>
@@ -407,7 +407,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <Card className="h-full">
             <CardContent className="p-5 h-full flex flex-col">
-                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-6">Grade Distribution</h3>
+                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-6">Grade Distribution</h3>
                 <div className="w-full flex-1 min-h-[200px]">
                     {gradeDistributionData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -438,7 +438,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
             <Card className="h-full">
             <CardContent className="p-5 h-full overflow-y-auto max-h-[265px] hide-scrollbar">
-                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 backdrop-blur-md">Semester Performance</h3>
+                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 backdrop-blur-md">Semester Performance</h3>
                 <div className="space-y-3">
                     {Object.entries(data?.grades || {})
                     .filter(([sem, details]: any) => details && details.gpa)
@@ -481,14 +481,14 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                         }
                         
                         return (
-                        <div key={sem} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800/60 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50">
+                        <div key={sem} className="flex justify-between items-center p-3 rounded-xl border border-gray-100  dark:border-gray-800/60 bg-gray-50/50  dark:bg-gray-900/50">
                             <div>
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">{semName}</p>
+                            <p className="font-semibold text-gray-900  dark:text-gray-100 text-sm">{semName}</p>
                             <p className="text-xs text-gray-500 mt-0.5">{courseCount} courses · {semCredits > 0 ? `${semCredits.toFixed(1)} credits` : 'N/A credits'}</p>
                             </div>
-                            <div className="flex flex-col items-center bg-indigo-500/10 dark:bg-indigo-900/30 midnight:bg-indigo-900/30 px-3 py-1.5 rounded-lg border border-indigo-500/20">
-                            <span className="font-bold text-indigo-600 dark:text-indigo-300 midnight:text-indigo-300 text-sm">{gpa}</span>
-                            <span className="text-[10px] text-indigo-500 dark:text-indigo-400 midnight:text-indigo-400 font-medium">GPA</span>
+                            <div className="flex flex-col items-center bg-indigo-500/10  dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+                            <span className="font-bold text-indigo-600  dark:text-indigo-300 text-sm">{gpa}</span>
+                            <span className="text-[10px] text-indigo-500  dark:text-indigo-400 font-medium">GPA</span>
                             </div>
                         </div>
                         );

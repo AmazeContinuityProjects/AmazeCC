@@ -2,7 +2,6 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-@custom-variant midnight (&:is(.midnight *));
 
 @theme inline {
   --color-background: var(--background);
@@ -161,75 +160,6 @@
 }
 
 .dark {
-  --background: oklch(0.145 0.012 255);
-  --foreground: oklch(0.94 0.008 247);
-  --text-heading: oklch(0.975 0.004 247);
-  --text-primary: oklch(0.925 0.008 247);
-  --text-secondary: oklch(0.76 0.018 247);
-  --text-muted: oklch(0.66 0.018 247);
-  --text-disabled: oklch(0.48 0.016 247);
-  --surface: oklch(0.205 0.014 255);
-  --surface-secondary: oklch(0.255 0.016 255);
-  --surface-tertiary: oklch(0.305 0.018 255);
-  --surface-raised: oklch(0.235 0.016 255);
-  --surface-hover: oklch(0.285 0.018 255);
-  --border-muted: oklch(0.98 0.004 247 / 0.11);
-  --border-strong: oklch(0.98 0.004 247 / 0.18);
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-raised);
-  --popover-foreground: var(--text-primary);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: var(--surface-secondary);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface-secondary);
-  --muted-foreground: var(--text-muted);
-  --accent: var(--surface-tertiary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--danger);
-  --border: var(--border-muted);
-  --input: var(--border-strong);
-  --ring: oklch(0.556 0 0);
-  --success: oklch(0.72 0.18 152);
-  --success-foreground: oklch(0.78 0.17 152);
-  --success-surface: oklch(0.27 0.07 152 / 0.45);
-  --warning: oklch(0.78 0.16 78);
-  --warning-foreground: oklch(0.82 0.15 78);
-  --warning-surface: oklch(0.31 0.08 78 / 0.45);
-  --danger: oklch(0.72 0.19 27);
-  --danger-foreground: oklch(0.78 0.17 27);
-  --danger-surface: oklch(0.3 0.09 27 / 0.45);
-  --info: oklch(0.72 0.16 255);
-  --info-foreground: oklch(0.78 0.14 255);
-  --info-surface: oklch(0.29 0.08 255 / 0.45);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--text-primary);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: var(--surface-secondary);
-  --sidebar-accent-foreground: var(--text-primary);
-  --sidebar-border: var(--border-muted);
-  --sidebar-ring: oklch(0.556 0 0);
-  --neutral-50: var(--text-heading);
-  --neutral-100: var(--text-primary);
-  --neutral-200: var(--text-secondary);
-  --neutral-300: var(--text-secondary);
-  --neutral-400: var(--text-muted);
-  --neutral-500: var(--text-muted);
-  --neutral-600: var(--border-strong);
-  --neutral-700: var(--surface-tertiary);
-  --neutral-800: var(--surface-secondary);
-  --neutral-900: var(--surface);
-  --neutral-950: var(--background);
-}
-
-.midnight {
   --background: oklch(0.115 0.02 255);
   --foreground: oklch(0.94 0.01 247);
   --text-heading: oklch(0.975 0.006 247);
@@ -298,6 +228,8 @@
   --neutral-950: var(--background);
 }
 
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -322,12 +254,7 @@
 .dark .glass-card {
   background: color-mix(in oklab, var(--surface-raised) 76%, transparent);
   border-color: var(--border-muted);
-  box-shadow: 0 8px 30px color-mix(in oklab, black 30%, transparent);
-}
-.midnight .glass-card {
-  background: color-mix(in oklab, var(--surface-raised) 72%, transparent);
-  border-color: var(--border-muted);
-  box-shadow: 0 8px 30px color-mix(in oklab, black 42%, transparent);
+  box-shadow: 0 8px 30px color-mix(in oklab, var(--background) 30%, transparent);
 }
 
 .solid-card {

@@ -55,20 +55,20 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
     const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
     const isBelowThreshold = simulatedPercentage < thresholdPct;
 
-    let cardBg = "bg-white dark:bg-slate-900 midnight:bg-black";
-    let cardBorder = "border-gray-200 dark:border-gray-800 midnight:border-gray-800/80";
+    let cardBg = "bg-white  dark:bg-black";
+    let cardBorder = "border-gray-200  dark:border-gray-800/80";
     let cardOpacity = "opacity-100";
 
     if (isOngoing && !isHoliday) {
-        cardBg = "bg-amber-50/45 dark:bg-amber-950/15 midnight:bg-amber-950/10";
-        cardBorder = "border-amber-500 dark:border-amber-400 midnight:border-amber-500 ring-1 ring-amber-500/20 shadow-md";
+        cardBg = "bg-amber-50/45  dark:bg-amber-950/10";
+        cardBorder = "border-amber-500  dark:border-amber-500 ring-1 ring-amber-500/20 shadow-md";
     } else if (isCompleted && !isHoliday) {
         cardOpacity = "opacity-65";
     }
 
     if (simulatedSkips > 0 && isBelowThreshold) {
         cardBorder = "border-red-500 dark:border-red-500 ring-1 ring-red-500/30";
-        cardBg = "bg-red-50/10 dark:bg-red-950/10 midnight:bg-red-950/5";
+        cardBg = "bg-red-50/10  dark:bg-red-950/5";
     }
 
     return (
@@ -80,34 +80,34 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                 <div className="flex flex-col gap-2 flex-1 min-w-0 pr-3">
                     <CardHeader className="p-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-xs font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400 uppercase tracking-wider">
+                            <span className="text-xs font-black text-blue-600  dark:text-blue-400 uppercase tracking-wider">
                                 {a.slotName}
                             </span>
                             {isOngoing && !isHoliday && (
-                                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 midnight:text-amber-400 bg-amber-100 dark:bg-amber-900/35 midnight:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
+                                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-600  dark:text-amber-400 bg-amber-100  dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                                     Live
                                 </span>
                             )}
                             {isCompleted && !isHoliday && (
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 midnight:text-gray-400 bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-800 px-1.5 py-0.5 rounded">
                                     Completed
                                 </span>
                             )}
                         </div>
-                        <CardTitle className="text-base font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-snug">
+                        <CardTitle className="text-base font-bold text-gray-900  dark:text-gray-100 leading-snug">
                             {a.courseTitle}
                         </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="p-0 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 space-y-1.5 mt-2">
+                    <CardContent className="p-0 text-xs text-gray-500  dark:text-gray-400 space-y-1.5 mt-2">
                         <InfoRow icon={<Building2 className="w-3.5 h-3.5 text-gray-400" />}>{a.slotVenue}</InfoRow>
                         <InfoRow icon={<Clock className="w-3.5 h-3.5 text-gray-400" />}>{a.time}</InfoRow>
                         <p className="truncate">
-                            <strong className="text-gray-700 dark:text-gray-300 midnight:text-gray-300">Faculty:</strong> {a.faculty}
+                            <strong className="text-gray-700 dark:text-gray-300 dark:text-gray-300">Faculty:</strong> {a.faculty}
                         </p>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300 mt-1">
-                            Classes: <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-white">{a.attendedClasses}/{total}</span>
+                        <p className="text-xs font-semibold text-gray-700  dark:text-gray-300 mt-1">
+                            Classes: <span className="font-bold text-gray-900  dark:text-white">{a.attendedClasses}/{total}</span>
                             {simulatedSkips > 0 && <span className="text-red-500 dark:text-red-400 font-bold ml-1.5">({simulatedSkips} skipped)</span>}
                         </p>
                     </CardContent>
@@ -115,14 +115,14 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                     {/* Inline Skip Predictor Widget */}
                     {onSimulateSkipsChange && (
                         <div
-                            className="mt-3 flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900 border border-gray-100 dark:border-slate-800 midnight:border-gray-850"
+                            className="mt-3 flex items-center justify-between p-2 rounded-lg bg-gray-50  dark:bg-gray-900 border border-gray-100  dark:border-gray-850"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">Simulate Skips</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips - 1)}
-                                    className="p-1 rounded bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-650 hover:bg-gray-50 dark:hover:bg-slate-600 midnight:bg-black midnight:border-gray-800"
+                                    className="p-1 rounded bg-white  border border-gray-200  hover:bg-gray-50 dark:hover:bg-slate-600 dark:bg-black dark:border-gray-800"
                                 >
                                     <Minus className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                                 </button>
@@ -143,7 +143,7 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                                 </span>
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips + 1)}
-                                    className="p-1 rounded bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-650 hover:bg-gray-50 dark:hover:bg-slate-600 midnight:bg-black midnight:border-gray-800"
+                                    className="p-1 rounded bg-white  border border-gray-200  hover:bg-gray-50 dark:hover:bg-slate-600 dark:bg-black dark:border-gray-800"
                                 >
                                     <Plus className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                                 </button>
@@ -156,7 +156,7 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                             const needed = Math.ceil((thresholdDec * total - attended) / (1 - thresholdDec));
                             const neededValue = lab ? Math.ceil(needed / 2) : needed;
                             return (
-                                <span className="text-red-600 dark:text-red-400 midnight:text-red-400 text-xs font-bold bg-red-50/80 dark:bg-red-950/20 midnight:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
+                                <span className="text-red-600  dark:text-red-400 text-xs font-bold bg-red-50/80  dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
                                     Need {neededValue} class{neededValue > 1 ? "es" : ""}
                                 </span>
                             );
@@ -165,13 +165,13 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                             const canMissValue = lab ? Math.floor(canMiss / 2) : canMiss;
                             if (canMissValue === 0) {
                                 return (
-                                    <span className="text-amber-600 dark:text-amber-400 midnight:text-amber-400 text-xs font-bold bg-amber-50/80 dark:bg-amber-950/20 midnight:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
+                                    <span className="text-amber-600  dark:text-amber-400 text-xs font-bold bg-amber-50/80  dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
                                         Danger zone! Don't skip
                                     </span>
                                 );
                             } else {
                                 return (
-                                    <span className="text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 text-xs font-bold bg-emerald-50/80 dark:bg-emerald-950/20 midnight:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
+                                    <span className="text-emerald-600  dark:text-emerald-400 text-xs font-bold bg-emerald-50/80  dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 px-2 py-0.5 rounded-lg w-fit mt-2">
                                         Can miss {canMissValue} class{canMissValue > 1 ? "es" : ""}
                                     </span>
                                 );

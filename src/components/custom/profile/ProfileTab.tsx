@@ -81,7 +81,7 @@ const SectionShell = ({ title, icon: Icon, children }: { title: string; icon?: a
   <Card variant="glass" className="overflow-hidden mb-5">
     <div className="p-5">
       {title && (
-        <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
           {Icon && <Icon className="w-4 h-4" />}
           {title}
         </h4>
@@ -150,8 +150,8 @@ export default function ProfileTab(props: ProfileTabProps) {
         {activeProfileSubTab === "credentials" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Your Credentials</h2>
-              <button onClick={() => reload()} className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+              <h2 className="text-xl font-bold text-gray-900  dark:text-gray-100">Your Credentials</h2>
+              <button onClick={() => reload()} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
                 <RefreshCcw className="w-5 h-5" />
               </button>
             </div>
@@ -275,12 +275,12 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
 
   return (
     <div className="flex flex-col items-center text-center py-4 space-y-4">
-      <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30">
-        <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
+      <div className="p-4 rounded-full bg-blue-50  dark:bg-blue-900/30">
+        <Clock className="w-10 h-10 text-blue-600  dark:text-blue-400" />
       </div>
       <div>
-        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Registration Scheduled</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+        <p className="text-lg font-bold text-gray-900  dark:text-gray-100">Registration Scheduled</p>
+        <p className="text-sm text-gray-500  dark:text-gray-400 mt-1">
           {date && <span>Date: {date}</span>}
           {date && time && <span>{" • "}</span>}
           {time && <span>Time: {time}</span>}
@@ -315,22 +315,22 @@ function BankDayStatusModal({ endpoint, title, creds }: { endpoint: string; titl
     <div className="flex items-center gap-4 p-4 rounded-xl">
       {hasContent ? (
         <>
-          <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400">
+          <div className="p-3 rounded-full bg-emerald-100  dark:bg-emerald-900/30 text-emerald-600  dark:text-emerald-400">
             <CheckCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="font-semibold text-emerald-700 dark:text-emerald-300 midnight:text-emerald-300 text-lg">{title} Filled</p>
-            <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70 midnight:text-emerald-400/70">Your {title.toLowerCase()} has been submitted successfully</p>
+            <p className="font-semibold text-emerald-700  dark:text-emerald-300 text-lg">{title} Filled</p>
+            <p className="text-sm text-emerald-600/70  dark:text-emerald-400/70">Your {title.toLowerCase()} has been submitted successfully</p>
           </div>
         </>
       ) : (
         <>
-          <div className="p-3 rounded-full bg-gray-100 dark:bg-slate-700 midnight:bg-gray-700 text-gray-400">
+          <div className="p-3 rounded-full bg-gray-100  dark:bg-gray-700 text-gray-400">
             <AlertCircle className="w-8 h-8" />
           </div>
           <div>
-            <p className="font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300 text-lg">{title} Not Filled</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">No {title.toLowerCase()} found in the system</p>
+            <p className="font-semibold text-gray-700  dark:text-gray-300 text-lg">{title} Not Filled</p>
+            <p className="text-sm text-gray-500  dark:text-gray-400">No {title.toLowerCase()} found in the system</p>
           </div>
         </>
       )}
@@ -481,7 +481,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-all text-sm font-semibold disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50  dark:bg-blue-900/30 text-blue-600  dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-all text-sm font-semibold disabled:opacity-50"
         >
           <RefreshCcw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -499,58 +499,58 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             const seat = row.seatLocation || "";
             return (
               <div key={idx} className="relative group glass-card hover:shadow-lg transition-shadow">
-                <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+                <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
                     <User className="w-4 h-4 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">{accountName}</h4>
+                  <h4 className="font-semibold text-gray-900  dark:text-gray-100 text-sm">{accountName}</h4>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Username</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate">{userName}</p>
+                      <p className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">Username</p>
+                      <p className="text-sm font-medium text-gray-800  dark:text-gray-200 truncate">{userName}</p>
                     </div>
-                    <button onClick={() => copyToClipboard(userName)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all shrink-0 active:scale-90" title="Copy username">
+                    <button onClick={() => copyToClipboard(userName)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all shrink-0 active:scale-90" title="Copy username">
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Password</p>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 truncate font-mono tracking-wider">
+                      <p className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">Password</p>
+                      <p className="text-sm text-gray-800  dark:text-gray-200 truncate font-mono tracking-wider">
                         {showPasswords[idx] ? pass : "•".repeat(Math.min(pass.length, 16))}
                       </p>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
-                      <button onClick={() => toggleShow(idx)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-amber-500 transition-all active:scale-90" title={showPasswords[idx] ? "Hide" : "Show"}>
+                      <button onClick={() => toggleShow(idx)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 dark:hover:bg-gray-800 text-gray-400 hover:text-amber-500 transition-all active:scale-90" title={showPasswords[idx] ? "Hide" : "Show"}>
                         {showPasswords[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
-                      <button onClick={() => copyToClipboard(pass)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all active:scale-90" title="Copy password">
+                      <button onClick={() => copyToClipboard(pass)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all active:scale-90" title="Copy password">
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                   {url && url !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">URL</p>
+                      <p className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">URL</p>
                       {url.toLowerCase().startsWith("http") ? (
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:underline truncate block">{url}</a>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600  dark:text-blue-400 hover:underline truncate block">{url}</a>
                       ) : (
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{url}</p>
+                        <p className="text-sm font-medium text-gray-800  dark:text-gray-200">{url}</p>
                       )}
                     </div>
                   )}
                   {venueDate && venueDate !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Venue & Date</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{venueDate}</p>
+                      <p className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">Venue & Date</p>
+                      <p className="text-sm font-medium text-gray-800  dark:text-gray-200">{venueDate}</p>
                     </div>
                   )}
                   {seat && seat !== "-" && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">Seat</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{seat}</p>
+                      <p className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">Seat</p>
+                      <p className="text-sm font-medium text-gray-800  dark:text-gray-200">{seat}</p>
                     </div>
                   )}
                 </div>
@@ -562,21 +562,21 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
 
       {/* App Logins */}
       <div className="glass-card">
-        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <User className="w-4 h-4 text-white" />
           </div>
-          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">App Logins</h4>
+          <h4 className="font-semibold text-gray-900  dark:text-gray-100 text-sm">App Logins</h4>
         </div>
         <div className="p-5 space-y-4 max-w-md">
           <div>
-            <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Username</label>
-            <input type="text" value={changedUsername} onChange={(e) => setChangedUsername(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+            <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Username</label>
+            <input type="text" value={changedUsername} onChange={(e) => setChangedUsername(e.target.value)} className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Password</label>
+            <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">VTOP Password</label>
             <div className="relative">
-              <input type={showAppPassword ? "text" : "password"} value={changedPassword} onChange={(e) => setChangedPassword(e.target.value)} className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+              <input type={showAppPassword ? "text" : "password"} value={changedPassword} onChange={(e) => setChangedPassword(e.target.value)} className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 pr-10 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
               <button onClick={() => setShowAppPassword(!showAppPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1" title={showAppPassword ? "Hide" : "Show"}>
                 {showAppPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -590,24 +590,24 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
 
       {/* Change VTOP Password */}
       <div className="glass-card">
-        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
             <Lock className="w-4 h-4 text-white" />
           </div>
-          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">Change VTOP Password</h4>
+          <h4 className="font-semibold text-gray-900  dark:text-gray-100 text-sm">Change VTOP Password</h4>
         </div>
         <div className="p-5 space-y-4 max-w-md">
-          <input type="password" value={vtopOldPassword} onChange={(e) => setVtopOldPassword(e.target.value)} placeholder="Current password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-          <input type="password" value={vtopNewPassword} onChange={(e) => setVtopNewPassword(e.target.value)} placeholder="New password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-          <input type="password" value={vtopConfirmPassword} onChange={(e) => setVtopConfirmPassword(e.target.value)} placeholder="Confirm new password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          <input type="password" value={vtopOldPassword} onChange={(e) => setVtopOldPassword(e.target.value)} placeholder="Current password" className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          <input type="password" value={vtopNewPassword} onChange={(e) => setVtopNewPassword(e.target.value)} placeholder="New password" className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+          <input type="password" value={vtopConfirmPassword} onChange={(e) => setVtopConfirmPassword(e.target.value)} placeholder="Confirm new password" className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
           {passwordChangeError && (
-            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 px-4 py-3 rounded-xl">
+            <div className="flex items-center gap-2 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 px-4 py-3 rounded-xl">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {passwordChangeError}
             </div>
           )}
           {passwordChangeSuccess && (
-            <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-500 midnight:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 midnight:bg-emerald-900/20 px-4 py-3 rounded-xl">
+            <div className="flex items-center gap-2 text-sm text-emerald-600  dark:text-emerald-500 bg-emerald-50  dark:bg-emerald-900/20 px-4 py-3 rounded-xl">
               <CheckCircle className="w-4 h-4 shrink-0" />
               {passwordChangeSuccess}
             </div>
@@ -619,19 +619,19 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       </div>
 
       <div className="relative glass-card">
-        <div className="px-5 py-4 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50 flex items-center gap-3">
+        <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <BookOpen className="w-4 h-4 text-white" />
           </div>
-          <h4 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">Library Card</h4>
+          <h4 className="font-semibold text-gray-900  dark:text-gray-100 text-sm">Library Card</h4>
         </div>
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="text" value={kohaCard} onChange={(e) => setKohaCard(e.target.value)} placeholder="Card Number (e.g. 25BLC1081)" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-            <input type="password" value={kohaPassword} onChange={(e) => setKohaPassword(e.target.value)} placeholder="Library Password" className="w-full text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+            <input type="text" value={kohaCard} onChange={(e) => setKohaCard(e.target.value)} placeholder="Card Number (e.g. 25BLC1081)" className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+            <input type="password" value={kohaPassword} onChange={(e) => setKohaPassword(e.target.value)} placeholder="Library Password" className="w-full text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 px-3 py-2.5 rounded-xl border border-gray-200  dark:border-gray-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500">Used to log into your Koha library account</p>
+            <p className="text-xs text-gray-400  dark:text-gray-500">Used to log into your Koha library account</p>
             <button onClick={saveKoha} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all active:scale-[0.98] flex items-center gap-1.5">
               <Save className="w-4 h-4" />{kohaSaved ? "Saved!" : "Save"}
             </button>

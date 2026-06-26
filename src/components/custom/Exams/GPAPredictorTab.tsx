@@ -134,7 +134,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
       )}
 
       <div className="space-y-6 min-w-0 w-full">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-slate-900 midnight:border-gray-800 midnight:bg-black">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {[
               ["Current CGPA", currentCgpa.toFixed(2), "text-blue-600 dark:text-blue-400"],
@@ -151,8 +151,8 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
         </div>
         
         {/* Left Col: Target Calculator */}
-        <Card className="bg-white dark:bg-slate-900 midnight:bg-black shadow-sm min-w-0">
-          <CardHeader className="pb-3 border-b dark:border-slate-800 midnight:border-gray-800 min-w-0">
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
             <CardTitle className="flex items-center gap-2 text-lg min-w-0">
               <Target className="w-5 h-5 text-blue-500 shrink-0" />
               <span className="truncate">1. Set Target CGPA</span>
@@ -173,7 +173,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
                   value={targetCgpa}
                   onChange={(e) => setTargetCgpa(e.target.value)}
                   placeholder="e.g. 9.00"
-                  className="flex-1 min-w-0 px-4 py-2 border rounded-lg bg-white dark:bg-slate-800 midnight:bg-black dark:border-slate-700 midnight:border-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="flex-1 min-w-0 px-4 py-2 border rounded-lg bg-white  dark:bg-black  dark:border-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 />
                 <button
                   onClick={saveGoal}
@@ -212,8 +212,8 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
         </Card>
 
         {/* Right Col: Current Courses Predictor */}
-        <Card className="bg-white dark:bg-slate-900 midnight:bg-black shadow-sm min-w-0">
-          <CardHeader className="pb-3 border-b dark:border-slate-800 midnight:border-gray-800 min-w-0">
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
             <CardTitle className="flex items-center gap-2 text-lg min-w-0">
               <Calculator className="w-5 h-5 text-purple-500 shrink-0" />
               <span className="truncate">2. Expected Semester Grades</span>
@@ -221,7 +221,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
             <CardDescription className="truncate">Estimate your GPA based on expected grades.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5 min-w-0">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl mb-6 min-w-0 gap-2">
+            <div className="flex items-center justify-between p-4 bg-gray-50  dark:bg-gray-900 rounded-xl mb-6 min-w-0 gap-2">
               <div className="text-center min-w-0 flex-1">
                 <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider mb-1 truncate">Predicted SGPA</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{predictedSgpa.toFixed(2)}</p>
@@ -238,7 +238,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
                 <p className="text-center text-sm text-gray-500 py-4">No current courses found.</p>
               ) : (
                 currentCourses.map(course => (
-                  <div key={course.baseCode} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-800 midnight:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <div key={course.baseCode} className="flex items-center justify-between p-3 rounded-lg border border-gray-100  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div className="flex-1 pr-4 min-w-0">
                       <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{course.baseCode}</p>
                       <p className="text-xs text-gray-500 truncate" title={course.courseTitle}>{course.courseTitle}</p>
@@ -247,7 +247,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
                     <select
                       value={courseGrades[course.baseCode] || "A"}
                       onChange={(e) => setCourseGrades(prev => ({ ...prev, [course.baseCode]: e.target.value }))}
-                      className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 midnight:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                      className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white  dark:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
                     >
                       {Object.keys(GRADE_POINTS).map(g => (
                         <option key={g} value={g}>{g}</option>
@@ -260,8 +260,8 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
           </CardContent>
         </Card>
 
-        <Card className="bg-white dark:bg-slate-900 midnight:bg-black shadow-sm min-w-0">
-          <CardHeader className="pb-3 border-b dark:border-slate-800 midnight:border-gray-800 min-w-0">
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
             <CardTitle className="flex items-center gap-2 text-lg min-w-0">
               <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
               <span className="truncate">3. Result</span>

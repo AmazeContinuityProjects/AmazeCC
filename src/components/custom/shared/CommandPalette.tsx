@@ -160,7 +160,7 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] md:pt-[12vh]" onClick={subpage ? undefined : onClose}>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
       <div
-        className="relative w-[95vw] max-w-2xl animate-scale-in overflow-hidden rounded-2xl border border-white/20 dark:border-white/10 midnight:border-white/5 shadow-2xl shadow-black/20"
+        className="relative w-[95vw] max-w-2xl animate-scale-in overflow-hidden rounded-2xl border border-white/20  dark:border-white/5 shadow-2xl shadow-black/20"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -169,24 +169,24 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
         <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-purple-500/20 blur-[100px] pointer-events-none" />
 
         {/* Glass container */}
-        <div className="relative bg-white/80 dark:bg-slate-900/90 midnight:bg-gray-950/90 backdrop-blur-2xl">
+        <div className="relative bg-white/80  dark:bg-gray-950/90 backdrop-blur-2xl">
           {subpage ? (
             /* ── Subpage view ── */
             <div className="flex flex-col max-h-[70vh]">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200/60 dark:border-gray-700/30 midnight:border-gray-800/30">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200/60  dark:border-gray-800/30">
                 <button
                   onClick={goBack}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-900 text-gray-500 dark:text-gray-400 midnight:text-gray-400 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-900 text-gray-500  dark:text-gray-400 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+                <p className="text-sm font-semibold text-gray-700  dark:text-gray-300">
                   {results.find(c => c.subpage === subpage)?.label || "Search"}
                 </p>
                 <div className="flex-1" />
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-900 text-gray-500 dark:text-gray-400 midnight:text-gray-400 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-900 text-gray-500  dark:text-gray-400 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -198,9 +198,9 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
           ) : (
             <>
               {/* Search bar */}
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200/60 dark:border-gray-700/30 midnight:border-gray-800/30">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200/60  dark:border-gray-800/30">
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                  <Search className="w-5 h-5 text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
+                  <Search className="w-5 h-5 text-blue-600  dark:text-blue-400" />
                 </div>
                 <input
                   ref={inputRef}
@@ -208,9 +208,9 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search commands, courses, grades..."
-                  className="flex-1 bg-transparent text-base text-gray-900 dark:text-gray-100 midnight:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 midnight:placeholder-gray-500 outline-none"
+                  className="flex-1 bg-transparent text-base text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 outline-none"
                 />
-                <kbd className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 midnight:border-gray-800">
+                <kbd className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-900 rounded-lg border border-gray-200  dark:border-gray-800">
                   <Command className="w-3 h-3" />K
                 </kbd>
               </div>
@@ -219,11 +219,11 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
               <div ref={listRef} className="max-h-80 overflow-y-auto p-2 space-y-0.5 scroll-smooth">
                 {results.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
-                    <div className="p-3 rounded-2xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 mb-3">
-                      <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500 midnight:text-gray-500" />
+                    <div className="p-3 rounded-2xl bg-gray-100  dark:bg-gray-900 mb-3">
+                      <Sparkles className="w-6 h-6 text-gray-400  dark:text-gray-500" />
                     </div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">No results found</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500 mt-1">Try a different search term</p>
+                    <p className="text-sm font-medium text-gray-500  dark:text-gray-400">No results found</p>
+                    <p className="text-xs text-gray-400  dark:text-gray-500 mt-1">Try a different search term</p>
                   </div>
                 ) : (
                   Object.entries(grouped).map(([category, items], catIdx) => (
@@ -231,8 +231,8 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                       {Object.keys(grouped).length > 1 && (
                         <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
                           <div className={`h-1.5 w-1.5 rounded-full bg-gradient-to-br ${categoryGradients[category] || "from-gray-400 to-gray-500"}`} />
-                          <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-widest">{category}</p>
-                          <div className="flex-1 h-px bg-gradient-to-r from-gray-200/60 to-transparent dark:from-gray-700/30 midnight:from-gray-800/30" />
+                          <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-widest">{category}</p>
+                          <div className="flex-1 h-px bg-gradient-to-r from-gray-200/60 to-transparent  dark:from-gray-800/30" />
                         </div>
                       )}
                       {items.map((cmd) => {
@@ -245,16 +245,16 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                             className={cn(
                               "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150",
                               globalIdx === safeIndex
-                                ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/20 midnight:from-blue-900/20 midnight:to-purple-900/10 text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm"
-                                : "text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 midnight:hover:bg-gray-800/30"
+                                ? "bg-gradient-to-r from-blue-50 to-purple-50   dark:from-blue-900/20 dark:to-purple-900/10 text-gray-900  dark:text-gray-100 shadow-sm"
+                                : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
                             )}
                           >
                             {cmd.icon && (
                               <span className={cn(
                                 "shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-sm transition-all",
                                 globalIdx === safeIndex
-                                  ? "bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5"
-                                  : "bg-gray-100/80 dark:bg-gray-800/60 midnight:bg-gray-900/60 text-gray-500 dark:text-gray-400 midnight:text-gray-400"
+                                  ? "bg-white  dark:bg-gray-900 shadow-sm ring-1 ring-black/5"
+                                  : "bg-gray-100/80  dark:bg-gray-900/60 text-gray-500  dark:text-gray-400"
                               )}>
                                 {cmd.icon}
                               </span>
@@ -262,30 +262,30 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                             <div className="flex-1 min-w-0">
                               <p className={cn(
                                 "text-sm font-semibold truncate leading-tight",
-                                globalIdx === safeIndex ? "text-gray-900 dark:text-gray-100 midnight:text-gray-100" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"
+                                globalIdx === safeIndex ? "text-gray-900  dark:text-gray-100" : "text-gray-800  dark:text-gray-200"
                               )}>{cmd.label}</p>
                               {cmd.description && !cmd.rightSlot && (
-                                <p className="text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500 truncate mt-0.5">{cmd.description}</p>
+                                <p className="text-[11px] text-gray-400  dark:text-gray-500 truncate mt-0.5">{cmd.description}</p>
                               )}
                             </div>
                             {cmd.rightSlot ? (
                               <div className="shrink-0">{cmd.rightSlot}</div>
                             ) : cmd.description ? (
-                              <p className="hidden md:block text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500 truncate max-w-[180px] mr-1">{cmd.description}</p>
+                              <p className="hidden md:block text-[11px] text-gray-400  dark:text-gray-500 truncate max-w-[180px] mr-1">{cmd.description}</p>
                             ) : null}
                             {cmd.subpage ? (
                               <ArrowRight className={cn(
                                 "w-4 h-4 shrink-0 transition-all",
                                 globalIdx === safeIndex
-                                  ? "text-blue-500 dark:text-blue-400 midnight:text-blue-400 translate-x-0.5"
-                                  : "text-gray-300 dark:text-gray-600 midnight:text-gray-600"
+                                  ? "text-blue-500  dark:text-blue-400 translate-x-0.5"
+                                  : "text-gray-300  dark:text-gray-600"
                               )} />
                             ) : (
                               <ArrowRight className={cn(
                                 "w-4 h-4 shrink-0 transition-all",
                                 globalIdx === safeIndex
-                                  ? "text-blue-500 dark:text-blue-400 midnight:text-blue-400 translate-x-0.5"
-                                  : "text-gray-300 dark:text-gray-600 midnight:text-gray-600"
+                                  ? "text-blue-500  dark:text-blue-400 translate-x-0.5"
+                                  : "text-gray-300  dark:text-gray-600"
                               )} />
                             )}
                           </button>
@@ -298,22 +298,22 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
               {/* Detail panel */}
               {hasDetail && (
-                <div className="relative border-t border-gray-200/60 dark:border-gray-700/30 midnight:border-gray-800/30 p-3 max-h-52 overflow-y-auto bg-gray-50/50 dark:bg-gray-900/30 midnight:bg-gray-950/30">
+                <div className="relative border-t border-gray-200/60  dark:border-gray-800/30 p-3 max-h-52 overflow-y-auto bg-gray-50/50  dark:bg-gray-950/30">
                   <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-transparent" />
                   {results[safeIndex].detail}
                 </div>
               )}
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-5 py-2.5 border-t border-gray-200/60 dark:border-gray-700/30 midnight:border-gray-800/30 text-[11px] text-gray-400 dark:text-gray-500 midnight:text-gray-500">
+              <div className="flex items-center justify-between px-5 py-2.5 border-t border-gray-200/60  dark:border-gray-800/30 text-[11px] text-gray-400  dark:text-gray-500">
                 <span className="flex items-center gap-1">
-                  <ArrowRight className="w-3 h-3" /> <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 font-semibold">Enter</kbd> select
+                  <ArrowRight className="w-3 h-3" /> <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">Enter</kbd> select
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 font-semibold">↑↓</kbd> navigate
+                  <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">↑↓</kbd> navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 font-semibold">Esc</kbd> close
+                  <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">Esc</kbd> close
                 </span>
               </div>
             </>

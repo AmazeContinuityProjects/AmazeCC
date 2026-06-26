@@ -447,7 +447,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
           return (
             <div
-              className={`flex min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl border overflow-hidden bg-white dark:bg-slate-900 midnight:bg-black transition-all duration-300 ${
+              className={`flex min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl border overflow-hidden bg-white  dark:bg-black transition-all duration-300 ${
                 isAnyDaySelected
                   ? "border-blue-600 dark:border-blue-500 ring-2 ring-blue-500/15 shadow-md"
                   : "border-gray-250 dark:border-gray-850 shadow-sm"
@@ -493,7 +493,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                 const isNextSelected = (idx < weekDaysInfo.length - 1) && (activeDay === weekDaysInfo[idx + 1].dayName);
                 const dividerClass = (isSelected || isNextSelected || idx === weekDaysInfo.length - 1)
                   ? "border-r border-transparent"
-                  : "border-r border-gray-205 dark:border-gray-850 midnight:border-gray-800/80";
+                  : "border-r border-gray-205  dark:border-gray-800/80";
 
                 return (
                   <button
@@ -563,7 +563,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Today's Schedule</h3>
             <div className="relative pl-8 space-y-4">
               {/* Vertical timeline line */}
-              <div className="absolute left-[11px] top-3 bottom-3 w-[2px] bg-gray-200 dark:bg-gray-800 midnight:bg-gray-800/80" />
+              <div className="absolute left-[11px] top-3 bottom-3 w-[2px] bg-gray-200  dark:bg-gray-800/80" />
 
               {activeDayClasses.map((a, idx) => {
                 const status = getClassStatus(a.time);
@@ -594,15 +594,15 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                 const thresholdPct = isDayscholarWithBus ? 85 : 75;
                 const isBelowThreshold = simulatedPercentage < thresholdPct;
 
-                let cardStyle = "bg-white dark:bg-slate-900 midnight:bg-[#0a0a0a] border-gray-200 dark:border-gray-800 midnight:border-gray-800/60";
+                let cardStyle = "bg-white  dark:bg-[#0a0a0a] border-gray-200  dark:border-gray-800/60";
                 if (isCurrent) {
-                  cardStyle = "bg-amber-50/40 dark:bg-amber-950/15 midnight:bg-amber-950/10 border-amber-500/60 ring-1 ring-amber-500/20";
+                  cardStyle = "bg-amber-50/40  dark:bg-amber-950/10 border-amber-500/60 ring-1 ring-amber-500/20";
                 } else if (isNext) {
-                  cardStyle = "bg-blue-50/35 dark:bg-blue-950/15 midnight:bg-blue-950/10 border-blue-500/45";
+                  cardStyle = "bg-blue-50/35  dark:bg-blue-950/10 border-blue-500/45";
                 } else if (isExpanded) {
-                  cardStyle = "bg-gray-50/70 dark:bg-slate-800/45 midnight:bg-gray-950 border-gray-300 dark:border-gray-700 midnight:border-gray-700";
+                  cardStyle = "bg-gray-50/70  dark:bg-gray-950 border-gray-300  dark:border-gray-700";
                 } else if (courseSkips > 0 && isBelowThreshold) {
-                  cardStyle = "bg-red-50/5 dark:bg-red-950/5 midnight:bg-red-950/5 border-red-500 dark:border-red-500/80";
+                  cardStyle = "bg-red-50/5  dark:bg-red-950/5 border-red-500 dark:border-red-500/80";
                 }
 
                 // Muted state for completed classes
@@ -640,7 +640,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400 uppercase tracking-wider">
+                              <span className="text-xs font-black text-blue-600  dark:text-blue-400 uppercase tracking-wider">
                                 {a.courseCode}
                               </span>
                               {isCurrent && (
@@ -654,7 +654,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                                 </span>
                               )}
                             </div>
-                            <h4 className="mt-1 text-sm font-bold text-gray-900 dark:text-gray-105 midnight:text-gray-105 leading-snug truncate">
+                            <h4 className="mt-1 text-sm font-bold text-gray-900  dark:text-gray-105 leading-snug truncate">
                               {a.courseTitle}
                             </h4>
                             <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold">
@@ -679,9 +679,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
                         <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-linear ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                           <div className="overflow-hidden">
-                            <div className="mt-4 border-t border-gray-200 dark:border-gray-800 midnight:border-gray-800 pt-4 space-y-3">
+                            <div className="mt-4 border-t border-gray-200  dark:border-gray-800 pt-4 space-y-3">
                               {a.faculty && (
-                                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600  dark:text-gray-300">
                                   <User className="w-3.5 h-3.5 text-gray-400" />
                                   <span className="truncate">{a.faculty}</span>
                                 </div>
@@ -711,7 +711,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           </div>
 
           {/* Right Column: Premium Desktop Course Details Preview */}
-          <div className="hidden md:block bg-white dark:bg-slate-900 midnight:bg-[#080808] border border-gray-200 dark:border-gray-800 midnight:border-gray-800/80 rounded-2xl p-6 shadow-sm">
+          <div className="hidden md:block bg-white  dark:bg-[#080808] border border-gray-200  dark:border-gray-800/80 rounded-2xl p-6 shadow-sm">
             {dayCardsMap[activeDay][desktopSelectedIdx] ? (
               <DesktopCourseDetail
                 a={dayCardsMap[activeDay][desktopSelectedIdx]}
@@ -755,10 +755,10 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           }
 
           return (
-            <div className="flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm max-w-md mx-auto py-12 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl shadow-sm max-w-md mx-auto py-12 animate-in fade-in zoom-in-95 duration-200">
               <span className="text-5xl mb-4 select-none" role="img" aria-label="day icon">{icon}</span>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-2">{title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 max-w-xs">{desc}</p>
+              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 mb-2">{title}</h3>
+              <p className="text-sm text-gray-500  dark:text-gray-400 max-w-xs">{desc}</p>
             </div>
           );
         })()

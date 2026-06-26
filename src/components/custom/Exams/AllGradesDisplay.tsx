@@ -11,12 +11,12 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
             <div>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     {/* Mobile View: Inline Center */}
-                    <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
                         Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                    <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
                         Academic Grades
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
@@ -36,12 +36,12 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
             <div>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     {/* Mobile View: Inline Center */}
-                    <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
                         Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                    <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
                         Academic Grades
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
@@ -147,12 +147,12 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
         <div className="py-2">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 {/* Mobile View: Inline Center */}
-                <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
                     Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                 </h1>
                 
                 {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-                <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
                     Academic Grades
                 </h1>
                 <div className="hidden md:flex items-center justify-end">
@@ -174,8 +174,8 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                             setOpenCourse(null);
                         }}
                         className={`flex-1 min-w-[160px] text-center py-2 text-sm font-medium transition-colors ${activeSem === sem
-                            ? "bg-blue-600 text-white midnight:bg-blue-700"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 midnight:bg-black midnight:text-gray-300 midnight:hover:bg-gray-900"
+                            ? "bg-blue-600 text-white dark:bg-blue-700"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300   dark:hover:bg-slate-600 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-900"
                             }`}
                     >
                         {sem.endsWith("1") ? `FALLSEM` : `WINTERSEM`} {sem.slice(4, -4)}-{sem.slice(6, -2)}
@@ -187,8 +187,8 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                         setOpenCourse(null);
                     }}
                     className={`flex-1 min-w-[160px] text-center py-2 text-sm font-medium transition-colors ${activeSem === "predict"
-                        ? "bg-blue-600 text-white midnight:bg-blue-700"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 midnight:bg-black midnight:text-gray-300 midnight:hover:bg-gray-900"
+                        ? "bg-blue-600 text-white dark:bg-blue-700"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300   dark:hover:bg-slate-600 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-900"
                         }`}
                 >
                     Predict CGPA
@@ -207,16 +207,16 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                 {activeSem !== "predict" && gradeList.map((course, idx) => (
                     <div
                         key={course.courseId || course.courseCode || idx}
-                        className="p-4 rounded-lg shadow bg-white dark:bg-slate-800 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800 cursor-pointer"
+                        className="p-4 rounded-lg shadow bg-white  dark:bg-black dark:outline dark:outline-1 dark:outline-gray-800 cursor-pointer"
                         onClick={() => setOpenCourse(course.courseId)}
                     >
                         <div className="flex justify-between items-start gap-3">
                             <div className="flex-1 min-w-0">
-                                <span className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 text-sm sm:text-base break-words block">
+                                <span className="font-medium text-gray-800  dark:text-gray-200 text-sm sm:text-base break-words block">
                                     {course.courseCode} - {course.courseTitle}
                                 </span>
 
-                                <div className="px-3 py-1 inline-flex items-center justify-center bg-gray-200 dark:bg-slate-700 midnight:bg-gray-900 text-black dark:text-gray-300 midnight:text-gray-300 text-xs rounded-full outline outline-1 outline-gray-700 dark:outline-gray-500 midnight:outline-gray-700 mt-2">
+                                <div className="px-3 py-1 inline-flex items-center justify-center bg-gray-200  dark:bg-gray-900 text-black  dark:text-gray-300 text-xs rounded-full outline outline-1 outline-gray-700  dark:outline-gray-700 mt-2">
                                     {course.courseType}
                                 </div>
                             </div>
@@ -233,7 +233,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
 
                         {openCourse === course.courseId && (
                             <Modal onClose={() => setOpenCourse(null)} maxWidth="max-w-3xl" className="max-h-[90vh] overflow-y-auto">
-                                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                                <h2 className="text-lg font-semibold mb-4 text-gray-900  dark:text-gray-100">
                                     {course.courseCode} – {course.courseTitle}
                                 </h2>
                                 <p className="mb-1">
@@ -245,8 +245,8 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
 
                                 {course.range && (
                                     <div className="overflow-x-auto mt-2">
-                                        <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
-                                            <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
+                                        <table className="w-full border border-gray-300  dark:border-gray-700">
+                                            <thead className="bg-gray-800 text-white  dark:bg-gray-900">
                                                 <tr>
                                                     {Object.keys(course.range as Record<string, string | number>).map((grade) => (
                                                         <th key={grade} className="border p-2 text-center">
@@ -260,7 +260,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                                     {Object.values(course.range as Record<string, string | number>).map((range, idx) => (
                                                         <td
                                                             key={idx}
-                                                            className="border p-2 text-center text-gray-800 dark:text-gray-200 midnight:text-gray-200"
+                                                            className="border p-2 text-center text-gray-800  dark:text-gray-200"
                                                         >
                                                             {range}
                                                         </td>
@@ -273,8 +273,8 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
 
                                 {course.details && course.details.length > 0 ? (
                                     <div className="overflow-x-auto mt-6">
-                                        <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
-                                            <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
+                                        <table className="w-full border border-gray-300  dark:border-gray-700">
+                                            <thead className="bg-gray-800 text-white  dark:bg-gray-900">
                                                 <tr>
                                                     <th className="border p-2 text-left">Component Name</th>
                                                     <th className="border p-2 text-center">Max</th>
@@ -286,7 +286,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                                 {course.details.map((d, idx) => (
                                                     <tr
                                                         key={idx}
-                                                        className="border-gray-300 dark:border-gray-600 midnight:border-gray-700"
+                                                        className="border-gray-300  dark:border-gray-700"
                                                     >
                                                         <td className="border p-2">{d.component}</td>
                                                         <td className="border p-2 text-center">{formatNumber(d.maxMark)}</td>
@@ -295,7 +295,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                                     </tr>
                                                 ))}
 
-                                                <tr className="font-bold border-t border-gray-400 dark:border-gray-500 midnight:border-gray-600">
+                                                <tr className="font-bold border-t border-gray-400  dark:border-gray-600">
                                                     <td className="border p-2">
                                                         Total
                                                     </td>
@@ -329,7 +329,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                 ))}
             </div>
             {activeSem === "predict" && (
-                <div className="col-span-full p-3 rounded-lg shadow bg-white dark:bg-slate-800 midnight:bg-black">
+                <div className="col-span-full p-3 rounded-lg shadow bg-white  dark:bg-black">
                     <div className="mb-2 text-center">
                         <span className="text-lg font-semibold dark:text-green-400">
                             Predict CGPA
@@ -337,19 +337,19 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                        <div className="rounded-lg border border-blue-200 dark:border-blue-800 midnight:border-blue-900 p-3 bg-blue-50 dark:bg-blue-950/40 midnight:bg-blue-950/20">
+                        <div className="rounded-lg border border-blue-200  dark:border-blue-900 p-3 bg-blue-50  dark:bg-blue-950/20">
                             <p className="text-xs text-blue-700 dark:text-blue-300">Current CGPA</p>
                             <p className="text-xl font-bold text-blue-800 dark:text-blue-200">{currentCgpa.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg border border-gray-200 dark:border-slate-700 midnight:border-gray-800 p-3">
-                            <p className="text-xs text-gray-600 dark:text-gray-300 midnight:text-gray-400">Current Credits</p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-200">{currentCredits.toFixed(1)}</p>
+                        <div className="rounded-lg border border-gray-200  dark:border-gray-800 p-3">
+                            <p className="text-xs text-gray-600  dark:text-gray-400">Current Credits</p>
+                            <p className="text-xl font-bold text-gray-900  dark:text-gray-200">{currentCredits.toFixed(1)}</p>
                         </div>
-                        <div className="rounded-lg border border-gray-200 dark:border-slate-700 midnight:border-gray-800 p-3">
-                            <p className="text-xs text-gray-600 dark:text-gray-300 midnight:text-gray-400">Predicted GPA</p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-200">{predictedGpa.toFixed(2)}</p>
+                        <div className="rounded-lg border border-gray-200  dark:border-gray-800 p-3">
+                            <p className="text-xs text-gray-600  dark:text-gray-400">Predicted GPA</p>
+                            <p className="text-xl font-bold text-gray-900  dark:text-gray-200">{predictedGpa.toFixed(2)}</p>
                         </div>
-                        <div className="rounded-lg border border-green-200 dark:border-green-800 midnight:border-green-900 p-3 bg-green-50 dark:bg-green-950/40 midnight:bg-green-950/20">
+                        <div className="rounded-lg border border-green-200  dark:border-green-900 p-3 bg-green-50  dark:bg-green-950/20">
                             <p className="text-xs text-green-700 dark:text-green-300">Predicted CGPA</p>
                             <p className="text-xl font-bold text-green-800 dark:text-green-200">{predictedCgpa.toFixed(2)}</p>
                         </div>
@@ -364,24 +364,24 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                 <div
                                     key={key}
                                     className={`h-full rounded-lg border p-4 flex flex-col gap-3 ${matchedGrade
-                                        ? "border-gray-200 bg-gray-100 text-gray-500 dark:border-slate-700 dark:bg-slate-900 midnight:border-gray-800 midnight:bg-gray-950"
-                                        : "border-gray-200 dark:border-slate-700 midnight:border-gray-800"
+                                        ? "border-gray-200 bg-gray-100 text-gray-500   dark:border-gray-800 dark:bg-gray-950"
+                                        : "border-gray-200  dark:border-gray-800"
                                         }`}
                                 >
                                     <div>
                                         <p className={`font-medium text-sm sm:text-base ${matchedGrade
-                                            ? "text-gray-500 dark:text-gray-400 midnight:text-gray-500"
-                                            : "text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+                                            ? "text-gray-500  dark:text-gray-500"
+                                            : "text-gray-900  dark:text-gray-100"
                                             }`}>
                                             {course.courseCode} - {course.courseTitle}
                                         </p>
-                                        <p className="text-xs text-gray-600 dark:text-gray-300 midnight:text-gray-400 mt-1">
+                                        <p className="text-xs text-gray-600  dark:text-gray-400 mt-1">
                                             Credits: {course.credits}
                                         </p>
                                     </div>
 
                                     <div className="flex items-center gap-2 mt-auto">
-                                        <label htmlFor={`grade-${key}`} className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+                                        <label htmlFor={`grade-${key}`} className="text-sm text-gray-700  dark:text-gray-300">
                                             Grade
                                         </label>
                                         <select
@@ -394,7 +394,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                                     [key]: value
                                                 }));
                                             }}
-                                            className="rounded-md border border-gray-300 dark:border-slate-600 midnight:border-gray-700 bg-white dark:bg-slate-900 midnight:bg-black px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500 dark:disabled:bg-slate-800 dark:disabled:text-gray-400 midnight:disabled:bg-gray-900 midnight:disabled:text-gray-500"
+                                            className="rounded-md border border-gray-300  dark:border-gray-700 bg-white  dark:bg-black px-3 py-1.5 text-sm text-gray-900  dark:text-gray-100 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500 dark:disabled:bg-slate-800 dark:disabled:text-gray-400 dark:disabled:bg-gray-900 dark:disabled:text-gray-500"
                                         >
                                             <option value="S">S (10)</option>
                                             <option value="A">A (9)</option>
@@ -407,12 +407,12 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                         </select>
                                     </div>
                                     {matchedGrade && !predictedGrades[key] && (
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+                                        <p className="text-xs text-gray-600  dark:text-gray-400">
                                             Already counted in grade: {matchedGrade}
                                         </p>
                                     )}
                                     {matchedGrade && predictedGrades[key] && predictedGrades[key] !== matchedGrade && (
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 midnight:text-blue-400">
+                                        <p className="text-xs text-blue-600  dark:text-blue-400">
                                             Overridden from {matchedGrade} to {predictedGrades[key]}
                                         </p>
                                     )}

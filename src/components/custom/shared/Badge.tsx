@@ -13,7 +13,7 @@ const variants = {
   warning: "bg-warning-surface text-warning-foreground",
   danger: "bg-danger-surface text-danger-foreground",
   info: "bg-info-surface text-info-foreground",
-  purple: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/20 midnight:text-purple-300",
+  purple: "bg-purple-50 text-purple-700   dark:bg-purple-900/20 dark:text-purple-300",
 };
 
 const sizes = {

@@ -37,7 +37,7 @@ const shortToFullDay = Object.fromEntries(
 export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
   if (!hostelData.hostelInfo?.isHosteller) {
     return (
-      <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+      <p className="text-center text-gray-600  dark:text-gray-400">
         You are not a hosteller. / Reload Data{" "}
         <button onClick={handleHostelDetailsFetch} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
           <RefreshCcw className={`w-4 h-4`} />
@@ -117,16 +117,16 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
 
   return (
     <div>
-      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900 dark:text-gray-100 midnight:text-white">
+      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900  dark:text-white">
         Mess Menu ({currentMonth})
       </h1>
-      <h2 className="text-md font-bold mb-2 text-center text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+      <h2 className="text-md font-bold mb-2 text-center text-gray-700  dark:text-gray-300">
         ( Data taken from{" "}
         <a
           href="https://kaffeine.tech/unmessify"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline text-blue-600 dark:text-blue-400 midnight:text-blue-400"
+          className="underline text-blue-600  dark:text-blue-400"
         >
           Unmessify
         </a>{" "}
@@ -137,7 +137,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
         <select
           value={gender}
           onChange={(e) => setGender(e.target.value)}
-          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
         >
           <option value="Male">Male</option>
           <option value="Female">Female</option>
@@ -146,7 +146,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
         >
           <option value="Veg">Veg</option>
           <option value="Non Veg">Non Veg</option>
@@ -160,8 +160,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
             key={short}
             onClick={() => setActiveDay(shortToFullDay[short])}
             className={`px-4 py-2 rounded-lg transition-colors hover:cursor-pointer duration-200 shadow-sm ${activeDay === shortToFullDay[short]
-              ? "bg-blue-600 text-white dark:bg-blue-500 midnight:bg-blue-700 dark:text-gray-100 midnight:text-gray-100"
-              : "bg-gray-200 text-gray-700 hover:bg-blue-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 midnight:bg-black midnight:text-gray-200 midnight:hover:bg-gray-800 midnight:outline midnight:outline-1 midnight:outline-gray-800"
+              ? "bg-blue-600 text-white  dark:bg-blue-700  dark:text-gray-100"
+              : "bg-gray-200 text-gray-700 hover:bg-blue-300   dark:hover:bg-gray-600 dark:bg-black dark:text-gray-200 dark:hover:bg-gray-800 dark:outline dark:outline-1 dark:outline-gray-800"
               }`}
           >
             {short}
@@ -171,34 +171,34 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
 
       {todayMenu ? (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-6 text-center dark:text-white midnight:text-white">
+          <h2 className="text-2xl font-bold mb-6 text-center  dark:text-white">
             {todayMenu.Day}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
+            <div className="p-4 border rounded-2xl shadow bg-white   dark:text-gray-200 dark:bg-black dark:outline dark:outline-1 dark:outline-gray-800">
               <h3 className="text-lg font-bold mb-2">🍳 Breakfast</h3>
               <p className="whitespace-pre-line">{todayMenu.Breakfast}</p>
             </div>
 
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
+            <div className="p-4 border rounded-2xl shadow bg-white   dark:text-gray-200 dark:bg-black dark:outline dark:outline-1 dark:outline-gray-800">
               <h3 className="text-lg font-bold mb-2">🍲 Lunch</h3>
               <p className="whitespace-pre-line">{todayMenu.Lunch}</p>
             </div>
 
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
+            <div className="p-4 border rounded-2xl shadow bg-white   dark:text-gray-200 dark:bg-black dark:outline dark:outline-1 dark:outline-gray-800">
               <h3 className="text-lg font-bold mb-2">☕ Snacks</h3>
               <p className="whitespace-pre-line">{todayMenu.Snacks}</p>
             </div>
 
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
+            <div className="p-4 border rounded-2xl shadow bg-white   dark:text-gray-200 dark:bg-black dark:outline dark:outline-1 dark:outline-gray-800">
               <h3 className="text-lg font-bold mb-2">🍽️ Dinner</h3>
               <p className="whitespace-pre-line">{todayMenu.Dinner}</p>
             </div>
           </div>
         </div>
       ) : (
-        <p className="text-center text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+        <p className="text-center text-gray-600  dark:text-gray-300">
           No menu found for {activeDay}.
         </p>
       )}

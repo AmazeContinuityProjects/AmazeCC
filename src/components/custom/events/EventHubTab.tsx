@@ -184,11 +184,11 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
 
   if (error) {
     return (
-      <div className="text-center p-8 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-600 rounded-2xl">
+      <div className="text-center p-8 bg-red-50  dark:bg-red-900/10 text-red-600 rounded-2xl">
         <p>{error}</p>
         <button 
           onClick={fetchEvents}
-          className="mt-4 px-4 py-2 bg-red-100 dark:bg-red-900/50 midnight:bg-red-900/30 midnight:hover:bg-red-900/50 rounded-lg hover:bg-red-200 transition-colors"
+          className="mt-4 px-4 py-2 bg-red-100  dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg hover:bg-red-200 transition-colors"
         >
           Try Again
         </button>
@@ -246,10 +246,10 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white midnight:text-white leading-tight">
+          <h2 className="text-2xl font-bold text-gray-900  dark:text-white leading-tight">
             {viewMode === "registered" ? "My Registered Events" : "All Events at VIT"}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+          <p className="text-sm text-gray-500  dark:text-gray-400 mt-1">
             {viewMode === "registered" ? "Manage your registrations, payments, and certificates." : "Discover and register for clubs, chapters, and technical events."}
           </p>
         </div>
@@ -273,7 +273,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-2 bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-slate-700 midnight:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                className="px-4 py-2 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
               >
                 {types.map(type => (
                   <option key={type} value={type}>{type}</option>
@@ -295,7 +295,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       ) : displayEvents.length === 0 ? (
         <EmptyState
           title={viewMode === "registered" ? "You haven't registered for any events yet." : "No events found matching your criteria."}
-          className="py-12 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-slate-700 midnight:border-gray-800"
+          className="py-12 bg-gray-50  dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200  dark:border-gray-800"
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -303,12 +303,12 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
             <motion.div
               key={event.eid}
               whileHover={{ y: -4 }}
-              className="bg-white dark:bg-slate-800 midnight:bg-black rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
+              className="bg-white  dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
               onClick={() => openPreview(event)}
             >
               <div>
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white midnight:text-white leading-tight">
+                  <h3 className="font-bold text-lg text-gray-900  dark:text-white leading-tight">
                     {event.title}
                   </h3>
                 </div>
@@ -317,25 +317,25 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
                   {event.registeredDetails ? (
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                       event.registeredDetails.paymentStatus.toLowerCase().includes('paid') || event.registeredDetails.paymentStatus.toLowerCase().includes('free')
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 midnight:bg-green-900/40 midnight:text-green-300'
-                        : 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 midnight:bg-orange-900/40 midnight:text-orange-300'
+                        ? 'bg-green-100 text-green-800   dark:bg-green-900/40 dark:text-green-300'
+                        : 'bg-orange-100 text-orange-800   dark:bg-orange-900/40 dark:text-orange-300'
                     }`}>
                       {event.registeredDetails.paymentStatus}
                     </span>
                   ) : null}
                   {event.eligibility && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/20 midnight:text-blue-300">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700   dark:bg-blue-900/20 dark:text-blue-300">
                       <Users className="w-3 h-3" /> {event.eligibility}
                     </span>
                   )}
                   {event.type && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/20 midnight:text-purple-300">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700   dark:bg-purple-900/20 dark:text-purple-300">
                       <Tag className="w-3 h-3" /> {event.type}
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+                <div className="space-y-2 text-sm text-gray-600  dark:text-gray-400">
                   {event.date && (
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" /> {event.date}
@@ -354,8 +354,8 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
                 </div>
               </div>
               
-              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700 midnight:border-gray-800">
-                <span className="text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium text-sm hover:underline">
+              <div className="mt-5 pt-4 border-t border-gray-100  dark:border-gray-800">
+                <span className="text-blue-600  dark:text-blue-400 font-medium text-sm hover:underline">
                   View Details &rarr;
                 </span>
               </div>

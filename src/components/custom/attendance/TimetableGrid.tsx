@@ -12,11 +12,11 @@ export default function TimetableVtop({ attendance }) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [viewMode, setViewMode] = useState<"schedule" | "grid">("grid");
     const { theme, resolvedTheme } = useTheme();
-    const isDark = theme === "dark" || resolvedTheme === "dark";
-    const isMidnight = theme === "midnight";
-    const themeBgColor = isMidnight ? "#020617" : isDark ? "#0f172a" : "#ffffff";
-    const themeTextColor = isDark ? "#ffffff" : "#000000";
-    const themeHtmlClass = isMidnight ? "dark midnight" : isDark ? "dark" : "light";
+    const currentTheme = resolvedTheme || theme || "light";
+    const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+    const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
+    const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+    const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
     const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
     const slotMap = config.slotMap || {};
@@ -227,12 +227,12 @@ export default function TimetableVtop({ attendance }) {
     }
 
     const neon = "bg-emerald-500/15 border-emerald-500/35 text-gray-900 dark:text-white";
-    const normal = "bg-white dark:bg-[#061017] midnight:bg-[#030507] text-gray-900 dark:text-gray-100 midnight:text-gray-100";
+    const normal = "bg-white  dark:bg-[#030507] text-gray-900  dark:text-gray-100";
 
     const headerClass =
-        "border px-0.5 py-1 bg-[#eef2ff] dark:bg-[#071925] midnight:bg-[#04070a] w-[70px] min-w-[70px] max-w-[70px] text-[9px] text-gray-900 dark:text-gray-100 midnight:text-gray-100 font-semibold truncate";
+        "border px-0.5 py-1 bg-[#eef2ff]  dark:bg-[#04070a] w-[70px] min-w-[70px] max-w-[70px] text-[9px] text-gray-900  dark:text-gray-100 font-semibold truncate";
     const lunchHeaderClass =
-        "border px-0.5 py-1 bg-gray-300 dark:bg-[#162029] midnight:bg-[#0b1a22] w-[36px] min-w-[36px] max-w-[36px] text-[9px] font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate";
+        "border px-0.5 py-1 bg-gray-300  dark:bg-[#0b1a22] w-[36px] min-w-[36px] max-w-[36px] text-[9px] font-semibold text-gray-900  dark:text-gray-100 truncate";
     const cellBase =
         "border px-0.5 py-1 w-[70px] min-w-[70px] max-w-[70px] h-[52px] text-[9px] truncate overflow-hidden";
 
@@ -416,7 +416,7 @@ export default function TimetableVtop({ attendance }) {
             <table className="border-collapse w-full text-center border-gray-200 dark:border-gray-800">
                 <thead>
                     <tr>
-                        <th className="border px-1 py-1 bg-gray-255 dark:bg-gray-850 midnight:bg-black text-[9px] font-bold text-gray-800 dark:text-gray-100 w-[40px] min-w-[40px] max-w-[40px] truncate">
+                        <th className="border px-1 py-1 bg-gray-255  dark:bg-black text-[9px] font-bold text-gray-800 dark:text-gray-100 w-[40px] min-w-[40px] max-w-[40px] truncate">
                             DAY
                         </th>
 
@@ -449,7 +449,7 @@ export default function TimetableVtop({ attendance }) {
                 <tbody>
                     {days.map((day) => (
                         <tr key={day}>
-                            <td className="border font-semibold bg-gray-100 dark:bg-[#07101a] midnight:bg-[#020409] text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-[10px] w-[40px] min-w-[40px] max-w-[40px] truncate">
+                            <td className="border font-semibold bg-gray-100  dark:bg-[#020409] text-gray-900  dark:text-gray-100 text-[10px] w-[40px] min-w-[40px] max-w-[40px] truncate">
                                 {day}
                             </td>
 
@@ -490,13 +490,13 @@ export default function TimetableVtop({ attendance }) {
             </table>
 
             {uniqueCourses.length > 0 && (
-                <div className="bg-white dark:bg-[#0a1628] midnight:bg-[#03070e] border border-gray-200 dark:border-gray-800 midnight:border-gray-800/80 rounded-xl overflow-hidden shadow-sm">
-                    <div className="flex items-center justify-between px-4 py-3 bg-gray-55 dark:bg-[#071925] midnight:bg-[#04070a] border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800/80">
+                <div className="bg-white  dark:bg-[#03070e] border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-55  dark:bg-[#04070a] border-b border-gray-200  dark:border-gray-800/80">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Course Reference</h3>
                     </div>
                     <table className="w-full text-sm text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-[#0d1f2e] midnight:bg-[#050a15] border-b border-gray-150 dark:border-gray-800">
+                            <tr className="bg-gray-50  dark:bg-[#050a15] border-b border-gray-150 dark:border-gray-800">
                                 <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Course</th>
                                 <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Type</th>
                                 <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Faculty</th>
@@ -504,9 +504,9 @@ export default function TimetableVtop({ attendance }) {
                                 <th className="py-2 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Venue</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 midnight:divide-gray-800/40">
+                        <tbody className="divide-y divide-gray-100  dark:divide-gray-800/40">
                             {uniqueCourses.map((c, i) => (
-                                <tr key={i} className="bg-white dark:bg-[#061017] midnight:bg-[#030507] hover:bg-gray-55 dark:hover:bg-[#0a1825] transition-colors">
+                                <tr key={i} className="bg-white  dark:bg-[#030507] hover:bg-gray-55 dark:hover:bg-[#0a1825] transition-colors">
                                     <td className="py-2 px-4">
                                         <div className="flex items-center gap-2">
                                             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white bg-blue-600 dark:bg-blue-850 shrink-0">{c.courseCode}</span>
@@ -552,7 +552,7 @@ export default function TimetableVtop({ attendance }) {
                             className={`flex flex-col items-center min-w-[68px] p-2 rounded-xl border transition-all ${
                                 isActive
                                     ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                                    : "bg-white dark:bg-slate-900 midnight:bg-[#060606] border-gray-200 dark:border-gray-855 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
+                                    : "bg-white  dark:bg-[#060606] border-gray-200 dark:border-gray-855 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
                             }`}
                         >
                             <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-blue-100" : "text-gray-400 dark:text-gray-500"}`}>
@@ -571,7 +571,7 @@ export default function TimetableVtop({ attendance }) {
 
             {/* Timeline display */}
             {currentSchedule.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-slate-900/30 midnight:bg-black/30 border border-dashed border-gray-250 dark:border-gray-855 rounded-2xl py-12">
+                <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50  dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-855 rounded-2xl py-12">
                     <span className="text-4xl mb-3">🎉</span>
                     <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Classes Scheduled</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mt-1">
@@ -579,14 +579,14 @@ export default function TimetableVtop({ attendance }) {
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100 dark:border-gray-800 midnight:border-gray-855 py-2">
+                <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100  dark:border-gray-855 py-2">
                     {currentSchedule.map((item, index) => {
                         if (item.type === "free") {
                             return (
                                 <div key={index} className="relative">
                                     <div className="absolute left-[-21px] sm:left-[-29px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-750" />
                                     <div
-                                        className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200 dark:border-slate-800 midnight:border-gray-855 bg-gray-55/35 dark:bg-slate-900/10 midnight:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20"
+                                        className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200  dark:border-gray-855 bg-gray-55/35  dark:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20"
                                     >
                                         <div className="p-2.5 rounded-lg bg-gray-100 dark:bg-slate-850 text-gray-500 dark:text-gray-400">
                                             <Coffee size={16} />
@@ -609,7 +609,7 @@ export default function TimetableVtop({ attendance }) {
                                 <div key={index} className="relative">
                                     <div className="absolute left-[-21px] sm:left-[-29px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-400 dark:bg-amber-600" />
                                     <div
-                                        className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-amber-200 dark:border-amber-900/20 bg-amber-50/15 dark:bg-amber-955/5 midnight:bg-amber-955/2 select-none transition-all hover:bg-amber-50/20 dark:hover:bg-amber-955/10"
+                                        className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-amber-200 dark:border-amber-900/20 bg-amber-50/15  dark:bg-amber-955/2 select-none transition-all hover:bg-amber-50/20 dark:hover:bg-amber-955/10"
                                     >
                                         <div className="p-2.5 rounded-lg bg-amber-100/60 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
                                             <Pizza size={16} />
@@ -635,14 +635,14 @@ export default function TimetableVtop({ attendance }) {
                         const minsRemaining = item.end - nowMins;
 
                         let borderStyle = isLab ? "border-l-4 border-l-purple-500" : "border-l-4 border-l-blue-500";
-                        let cardStyle = "bg-white dark:bg-slate-900 midnight:bg-[#060606] border-gray-200 dark:border-gray-800";
+                        let cardStyle = "bg-white  dark:bg-[#060606] border-gray-200 dark:border-gray-800";
                         let dotColor = isLab ? "bg-purple-500" : "bg-blue-500";
 
                         if (isOngoing) {
                             cardStyle = "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
                             dotColor = "bg-amber-500 ring-4 ring-amber-400/35";
                         } else if (isCompleted) {
-                            cardStyle = "bg-white dark:bg-slate-900 midnight:bg-[#060606] border-gray-100 dark:border-gray-855 opacity-60";
+                            cardStyle = "bg-white  dark:bg-[#060606] border-gray-100 dark:border-gray-855 opacity-60";
                             dotColor = "bg-emerald-500";
                         }
 
@@ -658,7 +658,7 @@ export default function TimetableVtop({ attendance }) {
                                 >
                                     <div className="flex-1 min-w-0 space-y-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 midnight:bg-gray-850 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase">
+                                            <span className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-850 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase">
                                                 {item.slots.join(" + ")}
                                             </span>
 
@@ -726,7 +726,7 @@ export default function TimetableVtop({ attendance }) {
     return (
         <div className="flex flex-col gap-4 w-full">
             {/* Top Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 dark:border-gray-800 midnight:border-gray-855 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150  dark:border-gray-855 pb-3">
                 <div>
                     <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">
                         Class Schedule
@@ -739,12 +739,12 @@ export default function TimetableVtop({ attendance }) {
                 {/* View Controls & Action Buttons */}
                 <div className="flex items-center flex-wrap gap-2">
                     {/* View Switcher */}
-                    <div className="flex items-center bg-gray-100 dark:bg-slate-800 midnight:bg-gray-950 p-1 rounded-xl border border-gray-200/60 dark:border-gray-700/80 midnight:border-gray-800/80 text-xs font-semibold">
+                    <div className="flex items-center bg-gray-100  dark:bg-gray-950 p-1 rounded-xl border border-gray-200/60  dark:border-gray-800/80 text-xs font-semibold">
                         <button
                             onClick={() => setViewMode("schedule")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
                                 viewMode === "schedule"
-                                    ? "bg-white dark:bg-slate-700 midnight:bg-black text-blue-600 dark:text-blue-400 midnight:text-blue-400 shadow-xs"
+                                    ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
                                     : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
                             }`}
                         >
@@ -755,7 +755,7 @@ export default function TimetableVtop({ attendance }) {
                             onClick={() => setViewMode("grid")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
                                 viewMode === "grid"
-                                    ? "bg-white dark:bg-slate-700 midnight:bg-black text-blue-600 dark:text-blue-400 midnight:text-blue-400 shadow-xs"
+                                    ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
                                     : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
                             }`}
                         >

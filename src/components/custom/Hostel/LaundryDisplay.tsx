@@ -28,7 +28,7 @@ const LaundryLinks = {
 export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }) {
   if (!hostelData.hostelInfo?.isHosteller) {
     return (
-      <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+      <p className="text-center text-gray-600  dark:text-gray-400">
         You are not a hosteller. / Reload Data{" "}
         <button onClick={handleHostelDetailsFetch} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
           <RefreshCcw className={`w-4 h-4`} />
@@ -106,16 +106,16 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
   return (
     <div>
-      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900  dark:text-gray-100">
         Laundry Details
       </h1>
-      <h2 className="text-md font-bold mb-2 text-center text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+      <h2 className="text-md font-bold mb-2 text-center text-gray-700  dark:text-gray-300">
         ( Data taken from{" "}
         <a
           href="https://kaffeine.tech/unmessify"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline text-blue-600 dark:text-blue-400 midnight:text-blue-400"
+          className="underline text-blue-600  dark:text-blue-400"
         >
           Unmessify
         </a>{" "}
@@ -127,7 +127,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           <select
             value={gender}
             onChange={(e) => { setGender(e.target.value); setHostel(hostelOptions[e.target.value][0]) }}
-            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
           >
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -136,7 +136,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           <select
             value={hostel}
             onChange={(e) => setHostel(e.target.value)}
-            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
           >
             {hostelOptions[gender]?.map((h) => (
               <option key={h} value={h}>
@@ -149,13 +149,13 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
       {schedule.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse table-auto bg-white dark:bg-slate-800 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-            <thead className="bg-gray-100 dark:bg-slate-700 midnight:bg-slate-900">
+          <table className="min-w-full border-collapse table-auto bg-white  dark:bg-black text-gray-900  dark:text-gray-100">
+            <thead className="bg-gray-100  dark:bg-slate-900">
               <tr>
-                <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-700 midnight:border-gray-600">
+                <th className="px-4 py-2 text-center border-b border-gray-300  dark:border-gray-600">
                   Date
                 </th>
-                <th className="px-4 py-2 text-center border-b border-gray-300 dark:border-gray-700 midnight:border-gray-600">
+                <th className="px-4 py-2 text-center border-b border-gray-300  dark:border-gray-600">
                   Room Number Range
                 </th>
               </tr>
@@ -167,7 +167,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   <tr
                     key={item.Id}
                     className={`${isToday
-                      ? "bg-yellow-200 dark:bg-yellow-600 midnight:bg-yellow-600 font-bold"
+                      ? "bg-yellow-200  dark:bg-yellow-600 font-bold"
                       : ""
                       }`}
                   >
@@ -184,7 +184,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
           </table>
         </div>
       ) : (
-        <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+        <p className="text-center text-gray-600  dark:text-gray-400">
           No laundry schedule available.
         </p>
       )}

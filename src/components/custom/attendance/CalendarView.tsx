@@ -517,7 +517,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
                 <button 
                     onClick={() => toggleSchedulePage(false)} 
-                    className="mb-4 text-blue-600 dark:text-blue-400 hover:underline flex items-center font-semibold midnight:text-blue-400"
+                    className="mb-4 text-blue-600  hover:underline flex items-center font-semibold dark:text-blue-400"
                 >
                     &larr; Back to Calendar
                 </button>
@@ -533,7 +533,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     <select
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-gray-800 midnight:bg-gray-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm"
+                        className="px-4 py-2 rounded-lg border border-gray-300  dark:border-gray-800 bg-white  dark:bg-gray-900 text-gray-900  dark:text-gray-100 shadow-sm"
                     >
                         {Object.entries(CALENDAR_TYPES).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
@@ -800,7 +800,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                 icon={<CalendarIcon className="w-5.5 h-5.5 text-blue-605 dark:text-blue-400" />}
                 title="Super Calendar"
                 meta={
-                    <Badge variant="default" className="rounded-xl border border-gray-200 font-semibold dark:border-gray-700 midnight:border-gray-800">
+                    <Badge variant="default" className="rounded-xl border border-gray-200 font-semibold  dark:border-gray-800">
                         {CALENDAR_TYPES[calendarType || "ALL"]}
                     </Badge>
                 }
@@ -838,7 +838,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             className={`shrink-0 snap-center rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors duration-150 ${
                                 idx === activeIdx
                                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 midnight:border-gray-800 midnight:bg-black"
+                                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50   dark:text-gray-300 dark:hover:bg-gray-800 dark:border-gray-800 dark:bg-black"
                             }`}
                         >
                             {formatMonthLabel(calendar)}
@@ -846,7 +846,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     ))}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-gray-500  dark:text-gray-400">
                     {[
                         ["bg-emerald-500", "Class"],
                         ["bg-orange-500", "Exam"],
@@ -861,7 +861,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     ))}
                 </div>
 
-                <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black">
+                <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm   dark:border-gray-800 dark:bg-black">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeIdx}
@@ -875,14 +875,14 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                 {weekdays.map((day) => (
                                     <div
                                         key={day}
-                                        className="border-b border-gray-100 bg-gray-50/70 py-3 text-xs font-bold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-400 midnight:border-gray-800 midnight:bg-gray-900/40"
+                                        className="border-b border-gray-100 bg-gray-50/70 py-3 text-xs font-bold uppercase tracking-wider text-gray-500   dark:text-gray-400 dark:border-gray-800 dark:bg-gray-900/40"
                                     >
                                         {day}
                                     </div>
                                 ))}
 
                                 {blanks.map((_, i) => (
-                                    <div key={`blank-${i}`} className="min-h-20 border-b border-r border-gray-100 bg-gray-50/30 dark:border-gray-800/60 dark:bg-gray-900/20 midnight:border-gray-800/50" />
+                                    <div key={`blank-${i}`} className="min-h-20 border-b border-r border-gray-100 bg-gray-50/30  dark:bg-gray-900/20 dark:border-gray-800/50" />
                                 ))}
 
                                 {daysInMonth.map((dateObj, i) => {
@@ -943,8 +943,8 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                             key={date}
                                             onClick={() => setSelectedDay({ date, dayType, events, fullDate: dayInfo?.fullDate || dateObj })}
                                             className={`group relative flex min-h-20 cursor-pointer flex-col border-b border-r border-gray-100 p-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:z-20 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:min-h-28 sm:p-3 lg:min-h-32 ${
-                                                isWeekend ? "bg-gray-50/70 dark:bg-gray-900/40 midnight:bg-gray-900/25" : "bg-white dark:bg-gray-900 midnight:bg-black"
-                                            } ${isLastCol ? "border-r-0" : ""} dark:border-gray-800/60 midnight:border-gray-800/50 ${
+                                                isWeekend ? "bg-gray-50/70  dark:bg-gray-900/25" : "bg-white  dark:bg-black"
+                                            } ${isLastCol ? "border-r-0" : ""}  dark:border-gray-800/50 ${
                                                 isSelected ? "z-10 ring-2 ring-inset ring-blue-600 dark:ring-blue-400" : ""
                                             }`}
                                         >
@@ -969,7 +969,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                             </div>
 
                                             {events.length > 0 && (
-                                                <div className={`pointer-events-none absolute left-3 top-12 z-50 hidden w-64 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-lg group-hover:block dark:border-gray-800 dark:bg-gray-950 midnight:border-gray-800 midnight:bg-black ${isLastCol ? "right-3 left-auto" : ""}`}>
+                                                <div className={`pointer-events-none absolute left-3 top-12 z-50 hidden w-64 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-lg group-hover:block   dark:border-gray-800 dark:bg-black ${isLastCol ? "right-3 left-auto" : ""}`}>
                                                     <p className="text-xs font-black text-gray-900 dark:text-gray-100">
                                                         {dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "long" })}
                                                     </p>
@@ -1001,7 +1001,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             </section>
 
             <section className="space-y-6">
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black md:p-6">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black md:p-6">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                         <div className="min-w-0">
                             <div className="flex items-center gap-3">
@@ -1009,7 +1009,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                     <Award size={18} />
                                 </div>
                                 <div>
-                                    <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">Attendance Overview</h3>
+                                    <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Attendance Overview</h3>
                                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{totalClassesCount} classes tracked</p>
                                 </div>
                             </div>
@@ -1057,14 +1057,14 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                 </div>
 
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm   dark:border-gray-800 dark:bg-black">
                         <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
                                 <CalendarIcon size={18} />
                             </div>
                             <div>
-                                <h3 className="font-[family-name:var(--font-outfit)] text-lg font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">Day Details</h3>
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                                <h3 className="font-[family-name:var(--font-outfit)] text-lg font-black text-gray-900  dark:text-gray-100">Day Details</h3>
+                                <p className="text-sm font-medium text-gray-500  dark:text-gray-400">
                                     {selectedDay ? `${selectedDay.date} ${activeCalendar.month ?? ""}` : "Select a day"}
                                 </p>
                             </div>
@@ -1201,13 +1201,13 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                         )}
                     </div>
 
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
                         <div className="mb-4 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400">
                                     <BookOpen size={18} />
                                 </div>
-                                <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">Upcoming Tasks</h3>
+                                <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Upcoming Tasks</h3>
                             </div>
                         </div>
 
@@ -1270,13 +1270,13 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 midnight:border-gray-800 midnight:bg-black">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400">
                                 <GraduationCap size={18} />
                             </div>
-                            <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">Upcoming Exams</h3>
+                            <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Upcoming Exams</h3>
                         </div>
                         <button
                             onClick={() => toggleSchedulePage(true)}
@@ -1342,7 +1342,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="fixed inset-0 z-[100] bg-white dark:bg-black midnight:bg-black overflow-y-auto"
+                    className="fixed inset-0 z-[100] bg-white  dark:bg-black overflow-y-auto"
                 >
                     <div className="max-w-7xl mx-auto min-h-screen">
                         <OverallTrackerSubpage 

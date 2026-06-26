@@ -161,7 +161,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     };
 
     const SectionTitle = ({ title }) => (
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-3 px-1">
+        <h3 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
             {title}
         </h3>
     );
@@ -173,21 +173,21 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     );
 
     const ListTile = ({ icon: Icon, title, subtitle = null, trailing = null, onClick = null, isDestructive = false, noBorder = false }) => (
-        <div 
+        <div
             onClick={onClick}
-            className={`flex items-center justify-between p-4 ${!noBorder ? 'border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50' : ''} ${onClick ? 'cursor-pointer hover:bg-white/40 dark:hover:bg-slate-700/30 midnight:hover:bg-gray-800/30 transition-colors' : ''}`}
+            className={`flex items-center justify-between p-4 ${!noBorder ? 'border-b border-gray-100/50  dark:border-gray-800/50' : ''} ${onClick ? 'cursor-pointer hover:bg-white/40 dark:hover:bg-slate-700/30 dark:hover:bg-gray-800/30 transition-colors' : ''}`}
         >
             <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                <div className={`p-2 rounded-xl flex-shrink-0 ${isDestructive ? 'bg-red-100 text-red-600 dark:bg-red-900/30 midnight:bg-red-900/30' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 midnight:bg-blue-900/30 dark:text-blue-400 midnight:text-blue-400'}`}>
+                <div className={`p-2 rounded-xl flex-shrink-0 ${isDestructive ? 'bg-red-100 text-red-600  dark:bg-red-900/30' : 'bg-blue-50 text-blue-600  dark:bg-blue-900/30  dark:text-blue-400'}`}>
                     <Icon size={20} />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                    <span className={`font-medium block break-words leading-snug ${isDestructive ? 'text-red-600 dark:text-red-500 midnight:text-red-500' : 'text-gray-900 dark:text-gray-100 midnight:text-gray-100'}`}>{title}</span>
-                    {subtitle && <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-0.5 block break-words leading-snug">{subtitle}</span>}
+                    <span className={`font-medium block break-words leading-snug ${isDestructive ? 'text-red-600  dark:text-red-500' : 'text-gray-900  dark:text-gray-100'}`}>{title}</span>
+                    {subtitle && <span className="text-xs text-gray-500  dark:text-gray-400 mt-0.5 block break-words leading-snug">{subtitle}</span>}
                 </div>
             </div>
             <div className="flex-shrink-0">
-                {trailing ? trailing : (onClick && !isDestructive ? <ChevronRight size={18} className="text-gray-400 midnight:text-gray-500" /> : null)}
+                {trailing ? trailing : (onClick && !isDestructive ? <ChevronRight size={18} className="text-gray-400 dark:text-gray-500" /> : null)}
             </div>
         </div>
     );
@@ -212,11 +212,11 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <div className="flex-1 min-w-0">
                             {isEditingName ? (
                                 <div className="flex items-center gap-2 max-w-sm">
-                                    <input 
-                                        type="text" 
-                                        value={tempFriendlyName} 
-                                        onChange={(e) => setTempFriendlyName(e.target.value)} 
-                                        placeholder="Enter preferred name..." 
+                                    <input
+                                        type="text"
+                                        value={tempFriendlyName}
+                                        onChange={(e) => setTempFriendlyName(e.target.value)}
+                                        placeholder="Enter preferred name..."
                                         className="flex-1 px-3 py-1 text-lg font-bold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-md text-gray-900 dark:text-gray-100"
                                         autoFocus
                                         onKeyDown={(e) => {
@@ -230,18 +230,18 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-3">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 tracking-tight truncate max-w-[200px] sm:max-w-xs">{friendlyName || username || "Student"}</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900  dark:text-gray-100 tracking-tight truncate max-w-[200px] sm:max-w-xs">{friendlyName || username || "Student"}</h2>
                                     <button onClick={() => setIsEditingName(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded hover:bg-blue-100 transition-colors">Edit</button>
                                 </div>
                             )}
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">
+                            <p className="text-sm text-gray-500  dark:text-gray-400 font-medium break-words leading-snug">
                                 {friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}
                                 {profileData?.branch ? ` • ${profileData.branch}` : ""}
                             </p>
                         </div>
                     </div>
                     {profileData && (
-                        <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 mt-4 pt-4">
+                        <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 border-t border-gray-100  dark:border-gray-800 mt-4 pt-4">
                             <div>
                                 <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Blood Group</p>
                                 <p className="font-medium text-gray-800 dark:text-gray-200">{profileData.bloodGroup || "N/A"}</p>
@@ -266,7 +266,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
                                     residentialStatus === "hosteller"
                                         ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
-                                        : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                                        : "bg-white/40  dark:bg-black/30 text-gray-700  dark:text-gray-300 border-gray-200/80  dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
                                 }`}
                             >
                                 Hosteller
@@ -276,21 +276,21 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
                                     residentialStatus === "dayscholar"
                                         ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
-                                        : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                                        : "bg-white/40  dark:bg-black/30 text-gray-700  dark:text-gray-300 border-gray-200/80  dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
                                 }`}
                             >
                                 Dayscholar
                             </button>
                         </div>
                         {residentialStatus === "dayscholar" && (
-                            <label className="flex items-center gap-3 p-3 rounded-xl bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 border border-gray-200/80 dark:border-gray-800 midnight:border-white/10 cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-700">
+                            <label className="flex items-center gap-3 p-3 rounded-xl bg-white/40  dark:bg-black/30 border border-gray-200/80  dark:border-white/10 cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-700">
                                 <input
                                     type="checkbox"
                                     checked={isDayscholarWithBus}
                                     onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
                                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/50"
                                 />
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">I have bus registration</span>
+                                <span className="text-sm font-medium text-gray-700  dark:text-gray-300">I have bus registration</span>
                             </label>
                         )}
                     </div>
@@ -301,8 +301,8 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                     <SectionTitle title="Quick Overview" />
                     <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
                     <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
-                    <div 
-                      onClick={() => onCredentialsClick && onCredentialsClick()} 
+                    <div
+                      onClick={() => onCredentialsClick && onCredentialsClick()}
                       className="relative group glass-card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                     >
                       <div className="p-5">
@@ -312,19 +312,19 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                               <User className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Your Credentials</h3>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">VTOP accounts, app logins & password change</p>
+                              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">Your Credentials</h3>
+                              <p className="text-xs text-gray-500  dark:text-gray-400">VTOP accounts, app logins & password change</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button 
-                              onClick={handleReload} 
-                              className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 midnight:hover:bg-blue-800/40 transition-all active:scale-90" 
+                            <button
+                              onClick={handleReload}
+                              className="p-2.5 rounded-xl bg-blue-50  dark:bg-blue-900/30 text-blue-600  dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 dark:hover:bg-blue-800/40 transition-all active:scale-90"
                               title="Refresh credentials"
                             >
                               <RefreshCcw className="w-4 h-4" />
                             </button>
-                            <div className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-400">
+                            <div className="p-1.5 rounded-xl bg-gray-100  dark:bg-gray-800 text-gray-400">
                               <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                             </div>
                           </div>
@@ -354,7 +354,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 ].filter(([, v]) => v).map(([label, val]) => (
                                     <div key={String(label)}>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{String(label)}</p>
-                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                        <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -368,13 +368,13 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <SectionTitle title="Address" />
                         <CardContainer>
                             {profileData.currentAddress && (
-                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Current Address</p>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                         {Object.entries(profileData.currentAddress).filter(([, v]) => v).map(([key, val]) => (
                                             <div key={key}>
                                                 <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key}</p>
-                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                                <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -387,7 +387,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                         {Object.entries(profileData.permanentAddress).filter(([, v]) => v).map(([key, val]) => (
                                             <div key={key}>
                                                 <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key}</p>
-                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                                <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -418,14 +418,14 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 ].filter(([, v]) => v).map(([label, val]) => (
                                     <div key={String(label)}>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{String(label)}</p>
-                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                        <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                     </div>
                                 ))}
                             </div>
                             {profileData?.schoolAddress && (
                                 <div className="px-4 pb-4">
                                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">School Address</p>
-                                    <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.schoolAddress}</p>
+                                    <p className="font-medium text-gray-800  dark:text-gray-200">{profileData.schoolAddress}</p>
                                 </div>
                             )}
                         </CardContainer>
@@ -438,44 +438,44 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         <SectionTitle title="Family Information" />
                         <CardContainer>
                             {profileData.brothers != null && (
-                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 grid grid-cols-3 gap-4">
+                                <div className="p-4 border-b border-gray-100  dark:border-gray-800 grid grid-cols-3 gap-4">
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Brothers</p>
-                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.brothers}</p>
+                                        <p className="font-medium text-gray-800  dark:text-gray-200">{profileData.brothers}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Sisters</p>
-                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.sisters}</p>
+                                        <p className="font-medium text-gray-800  dark:text-gray-200">{profileData.sisters}</p>
                                     </div>
                                     {profileData.siblingInVIT && (
                                         <div>
                                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Sibling at VIT</p>
-                                            <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.siblingInVIT}</p>
+                                            <p className="font-medium text-gray-800  dark:text-gray-200">{profileData.siblingInVIT}</p>
                                         </div>
                                     )}
                                 </div>
                             )}
                             {profileData.father && (
-                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Father</p>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                         {Object.entries(profileData.father).filter(([, v]) => v).map(([key, val]) => (
                                             <div key={key}>
                                                 <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                                <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
                             {profileData.mother && (
-                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Mother</p>
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                         {Object.entries(profileData.mother).filter(([, v]) => v).map(([key, val]) => (
                                             <div key={key}>
                                                 <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                                <p className="font-medium text-gray-800  dark:text-gray-200 break-words">{String(val)}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -484,7 +484,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                             {profileData.guardian && (
                                 <div className="p-4">
                                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Guardian</p>
-                                    <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.guardian}</p>
+                                    <p className="font-medium text-gray-800  dark:text-gray-200">{profileData.guardian}</p>
                                 </div>
                             )}
                         </CardContainer>
@@ -505,7 +505,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 photo: p.photoBase64,
                                 details: p.details || {}
                             })) || [])].map((person, idx, arr) => (
-                                <div key={idx} className={`p-4 ${idx < arr.length - 1 ? 'border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800' : ''}`}>
+                                <div key={idx} className={`p-4 ${idx < arr.length - 1 ? 'border-b border-gray-100  dark:border-gray-800' : ''}`}>
                                     <div className="flex items-center gap-4">
                                         {person.photo ? (
                                             <img src={person.photo} alt={person.role} className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white dark:border-gray-800" />
@@ -516,9 +516,9 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                         )}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{person.role}</p>
-                                            <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">{person.details.name || "N/A"}</p>
+                                            <p className="font-semibold text-gray-900  dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
                                             {person.details.designation && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">{person.details.designation}</p>
+                                                <p className="text-xs text-gray-500  dark:text-gray-400 truncate">{person.details.designation}</p>
                                             )}
                                         </div>
                                     </div>
@@ -526,7 +526,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                         {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([key, val]) => (
                                             <div key={key} className="truncate">
                                                 <span className="text-xs text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
-                                                <span className="text-gray-700 dark:text-gray-300 midnight:text-gray-300">{String(val)}</span>
+                                                <span className="text-gray-700  dark:text-gray-300">{String(val)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -540,15 +540,15 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 {/* Preferences */}
                 <SectionTitle title="Preferences" />
                 <CardContainer>
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                    <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                         <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Select Semester</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Change your active academic semester</span>
+                            <label className="font-medium text-gray-900  dark:text-gray-100">Select Semester</label>
+                            <span className="text-xs text-gray-500  dark:text-gray-400 mb-3">Change your active academic semester</span>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <select
                                     value={selectedSemester}
                                     onChange={(e) => setSelectedSemester(e.target.value)}
-                                    className="flex-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-white/50 dark:bg-slate-900/50 midnight:bg-gray-800/50 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
+                                    className="flex-1 w-full px-3 py-2 border border-gray-300  dark:border-gray-700 rounded-lg bg-white/50  dark:bg-gray-800/50 text-gray-800  dark:text-gray-100"
                                 >
                                     {config.semesterIDs?.map((id: string, index: number) => (
                                         <option key={index} value={id}>
@@ -562,17 +562,17 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                             </div>
                         </div>
                     </div>
-                    
 
-                    
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+
+
+                    <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                         <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Academic Calendar</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Set your default calendar view</span>
+                            <label className="font-medium text-gray-900  dark:text-gray-100">Academic Calendar</label>
+                            <span className="text-xs text-gray-500  dark:text-gray-400 mb-3">Set your default calendar view</span>
                             <select
                                 value={calendarType || "ALL"}
                                 onChange={(e) => setCalendarType(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
+                                className="w-full px-3 py-2 border border-gray-300  dark:border-gray-700 rounded-lg bg-gray-50  dark:bg-gray-800 text-gray-800  dark:text-gray-100"
                             >
                                 <option value="ALL">General Semester</option>
                                 <option value="ALL02">General Flexible</option>
@@ -586,47 +586,47 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         </div>
                     </div>
 
-                    <ListTile 
-                        icon={Shield} 
-                        title="Show Values Upto One Decimal Place" 
-                        trailing={<Switch checked={decimalValues} onCheckedChange={setDecimalValues} />} 
+                    <ListTile
+                        icon={Shield}
+                        title="Show Values Upto One Decimal Place"
+                        trailing={<Switch checked={decimalValues} onCheckedChange={setDecimalValues} />}
                     />
-                    <ListTile 
-                        icon={History} 
-                        title="Use Legacy Loading Screen" 
-                        trailing={<Switch checked={loadingScreen} onCheckedChange={setLoadingScreen} />} 
+                    <ListTile
+                        icon={History}
+                        title="Use Legacy Loading Screen"
+                        trailing={<Switch checked={loadingScreen} onCheckedChange={setLoadingScreen} />}
                     />
-                    <ListTile 
-                        icon={Shield} 
-                        title="Compact Mobile View" 
+                    <ListTile
+                        icon={Shield}
+                        title="Compact Mobile View"
                         subtitle="Hide header and stats on tabs other than Dashboard"
-                        trailing={<Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />} 
+                        trailing={<Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />}
                     />
-                    <ListTile 
-                        icon={RefreshCcw} 
-                        title="Reload All Data" 
+                    <ListTile
+                        icon={RefreshCcw}
+                        title="Reload All Data"
                         subtitle="Refresh button updates all data, not just attendance"
                         noBorder={true}
-                        trailing={<Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />} 
+                        trailing={<Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />}
                     />
                 </CardContainer>
 
                 {/* Notifications & Documents */}
                 <SectionTitle title="App Settings" />
                 <CardContainer>
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                    <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                         <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">App Icon</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Choose the icon for AmazeCC</span>
+                            <label className="font-medium text-gray-900  dark:text-gray-100">App Icon</label>
+                            <span className="text-xs text-gray-500  dark:text-gray-400 mb-3">Choose the icon for AmazeCC</span>
                             <div className="flex gap-4">
-                                <button 
+                                <button
                                     onClick={() => handleIconChange('default')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'default' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
                                     <img src={getAssetPath("/logo.png")} alt="Default Icon" className="w-12 h-12 rounded-xl shadow-sm" />
                                     <span className="text-xs font-medium">Default</span>
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleIconChange('fire')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'fire' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
@@ -636,7 +636,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                             </div>
                         </div>
                     </div>
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                    <div className="p-4 border-b border-gray-100  dark:border-gray-800">
                         <PushNotificationManager />
                     </div>
                     <div className="p-4">
@@ -649,11 +649,11 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 <CardContainer>
                     {quickLinks.importantLinks.map((link, idx) => (
                         <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer">
-                            <ListTile 
-                                icon={Link2} 
-                                title={link.title} 
-                                subtitle={link.desc} 
-                                trailing={<ExternalLink size={16} className="text-gray-400 midnight:text-gray-500" />}
+                            <ListTile
+                                icon={Link2}
+                                title={link.title}
+                                subtitle={link.desc}
+                                trailing={<ExternalLink size={16} className="text-gray-400 dark:text-gray-500" />}
                                 noBorder={idx === quickLinks.importantLinks.length - 1}
                                 onClick={() => {}}
                             />
@@ -666,10 +666,10 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 <CardContainer>
                     {quickLinks.communityLinks.map((link, idx) => (
                         <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer">
-                            <ListTile 
-                                icon={ExternalLink} 
-                                title={link.title} 
-                                trailing={<ExternalLink size={16} className="text-gray-400 midnight:text-gray-500" />}
+                            <ListTile
+                                icon={ExternalLink}
+                                title={link.title}
+                                trailing={<ExternalLink size={16} className="text-gray-400 dark:text-gray-500" />}
                                 noBorder={idx === quickLinks.communityLinks.length - 1}
                                 onClick={() => {}}
                             />
@@ -680,9 +680,9 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 {/* Updates */}
                 <SectionTitle title="Updates" />
                 <CardContainer>
-                    <ListTile 
-                        icon={History} 
-                        title="Changelog" 
+                    <ListTile
+                        icon={History}
+                        title="Changelog"
                         subtitle="View what's new in AmazeCC"
                         noBorder={true}
                         onClick={() => setShowChangelog(true)}
@@ -692,13 +692,13 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 {/* About & Footer */}
                 <SectionTitle title="About AmazeCC" />
                 <CardContainer>
-                    <div className="p-6 flex flex-col items-center justify-center border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                    <div className="p-6 flex flex-col items-center justify-center border-b border-gray-100  dark:border-gray-800">
                         <div className="scale-125 mb-4">
                             <IconToggle />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">AmazeCC</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 text-center">Your ultimate college companion.</p>
-                        <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider text-center">MADE WITH LOVE BY SUGEETHJSA AND DHIVYANJ</p>
+                        <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">AmazeCC</h3>
+                        <p className="text-sm text-gray-500  dark:text-gray-400 mb-4 text-center">Your ultimate college companion.</p>
+                        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider text-center">MADE WITH LOVE BY SUGEETHJSA AND DHIVYANJ</p>
                     </div>
                     <ListTile icon={Trophy} title="Hall of Fame" onClick={() => setShowHallOfFame(true)} />
                     <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
@@ -716,7 +716,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 <div className="pt-4 pb-12">
                     <button
                         onClick={handleLogOutRequest}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl font-bold bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 midnight:bg-red-900/20 midnight:hover:bg-red-900/40 text-red-600 dark:text-red-500 midnight:text-red-500 transition-colors shadow-sm"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl font-bold bg-red-100 hover:bg-red-200  dark:hover:bg-red-900/40 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600  dark:text-red-500 transition-colors shadow-sm"
                     >
                         <LogOut size={20} />
                         Log Out
