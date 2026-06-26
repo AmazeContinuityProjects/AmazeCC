@@ -74,7 +74,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
 
   async function fetchMenuWithCache(gender, type, setMenu) {
     const fileName = `VITC-${gender[0].toUpperCase()}-${type[0].toUpperCase()}.json`;
-    const localUrl = `/mess/${fileName}`;
+    const localUrl = `/data/mess/${fileName}`;
     const remoteUrl = messLinks[gender][type];
 
     try {

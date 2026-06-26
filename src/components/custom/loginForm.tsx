@@ -47,7 +47,7 @@ export default function LoginForm({
       {/* App Logo */}
       <div className="text-center mb-8 space-y-2 relative z-10">
         <div className="flex justify-center mb-3">
-          <img src="/icons/AmazeCC.png" alt="AmazeCC Logo" className="h-14 md:h-16 object-contain" />
+          <img src="/images/icons/AmazeCC.png" alt="AmazeCC Logo" className="h-14 md:h-16 object-contain" />
         </div>
         <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 max-w-md mx-auto text-sm font-medium">
           Showing data from VTOP in a clean and simple way.

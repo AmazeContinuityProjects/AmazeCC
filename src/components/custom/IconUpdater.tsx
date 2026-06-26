@@ -7,7 +7,7 @@ export default function IconUpdater() {
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      const iconUrl = getAssetPath(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png");
+      const iconUrl = getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png");
       
       // Update ALL link[rel~="icon"] tags
       const iconLinks = document.querySelectorAll("link[rel~='icon']");

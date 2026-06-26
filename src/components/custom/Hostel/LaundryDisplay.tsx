@@ -64,7 +64,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     if (!LaundryLinks[gender] || !LaundryLinks[gender][hostel]) return;
 
     const fileName = `VITC-${hostel}-${gender[0]}-L.json`;
-    const localUrl = `/laundry/${fileName}`;
+    const localUrl = `/data/laundry/${fileName}`;
     const remoteUrl = LaundryLinks[gender][hostel];
 
     try {

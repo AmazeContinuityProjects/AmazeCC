@@ -10,8 +10,8 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
   const cards = [
     {
       id: "course-dashboard",
-      title: "Course Dashboard",
-      description: "Overview of all your courses with marks, attendance and progress tracking.",
+      title: "Course Hub",
+      description: "Your one-stop hub — courses, grades, arrears, projects and more.",
       icon: LayoutDashboard,
       color: "text-white",
       bg: "bg-gradient-to-br from-blue-500 to-indigo-600",

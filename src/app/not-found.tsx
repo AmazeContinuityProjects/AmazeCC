@@ -14,10 +14,10 @@ import {
 } from "@/components/ui/card";
 
 const CHEPUS = [
-  "/chepu/chepu_on_the_floor.png",
-  "/chepu/chepu_says_hi.png",
-  "/chepu/chepu_says_sup.png",
-  "/chepu/empty_page_chepu.png",
+  "/images/chepu/chepu_on_the_floor.png",
+  "/images/chepu/chepu_says_hi.png",
+  "/images/chepu/chepu_says_sup.png",
+  "/images/chepu/empty_page_chepu.png",
 ];
 
 export default function NotFoundPage() {

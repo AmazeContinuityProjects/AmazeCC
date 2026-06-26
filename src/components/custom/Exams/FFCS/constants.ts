@@ -1,4 +1,4 @@
-import timetableSchema from "@/app/data/chennai.json";
+import timetableSchema from "@/data/campus/chennai.json";
 
 export const DAYS = [
   { id: "mon", name: "Monday" },

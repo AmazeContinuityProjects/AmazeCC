@@ -133,6 +133,13 @@ export default function DashboardContent({
     }
   }, []);
 
+  useEffect(() => {
+    fetch(`${API_BASE}/api/fresher-resources`)
+      .then(r => r.json())
+      .then(data => { if (data.success && data.resources) setFresherResources(data.resources); })
+      .catch(() => {});
+  }, []);
+
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);
@@ -143,7 +150,7 @@ export default function DashboardContent({
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png"));
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
     };
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);

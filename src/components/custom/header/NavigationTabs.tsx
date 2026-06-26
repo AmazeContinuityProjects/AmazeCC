@@ -47,7 +47,7 @@ export default function NavigationTabs({
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/icons/fire.png" : "/logo.png"));
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
     };
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);

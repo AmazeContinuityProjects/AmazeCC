@@ -9,9 +9,9 @@ import { useTheme } from "next-themes";
 import FFCSGuideModal from "./FFCSGuideModal";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 
-import chennaiSchema from "@/app/data/chennai.json";
-import apSchema from "@/app/data/ap.json";
-import bhopalSchema from "@/app/data/bhopal.json";
+import chennaiSchema from "@/data/campus/chennai.json";
+import apSchema from "@/data/campus/ap.json";
+import bhopalSchema from "@/data/campus/bhopal.json";
 
 const CAMPUS_SCHEMAS: Record<string, any> = {
   chennai: chennaiSchema,

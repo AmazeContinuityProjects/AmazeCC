@@ -169,7 +169,7 @@ export default function MarksDisplay({ data }) {
         <h1 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
           Academic Marks
         </h1>
-        <Image src="/chepu/chepu_says_sup.png" alt="No Data" width={300} height={300} className="mx-auto" />
+        <Image src="/images/chepu/chepu_says_sup.png" alt="No Data" width={300} height={300} className="mx-auto" />
       </div>
     );
   }

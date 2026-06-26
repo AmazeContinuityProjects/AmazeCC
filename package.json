@@ -59,6 +59,7 @@
     "react-dom": "^19.2.7",
     "react-dropzone": "^14.3.8",
     "react-latex-next": "^3.0.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "swiper": "^12.0.3",
     "tailwind-merge": "^3.3.1",

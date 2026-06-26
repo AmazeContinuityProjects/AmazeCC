@@ -1,5 +1,6 @@
 "use client";
-import { ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, CalendarDays, ArrowRight, Sparkles, CheckCircle } from "lucide-react";
+import { ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, CalendarDays, ArrowRight, Sparkles, CheckCircle, FileText as FileTextIcon } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 const iconMap: Record<string, React.ReactNode> = {
   Bus: <Bus className="w-5 h-5" />,
@@ -17,6 +18,8 @@ interface Resource {
   description: string;
   url: string;
   icon: string;
+  type?: string;
+  content?: string;
 }
 
 interface FresherWelcomePageProps {
@@ -175,26 +178,51 @@ export default function FresherWelcomePage({ onDismiss, username, friendlyName, 
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Helpful Resources</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {resources.map((r) => (
-                <a
-                  key={r.id}
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-slate-800/50 midnight:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-900/20 midnight:hover:bg-blue-900/10 border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 hover:border-blue-200 dark:hover:border-blue-800/30 midnight:hover:border-blue-800/20 transition-all"
-                >
-                  <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/20 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
-                    {iconMap[r.icon] || <ExternalLink className="w-5 h-5" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100 midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{r.title}</p>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+              {resources.map((r) => {
+                const resourceType = r.type || 'link';
+                if (resourceType === 'md') {
+                  return (
+                    <div key={r.id} className="p-5 rounded-2xl bg-white dark:bg-slate-800/50 midnight:bg-white/5 border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 col-span-full">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 midnight:text-white mb-3">{r.title}</h3>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300 space-y-2 leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_code]:bg-gray-100 [&_code]:dark:bg-gray-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-800 [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_blockquote]:border-l-4 [&_blockquote]:border-blue-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500 [&_blockquote]:dark:text-gray-400 [&_hr]:border-gray-300 [&_hr]:dark:border-gray-700">
+                        <ReactMarkdown>{r.content || ''}</ReactMarkdown>
+                      </div>
                     </div>
-                    {r.description && <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1 leading-relaxed">{r.description}</p>}
-                  </div>
-                </a>
-              ))}
+                  );
+                }
+                if (resourceType === 'text') {
+                  return (
+                    <div key={r.id} className="col-span-full p-5 rounded-2xl bg-white dark:bg-slate-800/50 midnight:bg-white/5 border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10">
+                      <div className="flex items-center gap-3 mb-2">
+                        <FileTextIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 midnight:text-white">{r.title}</h3>
+                      </div>
+                      {r.description && <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1">{r.description}</p>}
+                      {r.content && <p className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300 whitespace-pre-line">{r.content}</p>}
+                    </div>
+                  );
+                }
+                return (
+                  <a
+                    key={r.id}
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-slate-800/50 midnight:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-900/20 midnight:hover:bg-blue-900/10 border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 hover:border-blue-200 dark:hover:border-blue-800/30 midnight:hover:border-blue-800/20 transition-all"
+                  >
+                    <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/20 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                      {iconMap[r.icon] || <ExternalLink className="w-5 h-5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100 midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{r.title}</p>
+                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                      </div>
+                      {r.description && <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1 leading-relaxed">{r.description}</p>}
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           </section>
         )}

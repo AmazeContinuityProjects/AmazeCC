@@ -1,5 +1,5 @@
 import { AddedCourse, ParsedCourse } from "./types";
-import timetableSchema from "@/app/data/chennai.json";
+import timetableSchema from "@/data/campus/chennai.json";
 
 export const timeToMinutes = (timeStr: string) => {
   if (!timeStr) return 0;
