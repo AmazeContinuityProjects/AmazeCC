@@ -503,7 +503,7 @@ export default function DashboardContent({
       />
 
       <div 
-        className={`relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-72'} w-full overflow-hidden`}
+        className={`relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-80'} w-full overflow-hidden`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Ambient Background Glows */}
@@ -890,4 +890,3 @@ function HostelCounsellingView({ loginToVTOP, refreshKey }: { loginToVTOP: () =>
   if (!creds) return <Skeleton className="h-32 w-full rounded-2xl" />;
   return <GenericApiView endpoint="hostel-counselling" title="" creds={creds} refreshKey={refreshKey} />;
 }
-
