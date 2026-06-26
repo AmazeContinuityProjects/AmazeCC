@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 import { getAssetPath } from "@/lib/utils";
 import {
   BookOpen,
   Building,
   CalendarCheck,
   ChevronRight,
+  Command,
   CreditCard,
   GraduationCap,
   Home,
@@ -17,23 +28,23 @@ import {
   Settings,
   User,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
 
 type NavChild = {
   id: string;
   label: string;
-  short?: string;
   section?: string;
-  isActive: () => boolean;
+  isActive: boolean;
   onSelect: () => void;
 };
 
 type NavParent = {
   id: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   children?: NavChild[];
-  isActive: () => boolean;
+  isActive: boolean;
   onSelect?: () => void;
   hidden?: boolean;
 };
@@ -41,9 +52,223 @@ type NavParent = {
 type NavGroup = {
   id: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   parents: NavParent[];
 };
+
+type ChildButtonProps = {
+  child: NavChild;
+  nested?: boolean;
+  onSelect: (child: NavChild) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>, action: () => void) => void;
+};
+
+type ParentItemProps = {
+  parent: NavParent;
+  isOpen: boolean;
+  compact?: boolean;
+  onToggle: (parent: NavParent) => void;
+  onChildSelect: (child: NavChild) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>, action: () => void) => void;
+};
+
+type RailGroupProps = {
+  group: NavGroup;
+  active: boolean;
+  isOpen: boolean;
+  rootRef: RefObject<HTMLElement | null>;
+  onOpen: (id: string) => void;
+  onClose: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>, action: () => void) => void;
+  expanded: Record<string, boolean>;
+  onParentToggle: (parent: NavParent) => void;
+  onChildSelect: (child: NavChild) => void;
+};
+
+const navButtonBase =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/40";
+
+const ChildButton = memo(function ChildButton({
+  child,
+  nested = false,
+  onSelect,
+  onKeyDown,
+}: ChildButtonProps) {
+  return (
+    <button
+      data-sidebar-nav="true"
+      onClick={() => onSelect(child)}
+      onKeyDown={(event) => onKeyDown(event, () => onSelect(child))}
+      className={`group/child relative flex w-full items-center rounded-md py-1.5 text-left text-xs transition-[color,transform,background-color] duration-150 ${navButtonBase} ${
+        nested ? "pl-8 pr-2" : "pl-7 pr-3"
+      } ${
+        child.isActive
+          ? "bg-info-surface text-info"
+          : "text-muted-foreground hover:translate-x-0.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      }`}
+    >
+      <span
+        className={`absolute left-3 h-1.5 w-1.5 rounded-full transition-opacity ${
+          child.isActive
+            ? "bg-info opacity-100"
+            : "bg-muted-foreground opacity-0 group-hover/child:opacity-60"
+        }`}
+      />
+      <span className="truncate font-normal">{child.label}</span>
+    </button>
+  );
+});
+
+const ParentNavItem = memo(function ParentNavItem({
+  parent,
+  isOpen,
+  compact = false,
+  onToggle,
+  onChildSelect,
+  onKeyDown,
+}: ParentItemProps) {
+  const ParentIcon = parent.icon;
+  const hasChildren = Boolean(parent.children?.length);
+
+  return (
+    <div className="relative">
+      <button
+        data-sidebar-nav="true"
+        aria-expanded={hasChildren ? isOpen : undefined}
+        aria-controls={hasChildren ? `sidebar-section-${parent.id}` : undefined}
+        onClick={() => onToggle(parent)}
+        onKeyDown={(event) => onKeyDown(event, () => onToggle(parent))}
+        className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-[color,transform,background-color] duration-150 ${navButtonBase} ${
+          parent.isActive
+            ? "bg-info-surface text-info"
+            : "text-sidebar-foreground hover:translate-x-0.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        }`}
+      >
+        {parent.isActive && (
+          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-info" />
+        )}
+        <ParentIcon
+          className={`h-5 w-5 shrink-0 stroke-[1.9] transition-colors ${
+            parent.isActive ? "text-info" : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
+          }`}
+        />
+        <span className="min-w-0 flex-1 truncate text-left">{parent.label}</span>
+        {hasChildren && (
+          <ChevronRight
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+              isOpen ? "rotate-90" : ""
+            }`}
+          />
+        )}
+      </button>
+
+      {hasChildren && (
+        <div
+          id={`sidebar-section-${parent.id}`}
+          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className={compact ? "pb-1 pt-1" : "pb-1 pt-1.5"}>
+              {parent.children!.map((child) => (
+                <div key={child.id}>
+                  {child.section && (
+                    <div className="mx-3 my-2 border-t border-sidebar-border pt-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        {child.section}
+                      </p>
+                    </div>
+                  )}
+                  <ChildButton
+                    child={child}
+                    nested
+                    onSelect={onChildSelect}
+                    onKeyDown={onKeyDown}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+const RailGroupButton = memo(function RailGroupButton({
+  group,
+  active,
+  isOpen,
+  rootRef,
+  onOpen,
+  onClose,
+  onKeyDown,
+  expanded,
+  onParentToggle,
+  onChildSelect,
+}: RailGroupProps) {
+  const GroupIcon = group.icon;
+  const openGroup = () => onOpen(group.id);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={openGroup}
+      onMouseLeave={onClose}
+    >
+      <button
+        data-sidebar-nav="true"
+        aria-label={`${group.label} navigation`}
+        aria-expanded={isOpen}
+        onClick={(event: MouseEvent<HTMLButtonElement>) => {
+          event.stopPropagation();
+          isOpen ? onClose() : openGroup();
+        }}
+        onKeyDown={(event) => onKeyDown(event, openGroup)}
+        className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-[color,transform,background-color] duration-150 ${navButtonBase} ${
+          active
+            ? "bg-info-surface text-info"
+            : "text-muted-foreground hover:-translate-y-0.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        }`}
+      >
+        {active && (
+          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-info" />
+        )}
+        <GroupIcon className="h-5 w-5 stroke-[1.9]" />
+      </button>
+
+      {isOpen && (
+        <div
+          ref={rootRef as RefObject<HTMLDivElement>}
+          className="absolute left-[calc(100%+0.75rem)] top-0 z-50 w-72 rounded-2xl border border-sidebar-border bg-popover p-2 text-popover-foreground shadow-lg"
+          onMouseEnter={openGroup}
+          onMouseLeave={onClose}
+        >
+          <div className="flex items-center gap-2 border-b border-sidebar-border px-3 py-2.5">
+            <GroupIcon className="h-5 w-5 text-info" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {group.label}
+            </p>
+          </div>
+          <div className="space-y-1 py-2">
+            {group.parents.map((parent) => (
+              <ParentNavItem
+                key={parent.id}
+                parent={parent}
+                compact
+                isOpen={expanded[parent.id] ?? true}
+                onToggle={onParentToggle}
+                onChildSelect={onChildSelect}
+                onKeyDown={onKeyDown}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
 
 export default function NavigationTabs({
   activeTab,
@@ -79,10 +304,10 @@ export default function NavigationTabs({
   setActiveMoreSubTab,
   activeProfileSubTab,
   setActiveProfileSubTab,
-  onOpenFeedbackStatus
+  onOpenFeedbackStatus,
+  onOpenCommandPalette
 }) {
   void handleLogOutRequest;
-  void currSemesterID;
   void setCurrSemesterID;
   void handleLogin;
   void setIsReloading;
@@ -95,6 +320,8 @@ export default function NavigationTabs({
   void feedbackStatus;
   void onOpenFeedbackStatus;
 
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const flyoutRef = useRef<HTMLDivElement | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
   const [profileData, setProfileData] = useState<any>(null);
@@ -107,11 +334,17 @@ export default function NavigationTabs({
   });
   const [flyoutId, setFlyoutId] = useState<string | null>(null);
 
+  const openCommandPalette = useCallback(() => {
+    onOpenCommandPalette?.();
+    setFlyoutId(null);
+  }, [onOpenCommandPalette]);
+
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
       setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
     };
+
     updateIcon();
     window.addEventListener("app-icon-changed", updateIcon);
 
@@ -125,31 +358,54 @@ export default function NavigationTabs({
     };
   }, []);
 
-  const isHosteller = profileData?.isHosteller;
-  const mode = settings.isSidebarCollapsed ? "rail" : "expanded";
-  const isExpandedMode = mode === "expanded";
-  const isRailMode = mode === "rail";
+  useEffect(() => {
+    if (!flyoutId) return;
 
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (sidebarRef.current?.contains(target) || flyoutRef.current?.contains(target)) return;
+      setFlyoutId(null);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [flyoutId]);
+
+  const isHosteller = profileData?.isHosteller;
+  const isExpandedMode = !settings.isSidebarCollapsed;
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
       ? ODhoursData.reduce((sum, day) => sum + day.total, 0)
       : 0;
+  const credits = marksData?.cgpa
+    ? Number(marksData.cgpa.creditsEarned) + Number(marksData.cgpa.nonGradedRequirement || 0)
+    : "-";
+  const attendanceValue = `${attendancePercentage?.[settings.attendancePercentageOrString] || "-"}${
+    settings.attendancePercentageOrString === "percentage" ? "%" : ""
+  }`;
+  const profileName = settings.friendlyName || profileData?.name || username || "Student";
+  const initials = String(profileName)
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-  const persistSidebarState = (nextCollapsed: boolean) => {
+  const persistSidebarState = useCallback((nextCollapsed: boolean) => {
     setSettings(prev => ({ ...prev, isSidebarCollapsed: nextCollapsed }));
     localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: nextCollapsed }));
-  };
+  }, [setSettings, settings]);
 
-  const handleReloadClick = async () => {
+  const handleReloadClick = useCallback(async () => {
     setIsSpinning(true);
     await handleReloadRequest();
-    setTimeout(() => setIsSpinning(false), 600);
-  };
+    window.setTimeout(() => setIsSpinning(false), 600);
+  }, [handleReloadRequest]);
 
-  const selectTab = (tab: string) => {
+  const selectTab = useCallback((tab: string) => {
     setActiveTab(tab);
     window.scrollTo(0, 0);
-  };
+  }, [setActiveTab]);
 
   const navigation = useMemo<NavGroup[]>(() => [
     {
@@ -161,13 +417,16 @@ export default function NavigationTabs({
           id: "attendance",
           label: "Attendance",
           icon: CalendarCheck,
-          isActive: () => activeTab === "attendance",
+          isActive: activeTab === "attendance",
+          onSelect: () => {
+            selectTab("attendance");
+            setActiveAttendanceSubTab("attendance");
+          },
           children: [
             {
               id: "attendance.attendance",
               label: "Attendance",
-              short: "A",
-              isActive: () => activeTab === "attendance" && activeAttendanceSubTab === "attendance",
+              isActive: activeTab === "attendance" && activeAttendanceSubTab === "attendance",
               onSelect: () => {
                 selectTab("attendance");
                 setActiveAttendanceSubTab("attendance");
@@ -176,8 +435,7 @@ export default function NavigationTabs({
             {
               id: "attendance.calendar",
               label: "Calendar",
-              short: "C",
-              isActive: () => activeTab === "attendance" && activeAttendanceSubTab === "calendar",
+              isActive: activeTab === "attendance" && activeAttendanceSubTab === "calendar",
               onSelect: () => {
                 selectTab("attendance");
                 setActiveAttendanceSubTab("calendar");
@@ -189,13 +447,16 @@ export default function NavigationTabs({
           id: "academics",
           label: "Academics",
           icon: GraduationCap,
-          isActive: () => activeTab === "academics",
+          isActive: activeTab === "academics",
+          onSelect: () => {
+            selectTab("academics");
+            if (!activeSubTab) setActiveSubTab("overview");
+          },
           children: [
             {
               id: "academics.overview",
               label: "Overview",
-              short: "O",
-              isActive: () => activeTab === "academics" && activeSubTab === "overview",
+              isActive: activeTab === "academics" && activeSubTab === "overview",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("overview");
@@ -204,8 +465,7 @@ export default function NavigationTabs({
             {
               id: "academics.course-dashboard",
               label: "Course Dashboard",
-              short: "D",
-              isActive: () => activeTab === "academics" && activeSubTab === "course-dashboard",
+              isActive: activeTab === "academics" && activeSubTab === "course-dashboard",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("course-dashboard");
@@ -214,8 +474,7 @@ export default function NavigationTabs({
             {
               id: "academics.grades",
               label: "Grade History",
-              short: "G",
-              isActive: () => activeTab === "academics" && activeSubTab === "grades",
+              isActive: activeTab === "academics" && activeSubTab === "grades",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("grades");
@@ -224,8 +483,7 @@ export default function NavigationTabs({
             {
               id: "academics.curriculum",
               label: "Curriculum",
-              short: "C",
-              isActive: () => activeTab === "academics" && activeSubTab === "curriculum",
+              isActive: activeTab === "academics" && activeSubTab === "curriculum",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("curriculum");
@@ -234,8 +492,7 @@ export default function NavigationTabs({
             {
               id: "academics.predictor",
               label: "CGPA Predictor",
-              short: "P",
-              isActive: () => activeTab === "academics" && activeSubTab === "predictor",
+              isActive: activeTab === "academics" && activeSubTab === "predictor",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("predictor");
@@ -244,8 +501,7 @@ export default function NavigationTabs({
             {
               id: "academics.qbank",
               label: "Question Bank",
-              short: "Q",
-              isActive: () => activeTab === "academics" && activeSubTab === "qbank",
+              isActive: activeTab === "academics" && activeSubTab === "qbank",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("qbank");
@@ -254,9 +510,8 @@ export default function NavigationTabs({
             {
               id: "academics.arrear",
               label: "Arrear",
-              short: "A",
               section: "Academic Tools",
-              isActive: () => activeTab === "academics" && activeSubTab === "arrear",
+              isActive: activeTab === "academics" && activeSubTab === "arrear",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("arrear");
@@ -265,8 +520,7 @@ export default function NavigationTabs({
             {
               id: "academics.makeup-compre",
               label: "Makeup & Compre",
-              short: "M",
-              isActive: () => activeTab === "academics" && activeSubTab === "makeup-compre",
+              isActive: activeTab === "academics" && activeSubTab === "makeup-compre",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("makeup-compre");
@@ -275,8 +529,7 @@ export default function NavigationTabs({
             {
               id: "academics.course-mgmt",
               label: "Course Management",
-              short: "CM",
-              isActive: () => activeTab === "academics" && activeSubTab === "course-mgmt",
+              isActive: activeTab === "academics" && activeSubTab === "course-mgmt",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("course-mgmt");
@@ -285,8 +538,7 @@ export default function NavigationTabs({
             {
               id: "academics.projects",
               label: "Projects",
-              short: "Pr",
-              isActive: () => activeTab === "academics" && activeSubTab === "projects",
+              isActive: activeTab === "academics" && activeSubTab === "projects",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("projects");
@@ -295,8 +547,7 @@ export default function NavigationTabs({
             {
               id: "academics.wishlist",
               label: "Wishlist",
-              short: "W",
-              isActive: () => activeTab === "academics" && activeSubTab === "wishlist",
+              isActive: activeTab === "academics" && activeSubTab === "wishlist",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("wishlist");
@@ -305,8 +556,7 @@ export default function NavigationTabs({
             {
               id: "academics.faculty-info",
               label: "Faculty Info",
-              short: "F",
-              isActive: () => activeTab === "academics" && activeSubTab === "faculty-info",
+              isActive: activeTab === "academics" && activeSubTab === "faculty-info",
               onSelect: () => {
                 selectTab("academics");
                 setActiveSubTab("faculty-info");
@@ -325,14 +575,14 @@ export default function NavigationTabs({
           id: "payments",
           label: "Payments",
           icon: CreditCard,
-          isActive: () => activeTab === "payments",
+          isActive: activeTab === "payments",
           onSelect: () => selectTab("payments"),
         },
         {
           id: "libraries",
           label: "Libraries",
           icon: Library,
-          isActive: () => activeTab === "libraries",
+          isActive: activeTab === "libraries",
           onSelect: () => selectTab("libraries"),
         },
         {
@@ -340,13 +590,16 @@ export default function NavigationTabs({
           label: "Hostel",
           icon: Home,
           hidden: isHosteller !== true,
-          isActive: () => activeTab === "hostel",
+          isActive: activeTab === "hostel",
+          onSelect: () => {
+            selectTab("hostel");
+            if (!HostelActiveSubTab) setHostelActiveSubTab("mess");
+          },
           children: [
             {
               id: "hostel.mess",
               label: "Mess",
-              short: "M",
-              isActive: () => activeTab === "hostel" && HostelActiveSubTab === "mess",
+              isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
               onSelect: () => {
                 selectTab("hostel");
                 setHostelActiveSubTab("mess");
@@ -355,8 +608,7 @@ export default function NavigationTabs({
             {
               id: "hostel.laundry",
               label: "Laundry",
-              short: "L",
-              isActive: () => activeTab === "hostel" && HostelActiveSubTab === "laundry",
+              isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
               onSelect: () => {
                 selectTab("hostel");
                 setHostelActiveSubTab("laundry");
@@ -365,8 +617,7 @@ export default function NavigationTabs({
             {
               id: "hostel.leave",
               label: "Leave",
-              short: "Lv",
-              isActive: () => activeTab === "hostel" && HostelActiveSubTab === "leave",
+              isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
               onSelect: () => {
                 selectTab("hostel");
                 setHostelActiveSubTab("leave");
@@ -375,8 +626,7 @@ export default function NavigationTabs({
             {
               id: "hostel.counselling",
               label: "Counselling",
-              short: "C",
-              isActive: () => activeTab === "hostel" && HostelActiveSubTab === "counselling",
+              isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
               onSelect: () => {
                 selectTab("hostel");
                 setHostelActiveSubTab("counselling");
@@ -395,13 +645,16 @@ export default function NavigationTabs({
           id: "more",
           label: "More",
           icon: LayoutGrid,
-          isActive: () => activeTab === "more",
+          isActive: activeTab === "more",
+          onSelect: () => {
+            selectTab("more");
+            if (!activeMoreSubTab) setActiveMoreSubTab("social");
+          },
           children: [
             {
               id: "tools.social",
               label: "Social",
-              short: "S",
-              isActive: () => activeTab === "more" && activeMoreSubTab === "social",
+              isActive: activeTab === "more" && activeMoreSubTab === "social",
               onSelect: () => {
                 selectTab("more");
                 setActiveMoreSubTab("social");
@@ -410,8 +663,7 @@ export default function NavigationTabs({
             {
               id: "tools.ffcs",
               label: "FFCS Planner",
-              short: "F",
-              isActive: () => activeTab === "more" && activeMoreSubTab === "ffcs",
+              isActive: activeTab === "more" && activeMoreSubTab === "ffcs",
               onSelect: () => {
                 selectTab("more");
                 setActiveMoreSubTab("ffcs");
@@ -420,8 +672,7 @@ export default function NavigationTabs({
             {
               id: "tools.events",
               label: "Event Hub",
-              short: "E",
-              isActive: () => activeTab === "more" && activeMoreSubTab === "events",
+              isActive: activeTab === "more" && activeMoreSubTab === "events",
               onSelect: () => {
                 selectTab("more");
                 setActiveMoreSubTab("events");
@@ -440,13 +691,16 @@ export default function NavigationTabs({
           id: "profile",
           label: "Profile",
           icon: User,
-          isActive: () => activeTab === "profile",
+          isActive: activeTab === "profile",
+          onSelect: () => {
+            selectTab("profile");
+            if (!activeProfileSubTab) setActiveProfileSubTab("info");
+          },
           children: [
             {
               id: "settings.info",
               label: "My Info",
-              short: "I",
-              isActive: () => activeTab === "profile" && activeProfileSubTab === "info",
+              isActive: activeTab === "profile" && activeProfileSubTab === "info",
               onSelect: () => {
                 selectTab("profile");
                 setActiveProfileSubTab("info");
@@ -455,21 +709,10 @@ export default function NavigationTabs({
             {
               id: "settings.credentials",
               label: "Credentials",
-              short: "Cr",
-              isActive: () => activeTab === "profile" && activeProfileSubTab === "credentials",
+              isActive: activeTab === "profile" && activeProfileSubTab === "credentials",
               onSelect: () => {
                 selectTab("profile");
                 setActiveProfileSubTab("credentials");
-              },
-            },
-            {
-              id: "settings.preferences",
-              label: "Preferences",
-              short: "P",
-              isActive: () => false,
-              onSelect: () => {
-                selectTab("profile");
-                setActiveProfileSubTab("info");
               },
             },
           ],
@@ -484,26 +727,45 @@ export default function NavigationTabs({
     activeTab,
     HostelActiveSubTab,
     isHosteller,
+    selectTab,
+    setActiveAttendanceSubTab,
+    setActiveMoreSubTab,
+    setActiveProfileSubTab,
+    setActiveSubTab,
+    setHostelActiveSubTab,
   ]);
 
-  const visibleGroups = navigation
-    .map(group => ({ ...group, parents: group.parents.filter(parent => !parent.hidden) }))
-    .filter(group => group.parents.length > 0);
+  const visibleGroups = useMemo(
+    () => navigation
+      .map(group => ({ ...group, parents: group.parents.filter(parent => !parent.hidden) }))
+      .filter(group => group.parents.length > 0),
+    [navigation],
+  );
 
-  const toggleParent = (parent: NavParent) => {
-    if (parent.children?.length) {
-      setExpanded(prev => ({ ...prev, [parent.id]: !prev[parent.id] }));
-      return;
-    }
+  const openFlyout = useCallback((id: string) => {
+    setFlyoutId(current => (current === id ? current : id));
+  }, []);
+
+  const closeFlyout = useCallback(() => {
+    setFlyoutId(null);
+  }, []);
+
+  const toggleParent = useCallback((parent: NavParent) => {
     parent.onSelect?.();
-  };
+    if (parent.children?.length) {
+      setExpanded(prev => ({
+        ...prev,
+        [parent.id]: parent.isActive ? !(prev[parent.id] ?? true) : true,
+      }));
+    }
+  }, []);
 
-  const selectChild = (child: NavChild) => {
+  const selectChild = useCallback((child: NavChild) => {
     child.onSelect();
     setFlyoutId(null);
-  };
+  }, []);
 
-  const handleNavKeyDown = (event: KeyboardEvent<HTMLElement>, action: () => void) => {
+  const handleNavKeyDown = useCallback((event: KeyboardEvent<HTMLElement>, action: () => void) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       action();
@@ -520,127 +782,7 @@ export default function NavigationTabs({
       const next = event.key === "ArrowDown" ? buttons[index + 1] : buttons[index - 1];
       next?.focus();
     }
-  };
-
-  const renderChild = (child: NavChild, nested = false) => {
-    const active = child.isActive();
-    return (
-      <button
-        key={child.id}
-        data-sidebar-nav="true"
-        onClick={() => selectChild(child)}
-        onKeyDown={(event) => handleNavKeyDown(event, () => selectChild(child))}
-        className={`group/child relative flex w-full items-center rounded-lg py-1.5 text-left text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-          nested ? "pl-8 pr-2" : "pl-7 pr-3"
-        } ${
-          active
-            ? "text-blue-600 dark:text-blue-400"
-            : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:translate-x-0.5"
-        }`}
-      >
-        <span className={`absolute left-3 h-1.5 w-1.5 rounded-full transition-all ${active ? "bg-blue-500 opacity-100" : "bg-gray-300 opacity-0 group-hover/child:opacity-70 dark:bg-gray-600"}`} />
-        {child.label}
-      </button>
-    );
-  };
-
-  const renderFlyout = (parent: NavParent) => {
-    if (!parent.children?.length || flyoutId !== parent.id) return null;
-    const ParentIcon = parent.icon;
-    return (
-      <div
-        onMouseEnter={() => setFlyoutId(parent.id)}
-        onMouseLeave={() => setFlyoutId(null)}
-        className="absolute left-[calc(100%-2px)] top-0 z-50 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-gray-800 dark:bg-gray-950"
-      >
-        <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
-          <ParentIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{parent.label}</span>
-        </div>
-        <div className="py-2">
-          {parent.children.map(child => (
-            <div key={child.id}>
-              {child.section && <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{child.section}</p>}
-              {renderChild(child)}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderParent = (parent: NavParent) => {
-    const ParentIcon = parent.icon;
-    const active = parent.isActive();
-    const isOpen = expanded[parent.id] ?? false;
-    const hasChildren = Boolean(parent.children?.length);
-
-    if (!isExpandedMode) {
-      return (
-        <div
-          key={parent.id}
-          className="relative flex flex-col items-center"
-          onMouseEnter={() => setFlyoutId(parent.id)}
-          onMouseLeave={() => setFlyoutId(null)}
-        >
-          <button
-            data-sidebar-nav="true"
-            onClick={() => hasChildren ? setFlyoutId(parent.id) : parent.onSelect?.()}
-            onKeyDown={(event) => handleNavKeyDown(event, () => hasChildren ? setFlyoutId(parent.id) : parent.onSelect?.())}
-            title={parent.label}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-              active
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-gray-500 hover:-translate-y-0.5 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100"
-            }`}
-          >
-            <ParentIcon className="h-5 w-5" />
-          </button>
-          {renderFlyout(parent)}
-        </div>
-      );
-    }
-
-    return (
-      <div key={parent.id} className="relative">
-        <button
-          data-sidebar-nav="true"
-          onClick={() => toggleParent(parent)}
-          onKeyDown={(event) => handleNavKeyDown(event, () => toggleParent(parent))}
-          className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-            active
-              ? "bg-blue-50 text-gray-900 dark:bg-blue-950/25 dark:text-gray-100"
-              : "text-gray-600 hover:translate-x-0.5 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900/80 dark:hover:text-gray-100"
-          }`}
-        >
-          {active && <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-blue-600 dark:bg-blue-400" />}
-          <ParentIcon className={`h-4.5 w-4.5 shrink-0 transition-colors ${active ? "text-blue-600 dark:text-blue-400" : "text-gray-500 group-hover:text-gray-800 dark:text-gray-500 dark:group-hover:text-gray-200"}`} />
-          <span className="min-w-0 flex-1 truncate text-left">{parent.label}</span>
-          {hasChildren && (
-            <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
-          )}
-        </button>
-        {hasChildren && (
-          <div
-            className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-              isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-            }`}
-          >
-            <div className="min-h-0 overflow-hidden">
-              <div className="pb-1 pt-1">
-                {parent.children!.map(child => (
-                  <div key={child.id}>
-                    {child.section && <p className="pl-8 pr-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{child.section}</p>}
-                    {renderChild(child, true)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  }, []);
 
   const renderMobileNav = () => {
     const items = [
@@ -652,18 +794,18 @@ export default function NavigationTabs({
     ];
 
     return (
-      <div className="fixed bottom-6 left-4 right-4 z-40 flex items-center justify-around rounded-full border border-gray-200 bg-white px-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:border-gray-800 dark:bg-gray-950 md:hidden">
+      <div className="fixed bottom-6 left-4 right-4 z-40 flex items-center justify-around rounded-full border border-sidebar-border bg-sidebar px-2 py-1 text-sidebar-foreground shadow-lg md:hidden">
         {items.map(item => {
           const Icon = item.icon;
           return (
             <button
               key={item.id}
               onClick={item.action}
-              className={`flex flex-1 flex-col items-center justify-center rounded-full py-2 text-[10px] font-semibold transition-colors ${
-                item.active ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
+              className={`flex flex-1 flex-col items-center justify-center rounded-full py-2 text-[10px] font-semibold transition-colors ${navButtonBase} ${
+                item.active ? "text-info" : "text-muted-foreground"
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5 stroke-[1.9]" />
               <span>{item.label}</span>
             </button>
           );
@@ -677,112 +819,183 @@ export default function NavigationTabs({
       {renderMobileNav()}
 
       <aside
-        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-3xl border border-gray-200 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-950 dark:shadow-[0_8px_30px_rgba(255,255,255,0.05)] md:flex ${
+        ref={sidebarRef}
+        data-sidebar-root="true"
+        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 md:flex ${
           isExpandedMode ? "w-[280px]" : "w-[72px]"
         }`}
-        style={{ scrollbarWidth: "none" }}
         aria-label="Primary navigation"
       >
-        <div className={`flex flex-col gap-3 border-b border-gray-200 px-4 pb-4 pt-5 dark:border-gray-800 ${!isExpandedMode ? "items-center px-3" : ""}`}>
-          <div className={`flex w-full items-start gap-3 ${!isExpandedMode ? "justify-center" : "justify-between"}`}>
-            <div className={`flex gap-3 ${!isExpandedMode ? "flex-col items-center" : "items-center"}`}>
-              <img src={currentIcon} alt="AmazeCC" className="h-9 w-9 rounded-xl object-contain shadow-sm" />
+        <div className={`border-b border-sidebar-border ${isExpandedMode ? "px-4 pb-4 pt-5" : "px-3 py-4"}`}>
+          <div className={`flex items-start gap-3 ${isExpandedMode ? "justify-between" : "flex-col items-center"}`}>
+            <div className={`flex min-w-0 gap-3 ${isExpandedMode ? "items-center" : "flex-col items-center"}`}>
+              <img src={currentIcon} alt="AmazeCC" className="h-10 w-10 rounded-xl object-contain shadow-sm" />
               {isExpandedMode && (
-                <div>
-                  <h2 className="text-lg font-black tracking-tight text-gray-900 dark:text-gray-100">AmazeCC</h2>
-                  <p className="max-w-[160px] truncate text-xs font-medium text-gray-500 dark:text-gray-400">{username || "Student ID"}</p>
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-semibold tracking-tight text-sidebar-foreground">AmazeCC</h2>
+                  <p className="truncate text-xs font-medium text-muted-foreground">{username || "Student ID"}</p>
                 </div>
               )}
             </div>
-            <div className={`flex items-center gap-1 ${!isExpandedMode ? "flex-col" : ""}`}>
+            <div className={`flex items-center gap-1 ${isExpandedMode ? "" : "flex-col"}`}>
               <button
                 onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
-                className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-gray-100"
+                className={`rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${navButtonBase}`}
                 title="Toggle sidebar"
+                aria-label="Toggle sidebar"
               >
-                <Menu className="h-4.5 w-4.5" />
+                <Menu className="h-5 w-5 stroke-[1.9]" />
               </button>
               {isExpandedMode && (
-                <>
-                  <button
-                    onClick={handleReloadClick}
-                    className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-gray-100"
-                    title="Reload data"
-                  >
-                    <RefreshCcw className={`h-4 w-4 ${isSpinning ? "animate-spin" : ""}`} />
-                  </button>
-                  <button
-                    onClick={() => selectTab("profile")}
-                    className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-gray-100"
-                    title="Profile"
-                  >
-                    <User className="h-4 w-4" />
-                  </button>
-                </>
+                <button
+                  onClick={handleReloadClick}
+                  className={`rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${navButtonBase}`}
+                  title="Reload data"
+                  aria-label="Reload data"
+                >
+                  <RefreshCcw className={`h-4 w-4 ${isSpinning ? "animate-spin" : ""}`} />
+                </button>
               )}
             </div>
           </div>
 
           {isExpandedMode && (
             <>
-              <div className="grid grid-cols-4 gap-1.5 rounded-2xl border border-gray-200 bg-gray-50/80 p-2 dark:border-gray-800 dark:bg-gray-900/40">
-                <button
-                  className="rounded-xl px-1.5 py-1.5 text-center transition-colors hover:bg-white dark:hover:bg-gray-950"
-                  onClick={() => setSettings(prev => ({ ...prev, CGPAHidden: !prev.CGPAHidden }))}
-                >
-                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">CGPA</span>
-                  <span className="block truncate text-xs font-black text-gray-900 dark:text-gray-100">{settings.CGPAHidden ? "###" : marksData?.cgpa?.cgpa || "-"}</span>
-                </button>
-                <button
-                  className="rounded-xl px-1.5 py-1.5 text-center transition-colors hover:bg-white dark:hover:bg-gray-950"
-                  onClick={() => setSettings(prev => ({ ...prev, attendancePercentageOrString: prev.attendancePercentageOrString === "percentage" ? "str" : "percentage" }))}
-                >
-                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">Att.</span>
-                  <span className={`block truncate text-xs font-black ${attendancePercentage?.percentage < 75 ? "text-red-500" : "text-green-500 dark:text-green-400"}`}>
-                    {attendancePercentage?.[settings.attendancePercentageOrString] || "-"}
-                    {settings.attendancePercentageOrString === "percentage" ? "%" : ""}
+              <button
+                onClick={() => selectTab("profile")}
+                className={`mt-4 flex w-full items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent px-3 py-2.5 text-left transition-colors hover:bg-accent ${navButtonBase}`}
+              >
+                {profileData?.image ? (
+                  <img src={profileData.image} alt="" className="h-9 w-9 rounded-full object-cover" />
+                ) : (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-info-surface text-xs font-semibold text-info">
+                    {initials || "ST"}
                   </span>
-                </button>
-                <button
-                  className="rounded-xl px-1.5 py-1.5 text-center transition-colors hover:bg-white dark:hover:bg-gray-950"
-                  onClick={() => setODhoursIsOpen(true)}
-                >
-                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">OD</span>
-                  <span className="block truncate text-xs font-black text-gray-900 dark:text-gray-100">{totalODHours}/40</span>
-                </button>
-                <button
-                  className="rounded-xl px-1.5 py-1.5 text-center transition-colors hover:bg-white dark:hover:bg-gray-950"
-                  onClick={() => setGradesDisplayIsOpen(true)}
-                >
-                  <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">Credits</span>
-                  <span className="block truncate text-xs font-black text-gray-900 dark:text-gray-100">
-                    {marksData?.cgpa ? Number(marksData.cgpa.creditsEarned) + Number(marksData.cgpa.nonGradedRequirement || 0) : "-"}
+                )}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-sidebar-foreground">{profileName}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{username || "Student ID"}</span>
+                </span>
+              </button>
+
+              <div className="mt-3 rounded-xl border border-sidebar-border bg-sidebar-accent/70 p-3">
+                <div className="flex items-center justify-between gap-3 pb-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Current Semester
                   </span>
-                </button>
+                  <span className="truncate text-xs font-medium text-sidebar-foreground">{currSemesterID || "-"}</span>
+                </div>
+                <div className="grid grid-cols-4 divide-x divide-sidebar-border border-t border-sidebar-border pt-2">
+                  <button
+                    className={`px-1 text-center transition-colors hover:text-info ${navButtonBase}`}
+                    onClick={() => setSettings(prev => ({ ...prev, CGPAHidden: !prev.CGPAHidden }))}
+                  >
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">CGPA</span>
+                    <span className="block truncate text-xs font-semibold text-sidebar-foreground">{settings.CGPAHidden ? "###" : marksData?.cgpa?.cgpa || "-"}</span>
+                  </button>
+                  <button
+                    className={`px-1 text-center transition-colors hover:text-info ${navButtonBase}`}
+                    onClick={() => setSettings(prev => ({ ...prev, attendancePercentageOrString: prev.attendancePercentageOrString === "percentage" ? "str" : "percentage" }))}
+                  >
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Att.</span>
+                    <span className={`block truncate text-xs font-semibold ${attendancePercentage?.percentage < 75 ? "text-danger" : "text-success"}`}>
+                      {attendanceValue}
+                    </span>
+                  </button>
+                  <button
+                    className={`px-1 text-center transition-colors hover:text-info ${navButtonBase}`}
+                    onClick={() => setGradesDisplayIsOpen(true)}
+                  >
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Credits</span>
+                    <span className="block truncate text-xs font-semibold text-sidebar-foreground">{credits}</span>
+                  </button>
+                  <button
+                    className={`px-1 text-center transition-colors hover:text-info ${navButtonBase}`}
+                    onClick={() => setODhoursIsOpen(true)}
+                  >
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">OD</span>
+                    <span className="block truncate text-xs font-semibold text-sidebar-foreground">{totalODHours}/40</span>
+                  </button>
+                </div>
               </div>
+
+              <button
+                data-sidebar-nav="true"
+                onClick={openCommandPalette}
+                onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
+                className={`mt-3 flex w-full items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar px-3 py-2.5 text-left transition-[color,background-color] hover:bg-sidebar-accent ${navButtonBase}`}
+                aria-label="Open command palette"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-info-surface text-info">
+                  <Command className="h-4.5 w-4.5 stroke-[1.9]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-sidebar-foreground">Command Center</span>
+                  <span className="block truncate text-xs text-muted-foreground">Search pages, courses, tools</span>
+                </span>
+                <kbd className="rounded-md border border-sidebar-border bg-sidebar-accent px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}
+                </kbd>
+              </button>
             </>
           )}
         </div>
 
-        <nav className={`flex flex-1 flex-col gap-4 px-3 py-4 ${isExpandedMode ? "overflow-y-auto" : "items-center overflow-visible px-2"}`} style={{ scrollbarWidth: "none" }}>
-          {visibleGroups.map(group => {
-            const GroupIcon = group.icon;
-            return (
-              <section key={group.id} className={`w-full ${isRailMode ? "flex flex-col items-center" : ""}`}>
-                {isExpandedMode ? (
-                  <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">{group.label}</p>
-                ) : (
-                  <div className="mb-2 flex items-center justify-center">
-                    <GroupIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                  </div>
-                )}
-                <div className={`space-y-1.5 ${!isExpandedMode ? "flex flex-col items-center" : ""}`}>
-                  {group.parents.map(renderParent)}
+        {isExpandedMode ? (
+          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto px-3 py-4" style={{ scrollbarWidth: "none" }}>
+            {visibleGroups.map(group => (
+              <section key={group.id} className="border-t border-sidebar-border pt-3 first:border-t-0 first:pt-0">
+                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.parents.map(parent => (
+                    <ParentNavItem
+                      key={parent.id}
+                      parent={parent}
+                      isOpen={expanded[parent.id] ?? true}
+                      onToggle={toggleParent}
+                      onChildSelect={selectChild}
+                      onKeyDown={handleNavKeyDown}
+                    />
+                  ))}
                 </div>
               </section>
-            );
-          })}
-        </nav>
+            ))}
+          </nav>
+        ) : (
+          <>
+            <div className="flex justify-center border-b border-sidebar-border px-2 py-3">
+              <button
+                data-sidebar-nav="true"
+                onClick={openCommandPalette}
+                onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl bg-info-surface text-info transition-[color,transform,background-color] duration-150 hover:-translate-y-0.5 ${navButtonBase}`}
+                title="Command Center"
+                aria-label="Open command palette"
+              >
+                <Command className="h-5 w-5 stroke-[1.9]" />
+              </button>
+            </div>
+            <nav className="flex flex-1 flex-col items-center gap-2 px-2 py-4" aria-label="Navigation rail">
+              {visibleGroups.map(group => (
+                <RailGroupButton
+                  key={group.id}
+                  group={group}
+                  active={group.parents.some(parent => parent.isActive)}
+                  isOpen={flyoutId === group.id}
+                  rootRef={flyoutRef}
+                  onOpen={openFlyout}
+                  onClose={closeFlyout}
+                  onKeyDown={handleNavKeyDown}
+                  expanded={expanded}
+                  onParentToggle={toggleParent}
+                  onChildSelect={selectChild}
+                />
+              ))}
+            </nav>
+          </>
+        )}
       </aside>
     </>
   );

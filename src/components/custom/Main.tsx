@@ -2167,6 +2167,7 @@ export default function LoginPage() {
             setVitolData={setVitolData}
             settings={settings}
             setSettings={setSettings}
+            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           />
         </>
       )}

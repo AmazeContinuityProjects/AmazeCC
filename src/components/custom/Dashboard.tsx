@@ -119,7 +119,8 @@ export default function DashboardContent({
   vitolData,
   setVitolData,
   settings,
-  setSettings
+  setSettings,
+  onOpenCommandPalette
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
@@ -500,6 +501,7 @@ export default function DashboardContent({
         activeProfileSubTab={activeProfileSubTab}
         setActiveProfileSubTab={setActiveProfileSubTab}
         onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
+        onOpenCommandPalette={onOpenCommandPalette}
       />
 
       <div 
