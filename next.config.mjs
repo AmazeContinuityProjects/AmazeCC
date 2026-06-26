@@ -17,6 +17,7 @@ const nextConfig = {
   output: 'export',
   basePath: basePath,
   trailingSlash: true,
+  allowedDevOrigins: ['192.168.1.101', 'localhost:3001', '192.168.1.101:3001'],
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },

@@ -31,6 +31,7 @@ import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { exportTimetableIcal } from "@/lib/exportIcal";
+import { getBatchColorClass } from "@/lib/utils";
 
 
 
@@ -89,7 +90,7 @@ const parse24HourToMinutes = (timeStr: string) => {
 };
 
 const getGroupedCourses = (courseList: AddedCourse[]) => {
-  const groups = new Map<string, AddedCourse & { ids: string[] }>();
+  const groups = new Map<string, AddedCourse & { ids: string[]; batches: string[] }>();
   courseList.forEach(c => {
     if (groups.has(c.code)) {
       const g = groups.get(c.code)!;
@@ -103,9 +104,16 @@ const getGroupedCourses = (courseList: AddedCourse[]) => {
         if (!g.slots.includes(s)) g.slots.push(s);
       });
       
+      if (c.batch) {
+        c.batch.split(",").map(b => b.trim()).forEach(b => {
+          if (b && !g.batches.includes(b)) g.batches.push(b);
+        });
+      }
+      
       g.credits = String(parseFloat(g.credits || "0") + parseFloat(c.credits || "0"));
     } else {
-      groups.set(c.code, { ...c, ids: [c.id], faculty: c.faculty, venue: c.venue, type: c.type, slots: [...c.slots] });
+      const batches = c.batch ? c.batch.split(",").map(b => b.trim()).filter(Boolean) : [];
+      groups.set(c.code, { ...c, ids: [c.id], faculty: c.faculty, venue: c.venue, type: c.type, slots: [...c.slots], batches });
     }
   });
   return Array.from(groups.values());
@@ -602,7 +610,8 @@ export default function FFCSTimetableTab() {
             CREDITS: String(cleanRow.CREDITS || "0").trim(),
             ROOM: String(cleanRow.VENUE || cleanRow.ROOM || "").trim(),
             SLOT: String(cleanRow.SLOT || "").trim(),
-            FACULTY: String(cleanRow.FACULTY || "").trim()
+            FACULTY: String(cleanRow.FACULTY || "").trim(),
+            BATCH: String(cleanRow.BATCH || "").trim()
           };
         }).filter(c => c.CODE);
 
@@ -695,7 +704,8 @@ export default function FFCSTimetableTab() {
 
   useEffect(() => {
     setSlotFilter("all");
-  }, [selectedCourseCode]);
+    setSelectedSlotIndex("-1");
+  }, [selectedCourseCode, isGroupingEnabled]);
 
   const updateActiveTimetableCourses = (newCourses: AddedCourse[]) => {
     setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
@@ -779,24 +789,30 @@ export default function FFCSTimetableTab() {
 
   // Unique Courses with their associated types
   const uniqueCourses = useMemo(() => {
-    const map = new Map<string, { title: string; types: string[] }>();
+    const map = new Map<string, { title: string; types: string[]; batches: string[] }>();
     masterCourses.forEach(c => {
       const existing = map.get(c.CODE);
       const cTypes = c.TYPE.trim().toUpperCase().split("+").map(t => t.trim());
+      const cBatches = c.BATCH ? c.BATCH.trim().split(",").map(b => b.trim()).filter(Boolean) : [];
       if (existing) {
         cTypes.forEach(cType => {
           if (cType && !existing.types.includes(cType)) {
             existing.types.push(cType);
           }
         });
+        cBatches.forEach(cBatch => {
+          if (cBatch && !existing.batches.includes(cBatch)) {
+            existing.batches.push(cBatch);
+          }
+        });
         if (c.TITLE.includes("[Theory + Lab]") || c.TITLE.includes("[Embedded")) {
           existing.title = c.TITLE;
         }
       } else {
-        map.set(c.CODE, { title: c.TITLE, types: cTypes.filter(Boolean) });
+        map.set(c.CODE, { title: c.TITLE, types: cTypes.filter(Boolean), batches: cBatches });
       }
     });
-    return Array.from(map.entries()).map(([code, { title, types }]) => ({ code, title, types })).sort((a, b) => a.code.localeCompare(b.code));
+    return Array.from(map.entries()).map(([code, { title, types, batches }]) => ({ code, title, types, batches })).sort((a, b) => a.code.localeCompare(b.code));
   }, [masterCourses]);
 
   const uniqueCourseCodes = useMemo(() => {
@@ -1470,7 +1486,8 @@ export default function FFCSTimetableTab() {
       venue: selectedRow.ROOM || "TBA",
       credits: selectedRow.CREDITS || "0",
       type: selectedRow.TYPE || "Theory",
-      color: COLORS[courses.length % COLORS.length]
+      color: COLORS[courses.length % COLORS.length],
+      batch: selectedRow.BATCH
     };
 
     updateActiveTimetableCourses([...courses, newCourse]);
@@ -1776,33 +1793,31 @@ export default function FFCSTimetableTab() {
               </div>
 
               {/* Active Timetable Actions: Rename, Duplicate, Delete */}
-              <div className="flex items-center justify-between gap-1.5 p-1 bg-muted/30 border border-border/50 rounded-xl">
-                <div className="flex items-center gap-1">
-                  <button 
-                    type="button"
-                    onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
-                    title="Rename Current Timetable"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span>Rename</span>
-                  </button>
-                  
-                  <button 
-                    type="button"
-                    onClick={duplicateTimetable}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
-                    title="Duplicate Current Timetable"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Duplicate</span>
-                  </button>
-                </div>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-muted/30 border border-border/50 rounded-xl">
+                <button 
+                  type="button"
+                  onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }}
+                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
+                  title="Rename Current Timetable"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Rename</span>
+                </button>
+                
+                <button 
+                  type="button"
+                  onClick={duplicateTimetable}
+                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
+                  title="Duplicate Current Timetable"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Duplicate</span>
+                </button>
 
                 <button 
                   type="button"
                   onClick={() => deleteTimetable(activeTimetableId)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all font-medium"
+                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all font-medium"
                   title="Delete Current Timetable"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1829,7 +1844,7 @@ export default function FFCSTimetableTab() {
               )}
 
               {/* Utility Row: Export Calendar, Friends, Backup/Restore */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button 
                   type="button"
                   onClick={() => exportTimetableIcal(activeTimetable, getTimetableSchema(), new Date().toISOString().split('T')[0], new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0])}
@@ -1850,25 +1865,24 @@ export default function FFCSTimetableTab() {
                   <span className="truncate w-full text-center">Friends</span>
                 </button>
 
-                <div className="flex border border-border rounded-xl bg-background overflow-hidden shadow-sm">
-                  <button 
-                    type="button"
-                    onClick={exportTimetables}
-                    className="flex-1 flex flex-col items-center justify-center gap-1 p-2 hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium border-r border-border group"
-                    title="Export backup data (JSON)"
-                  >
-                    <Save className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
-                    <span>Backup</span>
-                  </button>
-                  <label 
-                    className="flex-1 flex flex-col items-center justify-center gap-1 p-2 hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium cursor-pointer group"
-                    title="Import backup data (JSON)"
-                  >
-                    <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
-                    <Upload className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
-                    <span>Restore</span>
-                  </label>
-                </div>
+                <button 
+                  type="button"
+                  onClick={exportTimetables}
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium shadow-sm group"
+                  title="Export backup data (JSON)"
+                >
+                  <Save className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
+                  <span>Backup</span>
+                </button>
+
+                <label 
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium cursor-pointer shadow-sm group"
+                  title="Import backup data (JSON)"
+                >
+                  <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
+                  <Upload className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <span>Restore</span>
+                </label>
               </div>
 
               {/* Core Planners: Target Courses, Auto-Generate */}
@@ -1946,6 +1960,11 @@ export default function FFCSTimetableTab() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span>{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
                              {renderTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
+                             {(uniqueCourses.find(c => c.code === selectedCourseCode)?.batches || []).map(b => (
+                               <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                                 {b}
+                               </span>
+                             ))}
                           </div>
                         )
                         : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
@@ -1967,16 +1986,25 @@ export default function FFCSTimetableTab() {
                         className="w-1/3 bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
                       >
                         <option value="all">All</option>
-                        {(!hasLab || hasTheory) && (
+                        {isGroupingEnabled ? (
                           <>
-                            <option value="morning">Morning Theory</option>
-                            <option value="evening">Evening Theory</option>
+                            <option value="morning_session">Morning Session</option>
+                            <option value="evening_session">Evening Session</option>
                           </>
-                        )}
-                        {(!hasTheory || hasLab) && (
+                        ) : (
                           <>
-                            <option value="morning_lab">Morning Lab</option>
-                            <option value="evening_lab">Evening Lab</option>
+                            {(!hasLab || hasTheory) && (
+                              <>
+                                <option value="morning">Morning Theory</option>
+                                <option value="evening">Evening Theory</option>
+                              </>
+                            )}
+                            {(!hasTheory || hasLab) && (
+                              <>
+                                <option value="morning_lab">Morning Lab</option>
+                                <option value="evening_lab">Evening Lab</option>
+                              </>
+                            )}
                           </>
                         )}
                       </select>
@@ -2144,8 +2172,13 @@ export default function FFCSTimetableTab() {
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-3">
                               <div className={`px-2.5 py-1 rounded-lg ${c.color} text-white text-xs font-bold shadow-sm shrink-0`}>{c.code}</div>
-                              <div>
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
+                                {c.batches && c.batches.length > 0 && c.batches.map(b => (
+                                  <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                                    {b}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                           </td>
@@ -2304,7 +2337,16 @@ export default function FFCSTimetableTab() {
                     <td className="py-3 px-4 font-medium">
                       <div className={`inline-block px-2.5 py-1 rounded-lg ${c.color || 'bg-blue-600'} text-white text-xs font-bold shadow-sm`}>{c.code}</div>
                     </td>
-                    <td className="py-3 px-4">{c.title}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{c.title}</span>
+                        {c.batches && c.batches.length > 0 && c.batches.map(b => (
+                          <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                            {b}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td className="py-3 px-4">
                       {renderTypeChips(c.type)}
                     </td>
@@ -2643,16 +2685,23 @@ export default function FFCSTimetableTab() {
                   }}
                   className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? 'opacity-50 cursor-not-allowed bg-muted/30 border border-border/50' : selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-foreground'}`}>{c.code}</span>
                        {renderTypeChips(c.types || [], 'sm')}
                     </div>
-                    {fullyAdded ? (
-                      <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">Fully Added</span>
-                    ) : selectedCourseCode === c.code && (
-                      <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
+                      {c.batches && c.batches.length > 0 && c.batches.map(b => (
+                        <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                          {b}
+                        </span>
+                      ))}
+                      {fullyAdded ? (
+                        <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md">Fully Added</span>
+                      ) : selectedCourseCode === c.code && (
+                        <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md">Selected</span>
+                      )}
+                    </div>
                   </div>
                   <span className="text-xs text-muted-foreground line-clamp-2">{c.title}</span>
                 </button>
@@ -2706,6 +2755,14 @@ export default function FFCSTimetableTab() {
             <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
               {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
                 if (slotFilter === "all") return true;
+                if (slotFilter === "morning_session") {
+                  const parts = (row?.SLOT || "").split('+').map(s => s.trim()).filter(s => s && s !== 'NIL');
+                  return parts.length > 0 && parts.every(s => isMorningSlot(s));
+                }
+                if (slotFilter === "evening_session") {
+                  const parts = (row?.SLOT || "").split('+').map(s => s.trim()).filter(s => s && s !== 'NIL');
+                  return parts.length > 0 && parts.every(s => isEveningSlot(s));
+                }
                 if (slotFilter === "morning") return isMorningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
                 if (slotFilter === "evening") return isEveningSlot(row?.SLOT || "") && !(row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));
                 if (slotFilter === "morning_lab") return isMorningSlot(row?.SLOT || "") && (row?.SLOT || "").split('+').some(s => s.trim().startsWith('L'));

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from '../../types';
+import { getBatchColorClass } from '@/lib/utils';
 import { generateTimetablesAsync } from '../../logic/generator';
 import SearchInput from "../../../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
@@ -324,7 +325,8 @@ export function AutoGeneratorModal({
             slots: c.SLOT.split('+').map(s => s.trim().toUpperCase()),
             credits: c.CREDITS,
             type: c.TYPE,
-            color: COLORS[i % COLORS.length]
+            color: COLORS[i % COLORS.length],
+            batch: c.BATCH
           }));
           
           let freeHalfDays = 0;
@@ -751,7 +753,14 @@ export function AutoGeneratorModal({
                                   <div className="flex items-center gap-3">
                                     <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                                     <div>
-                                      <p className="text-foreground font-semibold text-sm">{c.code}</p>
+                                      <p className="text-foreground font-semibold text-sm flex items-center gap-2 flex-wrap">
+                                        {c.code}
+                                        {c.batch && c.batch.split(",").map(b => b.trim()).filter(Boolean).map(b => (
+                                          <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                                            {b}
+                                          </span>
+                                        ))}
+                                      </p>
                                       <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                                     </div>
                                   </div>
