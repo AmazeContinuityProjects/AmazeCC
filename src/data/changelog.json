@@ -1,5 +1,16 @@
 [
   {
+    "version": "v2.1.0",
+    "date": "2026-06-27",
+    "changes": [
+      "Typography: Refactored the default application font to Inter globally.",
+      "VTOP Loader: Minimalised the login loading and in-app reload panels with clear progress counters (x/xx details fetched).",
+      "FFCS: Styled batch chips with school-specific distinct colors and larger text sizes, and optimized their position to flow below course codes on mobile to prevent clutter.",
+      "FFCS: Equalised button widths and centered button text in the Timetable Manager controls for a symmetrical, premium mobile user experience.",
+      "Profile Tab: Updated official GitHub repository link and cleaned up outdated website references."
+    ]
+  },
+  {
     "version": "v2.0.0",
     "date": "2026-06-25",
     "changes": [

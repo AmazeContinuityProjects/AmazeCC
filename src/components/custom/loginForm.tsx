@@ -3,6 +3,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { getMinimalMessage } from "@/lib/utils";
 
 interface LoginFormProps {
   username: any;
@@ -147,7 +148,7 @@ export default function LoginForm({
                 style={{ width: `${progressBar}%` }}
               ></div>
             </div>
-            <span className="whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 text-center text-xs">{message}</span>
+            <span className="whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 text-center text-xs">{getMinimalMessage(message)}</span>
           </div>
         )}
       </form>
