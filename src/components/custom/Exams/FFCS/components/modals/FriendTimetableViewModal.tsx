@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { TimetableState, AddedCourse } from '../../types';
+import { getBatchColorClass } from '@/lib/utils';
 import { TimetableGrid } from '../TimetableGrid';
 
 export interface SelectedFriendTimetableData {
@@ -105,7 +106,14 @@ export function FriendTimetableViewModal({
                             <div className="flex items-center gap-3">
                               <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
                               <div>
-                                <p className="text-foreground font-semibold text-sm">{c.code}</p>
+                                <p className="text-foreground font-semibold text-sm flex items-center gap-2 flex-wrap">
+                                  {c.code}
+                                  {c.batch && c.batch.split(",").map(b => b.trim()).filter(Boolean).map(b => (
+                                    <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                                      {b}
+                                    </span>
+                                  ))}
+                                </p>
                                 <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                               </div>
                             </div>

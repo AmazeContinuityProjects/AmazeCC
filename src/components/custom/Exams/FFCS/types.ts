@@ -24,6 +24,7 @@ export type ParsedCourse = {
   FACULTY: string;
   ORIGINAL_CODE?: string;
   LINK_ID?: string;
+  BATCH?: string;
 };
 
 export interface ManualLink {
@@ -45,6 +46,7 @@ export type AddedCourse = {
   credits: string;
   type: string;
   color: string;
+  batch?: string;
 };
 
 export type TimetableState = {
