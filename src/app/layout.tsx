@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Geist, Geist_Mono, Roboto } from 'next/font/google';
+import { Geist, Geist_Mono, Roboto, Outfit } from 'next/font/google';
 import { ThemeProvider } from "../components/themeprovider";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
@@ -27,6 +27,12 @@ const roboto = Roboto({
   variable: '--font-roboto',
   subsets: ['latin'],
   weight: ['400', '700'],
+});
+
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '800', '900'],
 });
 
 const geistMono = Geist_Mono({
@@ -66,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head />
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} ${outfit.variable} antialiased`}
       >
         <IconUpdater />
         <ThemeProvider

@@ -288,6 +288,8 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
   }
 
   const earnedPct = Math.min((totalEarned / totalRequired) * 100, 100);
+  const remainingCredits = Math.max(totalRequired - totalEarned - totalOngoing, 0);
+  const expectedGraduation = remainingCredits <= 0 ? "Ready" : `${Math.max(Math.ceil(remainingCredits / 24), 1)} sem`;
   const donutData = [
     { name: "Earned", value: totalEarned },
     { name: "In Progress", value: Math.min(totalOngoing, totalRequired - totalEarned) },
@@ -321,10 +323,10 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       }
     >
       {/* ── Total Credits Summary ── */}
-      <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-slate-900 dark:to-indigo-950/30 midnight:from-black midnight:to-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 midnight:border-indigo-900/30 rounded-2xl shadow-sm overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-slate-900 midnight:border-gray-800 midnight:bg-black">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="relative w-40 h-40 flex-shrink-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:items-center">
+            <div className="relative mx-auto h-40 w-40 flex-shrink-0 lg:mx-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={donutData} cx="50%" cy="50%" innerRadius={48} outerRadius={68} startAngle={90} endAngle={-270} dataKey="value" strokeWidth={0}>
@@ -339,23 +341,38 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
                 <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium">Complete</span>
               </div>
             </div>
-            <div className="flex-1 w-full">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-white mb-4">Total Credits Progress</h2>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 midnight:bg-gray-900/50 border border-indigo-100/50 dark:border-indigo-800/30 midnight:border-gray-800">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Earned</span>
-                  <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400">{totalEarned.toFixed(1)}</span>
+            <div className="min-w-0">
+              <div className="mb-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Degree Progress</p>
+                <h2 className="mt-1 font-[family-name:var(--font-outfit)] text-2xl font-black text-gray-900 dark:text-gray-100 midnight:text-white">Credit plan overview</h2>
+                <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">Earned, ongoing and remaining credits across curriculum baskets.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Earned</span>
+                  <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400">{totalEarned.toFixed(1)}</span>
                 </div>
-                <div className="flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 midnight:bg-gray-900/50 border border-yellow-100/50 dark:border-yellow-800/30 midnight:border-gray-800">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">In Progress</span>
-                  <span className="text-xl font-bold text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400">{totalOngoing.toFixed(1)}</span>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">In Progress</span>
+                  <span className="text-xl font-black text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400">{totalOngoing.toFixed(1)}</span>
                 </div>
-                <div className="flex flex-col items-center p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 midnight:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">Required</span>
-                  <span className="text-xl font-bold text-gray-700 dark:text-gray-300 midnight:text-gray-300">{totalRequired.toFixed(1)}</span>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Remaining</span>
+                  <span className="text-xl font-black text-gray-900 dark:text-gray-100">{remainingCredits.toFixed(1)}</span>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Required</span>
+                  <span className="text-xl font-black text-gray-900 dark:text-gray-100">{totalRequired.toFixed(1)}</span>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Graduation</span>
+                  <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{expectedGraduation}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.min(earnedPct, 100)}%` }} />
+              </div>
+              <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>Earned</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>In Progress</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600 midnight:bg-gray-600 inline-block"></span>Remaining</span>

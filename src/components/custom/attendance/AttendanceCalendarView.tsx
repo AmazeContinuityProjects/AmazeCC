@@ -84,18 +84,18 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                         transition={{ duration: 0.2 }}
                         className="w-full overflow-x-auto hide-scrollbar"
                     >
-                        <div className="min-w-[500px] w-full grid grid-cols-7 text-center border-collapse">
+                        <div className="min-w-0 w-full grid grid-cols-7 text-center border-collapse">
                             {weekdays.map((day) => (
                                 <div
                                     key={day}
-                                    className="font-bold py-2 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 text-xs tracking-wider uppercase text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-900/50 midnight:bg-gray-900/40"
+                                    className="font-bold py-2 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 text-[10px] tracking-wider uppercase text-gray-500 dark:text-gray-400 bg-gray-55/50 dark:bg-gray-900/50 midnight:bg-gray-900/40"
                                 >
                                     {day}
                                 </div>
                             ))}
 
                             {monthData.blanks.map((_, i) => (
-                                <div key={`blank-${i}`} className="h-20 sm:h-24 border-b border-r border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/30" />
+                                <div key={`blank-${i}`} className="h-14 sm:h-18 border-b border-r border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/30" />
                             ))}
 
                             {monthData.daysInMonth.map((dayInfo, i) => {
@@ -156,10 +156,10 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                     <div
                                         key={date}
                                         onClick={() => { if (isOverall && isMissed) setSelectedOverallDate(entry); }}
-                                        className={`relative flex flex-col p-2 h-24 sm:h-28 border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
+                                        className={`relative flex flex-col p-1.5 h-16 sm:h-20 border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 transition-all ${bgClass} ${isLastCol ? '' : 'border-r'} ${isOverall && isMissed ? 'cursor-pointer hover:shadow-inner' : ''}`}
                                     >
                                         <div className="w-full flex justify-between items-start">
-                                            <span className={`text-sm font-semibold ${status ? 'text-gray-900 dark:text-gray-100 midnight:text-gray-100' : 'text-gray-500 dark:text-gray-500 midnight:text-gray-500'}`}>
+                                            <span className={`text-[11px] sm:text-xs font-semibold ${status ? 'text-gray-900 dark:text-gray-100 midnight:text-gray-100' : 'text-gray-500 dark:text-gray-500 midnight:text-gray-500'}`}>
                                                 {date}
                                             </span>
                                             {dotColor && <div className={`w-2 h-2 rounded-full mt-1 ${dotColor}`} />}

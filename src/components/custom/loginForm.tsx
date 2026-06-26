@@ -11,7 +11,6 @@ interface LoginFormProps {
   setPassword: any;
   message: any;
   handleFormSubmit: any;
-  progressBar: any;
   handleDemoClick: any;
   residentialStatus: any;
   setResidentialStatus: any;
@@ -26,7 +25,6 @@ export default function LoginForm({
   setPassword,
   message,
   handleFormSubmit,
-  progressBar,
   handleDemoClick,
   residentialStatus,
   setResidentialStatus,
@@ -137,18 +135,6 @@ export default function LoginForm({
               Login
             </button>
           </>
-        )}
-
-        {message && (
-          <div className="flex flex-col items-center justify-center gap-3 text-sm">
-            <div className="w-52 md:w-80 bg-gray-200 dark:bg-slate-800 midnight:bg-white/10 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-2 bg-blue-500 transition-all duration-500 ease-in-out rounded-full"
-                style={{ width: `${progressBar}%` }}
-              ></div>
-            </div>
-            <span className="whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300 text-center text-xs">{message}</span>
-          </div>
         )}
       </form>
 

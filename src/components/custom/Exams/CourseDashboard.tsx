@@ -464,6 +464,10 @@ export default function CourseDashboard({
   useEffect(() => { if (selectedCode) { setCoursePlan(null); setViewDetail(null); setInnerTab("overview"); fetchCoursePlan(); } }, [selectedCode]);
 
   const handleSelectCourse = (code: string) => setSelectedCode(code);
+  const handleSelectCourseTab = (code: string, tab: string) => {
+    setSelectedCode(code);
+    setInnerTab(tab);
+  };
   const handleBack = () => { setSelectedCode(null); setCoursePlan(null); setViewDetail(null); };
 
   const isEmbedded = selectedGroup?.theory && selectedGroup?.lab;
@@ -608,7 +612,7 @@ export default function CourseDashboard({
         {uniqueCourses.length === 0 ? (
           <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300 dark:text-gray-600 midnight:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No course data available</p></div></Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {uniqueCourses.map((group: any, idx: number) => {
               const main = group.theory || group.lab;
               const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
@@ -652,35 +656,96 @@ export default function CourseDashboard({
                 else predictedGrade = "F";
               }
 
+              const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
+              const faculty = main.faculty || att?.faculty || "Faculty not listed";
+              const attendancePct = Number(att?.attendancePercentage) || 0;
+              const statusTone = predictedGrade === "F" || attendancePct < 75
+                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+                : percent >= 75 && attendancePct >= 75
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  : "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300";
+              const statusLabel = predictedGrade === "F" || attendancePct < 75 ? "Needs attention" : percent >= 75 ? "On track" : "Watchlist";
+
               return (
                 <div key={group.courseCode} onClick={() => handleSelectCourse(group.courseCode)}
-                  className="p-4 rounded-2xl shadow-sm bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex flex-col items-start min-w-0 flex-1">
-                      <span className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm sm:text-base break-words line-clamp-2 leading-tight">
-                        {group.courseCode}<br className="hidden md:block" />
-                        <span className="font-medium text-gray-600 dark:text-gray-400 midnight:text-gray-400">{group.courseTitle}</span>
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 items-center mt-2">
+                  className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-slate-900 dark:hover:bg-slate-800/70 midnight:border-gray-800 midnight:bg-black">
+                  <div className="flex items-start gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{group.courseCode}</p>
+                          <h3 className="mt-0.5 line-clamp-2 text-base font-bold leading-tight text-gray-700 dark:text-gray-300 midnight:text-gray-300">{group.courseTitle}</h3>
+                        </div>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusTone}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
                         <TypeBadge label={courseType} />
                         {predictedGrade !== "?" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 midnight:text-indigo-300 uppercase tracking-wider">
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveSubTab("predictor");
+                            }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 midnight:text-indigo-300 uppercase tracking-wider transition-colors"
+                            title="Open GPA Predictor"
+                          >
                             Pred: {predictedGrade}
-                          </span>
+                          </button>
                         )}
                         {att && (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectCourseTab(group.courseCode, "attendance");
+                            }}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider transition-colors ${
                             Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/30 midnight:text-emerald-300" :
                             Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/30 midnight:text-blue-300" :
                             "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 midnight:bg-red-900/30 midnight:text-red-300"
-                          }`}>
+                          }`}
+                            title="Open course attendance"
+                          >
                             {att.attendancePercentage}% att
-                          </span>
+                          </button>
                         )}
                       </div>
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Marks</p>
+                          <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{text}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Prediction</p>
+                          <p className="mt-1 text-sm font-black text-indigo-600 dark:text-indigo-400">{predictedGrade}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Assessments</p>
+                          <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{assessmentCount}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveSubTab("faculty-info");
+                            }}
+                            className="truncate flex items-center gap-1.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-100 hover:text-blue-600 dark:hover:bg-gray-800 dark:hover:text-blue-400"
+                            title="Open Faculty Info"
+                          >
+                            <User className="h-3.5 w-3.5 shrink-0" /> {faculty}
+                          </button>
+                          <span className="shrink-0">{Math.round(percent)}%</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                          <div className="h-full rounded-full bg-blue-600 transition-all duration-150" style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 flex flex-col items-center justify-center">
-                      <CircularProgress value={percent} text={text} size={80} threshold={25} midThreshold={75} />
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+                      <CircularProgress value={percent} text={`${Math.round(percent)}%`} size={64} threshold={25} midThreshold={75} />
                     </div>
                   </div>
                 </div>

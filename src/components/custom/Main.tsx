@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
-import { ReloadModal } from "./reloadModel";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
 import LoginFooter from "./footer/LoginFooter";
@@ -14,6 +13,7 @@ import { syncMarksDiff } from "@/lib/marksSync";
 import { CommandPalette } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
+import SyncNotification from "@/components/custom/shared/SyncNotification";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
@@ -535,6 +535,7 @@ export default function LoginPage() {
         "❌ " + (err instanceof Error ? err.message : "Login failed")
       );
       setProgressBar(0);
+      setIsReloading(false);
       throw err;
     }
   };
@@ -844,7 +845,8 @@ export default function LoginPage() {
     if (!IDs.VtopUsername || !IDs.VtopPassword) {
       return alert("Please fill all the fields!");
     }
-    handleLogin();
+    setIsReloading(true);
+    handleLogin().catch(() => {});
   };
 
   const [isOffline, setIsOffline] = useState(false);
@@ -886,18 +888,15 @@ export default function LoginPage() {
   const [showReloadBanner, setShowReloadBanner] = useState(false);
 
   useEffect(() => {
-    let timer;
-
     if (isReloading) {
       setShowReloadBanner(true);
-    } else {
-      timer = setTimeout(() => {
-        setShowReloadBanner(false);
-      }, 500);
+      return;
     }
 
-    return () => clearTimeout(timer);
-  }, [isReloading]);
+    if (progressBar >= 100 || message.trim().startsWith("❌")) {
+      setShowReloadBanner(true);
+    }
+  }, [isReloading, message, progressBar]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -2067,43 +2066,17 @@ export default function LoginPage() {
           ⚠️ Unable to connect to API services. Please check back later. ⚠️
         </div>
       )}
-      <motion.div layout>
-        <AnimatePresence>
-          {showReloadBanner && (
-            settings.loadingScreen ? (
-              <ReloadModal
-                message={message}
-                onClose={() => setIsReloading(false)}
-                progressBar={progressBar}
-              />
-            ) : (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: -40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -40 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="w-full z-50 bg-blue-500 text-white shadow-lg"
-              >
-                <div className="flex flex-col items-center justify-center py-2 px-4 text-sm font-medium">
-                  <span className="whitespace-pre-wrap">{message}</span>
-
-                  {progressBar !== undefined && (
-                    <div className="w-full max-w-xl mt-2 h-2 bg-blue-300/40 rounded overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressBar}%` }}
-                        transition={{ duration: 0.3 }}
-                        className="h-full bg-blue-100"
-                      />
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )
-          )}
-        </AnimatePresence>
-      </motion.div>
+      {showReloadBanner && (
+        <SyncNotification
+          message={message}
+          progress={progressBar}
+          active={isReloading}
+          onDismiss={() => {
+            setShowReloadBanner(false);
+            if (isReloading) setIsReloading(false);
+          }}
+        />
+      )}
 
       {(!isLoggedIn && !demoMode) && (
         <div className="flex-grow flex items-center justify-center p-4">
@@ -2118,7 +2091,6 @@ export default function LoginPage() {
             }
             message={message}
             handleFormSubmit={handleFormSubmit}
-            progressBar={progressBar}
             handleDemoClick={handleDemoClick}
             residentialStatus={settings.residentialStatus || "hosteller"}
             setResidentialStatus={(val: "hosteller" | "dayscholar") => {

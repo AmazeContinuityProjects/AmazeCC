@@ -20,6 +20,7 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
   const [view, setView] = useState<ViewState>("courses");
   const [detailTab, setDetailTab] = useState<"papers" | "questions">("papers");
   const [searchQuery, setSearchQuery] = useState("");
+  const [courseFilter, setCourseFilter] = useState<"all" | "current" | "completed" | "global">("all");
 
   const [globalCourses, setGlobalCourses] = useState<{ code: string; title: string }[]>([]);
 
@@ -119,9 +120,19 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
       c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredCourses = searchQuery.trim().length > 0 
+  let filteredCourses = searchQuery.trim().length > 0
     ? Array.from(new Map([...myFilteredCourses, ...globalFilteredCourses].map(c => [c.code, c])).values())
     : myFilteredCourses;
+  if (courseFilter === "current") {
+    const currentCodes = new Set((marksData?.courses || []).map((course: any) => course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code));
+    filteredCourses = filteredCourses.filter(c => currentCodes.has(c.code));
+  } else if (courseFilter === "completed") {
+    const currentCodes = new Set((marksData?.courses || []).map((course: any) => course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code));
+    filteredCourses = filteredCourses.filter(c => !currentCodes.has(c.code));
+  } else if (courseFilter === "global") {
+    const globalCodes = new Set(globalCourses.map(c => c.code));
+    filteredCourses = filteredCourses.filter(c => globalCodes.has(c.code));
+  }
 
   // ─── COURSE LIST VIEW ───
   if (view === "courses") {
@@ -152,8 +163,29 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
           </button>
         </div>
 
-        {/* Search */}
-        <SearchInput placeholder="Search by course code or title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} containerClassName="mb-5" />
+        <div className="mb-5 space-y-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              ["all", "All"],
+              ["current", "Current Semester"],
+              ["completed", "Completed"],
+              ["global", "Community"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setCourseFilter(value as any)}
+                className={`shrink-0 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors duration-150 ${
+                  courseFilter === value
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-slate-900 dark:text-gray-300 dark:hover:bg-slate-800"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <SearchInput placeholder="Search by course code or title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
 
         {/* Course Grid */}
         {filteredCourses.length === 0 ? (
@@ -163,29 +195,31 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
             description="Load your grades data or upload a paper for any course."
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredCourses.map((c) => (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {filteredCourses.map((c) => {
+              const isCurrent = (marksData?.courses || []).some((course: any) => (course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code) === c.code);
+              const hasCommunity = globalCourses.some(g => g.code === c.code);
+              return (
               <button
                 key={c.code}
                 onClick={() => handleSelectCourse(c)}
-                className="group flex items-center justify-between p-4 bg-white dark:bg-slate-800 midnight:bg-slate-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-xl hover:border-blue-300 dark:hover:border-blue-600 midnight:hover:border-blue-700 hover:shadow-md transition-all text-left"
+                className="group rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-slate-900 dark:hover:bg-slate-800/70 midnight:border-gray-800 midnight:bg-black"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 rounded-lg shrink-0">
-                    <BookOpen className="w-5 h-5" />
-                  </div>
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-                      {c.code}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-500 truncate">
-                      {c.title}
-                    </div>
+                    <p className="text-sm font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{c.code}</p>
+                    <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-500">{c.title}</p>
                   </div>
+                  <ChevronRight className="w-4 h-4 shrink-0 text-gray-400 transition-colors group-hover:text-blue-500" />
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-300">Papers</span>
+                  <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-300">Questions</span>
+                  {isCurrent && <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">Current</span>}
+                  {hasCommunity && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">Community</span>}
+                </div>
               </button>
-            ))}
+            )})}
           </div>
         )}
 

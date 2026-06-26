@@ -237,13 +237,14 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                     </div>
                                 </div>
                             ) : viewMode === "heatmap" ? (
-                                <div className="p-6 flex justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
-                                    <div style={{ direction: "ltr", minWidth: "500px" }}>
+                                <div className="p-6 flex flex-col items-center justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
+                                    <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
                                         <HeatMap
                                             value={heatmapData}
                                             startDate={heatmapStartDate}
                                             endDate={heatmapEndDate}
                                             width={550}
+                                            legendCellSize={0}
                                             rectProps={{ rx: 4, ry: 4 }}
                                             rectRender={(props, dayData) => {
                                                 const data = dayData as any;
@@ -258,6 +259,28 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                 5: "#EAB308", // OD (Yellow)
                                             }}
                                         />
+                                        <div className="flex flex-wrap items-center justify-center gap-4 mt-5 text-xs font-semibold text-gray-550 dark:text-gray-400 midnight:text-gray-400">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
+                                                <span>Present</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EF4444] shadow-sm"></div>
+                                                <span>Absent</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#F97316] shadow-sm"></div>
+                                                <span>Half-day</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#F43F5E] shadow-sm"></div>
+                                                <span>Partial Absent</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EAB308] shadow-sm"></div>
+                                                <span>On Duty</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
