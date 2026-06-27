@@ -32,6 +32,8 @@ import {
   Compass,
   ArrowLeft,
   Bus,
+  Sun,
+  Moon,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,7 +56,7 @@ type Group = {
 };
 
 const navButtonBase =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/40";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
 
 export default function NavigationTabs({
   activeTab,
@@ -113,7 +115,7 @@ export default function NavigationTabs({
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
   const [profileData, setProfileData] = useState<any>(null);
   
-  // Progressive disclosure: only one group expanded at a time
+  // Progressive disclosure
   const [expandedGroup, setExpandedGroup] = useState<string>("study");
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
@@ -121,6 +123,10 @@ export default function NavigationTabs({
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
   const [isThemeExpanded, setIsThemeExpanded] = useState(false);
+
+  // Expanded mode depends on settings
+  const isExpandedMode = !settings.isSidebarCollapsed;
+  const isOpen = isExpandedMode;
 
   // Command palette logic
   const openCommandPalette = useCallback(() => {
@@ -147,7 +153,7 @@ export default function NavigationTabs({
     };
   }, []);
 
-  // Update expandedGroup and showAcademicsPanel when activeTab changes (e.g. from command palette)
+  // Update expandedGroup and showAcademicsPanel when activeTab changes
   useEffect(() => {
     if (activeTab === "academics") {
       setShowAcademicsPanel(true);
@@ -181,12 +187,11 @@ export default function NavigationTabs({
   }, [activeRailGroup]);
 
   // Close rail popover if expanded state changes
-  const isExpandedMode = !settings.isSidebarCollapsed;
   useEffect(() => {
-    if (isExpandedMode) {
+    if (isOpen) {
       setActiveRailGroup(null);
     }
-  }, [isExpandedMode]);
+  }, [isOpen]);
 
   const isHosteller = profileData?.isHosteller;
   const residentialStatus = settings?.residentialStatus;
@@ -538,26 +543,26 @@ export default function NavigationTabs({
       <aside
         ref={sidebarRef}
         data-sidebar-root="true"
-        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 md:flex ${
-          isExpandedMode ? "w-[280px]" : "w-[72px]"
+        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-2xl border border-sidebar-border bg-sidebar text-white shadow-lg transition-[width] duration-200 ease-out md:flex ${
+          isOpen ? "w-[280px]" : "w-[72px]"
         }`}
         aria-label="Primary navigation"
       >
         {/* Sidebar Header */}
-        <div className={`flex flex-col border-b border-sidebar-border/40 shrink-0 ${isExpandedMode ? "px-4 pb-4 pt-5" : "px-3 py-4"}`}>
+        <div className={`flex flex-col border-b border-white/10 shrink-0 ${isOpen ? "px-4 pb-4 pt-5" : "px-3 py-4"}`}>
           {/* Logo & Expand Toggle */}
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2.5 min-w-0">
               <img src={currentIcon} alt="AmazeCC" className="h-7 w-7 rounded-lg object-contain shadow-xs" />
-              {isExpandedMode && (
-                <h2 className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">AmazeCC</h2>
+              {isOpen && (
+                <h2 className="truncate text-sm font-semibold tracking-tight text-white">AmazeCC</h2>
               )}
             </div>
-            {isExpandedMode && (
+            {isOpen && (
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleReloadClick}
-                  className={`rounded-lg p-1 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${navButtonBase}`}
+                  className={`rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white ${navButtonBase}`}
                   title="Reload data"
                   aria-label="Reload data"
                 >
@@ -565,7 +570,7 @@ export default function NavigationTabs({
                 </button>
                 <button
                   onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
-                  className={`rounded-lg p-1 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${navButtonBase}`}
+                  className={`rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white ${navButtonBase}`}
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
@@ -576,70 +581,111 @@ export default function NavigationTabs({
           </div>
 
           {/* Profile Section, Semester summary, & Search */}
-          {isExpandedMode && (
-            <>
-              {/* Natural Profile Display */}
-              <div className="mt-3.5 flex items-center gap-2.5 px-0.5">
-                {profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border/20" />
-                ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
-                    {initials || "ST"}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-semibold text-sidebar-foreground">{profileName}</span>
-                  <span className="block truncate text-[10px] text-muted-foreground">{username || "Student ID"}</span>
-                </div>
-              </div>
-
-              {/* Compact Semester Summary Card */}
-              <div className="mt-3 rounded-xl border border-sidebar-border/20 bg-sidebar-accent/25 p-2.5 shadow-2xs">
-                <div className="grid grid-cols-4 gap-1 divide-x divide-sidebar-border/20 text-center">
-                  <div>
-                    <span className="block text-[8px] font-bold text-muted-foreground uppercase tracking-wider">CGPA</span>
-                    <span className="block text-xs font-semibold text-sidebar-foreground mt-0.5">
-                      {settings.CGPAHidden ? "###" : marksData?.cgpa?.cgpa || "-"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Att.</span>
-                    <span className={`block text-xs font-semibold mt-0.5 ${attendancePercentage?.percentage < 75 ? "text-danger" : "text-success"}`}>
-                      {attendanceValue}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Credits</span>
-                    <span className="block text-xs font-semibold text-sidebar-foreground mt-0.5">{credits}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] font-bold text-muted-foreground uppercase tracking-wider">OD</span>
-                    <span className="block text-xs font-semibold text-sidebar-foreground mt-0.5">{totalODHours}/40</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Compact Search input */}
-              <button
-                data-sidebar-nav="true"
-                onClick={openCommandPalette}
-                onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
-                className={`mt-3 flex w-full items-center gap-2 rounded-lg border border-sidebar-border/20 bg-sidebar-accent/20 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent/40 ${navButtonBase}`}
-                aria-label="Open command palette"
+          <AnimatePresence initial={false}>
+            {isOpen ? (
+              <motion.div
+                key="header-expanded"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden space-y-3"
               >
-                <Command className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                <span className="flex-1 truncate text-xs">Search anything...</span>
-                <kbd className="rounded bg-sidebar-accent border border-sidebar-border/40 px-1 py-0.5 text-[9px] font-medium text-muted-foreground/80">
-                  {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl+K"}
-                </kbd>
-              </button>
-            </>
-          )}
+                {/* Left-aligned clean Semester Summary Card */}
+                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-2.5 text-[11px] space-y-1.5 shadow-2xs">
+                  <div className="font-semibold text-white/50 tracking-wide text-[10px] uppercase">Current Semester</div>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setSettings((prev: any) => {
+                          const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
+                          localStorage.setItem("settings", JSON.stringify(next));
+                          return next;
+                        });
+                      }}
+                      className="flex justify-between items-center w-full text-left hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-white/80 hover:text-white"
+                      title="Click to show/hide CGPA"
+                    >
+                      <span className="text-white/70">CGPA</span>
+                      <span className="font-semibold text-white">{settings.CGPAHidden ? "###" : marksData?.cgpa?.cgpa || "-"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSettings((prev: any) => {
+                          const next = { ...prev, attendancePercentageOrString: prev.attendancePercentageOrString === "percentage" ? "str" : "percentage" };
+                          localStorage.setItem("settings", JSON.stringify(next));
+                          return next;
+                        });
+                      }}
+                      className="flex justify-between items-center w-full text-left hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-white/80 hover:text-white"
+                      title="Click to toggle attendance format"
+                    >
+                      <span className="text-white/70">Attendance</span>
+                      <span className={`font-semibold ${attendancePercentage?.percentage < 75 ? "text-rose-400" : "text-emerald-400"}`}>
+                        {attendanceValue}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setGradesDisplayIsOpen(true)}
+                      className="flex justify-between items-center w-full text-left hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-white/80 hover:text-white"
+                      title="Click to view credits & grades details"
+                    >
+                      <span className="text-white/70">Credits</span>
+                      <span className="font-semibold text-white">{credits}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setODhoursIsOpen(true)}
+                      className="flex justify-between items-center w-full text-left hover:bg-white/10 rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-white/80 hover:text-white"
+                      title="Click to view OD tracker details"
+                    >
+                      <span className="text-white/70">OD Hours</span>
+                      <span className="font-semibold text-white">{totalODHours}/40</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search Bar Input */}
+                <button
+                  data-sidebar-nav="true"
+                  onClick={openCommandPalette}
+                  onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
+                  className={`flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-left text-xs text-white/60 transition-colors hover:bg-white/10 ${navButtonBase}`}
+                  aria-label="Open command palette"
+                >
+                  <Command className="h-3.5 w-3.5 shrink-0 text-white/50" />
+                  <span className="flex-1 truncate">Search anything...</span>
+                  <kbd className="rounded bg-white/10 border border-white/10 px-1 py-0.5 text-[9px] font-medium text-white/70">
+                    ⌘K
+                  </kbd>
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="header-collapsed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-3.5 flex flex-col items-center gap-3 w-full"
+              >
+                {/* Search Icon Only */}
+                <button
+                  onClick={openCommandPalette}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-colors ${navButtonBase}`}
+                  title="Search anything... (Ctrl+K)"
+                >
+                  <Command className="h-4 w-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Navigation Content (Expanded Mode vs Compact Rail) */}
-        {isExpandedMode ? (
-          <nav className="flex-1 overflow-y-auto px-3 py-4" style={{ scrollbarWidth: "none" }}>
+        {isOpen ? (
+          <nav className="flex-grow overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "none" }}>
             <AnimatePresence initial={false} mode="wait">
               {!showAcademicsPanel ? (
                 <motion.div
@@ -650,22 +696,22 @@ export default function NavigationTabs({
                   transition={{ duration: 0.18 }}
                   className="space-y-4"
                 >
-                  {groups.map((group, groupIdx) => {
+                  {groups.map((group) => {
                     const isExpanded = expandedGroup === group.id;
                     return (
                       <div key={group.id} className="space-y-1">
-                        {groupIdx > 0 && <div className="border-t border-sidebar-border/10 my-2 pt-1" />}
-                        {/* Group Header */}
+                        {/* Group Header with subtle line */}
                         <button
                           onClick={() => toggleGroup(group.id)}
-                          className="flex w-full items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60 hover:text-sidebar-foreground transition-colors"
+                          className="flex w-full items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors"
                         >
                           <span>{group.label}</span>
+                          <div className="h-px bg-white/10 flex-grow" />
                           <motion.div
                             animate={{ rotate: isExpanded ? 90 : 0 }}
                             transition={{ duration: 0.2, ease: "easeInOut" }}
                           >
-                            <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+                            <ChevronRight className="h-3 w-3 text-white/50" />
                           </motion.div>
                         </button>
 
@@ -677,118 +723,32 @@ export default function NavigationTabs({
                           className="overflow-hidden"
                         >
                           <div className="min-h-0 space-y-0.5 pt-0.5 pb-1">
-                            {group.id === "account" ? (
-                              // Render customized items for Account group
-                              <div className="space-y-1">
-                                {group.items.map((item) => (
-                                  <button
-                                    key={item.id}
-                                    data-sidebar-nav="true"
-                                    onClick={item.onSelect}
-                                    onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                      item.isActive
-                                        ? "bg-info-surface text-info"
-                                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                                    }`}
-                                  >
-                                    {item.isActive && (
-                                      <span className="absolute left-0 top-1/2 h-4.5 w-[3px] -translate-y-1/2 rounded-full bg-info" />
-                                    )}
-                                    <item.icon
-                                      className={`h-4 w-4 shrink-0 transition-colors ${
-                                        item.isActive ? "text-info" : "text-muted-foreground group-hover:text-sidebar-foreground"
-                                      }`}
-                                    />
-                                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                                  </button>
-                                ))}
-
-                                {/* Theme Row */}
-                                <div className="space-y-0.5">
-                                  <button
-                                    onClick={() => setIsThemeExpanded(!isThemeExpanded)}
-                                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground`}
-                                  >
-                                    <Wrench className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-sidebar-foreground" />
-                                    <span className="min-w-0 flex-1 truncate text-left">Theme</span>
-                                    <motion.div
-                                      animate={{ rotate: isThemeExpanded ? 90 : 0 }}
-                                      transition={{ duration: 0.18 }}
-                                    >
-                                      <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
-                                    </motion.div>
-                                  </button>
-
-                                  <motion.div
-                                    initial={false}
-                                    animate={{ height: isThemeExpanded ? "auto" : 0, opacity: isThemeExpanded ? 1 : 0 }}
-                                    transition={{ duration: 0.18, ease: "easeInOut" }}
-                                    className="overflow-hidden"
-                                  >
-                                    <div className="pl-7 space-y-1.5 py-1">
-                                      <button
-                                        onClick={() => handleThemeChange("light")}
-                                        className="flex items-center gap-2.5 w-full text-left text-xs text-muted-foreground/80 hover:text-sidebar-foreground py-0.5 transition-colors"
-                                      >
-                                        <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface/30" : "border-muted-foreground/35"}`}>
-                                          {theme === "light" && <span className="h-1.5 w-1.5 rounded-full bg-info" />}
-                                        </span>
-                                        <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleThemeChange("dark")}
-                                        className="flex items-center gap-2.5 w-full text-left text-xs text-muted-foreground/80 hover:text-sidebar-foreground py-0.5 transition-colors"
-                                      >
-                                        <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface/30" : "border-muted-foreground/35"}`}>
-                                          {theme === "dark" && <span className="h-1.5 w-1.5 rounded-full bg-info" />}
-                                        </span>
-                                        <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
-                                      </button>
-                                    </div>
-                                  </motion.div>
-                                </div>
-
-                                {/* Log out */}
+                            {group.items.map((item) => {
+                              const ItemIcon = item.icon;
+                              const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs animate-pulse";
+                              const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
+                              return (
                                 <button
-                                  onClick={handleLogOutRequest}
-                                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground mt-2 border-t border-sidebar-border/10 pt-2`}
+                                  key={item.id}
+                                  data-sidebar-nav="true"
+                                  onClick={item.onSelect}
+                                  onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                                    item.isActive ? activeStyles : inactiveStyles
+                                  }`}
                                 >
-                                  <Lock className="h-4 w-4 shrink-0 text-muted-foreground/60 group-hover:text-sidebar-foreground" />
-                                  <span className="min-w-0 flex-1 truncate text-left">Log out</span>
-                                </button>
-                              </div>
-                            ) : (
-                              group.items.map((item) => {
-                                const ItemIcon = item.icon;
-                                return (
-                                  <button
-                                    key={item.id}
-                                    data-sidebar-nav="true"
-                                    onClick={item.onSelect}
-                                    onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                                    className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                      item.isActive
-                                        ? "bg-info-surface text-info"
-                                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                  <ItemIcon
+                                    className={`h-4 w-4 shrink-0 transition-colors ${
+                                      item.isActive ? "text-sky-300 font-semibold" : "text-white/60 group-hover:text-white"
                                     }`}
-                                  >
-                                    {item.isActive && (
-                                      <span className="absolute left-0 top-1/2 h-4.5 w-[3px] -translate-y-1/2 rounded-full bg-info" />
-                                    )}
-                                    <ItemIcon
-                                      className={`h-4 w-4 shrink-0 transition-colors ${
-                                        item.isActive ? "text-info" : "text-muted-foreground group-hover:text-sidebar-foreground"
-                                      }`}
-                                    />
-                                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                                    {item.isExpandable && (
-                                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                                    )}
-                                  </button>
-                                );
-                              })
-                            )}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                                  {item.isExpandable && (
+                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         </motion.div>
                       </div>
@@ -806,38 +766,38 @@ export default function NavigationTabs({
                 >
                   <button
                     onClick={() => setShowAcademicsPanel(false)}
-                    className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-muted-foreground/85 hover:text-sidebar-foreground transition-colors"
+                    className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-white/70 hover:text-white transition-colors"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
                     <span>Back</span>
                   </button>
 
                   <div className="space-y-1">
-                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/75">
-                      Academics
+                    <div className="flex items-center gap-2 px-3 py-1">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/50">
+                        Academics
+                      </span>
+                      <div className="h-px bg-white/10 flex-grow" />
                     </div>
 
                     <div className="space-y-0.5">
                       {academicsItems.map((item, index) => {
                         const showDivider = index === 6;
+                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs";
+                        const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
                         return (
                           <div key={item.id}>
                             {showDivider && (
-                              <div className="my-2 border-t border-sidebar-border/20" />
+                              <div className="my-2 border-t border-white/10" />
                             )}
                             <button
                               data-sidebar-nav="true"
                               onClick={item.onSelect}
                               onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
                               className={`group relative flex w-full items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                item.isActive
-                                  ? "bg-info-surface text-info"
-                                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                item.isActive ? activeStyles : inactiveStyles
                               }`}
                             >
-                              {item.isActive && (
-                                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-info" />
-                              )}
                               <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
                             </button>
                           </div>
@@ -850,107 +810,146 @@ export default function NavigationTabs({
             </AnimatePresence>
           </nav>
         ) : (
-          /* Compact Mode Rail */
-          <div className="flex flex-grow flex-col items-center justify-between w-full">
-            {/* Top compact section */}
-            <div className="flex flex-col items-center gap-4 pt-4 w-full">
-              {/* Compact Avatar */}
+          /* Compact Mode Rail Content */
+          <div className="flex flex-1 flex-col items-center justify-start w-full mt-3">
+            {/* Divider */}
+            <div className="w-8 border-t border-white/10 mb-3" />
+
+            {/* Navigation Rail Buttons */}
+            <nav className="flex flex-col items-center gap-2.5 w-full" aria-label="Navigation rail">
+              {groups.map(group => {
+                const GroupIcon = group.icon;
+                const isActive = group.id === "study"
+                  ? activeTab === "attendance" || activeTab === "academics"
+                  : group.id === "campus"
+                  ? ["payments", "libraries", "hostel", "dayscholar"].includes(activeTab)
+                  : group.id === "tools"
+                  ? activeTab === "more"
+                  : activeTab === "profile";
+
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => toggleRailPopover(group.id)}
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150 ${navButtonBase} ${
+                      isActive
+                        ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-xs"
+                        : "border border-transparent text-white/60 hover:bg-white/10 hover:text-white"
+                    }`}
+                    title={group.label}
+                  >
+                    <GroupIcon className="h-4 w-4 stroke-[1.9]" />
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
+
+        {/* Profile, Theme, and Logout Footer */}
+        <AnimatePresence initial={false}>
+          {isOpen ? (
+            <motion.div
+              key="footer-expanded"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              className="shrink-0 border-t border-white/10 px-4 py-3 bg-white/5 rounded-b-2xl space-y-2.5"
+            >
+              {/* Profile Row: Name & Branch/Dept */}
+              <div className="flex items-center gap-2.5">
+                {profileData?.image ? (
+                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-white/15" />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white">
+                    {initials || "ST"}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-semibold text-white">{profileName}</span>
+                  <span className="block truncate text-[10px] text-white/60">Computer Science</span>
+                </div>
+              </div>
+
+              <div className="h-px bg-white/10" />
+
+              {/* Theme Selection Row */}
+              <div className="flex items-center justify-between text-[11px] text-white/70 px-0.5">
+                <span className="font-semibold tracking-wide uppercase text-[8px] text-white/50">Theme</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleThemeChange("light")}
+                    className={`flex items-center gap-1 hover:text-white transition-colors ${theme === "light" ? "text-sky-300 font-medium" : ""}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-sky-400 bg-sky-400" : "border-white/30"}`} />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    onClick={() => handleThemeChange("dark")}
+                    className={`flex items-center gap-1 hover:text-white transition-colors ${theme === "dark" ? "text-sky-300 font-medium" : ""}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 bg-sky-400" : "border-white/30"}`} />
+                    <span>Dark</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-px bg-white/10" />
+
+              {/* Log out Row */}
               <button
-                onClick={() => toggleRailPopover("account")}
-                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-sidebar-border transition-all"
+                onClick={handleLogOutRequest}
+                className={`flex items-center gap-2 w-full text-[11px] text-white/70 hover:text-red-400 transition-colors px-0.5 ${navButtonBase}`}
+              >
+                <Lock className="h-3.5 w-3.5 text-white/60" />
+                <span>Log out</span>
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="footer-collapsed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-3 pb-4 w-full shrink-0"
+            >
+              {/* Expand Toggle Button */}
+              <button
+                onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors ${navButtonBase}`}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <Menu className="h-4.5 w-4.5" />
+              </button>
+
+              {/* Theme Toggler (Compact Icon) */}
+              <button
+                onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors ${navButtonBase}`}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+
+              {/* Profile Avatar */}
+              <button
+                onClick={() => selectTab("profile")}
+                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
                 title="Account Settings"
               >
                 {profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border/20" />
+                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-white/15" />
                 ) : (
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white">
                     {initials || "ST"}
                   </span>
                 )}
               </button>
-
-              {/* Compact Search icon */}
-              <button
-                onClick={openCommandPalette}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${navButtonBase}`}
-                title="Search anything... (Ctrl+K)"
-              >
-                <Command className="h-4.5 w-4.5" />
-              </button>
-
-              <div className="w-8 border-t border-sidebar-border/20 my-1" />
-
-              {/* Navigation Rail Buttons */}
-              <nav className="flex flex-col items-center gap-3 w-full" aria-label="Navigation rail">
-                {groups.map(group => {
-                  const GroupIcon = group.icon;
-                  const isActive = group.id === "study"
-                    ? activeTab === "attendance" || activeTab === "academics"
-                    : group.id === "campus"
-                    ? ["payments", "libraries", "hostel", "dayscholar"].includes(activeTab)
-                    : group.id === "tools"
-                    ? activeTab === "more"
-                    : activeTab === "profile";
-
-                  return (
-                    <button
-                      key={group.id}
-                      onClick={() => toggleRailPopover(group.id)}
-                      className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-[color,background-color] duration-150 ${navButtonBase} ${
-                        isActive
-                          ? "bg-info-surface text-info"
-                          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      }`}
-                      title={group.label}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-info" />
-                      )}
-                      <GroupIcon className="h-4.5 w-4.5 stroke-[1.9]" />
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            {/* Bottom compact controls */}
-            <div className="flex flex-col items-center gap-3 pb-4 w-full">
-              <button
-                onClick={handleReloadClick}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${navButtonBase}`}
-                title="Reload data"
-                aria-label="Reload data"
-              >
-                <RefreshCcw className={`h-4.5 w-4.5 ${isSpinning ? "animate-spin" : ""}`} />
-              </button>
-              <button
-                onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${navButtonBase}`}
-                title="Expand sidebar"
-                aria-label="Expand sidebar"
-              >
-                <Menu className="h-4.5 w-4.5 stroke-[1.9]" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Profile Footer (Visible at the very bottom in expanded mode) */}
-        {isExpandedMode && (
-          <div className="h-[64px] shrink-0 border-t border-sidebar-border/30 px-4 py-3 flex items-center gap-2.5 bg-sidebar-accent/15 rounded-b-2xl">
-            {profileData?.image ? (
-              <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border/20" />
-            ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
-                {initials || "ST"}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-semibold text-sidebar-foreground">{profileName}</span>
-              <span className="block truncate text-[10px] text-muted-foreground">{username || "Student ID"}</span>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Floating popover beside the compact rail */}
         <AnimatePresence>
@@ -965,7 +964,7 @@ export default function NavigationTabs({
             >
               {activeRailGroup === "account" ? (
                 <div>
-                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/75 border-b border-sidebar-border/20 pb-1.5 mb-1.5">
+                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-white/50 border-b border-white/10 pb-1.5 mb-1.5">
                     Account
                   </div>
                   <div className="space-y-1">
@@ -979,11 +978,11 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-info-surface text-info"
-                            : "text-popover-foreground/80 hover:bg-sidebar-accent hover:text-popover-foreground"
+                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
                         }`}
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
+                        <item.icon className="h-4 w-4 shrink-0 text-white/60" />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -992,15 +991,15 @@ export default function NavigationTabs({
                     <div className="space-y-0.5">
                       <button
                         onClick={() => setIsThemeExpanded(!isThemeExpanded)}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} text-popover-foreground/80 hover:bg-sidebar-accent hover:text-popover-foreground`}
+                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} text-white/80 hover:bg-white/10 hover:text-white`}
                       >
-                        <Wrench className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-sidebar-foreground" />
+                        <Wrench className="h-4 w-4 shrink-0 text-white/60 group-hover:text-white" />
                         <span className="truncate flex-1 text-left">Theme</span>
                         <motion.div
                           animate={{ rotate: isThemeExpanded ? 90 : 0 }}
                           transition={{ duration: 0.18 }}
                         >
-                          <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+                          <ChevronRight className="h-3 w-3 text-white/50" />
                         </motion.div>
                       </button>
                       <motion.div
@@ -1012,21 +1011,21 @@ export default function NavigationTabs({
                         <div className="pl-6 space-y-1 py-1">
                           <button
                             onClick={() => handleThemeChange("light")}
-                            className="flex items-center gap-2 w-full text-left text-xs text-muted-foreground/80 hover:text-sidebar-foreground py-0.5 transition-colors"
+                            className="flex items-center gap-2 w-full text-left text-xs text-white/80 hover:text-white py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface/30" : "border-muted-foreground/35"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-sky-400 text-sky-300 bg-sky-400/15" : "border-white/30"}`}>
                               {theme === "light" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
+                            <span className={theme === "light" ? "text-sky-300 font-medium" : ""}>Light</span>
                           </button>
                           <button
                             onClick={() => handleThemeChange("dark")}
-                            className="flex items-center gap-2 w-full text-left text-xs text-muted-foreground/80 hover:text-sidebar-foreground py-0.5 transition-colors"
+                            className="flex items-center gap-2 w-full text-left text-xs text-white/80 hover:text-white py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface/30" : "border-muted-foreground/35"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 text-sky-300 bg-sky-400/15" : "border-white/30"}`}>
                               {theme === "dark" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
+                            <span className={theme === "dark" ? "text-sky-300 font-medium" : ""}>Dark</span>
                           </button>
                         </div>
                       </motion.div>
@@ -1038,16 +1037,16 @@ export default function NavigationTabs({
                         handleLogOutRequest();
                         setActiveRailGroup(null);
                       }}
-                      className="group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 text-popover-foreground/70 hover:bg-sidebar-accent hover:text-popover-foreground mt-1.5 border-t border-sidebar-border/10 pt-1.5"
+                      className="group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 text-white/70 hover:bg-white/10 hover:text-white mt-1.5 border-t border-white/10 pt-1.5"
                     >
-                      <Lock className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                      <Lock className="h-4 w-4 shrink-0 text-white/60" />
                       <span className="truncate">Log out</span>
                     </button>
                   </div>
                 </div>
               ) : activeRailGroup !== "academics" ? (
                 <div>
-                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/75 border-b border-sidebar-border/20 pb-1.5 mb-1.5">
+                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-white/50 border-b border-white/10 pb-1.5 mb-1.5">
                     {activeRailGroup === "study" && "Study"}
                     {activeRailGroup === "campus" && "Campus"}
                     {activeRailGroup === "tools" && "Tools"}
@@ -1066,14 +1065,14 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-info-surface text-info"
-                            : "text-popover-foreground/80 hover:bg-sidebar-accent hover:text-popover-foreground"
+                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
                         }`}
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
+                        <item.icon className="h-4 w-4 shrink-0 text-white/60" />
                         <span className="truncate">{item.label}</span>
                         {item.isExpandable && (
-                          <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground/60" />
+                          <ChevronRight className="h-3 w-3 ml-auto text-white/55" />
                         )}
                       </button>
                     ))}
@@ -1083,7 +1082,7 @@ export default function NavigationTabs({
                 <div>
                   <button
                     onClick={() => setActiveRailGroup("study")}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:text-popover-foreground transition-colors border-b border-sidebar-border/20 pb-1.5 mb-1.5 w-full text-left"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-white/70 hover:text-white transition-colors border-b border-white/10 pb-1.5 mb-1.5 w-full text-left"
                   >
                     <ArrowLeft className="h-3 w-3" />
                     <span>Back to Study</span>
@@ -1094,7 +1093,7 @@ export default function NavigationTabs({
                       return (
                         <div key={item.id}>
                           {showDivider && (
-                            <div className="my-1.5 border-t border-sidebar-border/20" />
+                            <div className="my-1.5 border-t border-white/10" />
                           )}
                           <button
                             onClick={() => {
@@ -1103,8 +1102,8 @@ export default function NavigationTabs({
                             }}
                             className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                               item.isActive
-                                ? "bg-info-surface text-info"
-                                : "text-popover-foreground/80 hover:bg-sidebar-accent hover:text-popover-foreground"
+                                ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
+                                : "text-white/80 hover:bg-white/10 hover:text-white"
                             }`}
                           >
                             <span className="truncate">{item.label}</span>
