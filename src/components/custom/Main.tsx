@@ -331,6 +331,36 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
+    if (demoMode) {
+      setIsReloading(true);
+      setProgressBar(10);
+      setMessage("Initializing Demo environment...");
+      
+      const stages = [
+        { progress: 30, msg: "Initializing Demo environment...\n✅ Demo container ready" },
+        { progress: 60, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded" },
+        { progress: 85, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded" },
+        { progress: 100, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded\n✅ Demo mode ready" }
+      ];
+      
+      for (let i = 0; i < stages.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setProgressBar(stages[i].progress);
+        setMessage(stages[i].msg);
+      }
+      
+      setAttendanceData(demoData.attendance);
+      setMarksData(demoData.marks);
+      setGradesData(demoData.grades);
+      setAllGradesData(demoData.allGrades);
+      setScheduleData(demoData.schedule);
+      sethostelData(demoData.hostel);
+      setCalender(demoData.calender);
+      setIsLoggedIn(true);
+      setIsReloading(false);
+      return;
+    }
+
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
       localStorage.setItem("IDs", JSON.stringify(IDs));
@@ -647,6 +677,34 @@ export default function LoginPage() {
 
   // --- Event Handlers ---
   const handleReloadRequest = async () => {
+    if (demoMode) {
+      setIsReloading(true);
+      setProgressBar(10);
+      setMessage("Reloading demo environment...");
+      
+      const stages = [
+        { progress: 40, msg: "Reloading demo environment...\n✅ Refreshed mock attendance" },
+        { progress: 70, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades" },
+        { progress: 100, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades\n✅ Demo refresh complete" }
+      ];
+      
+      for (let i = 0; i < stages.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setProgressBar(stages[i].progress);
+        setMessage(stages[i].msg);
+      }
+      
+      setAttendanceData(demoData.attendance);
+      setMarksData(demoData.marks);
+      setGradesData(demoData.grades);
+      setAllGradesData(demoData.allGrades);
+      setScheduleData(demoData.schedule);
+      sethostelData(demoData.hostel);
+      setCalender(demoData.calender);
+      setIsReloading(false);
+      return;
+    }
+
     setIsReloading(true);
     setProgressBar(10);
     setMessage("Reloading data...");
@@ -858,6 +916,7 @@ export default function LoginPage() {
   const handleLogOutRequest = () => {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
+    setDemoMode(false);
 
     const keysToKeep = ["theme", "activityTree", "settings"];
 
