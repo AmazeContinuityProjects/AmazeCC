@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw, Sparkles, AlertCircle, Info, Clock, CheckCircle2, Search } from "lucide-react";
+import { RefreshCcw, Sparkles, Info, Clock, CheckCircle2, Search } from "lucide-react";
 
 const LaundryLinks: Record<string, Record<string, string>> = {
   Male: {
@@ -35,8 +35,6 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   const [gender, setGender] = useState("");
   const [hostel, setHostel] = useState("");
   const [schedule, setSchedule] = useState<any[]>([]);
-  
-  // Custom room search feature
   const [searchRoom, setSearchRoom] = useState("");
 
   const hostelOptions: Record<string, string[]> = {
@@ -103,12 +101,10 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
-  // Extract pure numbers from room string safely
   const cleanSearchRoomNum = (searchRoom && typeof searchRoom === "string")
     ? (searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null)
     : null;
 
-  // Function to check if a room falls into a schedule range safely
   const isRoomInSlotRange = (roomRangeStr: any) => {
     if (!cleanSearchRoomNum || !roomRangeStr || typeof roomRangeStr !== "string") return false;
     const matches = roomRangeStr.match(/\d+/g);
@@ -120,12 +116,32 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     return false;
   };
 
-  // Find user's slots
   const matchingSlots = schedule.filter((item) => isRoomInSlotRange(item.RoomNumber));
-  
-  // Check if today is one of the user's slots
   const hasSlotToday = matchingSlots.some((slot) => parseInt(slot.Date, 10) === today);
   const nextSlot = matchingSlots.find((slot) => parseInt(slot.Date, 10) >= today);
+
+  // Calendar calculations
+  const getDaysInMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    const rawFirstDay = new Date(year, month, 1).getDay();
+    const firstDay = rawFirstDay === 0 ? 6 : rawFirstDay - 1; // Map Monday as start index 0
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    return { firstDay, totalDays };
+  };
+
+  const { firstDay, totalDays } = getDaysInMonth();
+  const dayPads = Array(firstDay).fill(null);
+  const dayNumbers = Array.from({ length: totalDays }, (_, i) => i + 1);
+  const calendarCells = [...dayPads, ...dayNumbers];
+  const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+  const getDaySchedule = (dayNum: number) => {
+    return schedule.find(item => parseInt(item.Date, 10) === dayNum);
+  };
 
   return (
     <div className="space-y-6">
@@ -257,7 +273,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-450 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
+              <p className="text-xs text-gray-455 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
             )}
           </div>
 
@@ -269,96 +285,76 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
       </div>
 
-      {/* Laundry Status Indicators */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Machine Status */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Machine Status</span>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">8 / 10 Washers Active</span>
-          </div>
-          <p className="text-[10px] text-gray-500">2 washers out of service for regular maintenance.</p>
-        </div>
-
-        {/* Available Machines */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Available Machines</span>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">3 Available Now</span>
-          </div>
-          <p className="text-[10px] text-gray-500">2 washers and 1 spinner/dryer are currently empty.</p>
-        </div>
-
-        {/* Waiting Time */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Waiting Time</span>
-          <div className="flex items-center gap-2">
-            <Clock size={16} className="text-sky-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">~ 10 mins est.</span>
-          </div>
-          <p className="text-[10px] text-gray-500">Average line length based on current block usage.</p>
-        </div>
-
-        {/* Rules Summary */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Laundry Guidelines</span>
-          <div className="flex items-center gap-2">
-            <Info size={16} className="text-sky-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Max 2 Washes / Week</span>
-          </div>
-          <p className="text-[10px] text-gray-500">Clear clothing items promptly once cycles are done.</p>
-        </div>
-
-      </div>
-
-      {/* Laundry Schedule Calendar Table */}
+      {/* Laundry Schedule Calendar Month Grid */}
       <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-gray-150 dark:border-gray-800 pb-2">Room Schedule Calendar</h3>
-        
+        <div className="flex items-center justify-between border-b border-gray-150 dark:border-gray-800 pb-2">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Laundry Slot Calendar Grid</h3>
+          <div className="flex items-center gap-4 text-[10px]">
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Today</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sky-455">
+              <span className="h-2 w-2 rounded-full bg-sky-500" />
+              <span>Your Slot</span>
+            </div>
+          </div>
+        </div>
+
         {schedule.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-150 dark:divide-gray-800/60 text-xs">
-              <thead>
-                <tr className="text-gray-400 text-[10px] uppercase font-bold text-left">
-                  <th className="px-4 py-3 text-center">Date</th>
-                  <th className="px-4 py-3 text-center">Room Number Range</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-850">
-                {schedule.map((item, idx) => {
-                  const isToday = parseInt(item.Date, 10) === today;
-                  const isUserSelected = isRoomInSlotRange(item.RoomNumber);
+          <div className="space-y-2">
+            {/* Weekdays header */}
+            <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-bold text-gray-450 dark:text-gray-400">
+              {weekDays.map((d) => (
+                <div key={d} className="py-1">{d}</div>
+              ))}
+            </div>
+
+            {/* Grid cells */}
+            <div className="grid grid-cols-7 gap-2">
+              {calendarCells.map((cell, idx) => {
+                if (cell === null) {
                   return (
-                    <tr
-                      key={item.Id || idx}
-                      className={`transition-colors ${
-                        isToday
-                          ? "bg-sky-500/10 text-sky-400 font-bold"
-                          : isUserSelected
-                          ? "bg-sky-500/5 text-gray-700 dark:text-gray-200 font-semibold"
-                          : "text-gray-750 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-slate-800/40"
-                      }`}
-                    >
-                      <td className="px-4 py-3 text-center font-semibold">{item.Date}</td>
-                      <td className="px-4 py-3 text-center font-medium">{item.RoomNumber}</td>
-                      <td className="px-4 py-3 text-center">
-                        {isToday ? (
-                          <span className="text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold">Today's Slot</span>
-                        ) : isUserSelected ? (
-                          <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-semibold">Your Slot</span>
-                        ) : (
-                          <span className="text-[9px] text-gray-400">Scheduled</span>
-                        )}
-                      </td>
-                    </tr>
+                    <div
+                      key={`pad-${idx}`}
+                      className="aspect-square bg-gray-55/5 dark:bg-slate-950/10 border border-transparent rounded-xl"
+                    />
                   );
-                })}
-              </tbody>
-            </table>
+                }
+
+                const dayNum = cell;
+                const slot = getDaySchedule(dayNum);
+                const isToday = dayNum === today;
+                const isUserSelected = slot ? isRoomInSlotRange(slot.RoomNumber) : false;
+
+                let cellClass = "bg-white/30 dark:bg-slate-950/20 border-gray-200 dark:border-gray-850/60";
+                if (isToday) {
+                  cellClass = "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                } else if (isUserSelected) {
+                  cellClass = "bg-sky-500/10 border-sky-500/20 text-sky-400";
+                }
+
+                return (
+                  <div
+                    key={`day-${dayNum}`}
+                    className={`aspect-square p-1 sm:p-2 border rounded-xl flex flex-col justify-between transition-all ${cellClass}`}
+                  >
+                    <span className="text-[10px] font-bold self-end text-gray-500 dark:text-gray-400">{dayNum}</span>
+                    {slot ? (
+                      <div className="text-center pb-0.5">
+                        <span className="text-[7.5px] sm:text-[9px] block font-semibold truncate leading-tight" title={slot.RoomNumber}>
+                          {slot.RoomNumber.replace(/\s+/g, "")}
+                        </span>
+                        {isToday && <span className="text-[6.5px] sm:text-[7.5px] uppercase font-bold text-emerald-450 block mt-0.5">Today</span>}
+                        {isUserSelected && !isToday && <span className="text-[6.5px] sm:text-[7.5px] uppercase font-bold text-sky-400 block mt-0.5">Your Slot</span>}
+                      </div>
+                    ) : (
+                      <div className="h-3" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <p className="text-center text-xs text-gray-450 dark:text-gray-500 italic py-4">
