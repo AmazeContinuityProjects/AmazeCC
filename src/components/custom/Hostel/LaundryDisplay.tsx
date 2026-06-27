@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw, Sparkles, AlertCircle, Info, Clock, CheckCircle2, Search } from "lucide-react";
+import { RefreshCcw, Sparkles, Info, Clock, CheckCircle2, Search, CalendarDays } from "lucide-react";
 
 const LaundryLinks: Record<string, Record<string, string>> = {
   Male: {
@@ -35,16 +35,16 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   const [gender, setGender] = useState("");
   const [hostel, setHostel] = useState("");
   const [schedule, setSchedule] = useState<any[]>([]);
-  
-  // Custom room search feature
   const [searchRoom, setSearchRoom] = useState("");
+  
+  // Interactive calendar selection state
+  const today = new Date().getDate();
+  const [selectedDay, setSelectedDay] = useState<number | null>(today);
 
   const hostelOptions: Record<string, string[]> = {
     Male: ["A", "C", "D1", "D2", "E"],
     Female: ["B", "C"],
   };
-
-  const today = new Date().getDate();
 
   useEffect(() => {
     if (!hostelData.hostelInfo) return;
@@ -103,12 +103,10 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
-  // Extract pure numbers from room string safely
   const cleanSearchRoomNum = (searchRoom && typeof searchRoom === "string")
     ? (searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null)
     : null;
 
-  // Function to check if a room falls into a schedule range safely
   const isRoomInSlotRange = (roomRangeStr: any) => {
     if (!cleanSearchRoomNum || !roomRangeStr || typeof roomRangeStr !== "string") return false;
     const matches = roomRangeStr.match(/\d+/g);
@@ -120,12 +118,36 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     return false;
   };
 
-  // Find user's slots
   const matchingSlots = schedule.filter((item) => isRoomInSlotRange(item.RoomNumber));
-  
-  // Check if today is one of the user's slots
   const hasSlotToday = matchingSlots.some((slot) => parseInt(slot.Date, 10) === today);
   const nextSlot = matchingSlots.find((slot) => parseInt(slot.Date, 10) >= today);
+
+  // Calendar calculations
+  const getDaysInMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    const rawFirstDay = new Date(year, month, 1).getDay();
+    const firstDay = rawFirstDay === 0 ? 6 : rawFirstDay - 1; // Monday start
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    return { firstDay, totalDays };
+  };
+
+  const { firstDay, totalDays } = getDaysInMonth();
+  const dayPads = Array(firstDay).fill(null);
+  const dayNumbers = Array.from({ length: totalDays }, (_, i) => i + 1);
+  const calendarCells = [...dayPads, ...dayNumbers];
+  const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
+
+  const getDaySchedule = (dayNum: number) => {
+    return schedule.find(item => parseInt(item.Date, 10) === dayNum);
+  };
+
+  // Details for currently clicked calendar day
+  const selectedSlot = selectedDay ? getDaySchedule(selectedDay) : null;
+  const isSelectedUserSlot = selectedSlot ? isRoomInSlotRange(selectedSlot.RoomNumber) : false;
 
   return (
     <div className="space-y-6">
@@ -257,7 +279,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-450 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
+              <p className="text-xs text-gray-455 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
             )}
           </div>
 
@@ -269,102 +291,134 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
       </div>
 
-      {/* Laundry Status Indicators */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Split pane: Compact widget calendar + Day details view */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Machine Status */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Machine Status</span>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">8 / 10 Washers Active</span>
+        {/* Left: Compact Monthly Grid */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-4 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between border-b border-gray-150 dark:border-gray-800 pb-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+              <CalendarDays size={13} className="text-sky-400" /> Slot Calendar
+            </h3>
+            <div className="flex items-center gap-2 text-[9px] font-semibold">
+              <div className="flex items-center gap-1 text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>Today</span>
+              </div>
+              <div className="flex items-center gap-1 text-sky-450">
+                <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                <span>Your Slot</span>
+              </div>
+            </div>
           </div>
-          <p className="text-[10px] text-gray-500">2 washers out of service for regular maintenance.</p>
-        </div>
 
-        {/* Available Machines */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Available Machines</span>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">3 Available Now</span>
-          </div>
-          <p className="text-[10px] text-gray-500">2 washers and 1 spinner/dryer are currently empty.</p>
-        </div>
+          {schedule.length > 0 ? (
+            <div className="space-y-1.5">
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-gray-450">
+                {weekDays.map((wd, i) => (
+                  <div key={i} className="py-0.5">{wd}</div>
+                ))}
+              </div>
 
-        {/* Waiting Time */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Waiting Time</span>
-          <div className="flex items-center gap-2">
-            <Clock size={16} className="text-sky-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">~ 10 mins est.</span>
-          </div>
-          <p className="text-[10px] text-gray-500">Average line length based on current block usage.</p>
-        </div>
+              {/* Day numbers grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarCells.map((cell, idx) => {
+                  if (cell === null) {
+                    return <div key={`pad-${idx}`} className="w-8 h-8 sm:w-10 sm:h-10" />;
+                  }
 
-        {/* Rules Summary */}
-        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Laundry Guidelines</span>
-          <div className="flex items-center gap-2">
-            <Info size={16} className="text-sky-400 shrink-0" />
-            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Max 2 Washes / Week</span>
-          </div>
-          <p className="text-[10px] text-gray-500">Clear clothing items promptly once cycles are done.</p>
-        </div>
+                  const dayNum = cell;
+                  const slot = getDaySchedule(dayNum);
+                  const isToday = dayNum === today;
+                  const isUserSlot = slot ? isRoomInSlotRange(slot.RoomNumber) : false;
+                  const isClicked = dayNum === selectedDay;
 
-      </div>
+                  let cellStyle = "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800/50";
+                  if (isToday) {
+                    cellStyle = "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold";
+                  } else if (isUserSlot) {
+                    cellStyle = "bg-sky-500/10 text-sky-400 border border-sky-500/20 font-bold";
+                  } else if (slot) {
+                    cellStyle = "bg-gray-100/50 dark:bg-slate-850/30 text-gray-900 dark:text-gray-100 border border-gray-150/40 dark:border-gray-800/40";
+                  }
 
-      {/* Laundry Schedule Calendar Table */}
-      <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-gray-150 dark:border-gray-800 pb-2">Room Schedule Calendar</h3>
-        
-        {schedule.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-150 dark:divide-gray-800/60 text-xs">
-              <thead>
-                <tr className="text-gray-400 text-[10px] uppercase font-bold text-left">
-                  <th className="px-4 py-3 text-center">Date</th>
-                  <th className="px-4 py-3 text-center">Room Number Range</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-850">
-                {schedule.map((item, idx) => {
-                  const isToday = parseInt(item.Date, 10) === today;
-                  const isUserSelected = isRoomInSlotRange(item.RoomNumber);
+                  if (isClicked) {
+                    cellStyle += " ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-900/40 scale-105";
+                  }
+
                   return (
-                    <tr
-                      key={item.Id || idx}
-                      className={`transition-colors ${
-                        isToday
-                          ? "bg-sky-500/10 text-sky-400 font-bold"
-                          : isUserSelected
-                          ? "bg-sky-500/5 text-gray-700 dark:text-gray-200 font-semibold"
-                          : "text-gray-750 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-slate-800/40"
-                      }`}
+                    <button
+                      key={`day-${dayNum}`}
+                      onClick={() => setSelectedDay(dayNum)}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex flex-col items-center justify-center text-xs transition-all relative ${cellStyle}`}
                     >
-                      <td className="px-4 py-3 text-center font-semibold">{item.Date}</td>
-                      <td className="px-4 py-3 text-center font-medium">{item.RoomNumber}</td>
-                      <td className="px-4 py-3 text-center">
-                        {isToday ? (
-                          <span className="text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold">Today's Slot</span>
-                        ) : isUserSelected ? (
-                          <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-semibold">Your Slot</span>
-                        ) : (
-                          <span className="text-[9px] text-gray-400">Scheduled</span>
-                        )}
-                      </td>
-                    </tr>
+                      <span>{dayNum}</span>
+                      {/* Optional slot indicator dot */}
+                      {slot && !isToday && !isUserSlot && (
+                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-500" />
+                      )}
+                    </button>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-gray-450 italic py-4">No schedule data cached.</p>
+          )}
+        </div>
+
+        {/* Right: Selected Day details card */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
+          <div className="space-y-4">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Selected Slot Details</span>
+            
+            {selectedDay ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-150">Date of Month: {selectedDay}</h4>
+                  {selectedDay === today && (
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold uppercase">Today</span>
+                  )}
+                </div>
+
+                {selectedSlot ? (
+                  <div className="space-y-3">
+                    <div className="bg-gray-50/50 dark:bg-slate-850/20 border border-gray-150 dark:border-gray-850/60 rounded-xl p-3.5 space-y-2 text-xs">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-450 block mb-0.5">Room Slot Range</span>
+                        <span className="font-bold text-gray-850 dark:text-gray-100 text-sm">{selectedSlot.RoomNumber}</span>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-gray-150 dark:border-gray-800/80 flex items-center justify-between text-[10px]">
+                        <span>Status:</span>
+                        {isSelectedUserSlot ? (
+                          <span className="font-bold text-sky-400 uppercase">Your Laundry Slot</span>
+                        ) : selectedDay === today ? (
+                          <span className="font-bold text-emerald-450 uppercase">Active Today</span>
+                        ) : (
+                          <span className="font-semibold text-gray-450 uppercase">Other Room Slot</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-500/5 border border-gray-500/10 p-4 rounded-xl text-center text-xs text-gray-455 italic">
+                    No active laundry slots scheduled for this date.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-455 italic">Click on any date in the calendar grid to inspect slots.</p>
+            )}
           </div>
-        ) : (
-          <p className="text-center text-xs text-gray-450 dark:text-gray-500 italic py-4">
-            No laundry schedule available. Please load database entries.
-          </p>
-        )}
+
+          <div className="flex items-start gap-2 text-[10px] text-gray-405 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
+            <Info size={12} className="text-sky-400 shrink-0 mt-0.5" />
+            <span>Select the date matching your room range, take your bag to the laundry drop counter before 5:00 PM.</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
