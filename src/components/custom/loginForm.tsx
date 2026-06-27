@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Home, Search, BookOpen, ChevronLeft, Plus, RotateCcw, Minus, Sun, Moon } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Home, Search, BookOpen, ChevronLeft, Plus, RotateCcw, Minus, Sun, Moon, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -454,7 +454,7 @@ export default function LoginForm({
               <div className="relative max-w-4xl mx-auto h-[450px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100/40 dark:border-neutral-900 dark:bg-[#050711]/50 p-6 md:p-8 flex items-center justify-center shadow-md dark:shadow-xl">
                 
                 {/* Mock Desktop Panel */}
-                <div className="absolute top-10 left-10 right-28 bottom-10 bg-white border border-slate-200/80 dark:bg-neutral-950 dark:border-neutral-850 rounded-2xl shadow-2xl flex overflow-hidden -rotate-2 origin-top-left transition-transform duration-500 hover:rotate-0">
+                <div className="hidden md:flex absolute top-10 left-10 right-28 bottom-10 bg-white border border-slate-200/80 dark:bg-neutral-950 dark:border-neutral-850 rounded-2xl shadow-2xl overflow-hidden -rotate-2 origin-top-left transition-transform duration-500 hover:rotate-0">
                   {/* Sidebar mockup */}
                   <div className="w-1/4 border-r border-slate-100 dark:border-neutral-900 p-4 space-y-4 bg-white dark:bg-neutral-950 select-none">
                     <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-neutral-900">
@@ -489,7 +489,7 @@ export default function LoginForm({
                 </div>
 
                 {/* Overlapping Mock Phone Panel */}
-                <div className="absolute right-6 bottom-6 w-52 h-80 bg-white border-4 border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 rounded-3xl shadow-2xl p-4 overflow-hidden rotate-3 transition-transform duration-500 hover:rotate-0">
+                <div className="absolute md:right-6 md:bottom-6 left-1/2 md:left-auto top-1/2 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 w-52 h-80 bg-white border-4 border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 rounded-3xl shadow-2xl p-4 overflow-hidden md:rotate-3 transition-transform duration-500 hover:rotate-0">
                   <div className="w-12 h-4 bg-slate-100 dark:bg-neutral-850 rounded-full mx-auto mb-4" />
                   <div className="space-y-4 select-none">
                     <div className="flex items-center justify-between">
@@ -660,7 +660,18 @@ export default function LoginForm({
               </div>
 
               {/* Right Column: Login form card */}
-              <div className="lg:col-span-7 bg-white border border-slate-200 dark:bg-[#050814]/60 dark:border-neutral-900 backdrop-blur-2xl rounded-3xl p-7 flex flex-col justify-between shadow-2xl relative">
+              <div className="lg:col-span-7 bg-white border border-slate-200 dark:bg-[#050814]/60 dark:border-neutral-900 backdrop-blur-2xl rounded-3xl p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white/80 dark:bg-[#050814]/90 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center z-25 space-y-4 animate-in fade-in duration-300">
+                    <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">VTOP Authentication</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider animate-pulse">Establishing secure gateway...</p>
+                    </div>
+                  </div>
+                )}
                 <form onSubmit={handleFormSubmit} className="space-y-6">
                   
                   {/* Header info */}
