@@ -10,6 +10,7 @@ import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
 import demoData from '../../data/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
+import { syncPastSemesters } from "@/lib/pastDataSync";
 import { CommandPalette } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
@@ -656,6 +657,15 @@ export default function LoginPage() {
       if ((settings as any).reloadAllData) {
         await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
         await fetchTransportData();
+        
+        try {
+          const { cookies, authorizedID, csrf } = await loginToVTOP();
+          const allGradesData = JSON.parse(localStorage.getItem("allGrades") || "{}");
+          await syncPastSemesters(allGradesData, { cookies, authorizedID, csrf });
+        } catch (err) {
+          console.error("Failed to sync past semesters on global reload", err);
+        }
+        
         return;
       }
 

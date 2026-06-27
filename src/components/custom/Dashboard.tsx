@@ -276,6 +276,12 @@ export default function DashboardContent({
 
       setMessage((prev) => prev + "\n🔄 Loading past semester data from cache...");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
+      
+      // Fetch missing past semesters and update cache
+      syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf }).then(() => {
+        setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
+      });
+
       setMessage((prev) => prev + "\n✅ All grades reloaded successfully!");
       setProgressBar(100);
       setIsReloading(false);

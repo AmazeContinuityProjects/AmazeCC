@@ -3,10 +3,18 @@ import { API_BASE } from "@/components/custom/Main";
 export async function syncPastSemesters(allGradesData: any, creds: any): Promise<void> {
   if (!allGradesData?.grades || !creds) return;
 
-  const pastSemesters = Object.keys(allGradesData.grades);
+  let pastSemesters: string[] = [];
+  if (Array.isArray(allGradesData.grades)) {
+    pastSemesters = allGradesData.grades.map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId).filter(Boolean);
+  } else {
+    pastSemesters = Object.keys(allGradesData.grades);
+  }
+  
   if (pastSemesters.length === 0) return;
 
   for (const semId of pastSemesters) {
+    if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") continue;
+    
     const attKey = `frozen_att_${semId}`;
     const marksKey = `frozen_marks_${semId}`;
 
@@ -43,10 +51,18 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
 export function loadFrozenPastSemesters(allGradesData: any) {
   if (!allGradesData?.grades) return {};
 
-  const pastSemesters = Object.keys(allGradesData.grades);
+  let pastSemesters: string[] = [];
+  if (Array.isArray(allGradesData.grades)) {
+    pastSemesters = allGradesData.grades.map((sem: any) => sem.semesterSubId || sem.semSubId || sem.semesterId).filter(Boolean);
+  } else {
+    pastSemesters = Object.keys(allGradesData.grades);
+  }
+  
   const frozenData: Record<string, { attendance: any; marks: any }> = {};
 
   for (const semId of pastSemesters) {
+    if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") continue;
+    
     const attKey = `frozen_att_${semId}`;
     const marksKey = `frozen_marks_${semId}`;
 
