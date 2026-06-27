@@ -388,16 +388,70 @@ export default function CourseDashboard({
             if (group.lab?.classNbr) currentClassNbrs.add(group.lab.classNbr);
           });
           
+          let matchCount = 0;
           for (const group of Array.from(semMap.values())) {
             const tNbr = group.theory?.classNbr;
             const lNbr = group.lab?.classNbr;
             if ((tNbr && currentClassNbrs.has(tNbr)) || (lNbr && currentClassNbrs.has(lNbr))) {
-              isDuplicate = true;
-              break;
+              matchCount++;
             }
+          }
+          if (matchCount > 0 && matchCount === semMap.size) {
+            isDuplicate = true;
           }
         }
         if (semMap.size > 0 && !isDuplicate) coursesBySemester.set(semId, Array.from(semMap.values()));
+      });
+    }
+
+    // Add any remaining courses from allGradesData that aren't in pastSemesterData
+    if (allGradesData?.grades && !Array.isArray(allGradesData.grades)) {
+      Object.keys(allGradesData.grades).forEach(semId => {
+        if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") return;
+        
+        const sem = allGradesData.grades[semId];
+        const courseList = sem?.grades || sem?.courseGrades || sem?.courses || sem || [];
+        const items = Array.isArray(courseList) ? courseList : Object.values(courseList);
+        
+        let semMap = coursesBySemester.has(semId) 
+          ? new Map(coursesBySemester.get(semId).map((c: any) => [c.courseCode, c])) 
+          : new Map();
+
+        let addedNew = false;
+        items.forEach((c: any) => {
+          const code = (c.courseCode || c.code || "").trim();
+          if (!code) return;
+          const cleanCode = code.replace(/\([LPT]\)$/i, "").trim();
+          
+          if (!semMap.has(cleanCode)) {
+            semMap.set(cleanCode, {
+              courseCode: cleanCode,
+              courseTitle: c.courseTitle || c.title || cleanCode,
+              semesterSubId: semId,
+              theory: { courseType: c.courseType || "Theory", courseCode: code, courseTitle: c.courseTitle || c.title },
+              lab: null
+            });
+            addedNew = true;
+          }
+        });
+
+        // Deduplicate logic for grades-only semesters (same as above)
+        if (addedNew && semMap.size > 0 && currentMap.size > 0) {
+          const currentCodes = new Set();
+          currentMap.forEach(group => currentCodes.add(group.courseCode));
+          
+          let matchCount = 0;
+          for (const key of Array.from(semMap.keys())) {
+            if (currentCodes.has(key)) matchCount++;
+          }
+          if (matchCount > 0 && matchCount === semMap.size) {
+            return; // completely duplicate of current semester
+          }
+        }
+
+        if (semMap.size > 0 && (addedNew || !coursesBySemester.has(semId))) {
+          coursesBySemester.set(semId, Array.from(semMap.values()));
+        }
       });
     }
 
@@ -836,9 +890,19 @@ export default function CourseDashboard({
 
               const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
               let pastGrade = "";
-              if (isPastSemester && allGradesData?.grades?.[group.semesterSubId]?.grades) {
-                const found = allGradesData.grades[group.semesterSubId].grades.find((g: any) => g.courseCode === group.courseCode);
-                if (found) pastGrade = found.grade;
+              if (isPastSemester && allGradesData?.grades) {
+                let gradeArray: any[] = [];
+                if (allGradesData.grades[group.semesterSubId]) {
+                  const sem = allGradesData.grades[group.semesterSubId];
+                  gradeArray = sem?.grades || sem || [];
+                } else if (Array.isArray(allGradesData.grades)) {
+                  gradeArray = allGradesData.grades;
+                } else {
+                  gradeArray = Object.values(allGradesData.grades).flatMap((s: any) => s?.grades || s || []);
+                }
+                const items = Array.isArray(gradeArray) ? gradeArray : Object.values(gradeArray);
+                const found = items.find((g: any) => (g.courseCode || g.code) === group.courseCode);
+                if (found) pastGrade = found.grade || found.courseGrade;
               }
 
               const faculty = main.faculty || att?.faculty || (isPastSemester ? "Past Faculty" : "Faculty not listed");
