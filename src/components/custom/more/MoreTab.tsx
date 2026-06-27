@@ -27,7 +27,7 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
 
 
       <div className="mt-4">
-        {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} />}
+        {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />}
         {activeMoreSubTab === "ffcs" && <FFCSTimetableTab />}
         {activeMoreSubTab === "events" && <EventHubTab IDs={IDs} setIsSubpageOpen={setIsSubpageOpen} registeredEvents={registeredEvents} setRegisteredEvents={setRegisteredEvents} />}
       </div>

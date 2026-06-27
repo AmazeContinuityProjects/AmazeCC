@@ -15,7 +15,7 @@ type SearchIndex = "kw" | "ti" | "au" | "su" | "nb";
 
 const searchLabels: Record<SearchIndex, string> = { kw: "Keyword", ti: "Title", au: "Author", su: "Subject", nb: "ISBN" };
 
-function BookSearch() {
+function BookSearch({ isDemo }: { isDemo?: boolean }) {
   const [query, setQuery] = useState("");
   const [idx, setIdx] = useState<SearchIndex>("kw");
   const [books, setBooks] = useState<any[]>([]);
@@ -35,6 +35,35 @@ function BookSearch() {
     setError(null);
     setSearched(true);
     setDetailBook(null);
+    if (isDemo) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setBooks([
+        {
+          biblionumber: "10920",
+          title: "Clean Code: A Handbook of Agile Software Craftsmanship",
+          author: "Robert C. Martin",
+          publisher: "Prentice Hall",
+          isbn: "978-0132350884",
+          itemtype: "Book",
+          copies: "5",
+          available: "3"
+        },
+        {
+          biblionumber: "20194",
+          title: "Design Patterns: Elements of Reusable Object-Oriented Software",
+          author: "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides",
+          publisher: "Addison-Wesley",
+          isbn: "978-0201633610",
+          itemtype: "Book",
+          copies: "8",
+          available: "6"
+        }
+      ]);
+      setTotal(2);
+      setOffset(off);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/koha/search?q=${encodeURIComponent(q)}&idx=${index}&offset=${off}&count=20`);
       const data = await res.json();
@@ -55,6 +84,24 @@ function BookSearch() {
   const openDetail = async (biblionumber: string) => {
     setLoadingDetail(biblionumber);
     setDetailError(null);
+    if (isDemo) {
+      await new Promise(resolve => setTimeout(resolve, 150));
+      setDetailBook({
+        biblionumber: biblionumber,
+        title: biblionumber === "10920" ? "Clean Code: A Handbook of Agile Software Craftsmanship" : "Design Patterns: Elements of Reusable Object-Oriented Software",
+        author: biblionumber === "10920" ? "Robert C. Martin" : "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides",
+        publisher: biblionumber === "10920" ? "Prentice Hall" : "Addison-Wesley",
+        isbn: biblionumber === "10920" ? "978-0132350884" : "978-0201633610",
+        itemtype: "Book",
+        copies: "5",
+        available: "3",
+        summary: "Even bad code can function. But if code isn't clean, it can bring a development organization to its knees.",
+        callNumber: "005.1 MAR",
+        location: "Central Library - Stack Area"
+      });
+      setLoadingDetail(null);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/koha/detail?biblionumber=${biblionumber}`);
       const data = await res.json();
@@ -244,7 +291,7 @@ const PATRON_SECTIONS: Record<string, { label: string; icon: string; color: stri
   history: { label: "Search History", icon: "🔍", color: "purple" },
 };
 
-function KohaPatronPage({ onBack }: { onBack: () => void }) {
+function KohaPatronPage({ onBack, isDemo }: { onBack: () => void; isDemo?: boolean }) {
   const [card, setCard] = useState("");
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
@@ -253,6 +300,44 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
   const doLogin = useCallback(async (c: string, p: string) => {
     if (!c.trim() || !p.trim()) return;
     setLoading(true);
+    if (isDemo) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setPatronData({
+        info: {
+          name: "Demo Student",
+          cardnumber: "22BCE1234",
+          category: "Undergraduate",
+          library: "Central Library"
+        },
+        pages: {
+          charges: {
+            title: "Account Charges",
+            tables: [
+              {
+                headers: ["Type", "Description", "Amount", "Amount outstanding", "Created", "Updated"],
+                rows: [
+                  ["Fine", "Overdue Fine: Code Complete Book", "10.00", "0.00", "2026-06-15", "2026-06-20"]
+                ]
+              }
+            ]
+          },
+          checkouts: {
+            title: "Current Checkouts",
+            tables: [
+              {
+                headers: ["Title", "Due", "Barcode", "Call number", "Renew"],
+                rows: [
+                  ["Clean Code", "2026-07-10", "BC-90184", "005.1 MAR", "Renewable"]
+                ]
+              }
+            ]
+          }
+        }
+      });
+      setLoggedIn(true);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/koha/patron`, {
         method: "POST",
@@ -532,17 +617,44 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-function KohaPatronCards({ refreshKey }: { refreshKey: number }) {
+function KohaPatronCards({ refreshKey, isDemo }: { refreshKey: number; isDemo?: boolean }) {
   const [pages, setPages] = useState<any>(null);
 
   useEffect(() => {
+    if (isDemo) {
+      setPages({
+        charges: {
+          title: "Account Charges",
+          tables: [
+            {
+              headers: ["Type", "Description", "Amount", "Amount outstanding", "Created", "Updated"],
+              rows: [
+                ["Fine", "Overdue Fine: Code Complete Book", "10.00", "0.00", "2026-06-15", "2026-06-20"]
+              ]
+            }
+          ]
+        },
+        checkouts: {
+          title: "Current Checkouts",
+          tables: [
+            {
+              headers: ["Title", "Due", "Barcode", "Call number", "Renew"],
+              rows: [
+                ["Clean Code", "2026-07-10", "BC-90184", "005.1 MAR", "Renewable"]
+              ]
+            }
+          ]
+        }
+      });
+      return;
+    }
     const raw = localStorage.getItem("koha_patron_pages");
     if (raw) {
       try { setPages(JSON.parse(raw)); } catch { setPages(null); }
     } else {
       setPages(null);
     }
-  }, [refreshKey]);
+  }, [refreshKey, isDemo]);
 
   if (!pages) return null;
 
@@ -717,8 +829,10 @@ export default function LibrariesTab({ loginToVTOP }: LibrariesTabProps) {
     </div>
   );
 
+  const isDemo = creds?.authorizedID === "DEMO123";
+
   if (showPatron) {
-    return <KohaPatronPage onBack={() => setShowPatron(false)} />;
+    return <KohaPatronPage onBack={() => setShowPatron(false)} isDemo={isDemo} />;
   }
 
   return (
@@ -734,7 +848,7 @@ export default function LibrariesTab({ loginToVTOP }: LibrariesTabProps) {
       <div className="space-y-8">
         <div>
           <h3 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-3 px-1">Book Search</h3>
-          <BookSearch />
+          <BookSearch isDemo={isDemo} />
         </div>
 
         <button onClick={() => setShowPatron(true)}
@@ -750,7 +864,7 @@ export default function LibrariesTab({ loginToVTOP }: LibrariesTabProps) {
           <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
         </button>
 
-        <KohaPatronCards refreshKey={refreshKey} />
+        <KohaPatronCards refreshKey={refreshKey} isDemo={isDemo} />
 
         <GenericApiView endpoint="library-due" title="Library Dues" creds={creds} refreshKey={refreshKey} />
         <div className="p-4 rounded-2xl bg-amber-50/80  dark:bg-amber-500/5 border border-amber-200/50  dark:border-amber-500/20 text-center">

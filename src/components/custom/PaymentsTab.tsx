@@ -72,6 +72,59 @@ export default function PaymentsTab({ loginToVTOP }: PaymentsTabProps) {
     setError(prev => ({ ...prev, [tab]: null }));
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
+      
+      if (authorizedID === "DEMO123") {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        let data: any = null;
+        if (tab === "dues") {
+          data = {
+            studentInfo: {
+              registerNumber: "22BCE1234",
+              studentName: "Demo Student",
+              programme: "B.Tech Computer Science & Engineering",
+              campus: "Vellore Institute of Technology, Chennai"
+            },
+            hasDues: false,
+            message: "No pending tuition fees or hostel dues are registered for your account."
+          };
+          setPaymentsData(data);
+        } else if (tab === "receipts") {
+          data = {
+            receipts: [
+              {
+                receiptNumber: "FEE-2026-90210",
+                date: "2026-05-15",
+                campusCode: "VITC",
+                amount: "198000"
+              },
+              {
+                receiptNumber: "HSTL-2026-10492",
+                date: "2026-06-02",
+                campusCode: "VITC",
+                amount: "145000"
+              }
+            ]
+          };
+          setReceiptsData(data);
+        } else if (tab === "wallet") {
+          data = {
+            ledgerINR: [
+              {
+                amount: "5000",
+                refundAmount: "0",
+                transactionType: "CR",
+                refundDate: null,
+                particulars: "Security Deposit Refund",
+                transactionDate: "2026-06-01"
+              }
+            ],
+            ledgerUSD: []
+          };
+          setWalletData(data);
+        }
+        return;
+      }
+
       const endpoint = tab === "dues" ? "payments" : tab === "receipts" ? "payment-receipts" : "wallet";
       const body: Record<string, any> = { cookies, authorizedID, csrf };
       const effectiveExtra = extra || (tab === "receipts" ? receiptExtra : undefined);

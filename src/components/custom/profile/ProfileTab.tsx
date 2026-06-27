@@ -425,6 +425,31 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     setRefreshing(true);
     clearApiCache();
     const { cookies, authorizedID, csrf } = creds;
+    if (authorizedID === "DEMO123") {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setData({
+        credentials: [
+          {
+            account: "VTOP Student Portal",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-vtop",
+            url: "https://vtop.vit.ac.in",
+            venueDate: "Active Session",
+            seatLocation: "N/A"
+          },
+          {
+            account: "Koha Library Card",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-koha",
+            url: "http://opac.vit.ac.in",
+            venueDate: "N/A",
+            seatLocation: "N/A"
+          }
+        ]
+      });
+      setRefreshing(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/credentials`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -444,6 +469,32 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     setChangedUsername(username);
     setChangedPassword(Array.isArray(password) ? password[0] : password);
 
+    const { cookies, authorizedID, csrf } = creds;
+    if (authorizedID === "DEMO123") {
+      setData({
+        credentials: [
+          {
+            account: "VTOP Student Portal",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-vtop",
+            url: "https://vtop.vit.ac.in",
+            venueDate: "Active Session",
+            seatLocation: "N/A"
+          },
+          {
+            account: "Koha Library Card",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-koha",
+            url: "http://opac.vit.ac.in",
+            venueDate: "N/A",
+            seatLocation: "N/A"
+          }
+        ]
+      });
+      setLoading(false);
+      return;
+    }
+
     if (refreshKey === 0) {
       const cached = localStorage.getItem("cache_credentials");
       if (cached) {
@@ -455,7 +506,6 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       }
     }
 
-    const { cookies, authorizedID, csrf } = creds;
     fetch(`${API_BASE}/api/credentials`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cookies, authorizedID, csrf }),
@@ -466,7 +516,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
         console.warn("Credentials API returned unexpected format:", res);
       }
     }).catch((e) => console.error("Credentials fetch error:", e)).finally(() => setLoading(false));
-  }, [refreshKey, creds]);
+  }, [refreshKey, creds, username, password]);
 
   if (loading) {
     return (
