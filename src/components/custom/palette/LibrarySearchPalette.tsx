@@ -119,8 +119,20 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
   }, [query]);
 
   useEffect(() => {
-    const el = listRef.current?.children[selectedIndex] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
+    const container = listRef.current;
+    if (!container) return;
+    const el = container.children[selectedIndex] as HTMLElement | undefined;
+    if (el) {
+      const top = el.offsetTop;
+      const bottom = top + el.offsetHeight;
+      const cTop = container.scrollTop;
+      const cBottom = cTop + container.clientHeight;
+      if (top < cTop) {
+        container.scrollTop = top - 10;
+      } else if (bottom > cBottom) {
+        container.scrollTop = bottom - container.clientHeight + 10;
+      }
+    }
   }, [selectedIndex]);
 
   useEffect(() => {
