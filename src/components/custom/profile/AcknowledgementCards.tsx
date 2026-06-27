@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { API_BASE } from "../Main";
 import { FileText } from "lucide-react";
 
-const cardBase = "glass-card";
+const cardBase = "solid-card";
 
 export default function AcknowledgementCards({ creds, refreshKey }: { creds: any; refreshKey: number }) {
   const [data, setData] = useState<any>(null);

@@ -44,7 +44,7 @@ export default function Modal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div className="fixed inset-0 bg-background/70 backdrop-blur-sm" />
+      <div className="fixed inset-0 bg-background/70 " />
         <div
           className={cn(
             "relative w-full",

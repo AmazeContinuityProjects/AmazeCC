@@ -77,7 +77,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
               >
                 <Card 
                   onClick={() => setSelectedBus(bus)}
-                  className="cursor-pointer relative h-full flex flex-col glass-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1"
+                  className="cursor-pointer relative h-full flex flex-col solid-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className={`absolute -top-16 -right-16 w-32 h-32 rounded-full blur-2xl opacity-20  dark:opacity-15 pointer-events-none ${bus.type === 'AC' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
                   
@@ -148,7 +148,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
           </div>
 
           <div className="space-y-6 pt-2">
-            <div className="glass-card p-5">
+            <div className="solid-card p-5">
               <h4 className="text-xs font-bold text-gray-500  dark:text-gray-300 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <MapPin size={16} className="text-gray-400 dark:text-gray-300" /> Route Path
               </h4>
@@ -165,7 +165,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
               </div>
             </div>
 
-            <div className="glass-card p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="solid-card p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               {selectedBus.driverPhone ? (
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/80  dark:bg-white/10 shadow-sm border border-white/50  dark:border-white/10 rounded-full shrink-0">

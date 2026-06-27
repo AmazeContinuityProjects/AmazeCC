@@ -25,7 +25,7 @@ interface TransportRegistrationProps {
 }
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`glass-card mb-5 ${className}`}>
+  <div className={`solid-card mb-5 ${className}`}>
     {children}
   </div>
 );

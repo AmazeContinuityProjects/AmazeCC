@@ -158,7 +158,7 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] md:pt-[12vh]" onClick={subpage ? undefined : onClose}>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+      <div className="fixed inset-0 bg-black/60 " />
       <div
         className="relative w-[95vw] max-w-2xl animate-scale-in overflow-hidden rounded-2xl border border-white/20  dark:border-white/5 shadow-2xl shadow-black/20"
         onClick={(e) => e.stopPropagation()}
@@ -169,7 +169,7 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
         <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-purple-500/20 blur-[100px] pointer-events-none" />
 
         {/* Glass container */}
-        <div className="relative bg-white/80  dark:bg-gray-950/90 backdrop-blur-2xl">
+        <div className="relative bg-white/80  dark:bg-gray-950/90 ">
           {subpage ? (
             /* ── Subpage view ── */
             <div className="flex flex-col max-h-[70vh]">

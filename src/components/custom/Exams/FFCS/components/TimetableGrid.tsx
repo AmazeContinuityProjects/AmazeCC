@@ -34,7 +34,7 @@ export function TimetableGrid({
   const getCourse = (slotName: string) => renderCourses.find(c => c.slots.includes(slotName));
 
   return (
-    <div className={`mb-8 rounded-xl border border-border shadow-2xl bg-background backdrop-blur-md ${customCourses && !fullSize ? 'scale-[0.85] origin-top-left -mb-10' : ''} ${fullSize ? '' : 'overflow-x-auto'}`}>
+    <div className={`mb-8 rounded-xl border border-border shadow-2xl bg-background  ${customCourses && !fullSize ? 'scale-[0.85] origin-top-left -mb-10' : ''} ${fullSize ? '' : 'overflow-x-auto'}`}>
       <div className="p-4 bg-muted/80 border-b border-border flex items-center justify-between">
         <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
           Unified Schedule
@@ -63,7 +63,7 @@ export function TimetableGrid({
           <tbody>
             {DAYS.map((day) => (
               <tr key={day.id} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-background/95 backdrop-blur-md sticky left-0 z-20">
+                <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-background/95  sticky left-0 z-20">
                   {day.name.substring(0, 3).toUpperCase()}
                 </td>
                 {theoryPeriods.map((period, pIdx) => {

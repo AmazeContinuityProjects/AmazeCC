@@ -167,11 +167,11 @@
   --text-secondary: oklch(0.85 0.008 247);
   --text-muted: oklch(0.72 0.01 247);
   --text-disabled: oklch(0.55 0.01 247);
-  --surface: oklch(0.185 0.018 255);
-  --surface-secondary: oklch(0.245 0.022 255);
-  --surface-tertiary: oklch(0.275 0.024 255);
-  --surface-raised: oklch(0.215 0.02 255);
-  --surface-hover: oklch(0.26 0.028 255);
+  --surface: oklch(0.20 0 0);
+  --surface-secondary: oklch(0.25 0 0);
+  --surface-tertiary: oklch(0.28 0 0);
+  --surface-raised: oklch(0.23 0 0);
+  --surface-hover: oklch(0.27 0 0);
   --border-muted: oklch(0.98 0.004 247 / 0.16);
   --border-strong: oklch(0.98 0.004 247 / 0.28);
   --card: var(--surface);
@@ -207,11 +207,11 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.28 0.01 255);
+  --sidebar: oklch(0.18 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.35 0.015 255);
+  --sidebar-primary: oklch(0.22 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.35 0.015 255);
+  --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.985 0 0 / 0.12);
   --sidebar-ring: oklch(0.6 0 0);
@@ -241,21 +241,6 @@
 
 /* ── Design System Utilities ── */
 
-.glass-card {
-  background: color-mix(in oklab, var(--surface-raised) 82%, transparent);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-muted);
-  box-shadow: 0 8px 30px color-mix(in oklab, var(--text-heading) 6%, transparent);
-  border-radius: 1rem;
-  overflow: hidden;
-  color: var(--text-primary);
-}
-.dark .glass-card {
-  background: color-mix(in oklab, var(--surface-raised) 76%, transparent);
-  border-color: var(--border-muted);
-  box-shadow: 0 8px 30px color-mix(in oklab, var(--background) 30%, transparent);
-}
 
 .solid-card {
   background: var(--surface);
@@ -412,7 +397,7 @@ input, textarea, [contenteditable] {
 .dark div.rounded-2xl.border,
 .dark div.rounded-xl.border,
 .dark div.rounded-lg.border,
-.dark .glass-card,
+.dark .solid-card,
 .dark .solid-card {
   background-color: var(--surface) !important;
   border-color: var(--border-muted) !important;

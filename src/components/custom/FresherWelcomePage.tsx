@@ -73,7 +73,7 @@ export default function FresherWelcomePage({ onDismiss, username, friendlyName, 
       <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 px-6 pt-16 pb-12 md:pt-20 md:pb-16 md:px-12 text-white">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-2xl bg-white/20 backdrop-blur-sm">
+            <div className="p-2 rounded-2xl bg-white/20 ">
               <GraduationCap className="w-6 h-6 text-blue-200" />
             </div>
             <span className="text-sm font-semibold text-blue-200 uppercase tracking-widest">Welcome to VIT</span>

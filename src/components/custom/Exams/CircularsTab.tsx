@@ -93,7 +93,7 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 " onClick={onClose} />
       <div className="relative bg-white  dark:bg-gray-950 rounded-2xl shadow-2xl border border-gray-200  dark:border-gray-800 max-w-lg w-full mx-4 max-h-[70vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-gray-200  dark:border-gray-800">
           <div className="flex items-center gap-3">
@@ -221,7 +221,7 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
           <p className="text-sm font-medium">No circulars found</p>
         </div>
       )}
-      <div className="glass-card divide-y divide-gray-100/50  dark:divide-gray-800/50">
+      <div className="solid-card divide-y divide-gray-100/50  dark:divide-gray-800/50">
         {circulars.map((item, i) => (
           <TreeNode key={i} item={item} creds={creds} />
         ))}

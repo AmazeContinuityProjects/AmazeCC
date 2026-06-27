@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
         </Link>
 
         {/* Content Card */}
-        <div className="bg-white/60  dark:bg-white/[0.02] backdrop-blur-2xl border border-gray-200/50  dark:border-white/10 rounded-2xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.06)]  dark:shadow-[0_8px_30px_rgba(255,255,255,0.02)] space-y-6 text-gray-700  dark:text-gray-300">
+        <div className="bg-white dark:bg-gray-900  border border-gray-200/50  dark:border-white/10 rounded-2xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.06)]  dark:shadow-[0_8px_30px_rgba(255,255,255,0.02)] space-y-6 text-gray-700  dark:text-gray-300">
           <div className="border-b border-gray-100  dark:border-white/10 pb-4">
             <h1 className="text-3xl font-black text-gray-900  dark:text-white leading-tight">
               Privacy Policy

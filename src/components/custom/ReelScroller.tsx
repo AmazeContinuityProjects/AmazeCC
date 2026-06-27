@@ -86,7 +86,7 @@ export default function ReelsScroller() {
 
             <button
                 onClick={toggleMute}
-                className="absolute z-10 bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/70 transition"
+                className="absolute z-10 bottom-2 right-2 bg-black/50  text-white p-2 rounded-full hover:bg-black/70 transition"
             >
                 {muted ? (
                     <VolumeX className="w-5 h-5" />

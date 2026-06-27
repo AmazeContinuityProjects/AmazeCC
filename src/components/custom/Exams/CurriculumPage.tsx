@@ -34,7 +34,7 @@ const GRADE_BG: Record<string, string> = {
   F: "bg-red-600/10", P: "bg-violet-500/10", N: "bg-gray-400/10",
 };
 
-const cardBase = "glass-card";
+const cardBase = "solid-card";
 
 // ── types ────────────────────────────────────────────────────────────
 interface CurriculumItem {
@@ -448,7 +448,7 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by course code, name, basket or category..."
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/60  dark:bg-gray-900/50 border border-white/40  dark:border-white/10 text-sm text-gray-800  dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 backdrop-blur-2xl"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/60  dark:bg-gray-900/50 border border-white/40  dark:border-white/10 text-sm text-gray-800  dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 "
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors">

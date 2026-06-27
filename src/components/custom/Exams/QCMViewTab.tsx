@@ -58,7 +58,7 @@ export default function QCMViewTab({ loginToVTOP, setActiveSubTab }: { loginToVT
       {error && <div className="error-banner mb-4">{error}</div>}
 
       {data && Object.keys(data).length === 0 && (
-        <div className="glass-card">
+        <div className="solid-card">
           <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
             <p className="text-lg font-semibold">No QCM Data</p>
             <p className="text-sm">No Quality Circle Meeting records found.</p>
@@ -67,7 +67,7 @@ export default function QCMViewTab({ loginToVTOP, setActiveSubTab }: { loginToVT
       )}
 
       {data && Object.entries(data).map(([semId, semData]) => (
-        <div key={semId} className="glass-card mb-4">
+        <div key={semId} className="solid-card mb-4">
           <button onClick={() => toggleSemester(semId)} className="w-full flex items-center justify-between p-4 hover:bg-white/40 dark:hover:bg-slate-700/30 transition-colors">
             <div className="flex items-center gap-3">
               {expanded[semId] ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}

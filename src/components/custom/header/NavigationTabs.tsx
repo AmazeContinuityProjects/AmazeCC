@@ -600,7 +600,7 @@ export default function NavigationTabs({
       <aside
         ref={sidebarRef}
         data-sidebar-root="true"
-        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-2xl border border-sidebar-border bg-sidebar text-white shadow-lg transition-[width] duration-200 ease-out md:flex ${
+        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-[24px] border border-white/10 bg-sidebar text-white shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:flex ${
           isOpen ? "w-[280px]" : "w-[72px]"
         }`}
         aria-label="Primary navigation"
@@ -619,19 +619,19 @@ export default function NavigationTabs({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleReloadClick}
-                  className={`rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white ${navButtonBase}`}
+                  className={`relative group rounded-xl p-1.5 text-white/60 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105 ${navButtonBase}`}
                   title="Reload data"
                   aria-label="Reload data"
                 >
-                  <RefreshCcw className={`h-4 w-4 ${isSpinning ? "animate-spin" : ""}`} />
+                  <RefreshCcw className={`h-4 w-4 transition-transform ${isSpinning ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
                 </button>
                 <button
                   onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
-                  className={`rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white ${navButtonBase}`}
+                  className={`relative group rounded-xl p-1.5 text-white/60 transition-all duration-300 hover:bg-white/10 hover:text-white hover:scale-105 ${navButtonBase}`}
                   title="Collapse sidebar"
                   aria-label="Collapse sidebar"
                 >
-                  <Menu className="h-4.5 w-4.5 stroke-[1.9]" />
+                  <Menu className="h-4.5 w-4.5 stroke-[1.9] transition-transform group-hover:scale-110" />
                 </button>
               </div>
             )}
@@ -709,12 +709,12 @@ export default function NavigationTabs({
                   data-sidebar-nav="true"
                   onClick={openCommandPalette}
                   onKeyDown={(event) => handleNavKeyDown(event, openCommandPalette)}
-                  className={`flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-left text-xs text-white/60 transition-colors hover:bg-white/10 ${navButtonBase}`}
+                  className={`group flex w-full items-center gap-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-left text-xs text-white/60 transition-all duration-300 hover:bg-white/10 hover:border-white/15 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:scale-[1.02] ${navButtonBase}`}
                   aria-label="Open command palette"
                 >
-                  <Command className="h-3.5 w-3.5 shrink-0 text-white/50" />
-                  <span className="flex-1 truncate">Search anything...</span>
-                  <kbd className="rounded bg-white/10 border border-white/10 px-1 py-0.5 text-[9px] font-medium text-white/70">
+                  <Command className="h-4 w-4 shrink-0 text-white/40 transition-colors group-hover:text-white/80" />
+                  <span className="flex-1 truncate transition-colors group-hover:text-white/90">Search anything...</span>
+                  <kbd className="rounded-md bg-white/10 border border-white/10 px-1.5 py-0.5 text-[9px] font-bold text-white/70 shadow-sm transition-colors group-hover:bg-white/20 group-hover:text-white">
                     ⌘K
                   </kbd>
                 </button>
@@ -782,24 +782,32 @@ export default function NavigationTabs({
                           <div className="min-h-0 space-y-0.5 pt-0.5 pb-1">
                             {group.items.map((item) => {
                               const ItemIcon = item.icon;
-                              const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs animate-pulse";
-                              const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
+                              const activeStyles = "bg-gradient-to-r from-sky-400/20 to-indigo-500/20 border border-sky-400/30 text-white font-bold shadow-[0_0_20px_rgba(56,189,248,0.15)]";
+                              const inactiveStyles = "border border-transparent text-white/70 hover:bg-white/10 hover:text-white hover:translate-x-1 hover:shadow-sm";
                               return (
                                 <button
                                   key={item.id}
                                   data-sidebar-nav="true"
                                   onClick={item.onSelect}
                                   onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                                  className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 ${navButtonBase} ${
                                     item.isActive ? activeStyles : inactiveStyles
                                   }`}
                                 >
+                                  {item.isActive && (
+                                    <motion.div
+                                      layoutId="active-nav-bg"
+                                      className="absolute inset-0 rounded-xl bg-sky-400/10 pointer-events-none"
+                                      initial={false}
+                                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    />
+                                  )}
                                   <ItemIcon
-                                    className={`h-4 w-4 shrink-0 transition-colors ${
-                                      item.isActive ? "text-sky-300 font-semibold" : "text-white/60 group-hover:text-white"
+                                    className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${
+                                      item.isActive ? "text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] scale-110" : "text-white/60 group-hover:text-white"
                                     }`}
                                   />
-                                  <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                                  <span className="min-w-0 flex-1 truncate text-left transition-transform duration-300">{item.label}</span>
                                   {item.isExpandable && (
                                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
                                   )}
@@ -931,18 +939,20 @@ export default function NavigationTabs({
                   : activeTab === "profile";
 
                 return (
-                  <button
-                    key={group.id}
-                    onClick={() => toggleRailPopover(group.id)}
-                    className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150 ${navButtonBase} ${
-                      isActive
-                        ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-xs"
-                        : "border border-transparent text-white/60 hover:bg-white/10 hover:text-white"
-                    }`}
-                    title={group.label}
-                  >
-                    <GroupIcon className="h-4 w-4 stroke-[1.9]" />
-                  </button>
+                  <div key={group.id} className="relative flex justify-center group/rail">
+                    <button
+                      onClick={() => toggleRailPopover(group.id)}
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
+                        isActive
+                          ? "bg-gradient-to-tr from-sky-400/20 to-indigo-500/20 text-sky-100 border border-sky-400/30 shadow-[0_0_15px_rgba(56,189,248,0.15)]"
+                          : "text-white/60 hover:bg-white/10 hover:text-white border border-transparent"
+                      } ${navButtonBase}`}
+                      title={group.label}
+                      aria-label={`Open ${group.label} menu`}
+                    >
+                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
+                    </button>
+                  </div>
                 );
               })}
             </nav>
@@ -958,9 +968,9 @@ export default function NavigationTabs({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
-              className="shrink-0 border-t border-white/10 px-4 py-3 bg-white/5 rounded-b-2xl space-y-2.5"
+              className="shrink-0 border-t border-white/10 px-4 py-3 rounded-b-[24px] space-y-2.5"
             >
-              {/* Profile Row: Name & Branch/Dept */}
+              {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
                 {profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-white/15" />
@@ -973,6 +983,14 @@ export default function NavigationTabs({
                   <span className="block truncate text-xs font-semibold text-white">{profileName}</span>
                   <span className="block truncate text-[10px] text-white/60">Computer Science</span>
                 </div>
+                <button
+                  onClick={handleLogOutRequest}
+                  className={`p-1.5 text-white/60 hover:text-red-400 hover:bg-white/10 rounded-lg transition-colors ${navButtonBase}`}
+                  title="Log out"
+                  aria-label="Log out"
+                >
+                  <Lock className="h-4 w-4" />
+                </button>
               </div>
 
               <div className="h-px bg-white/10" />
@@ -997,17 +1015,6 @@ export default function NavigationTabs({
                   </button>
                 </div>
               </div>
-
-              <div className="h-px bg-white/10" />
-
-              {/* Log out Row */}
-              <button
-                onClick={handleLogOutRequest}
-                className={`flex items-center gap-2 w-full text-[11px] text-white/70 hover:text-red-400 transition-colors px-0.5 ${navButtonBase}`}
-              >
-                <Lock className="h-3.5 w-3.5 text-white/60" />
-                <span>Log out</span>
-              </button>
             </motion.div>
           ) : (
             <motion.div
@@ -1059,11 +1066,11 @@ export default function NavigationTabs({
           {activeRailGroup && (
             <motion.div
               ref={flyoutRef}
-              initial={{ opacity: 0, scale: 0.95, x: -5 }}
+              initial={{ opacity: 0, scale: 0.95, x: -10 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.95, x: -5 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-[76px] top-12 z-50 w-56 rounded-xl border border-sidebar-border bg-popover p-2 text-popover-foreground shadow-xl"
+              exit={{ opacity: 0, scale: 0.95, x: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="absolute left-[76px] top-12 z-50 w-56 rounded-2xl border border-sidebar-border bg-popover p-2 text-popover-foreground shadow-2xl"
             >
               {activeRailGroup === "account" ? (
                 <div>
@@ -1217,33 +1224,35 @@ export default function NavigationTabs({
                     {activeRailGroup === "campus" && "Campus"}
                     {activeRailGroup === "tools" && "Tools"}
                   </div>
-                  <div className="space-y-0.5">
-                    {groups.find(g => g.id === activeRailGroup)?.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          if (item.id === "academics") {
-                            setActiveRailGroup("academics");
-                          } else if (item.id === "hostel") {
-                            setActiveRailGroup("hostel-sub");
-                          } else {
-                            item.onSelect();
-                            setActiveRailGroup(null);
-                          }
-                        }}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                          item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0 text-white/60" />
-                        <span className="truncate">{item.label}</span>
-                        {item.isExpandable && (
-                          <ChevronRight className="h-3 w-3 ml-auto text-white/55" />
-                        )}
-                      </button>
-                    ))}
+                  <div className="space-y-1">
+                    {groups.find(g => g.id === activeRailGroup)?.items.map((item) => {
+                      const activeStyles = "bg-gradient-to-r from-sky-400/20 to-indigo-500/20 border-sky-400/30 text-white font-bold shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                      const inactiveStyles = "border-transparent text-white/70 hover:bg-white/10 hover:text-white hover:translate-x-1";
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            if (item.id === "academics") {
+                              setActiveRailGroup("academics");
+                            } else if (item.id === "hostel") {
+                              setActiveRailGroup("hostel-sub");
+                            } else {
+                              item.onSelect();
+                              setActiveRailGroup(null);
+                            }
+                          }}
+                          className={`group relative flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-xs font-medium transition-all duration-200 ${navButtonBase} ${
+                            item.isActive ? activeStyles : inactiveStyles
+                          }`}
+                        >
+                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] scale-110" : "text-white/60 group-hover:text-white"}`} />
+                          <span className="truncate transition-transform duration-300">{item.label}</span>
+                          {item.isExpandable && (
+                            <ChevronRight className="h-3.5 w-3.5 ml-auto text-white/40" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

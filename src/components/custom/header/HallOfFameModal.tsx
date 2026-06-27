@@ -48,7 +48,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="fixed inset-0 z-[100] bg-gray-50/80  dark:bg-black/80 backdrop-blur-3xl overflow-hidden flex flex-col"
+                className="fixed inset-0 z-[100] bg-gray-50/80  dark:bg-black/80  overflow-hidden flex flex-col"
             >
                 {/* Ambient Glows */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -61,7 +61,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                     <div className="flex items-center gap-4 py-6 mb-2 mt-4 sm:mt-8">
                         <button 
                             onClick={handleClose}
-                            className="p-2.5 bg-white/50 hover:bg-white  dark:hover:bg-slate-800 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700  dark:text-gray-200 rounded-full transition-all border border-gray-200/50  dark:border-white/10 backdrop-blur-md shadow-sm"
+                            className="p-2.5 bg-white/50 hover:bg-white  dark:hover:bg-slate-800 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700  dark:text-gray-200 rounded-full transition-all border border-gray-200/50  dark:border-white/10  shadow-sm"
                         >
                             <ChevronLeft size={24} />
                         </button>
