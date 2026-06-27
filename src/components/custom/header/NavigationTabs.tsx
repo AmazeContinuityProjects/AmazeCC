@@ -606,10 +606,10 @@ export default function NavigationTabs({
         aria-label="Primary navigation"
       >
         {/* Sidebar Header */}
-        <div className={`flex flex-col border-b border-white/10 shrink-0 ${isOpen ? "px-4 pb-4 pt-5" : "px-3 py-4"}`}>
+        <div className={`flex flex-col border-b border-white/10 shrink-0 ${isOpen ? "px-4 pb-4 pt-5" : "px-3.5 py-4"}`}>
           {/* Logo & Expand Toggle */}
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`flex items-center ${isOpen ? "justify-between w-full" : "justify-center w-full"}`}>
+            <div className={`flex items-center min-w-0 ${isOpen ? "gap-2.5" : "justify-center"}`}>
               <img src={currentIcon} alt="AmazeCC" className="h-7 w-7 rounded-lg object-contain shadow-xs" />
               {isOpen && (
                 <h2 className="truncate text-sm font-semibold tracking-tight text-white">AmazeCC</h2>
@@ -754,60 +754,43 @@ export default function NavigationTabs({
                   className="space-y-4"
                 >
                   {groups.map((group) => {
-                    const isExpanded = expandedGroup === group.id;
                     return (
                       <div key={group.id} className="space-y-1">
                         {/* Group Header with subtle line */}
-                        <button
-                          onClick={() => toggleGroup(group.id)}
-                          className="flex w-full items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors"
-                        >
+                        <div className="flex w-full items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white/50">
                           <span>{group.label}</span>
                           <div className="h-px bg-white/10 flex-grow" />
-                          <motion.div
-                            animate={{ rotate: isExpanded ? 90 : 0 }}
-                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                          >
-                            <ChevronRight className="h-3 w-3 text-white/50" />
-                          </motion.div>
-                        </button>
+                        </div>
 
-                        {/* Group Accordion */}
-                        <motion.div
-                          initial={false}
-                          animate={{ height: isExpanded ? "auto" : 0, opacity: isExpanded ? 1 : 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                          className="overflow-hidden"
-                        >
-                          <div className="min-h-0 space-y-0.5 pt-0.5 pb-1">
-                            {group.items.map((item) => {
-                              const ItemIcon = item.icon;
-                              const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs animate-pulse";
-                              const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
-                              return (
-                                <button
-                                  key={item.id}
-                                  data-sidebar-nav="true"
-                                  onClick={item.onSelect}
-                                  onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                                  className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                    item.isActive ? activeStyles : inactiveStyles
+                        {/* Group Items (Always Expanded) */}
+                        <div className="space-y-0.5 pt-0.5 pb-1">
+                          {group.items.map((item) => {
+                            const ItemIcon = item.icon;
+                            const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs animate-pulse";
+                            const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
+                            return (
+                              <button
+                                key={item.id}
+                                data-sidebar-nav="true"
+                                onClick={item.onSelect}
+                                onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                                className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                                  item.isActive ? activeStyles : inactiveStyles
+                                }`}
+                              >
+                                <ItemIcon
+                                  className={`h-4 w-4 shrink-0 transition-colors ${
+                                    item.isActive ? "text-sky-300 font-semibold" : "text-white/60 group-hover:text-white"
                                   }`}
-                                >
-                                  <ItemIcon
-                                    className={`h-4 w-4 shrink-0 transition-colors ${
-                                      item.isActive ? "text-sky-300 font-semibold" : "text-white/60 group-hover:text-white"
-                                    }`}
-                                  />
-                                  <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                                  {item.isExpandable && (
-                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
+                                />
+                                <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                                {item.isExpandable && (
+                                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
