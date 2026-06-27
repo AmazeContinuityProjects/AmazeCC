@@ -103,12 +103,14 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
-  // Extract pure numbers from room string
-  const cleanSearchRoomNum = searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null;
+  // Extract pure numbers from room string safely
+  const cleanSearchRoomNum = (searchRoom && typeof searchRoom === "string")
+    ? (searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null)
+    : null;
 
-  // Function to check if a room falls into a schedule range
-  const isRoomInSlotRange = (roomRangeStr: string) => {
-    if (!cleanSearchRoomNum) return false;
+  // Function to check if a room falls into a schedule range safely
+  const isRoomInSlotRange = (roomRangeStr: any) => {
+    if (!cleanSearchRoomNum || !roomRangeStr || typeof roomRangeStr !== "string") return false;
     const matches = roomRangeStr.match(/\d+/g);
     if (matches && matches.length >= 2) {
       const start = parseInt(matches[0], 10);
