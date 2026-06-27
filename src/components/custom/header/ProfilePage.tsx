@@ -152,6 +152,33 @@ export default function ProfilePage({
   useEffect(() => {
     setSelectedSemester(currSemesterID);
     setAppIcon(localStorage.getItem("app-icon") || "default");
+    
+    if (username === "demo") {
+      setProfileData({
+        name: "Demo Student",
+        branch: "B.Tech Computer Science & Engineering",
+        isHosteller: true,
+        nativeLanguage: "English",
+        nativeState: "Tamil Nadu",
+        nationality: "Indian",
+        community: "General",
+        religion: "None",
+        caste: "General",
+        physicallyChallenged: "No",
+        mobileNumber: "+91 99999 99999",
+        friendMobileNumber: "+91 88888 88888",
+        aadharNumber: "XXXX-XXXX-XXXX",
+        bloodGroup: "O+",
+        currentAddress: { line1: "VIT Chennai Campus", line2: "Vandalur-Kelambakkam Road", city: "Chennai", pincode: "600127" },
+        permanentAddress: { line1: "VIT Chennai Campus", line2: "Vandalur-Kelambakkam Road", city: "Chennai", pincode: "600127" }
+      });
+      setHostelInfo({
+        blockName: "D-Block",
+        roomNo: "402"
+      });
+      return;
+    }
+
     const storedProfile = localStorage.getItem("profile");
     if (storedProfile) {
       try {
@@ -177,7 +204,7 @@ export default function ProfilePage({
         console.error(e);
       }
     }
-  }, [currSemesterID]);
+  }, [currSemesterID, username]);
 
   useEffect(() => {
     if (!creds?.cookies) return;
@@ -930,8 +957,17 @@ export default function ProfilePage({
                 <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Data Sync Preferences</h2>
               </div>
 
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
-                <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+              <div className="relative">
+                {username === "demo" && (
+                  <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-10 border border-amber-500/10">
+                    <span className="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
+                      🔒 Sync Disabled in Demo Mode
+                    </span>
+                  </div>
+                )}
+                
+                <div className={`bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
+                  <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
                 
                 {/* Collapsible Sync Toggles */}
                 <div className="space-y-2">
@@ -1151,8 +1187,9 @@ export default function ProfilePage({
 
                 </div>
               </div>
-            </section>
-          )}
+            </div>
+          </section>
+        )}
 
           {/* Section: Resources */}
           {filteredSections.some(s => s.id === "resources") && (

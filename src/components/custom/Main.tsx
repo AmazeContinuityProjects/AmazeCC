@@ -139,6 +139,9 @@ export default function LoginPage() {
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     setActiveDay(day);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setActiveTab("home");
+    }
 
     const checkAPIStatus = async () => {
       try {
@@ -148,7 +151,7 @@ export default function LoginPage() {
       } catch (err) {
         setIsAPIworking(true);
       }
-    }
+    };
     checkAPIStatus();
   }, []);
 
@@ -332,6 +335,36 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
+    if (demoMode) {
+      setIsReloading(true);
+      setProgressBar(10);
+      setMessage("Initializing Demo environment...");
+      
+      const stages = [
+        { progress: 30, msg: "Initializing Demo environment...\n✅ Demo container ready" },
+        { progress: 60, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded" },
+        { progress: 85, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded" },
+        { progress: 100, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded\n✅ Demo mode ready" }
+      ];
+      
+      for (let i = 0; i < stages.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setProgressBar(stages[i].progress);
+        setMessage(stages[i].msg);
+      }
+      
+      setAttendanceData(demoData.attendance);
+      setMarksData(demoData.marks);
+      setGradesData(demoData.grades);
+      setAllGradesData(demoData.allGrades);
+      setScheduleData(demoData.schedule);
+      sethostelData(demoData.hostel);
+      setCalender(demoData.calender);
+      setIsLoggedIn(true);
+      setIsReloading(false);
+      return;
+    }
+
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
       localStorage.setItem("IDs", JSON.stringify(IDs));
@@ -648,6 +681,34 @@ export default function LoginPage() {
 
   // --- Event Handlers ---
   const handleReloadRequest = async () => {
+    if (demoMode) {
+      setIsReloading(true);
+      setProgressBar(10);
+      setMessage("Reloading demo environment...");
+      
+      const stages = [
+        { progress: 40, msg: "Reloading demo environment...\n✅ Refreshed mock attendance" },
+        { progress: 70, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades" },
+        { progress: 100, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades\n✅ Demo refresh complete" }
+      ];
+      
+      for (let i = 0; i < stages.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setProgressBar(stages[i].progress);
+        setMessage(stages[i].msg);
+      }
+      
+      setAttendanceData(demoData.attendance);
+      setMarksData(demoData.marks);
+      setGradesData(demoData.grades);
+      setAllGradesData(demoData.allGrades);
+      setScheduleData(demoData.schedule);
+      sethostelData(demoData.hostel);
+      setCalender(demoData.calender);
+      setIsReloading(false);
+      return;
+    }
+
     setIsReloading(true);
     setProgressBar(10);
     setMessage("Reloading data...");
@@ -868,6 +929,7 @@ export default function LoginPage() {
   const handleLogOutRequest = () => {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
+    setDemoMode(false);
 
     const keysToKeep = ["theme", "activityTree", "settings"];
 
@@ -2130,31 +2192,29 @@ export default function LoginPage() {
       )}
 
       {(!isLoggedIn && !demoMode) && (
-        <div className="flex-grow flex items-center justify-center p-4">
-          <LoginForm
-            username={IDs.VtopUsername}
-            setUsername={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopUsername: val }))
-            }
-            password={IDs.VtopPassword}
-            setPassword={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopPassword: val }))
-            }
-            message={message}
-            handleFormSubmit={handleFormSubmit}
-            handleDemoClick={handleDemoClick}
-            residentialStatus={settings.residentialStatus || "hosteller"}
-            setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-              setSettings(prev => ({ ...prev, residentialStatus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
-            }}
-            isDayscholarWithBus={settings.isDayscholarWithBus || false}
-            setIsDayscholarWithBus={(val: boolean) => {
-              setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
-            }}
-          />
-        </div>
+        <LoginForm
+          username={IDs.VtopUsername}
+          setUsername={(val: string) =>
+            setIDs(prev => ({ ...prev, VtopUsername: val }))
+          }
+          password={IDs.VtopPassword}
+          setPassword={(val: string) =>
+            setIDs(prev => ({ ...prev, VtopPassword: val }))
+          }
+          message={message}
+          handleFormSubmit={handleFormSubmit}
+          handleDemoClick={handleDemoClick}
+          residentialStatus={settings.residentialStatus || "hosteller"}
+          setResidentialStatus={(val: "hosteller" | "dayscholar") => {
+            setSettings(prev => ({ ...prev, residentialStatus: val }));
+            localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
+          }}
+          isDayscholarWithBus={settings.isDayscholarWithBus || false}
+          setIsDayscholarWithBus={(val: boolean) => {
+            setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
+            localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
+          }}
+        />
       )}
 
       {(isLoggedIn || demoMode) && (

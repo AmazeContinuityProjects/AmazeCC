@@ -8,7 +8,7 @@ import FriendTimetableModal from "./FriendTimetableModal";
 import CommonFreeSlotsModal from "./CommonFreeSlotsModal";
 import AddGroupModal from "./AddGroupModal";
 
-export default function SocialTab({ attendanceData }: { attendanceData: any }) {
+export default function SocialTab({ attendanceData, isDemo }: { attendanceData: any; isDemo?: boolean }) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [groups, setGroups] = useState<FriendGroup[]>([]);
   
@@ -18,18 +18,67 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
   
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ group: FriendGroup | null, friends: Friend[], name?: string } | null>(null);
-
+ 
   const loadData = () => {
+    if (isDemo) {
+      const mockClassSlots1 = [
+        { day: "Monday", timeSlot: "08:00 AM - 08:50 AM", courseCode: "CSE3002", courseTitle: "Compiler Design", venue: "SJT 402", slotId: "A1" },
+        { day: "Tuesday", timeSlot: "09:00 AM - 09:50 AM", courseCode: "CSE3002", courseTitle: "Compiler Design", venue: "SJT 402", slotId: "A1" },
+        { day: "Wednesday", timeSlot: "10:00 AM - 10:50 AM", courseCode: "CSE3002", courseTitle: "Compiler Design", venue: "SJT 402", slotId: "A1" }
+      ];
+      const mockClassSlots2 = [
+        { day: "Monday", timeSlot: "10:00 AM - 10:50 AM", courseCode: "BMAT201L", courseTitle: "CVAL", venue: "AB3 402", slotId: "B1" },
+        { day: "Wednesday", timeSlot: "11:00 AM - 11:50 AM", courseCode: "BMAT201L", courseTitle: "CVAL", venue: "AB3 402", slotId: "B1" },
+        { day: "Friday", timeSlot: "09:00 AM - 09:50 AM", courseCode: "BMAT201L", courseTitle: "CVAL", venue: "AB3 402", slotId: "B1" }
+      ];
+      setFriends([
+        {
+          id: "22BCE1102",
+          name: "Aarav Sharma",
+          nickname: "Aarav",
+          regNumber: "22BCE1102",
+          classSlots: mockClassSlots1,
+          color: "#3b82f6",
+          addedAt: new Date().toISOString(),
+          showInFriendsSchedule: true,
+          showInHomePage: true
+        },
+        {
+          id: "22BCE1140",
+          name: "Neha Patel",
+          nickname: "Neha",
+          regNumber: "22BCE1140",
+          classSlots: mockClassSlots2,
+          color: "#10b981",
+          addedAt: new Date().toISOString(),
+          showInFriendsSchedule: true,
+          showInHomePage: false
+        }
+      ]);
+      setGroups([
+        {
+          id: "group-01",
+          name: "Project Group 4",
+          friendIds: ["22BCE1102", "22BCE1140"],
+          createdAt: new Date().toISOString()
+        }
+      ]);
+      return;
+    }
     setFriends(getFriends());
     setGroups(getFriendGroups());
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [isDemo]);
 
   const handleDeleteFriend = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDemo) {
+      alert("Modifying friends list is disabled in Demo Mode.");
+      return;
+    }
     if (confirm("Remove this friend from your list?")) {
       removeFriend(id);
       loadData();
@@ -38,6 +87,10 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
 
   const handleDeleteGroup = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDemo) {
+      alert("Deleting groups is disabled in Demo Mode.");
+      return;
+    }
     if (confirm("Delete this group?")) {
       removeFriendGroup(id);
       loadData();
@@ -46,6 +99,10 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
 
   const toggleDashboardVisibility = (friend: Friend, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDemo) {
+      alert("Toggling visibility settings is disabled in Demo Mode.");
+      return;
+    }
     const updated = { ...friend, showInHomePage: !friend.showInHomePage };
     saveFriend(updated);
     loadData();
@@ -83,8 +140,8 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
             >
               Compare All
             </FetchButton>
-            <button
-              onClick={() => setIsShareModalOpen(true)}
+             <button
+              onClick={() => { if (isDemo) { alert("Sharing schedule code is disabled in Demo Mode."); } else { setIsShareModalOpen(true); } }}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-sm whitespace-nowrap"
             >
               <Share2 className="w-4 h-4" /> 
@@ -92,7 +149,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
               <span className="sm:hidden">Share</span>
             </button>
             <FetchButton
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => { if (isDemo) { alert("Adding new friends is disabled in Demo Mode."); } else { setIsAddModalOpen(true); } }}
               variant="gradient"
               icon={<UserPlus className="w-4 h-4" />}
               className="flex-1 md:flex-none px-4 py-2.5 rounded-xl shadow-lg"
@@ -110,7 +167,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <UsersRound className="w-4 h-4" /> Groups
             </h3>
-            <button onClick={() => setIsAddGroupModalOpen(true)} className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
+            <button onClick={() => { if (isDemo) { alert("Creating groups is disabled in Demo Mode."); } else { setIsAddGroupModalOpen(true); } }} className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
               <Plus className="w-4 h-4" /> Create Group
             </button>
           </div>

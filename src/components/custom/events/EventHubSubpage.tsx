@@ -59,6 +59,19 @@ export default function EventHubSubpage({
     }
 
     setIsRegistering(true); // Re-use loading state to show "Processing..."
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const element = document.createElement("a");
+      const file = new Blob(["This is a mock AmazeCC Event Hub document for " + selectedEvent.title], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = isCert ? "Certificate.txt" : "Receipt.txt";
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      setIsRegistering(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/events/download`, {
         method: "POST",
@@ -160,6 +173,14 @@ export default function EventHubSubpage({
     }
 
     setIsRegistering(true);
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setModalContent({ title: "Registration Successful", message: "Mock registration successful! DevSprint '26 Hackathon is added to your registered events list." });
+      setModalOpen(true);
+      setIsRegistering(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/events/register`, {
         method: "POST",

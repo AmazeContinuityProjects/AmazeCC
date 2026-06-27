@@ -42,6 +42,39 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
 
   const fetchEvents = async () => {
     setLoading(true);
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setEvents([
+        {
+          eid: "evt-001",
+          title: "DevSprint '26 Hackathon",
+          eligibility: "Open to all branches",
+          type: "Coding Hackathon",
+          date: "2026-07-15",
+          location: "Netaji Auditorium",
+          price: "Free",
+          registeredDetails: null
+        },
+        {
+          eid: "evt-002",
+          title: "RoboSoccer Workshop",
+          eligibility: "Open to all branches",
+          type: "Robotics Workshop",
+          date: "2026-07-22",
+          location: "MG Block Lab 202",
+          price: "Paid",
+          registeredDetails: {
+            paymentStatus: "Paid (Online)",
+            orderId: "ORD-920194",
+            registrationDate: "2026-06-20",
+            certificateEligible: "Yes",
+            attendanceStatus: "Attended"
+          }
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/events`);
       if (!res.ok) throw new Error("Failed to fetch events");
@@ -102,6 +135,22 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     }
 
     setPreviewLoading(true);
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 150));
+      setPreviewData({
+        eid: event.eid,
+        description: event.eid === "evt-001"
+          ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
+          : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
+        metaDetails: {
+          "Fee": event.price,
+          "Location": event.location,
+          "Date": event.date
+        }
+      });
+      setPreviewLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(`${API_BASE}/api/events/preview`, {
@@ -147,6 +196,31 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     } else {
       setLoadingRegistered(true);
       setViewMode("registered");
+    }
+
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const mockReg = [
+        {
+          eid: "evt-002",
+          title: "RoboSoccer Workshop",
+          eligibility: "Open to all branches",
+          type: "Robotics Workshop",
+          date: "2026-07-22",
+          location: "MG Block Lab 202",
+          price: "Paid",
+          registeredDetails: {
+            paymentStatus: "Paid (Online)",
+            orderId: "ORD-920194",
+            registrationDate: "2026-06-20",
+            certificateEligible: "Yes",
+            attendanceStatus: "Attended"
+          }
+        }
+      ];
+      setRegisteredEvents(mockReg);
+      setLoadingRegistered(false);
+      return;
     }
 
     setRegisteredError("");
