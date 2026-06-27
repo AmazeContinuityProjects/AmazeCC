@@ -29,6 +29,19 @@ const getNumericValue = (value: any, fallback = 0) => {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
 
+function formatSemesterName(semId: string): string {
+  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
+  const year1 = semId.substring(2, 6);
+  const year2 = semId.substring(6, 8);
+  const term = semId.substring(8, 10);
+  let termName = "";
+  if (term === "01") termName = "Fall";
+  else if (term === "05") termName = "Winter";
+  else if (term === "07") termName = "Summer";
+  else termName = `Term ${term}`;
+  return `${termName} ${year1}-${year2}`;
+}
+
 const formatNumber = (num: any) => {
   const numericValue = Number(num);
   if (num == null || isNaN(numericValue)) return "-";
@@ -267,6 +280,7 @@ export default function CourseDashboard({
   const [viewLoading, setViewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allStats, setAllStats] = useState<Record<string, any>>({});
+  const [embeddedScope, setEmbeddedScope] = useState<"theory" | "lab">("theory");
 
   // Attendance tab state
   const [attFilter, setAttFilter] = useState("All");
@@ -293,7 +307,7 @@ export default function CourseDashboard({
     if (marksData?.courses) {
       marksData.courses.forEach((c: any) => {
         const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-        const key = c.courseCode;
+        const key = c.courseCode?.replace(/\([LPT]\)$/i, "").trim();
         if (!currentMap.has(key)) {
           currentMap.set(key, {
             courseCode: key,
@@ -313,7 +327,7 @@ export default function CourseDashboard({
     if (attendanceData?.attendance) {
       attendanceData.attendance.forEach((c: any) => {
         const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-        let key = c.courseCode;
+        let key = c.courseCode?.replace(/\([LPT]\)$/i, "").trim();
         if (key && key.includes(" ")) key = key.split(" ")[0];
 
         if (!currentMap.has(key)) {
@@ -343,7 +357,7 @@ export default function CourseDashboard({
         if (data.marks?.courses) {
           data.marks.courses.forEach((c: any) => {
             const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-            const key = c.courseCode;
+            const key = c.courseCode?.replace(/\([LPT]\)$/i, "").trim();
             if (!semMap.has(key)) semMap.set(key, { courseCode: key, courseTitle: c.courseTitle, semesterSubId: semId, theory: !isLab ? { ...c } : null, lab: isLab ? { ...c } : null });
             else {
               const existing = semMap.get(key);
@@ -356,7 +370,7 @@ export default function CourseDashboard({
         if (data.attendance?.attendance) {
           data.attendance.attendance.forEach((c: any) => {
             const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-            let key = c.courseCode;
+            let key = c.courseCode?.replace(/\([LPT]\)$/i, "").trim();
             if (key && key.includes(" ")) key = key.split(" ")[0];
             if (!semMap.has(key)) semMap.set(key, { courseCode: key, courseTitle: c.courseTitle, semesterSubId: semId, theory: !isLab ? { ...c, classNbr: c.classId } : null, lab: isLab ? { ...c, classNbr: c.classId } : null });
             else {
@@ -366,7 +380,24 @@ export default function CourseDashboard({
             }
           });
         }
-        if (semMap.size > 0) coursesBySemester.set(semId, Array.from(semMap.values()));
+        let isDuplicate = false;
+        if (semMap.size > 0 && currentMap.size > 0) {
+          const currentClassNbrs = new Set();
+          currentMap.forEach(group => {
+            if (group.theory?.classNbr) currentClassNbrs.add(group.theory.classNbr);
+            if (group.lab?.classNbr) currentClassNbrs.add(group.lab.classNbr);
+          });
+          
+          for (const group of Array.from(semMap.values())) {
+            const tNbr = group.theory?.classNbr;
+            const lNbr = group.lab?.classNbr;
+            if ((tNbr && currentClassNbrs.has(tNbr)) || (lNbr && currentClassNbrs.has(lNbr))) {
+              isDuplicate = true;
+              break;
+            }
+          }
+        }
+        if (semMap.size > 0 && !isDuplicate) coursesBySemester.set(semId, Array.from(semMap.values()));
       });
     }
 
@@ -395,12 +426,26 @@ export default function CourseDashboard({
   const selectedGroup = useMemo(() => uniqueCourses.find(c => c.courseCode === selectedCode), [selectedCode, uniqueCourses]);
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
 
-  const attendanceItem = useMemo(() => {
-    if (!attendanceData?.attendance || !selectedCode) return null;
-    return attendanceData.attendance.find((a: any) =>
-      a.courseCode?.replace(/\([L]\)$/i, "").trim() === selectedCode.trim()
+  const { theoryAttItem, labAttItem, attendanceItem } = useMemo(() => {
+    if (!selectedCode) return { theoryAttItem: null, labAttItem: null, attendanceItem: null };
+    
+    let sourceAttendance = attendanceData?.attendance || [];
+    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
+      sourceAttendance = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
+    }
+    
+    const items = sourceAttendance.filter((a: any) =>
+      a.courseCode?.replace(/\([LPT]\)$/i, "").trim() === selectedCode.trim()
     );
-  }, [attendanceData, selectedCode]);
+    const theoryItem = items.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || items[0];
+    const labItem = items.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+    
+    return {
+      theoryAttItem: theoryItem,
+      labAttItem: labItem,
+      attendanceItem: embeddedScope === "lab" && labItem ? labItem : theoryItem
+    };
+  }, [attendanceData, selectedCode, embeddedScope]);
 
   // Derived attendance data for full Attendance tab replication
   const dayCardsMap = useMemo(() => {
@@ -408,7 +453,12 @@ export default function CourseDashboard({
     const map: Record<string, any[]> = {};
     days.forEach(day => map[day] = []);
     const slotMap = (config as any).slotMap;
-    const arr = attendanceData?.attendance || [];
+    
+    let arr = attendanceData?.attendance || [];
+    if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
+      arr = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
+    }
+    
     if (!arr.length) return map;
 
     arr.forEach((a: any) => {
@@ -500,7 +550,7 @@ export default function CourseDashboard({
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { semesterSubId: "", courseCode: comp.classNbr, slotId: comp.slot, faculty: comp.faculty }
+            formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: comp.faculty }
           }),
         });
         const d = await r.json();
@@ -525,7 +575,7 @@ export default function CourseDashboard({
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { viewDetail: "true", semSubId: "", erpId, classId: comp.classNbr }
+            formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: comp.faculty }
           }),
         });
         const d = await r.json();
@@ -699,7 +749,7 @@ export default function CourseDashboard({
               <div key={semester}>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <div className="w-2 h-6 bg-blue-500 rounded-full" />
-                  {semester === "Current" ? "Current Semester" : `Semester: ${semester}`}
+                  {semester === "Current" ? "Current Semester" : `${formatSemesterName(semester)}`}
                   <span className="text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md ml-2">
                     {courses.length} Courses
                   </span>
@@ -783,14 +833,19 @@ export default function CourseDashboard({
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-1">
                           <div className="bg-gray-50 dark:bg-slate-800/50 dark:border-gray-800 border p-2.5 rounded-xl transition-colors group-hover:bg-gray-100 dark:group-hover:bg-gray-900/50 flex flex-col justify-center">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                               {isPastSemester ? "Final Grade" : "Attendance"}
                             </span>
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-1.5 h-1.5 rounded-full ${isPastSemester ? "bg-blue-500" : attendancePct >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                {isPastSemester ? (pastGrade || "N/A") : (attendancePct ? `${attendancePct}%` : 'N/A')}
-                              </span>
+                            <div className="flex items-center">
+                              {isPastSemester ? (
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                  {pastGrade || "N/A"}
+                                </span>
+                              ) : attendancePct ? (
+                                <CircularProgress value={attendancePct} size={34} strokeWidth={12} />
+                              ) : (
+                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">N/A</span>
+                              )}
                             </div>
                           </div>
                           
@@ -912,17 +967,42 @@ export default function CourseDashboard({
           <Card>
             <div className="p-5">
               <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Attendance</h4>
-              {attendanceItem ? (
+              {isEmbedded ? (
+                <div className="flex flex-col gap-6">
+                  {theoryAttItem && (
+                    <div className="flex items-center gap-5 border-b border-gray-100 dark:border-gray-800 pb-4">
+                      <CircularProgress value={Number(theoryAttItem.attendancePercentage) || 0} size={70} />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Theory</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{theoryAttItem.attendedClasses}</strong> / {theoryAttItem.totalClasses} classes</p>
+                        {theoryAttItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {theoryAttItem.slotVenue}</p>}
+                        {theoryAttItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {theoryAttItem.faculty}</p>}
+                      </div>
+                    </div>
+                  )}
+                  {labAttItem && (
+                    <div className="flex items-center gap-5">
+                      <CircularProgress value={Number(labAttItem.attendancePercentage) || 0} size={70} />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Lab</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{labAttItem.attendedClasses}</strong> / {labAttItem.totalClasses} classes</p>
+                        {labAttItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {labAttItem.slotVenue}</p>}
+                        {labAttItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {labAttItem.faculty}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : attendanceItem ? (
                 <div className="flex items-center gap-5">
                   <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={80} />
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-800  dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
-                    <p className="text-xs text-gray-500  dark:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
-                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
-                    {attendanceItem.faculty && <p className="text-xs text-gray-400  dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
+                    <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
+                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
+                    {attendanceItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
                   </div>
                 </div>
-              ) : <p className="text-sm text-gray-400  dark:text-gray-500">No attendance data</p>}
+              ) : <p className="text-sm text-gray-400 dark:text-gray-500">No attendance data</p>}
             </div>
           </Card>
           <Card>
@@ -1191,6 +1271,30 @@ export default function CourseDashboard({
       {/* ATTENDANCE - Full replication of AttendanceSubpage */}
       {innerTab === "attendance" && attendanceItem && (
         <div>
+          {isEmbedded && (
+            <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl mb-6 w-fit mx-auto border border-gray-200 dark:border-gray-800">
+              <button
+                onClick={() => setEmbeddedScope("theory")}
+                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  embeddedScope === "theory" 
+                    ? "bg-white dark:bg-black text-blue-600 dark:text-blue-400 shadow-sm" 
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
+              >
+                Theory
+              </button>
+              <button
+                onClick={() => setEmbeddedScope("lab")}
+                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  embeddedScope === "lab" 
+                    ? "bg-white dark:bg-black text-emerald-600 dark:text-emerald-400 shadow-sm" 
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
+              >
+                Lab
+              </button>
+            </div>
+          )}
           {/* Badges Row */}
           <div className="flex flex-wrap gap-3 mb-8">
             <Badge variant="info" className="rounded-lg border border-blue-100  dark:border-blue-900/40 gap-1.5">
@@ -1480,7 +1584,7 @@ export default function CourseDashboard({
             <div className="space-y-3"><Skeleton className="h-8 w-48 rounded-lg" /><Skeleton className="h-48 w-full rounded-2xl" /><Skeleton className="h-32 w-full rounded-2xl" /></div>
           ) : coursePlan ? (
             coursePlan.map((cp: any, ci: number) => (
-              <div key={ci}>
+              <div key={ci} className={ci > 0 ? "mt-8" : ""}>
                 {coursePlan.length > 1 && (
                   <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
                     <FileText className="w-4 h-4" /> {cp.type === "Embedded Theory" || cp.type === "Theory Only" ? "Theory" : "Lab"} Component
