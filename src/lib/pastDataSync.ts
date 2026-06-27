@@ -13,7 +13,7 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
     if (!localStorage.getItem(attKey) || !localStorage.getItem(marksKey)) {
       console.log(`Fetching frozen data for past semester: ${semId}`);
       try {
-        const attRes = await fetch(`${API_BASE}/api/attendance`, {
+        const res = await fetch(`${API_BASE}/api/attendance`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -24,28 +24,13 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
           }),
         });
 
-        if (attRes.ok) {
-          const attData = await attRes.json();
-          if (attData.attendance) {
-            localStorage.setItem(attKey, JSON.stringify(attData));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.attRes?.attendance) {
+            localStorage.setItem(attKey, JSON.stringify(data.attRes));
           }
-        }
-
-        const marksRes = await fetch(`${API_BASE}/api/marks`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: creds.cookies,
-            authorizedID: creds.authorizedID,
-            csrf: creds.csrf,
-            semesterId: semId,
-          }),
-        });
-
-        if (marksRes.ok) {
-          const marksData = await marksRes.json();
-          if (marksData.courses) {
-            localStorage.setItem(marksKey, JSON.stringify(marksData));
+          if (data.marksRes?.courses) {
+            localStorage.setItem(marksKey, JSON.stringify(data.marksRes));
           }
         }
       } catch (err) {
@@ -68,11 +53,11 @@ export function loadFrozenPastSemesters(allGradesData: any) {
     const attStr = localStorage.getItem(attKey);
     const marksStr = localStorage.getItem(marksKey);
 
-    if (attStr && marksStr) {
+    if (attStr || marksStr) {
       try {
         frozenData[semId] = {
-          attendance: JSON.parse(attStr),
-          marks: JSON.parse(marksStr),
+          attendance: attStr ? JSON.parse(attStr) : null,
+          marks: marksStr ? JSON.parse(marksStr) : null,
         };
       } catch (e) {
         console.error(`Failed to parse frozen data for ${semId}`);
