@@ -2,16 +2,37 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2 } from "lucide-react";
+import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2, Plus, Minus } from "lucide-react";
 import SubpageLayout from "../shared/SubpageLayout";
+import { useIsMobile } from "../shared";
 
 const GRADE_POINTS: Record<string, number> = {
   "S": 10, "A": 9, "B": 8, "C": 7, "D": 6, "E": 5, "F": 0, "N": 0
 };
 
 export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab }) {
+  const isMobile = useIsMobile();
   const currentCgpa = Number(marksData?.cgpa?.cgpa || 0);
   const creditsEarned = Number(marksData?.cgpa?.creditsEarned || 0);
+  const gradesList = ["S", "A", "B", "C", "D", "E", "F"];
+
+  const handleGradeChange = (courseCode: string, direction: "inc" | "dec") => {
+    const currentGrade = courseGrades[courseCode] || "A";
+    const currentIndex = gradesList.indexOf(currentGrade);
+    if (currentIndex === -1) return;
+
+    let nextIndex = currentIndex;
+    if (direction === "inc") {
+      nextIndex = Math.max(0, currentIndex - 1);
+    } else {
+      nextIndex = Math.min(gradesList.length - 1, currentIndex + 1);
+    }
+
+    setCourseGrades(prev => ({
+      ...prev,
+      [courseCode]: gradesList[nextIndex]
+    }));
+  };
   
   // Parse and group current courses
   const [currentCourses, setCurrentCourses] = useState<any[]>([]);
@@ -244,15 +265,35 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
                       <p className="text-xs text-gray-500 truncate" title={course.courseTitle}>{course.courseTitle}</p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{course.credits} Credits</p>
                     </div>
-                    <select
-                      value={courseGrades[course.baseCode] || "A"}
-                      onChange={(e) => setCourseGrades(prev => ({ ...prev, [course.baseCode]: e.target.value }))}
-                      className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white  dark:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                    >
-                      {Object.keys(GRADE_POINTS).map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
+                    {isMobile ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleGradeChange(course.baseCode, "dec")}
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-55 dark:hover:bg-slate-800 active:scale-90 transition-all"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-black text-sm text-gray-800 dark:text-gray-200">
+                          {courseGrades[course.baseCode] || "A"}
+                        </span>
+                        <button
+                          onClick={() => handleGradeChange(course.baseCode, "inc")}
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-55 dark:hover:bg-slate-800 active:scale-90 transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={courseGrades[course.baseCode] || "A"}
+                        onChange={(e) => setCourseGrades(prev => ({ ...prev, [course.baseCode]: e.target.value }))}
+                        className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white  dark:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                      >
+                        {Object.keys(GRADE_POINTS).map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 ))
               )}

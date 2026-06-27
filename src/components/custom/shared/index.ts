@@ -20,3 +20,4 @@ export { default as SectionHeader } from "./SectionHeader";
 export { default as PageHeader } from "./PageHeader";
 export { default as SyncNotification } from "./SyncNotification";
 export { default as CommandPalette } from "./CommandPalette";
+export { useIsMobile } from "./useIsMobile";

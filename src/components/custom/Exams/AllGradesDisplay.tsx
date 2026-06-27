@@ -4,8 +4,10 @@ import { RefreshCcw } from "lucide-react";
 import NoContentFound from "../NoContentFound";
 import Modal from "../shared/Modal";
 import FetchButton from "../shared/FetchButton";
+import { useIsMobile } from "../shared";
 
 export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, attendance }) {
+    const isMobile = useIsMobile();
     if (!data || !data.grades) {
         return (
             <div>
@@ -244,79 +246,117 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                                 </p>
 
                                 {course.range && (
-                                    <div className="overflow-x-auto mt-2">
-                                        <table className="w-full border border-gray-300  dark:border-gray-700">
-                                            <thead className="bg-gray-800 text-white  dark:bg-gray-900">
-                                                <tr>
-                                                    {Object.keys(course.range as Record<string, string | number>).map((grade) => (
-                                                        <th key={grade} className="border p-2 text-center">
-                                                            {grade}
-                                                        </th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    {Object.values(course.range as Record<string, string | number>).map((range, idx) => (
-                                                        <td
-                                                            key={idx}
-                                                            className="border p-2 text-center text-gray-800  dark:text-gray-200"
-                                                        >
-                                                            {range}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                    <div className="mt-2">
+                                        {isMobile ? (
+                                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                                {Object.entries(course.range as Record<string, string | number>).map(([grade, range]) => (
+                                                    <div key={grade} className="bg-gray-100 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-center">
+                                                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 block">{grade}</span>
+                                                        <span className="text-[10px] text-gray-500 font-bold block mt-0.5">{range}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full border border-gray-300  dark:border-gray-700">
+                                                    <thead className="bg-gray-800 text-white  dark:bg-gray-900">
+                                                        <tr>
+                                                            {Object.keys(course.range as Record<string, string | number>).map((grade) => (
+                                                                <th key={grade} className="border p-2 text-center">
+                                                                    {grade}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            {Object.values(course.range as Record<string, string | number>).map((range, idx) => (
+                                                                <td
+                                                                    key={idx}
+                                                                    className="border p-2 text-center text-gray-800  dark:text-gray-200"
+                                                                >
+                                                                    {range}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
                                 {course.details && course.details.length > 0 ? (
-                                    <div className="overflow-x-auto mt-6">
-                                        <table className="w-full border border-gray-300  dark:border-gray-700">
-                                            <thead className="bg-gray-800 text-white  dark:bg-gray-900">
-                                                <tr>
-                                                    <th className="border p-2 text-left">Component Name</th>
-                                                    <th className="border p-2 text-center">Max</th>
-                                                    <th className="border p-2 text-center">Scored</th>
-                                                    <th className="border p-2 text-center">Weightage</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
+                                    <div className="mt-6">
+                                        {isMobile ? (
+                                            <div className="space-y-2">
                                                 {course.details.map((d, idx) => (
-                                                    <tr
-                                                        key={idx}
-                                                        className="border-gray-300  dark:border-gray-700"
-                                                    >
-                                                        <td className="border p-2">{d.component}</td>
-                                                        <td className="border p-2 text-center">{formatNumber(d.maxMark)}</td>
-                                                        <td className="border p-2 text-center">{formatNumber(d.scoredMark)}</td>
-                                                        <td className="border p-2 text-center">{formatNumber(d.weightageMark)}</td>
-                                                    </tr>
+                                                    <div key={idx} className="bg-gray-50 dark:bg-slate-900/20 p-3.5 rounded-2xl border border-gray-150 dark:border-gray-800 flex justify-between items-center">
+                                                        <div className="min-w-0 flex-1 pr-2">
+                                                            <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{d.component}</p>
+                                                            <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Weightage: {formatNumber(d.weightageMark)}</p>
+                                                        </div>
+                                                        <div className="shrink-0 text-right">
+                                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200">{formatNumber(d.scoredMark)}</span>
+                                                            <span className="text-[10px] text-gray-400 block font-semibold mt-0.5">/ {formatNumber(d.maxMark)}</span>
+                                                        </div>
+                                                    </div>
                                                 ))}
+                                                <div className="bg-blue-50/50 dark:bg-blue-950/10 p-3.5 rounded-2xl border border-blue-100 dark:border-blue-900/30 flex justify-between items-center font-bold">
+                                                    <span className="text-xs text-gray-700 dark:text-gray-300">Total Score</span>
+                                                    <span className="text-sm text-blue-600 dark:text-blue-400">
+                                                        {formatNumber(course.details.reduce((sum, d) => sum + (Number(d.scoredMark) || 0), 0))} / {formatNumber(course.details.reduce((sum, d) => sum + (Number(d.maxMark) || 0), 0))}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full border border-gray-300  dark:border-gray-700">
+                                                    <thead className="bg-gray-800 text-white  dark:bg-gray-900">
+                                                        <tr>
+                                                            <th className="border p-2 text-left">Component Name</th>
+                                                            <th className="border p-2 text-center">Max</th>
+                                                            <th className="border p-2 text-center">Scored</th>
+                                                            <th className="border p-2 text-center">Weightage</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {course.details.map((d, idx) => (
+                                                            <tr
+                                                                key={idx}
+                                                                className="border-gray-300  dark:border-gray-700"
+                                                            >
+                                                                <td className="border p-2">{d.component}</td>
+                                                                <td className="border p-2 text-center">{formatNumber(d.maxMark)}</td>
+                                                                <td className="border p-2 text-center">{formatNumber(d.scoredMark)}</td>
+                                                                <td className="border p-2 text-center">{formatNumber(d.weightageMark)}</td>
+                                                            </tr>
+                                                        ))}
 
-                                                <tr className="font-bold border-t border-gray-400  dark:border-gray-600">
-                                                    <td className="border p-2">
-                                                        Total
-                                                    </td>
-                                                    <td className="border p-2 text-center">
-                                                        {formatNumber(
-                                                            course.details.reduce((sum, d) => sum + (Number(d.maxMark) || 0), 0)
-                                                        )}
-                                                    </td>
-                                                    <td className="border p-2 text-center">
-                                                        {formatNumber(
-                                                            course.details.reduce((sum, d) => sum + (Number(d.scoredMark) || 0), 0)
-                                                        )}
-                                                    </td>
-                                                    <td className="border p-2 text-center">
-                                                        {formatNumber(
-                                                            course.details.reduce((sum, d) => sum + (Number(d.weightageMark) || 0), 0)
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                                        <tr className="font-bold border-t border-gray-400  dark:border-gray-600">
+                                                            <td className="border p-2">
+                                                                Total
+                                                            </td>
+                                                            <td className="border p-2 text-center">
+                                                                {formatNumber(
+                                                                    course.details.reduce((sum, d) => sum + (Number(d.maxMark) || 0), 0)
+                                                                )}
+                                                            </td>
+                                                            <td className="border p-2 text-center">
+                                                                {formatNumber(
+                                                                    course.details.reduce((sum, d) => sum + (Number(d.scoredMark) || 0), 0)
+                                                                )}
+                                                            </td>
+                                                            <td className="border p-2 text-center">
+                                                                {formatNumber(
+                                                                    course.details.reduce((sum, d) => sum + (Number(d.weightageMark) || 0), 0)
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">

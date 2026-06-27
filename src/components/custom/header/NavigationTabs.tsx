@@ -35,6 +35,9 @@ import {
   Bus,
   Sun,
   Moon,
+  Search,
+  X,
+  Coffee,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -121,6 +124,8 @@ export default function NavigationTabs({
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
   const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
+  const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
+  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
@@ -591,32 +596,198 @@ export default function NavigationTabs({
   ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
   const renderMobileNav = () => {
-    const items = [
-      { id: "attendance", label: "Attendance", icon: CalendarCheck, action: () => selectTab("attendance"), active: activeTab === "attendance" },
-      { id: "academics", label: "Academics", icon: GraduationCap, action: () => selectTab("academics"), active: activeTab === "academics" },
-      { id: "campus", label: "Campus", icon: Building, action: () => selectTab("payments"), active: ["payments", "libraries", "hostel", "dayscholar"].includes(activeTab) },
-      { id: "tools", label: "Tools", icon: Wrench, action: () => selectTab("more"), active: activeTab === "more" },
-      { id: "settings", label: "Settings", icon: User, action: () => selectTab("profile"), active: activeTab === "profile" },
+    const libraryGroups = [
+      {
+        name: "Study",
+        items: [
+          { label: "Attendance", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+          { label: "Academics Hub", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
+          { label: "Course Dashboard", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
+          { label: "Timetable", icon: Calendar, action: () => { selectTab("academics"); setActiveSubTab("timetable"); } },
+          { label: "Grade History", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
+          { label: "GPA Predictor", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("gpa"); } },
+          { label: "Question Bank", icon: Library, action: () => { selectTab("more"); setActiveMoreSubTab("qbank"); } },
+          { label: "Faculty Explorer", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } }
+        ]
+      },
+      {
+        name: "Campus",
+        items: [
+          { label: "Hostel Overview", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
+          { label: "Mess Menu", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
+          { label: "Laundry", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
+          { label: "Leave", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
+          { label: "Counselling", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
+          { label: "Bus Finder", icon: Bus, action: () => { selectTab("dayscholar"); } },
+          { label: "Payments", icon: CreditCard, action: () => { selectTab("payments"); } },
+          { label: "Libraries", icon: Library, action: () => { selectTab("libraries"); } }
+        ]
+      },
+      {
+        name: "Planning",
+        items: [
+          { label: "FFCS Planner", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+          { label: "Wishlist", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } }
+        ]
+      },
+      {
+        name: "Community",
+        items: [
+          { label: "Social Feed", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+          { label: "Event Hub", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } }
+        ]
+      },
+      {
+        name: "Account",
+        items: [
+          { label: "My Info", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+          { label: "Preferences", icon: Settings, action: () => { selectTab("profile"); setActiveProfileSubTab("preferences"); } },
+          { label: "Settings", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+          { label: "Logout", icon: Lock, action: () => { handleLogOutRequest(); } }
+        ]
+      }
     ];
 
+    // Filter items based on search query
+    const filteredGroups = libraryGroups.map(group => {
+      const matched = group.items.filter(item => 
+        item.label.toLowerCase().includes(librarySearchQuery.toLowerCase())
+      );
+      return { ...group, items: matched };
+    }).filter(group => group.items.length > 0);
+
     return (
-      <div className="fixed bottom-6 left-4 right-4 z-40 flex items-center justify-around rounded-full border border-sidebar-border bg-sidebar px-2 py-1 text-sidebar-foreground shadow-lg md:hidden">
-        {items.map(item => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={item.action}
-              className={`flex flex-1 flex-col items-center justify-center rounded-full py-2 text-[10px] font-semibold transition-colors ${navButtonBase} ${
-                item.active ? "text-info" : "text-muted-foreground"
-              }`}
+      <>
+        {/* Floating Action Capsule (FAC) */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50] flex items-center bg-gray-900/90 dark:bg-gray-950/90 backdrop-blur-lg border border-white/10 px-3 py-2 rounded-full shadow-2xl md:hidden gap-1 max-w-[90vw]">
+          <button
+            onClick={() => {
+              setIsAppLibraryOpen(false);
+              selectTab("home");
+            }}
+            className={`flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold transition-all min-h-[44px] ${
+              activeTab === "home" && !isAppLibraryOpen 
+                ? "text-blue-400 bg-white/10 scale-105" 
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Home className="h-5 w-5 stroke-[2]" />
+            <span className="mt-0.5">Home</span>
+          </button>
+          
+          <button
+            onClick={openCommandPalette}
+            className="flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold text-gray-400 hover:text-white min-h-[44px]"
+          >
+            <Search className="h-5 w-5 stroke-[2]" />
+            <span className="mt-0.5">Search</span>
+          </button>
+
+          <button
+            onClick={() => setIsAppLibraryOpen(prev => !prev)}
+            className={`flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold transition-all min-h-[44px] ${
+              isAppLibraryOpen 
+                ? "text-blue-400 bg-white/10 scale-105" 
+                : activeTab !== "home"
+                  ? "text-blue-400/80 hover:text-white"
+                  : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <LayoutGrid className="h-5 w-5 stroke-[2]" />
+            <span className="mt-0.5">Modules</span>
+          </button>
+        </div>
+
+        {/* App Library Overlay Drawer */}
+        <AnimatePresence>
+          {isAppLibraryOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-gray-50/98 dark:bg-black/98 backdrop-blur-xl flex flex-col md:hidden overflow-hidden"
+              style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
-              <Icon className="h-5 w-5 stroke-[1.9]" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
+              {/* Drawer Header */}
+              <div className="px-6 pt-6 pb-4 border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">App Library</h2>
+                  <p className="text-xs text-gray-500 font-semibold mt-0.5">Select a module to open</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsAppLibraryOpen(false);
+                    setLibrarySearchQuery("");
+                  }}
+                  className="p-2.5 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200/30 dark:border-gray-800 text-gray-600 dark:text-gray-400"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Search */}
+              <div className="px-6 py-3 border-b border-gray-200/20 dark:border-gray-800/20">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/80">
+                  <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Search modules..."
+                    value={librarySearchQuery}
+                    onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                  />
+                  {librarySearchQuery && (
+                    <button onClick={() => setLibrarySearchQuery("")} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600">
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Drawer Grid Modules */}
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 pb-32">
+                {filteredGroups.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
+                  </div>
+                ) : (
+                  filteredGroups.map(group => (
+                    <div key={group.name} className="space-y-2">
+                      <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
+                        {group.name}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.items.map(item => {
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={item.label}
+                              onClick={() => {
+                                item.action();
+                                setIsAppLibraryOpen(false);
+                                setLibrarySearchQuery("");
+                              }}
+                              className="flex items-center gap-3 p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 text-left active:scale-[0.98] transition-all min-h-[48px]"
+                            >
+                              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                              </div>
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
+                                {item.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   };
 
