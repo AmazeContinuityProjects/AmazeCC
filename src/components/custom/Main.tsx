@@ -138,6 +138,9 @@ export default function LoginPage() {
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     setActiveDay(day);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setActiveTab("home");
+    }
 
     const checkAPIStatus = async () => {
       try {
@@ -147,7 +150,7 @@ export default function LoginPage() {
       } catch (err) {
         setIsAPIworking(true);
       }
-    }
+    };
     checkAPIStatus();
   }, []);
 
@@ -2179,31 +2182,29 @@ export default function LoginPage() {
       )}
 
       {(!isLoggedIn && !demoMode) && (
-        <div className="flex-grow flex items-center justify-center p-4">
-          <LoginForm
-            username={IDs.VtopUsername}
-            setUsername={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopUsername: val }))
-            }
-            password={IDs.VtopPassword}
-            setPassword={(val: string) =>
-              setIDs(prev => ({ ...prev, VtopPassword: val }))
-            }
-            message={message}
-            handleFormSubmit={handleFormSubmit}
-            handleDemoClick={handleDemoClick}
-            residentialStatus={settings.residentialStatus || "hosteller"}
-            setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-              setSettings(prev => ({ ...prev, residentialStatus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
-            }}
-            isDayscholarWithBus={settings.isDayscholarWithBus || false}
-            setIsDayscholarWithBus={(val: boolean) => {
-              setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
-              localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
-            }}
-          />
-        </div>
+        <LoginForm
+          username={IDs.VtopUsername}
+          setUsername={(val: string) =>
+            setIDs(prev => ({ ...prev, VtopUsername: val }))
+          }
+          password={IDs.VtopPassword}
+          setPassword={(val: string) =>
+            setIDs(prev => ({ ...prev, VtopPassword: val }))
+          }
+          message={message}
+          handleFormSubmit={handleFormSubmit}
+          handleDemoClick={handleDemoClick}
+          residentialStatus={settings.residentialStatus || "hosteller"}
+          setResidentialStatus={(val: "hosteller" | "dayscholar") => {
+            setSettings(prev => ({ ...prev, residentialStatus: val }));
+            localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }));
+          }}
+          isDayscholarWithBus={settings.isDayscholarWithBus || false}
+          setIsDayscholarWithBus={(val: boolean) => {
+            setSettings(prev => ({ ...prev, isDayscholarWithBus: val }));
+            localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
+          }}
+        />
       )}
 
       {(isLoggedIn || demoMode) && (

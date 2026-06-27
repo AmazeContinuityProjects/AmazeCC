@@ -21,6 +21,7 @@ import HostelOverview from "./Hostel/HostelOverview";
 import HostelCounsellingView from "./Hostel/HostelCounsellingView";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
+import MobileHome from "./mobile/MobileHome";
 
 import { API_BASE } from "./Main";
 import CourseDashboard from "./Exams/CourseDashboard";
@@ -525,7 +526,7 @@ export default function DashboardContent({
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10  dark:bg-blue-500/5 blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
-        <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
+        <div className={`md:hidden ${activeTab === "home" ? "hidden" : ""} ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
           <div className="px-6 pt-6 pb-2 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
@@ -588,6 +589,27 @@ export default function DashboardContent({
         <ChangelogModal />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
+          {activeTab === "home" && (
+            <div className="md:hidden">
+              <MobileHome
+                attendanceData={attendanceData}
+                marksData={marksData}
+                hostelData={hostelData}
+                registeredEvents={registeredEvents}
+                moodleData={moodleData}
+                settings={settings}
+                IDs={IDs}
+                setActiveTab={setActiveTab}
+                setActiveSubTab={setActiveSubTab}
+                setHostelActiveSubTab={setHostelActiveSubTab}
+                setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                setActiveMoreSubTab={setActiveMoreSubTab}
+                handleReloadRequest={handleReloadRequest}
+                onOpenCommandPalette={onOpenCommandPalette}
+              />
+            </div>
+          )}
+
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
               {(() => {

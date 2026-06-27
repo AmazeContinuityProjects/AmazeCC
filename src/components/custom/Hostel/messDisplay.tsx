@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw, ExternalLink, Clock, Sparkles } from "lucide-react";
+import { RefreshCcw, ExternalLink, Clock, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { useIsMobile } from "../shared";
 
 const messLinks: Record<string, Record<string, string>> = {
   Male: {
@@ -67,6 +68,15 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   );
   const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
+  const isMobile = useIsMobile();
+  const getInitialMeal = () => {
+    const hour = new Date().getHours();
+    if (hour < 10) return "Breakfast";
+    if (hour < 15) return "Lunch";
+    if (hour < 18) return "Snacks";
+    return "Dinner";
+  };
+  const [activeMealMobile, setActiveMealMobile] = useState(getInitialMeal());
 
   const shortDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -200,44 +210,99 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             {activeDay} Menu
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {mealsList.map((meal) => {
-              const itemsText = todayMenu[meal.key] || "No items listed.";
-              return (
-                <div
-                  key={meal.name}
-                  className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs hover:shadow-sm hover:border-sky-500/20 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+          {isMobile ? (
+            <div className="space-y-4">
+              {/* Mobile Meal Tab Switcher */}
+              <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl w-full border border-gray-200/50 dark:border-gray-800">
+                {mealsList.map(meal => (
+                  <button
+                    key={meal.name}
+                    onClick={() => setActiveMealMobile(meal.name)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all text-center min-h-[36px] ${
+                      activeMealMobile === meal.name 
+                        ? "bg-white dark:bg-black text-sky-500 shadow-xs" 
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900"
+                    }`}
+                  >
+                    {meal.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Single Active Meal Card */}
+              {(() => {
+                const meal = mealsList.find(m => m.name === activeMealMobile);
+                if (!meal) return null;
+                const itemsText = todayMenu[meal.key] || "No items listed.";
+                return (
+                  <div className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">{meal.icon}</span>
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{meal.name}</h3>
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-gray-450 font-medium">
-                        <Clock size={10} />
-                        <span>{meal.time}</span>
+                        <div>
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm">{meal.name}</h3>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-450 font-medium mt-0.5">
+                            <Clock size={10} />
+                            <span>{meal.time}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="bg-gray-50/50 dark:bg-slate-800/10 border border-gray-150 dark:border-gray-850/60 rounded-xl p-3.5 min-h-36">
+                    <div className="bg-gray-50/50 dark:bg-black/20 rounded-2xl p-4 border border-gray-100 dark:border-gray-850">
                       <p className="whitespace-pre-line text-xs text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
                         {itemsText}
                       </p>
                     </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="text-[9px] font-bold bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full uppercase">Standard Choice</span>
+                      {type === "Non Veg" && meal.name === "Lunch" && (
+                        <span className="text-[9px] font-bold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full uppercase">Non-Veg Option</span>
+                      )}
+                    </div>
                   </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mealsList.map((meal) => {
+                const itemsText = todayMenu[meal.key] || "No items listed.";
+                return (
+                  <div
+                    key={meal.name}
+                    className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs hover:shadow-sm hover:border-sky-500/20 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{meal.icon}</span>
+                          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{meal.name}</h3>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-450 font-medium">
+                          <Clock size={10} />
+                          <span>{meal.time}</span>
+                        </div>
+                      </div>
 
-                  {/* Optional nutrition tag */}
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    <span className="text-[9px] font-bold bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full uppercase">Standard Choice</span>
-                    {type === "Non Veg" && meal.name === "Lunch" && (
-                      <span className="text-[9px] font-bold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full uppercase">Non-Veg Option</span>
-                    )}
+                      <div className="bg-gray-50/50 dark:bg-slate-800/10 border border-gray-150 dark:border-gray-850/60 rounded-xl p-3.5 min-h-36">
+                        <p className="whitespace-pre-line text-xs text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
+                          {itemsText}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Optional nutrition tag */}
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      <span className="text-[9px] font-bold bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full uppercase">Standard Choice</span>
+                      {type === "Non Veg" && meal.name === "Lunch" && (
+                        <span className="text-[9px] font-bold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full uppercase">Non-Veg Option</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-center text-xs text-gray-500 dark:text-gray-400">
