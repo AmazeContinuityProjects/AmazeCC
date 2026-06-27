@@ -52,6 +52,7 @@ import QBankSubTabs from "./qbank/QBankSubTabs";
 import PaymentsTab from "./PaymentsTab";
 import LibrariesTab from "./Libraries/LibrariesTab";
 import ArrearTab from "./Exams/ArrearTab";
+import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import MakeupCompreTab from "./Exams/MakeupCompreTab";
 import CourseMgmtTab from "./Exams/CourseMgmtTab";
 import ProjectsTab from "./Exams/ProjectsTab";
@@ -164,6 +165,13 @@ export default function DashboardContent({
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
   const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
+  const [pastSemesterData, setPastSemesterData] = useState<any>(null);
+
+  useEffect(() => {
+    if (allGradesData) {
+      setPastSemesterData(loadFrozenPastSemesters(allGradesData));
+    }
+  }, [allGradesData]);
 
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
   const [transportData, setTransportData] = useState<any>(null);
@@ -263,6 +271,10 @@ export default function DashboardContent({
 
       setAllGradesData(AllGradesData);
       localStorage.setItem("allGrades", JSON.stringify(AllGradesData));
+
+      setMessage((prev) => prev + "\n🔄 Fetching past semester data (if missing)...");
+      await syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf });
+      setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
 
       setMessage((prev) => prev + "\n✅ All grades reloaded successfully!");
       setProgressBar(100);
@@ -714,7 +726,7 @@ export default function DashboardContent({
                 hideMobileHeader={settings.hideMobileHeader} 
                 handleFetchGrades={handleAllGradesFetch} 
               />}
-              {activeSubTab === "course-dashboard" && <CourseDashboard marksData={marksData} allGradesData={allGradesData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />}
+              {activeSubTab === "course-dashboard" && <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />}
               {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
               {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />}
               {activeSubTab === "predictor" && <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />}

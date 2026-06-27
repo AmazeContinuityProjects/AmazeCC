@@ -249,12 +249,12 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
     </ExpandableSection>
   );
 }
-
 export default function CourseDashboard({
-  marksData, attendanceData, allGradesData, loginToVTOP, setActiveSubTab,
+  marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
   calendars, decimalValues, isDayscholarWithBus
 }: {
-  marksData: any; attendanceData: any; allGradesData?: any; loginToVTOP: () => Promise<Creds>; setActiveSubTab: (tab: string) => void;
+  marksData: any; attendanceData: any; allGradesData?: any;
+  pastSemesterData?: any; loginToVTOP: () => Promise<Creds>; setActiveSubTab: (tab: string) => void;
   calendars?: any; decimalValues?: boolean; isDayscholarWithBus?: boolean;
 }) {
   const [creds, setCreds] = useState<Creds | null>(null);
@@ -286,71 +286,98 @@ export default function CourseDashboard({
   }, []);
 
   const uniqueCourses = useMemo(() => {
-    const map = new Map();
-
-    if (attendanceData?.attendance) {
-      (attendanceData.attendance as any[]).forEach(a => {
-        const cleanCode = a.courseCode?.replace(/\([LT]\)$/i, "").trim();
-        const isLab = a.courseCode?.toLowerCase().endsWith("(l)");
-        const isTheory = a.courseCode?.toLowerCase().endsWith("(t)");
-        const isLabFallback = a.slotName?.toLowerCase().startsWith("l");
-        const finalIsLab = isLab || (isLabFallback && !isTheory);
-        
-        const key = cleanCode;
-        if (!map.has(key)) {
-          map.set(key, {
+    const coursesBySemester = new Map<string, any[]>();
+    
+    // Process current semester
+    const currentMap = new Map();
+    if (marksData?.courses) {
+      marksData.courses.forEach((c: any) => {
+        const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
+        const key = c.courseCode;
+        if (!currentMap.has(key)) {
+          currentMap.set(key, {
             courseCode: key,
-            courseTitle: a.courseTitle || key,
-            theory: !finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Theory", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
-            lab: finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Lab", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
+            courseTitle: c.courseTitle,
+            semesterSubId: "Current",
+            theory: !isLab ? { ...c } : null,
+            lab: isLab ? { ...c } : null,
           });
         } else {
-          const existing = map.get(key);
-          if (finalIsLab) existing.lab = { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Lab", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
-          else existing.theory = { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Theory", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
+          const existing = currentMap.get(key);
+          if (isLab) existing.lab = { ...c };
+          else existing.theory = { ...c };
         }
       });
     }
 
-    if (marksData?.courses) {
-      (marksData.courses as any[]).forEach(c => {
+    if (attendanceData?.attendance) {
+      attendanceData.attendance.forEach((c: any) => {
         const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-        const key = c.courseCode;
-        if (!map.has(key)) {
-          map.set(key, {
-            courseCode: key, courseTitle: c.courseTitle,
-            theory: !isLab ? c : null, lab: isLab ? c : null,
+        let key = c.courseCode;
+        if (key && key.includes(" ")) key = key.split(" ")[0];
+
+        if (!currentMap.has(key)) {
+          currentMap.set(key, {
+            courseCode: key,
+            courseTitle: c.courseTitle,
+            semesterSubId: "Current",
+            theory: !isLab ? { ...c, classNbr: c.classId } : null,
+            lab: isLab ? { ...c, classNbr: c.classId } : null,
           });
         } else {
-          const existing = map.get(key);
-          if (isLab) existing.lab = { ...(existing.lab || {}), ...c };
-          else existing.theory = { ...(existing.theory || {}), ...c };
+          const existing = currentMap.get(key);
+          if (isLab) existing.lab = { ...(existing.lab || {}), ...c, classNbr: c.classId || existing.lab?.classNbr };
+          else existing.theory = { ...(existing.theory || {}), ...c, classNbr: c.classId || existing.theory?.classNbr };
           existing.courseTitle = c.courseTitle || existing.courseTitle;
         }
       });
     }
+    coursesBySemester.set("Current", Array.from(currentMap.values()));
 
-    if (allGradesData?.grades) {
-      Object.values(allGradesData.grades).forEach((semObj: any) => {
-        if (semObj?.grades) {
-          (semObj.grades as any[]).forEach(c => {
-            const isLab = c.courseType?.toLowerCase().includes("lab") || c.courseTitle?.toLowerCase().includes("lab");
+    // Process past semesters
+    if (pastSemesterData) {
+      Object.keys(pastSemesterData).forEach(semId => {
+        const data = pastSemesterData[semId];
+        const semMap = new Map();
+        
+        if (data.marks?.courses) {
+          data.marks.courses.forEach((c: any) => {
+            const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
             const key = c.courseCode;
-            if (!map.has(key)) {
-              map.set(key, {
-                courseCode: key,
-                courseTitle: c.courseTitle,
-                theory: !isLab ? { courseCode: key, courseTitle: c.courseTitle, classNbr: "", courseType: c.courseType, slot: "", faculty: "", courseSystem: "Past Semester" } : null,
-                lab: isLab ? { courseCode: key, courseTitle: c.courseTitle, classNbr: "", courseType: c.courseType, slot: "", faculty: "", courseSystem: "Past Semester" } : null,
-              });
+            if (!semMap.has(key)) semMap.set(key, { courseCode: key, courseTitle: c.courseTitle, semesterSubId: semId, theory: !isLab ? { ...c } : null, lab: isLab ? { ...c } : null });
+            else {
+              const existing = semMap.get(key);
+              if (isLab) existing.lab = { ...c };
+              else existing.theory = { ...c };
             }
           });
         }
+
+        if (data.attendance?.attendance) {
+          data.attendance.attendance.forEach((c: any) => {
+            const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
+            let key = c.courseCode;
+            if (key && key.includes(" ")) key = key.split(" ")[0];
+            if (!semMap.has(key)) semMap.set(key, { courseCode: key, courseTitle: c.courseTitle, semesterSubId: semId, theory: !isLab ? { ...c, classNbr: c.classId } : null, lab: isLab ? { ...c, classNbr: c.classId } : null });
+            else {
+              const existing = semMap.get(key);
+              if (isLab) existing.lab = { ...(existing.lab || {}), ...c, classNbr: c.classId || existing.lab?.classNbr };
+              else existing.theory = { ...(existing.theory || {}), ...c, classNbr: c.classId || existing.theory?.classNbr };
+            }
+          });
+        }
+        if (semMap.size > 0) coursesBySemester.set(semId, Array.from(semMap.values()));
       });
     }
 
-    return Array.from(map.values()) as any[];
-  }, [marksData, attendanceData, allGradesData]);
+    // Flatten into a single array but maintain order (Current first, then past semesters)
+    let flatCourses: any[] = [];
+    coursesBySemester.forEach(semCourses => {
+      flatCourses = flatCourses.concat(semCourses);
+    });
+
+    return flatCourses;
+  }, [marksData, attendanceData, pastSemesterData]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
@@ -660,8 +687,25 @@ export default function CourseDashboard({
         {uniqueCourses.length === 0 ? (
           <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300  dark:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400  dark:text-gray-500">No course data available</p></div></Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {uniqueCourses.map((group: any, idx: number) => {
+          <div className="space-y-8">
+            {Array.from(
+              uniqueCourses.reduce((acc, group) => {
+                const sem = group.semesterSubId || "Current";
+                if (!acc.has(sem)) acc.set(sem, []);
+                acc.get(sem)!.push(group);
+                return acc;
+              }, new Map<string, any[]>()).entries()
+            ).map(([semester, courses], semIdx) => (
+              <div key={semester}>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <div className="w-2 h-6 bg-blue-500 rounded-full" />
+                  {semester === "Current" ? "Current Semester" : `Semester: ${semester}`}
+                  <span className="text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md ml-2">
+                    {courses.length} Courses
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {courses.map((group: any, idx: number) => {
               const main = group.theory || group.lab;
               const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
               const isRelative = checkIsRelative(main.courseSystem, courseType);
@@ -705,14 +749,23 @@ export default function CourseDashboard({
               }
 
               const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
-              const faculty = main.faculty || att?.faculty || "Faculty not listed";
-              const attendancePct = Number(att?.attendancePercentage) || 0;
-              const statusTone = predictedGrade === "F" || attendancePct < 75
+              const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
+              let pastGrade = "";
+              if (isPastSemester && allGradesData?.grades?.[group.semesterSubId]?.grades) {
+                const found = allGradesData.grades[group.semesterSubId].grades.find((g: any) => g.courseCode === group.courseCode);
+                if (found) pastGrade = found.grade;
+              }
+
+              const faculty = main.faculty || att?.faculty || (isPastSemester ? "Past Faculty" : "Faculty not listed");
+              const attendancePct = Number(att?.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0);
+              const statusTone = isPastSemester 
+                ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+                : predictedGrade === "F" || attendancePct < 75
                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
                 : percent >= 75 && attendancePct >= 75
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
                   : "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300";
-              const statusLabel = predictedGrade === "F" || attendancePct < 75 ? "Needs attention" : percent >= 75 ? "On track" : "Watchlist";
+              const statusLabel = isPastSemester ? `Completed: ${pastGrade}` : predictedGrade === "F" || attendancePct < 75 ? "Needs attention" : percent >= 75 ? "On track" : "Watchlist";
 
               return (
                 <div key={group.courseCode} onClick={() => handleSelectCourse(group.courseCode)}
@@ -728,9 +781,32 @@ export default function CourseDashboard({
                           {statusLabel}
                         </span>
                       </div>
+                      <div className="grid grid-cols-2 gap-4 mt-1">
+                          <div className="bg-gray-50 dark:bg-slate-800/50 dark:border-gray-800 border p-2.5 rounded-xl transition-colors group-hover:bg-gray-100 dark:group-hover:bg-gray-900/50 flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                              {isPastSemester ? "Final Grade" : "Attendance"}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full ${isPastSemester ? "bg-blue-500" : attendancePct >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                {isPastSemester ? (pastGrade || "N/A") : (attendancePct ? `${attendancePct}%` : 'N/A')}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 dark:bg-slate-800/50 dark:border-gray-800 border p-2.5 rounded-xl transition-colors group-hover:bg-gray-100 dark:group-hover:bg-gray-900/50 flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                              {isPastSemester ? "Past Internal" : "Internal Marks"}
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{isPastSemester ? (courseTotalString !== "Reload Required" && String(courseTotalString).includes("/") ? String(courseTotalString).split("/")[0] : "N/A") : percent.toFixed(1)}</span>
+                              {!isPastSemester && <span className="text-[10px] font-bold text-gray-400">/ 100</span>}
+                            </div>
+                          </div>
+                        </div>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         <TypeBadge label={courseType} />
-                        {predictedGrade !== "?" && (
+                        {predictedGrade !== "?" && !isPastSemester && (
                           <button
                             onClick={(event) => {
                               event.stopPropagation();
@@ -765,8 +841,12 @@ export default function CourseDashboard({
                           <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{text}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Prediction</p>
-                          <p className="mt-1 text-sm font-black text-indigo-600 dark:text-indigo-400">{predictedGrade}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                            {isPastSemester ? "Final Grade" : "Prediction"}
+                          </p>
+                          <p className="mt-1 text-sm font-black text-indigo-600 dark:text-indigo-400">
+                            {isPastSemester ? (pastGrade || "N/A") : predictedGrade}
+                          </p>
                         </div>
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Assessments</p>
@@ -799,6 +879,9 @@ export default function CourseDashboard({
                 </div>
               );
             })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </SubpageLayout>
