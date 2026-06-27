@@ -546,6 +546,10 @@ export default function DashboardContent({
               onClick={async () => {
                 setIsSpinning(true);
                 await handleReloadRequest();
+                try {
+                  const updatedGrades = JSON.parse(localStorage.getItem("allGrades") || "{}");
+                  setPastSemesterData(loadFrozenPastSemesters(updatedGrades));
+                } catch (e) {}
                 setTimeout(() => setIsSpinning(false), 600);
               }}
               className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
