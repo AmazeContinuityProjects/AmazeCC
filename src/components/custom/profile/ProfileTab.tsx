@@ -144,7 +144,13 @@ export default function ProfileTab(props: ProfileTabProps) {
       <div className="mt-4">
         {activeProfileSubTab === "info" && (
           <div className="space-y-6">
-            <ProfilePage {...profilePageProps} loginToVTOP={loginToVTOP} username={username} password={password} setPassword={setPassword} creds={creds} refreshKey={refreshKey} onCardClick={setActiveModal} onCredentialsClick={() => setActiveProfileSubTab("credentials")} onReload={reload} />
+            <ProfilePage {...profilePageProps} loginToVTOP={loginToVTOP} username={username} password={password} setPassword={setPassword} creds={creds} refreshKey={refreshKey} onCardClick={setActiveModal} onCredentialsClick={() => setActiveProfileSubTab("credentials")} onReload={reload} mode="info" />
+          </div>
+        )}
+
+        {activeProfileSubTab === "settings" && (
+          <div className="space-y-6">
+            <ProfilePage {...profilePageProps} loginToVTOP={loginToVTOP} username={username} password={password} setPassword={setPassword} creds={creds} refreshKey={refreshKey} onCardClick={setActiveModal} onCredentialsClick={() => setActiveProfileSubTab("credentials")} onReload={reload} mode="settings" />
           </div>
         )}
 

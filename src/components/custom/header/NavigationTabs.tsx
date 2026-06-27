@@ -30,6 +30,7 @@ import {
   Wrench,
   Calendar,
   Compass,
+  Key,
   ArrowLeft,
   Bus,
   Sun,
@@ -393,6 +394,26 @@ export default function NavigationTabs({
       onSelect: () => {
         selectTab("profile");
         setActiveProfileSubTab("info");
+      },
+    },
+    {
+      id: "profile-credentials",
+      label: "Credentials",
+      icon: Key,
+      isActive: activeTab === "profile" && activeProfileSubTab === "credentials",
+      onSelect: () => {
+        selectTab("profile");
+        setActiveProfileSubTab("credentials");
+      },
+    },
+    {
+      id: "profile-settings",
+      label: "Settings",
+      icon: Settings,
+      isActive: activeTab === "profile" && activeProfileSubTab === "settings",
+      onSelect: () => {
+        selectTab("profile");
+        setActiveProfileSubTab("settings");
       },
     },
   ], [activeTab, activeProfileSubTab, selectTab, setActiveProfileSubTab]);
