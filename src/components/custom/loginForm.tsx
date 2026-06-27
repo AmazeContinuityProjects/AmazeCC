@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, LayoutGrid, Calendar, CalendarCheck2, Home, Search, BookOpen, Compass, ChevronLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Home, Search, BookOpen, ChevronLeft, Plus, RotateCcw, Minus } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -33,15 +33,52 @@ export default function LoginForm({
 }: LoginFormProps) {
   const isLoading = message.startsWith("Logging");
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Toggle landing page vs. login card
   const [showLoginCard, setShowLoginCard] = useState(false);
+
+  // Attendance simulator states
+  const [mockAttended, setMockAttended] = useState(17);
+  const [mockTotal, setMockTotal] = useState(20);
+  const mockPercent = mockTotal > 0 ? (mockAttended / mockTotal) * 100 : 0;
+
+  const handleSimulateAttend = () => {
+    setMockAttended(prev => prev + 1);
+    setMockTotal(prev => prev + 1);
+  };
+
+  const handleSimulateSkip = () => {
+    setMockTotal(prev => prev + 1);
+  };
+
+  const handleSimulateReset = () => {
+    setMockAttended(17);
+    setMockTotal(20);
+  };
+
+  // Skip status checker
+  const getSkipStatus = () => {
+    if (mockPercent < 75) {
+      return { text: "Critical: Attendance below 75% limit!", color: "text-rose-400 bg-rose-500/10 border border-rose-500/20" };
+    }
+    const maxTotal = Math.floor(mockAttended / 0.75);
+    const skipCount = maxTotal - mockTotal;
+    if (skipCount > 0) {
+      return { text: `Safe to skip: Yes (${skipCount} class${skipCount > 1 ? "es" : ""})`, color: "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" };
+    }
+    return { text: "Borderline: Exactly 75%. Do not skip.", color: "text-amber-400 bg-amber-500/10 border border-amber-500/20" };
+  };
+
+  const skipStatus = getSkipStatus();
+
+  // SVG ring configs
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (Math.min(mockPercent, 100) / 100) * circumference;
 
   const features = [
     {
-      icon: <CalendarCheck2 className="h-5 w-5 text-sky-400" />,
+      icon: <BookOpen className="h-5 w-5 text-sky-400" />,
       title: "Timetable & Attendance",
-      desc: "Track daily lectures, check attendance stats, and simulate attendance impacts of skips ahead of exams."
+      desc: "Track daily lectures, check attendance heatmaps, and simulate attendance impacts of slips ahead of exams."
     },
     {
       icon: <Home className="h-5 w-5 text-emerald-400" />,
@@ -74,7 +111,7 @@ export default function LoginForm({
           <img src="/logo.png" alt="AmazeCC Logo" className="h-7 w-7 rounded-lg object-contain shadow-md" onError={(e) => {
             (e.target as HTMLImageElement).src = "/images/icons/AmazeCC.png";
           }} />
-          <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">AmazeCC</span>
+          <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent font-[family-name:var(--font-outfit)]">AmazeCC</span>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -95,42 +132,107 @@ export default function LoginForm({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-grow flex items-center justify-center py-12 px-4 md:px-8">
+      <main className="flex-grow flex items-center justify-center py-10 px-4 md:px-8 max-w-6xl mx-auto w-full">
         {!showLoginCard ? (
           /* Landing Page View */
-          <div className="max-w-4xl w-full text-center space-y-12 animate-fadeIn">
-            {/* Hero text */}
-            <div className="space-y-4 max-w-2xl mx-auto">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-400/20 text-sky-400">
-                <Sparkles size={11} /> VTOP, Redefined & Simplified
-              </span>
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white font-[family-name:var(--font-outfit)]">
-                Academics. Simplified. <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">Beautiful.</span>
-              </h1>
-              <p className="text-xs md:text-sm text-gray-400 leading-relaxed font-medium">
-                A premium, desktop-grade companion dashboard for VIT Chennai students. Access schedules, predicted grades, attendance calculations, and block details without the clutter.
-              </p>
-            </div>
+          <div className="w-full space-y-16 animate-fadeIn">
+            
+            {/* Split Grid: Copy & Simulator */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center text-left">
+              
+              {/* Left Column: Headline and calls to action */}
+              <div className="lg:col-span-3 space-y-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-400/20 text-sky-400">
+                  <Sparkles size={11} /> VTOP, Redefined & Simplified
+                </span>
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white font-[family-name:var(--font-outfit)]">
+                  Academics. Simplified. <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">Beautiful.</span>
+                </h1>
+                <p className="text-xs md:text-sm text-gray-400 leading-relaxed font-medium">
+                  A premium, desktop-grade companion dashboard for VIT Chennai students. Access schedules, predicted grades, attendance calculations, and block details without the clutter.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <button
+                    onClick={() => setShowLoginCard(true)}
+                    className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md shadow-sky-500/10 flex items-center justify-center gap-2 cursor-pointer group"
+                  >
+                    <span>Sign In with VTOP</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={handleDemoClick}
+                    className="w-full sm:w-auto bg-neutral-900 hover:bg-neutral-850 text-gray-300 font-bold text-xs px-6 py-3 rounded-xl border border-gray-850 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Explore Live Demo</span>
+                  </button>
+                </div>
+              </div>
 
-            {/* Call to actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => setShowLoginCard(true)}
-                className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md shadow-sky-500/10 flex items-center justify-center gap-2 cursor-pointer group"
-              >
-                <span>Sign In with VTOP</span>
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button
-                onClick={handleDemoClick}
-                className="w-full sm:w-auto bg-neutral-900 hover:bg-neutral-850 text-gray-300 font-bold text-xs px-6 py-3 rounded-xl border border-gray-800 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Explore Live Demo</span>
-              </button>
+              {/* Right Column: Interactive Attendance Simulator Mockup */}
+              <div className="lg:col-span-2 bg-neutral-900/60 border border-gray-850 backdrop-blur-md p-5 rounded-2xl space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-gray-850 pb-3">
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-sky-400 block">Live Preview</span>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Attendance Calculator</h3>
+                  </div>
+                  <button onClick={handleSimulateReset} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-neutral-800 transition-colors" title="Reset Demo">
+                    <RotateCcw size={12} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">CSE3002 - COMPILER DESIGN</span>
+                    <div className="text-xs font-bold text-gray-350">Attended: <span className="text-white font-black">{mockAttended}</span> / {mockTotal}</div>
+                  </div>
+
+                  {/* SVG progress circle */}
+                  <div className="relative h-16 w-16 flex items-center justify-center shrink-0">
+                    <svg className="w-16 h-16 transform -rotate-90">
+                      <circle cx="32" cy="32" r={radius} className="stroke-neutral-850" strokeWidth="5" fill="transparent" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r={radius}
+                        className="stroke-sky-400 transition-all duration-300"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span className="absolute text-[10px] font-black text-white">{Math.round(mockPercent)}%</span>
+                  </div>
+                </div>
+
+                {/* Skip banner warning */}
+                <div className={`p-2.5 rounded-xl text-[10px] font-bold text-center transition-all duration-300 ${skipStatus.color}`}>
+                  {skipStatus.text}
+                </div>
+
+                {/* Simulator controls */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSimulateAttend}
+                    className="flex-1 py-2 bg-neutral-950 border border-gray-850 hover:border-emerald-500/30 rounded-lg text-[9px] font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Plus size={11} /> Attend Class
+                  </button>
+                  <button
+                    onClick={handleSimulateSkip}
+                    className="flex-1 py-2 bg-neutral-950 border border-gray-850 hover:border-rose-500/30 rounded-lg text-[9px] font-bold uppercase tracking-wider text-rose-455 flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Minus size={11} /> Skip Class
+                  </button>
+                </div>
+              </div>
+
             </div>
 
             {/* Feature Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left max-w-3xl mx-auto pt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-left max-w-3xl mx-auto pt-8">
               {features.map((f, i) => (
                 <div key={i} className="bg-neutral-900/50 border border-gray-850 p-5 rounded-2xl space-y-2 hover:border-sky-500/30 hover:bg-neutral-900 transition-all shadow-2xs group">
                   <div className="flex items-center gap-3">

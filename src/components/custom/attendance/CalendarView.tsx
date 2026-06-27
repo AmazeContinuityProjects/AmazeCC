@@ -1070,135 +1070,145 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             </div>
                         </div>
 
-                        {!selectedDay ? (
-                            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
-                                    <CalendarIcon className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">Select a day</h4>
-                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">View schedule, classes, exams and events.</p>
-                                </div>
-                            </div>
-                        ) : selectedDay.events.length === 0 ? (
-                            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
-                                    <CalendarIcon className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">No events scheduled</h4>
-                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Nothing on this day.</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="mt-4 space-y-4">
-                                {(() => {
-                                    const uniqueByTitle = (items: any[]) => {
-                                        const seen = new Set<string>();
-                                        return items.filter((item) => {
-                                            const key = `${getEventMeta(item).label}-${getEventTitle(item)}`.toLowerCase();
-                                            if (seen.has(key)) return false;
-                                            seen.add(key);
-                                            return true;
-                                        });
-                                    };
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={selectedDay ? `${selectedDay.fullDate instanceof Date ? selectedDay.fullDate.getTime() : selectedDay.date}` : "empty"}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                          >
+                            {!selectedDay ? (
+                              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
+                                      <CalendarIcon className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">Select a day</h4>
+                                      <p className="mt-0.5 text-xs text-gray-550 dark:text-gray-400">View schedule, classes, exams and events.</p>
+                                  </div>
+                              </div>
+                            ) : selectedDay.events.length === 0 ? (
+                              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
+                                      <CalendarIcon className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">No events scheduled</h4>
+                                      <p className="mt-0.5 text-xs text-gray-550 dark:text-gray-400">Nothing on this day.</p>
+                                  </div>
+                              </div>
+                            ) : (
+                              <div className="mt-4 space-y-4">
+                                  {(() => {
+                                      const uniqueByTitle = (items: any[]) => {
+                                          const seen = new Set<string>();
+                                          return items.filter((item) => {
+                                              const key = `${getEventMeta(item).label}-${getEventTitle(item)}`.toLowerCase();
+                                              if (seen.has(key)) return false;
+                                              seen.add(key);
+                                              return true;
+                                          });
+                                      };
 
-                                    const dayTypeItems = uniqueByTitle(selectedDay.events.filter((e: any) => isHolidayEvent(e) || isInstructionalEvent(e)));
-                                    const classItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "attendance" || e.type === "od"));
-                                    const assessmentItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "exam" || e.type === "moodle" || e.type === "homework"));
-                                    const eventItems = uniqueByTitle(selectedDay.events.filter((e: any) =>
-                                        e.type !== "attendance" &&
-                                        e.type !== "od" &&
-                                        e.type !== "exam" &&
-                                        e.type !== "moodle" &&
-                                        e.type !== "homework" &&
-                                        !isHolidayEvent(e) &&
-                                        !isInstructionalEvent(e)
-                                    ));
+                                      const dayTypeItems = uniqueByTitle(selectedDay.events.filter((e: any) => isHolidayEvent(e) || isInstructionalEvent(e)));
+                                      const classItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "attendance" || e.type === "od"));
+                                      const assessmentItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "exam" || e.type === "moodle" || e.type === "homework"));
+                                      const eventItems = uniqueByTitle(selectedDay.events.filter((e: any) =>
+                                          e.type !== "attendance" &&
+                                          e.type !== "od" &&
+                                          e.type !== "exam" &&
+                                          e.type !== "moodle" &&
+                                          e.type !== "homework" &&
+                                          !isHolidayEvent(e) &&
+                                          !isInstructionalEvent(e)
+                                      ));
 
-                                    const renderActions = (e: any) => {
-                                        const canAddHomework = e.type === "attendance" || e.type === "od";
-                                        return (
-                                            <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                                                {e.hidden && <EyeOff size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
-                                                {canAddHomework && (
-                                                    <button
-                                                        onClick={() => addHomework(e.courseTitle || e.text, selectedDay.date, selectedDay.fullDate)}
-                                                        className="rounded-xl border border-gray-200 bg-white p-1.5 text-gray-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                                                        title="Add Homework for this Class"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                )}
-                                                {e.type === "moodle" && e.url && !e.hidden && (
-                                                    <a href={e.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 bg-white p-1.5 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400 dark:hover:bg-gray-800">
-                                                        <BookOpen size={14} />
-                                                    </a>
-                                                )}
-                                            </div>
-                                        );
-                                    };
+                                      const renderActions = (e: any) => {
+                                          const canAddHomework = e.type === "attendance" || e.type === "od";
+                                          return (
+                                              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                                  {e.hidden && <EyeOff size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
+                                                  {canAddHomework && (
+                                                      <button
+                                                          onClick={() => addHomework(e.courseTitle || e.text, selectedDay.date, selectedDay.fullDate)}
+                                                          className="rounded-xl border border-gray-200 bg-white p-1.5 text-gray-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                          title="Add Homework for this Class"
+                                                      >
+                                                          <Plus size={14} />
+                                                      </button>
+                                                  )}
+                                                  {e.type === "moodle" && e.url && !e.hidden && (
+                                                      <a href={e.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 bg-white p-1.5 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400 dark:hover:bg-gray-800">
+                                                          <BookOpen size={14} />
+                                                      </a>
+                                                  )}
+                                              </div>
+                                          );
+                                      };
 
-                                    return (
-                                        <>
-                                            {dayTypeItems.length > 0 && (
-                                                <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {dayTypeItems.map((e: any, i: number) => (
-                                                            <span key={`${e.text}-${i}`} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-                                                                <span className={`h-1.5 w-1.5 rounded-full ${getEventMeta(e).dot}`} />
-                                                                {getEventTitle(e)}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                      return (
+                                          <>
+                                              {dayTypeItems.length > 0 && (
+                                                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                                                      <div className="flex flex-wrap gap-2">
+                                                          {dayTypeItems.map((e: any, i: number) => (
+                                                              <span key={`${e.text}-${i}`} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                                                                  <span className={`h-1.5 w-1.5 rounded-full ${getEventMeta(e).dot}`} />
+                                                                  {getEventTitle(e)}
+                                                              </span>
+                                                          ))}
+                                                      </div>
+                                                  </div>
+                                              )}
 
-                                            {classItems.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Classes</h4>
-                                                    <div className="space-y-1.5">
-                                                        {classItems.map((e: any, i: number) => (
-                                                            <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
-                                                                <span className={`h-2 w-2 shrink-0 rounded-full ${getEventMeta(e).dot}`} />
-                                                                <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
-                                                                <span className="shrink-0 text-xs font-bold text-gray-400 dark:text-gray-500">{e.category || "Present"}</span>
-                                                                {renderActions(e)}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                              {classItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Classes</h4>
+                                                      <div className="space-y-1.5">
+                                                          {classItems.map((e: any, i: number) => (
+                                                              <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                                  <span className={`h-2 w-2 shrink-0 rounded-full ${getEventMeta(e).dot}`} />
+                                                                  <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
+                                                                  <span className="shrink-0 text-xs font-bold text-gray-400 dark:text-gray-500">{e.category || "Present"}</span>
+                                                                  {renderActions(e)}
+                                                              </div>
+                                                          ))}
+                                                      </div>
+                                                  </div>
+                                              )}
 
-                                            {assessmentItems.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Assessments</h4>
-                                                    {assessmentItems.map((e: any, i: number) => (
-                                                        <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
-                                                            <EventTypePill event={e} compact />
-                                                            <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
-                                                            {renderActions(e)}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                              {assessmentItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Assessments</h4>
+                                                      {assessmentItems.map((e: any, i: number) => (
+                                                          <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                              <EventTypePill event={e} compact />
+                                                              <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
+                                                              {renderActions(e)}
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              )}
 
-                                            {eventItems.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Events</h4>
-                                                    {eventItems.map((e: any, i: number) => (
-                                                        <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
-                                                            <EventTypePill event={e} compact />
-                                                            <p className="min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100">{getEventTitle(e)}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </div>
-                        )}
+                                              {eventItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Events</h4>
+                                                      {eventItems.map((e: any, i: number) => (
+                                                          <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                              <EventTypePill event={e} compact />
+                                                              <p className="min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100">{getEventTitle(e)}</p>
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              )}
+                                          </>
+                                      );
+                                  })()}
+                              </div>
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
                     </div>
 
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">

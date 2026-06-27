@@ -52,6 +52,75 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     setError(null);
     try {
       const { cookies, authorizedID, csrf } = credsRef.current;
+      
+      if (authorizedID === "DEMO123") {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        let result: any = null;
+        if (endpoint === "hostel-counselling") {
+          result = {
+            tables: [
+              {
+                caption: "Hostel Counselling Requests",
+                headers: ["S.NO.", "REQUEST FRIEND REGNO", "BASKETID", "ROOM CAPACITY", "ROOM CATEGORY", "OTP", "OTP STATUS"],
+                rows: [
+                  ["1", "25BYB1043", "4AC-DBL-COT-NORMAL", "4", "AC-DBL-COT", "6919", "OTP accepted by Room Leader"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint === "library-due") {
+          result = {
+            tables: [
+              {
+                caption: "Active Library Dues",
+                headers: ["Book ID", "Title", "Issue Date", "Due Date", "Fine Amount"],
+                rows: [
+                  ["BK-90123", "Introduction to Algorithms", "2026-06-10", "2026-06-25", "Rs. 0.00"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint === "ept-schedule") {
+          result = {
+            tables: [
+              {
+                caption: "English Proficiency Test Schedule",
+                headers: ["Date", "Time", "Venue", "Seat Number"],
+                rows: [
+                  ["2026-07-02", "10:00 AM", "Netaji Auditorium", "A-12"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint.includes("project")) {
+          result = {
+            tables: [
+              {
+                caption: "Academic Projects Summary",
+                headers: ["Project Title", "Guide Name", "Status", "Review 1 Marks", "Review 2 Marks"],
+                rows: [
+                  ["AmazeCC Developer Portal", "Dr. K. Srinivasan", "In Progress", "18/20", "19/20"]
+                ]
+              }
+            ]
+          };
+        } else {
+          result = {
+            tables: [
+              {
+                caption: "Information Summary",
+                headers: ["Item", "Details", "Remarks"],
+                rows: [
+                  ["Demo Mode Record", "Active", "No records found on VTOP server."]
+                ]
+              }
+            ]
+          };
+        }
+        setData(result);
+        return;
+      }
+
       const body: Record<string, any> = { cookies, authorizedID, csrf, ...(extraParams || {}) };
       if (semesterId) body.semesterId = semesterId;
       const res = await fetch(`${API_BASE}/api/${endpoint}`, {
