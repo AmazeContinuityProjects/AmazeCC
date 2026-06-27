@@ -462,9 +462,6 @@ export default function DashboardContent({
   return (
     <div
       className="w-full max-w-md md:max-w-full mx-auto overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       <NavigationTabs
         activeTab={activeTab}
@@ -526,7 +523,7 @@ export default function DashboardContent({
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10  dark:bg-blue-500/5 blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
-        <div className={`md:hidden ${activeTab === "home" ? "hidden" : ""} ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
+        <div className="hidden">
           <div className="px-6 pt-6 pb-2 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />

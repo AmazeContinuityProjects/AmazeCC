@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import Modal from "../shared/Modal";
 import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";
+import { useIsMobile } from "../shared";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
@@ -30,6 +31,7 @@ const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   )
 });
 export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
+  const isMobile = useIsMobile();
   const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
@@ -441,13 +443,13 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
       />
 
       {/* Rich Weekday Selector */}
-      <div className="mb-6 w-full overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none">
+      <div className={`mb-6 w-full ${isMobile ? "" : "overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none"}`}>
         {(() => {
           const isAnyDaySelected = weekDaysInfo.some((info) => activeDay === info.dayName);
 
           return (
             <div
-              className={`flex min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl border overflow-hidden bg-white  dark:bg-black transition-all duration-300 ${
+              className={`flex w-full min-w-0 ${isMobile ? "h-[90px] rounded-xl" : "min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl"} border overflow-hidden bg-white  dark:bg-black transition-all duration-300 ${
                 isAnyDaySelected
                   ? "border-blue-600 dark:border-blue-500 ring-2 ring-blue-500/15 shadow-md"
                   : "border-gray-250 dark:border-gray-850 shadow-sm"
@@ -489,7 +491,15 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                     : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30";
                 }
 
-                const todayBorder = info.isToday && !isSelected ? "border-t-[3px] border-t-blue-550 dark:border-t-blue-500" : "";
+                let mobileBadgeLabel = badgeLabel;
+                if (badgeLabel === "Free Day") mobileBadgeLabel = "Free";
+                else if (badgeLabel === "Weekend") mobileBadgeLabel = "Wknd";
+                else if (badgeLabel === "Holiday") mobileBadgeLabel = "Hldy";
+                else if (badgeLabel.includes("Class")) {
+                  mobileBadgeLabel = `${details.classesCount} Cls`;
+                }
+
+                const todayBorder = info.isToday && !isSelected ? (isMobile ? "border-t-2 border-t-blue-500" : "border-t-[3px] border-t-blue-550 dark:border-t-blue-500") : "";
                 const isNextSelected = (idx < weekDaysInfo.length - 1) && (activeDay === weekDaysInfo[idx + 1].dayName);
                 const dividerClass = (isSelected || isNextSelected || idx === weekDaysInfo.length - 1)
                   ? "border-r border-transparent"
@@ -499,29 +509,29 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                   <button
                     key={info.dayName}
                     onClick={() => setActiveDay(info.dayName)}
-                    className={`w-1/7 flex-1 h-full flex flex-col items-center justify-between p-2.5 text-center transition-all duration-300 cursor-pointer select-none focus:outline-none ${
+                    className={`w-1/7 flex-1 h-full flex flex-col items-center justify-between ${isMobile ? "py-1.5 px-0.5" : "p-2.5"} text-center transition-all duration-300 cursor-pointer select-none focus:outline-none ${
                       isSelected
                         ? "bg-blue-600 text-white"
                         : "hover:bg-gray-50/50 dark:hover:bg-slate-800/30 hover:text-blue-500 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
                     } ${todayBorder} ${dividerClass}`}
                   >
                     <div className="flex flex-col items-center w-full">
-                      <span className={`text-[9px] tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}>
-                        {info.dayName}
-                        {info.isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
+                      <span className={`${isMobile ? "text-[8px]" : "text-[9px]"} tracking-wider uppercase flex items-center justify-center gap-1 ${dayStyle}`}>
+                        {isMobile ? info.dayName.slice(0, 3) : info.dayName}
+                        {info.isToday && !isSelected && <span className="w-1 h-1 rounded-full bg-blue-605 dark:bg-blue-400" />}
                         {!details.isHoliday && !details.isWeekend && dayHasCriticalCourse(info.dayName) && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-550 animate-pulse" title="Critical attendance subject today" />
+                          <span className="w-1 h-1 rounded-full bg-red-550 animate-pulse" title="Critical attendance subject today" />
                         )}
                       </span>
 
-                      <div className="flex flex-col items-center mt-1">
-                        <span className={`text-xl sm:text-2xl leading-none ${numStyle}`}>{dayNum}</span>
-                        <span className={`text-[8px] tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
+                      <div className="flex flex-col items-center mt-0.5 sm:mt-1">
+                        <span className={`${isMobile ? "text-base" : "text-xl sm:text-2xl"} leading-none ${numStyle}`}>{dayNum}</span>
+                        <span className={`${isMobile ? "text-[6px]" : "text-[8px]"} tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
                       </div>
                     </div>
-                    <div className="w-full flex justify-center mt-1.5">
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border ${badgeClass}`}>
-                        {badgeLabel}
+                    <div className="w-full flex justify-center mt-1 sm:mt-1.5">
+                      <span className={`${isMobile ? "text-[7px]" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                        {isMobile ? mobileBadgeLabel : badgeLabel}
                       </span>
                     </div>
                   </button>
