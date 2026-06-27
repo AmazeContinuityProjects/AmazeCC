@@ -442,7 +442,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                     <div className="lg:col-span-6 w-full">
                         <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                             <div className="p-5 border-b border-gray-100  dark:border-gray-800">
-                                <h2 className="text-lg font-bold text-gray-900  dark:text-gray-105">Interactive Predictor</h2>
+                                <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">Interactive Predictor</h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                             </div>
                             <div className="p-5 space-y-6 divide-y divide-gray-100  dark:divide-gray-800/80">
@@ -485,7 +485,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                         <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-105 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
                                         Attendance Log
                                         {missingNotesCount > 0 && (
                                             <Badge variant="danger" className="bg-red-100 text-red-600   dark:bg-red-900/30 dark:text-red-400 font-bold">
@@ -514,7 +514,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         <button
                                             key={f}
                                             onClick={() => setFilter(f)}
-                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-105 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-100 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
                                         >
                                             {f}
                                         </button>

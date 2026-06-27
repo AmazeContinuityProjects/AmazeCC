@@ -840,7 +840,7 @@ export default function ProfilePage({
                           photo: p.photoBase64,
                           details: p.details || {}
                         })) || [])].map((person, idx) => (
-                          <div key={idx} className="bg-gray-105/50 dark:bg-slate-800/10 p-4 rounded-xl border border-gray-150 dark:border-gray-800/60 flex items-start gap-4">
+                          <div key={idx} className="bg-gray-100/50 dark:bg-slate-800/10 p-4 rounded-xl border border-gray-150 dark:border-gray-800/60 flex items-start gap-4">
                             {person.photo ? (
                               <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
                             ) : (

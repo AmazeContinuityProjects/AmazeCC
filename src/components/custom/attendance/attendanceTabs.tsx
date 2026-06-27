@@ -481,7 +481,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                   badgeLabel = "Weekend";
                   badgeClass = isSelected
                     ? "bg-white/20 border-white/20 text-white"
-                    : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-455 border-gray-105 dark:border-slate-700/50";
+                    : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-455 border-gray-100 dark:border-slate-700/50";
                 } else if (details.classesCount > 0) {
                   badgeLabel = `${details.classesCount} Class${details.classesCount > 1 ? "es" : ""}`;
                   badgeClass = isSelected
@@ -654,7 +654,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                                 </span>
                               )}
                             </div>
-                            <h4 className="mt-1 text-sm font-bold text-gray-900  dark:text-gray-105 leading-snug truncate">
+                            <h4 className="mt-1 text-sm font-bold text-gray-900  dark:text-gray-100 leading-snug truncate">
                               {a.courseTitle}
                             </h4>
                             <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold">
