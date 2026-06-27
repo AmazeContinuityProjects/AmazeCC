@@ -126,6 +126,7 @@ export default function NavigationTabs({
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
   const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
   const [librarySearchQuery, setLibrarySearchQuery] = useState("");
+  const [mobilePanel, setMobilePanel] = useState<"primary" | "academics" | "hostel">("primary");
 
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
@@ -596,76 +597,105 @@ export default function NavigationTabs({
   ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
   const renderMobileNav = () => {
-    const libraryGroups = [
+    const allSearchableItems = [
+      { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+      { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+      
+      { label: "Academics Overview", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
+      { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
+      { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
+      { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
+      { label: "CGPA Predictor", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("predictor"); } },
+      { label: "Faculty Explorer", group: "Academics", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } },
+      { label: "Question Bank", group: "Academics", icon: Library, action: () => { selectTab("academics"); setActiveSubTab("qbank"); } },
+      { label: "Arrear Management", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("arrear"); } },
+      { label: "Makeup & Compre", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("makeup-compre"); } },
+      { label: "Course Options", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-mgmt"); } },
+      { label: "Projects", group: "Academics", icon: LayoutGrid, action: () => { selectTab("academics"); setActiveSubTab("projects"); } },
+      { label: "Wishlist", group: "Academics", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } },
+      { label: "QCM Feedback", group: "Academics", icon: Library, action: () => { selectTab("academics"); setActiveSubTab("qcm-view"); } },
+      
+      { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
+      { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
+      { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
+      { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
+      { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
+      { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
+      
+      { label: "Bus Finder", group: "Campus", icon: Bus, action: () => { selectTab("dayscholar"); } },
+      { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
+      { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
+      
+      { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+      { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+      { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+      
+      { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+      { label: "Preferences", group: "Account", icon: Settings, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+      { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+      { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
+    ];
+
+    // Primary mobile structure mirroring desktop groups
+    const primaryGroups = [
       {
         name: "Study",
         items: [
-          { label: "Attendance", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
-          { label: "Academics Hub", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
-          { label: "Course Dashboard", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
-          { label: "Timetable", icon: Calendar, action: () => { selectTab("academics"); setActiveSubTab("timetable"); } },
-          { label: "Grade History", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
-          { label: "GPA Predictor", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("gpa"); } },
-          { label: "Question Bank", icon: Library, action: () => { selectTab("more"); setActiveMoreSubTab("qbank"); } },
-          { label: "Faculty Explorer", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } }
+          { label: "Attendance", icon: CalendarCheck, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+          { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+          { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
         ]
       },
       {
         name: "Campus",
         items: [
-          { label: "Hostel Overview", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
-          { label: "Mess Menu", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
-          { label: "Laundry", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
-          { label: "Leave", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
-          { label: "Counselling", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
-          { label: "Bus Finder", icon: Bus, action: () => { selectTab("dayscholar"); } },
-          { label: "Payments", icon: CreditCard, action: () => { selectTab("payments"); } },
-          { label: "Libraries", icon: Library, action: () => { selectTab("libraries"); } }
+          { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
+          { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
+          ...(isHosteller === true || residentialStatus === "hosteller" 
+            ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
+            : [{ label: "Bus Finder", icon: Bus, type: "link", action: () => selectTab("dayscholar") }])
         ]
       },
       {
-        name: "Planning",
+        name: "Tools",
         items: [
-          { label: "FFCS Planner", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-          { label: "Wishlist", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } }
-        ]
-      },
-      {
-        name: "Community",
-        items: [
-          { label: "Social Feed", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
-          { label: "Event Hub", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } }
+          { label: "Social", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+          { label: "FFCS Planner", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+          { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } }
         ]
       },
       {
         name: "Account",
         items: [
-          { label: "My Info", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-          { label: "Preferences", icon: Settings, action: () => { selectTab("profile"); setActiveProfileSubTab("preferences"); } },
-          { label: "Settings", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
-          { label: "Logout", icon: Lock, action: () => { handleLogOutRequest(); } }
+          { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+          { label: "Preferences", icon: Settings, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+          { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+          { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
         ]
       }
     ];
 
+    const academicsItemsMobile = allSearchableItems.filter(item => item.group === "Academics");
+    const hostelItemsMobile = allSearchableItems.filter(item => item.group === "Hostel");
+
     // Filter items based on search query
-    const filteredGroups = libraryGroups.map(group => {
-      const matched = group.items.filter(item => 
-        item.label.toLowerCase().includes(librarySearchQuery.toLowerCase())
-      );
-      return { ...group, items: matched };
-    }).filter(group => group.items.length > 0);
+    const filteredSearchItems = librarySearchQuery
+      ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
+      : [];
 
     return (
       <>
         {/* Floating Action Capsule (FAC) */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50] flex items-center bg-gray-900/90 dark:bg-gray-950/90 backdrop-blur-lg border border-white/10 px-3 py-2 rounded-full shadow-2xl md:hidden gap-1 max-w-[90vw]">
+        <div
+          className="fixed left-1/2 z-[50] flex w-[min(24rem,calc(100vw-1.5rem))] -translate-x-1/2 items-center justify-between gap-1 rounded-[1.75rem] border border-white/10 bg-gray-950/92 px-2 py-2 shadow-[0_18px_50px_rgba(15,23,42,0.35)] backdrop-blur-xl md:hidden dark:bg-black/92"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        >
           <button
             onClick={() => {
               setIsAppLibraryOpen(false);
               selectTab("home");
             }}
-            className={`flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold transition-all min-h-[44px] ${
+            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               activeTab === "home" && !isAppLibraryOpen 
                 ? "text-blue-400 bg-white/10 scale-105" 
                 : "text-gray-400 hover:text-white"
@@ -677,15 +707,18 @@ export default function NavigationTabs({
           
           <button
             onClick={openCommandPalette}
-            className="flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold text-gray-400 hover:text-white min-h-[44px]"
+            className="flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold text-gray-400 transition-all hover:bg-white/5 hover:text-white"
           >
             <Search className="h-5 w-5 stroke-[2]" />
             <span className="mt-0.5">Search</span>
           </button>
 
           <button
-            onClick={() => setIsAppLibraryOpen(prev => !prev)}
-            className={`flex flex-col items-center justify-center rounded-full px-5 py-2.5 text-[10px] font-bold transition-all min-h-[44px] ${
+            onClick={() => {
+              setMobilePanel("primary");
+              setIsAppLibraryOpen(prev => !prev);
+            }}
+            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               isAppLibraryOpen 
                 ? "text-blue-400 bg-white/10 scale-105" 
                 : activeTab !== "home"
@@ -706,14 +739,29 @@ export default function NavigationTabs({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-gray-50/98 dark:bg-black/98 backdrop-blur-xl flex flex-col md:hidden overflow-hidden"
+              className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-gray-50/98 backdrop-blur-xl md:hidden dark:bg-black/98"
               style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
               {/* Drawer Header */}
-              <div className="px-6 pt-6 pb-4 border-b border-gray-200/50 dark:border-gray-800/50 flex items-center justify-between">
+              <div className="shrink-0 border-b border-gray-200/50 px-5 pb-4 pt-5 dark:border-gray-800/50">
+                <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">App Library</h2>
-                  <p className="text-xs text-gray-500 font-semibold mt-0.5">Select a module to open</p>
+                  <div className="flex items-center gap-2">
+                    {mobilePanel !== "primary" && (
+                      <button
+                        onClick={() => setMobilePanel("primary")}
+                        className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 text-blue-500 font-bold flex items-center gap-1 -ml-1 text-xs"
+                      >
+                        <ArrowLeft className="w-4 h-4" /> Back
+                      </button>
+                    )}
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                      {mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-gray-500 font-semibold mt-0.5">
+                    {mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -724,41 +772,45 @@ export default function NavigationTabs({
                 >
                   <X className="w-5 h-5" />
                 </button>
-              </div>
-
-              {/* Drawer Search */}
-              <div className="px-6 py-3 border-b border-gray-200/20 dark:border-gray-800/20">
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/80">
-                  <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Search modules..."
-                    value={librarySearchQuery}
-                    onChange={(e) => setLibrarySearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                  />
-                  {librarySearchQuery && (
-                    <button onClick={() => setLibrarySearchQuery("")} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600">
-                      Clear
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Drawer Grid Modules */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 pb-32">
-                {filteredGroups.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
+              {/* Drawer Search (Hidden inside sub-panels for clean UI, shown on primary) */}
+              {mobilePanel === "primary" && (
+                <div className="shrink-0 border-b border-gray-200/20 px-5 py-3 dark:border-gray-800/20">
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/80">
+                    <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Search modules..."
+                      value={librarySearchQuery}
+                      onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    />
+                    {librarySearchQuery && (
+                      <button onClick={() => setLibrarySearchQuery("")} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600">
+                        Clear
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  filteredGroups.map(group => (
-                    <div key={group.name} className="space-y-2">
+                </div>
+              )}
+
+              {/* Drawer Grid Modules */}
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4 pb-6">
+                {librarySearchQuery ? (
+                  // Flat search matches
+                  filteredSearchItems.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
                       <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
-                        {group.name}
+                        Search Results
                       </h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {group.items.map(item => {
+                      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                        {filteredSearchItems.map(item => {
                           const Icon = item.icon;
                           return (
                             <button
@@ -768,7 +820,7 @@ export default function NavigationTabs({
                                 setIsAppLibraryOpen(false);
                                 setLibrarySearchQuery("");
                               }}
-                              className="flex items-center gap-3 p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 text-left active:scale-[0.98] transition-all min-h-[48px]"
+                              className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
                             >
                               <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shrink-0">
                                 <Icon className="h-4.5 w-4.5 stroke-[2]" />
@@ -781,9 +833,127 @@ export default function NavigationTabs({
                         })}
                       </div>
                     </div>
+                  )
+                ) : mobilePanel === "primary" ? (
+                  // Primary Groups (Study, Campus, Tools, Account)
+                  primaryGroups.map(group => (
+                    <div key={group.name} className="space-y-2">
+                      <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
+                        {group.name}
+                      </h3>
+                      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                        {group.items.map(item => {
+                          const Icon = item.icon;
+                          const isPanelTrigger = item.type === "panel";
+                          return (
+                            <button
+                              key={item.label}
+                              onClick={() => {
+                                item.action();
+                                if (!isPanelTrigger) {
+                                  setIsAppLibraryOpen(false);
+                                }
+                              }}
+                              className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                  <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                                </div>
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight truncate">
+                                  {item.label}
+                                </span>
+                              </div>
+                              {isPanelTrigger && (
+                                <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ))
+                ) : mobilePanel === "academics" ? (
+                  // Academics Sub-Pages
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                      {academicsItemsMobile.map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.label}
+                            onClick={() => {
+                              item.action();
+                              setIsAppLibraryOpen(false);
+                            }}
+                            className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                          >
+                            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 shrink-0">
+                              <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
+                              {item.label.replace("Academics ", "")}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  // Hostel Sub-Pages
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                      {hostelItemsMobile.map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.label}
+                            onClick={() => {
+                              item.action();
+                              setIsAppLibraryOpen(false);
+                            }}
+                            className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                          >
+                            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
+                              <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                            </div>
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
+                              {item.label.replace("Hostel ", "")}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {/* Mobile Theme Switcher */}
+              <div
+                className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+              >
+                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-0.5">Interface Theme</h4>
+                <div className="flex bg-gray-200/50 dark:bg-gray-900/50 p-1 rounded-xl w-full border border-gray-200/20 dark:border-gray-800/50">
+                  {["light", "dark", "system"].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => handleThemeChange(t)}
+                      className={`flex-1 py-2 text-xs font-black rounded-lg transition-all capitalize flex items-center justify-center gap-1.5 min-h-[36px] ${
+                        theme === t 
+                          ? "bg-white dark:bg-black text-blue-500 shadow-xs" 
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white"
+                      }`}
+                    >
+                      {t === "light" && <Sun className="w-3.5 h-3.5" />}
+                      {t === "dark" && <Moon className="w-3.5 h-3.5" />}
+                      {t === "system" && <Settings className="w-3.5 h-3.5" />}
+                      <span>{t}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </motion.div>
           )}
         </AnimatePresence>

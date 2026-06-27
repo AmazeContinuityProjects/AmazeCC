@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Search, ArrowRight, Command, Sparkles, ArrowLeft, X } from "lucide-react";
+import { Search, ArrowRight, Command, Sparkles, ArrowLeft, X, Clock, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface CommandItem {
@@ -32,6 +32,27 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === q.length;
 }
 
+function scoreCommand(cmd: CommandItem, query: string): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return 1;
+
+  const label = cmd.label.toLowerCase();
+  const description = (cmd.description || "").toLowerCase();
+  const category = (cmd.category || "").toLowerCase();
+  const haystack = `${label} ${description} ${category}`;
+
+  if (label === q) return 100;
+  if (label.startsWith(q)) return 90;
+  if (label.includes(q)) return 75;
+  if (description.includes(q)) return 55;
+  if (category.includes(q)) return 45;
+  if (fuzzyMatch(haystack, q)) return 25;
+  return 0;
+}
+
+const RECENT_COMMANDS_KEY = "amazecc_recent_commands";
+const MAX_RECENT_COMMANDS = 6;
+
 const categoryGradients: Record<string, string> = {
   Navigation: "from-blue-500 to-purple-500",
   Academics: "from-emerald-500 to-teal-500",
@@ -50,23 +71,57 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subpage, setSubpage] = useState<React.ReactNode | null>(null);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
+  const [selectionSource, setSelectionSource] = useState<"keyboard" | "pointer">("keyboard");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const subpageInputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const onQueryChangeRef = useRef(onQueryChange);
   const ignoreMouse = useRef(false);
   const mousePos = useRef({ x: 0, y: 0 });
   onQueryChangeRef.current = onQueryChange;
 
+  const categories = useMemo(() => {
+    const commandCategories = Array.from(new Set(commands.map(cmd => cmd.category || "General")));
+    return ["All", "Recent", ...commandCategories].filter((category, index, all) => {
+      if (category === "Recent") return recentCommandIds.length > 0;
+      return all.indexOf(category) === index;
+    });
+  }, [commands, recentCommandIds.length]);
+
+  const recentCommands = useMemo(() => {
+    const byId = new Map(commands.map(cmd => [cmd.id, cmd]));
+    return recentCommandIds
+      .map(id => byId.get(id))
+      .filter(Boolean)
+      .map(cmd => ({
+        ...cmd!,
+        id: `recent-${cmd!.id}`,
+        category: "Recent",
+      }));
+  }, [commands, recentCommandIds]);
+
   const results = useMemo(() => {
-    if (!query.trim()) return commands;
-    return commands.filter(
-      (cmd) =>
-        fuzzyMatch(cmd.label, query) ||
-        fuzzyMatch(cmd.description || "", query) ||
-        fuzzyMatch(cmd.category || "", query)
-    );
-  }, [query, commands]);
+    const q = query.trim();
+    const baseCommands = !q && activeCategory === "All"
+      ? [...recentCommands, ...commands.filter(cmd => !recentCommandIds.includes(cmd.id))]
+      : activeCategory === "Recent"
+        ? recentCommands
+        : commands;
+
+    const categoryFiltered = activeCategory === "All" || activeCategory === "Recent"
+      ? baseCommands
+      : baseCommands.filter(cmd => (cmd.category || "General") === activeCategory);
+
+    if (!q) return categoryFiltered;
+
+    return categoryFiltered
+      .map(cmd => ({ cmd, score: scoreCommand(cmd, q) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.cmd.label.localeCompare(b.cmd.label))
+      .map(item => item.cmd);
+  }, [query, activeCategory, commands, recentCommands, recentCommandIds]);
 
   const safeIndex = Math.min(selectedIndex, results.length - 1);
   const hasDetail = results[safeIndex]?.detail;
@@ -76,19 +131,31 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
       setQuery("");
       setSelectedIndex(0);
       setSubpage(null);
+      setActiveCategory("All");
+      setSelectionSource("keyboard");
+      try {
+        const stored = localStorage.getItem(RECENT_COMMANDS_KEY);
+        setRecentCommandIds(stored ? JSON.parse(stored) : []);
+      } catch {
+        setRecentCommandIds([]);
+      }
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (subpage) {
-      setTimeout(() => subpageInputRef.current?.focus(), 50);
-    }
-  }, [subpage]);
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query, commands]);
+    setSelectionSource("keyboard");
+  }, [query, activeCategory, commands]);
 
   useEffect(() => {
     onQueryChangeRef.current?.(query);
@@ -98,6 +165,22 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
     setSubpage(null);
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
+
+  const rememberCommand = useCallback((cmd: CommandItem) => {
+    const id = cmd.id.startsWith("recent-") ? cmd.id.slice("recent-".length) : cmd.id;
+    setRecentCommandIds(prev => {
+      const next = [id, ...prev.filter(item => item !== id)].slice(0, MAX_RECENT_COMMANDS);
+      try {
+        localStorage.setItem(RECENT_COMMANDS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const executeCommand = useCallback((cmd: CommandItem) => {
+    rememberCommand(cmd);
+    cmd.onSelect();
+  }, [rememberCommand]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -109,28 +192,38 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
         return;
       }
       const len = results.length;
-      if (e.key === "ArrowDown") { e.preventDefault(); ignoreMouse.current = true; setSelectedIndex((prev) => (prev + 1) % len); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); ignoreMouse.current = true; setSelectedIndex((prev) => (prev - 1 + len) % len); }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (len === 0) return;
+        setSelectionSource("keyboard");
+        setSelectedIndex((prev) => (prev + 1) % len);
+      }
+      else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (len === 0) return;
+        setSelectionSource("keyboard");
+        setSelectedIndex((prev) => (prev - 1 + len) % len);
+      }
       else if (e.key === "Enter" && results[safeIndex]) {
         e.preventDefault();
         const cmd = results[safeIndex];
         if (cmd.subpage) {
           setSubpage(cmd.subpage);
         } else {
-          cmd.onSelect();
+          executeCommand(cmd);
           onClose();
         }
       } else if (e.key === "Escape") { onClose(); }
     },
-    [results, safeIndex, onClose, subpage, goBack]
+    [executeCommand, results, safeIndex, onClose, subpage, goBack]
   );
 
   useEffect(() => {
-    const container = listRef.current;
-    if (!container) return;
-    const selectedEl = container.querySelector('[data-selected="true"]') as HTMLElement | null;
-    selectedEl?.scrollIntoView({ block: "nearest" });
-  }, [safeIndex]);
+    if (selectionSource !== "keyboard" || safeIndex < 0) return;
+    const cmd = results[safeIndex];
+    const el = cmd ? itemRefs.current[cmd.id] : null;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [safeIndex, results, selectionSource]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -156,12 +249,13 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
   const handleItemClick = useCallback((cmd: CommandItem) => {
     if (cmd.subpage) {
+      rememberCommand(cmd);
       setSubpage(cmd.subpage);
     } else {
-      cmd.onSelect();
+      executeCommand(cmd);
       onClose();
     }
-  }, [onClose]);
+  }, [executeCommand, onClose, rememberCommand]);
 
   const grouped = useMemo(() => results.reduce<Record<string, CommandItem[]>>((acc, cmd) => {
     const cat = cmd.category || "General";
@@ -173,10 +267,13 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] md:pt-[12vh]" onClick={subpage ? undefined : onClose}>
-      <div className="fixed inset-0 bg-black/60 " />
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center p-0 md:items-start md:px-4 md:pt-[10vh]"
+      onClick={subpage ? undefined : onClose}
+    >
+      <div className="fixed inset-0 bg-black/55 backdrop-blur-sm" />
       <div
-        className="relative w-[95vw] max-w-2xl animate-scale-in overflow-hidden rounded-2xl border border-white/20  dark:border-white/5 shadow-2xl shadow-black/20"
+        className="relative flex h-[calc(100dvh-env(safe-area-inset-top,0px))] w-full animate-scale-in overflow-hidden rounded-t-3xl border border-white/20 shadow-2xl shadow-black/20 md:h-auto md:max-h-[78vh] md:max-w-3xl md:rounded-2xl dark:border-white/5"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -185,11 +282,11 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
         <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-purple-500/20 blur-[100px] pointer-events-none" />
 
         {/* Glass container */}
-        <div className="relative bg-white/80  dark:bg-gray-950/90 ">
+        <div className="relative flex min-h-0 w-full flex-col bg-white/95 dark:bg-gray-950/95">
           {subpage ? (
             /* ── Subpage view ── */
-            <div className="flex flex-col max-h-[70vh]">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200/60  dark:border-gray-800/30">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex items-center gap-2 border-b border-gray-200/60 px-4 py-3 dark:border-gray-800/30">
                 <button
                   onClick={goBack}
                   className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-900 text-gray-500  dark:text-gray-400 transition-colors"
@@ -207,14 +304,15 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 {subpage}
               </div>
             </div>
           ) : (
             <>
               {/* Search bar */}
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-200/60  dark:border-gray-800/30">
+              <div className="shrink-0 border-b border-gray-200/60 px-4 py-4 dark:border-gray-800/30 md:px-5">
+                <div className="flex items-center gap-3">
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                   <Search className="w-5 h-5 text-blue-600  dark:text-blue-400" />
                 </div>
@@ -224,15 +322,51 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search commands, courses, grades..."
-                  className="flex-1 bg-transparent text-base text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 outline-none"
+                  className="min-w-0 flex-1 bg-transparent text-base text-gray-900 outline-none placeholder-gray-400 dark:text-gray-100 dark:placeholder-gray-500"
                 />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-200"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
                 <kbd className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-900 rounded-lg border border-gray-200  dark:border-gray-800">
                   <Command className="w-3 h-3" />K
                 </kbd>
+                <button
+                  onClick={onClose}
+                  className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-900 dark:hover:text-gray-200"
+                  aria-label="Close search"
+                  title="Close search"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                </div>
+
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={cn(
+                        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition-colors",
+                        activeCategory === category
+                          ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300"
+                          : "border-gray-200 bg-white text-gray-500 hover:text-gray-800 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400 dark:hover:text-gray-200"
+                      )}
+                    >
+                      {category === "Recent" ? <Clock className="h-3.5 w-3.5" /> : category === "All" ? <SlidersHorizontal className="h-3.5 w-3.5" /> : null}
+                      {category}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Results */}
-              <div ref={listRef} className="max-h-80 overflow-y-auto p-2 space-y-0.5 scroll-smooth">
+              <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 scroll-smooth md:max-h-[22rem]">
                 {results.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
                     <div className="p-3 rounded-2xl bg-gray-100  dark:bg-gray-900 mb-3">
@@ -242,10 +376,10 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                     <p className="text-xs text-gray-400  dark:text-gray-500 mt-1">Try a different search term</p>
                   </div>
                 ) : (
-                  Object.entries(grouped).map(([category, items], catIdx) => (
+                  Object.entries(grouped).map(([category, items]) => (
                     <div key={category}>
                       {Object.keys(grouped).length > 1 && (
-                        <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+                        <div className="sticky top-0 z-10 flex items-center gap-2 bg-white/95 px-3 pb-1.5 pt-3 backdrop-blur dark:bg-gray-950/95">
                           <div className={`h-1.5 w-1.5 rounded-full bg-gradient-to-br ${categoryGradients[category] || "from-gray-400 to-gray-500"}`} />
                           <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-widest">{category}</p>
                           <div className="flex-1 h-px bg-gradient-to-r from-gray-200/60 to-transparent  dark:from-gray-800/30" />
@@ -256,16 +390,20 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                         return (
                           <button
                             key={cmd.id}
-                            onClick={() => handleItemClick(cmd)}
-                            onMouseEnter={() => {
-                              if (!ignoreMouse.current) setSelectedIndex(globalIdx);
+                            ref={(node) => {
+                              itemRefs.current[cmd.id] = node;
                             }}
-                            data-selected={globalIdx === safeIndex}
+                            onClick={() => handleItemClick(cmd)}
+                            onPointerEnter={(event) => {
+                              if (event.pointerType === "touch") return;
+                              setSelectionSource("pointer");
+                              setSelectedIndex(globalIdx);
+                            }}
                             className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150",
+                              "flex w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-150 md:py-2.5",
                               globalIdx === safeIndex
-                                ? "bg-gradient-to-r from-blue-50 to-purple-50   dark:from-blue-900/20 dark:to-purple-900/10 text-gray-900  dark:text-gray-100 shadow-sm"
-                                : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
+                                ? "bg-blue-50 text-gray-900 shadow-sm ring-1 ring-blue-100 dark:bg-blue-950/30 dark:text-gray-100 dark:ring-blue-900/40"
+                                : "text-gray-700 hover:bg-gray-50/80 dark:text-gray-300 dark:hover:bg-gray-800/40"
                             )}
                           >
                             {cmd.icon && (
@@ -317,14 +455,14 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
               {/* Detail panel */}
               {hasDetail && (
-                <div className="relative border-t border-gray-200/60  dark:border-gray-800/30 p-3 max-h-52 overflow-y-auto bg-gray-50/50  dark:bg-gray-950/30">
+                <div className="relative hidden max-h-52 shrink-0 overflow-y-auto border-t border-gray-200/60 bg-gray-50/50 p-3 md:block dark:border-gray-800/30 dark:bg-gray-950/30">
                   <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-transparent" />
                   {results[safeIndex].detail}
                 </div>
               )}
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-5 py-2.5 border-t border-gray-200/60  dark:border-gray-800/30 text-[11px] text-gray-400  dark:text-gray-500">
+              <div className="hidden shrink-0 items-center justify-between border-t border-gray-200/60 px-5 py-2.5 text-[11px] text-gray-400 md:flex dark:border-gray-800/30 dark:text-gray-500">
                 <span className="flex items-center gap-1">
                   <ArrowRight className="w-3 h-3" /> <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">Enter</kbd> select
                 </span>

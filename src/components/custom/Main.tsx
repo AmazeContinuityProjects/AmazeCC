@@ -15,6 +15,7 @@ import { CommandPalette } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
+import { useTheme } from "next-themes";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
@@ -97,6 +98,7 @@ const defaultIDs: IDs = {
 }
 
 export default function LoginPage() {
+  const { theme, setTheme } = useTheme();
   // --- State Management ---
   const [IDs, setIDs] = useState<IDs>(defaultIDs);
   const [message, setMessage] = useState<string>("");
@@ -1228,13 +1230,13 @@ export default function LoginPage() {
     result.push(
       { id: "acad-marks", label: "Marks Overview", description: "Course marks & assessments overview", icon: "📊", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); } },
       { id: "acad-curriculum", label: "Curriculum", description: "Course curriculum & structure", icon: "📜", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("curriculum"); } },
-      { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("timetable"); } },
+      { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },
-      { id: "acad-gpa-predictor", label: "GPA Predictor", description: "Predict your GPA for this semester", icon: "📈", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("gpa"); } },
+      { id: "acad-gpa-predictor", label: "GPA Predictor", description: "Predict your GPA for this semester", icon: "📈", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("predictor"); } },
       { id: "acad-course-dashboard", label: "Course Dashboard", description: "Detailed per-course view", icon: "📘", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
-      { id: "acad-circulars", label: "Academic Circulars", description: "View academic circulars & notices", icon: "📢", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("circulars"); } },
-      { id: "acad-faculty", label: "Faculty Info", description: "Faculty contact & information", icon: "👨‍🏫", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("faculty"); } },
-      { id: "acad-qcm", label: "QCM View", description: "Question category mapping view", icon: "📝", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qcm"); } },
+      { id: "acad-circulars", label: "Academic Circulars", description: "View academic circulars & notices", icon: "📢", category: "Academics", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
+      { id: "acad-faculty", label: "Faculty Info", description: "Faculty contact & information", icon: "👨‍🏫", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("faculty-info"); } },
+      { id: "acad-qcm", label: "QCM View", description: "Question category mapping view", icon: "📝", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qcm-view"); } },
       { id: "acad-arrear", label: "Arrear Exams", description: "View arrear examination details", icon: "🔄", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("arrear"); } },
       { id: "acad-makeup-compre", label: "Makeup Compre", description: "Makeup comprehensive exam info", icon: "📋", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("makeup-compre"); } },
       { id: "acad-course-mgmt", label: "Course Management", description: "Manage course registrations", icon: "⚙️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-mgmt"); } },
@@ -1255,18 +1257,18 @@ export default function LoginPage() {
       { id: "hostel-counselling", label: "Hostel Counselling", description: "Hostel counselling sessions", icon: "🤝", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("counselling"); } },
       { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); } },
       { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("registration"); } },
-      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("qbank"); setActiveQBankSubTab("archive"); } },
-      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("qbank"); setActiveQBankSubTab("pure"); } },
+      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("archive"); } },
+      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("pure"); } },
       { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
       { id: "more-events", label: "Events Hub", description: "Registered events & activities", icon: "🎉", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); } },
-      { id: "more-schedules", label: "My Schedules", description: "Personal schedules & plans", icon: "🗓️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("schedules"); } },
+      { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("ffcs"); } },
     );
 
     // ── Tools & Modals ──
     result.push(
       { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
-      { id: "tool-gpa-predictor", label: "GPA Predictor Tool", description: "Calculate and predict your GPA", icon: "🔮", category: "Tools", onSelect: () => { setActiveTab("academics"); setActiveSubTab("gpa"); } },
+      { id: "tool-gpa-predictor", label: "GPA Predictor Tool", description: "Calculate and predict your GPA", icon: "🔮", category: "Tools", onSelect: () => { setActiveTab("academics"); setActiveSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
     );
@@ -1315,6 +1317,22 @@ export default function LoginPage() {
     toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
     toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
+
+    [
+      { id: "light", label: "Light", icon: "☀️" },
+      { id: "dark", label: "Dark", icon: "🌙" },
+      { id: "system", label: "System", icon: "💻" },
+    ].forEach(option => {
+      result.push({
+        id: `theme-${option.id}`,
+        label: `Theme: ${option.label}`,
+        description: theme === option.id ? "Currently active" : `Switch app theme to ${option.label.toLowerCase()}`,
+        icon: option.icon,
+        category: "Settings",
+        rightSlot: theme === option.id ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-900/20">Active</span> : undefined,
+        onSelect: () => setTheme(option.id),
+      });
+    });
 
     // ── Settings: Attendance Display Mode ──
     ["percentage", "str"].forEach(mode => {
@@ -1596,7 +1614,7 @@ export default function LoginPage() {
                 )}
               </div>
             ),
-            onSelect: () => { setActiveTab("academics"); setActiveSubTab("timetable"); }
+            onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); }
           });
         });
       });
@@ -2128,7 +2146,7 @@ export default function LoginPage() {
     setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab,
     setActiveDayscholarSubTab, setActiveMoreSubTab, setActiveQBankSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
-    ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest
+    ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
   ]);
 
   const mergedCommands = useMemo(() => {
@@ -2176,10 +2194,39 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50  dark:bg-black">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-transparent border-gray-500"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading app...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#03060F] transition-colors relative overflow-hidden">
+        {/* Style block for linear loading bar animation */}
+        <style>{`
+          @keyframes loaderBar {
+            0% { left: -35%; }
+            100% { left: 100%; }
+          }
+          .animate-loaderBar {
+            animation: loaderBar 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          }
+        `}</style>
+        
+        {/* Abstract background glow */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-purple-500/5 blur-[120px] rounded-full -z-10" />
+
+        <div className="flex flex-col items-center space-y-6 max-w-xs text-center z-10">
+          {/* Logo container */}
+          <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200/80 dark:border-neutral-800 shadow-2xl animate-pulse">
+            <img src="/logo.png" alt="AmazeCC Logo" className="w-14 h-14 object-contain" onError={(e) => {
+              (e.target as HTMLImageElement).src = "/images/icons/AmazeCC.png";
+            }} />
+            <div className="absolute -inset-1.5 rounded-[28px] border border-blue-500/20 animate-ping duration-3000 pointer-events-none" />
+          </div>
+          
+          <div className="space-y-2 pt-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</h2>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Student Operating System</p>
+          </div>
+
+          {/* Sleek Progress Bar */}
+          <div className="w-40 h-1 bg-slate-200 dark:bg-neutral-800 rounded-full overflow-hidden relative shadow-inner">
+            <div className="absolute top-0 bottom-0 left-0 w-[35%] bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-loaderBar" />
+          </div>
         </div>
       </div>
     );

@@ -176,6 +176,41 @@ export default function DashboardContent({
     }
   }, [allGradesData]);
 
+  useEffect(() => {
+    const academicAliases: Record<string, string> = {
+      gpa: "predictor",
+      faculty: "faculty-info",
+      qcm: "qcm-view",
+      timetable: "course-dashboard",
+    };
+
+    if (activeTab === "academics" && academicAliases[activeSubTab]) {
+      setActiveSubTab(academicAliases[activeSubTab]);
+    }
+
+    if (activeTab === "more" && activeMoreSubTab === "qbank") {
+      setActiveTab("academics");
+      setActiveSubTab("qbank");
+    }
+
+    if (activeTab === "hostel" && HostelActiveSubTab === "payment") {
+      setActiveTab("payments");
+    }
+
+    if (activeTab === "profile" && activeProfileSubTab === "preferences") {
+      setActiveProfileSubTab("settings");
+    }
+  }, [
+    activeTab,
+    activeSubTab,
+    activeMoreSubTab,
+    HostelActiveSubTab,
+    activeProfileSubTab,
+    setActiveSubTab,
+    setActiveTab,
+    setActiveProfileSubTab,
+  ]);
+
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
   const [transportData, setTransportData] = useState<any>(null);
   const [transportLoading, setTransportLoading] = useState(true);
@@ -691,12 +726,7 @@ export default function DashboardContent({
                 );
               })()}
 
-              <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>
-                <AttendanceSubTabs
-                  activeSubTab={activeAttendanceSubTab}
-                  setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                />
-              </div>
+
 
               {activeAttendanceSubTab === "attendance" && (
                 <>
@@ -791,12 +821,7 @@ export default function DashboardContent({
 
           {activeTab === "hostel" && (
             <div className="animate-fadeIn">
-              <div className="md:hidden">
-                <HostelSubTabs
-                  HostelActiveSubTab={HostelActiveSubTab}
-                  setHostelActiveSubTab={setHostelActiveSubTab}
-                />
-              </div>
+
               {HostelActiveSubTab === "overview" && (
                 <HostelOverview hostelData={hostelData} setHostelActiveSubTab={setHostelActiveSubTab} />
               )}
@@ -936,5 +961,4 @@ export default function DashboardContent({
     </div>
   );
 }
-
 
