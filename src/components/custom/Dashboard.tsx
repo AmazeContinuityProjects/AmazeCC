@@ -17,6 +17,8 @@ import AttendanceSubTabs from "./attendance/AttendanceSubsTabs";
 import CalendarView from "./attendance/CalendarView";
 import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
+import HostelOverview from "./Hostel/HostelOverview";
+import HostelCounsellingView from "./Hostel/HostelCounsellingView";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
 
@@ -766,13 +768,22 @@ export default function DashboardContent({
                   setHostelActiveSubTab={setHostelActiveSubTab}
                 />
               </div>
-              {HostelActiveSubTab === "mess" && <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
-              {HostelActiveSubTab === "laundry" && <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
-              {HostelActiveSubTab === "leave" && <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
+              {HostelActiveSubTab === "overview" && (
+                <HostelOverview hostelData={hostelData} setHostelActiveSubTab={setHostelActiveSubTab} />
+              )}
+              {HostelActiveSubTab === "mess" && (
+                <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+              )}
+              {HostelActiveSubTab === "laundry" && (
+                <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+              )}
+              {HostelActiveSubTab === "leave" && (
+                <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+              )}
               {HostelActiveSubTab === "counselling" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900  dark:text-gray-100">Hostel Counselling</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
                     <button
                       onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
                       className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
@@ -897,10 +908,4 @@ export default function DashboardContent({
   );
 }
 
-function HostelCounsellingView({ loginToVTOP, refreshKey }: { loginToVTOP: () => Promise<any>; refreshKey: number }) {
-  const [creds, setCreds] = useState<any>(null);
-  useEffect(() => { loginToVTOP().then(setCreds).catch(() => {}); }, [refreshKey]);
 
-  if (!creds) return <Skeleton className="h-32 w-full rounded-2xl" />;
-  return <GenericApiView endpoint="hostel-counselling" title="" creds={creds} refreshKey={refreshKey} />;
-}
