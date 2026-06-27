@@ -267,7 +267,7 @@ export default function DesktopCourseDetail({
             {/* Header info */}
             <div className="flex items-start justify-between gap-4 border-b border-gray-150  dark:border-gray-800/80 pb-3">
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-black font-[family-name:var(--font-outfit)] text-gray-900  dark:text-gray-105 leading-tight">
+                    <h2 className="text-xl font-black font-[family-name:var(--font-outfit)] text-gray-900  dark:text-gray-100 leading-tight">
                         {a.courseTitle}
                     </h2>
                     <p className="text-xs font-semibold text-gray-500  dark:text-gray-400 mt-1">
