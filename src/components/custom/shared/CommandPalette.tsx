@@ -54,6 +54,8 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
   const listRef = useRef<HTMLDivElement>(null);
   const subpageInputRef = useRef<HTMLInputElement>(null);
   const onQueryChangeRef = useRef(onQueryChange);
+  const ignoreMouse = useRef(false);
+  const mousePos = useRef({ x: 0, y: 0 });
   onQueryChangeRef.current = onQueryChange;
 
   const results = useMemo(() => {
@@ -107,8 +109,8 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
         return;
       }
       const len = results.length;
-      if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIndex((prev) => (prev + 1) % len); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIndex((prev) => (prev - 1 + len) % len); }
+      if (e.key === "ArrowDown") { e.preventDefault(); ignoreMouse.current = true; setSelectedIndex((prev) => (prev + 1) % len); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); ignoreMouse.current = true; setSelectedIndex((prev) => (prev - 1 + len) % len); }
       else if (e.key === "Enter" && results[safeIndex]) {
         e.preventDefault();
         const cmd = results[safeIndex];
@@ -124,8 +126,10 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
   );
 
   useEffect(() => {
-    const el = listRef.current?.children[safeIndex] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
+    const container = listRef.current;
+    if (!container) return;
+    const selectedEl = container.querySelector('[data-selected="true"]') as HTMLElement | null;
+    selectedEl?.scrollIntoView({ block: "nearest" });
   }, [safeIndex]);
 
   useEffect(() => {
@@ -134,8 +138,20 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
       if (e.key === "Escape" && !subpage) onClose();
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); onClose(); }
     };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (Math.abs(e.clientX - mousePos.current.x) > 2 || Math.abs(e.clientY - mousePos.current.y) > 2) {
+        ignoreMouse.current = false;
+        mousePos.current = { x: e.clientX, y: e.clientY };
+      }
+    };
+    
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, [isOpen, onClose, subpage]);
 
   const handleItemClick = useCallback((cmd: CommandItem) => {
@@ -241,7 +257,10 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                           <button
                             key={cmd.id}
                             onClick={() => handleItemClick(cmd)}
-                            onMouseEnter={() => setSelectedIndex(globalIdx)}
+                            onMouseEnter={() => {
+                              if (!ignoreMouse.current) setSelectedIndex(globalIdx);
+                            }}
+                            data-selected={globalIdx === safeIndex}
                             className={cn(
                               "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150",
                               globalIdx === safeIndex

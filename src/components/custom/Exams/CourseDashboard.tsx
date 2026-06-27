@@ -351,6 +351,9 @@ export default function CourseDashboard({
     // Process past semesters
     if (pastSemesterData) {
       Object.keys(pastSemesterData).forEach(semId => {
+        // Explicitly skip the current semester which is already loaded via marksData & attendanceData
+        if (attendanceData?.semester && semId === attendanceData.semester) return;
+        
         const data = pastSemesterData[semId];
         const semMap = new Map();
         
@@ -408,6 +411,9 @@ export default function CourseDashboard({
     if (allGradesData?.grades && !Array.isArray(allGradesData.grades)) {
       Object.keys(allGradesData.grades).forEach(semId => {
         if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") return;
+        
+        // Explicitly skip the current semester which is already loaded via marksData & attendanceData
+        if (attendanceData?.semester && semId === attendanceData.semester) return;
         
         const sem = allGradesData.grades[semId];
         const courseList = sem?.grades || sem?.courseGrades || sem?.courses || sem || [];
