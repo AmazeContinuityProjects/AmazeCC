@@ -17,8 +17,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
