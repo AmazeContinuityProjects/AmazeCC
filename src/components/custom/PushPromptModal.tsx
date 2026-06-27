@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
+import { API_BASE } from "@/components/custom/Main";
+
+function urlBase64ToUint8Array(base64String: string) {
+    if (!base64String) return new Uint8Array(0);
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
 
 export default function PushPromptModal({ UserID }: { UserID: string }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -26,18 +35,43 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
 
     const handleEnable = async () => {
         handleClose();
-        // Redirect or open the notification prompt.
-        // The easiest way is to request permission right here.
-        if (Notification.permission === 'default') {
+
+        try {
             const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                // If they grant it here, they still need to turn it on in the profile page for Vitol
-                // But giving permission is a great first step. 
-                new Notification("Welcome to AmazeCC!", {
-                    body: "Push permissions granted! Go to your Profile > Push Notifications to set up your VITOL class reminder.",
-                    icon: "/favicon.ico"
-                });
+            if (permission !== 'granted') return;
+
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (!vapidPublicKey) {
+                console.error('VAPID public key not found. Push notifications are disabled.');
+                return;
             }
+
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            await navigator.serviceWorker.ready;
+
+            const sub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+
+            await fetch(`${API_BASE}/api/notifications/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserID,
+                    subscription: JSON.parse(JSON.stringify(sub)),
+                    vitol_enabled: false,
+                    vitol_reminder_day: 1,
+                    vitol_reminder_time: "10:00"
+                }),
+            });
+
+            new Notification("Welcome to AmazeCC Alerts!", {
+                body: "Push notifications are now enabled. Head to Profile > Push Notifications to set up your VITOL class reminder.",
+                icon: "/favicon.ico"
+            });
+        } catch (error) {
+            console.error("Push enrollment failed:", error);
         }
     };
 

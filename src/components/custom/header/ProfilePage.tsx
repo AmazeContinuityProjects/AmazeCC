@@ -1,36 +1,35 @@
 "use client";
 
+import { API_BASE } from "../Main";
 import { X, Save, LogOut, Eye, User, Link2, ExternalLink, Github, Database, Shield, FileText, ChevronRight, History, RefreshCcw } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../../ui/button";
+import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import { Switch } from "@/components/ui/switch";
-import Files from "./Files";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
-import PrivacyPolicyPage from "../footer/PrivacyPolicy";
-import TermsOfServicePage from "../footer/TermsOfService";
 import { IconToggle } from "../toggle";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import { Trophy } from "lucide-react";
+import ProfileStatusCards from "../profile/ProfileStatusCards";
+import AcknowledgementCards from "../profile/AcknowledgementCards";
+import { Badge } from "../shared";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName, loginToVTOP, creds, refreshKey, onCardClick, onCredentialsClick, onReload }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
-    const [changeUsername, setChangedUsername] = useState<string>(username);
-    const [changedPassword, setChangedPassword] = useState<string>(password);
-    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [appIcon, setAppIcon] = useState<string>("default");
     const [isEditingName, setIsEditingName] = useState<boolean>(false);
     const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
-
+    const [profileData, setProfileData] = useState<any>(null);
+    const [profileImages, setProfileImages] = useState<any>(null);
+    const [hostelInfo, setHostelInfo] = useState<any>(null);
     // Footer Modals State
     const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
     const [storageData, setStorageData] = useState<Record<string, string | null>>({});
-    const [showPolicy, setShowPolicy] = useState<boolean>(false);
-    const [showTOS, setShowTOS] = useState<boolean>(false);
     const [showChangelog, setShowChangelog] = useState<boolean>(false);
     const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
@@ -44,7 +43,95 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     useEffect(() => {
         setSelectedSemester(currSemesterID);
         setAppIcon(localStorage.getItem("app-icon") || "default");
+        const storedProfile = localStorage.getItem("profile");
+        if (storedProfile) {
+            try {
+                setProfileData(JSON.parse(storedProfile));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        const storedImages = localStorage.getItem("profileImages");
+        if (storedImages) {
+            try {
+                setProfileImages(JSON.parse(storedImages));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        const storedHostel = localStorage.getItem("hostel");
+        if (storedHostel) {
+            try {
+                const parsed = JSON.parse(storedHostel);
+                setHostelInfo(parsed.hostelInfo || parsed);
+            } catch (e) {
+                console.error(e);
+            }
+        }
     }, [currSemesterID]);
+
+    useEffect(() => {
+        if (!creds?.cookies) return;
+        try {
+            const stored = localStorage.getItem("profile");
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed?.nativeLanguage || parsed?.currentAddress || parsed?.father) return;
+            }
+        } catch (_) {}
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/student`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }),
+                });
+                const data = await res.json();
+                if (data?.profile) {
+                    setProfileData(data.profile);
+                    localStorage.setItem("profile", JSON.stringify(data.profile));
+                }
+            } catch (e) {
+                console.error("Failed to fetch profile", e);
+            }
+        })();
+    }, [creds]);
+
+    const autoInferred = useRef(false);
+    useEffect(() => {
+        if (!profileData || autoInferred.current) return;
+        autoInferred.current = true;
+        if (profileData.isHosteller === false && residentialStatus === "hosteller") {
+            setResidentialStatus("dayscholar");
+        }
+        try {
+            const transportData = JSON.parse(localStorage.getItem("transportData") || "null");
+            if (transportData?.hasRegistration === true) {
+                setIsDayscholarWithBus(true);
+                if (residentialStatus === "hosteller") setResidentialStatus("dayscholar");
+            }
+        } catch (_) {}
+    }, [profileData]);
+
+    const handleReload = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onReload?.();
+        if (!creds?.cookies) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/student`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }),
+            });
+            const data = await res.json();
+            if (data?.profile) {
+                setProfileData(data.profile);
+                localStorage.setItem("profile", JSON.stringify(data.profile));
+            }
+        } catch (e) {
+            console.error("Failed to refresh profile", e);
+        }
+    };
 
     const handleIconChange = (icon: string) => {
         setAppIcon(icon);
@@ -80,7 +167,7 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     );
 
     const CardContainer = ({ children }) => (
-        <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] midnight:shadow-[0_8px_30px_rgba(255,255,255,0.02)] border border-white/40 dark:border-gray-700/50 midnight:border-white/10 overflow-hidden mb-8">
+        <div className="glass-card mb-8">
             {children}
         </div>
     );
@@ -108,8 +195,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
     return (
         <div className="w-full h-full pb-8">
             {showStoragePage && isLoggedIn && <DataPage handleClose={() => setShowStoragePage(false)} handleDeleteItem={handleDeleteItem} storageData={storageData} />}
-            {showPolicy && <PrivacyPolicyPage handleClose={() => setShowPolicy(false)} />}
-            {showTOS && <TermsOfServicePage handleClose={() => setShowTOS(false)} />}
             {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
             {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
 
@@ -117,9 +202,13 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                 {/* Student Card */}
                 <CardContainer>
                     <div className="p-6 flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
-                            <User size={36} className="text-white" />
-                        </div>
+                        {profileData?.image ? (
+                            <img src={profileData.image} alt="Profile" className="w-20 h-20 rounded-full object-cover shadow-lg border-2 border-white dark:border-gray-800" />
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
+                                <User size={36} className="text-white" />
+                            </div>
+                        )}
                         <div className="flex-1 min-w-0">
                             {isEditingName ? (
                                 <div className="flex items-center gap-2 max-w-sm">
@@ -145,10 +234,308 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     <button onClick={() => setIsEditingName(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded hover:bg-blue-100 transition-colors">Edit</button>
                                 </div>
                             )}
-                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">{friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-medium break-words leading-snug">
+                                {friendlyName ? `VTOP ID: ${username}` : "AmazeCC User"}
+                                {profileData?.branch ? ` • ${profileData.branch}` : ""}
+                            </p>
                         </div>
                     </div>
+                    {profileData && (
+                        <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 mt-4 pt-4">
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Blood Group</p>
+                                <p className="font-medium text-gray-800 dark:text-gray-200">{profileData.bloodGroup || "N/A"}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Hostel Status</p>
+                                <p className="font-medium text-gray-800 dark:text-gray-200">
+                                    {profileData.isHosteller ? `${hostelInfo?.blockName || "N/A"} - ${hostelInfo?.roomNo || "N/A"}` : "Day Scholar"}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </CardContainer>
+
+                {/* Residential Settings */}
+                <SectionTitle title="Residential Settings" />
+                <CardContainer>
+                    <div className="p-4 space-y-4">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                                    residentialStatus === "hosteller"
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                                        : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                                }`}
+                            >
+                                Hosteller
+                            </button>
+                            <button
+                                onClick={() => setResidentialStatus("dayscholar")}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                                    residentialStatus === "dayscholar"
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/10"
+                                        : "bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border-gray-200/80 dark:border-gray-800 midnight:border-white/10 hover:border-blue-300 dark:hover:border-blue-700"
+                                }`}
+                            >
+                                Dayscholar
+                            </button>
+                        </div>
+                        {residentialStatus === "dayscholar" && (
+                            <label className="flex items-center gap-3 p-3 rounded-xl bg-white/40 dark:bg-slate-950/40 midnight:bg-black/30 border border-gray-200/80 dark:border-gray-800 midnight:border-white/10 cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-700">
+                                <input
+                                    type="checkbox"
+                                    checked={isDayscholarWithBus}
+                                    onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/50"
+                                />
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">I have bus registration</span>
+                            </label>
+                        )}
+                    </div>
+                </CardContainer>
+
+                {creds && (
+                  <>
+                    <SectionTitle title="Quick Overview" />
+                    <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
+                    <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
+                    <div 
+                      onClick={() => onCredentialsClick && onCredentialsClick()} 
+                      className="relative group glass-card cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                    >
+                      <div className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
+                              <User className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Your Credentials</h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">VTOP accounts, app logins & password change</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={handleReload} 
+                              className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/40 midnight:hover:bg-blue-800/40 transition-all active:scale-90" 
+                              title="Refresh credentials"
+                            >
+                              <RefreshCcw className="w-4 h-4" />
+                            </button>
+                            <div className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-800 text-gray-400">
+                              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Personal Details */}
+                {[profileData?.nativeLanguage, profileData?.nationality, profileData?.community, profileData?.aadharNumber, profileData?.mobileNumber].some(Boolean) && (
+                    <>
+                        <SectionTitle title="Personal Details" />
+                        <CardContainer>
+                            <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-3">
+                                {[
+                                    ["Native Language", profileData.nativeLanguage],
+                                    ["Native State", profileData.nativeState],
+                                    ["Nationality", profileData.nationality],
+                                    ["Community", profileData.community],
+                                    ["Religion", profileData.religion],
+                                    ["Caste", profileData.caste],
+                                    ["Physically Challenged", profileData.physicallyChallenged],
+                                    ["Mobile Number", profileData.mobileNumber],
+                                    ["Friend Mobile", profileData.friendMobileNumber],
+                                    ["Aadhar Number", profileData.aadharNumber],
+                                ].filter(([, v]) => v).map(([label, val]) => (
+                                    <div key={String(label)}>
+                                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{String(label)}</p>
+                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContainer>
+                    </>
+                )}
+
+                {/* Address */}
+                {(profileData?.currentAddress || profileData?.permanentAddress) && (
+                    <>
+                        <SectionTitle title="Address" />
+                        <CardContainer>
+                            {profileData.currentAddress && (
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Current Address</p>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        {Object.entries(profileData.currentAddress).filter(([, v]) => v).map(([key, val]) => (
+                                            <div key={key}>
+                                                <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key}</p>
+                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {profileData.permanentAddress && (
+                                <div className="p-4">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Permanent Address</p>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        {Object.entries(profileData.permanentAddress).filter(([, v]) => v).map(([key, val]) => (
+                                            <div key={key}>
+                                                <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key}</p>
+                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContainer>
+                    </>
+                )}
+
+                {/* Educational Info */}
+                {[profileData?.educationalQualification, profileData?.schoolName, profileData?.boardUniversity, profileData?.yearOfPassing].some(Boolean) && (
+                    <>
+                        <SectionTitle title="Educational Information" />
+                        <CardContainer>
+                            <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-3">
+                                {[
+                                    ["Applied Degree", profileData.appliedDegree],
+                                    ["Qualification", profileData.educationalQualification],
+                                    ["Branch Studied", profileData.branchStudied],
+                                    ["School Name", profileData.schoolName],
+                                    ["Medium of Study", profileData.mediumOfStudy],
+                                    ["Board / University", profileData.boardUniversity],
+                                    ["Register No", profileData.registerNo],
+                                    ["Class Obtained", profileData.classObtained],
+                                    ["Year of Passing", profileData.yearOfPassing],
+                                    ["Month of Passing", profileData.monthOfPassing],
+                                    ["Break in Study", profileData.breakInStudy],
+                                ].filter(([, v]) => v).map(([label, val]) => (
+                                    <div key={String(label)}>
+                                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{String(label)}</p>
+                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            {profileData?.schoolAddress && (
+                                <div className="px-4 pb-4">
+                                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">School Address</p>
+                                    <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.schoolAddress}</p>
+                                </div>
+                            )}
+                        </CardContainer>
+                    </>
+                )}
+
+                {/* Family Info */}
+                {(profileData?.father || profileData?.mother || profileData?.brothers || profileData?.guardian) && (
+                    <>
+                        <SectionTitle title="Family Information" />
+                        <CardContainer>
+                            {profileData.brothers != null && (
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 grid grid-cols-3 gap-4">
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Brothers</p>
+                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.brothers}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Sisters</p>
+                                        <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.sisters}</p>
+                                    </div>
+                                    {profileData.siblingInVIT && (
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Sibling at VIT</p>
+                                            <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.siblingInVIT}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {profileData.father && (
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Father</p>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        {Object.entries(profileData.father).filter(([, v]) => v).map(([key, val]) => (
+                                            <div key={key}>
+                                                <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {profileData.mother && (
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Mother</p>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        {Object.entries(profileData.mother).filter(([, v]) => v).map(([key, val]) => (
+                                            <div key={key}>
+                                                <p className="text-xs text-gray-400 capitalize tracking-wider mb-0.5">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                                <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{String(val)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {profileData.guardian && (
+                                <div className="p-4">
+                                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Guardian</p>
+                                    <p className="font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{profileData.guardian}</p>
+                                </div>
+                            )}
+                        </CardContainer>
+                    </>
+                )}
+
+                {/* Faculty & Mentors */}
+                {profileImages?.proctor && (
+                    <>
+                        <SectionTitle title="Faculty & Mentors" />
+                        <CardContainer>
+                            {[{
+                                role: "Proctor",
+                                photo: profileImages.proctor.photoBase64,
+                                details: profileImages.proctor.details || {}
+                            }, ...(profileImages.hodDean?.people?.map((p: any) => ({
+                                role: p.role,
+                                photo: p.photoBase64,
+                                details: p.details || {}
+                            })) || [])].map((person, idx, arr) => (
+                                <div key={idx} className={`p-4 ${idx < arr.length - 1 ? 'border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800' : ''}`}>
+                                    <div className="flex items-center gap-4">
+                                        {person.photo ? (
+                                            <img src={person.photo} alt={person.role} className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white dark:border-gray-800" />
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                                <User size={28} className="text-white" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">{person.role}</p>
+                                            <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">{person.details.name || "N/A"}</p>
+                                            {person.details.designation && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">{person.details.designation}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                                        {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([key, val]) => (
+                                            <div key={key} className="truncate">
+                                                <span className="text-xs text-gray-400 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                                                <span className="text-gray-700 dark:text-gray-300 midnight:text-gray-300">{String(val)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContainer>
+                    </>
+                )}
+
 
                 {/* Preferences */}
                 <SectionTitle title="Preferences" />
@@ -176,52 +563,8 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         </div>
                     </div>
                     
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                        <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Update VTOP Credentials</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Change credentials stored inside AmazeCC</span>
-                            <div className="flex flex-col gap-2">
-                                <input
-                                    type="text"
-                                    value={changeUsername}
-                                    onChange={(e) => setChangedUsername(e.target.value)}
-                                    placeholder="Username"
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
-                                />
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={changedPassword}
-                                        onChange={(e) => setChangedPassword(e.target.value)}
-                                        placeholder="Password"
-                                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
-                                    />
-                                    <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                                        <Eye size={16} />
-                                    </button>
-                                </div>
-                                <Button onClick={() => setPassword([changeUsername, changedPassword])} disabled={!changeUsername || !changedPassword || (changeUsername === username && changedPassword === password)} className="bg-blue-600 hover:bg-blue-700 midnight:bg-blue-700 midnight:hover:bg-blue-600 text-white mt-1">
-                                    <Save size={16} className="mr-2" /> Update Credentials
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                        <div className="flex flex-col mb-2">
-                            <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Residential Status</label>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">Changes which tabs are visible</span>
-                            <select
-                                value={residentialStatus || "hosteller"}
-                                onChange={(e) => setResidentialStatus(e.target.value as "hosteller" | "dayscholar")}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 midnight:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-900 midnight:bg-gray-800 text-gray-800 dark:text-gray-200 midnight:text-gray-100"
-                            >
-                                <option value="hosteller">Hosteller</option>
-                                <option value="dayscholar">Dayscholar</option>
-                            </select>
-                        </div>
-                    </div>
-
+                    
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
                         <div className="flex flex-col mb-2">
                             <label className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">Academic Calendar</label>
@@ -254,12 +597,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         trailing={<Switch checked={loadingScreen} onCheckedChange={setLoadingScreen} />} 
                     />
                     <ListTile 
-                        icon={User} 
-                        title="Dayscholar with Bus" 
-                        subtitle="Calculate attendance against 85% requirement"
-                        trailing={<Switch checked={isDayscholarWithBus} onCheckedChange={setIsDayscholarWithBus} />} 
-                    />
-                    <ListTile 
                         icon={Shield} 
                         title="Compact Mobile View" 
                         subtitle="Hide header and stats on tabs other than Dashboard"
@@ -286,14 +623,14 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                     onClick={() => handleIconChange('default')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'default' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
-                                    <img src="/logo.png" alt="Default Icon" className="w-12 h-12 rounded-xl shadow-sm" />
+                                    <img src={getAssetPath("/logo.png")} alt="Default Icon" className="w-12 h-12 rounded-xl shadow-sm" />
                                     <span className="text-xs font-medium">Default</span>
                                 </button>
                                 <button 
                                     onClick={() => handleIconChange('fire')}
                                     className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all ${appIcon === 'fire' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                                 >
-                                    <img src="/icons/fire.png" alt="Fire Icon" className="w-12 h-12 rounded-xl shadow-sm" />
+                                    <img src={getAssetPath("/images/icons/fire.png")} alt="Fire Icon" className="w-12 h-12 rounded-xl shadow-sm" />
                                     <span className="text-xs font-medium">Fire</span>
                                 </button>
                             </div>
@@ -301,9 +638,6 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                     </div>
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
                         <PushNotificationManager />
-                    </div>
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                        <Files />
                     </div>
                     <div className="p-4">
                         <Links />
@@ -364,18 +698,15 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">AmazeCC</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 text-center">Your ultimate college companion.</p>
-                        <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider">MADE BY SUGEETHJSA</p>
+                        <p className="text-xs font-semibold text-gray-400 midnight:text-gray-500 tracking-wider text-center">MADE WITH LOVE BY SUGEETHJSA AND DHIVYANJ</p>
                     </div>
                     <ListTile icon={Trophy} title="Hall of Fame" onClick={() => setShowHallOfFame(true)} />
-                    <a href="https://github.com/SugeethJSA/UniCC" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer">
                         <ListTile icon={Github} title="View Source on GitHub" onClick={() => {}} />
                     </a>
-                    <a href="https://amaze-cc.vercel.app" target="_blank" rel="noopener noreferrer">
-                        <ListTile icon={ExternalLink} title="Visit Official Website" onClick={() => {}} />
-                    </a>
                     <ListTile icon={Database} title="Local Storage Viewer" onClick={openStoragePage} />
-                    <ListTile icon={FileText} title="Privacy Policy" onClick={() => setShowPolicy(true)} />
-                    <ListTile icon={Shield} title="Terms of Service" noBorder={true} onClick={() => setShowTOS(true)} />
+                    <ListTile icon={FileText} title="Privacy Policy" onClick={() => window.open("/privacy", "_blank")} />
+                    <ListTile icon={Shield} title="Terms of Service" noBorder={true} onClick={() => window.open("/terms", "_blank")} />
                 </CardContainer>
 
                 {/* Logout Action */}

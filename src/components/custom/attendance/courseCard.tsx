@@ -1,9 +1,9 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import InfoRow from "../shared/InfoRow"
 import { Building2, Clock } from "lucide-react"
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
-import "react-circular-progressbar/dist/styles.css"
+import CircularProgress from "../shared/CircularProgress"
 import { useState, useEffect } from "react"
 
 export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalValues, isDayscholarWithBus }) {
@@ -62,14 +62,8 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                     </CardHeader>
 
                     <CardContent className="p-0 text-sm text-gray-600 dark:text-gray-300 midnight:text-gray-300 space-y-1 mt-1">
-                        <div className="flex items-center gap-2">
-                            <Building2 size={16} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{a.slotVenue}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Clock size={16} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{a.time}</span>
-                        </div>
+                        <InfoRow icon={<Building2 className="w-4 h-4" />}>{a.slotVenue}</InfoRow>
+                        <InfoRow icon={<Clock className="w-4 h-4" />}>{a.time}</InfoRow>
                         <p className="truncate">
                             <strong className="text-gray-700 dark:text-gray-200 midnight:text-gray-200">Faculty:</strong> {a.faculty}
                         </p>
@@ -117,13 +111,11 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
                 </div>
                 
                 <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 flex flex-col items-center justify-center pl-1">
-                    <CircularProgressbar
+                    <CircularProgress
                         value={a.attendancePercentage}
                         text={`${!decimalValues ? a.attendancePercentage : (a.attendedClasses/a.totalClasses * 100).toFixed(1)}%`}
-                        styles={buildStyles({
-                            pathColor: a.attendancePercentage < (isDayscholarWithBus ? 85 : 75) ? "#EF4444" : a.attendancePercentage < (isDayscholarWithBus ? 90 : 85) ? "#FACC15" : "#2df04aff",
-                            textColor: "currentColor", trailColor: "#CBD5E1", strokeLinecap: "round", pathTransitionDuration: 0.5,
-                        })}
+                        threshold={isDayscholarWithBus ? 85 : 75}
+                        midThreshold={isDayscholarWithBus ? 90 : 85}
                     />
                     <p className="text-center text-[10px] sm:text-xs font-semibold mt-1.5 text-gray-700 dark:text-gray-300 midnight:text-gray-300">
                         Attendance

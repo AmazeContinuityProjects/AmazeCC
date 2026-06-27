@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, Info, Activity, ChevronDown, ChevronUp } from "lucide-react";
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import { Info, Activity } from "lucide-react";
+import CircularProgress from "../shared/CircularProgress";
 import Image from "next/image";
 import { API_BASE } from "../Main";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import SubpageLayout from "../shared/SubpageLayout";
+import Badge from "../shared/Badge";
+import ExpandableSection from "../shared/ExpandableSection";
 
 const formatNumber = (num) => {
   const numericValue = Number(num);
@@ -125,7 +127,7 @@ export default function MarksDisplay({ data }) {
     const uniqueCourses = [];
     const codeMap = new Map();
     data.courses.forEach(c => {
-      const isLab = c.courseType.toLowerCase().includes("lab");
+      const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
       if (!codeMap.has(c.courseCode)) {
         codeMap.set(c.courseCode, {
           courseCode: c.courseCode,
@@ -150,6 +152,8 @@ export default function MarksDisplay({ data }) {
         if (res.ok) {
           const statsData = await res.json();
           setAllStats(statsData);
+        } else {
+          console.error("Failed to fetch marks stats:", res.status, res.statusText);
         }
       } catch (error) {
         console.error("Fetch stats error:", error);
@@ -165,7 +169,7 @@ export default function MarksDisplay({ data }) {
         <h1 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
           Academic Marks
         </h1>
-        <Image src="/chepu/chepu_says_sup.png" alt="No Data" width={300} height={300} className="mx-auto" />
+        <Image src="/images/chepu/chepu_says_sup.png" alt="No Data" width={300} height={300} className="mx-auto" />
       </div>
     );
   }
@@ -173,7 +177,7 @@ export default function MarksDisplay({ data }) {
   const uniqueCourses = [];
   const codeMap = new Map();
   data.courses.forEach(c => {
-    const isLab = c.courseType.toLowerCase().includes("lab");
+    const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
     if (!codeMap.has(c.courseCode)) {
       codeMap.set(c.courseCode, {
         courseCode: c.courseCode,
@@ -270,30 +274,24 @@ export default function MarksDisplay({ data }) {
                   </span>
 
                   <div className="flex gap-2 items-center mt-3">
-                    <div className="px-2.5 py-1 flex items-center justify-center bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 text-gray-700 dark:text-gray-300 midnight:text-gray-300 text-[10px] uppercase font-bold tracking-wider rounded-md">
+                    <Badge variant="default" className="rounded-md uppercase font-bold tracking-wider">
                       {courseType}
-                    </div>
+                    </Badge>
                     {predictedGrade !== "?" && (
-                      <div className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 midnight:text-indigo-300 text-[10px] font-bold tracking-wider rounded-md">
+                      <Badge variant="default" className="rounded-md font-bold bg-indigo-50 dark:bg-indigo-900/30 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 midnight:text-indigo-300 uppercase tracking-wider">
                         Pred: {predictedGrade}
-                      </div>
+                      </Badge>
                     )}
                   </div>
                 </div>
 
                 <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 flex flex-col items-center justify-center">
-                  <CircularProgressbar
+                  <CircularProgress
                     value={percent}
                     text={text}
-                    styles={buildStyles({
-                      pathColor: percent > 75 ? "#10b981" : percent > 50 ? "#3b82f6" : percent > 25 ? "#f59e0b" : "#ef4444",
-                      textColor: "currentColor",
-                      trailColor: "transparent",
-                      strokeLinecap: "round",
-                      textSize: "18px",
-                      pathTransitionDuration: 0.5,
-                    })}
-                    className="text-gray-800 dark:text-gray-200 midnight:text-gray-200 drop-shadow-sm"
+                    size={80}
+                    threshold={25}
+                    midThreshold={75}
                   />
                 </div>
               </div>
@@ -306,7 +304,6 @@ export default function MarksDisplay({ data }) {
 }
 
 function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
-  const [expanded, setExpanded] = useState(false);
   const shortenedTitle = formatTitle(detail.title);
   const asmPct = detail.maxMark > 0 ? (getNumericValue(detail.scoredMark) / getNumericValue(detail.maxMark)) * 100 : 0;
   
@@ -361,42 +358,22 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
   }
 
   return (
-    <div 
-      className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-gray-700 midnight:border-gray-800 overflow-hidden cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-900"
-      onClick={() => setExpanded(!expanded)}
-    >
-      <div className="p-4 flex flex-col justify-between">
-        <div className="flex justify-between items-start mb-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-bold uppercase tracking-wider line-clamp-2 leading-tight flex-1">
-            {shortenedTitle}
+    <ExpandableSection
+      title={shortenedTitle}
+      badge={
+        <div className="text-right">
+          <p className="text-xl font-black text-gray-800 dark:text-gray-200 midnight:text-gray-100">
+            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 font-semibold">/ {formatNumber(detail.maxMark)}</span>
           </p>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 dark:text-gray-500 midnight:text-gray-500">
-              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </span>
-          </div>
+          <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
+            Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
+          </p>
         </div>
-        
-        <div className="flex justify-between items-end">
-          <div>
-            <p className="text-xl font-black text-gray-800 dark:text-gray-200 midnight:text-gray-100">
-              {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 font-semibold">/ {formatNumber(detail.maxMark)}</span>
-            </p>
-            <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
-              Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-gray-200 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-slate-900 midnight:bg-black p-4"
-          >
+      }
+      className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-gray-700 midnight:border-gray-800 overflow-hidden"
+      headerClassName="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-bold uppercase tracking-wider"
+      contentClassName="border-t border-gray-200 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-slate-900 midnight:bg-black"
+    >
             {(isRelative && (!aStat || aStat.count === 0)) ? (
               <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 italic text-center py-2">
                 Not enough data to calculate class statistics for this assessment yet.
@@ -436,10 +413,7 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
                 </div>
               </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </ExpandableSection>
   );
 }
 
@@ -472,9 +446,9 @@ function MarksSubpage({ group, allStats, onBack }) {
             {icon} {typeLabel} Assessments
           </h3>
           <div className="flex items-center justify-between md:justify-end gap-3">
-            <div className={`px-3 py-1 font-bold text-sm rounded-full border ${typeLabel === 'Theory' ? 'bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-700 dark:text-blue-400 midnight:text-blue-400 border-blue-200 dark:border-blue-800/50 midnight:border-blue-800/50' : 'bg-emerald-50 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 midnight:text-emerald-400 border-emerald-200 dark:border-emerald-800/50 midnight:border-emerald-800/50'}`}>
+            <Badge variant={typeLabel === 'Theory' ? 'info' : 'success'} className="font-bold border rounded-full">
               {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
-            </div>
+            </Badge>
             <div className={`md:hidden font-bold text-sm ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400'}`}>
               {totals.weightPercent > 0 ? Math.round((totals.weighted / totals.weightPercent) * 100) : 0}%
             </div>
@@ -503,26 +477,8 @@ function MarksSubpage({ group, allStats, onBack }) {
       exit={{ opacity: 0, x: 20 }}
       className="p-2 space-y-6 max-w-5xl mx-auto"
     >
-      <div className="flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onBack}
-          className="rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 midnight:hover:bg-gray-900"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </Button>
-        <div>
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
-            {group.courseCode}
-          </h1>
-          <p className="text-sm md:text-base font-medium text-gray-600 dark:text-gray-400 midnight:text-gray-400">
-            {group.courseTitle}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <SubpageLayout title={group.courseCode} subtitle={group.courseTitle} onBack={onBack}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
         <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
           <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Course Type</p>
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 line-clamp-1">{courseType}</p>
@@ -557,7 +513,7 @@ function MarksSubpage({ group, allStats, onBack }) {
       <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-100 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm mt-6">
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
-            Grade Insights <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-900/30 midnight:text-blue-400 px-2 py-0.5 rounded-full font-bold">BETA</span>
+            Grade Insights <Badge variant="info" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-900/30 midnight:text-blue-400 font-bold">BETA</Badge>
           </h3>
           
           <details className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-2 leading-relaxed cursor-pointer group">
@@ -713,6 +669,7 @@ function MarksSubpage({ group, allStats, onBack }) {
           </div>
         </div>
       </div>
+    </SubpageLayout>
     </motion.div>
   );
 }

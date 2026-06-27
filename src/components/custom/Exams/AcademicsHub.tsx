@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Award, History, BookOpen, TrendingUp, Database, ChevronRight, Trophy } from "lucide-react";
+import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import GradesModal from "./GradesModal";
@@ -9,44 +9,101 @@ import GradesModal from "./GradesModal";
 export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, hideMobileHeader, handleFetchGrades }) {
   const cards = [
     {
-      id: "marks",
-      title: "Current Sem Marks",
-      description: "View your internal marks for the current semester.",
-      icon: Award,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-100 dark:bg-blue-900/30",
+      id: "course-dashboard",
+      title: "Course Hub",
+      description: "Your one-stop hub — courses, grades, arrears, projects and more.",
+      icon: LayoutDashboard,
+      color: "text-white",
+      bg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+      prominent: true,
     },
     {
       id: "grades",
       title: "Grade History",
       description: "Analyze your academic performance and past grades.",
       icon: History,
-      color: "text-purple-600 dark:text-purple-400",
-      bg: "bg-purple-100 dark:bg-purple-900/30",
+      color: "text-purple-600 dark:text-purple-400 midnight:text-purple-400",
+      bg: "bg-purple-100 dark:bg-purple-900/30 midnight:bg-purple-900/20",
     },
     {
       id: "curriculum",
       title: "Curriculum",
       description: "Track your completed courses and credit requirements.",
       icon: BookOpen,
-      color: "text-green-600 dark:text-green-400",
-      bg: "bg-green-100 dark:bg-green-900/30",
+      color: "text-green-600 dark:text-green-400 midnight:text-green-400",
+      bg: "bg-green-100 dark:bg-green-900/30 midnight:bg-green-900/20",
     },
     {
       id: "predictor",
       title: "CGPA Predictor",
       description: "Estimate your future CGPA based on expected grades.",
       icon: TrendingUp,
-      color: "text-orange-600 dark:text-orange-400",
-      bg: "bg-orange-100 dark:bg-orange-900/30",
+      color: "text-orange-600 dark:text-orange-400 midnight:text-orange-400",
+      bg: "bg-orange-100 dark:bg-orange-900/30 midnight:bg-orange-900/20",
     },
     {
       id: "qbank",
       title: "Question Bank",
       description: "Access and search past year question papers.",
       icon: Database,
-      color: "text-red-600 dark:text-red-400",
-      bg: "bg-red-100 dark:bg-red-900/30",
+      color: "text-red-600 dark:text-red-400 midnight:text-red-400",
+      bg: "bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/20",
+    },
+    {
+      id: "arrear",
+      title: "Arrear Management",
+      description: "View arrear schedule, details and grades.",
+      icon: AlertTriangle,
+      color: "text-amber-600 dark:text-amber-400 midnight:text-amber-400",
+      bg: "bg-amber-100 dark:bg-amber-900/30 midnight:bg-amber-900/20",
+    },
+    {
+      id: "makeup-compre",
+      title: "Makeup & Compre",
+      description: "Makeup exam eligibility, schedule and compre info.",
+      icon: GraduationCap,
+      color: "text-cyan-600 dark:text-cyan-400 midnight:text-cyan-400",
+      bg: "bg-cyan-100 dark:bg-cyan-900/30 midnight:bg-cyan-900/20",
+    },
+    {
+      id: "course-mgmt",
+      title: "Course Management",
+      description: "Course options, extracurriculars, minor/honour courses.",
+      icon: ScrollText,
+      color: "text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400",
+      bg: "bg-indigo-100 dark:bg-indigo-900/30 midnight:bg-indigo-900/20",
+    },
+    {
+      id: "projects",
+      title: "Projects",
+      description: "View your projects and project courses.",
+      icon: FileCode,
+      color: "text-rose-600 dark:text-rose-400 midnight:text-rose-400",
+      bg: "bg-rose-100 dark:bg-rose-900/30 midnight:bg-rose-900/20",
+    },
+    {
+      id: "wishlist",
+      title: "Wishlist & Learning",
+      description: "Wishlist, registration and additional learning courses.",
+      icon: BookMarked,
+      color: "text-teal-600 dark:text-teal-400 midnight:text-teal-400",
+      bg: "bg-teal-100 dark:bg-teal-900/30 midnight:bg-teal-900/20",
+    },
+    {
+      id: "faculty-info",
+      title: "Faculty Info",
+      description: "Search and view faculty contact details.",
+      icon: UserCheck,
+      color: "text-sky-600 dark:text-sky-400 midnight:text-sky-400",
+      bg: "bg-sky-100 dark:bg-sky-900/30 midnight:bg-sky-900/20",
+    },
+    {
+      id: "qcm-view",
+      title: "QCM View",
+      description: "Quality Circle Meeting records and feedback.",
+      icon: ScrollText,
+      color: "text-violet-600 dark:text-violet-400 midnight:text-violet-400",
+      bg: "bg-violet-100 dark:bg-violet-900/30 midnight:bg-violet-900/20",
     },
   ];
 
@@ -160,20 +217,20 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                 setActiveSubTab(card.id);
                 window.scrollTo(0, 0);
             }}
-            className="flex items-center p-4 bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 cursor-pointer group"
+            className={`flex items-center p-4 glass-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 cursor-pointer group ${card.prominent ? 'md:col-span-2 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/10 midnight:from-blue-500/[0.08] midnight:to-indigo-500/[0.08] border-blue-200/50 dark:border-blue-800/50 midnight:border-blue-800/40 hover:border-blue-400 dark:hover:border-blue-500 midnight:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10' : ''}`}
           >
-            <div className={`p-3 rounded-xl ${card.bg} ${card.color} mr-4 group-hover:scale-110 transition-transform`}>
+            <div className={`p-3 rounded-xl ${card.bg} ${card.color} mr-4 group-hover:scale-110 transition-transform ${card.prominent ? 'shadow-lg shadow-blue-500/25' : ''}`}>
               <card.icon className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className={`text-lg font-semibold transition-colors ${card.prominent ? 'text-blue-700 dark:text-blue-300 midnight:text-blue-300' : 'text-gray-900 dark:text-gray-100 midnight:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
                 {card.title}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500 mt-0.5">
+              <p className={`text-sm mt-0.5 ${card.prominent ? 'text-blue-600/70 dark:text-blue-400/70 midnight:text-blue-400/70' : 'text-gray-500 dark:text-gray-400 midnight:text-gray-500'}`}>
                 {card.description}
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+            <ChevronRight className={`w-5 h-5 transition-colors ${card.prominent ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 midnight:group-hover:text-gray-400'}`} />
           </div>
         ))}
       </div>

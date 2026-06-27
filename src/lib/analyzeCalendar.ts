@@ -126,8 +126,8 @@ export function analyzeCalendar(calendar: CalendarInput = {}): AnalyzeCalendarRe
     }
 
     const IMPORTANT_EVENT_NAMES = [
-        { key: "cat   i", display: "CAT I" },
-        { key: "cat   ii", display: "CAT II" },
+        { key: "cat i", display: "CAT I" },
+        { key: "cat ii", display: "CAT II" },
         {
             key: "lid for laboratory classes",
             display: "LID FOR LABORATORY CLASSES",

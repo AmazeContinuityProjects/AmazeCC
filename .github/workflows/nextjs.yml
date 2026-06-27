@@ -69,10 +69,6 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.runner }} next build --webpack
         env:
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
-      - name: Fix absolute paths for GitHub Pages
-        run: |
-          find out -type f -name "*.html" -exec sed -i 's|="/_next|="./_next|g' {} \;
-          find out -type f -name "*.js" -exec sed -i 's|="/_next|="./_next|g' {} \;
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

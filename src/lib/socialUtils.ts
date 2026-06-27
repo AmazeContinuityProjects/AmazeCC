@@ -43,6 +43,7 @@ export function exportScheduleCode(
   name: string,
   regNumber: string
 ): string {
+  if (!Array.isArray(attendance) || attendance.length === 0) return "";
   const slotMap = config.slotMap as any;
   const friendSlots: FriendClassSlot[] = [];
 

@@ -1,12 +1,61 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import NoContentFound from "../NoContentFound";
-import { RefreshCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { RefreshCcw, Download, Printer, ClipboardList } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import FetchButton from "../shared/FetchButton";
+import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { useTheme } from "next-themes";
 
 export default function ExamSchedule({ data, handleScheduleFetch }) {
   const scheduleObj = data?.Schedule || data?.schedule;
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = theme === "dark" || resolvedTheme === "dark";
+  const isMidnight = theme === "midnight";
+  const themeBgColor = isMidnight ? "#020617" : isDark ? "#0f172a" : "#ffffff";
+  const themeTextColor = isDark ? "#ffffff" : "#000000";
+  const themeHtmlClass = isMidnight ? "dark midnight" : isDark ? "dark" : "light";
+  
+  const allCourseCodes = scheduleObj
+    ? [...new Set(Object.values(scheduleObj).flat().map((s: any) => s.courseCode).filter(Boolean))]
+    : [];
+
+  const handleCopyCodes = useCallback(() => {
+    if (allCourseCodes.length === 0) return;
+    navigator.clipboard.writeText(allCourseCodes.join(", "));
+  }, [allCourseCodes]);
+
+  const handlePrint = useCallback(() => {
+    if (!captureRef.current) return;
+    setIsDownloading(true);
+    try {
+      openTimetablePrintablePage(
+        captureRef.current.innerHTML,
+        "Exam Schedule",
+        themeHtmlClass,
+        themeBgColor,
+        themeTextColor
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [themeHtmlClass, themeBgColor, themeTextColor]);
+
+  const handleDownloadImage = useCallback(async () => {
+    if (!captureRef.current) return;
+    setIsDownloading(true);
+    try {
+      await downloadTimetableImage(captureRef.current, "Exam_Schedule", themeBgColor, "png");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [themeBgColor]);
   
   if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
     return (
@@ -14,9 +63,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
           {/* Mobile View: Inline Center */}
           <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-            Exam Schedule <button onClick={handleScheduleFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-              <RefreshCcw className={`w-4 h-4`} />
-            </button>
+            Exam Schedule <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
           </h1>
           
           {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -24,9 +71,9 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
             Exam Schedule
           </h1>
           <div className="hidden md:flex items-center justify-end">
-            <button onClick={handleScheduleFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-              <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-            </button>
+            <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+              <span className="text-sm">Reload</span>
+            </FetchButton>
           </div>
         </div>
         <NoContentFound />
@@ -164,23 +211,58 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
     <div className="space-y-6 p-2">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
         {/* Mobile View: Inline Center */}
-        <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-          Exam Schedule <button onClick={handleScheduleFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-            <RefreshCcw className={`w-4 h-4`} />
-          </button>
-        </h1>
+        <div className="md:hidden flex items-center justify-between w-full mb-3">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+            Exam Schedule
+          </h1>
+          <div className="flex items-center gap-1.5">
+            <button onClick={handleCopyCodes} disabled={allCourseCodes.length === 0} className="p-2 rounded-lg bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white transition-colors" title="Copy course codes">
+              <ClipboardList className="w-4 h-4" />
+            </button>
+            <button onClick={handleDownloadImage} disabled={isDownloading} className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors" title="Download PNG">
+              <Download className="w-4 h-4" />
+            </button>
+            <button onClick={handlePrint} disabled={isDownloading} className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white transition-colors" title="Print / PDF">
+              <Printer className="w-4 h-4" />
+            </button>
+            <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="p-2" />
+          </div>
+        </div>
         
-        {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
+        {/* Desktop View: Left Aligned Heading + Right Aligned Buttons */}
         <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
           Exam Schedule
         </h1>
-        <div className="hidden md:flex items-center justify-end">
-          <button onClick={handleScheduleFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-            <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={handleCopyCodes}
+            disabled={allCourseCodes.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
+            title="Copy all course codes"
+          >
+            <ClipboardList className="w-4 h-4" /> <span className="text-sm">Copy Codes</span>
           </button>
+          <button
+            onClick={handleDownloadImage}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
+          >
+            <Download className="w-4 h-4" /> <span className="text-sm">{isDownloading ? "..." : "PNG"}</span>
+          </button>
+          <button
+            onClick={handlePrint}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
+          >
+            <Printer className="w-4 h-4" /> <span className="text-sm">{isDownloading ? "..." : "Print / PDF"}</span>
+          </button>
+          <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+            <span className="text-sm">Reload</span>
+          </FetchButton>
         </div>
       </div>
 
+      <div ref={captureRef}>  
       {sortedTodayExams.length > 0 && (
         <div className="bg-green-100 dark:bg-green-700/40 midnight:bg-green-800/40 
                   rounded-xl p-4 shadow mb-6 border border-green-300 
@@ -283,7 +365,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
                   : subj.seatLocation;
 
                 return (
-                  <div key={idx} className={cardClass}>
+                  <div key={idx} className={`stagger-enter ${cardClass}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-blue-700 dark:text-blue-400 midnight:text-blue-400'}`}>
@@ -336,6 +418,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
