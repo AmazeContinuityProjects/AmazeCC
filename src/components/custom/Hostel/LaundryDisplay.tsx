@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw, Sparkles, AlertCircle, Info, Clock, CheckCircle2 } from "lucide-react";
+import { RefreshCcw, Sparkles, AlertCircle, Info, Clock, CheckCircle2, Search } from "lucide-react";
 
 const LaundryLinks: Record<string, Record<string, string>> = {
   Male: {
@@ -35,6 +35,9 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
   const [gender, setGender] = useState("");
   const [hostel, setHostel] = useState("");
   const [schedule, setSchedule] = useState<any[]>([]);
+  
+  // Custom room search feature
+  const [searchRoom, setSearchRoom] = useState("");
 
   const hostelOptions: Record<string, string[]> = {
     Male: ["A", "C", "D1", "D2", "E"],
@@ -49,9 +52,11 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     const normalizedGender =
       hostelData.hostelInfo.gender?.toLowerCase() === "female" ? "Female" : "Male";
     const blockName = hostelData.hostelInfo.blockName?.split(" ")[0] || "A";
+    const roomNo = hostelData.hostelInfo.roomNo || "";
 
     setGender(normalizedGender);
     setHostel(blockName);
+    setSearchRoom(roomNo);
   }, [hostelData.hostelInfo]);
 
   async function fetchLaundryWithCache(g: string, h: string) {
@@ -98,6 +103,28 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
     fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
+  // Extract pure numbers from room string
+  const cleanSearchRoomNum = searchRoom.match(/\d+/) ? parseInt(searchRoom.match(/\d+/)![0], 10) : null;
+
+  // Function to check if a room falls into a schedule range
+  const isRoomInSlotRange = (roomRangeStr: string) => {
+    if (!cleanSearchRoomNum) return false;
+    const matches = roomRangeStr.match(/\d+/g);
+    if (matches && matches.length >= 2) {
+      const start = parseInt(matches[0], 10);
+      const end = parseInt(matches[1], 10);
+      return cleanSearchRoomNum >= start && cleanSearchRoomNum <= end;
+    }
+    return false;
+  };
+
+  // Find user's slots
+  const matchingSlots = schedule.filter((item) => isRoomInSlotRange(item.RoomNumber));
+  
+  // Check if today is one of the user's slots
+  const hasSlotToday = matchingSlots.some((slot) => parseInt(slot.Date, 10) === today);
+  const nextSlot = matchingSlots.find((slot) => parseInt(slot.Date, 10) >= today);
+
   return (
     <div className="space-y-6">
       {/* Header layout */}
@@ -105,7 +132,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
         <div>
           <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Laundry Hub</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Block {hostel} Schedule</span>
+            <span className="text-xs text-gray-550 dark:text-gray-400 font-semibold">Block {hostel} Schedule</span>
             <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
               <Sparkles size={10} /> Data from unmessify
             </span>
@@ -127,7 +154,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     gender === g
                       ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
-                      : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                      : "text-gray-500 dark:text-gray-455 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   {g}
@@ -144,7 +171,7 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                   className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     hostel === h
                       ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
-                      : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                      : "text-gray-500 dark:text-gray-455 hover:text-gray-700 dark:hover:text-gray-300"
                   }`}
                 >
                   {h} Block
@@ -153,6 +180,91 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
             </div>
           </div>
         )}
+      </div>
+
+      {/* Interactive Personalized Slot Checker */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Slot Quick Finder panel */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Personal Slot Finder</span>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Find slots by Room</h3>
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Enter Room (e.g. 405)"
+              value={searchRoom}
+              onChange={(e) => setSearchRoom(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-xs border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-950 rounded-xl text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          </div>
+
+          <div className="space-y-3.5 pt-2">
+            {hasSlotToday ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/15 p-4 rounded-xl space-y-2 text-xs text-emerald-400">
+                <div className="flex items-center gap-2 font-bold">
+                  <CheckCircle2 size={16} />
+                  <span>Laundry Slot is Today!</span>
+                </div>
+                <p className="text-[10px] text-gray-500">You can drop off clothes for room range {matchingSlots.find(s => parseInt(s.Date, 10) === today)?.RoomNumber} today.</p>
+              </div>
+            ) : nextSlot ? (
+              <div className="bg-sky-500/10 border border-sky-400/20 p-4 rounded-xl space-y-2 text-xs text-sky-400">
+                <div className="flex items-center gap-2 font-bold">
+                  <Clock size={16} />
+                  <span>Next Slot: Day {nextSlot.Date}</span>
+                </div>
+                <p className="text-[10px] text-gray-500">Scheduled for room range {nextSlot.RoomNumber}.</p>
+              </div>
+            ) : (
+              <div className="bg-gray-500/5 border border-gray-500/10 p-4 rounded-xl space-y-2 text-xs text-gray-400 italic">
+                <p className="text-[10px]">Enter a valid room number to locate your slots in {hostel} Block.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic slots preview */}
+        <div className="lg:col-span-2 bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Your Scheduled Dates</span>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">All matching dates for Room {searchRoom || "—"}</h3>
+            
+            {matchingSlots.length > 0 ? (
+              <div className="flex flex-wrap gap-2.5 pt-2">
+                {matchingSlots.map((slot, idx) => {
+                  const isCurrentDay = parseInt(slot.Date, 10) === today;
+                  return (
+                    <div
+                      key={idx}
+                      className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                        isCurrentDay
+                          ? "bg-emerald-500/15 border-emerald-500/25 text-emerald-400 scale-105"
+                          : "bg-white/50 dark:bg-slate-950/40 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      <span className="block text-[10px] text-gray-400 font-semibold mb-0.5">Date</span>
+                      <span className="text-sm">{slot.Date}</span>
+                      {isCurrentDay && <span className="block text-[8px] uppercase tracking-wider text-emerald-400 mt-0.5">Today</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-450 italic pt-2">No matching dates found. Change the block or input a correct room number.</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-gray-400 border-t border-gray-150 dark:border-gray-800/80 pt-3 mt-4">
+            <Info size={12} className="text-sky-400" />
+            <span>Slots are mapped automatically from block records. Each room range is granted two drop-off days per month.</span>
+          </div>
+        </div>
+
       </div>
 
       {/* Laundry Status Indicators */}
@@ -217,13 +329,16 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
               <tbody className="divide-y divide-gray-100 dark:divide-gray-850">
                 {schedule.map((item, idx) => {
                   const isToday = parseInt(item.Date, 10) === today;
+                  const isUserSelected = isRoomInSlotRange(item.RoomNumber);
                   return (
                     <tr
                       key={item.Id || idx}
                       className={`transition-colors ${
                         isToday
                           ? "bg-sky-500/10 text-sky-400 font-bold"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-slate-800/40"
+                          : isUserSelected
+                          ? "bg-sky-500/5 text-gray-700 dark:text-gray-200 font-semibold"
+                          : "text-gray-750 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-slate-800/40"
                       }`}
                     >
                       <td className="px-4 py-3 text-center font-semibold">{item.Date}</td>
@@ -231,6 +346,8 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                       <td className="px-4 py-3 text-center">
                         {isToday ? (
                           <span className="text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold">Today's Slot</span>
+                        ) : isUserSelected ? (
+                          <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-semibold">Your Slot</span>
                         ) : (
                           <span className="text-[9px] text-gray-400">Scheduled</span>
                         )}

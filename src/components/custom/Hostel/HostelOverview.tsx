@@ -226,28 +226,28 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
           </Button>
         </div>
 
-        {/* Card: Counselling */}
+        {/* Card: Room Selection & Counselling */}
         <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 flex flex-col justify-between shadow-2xs hover:border-sky-500/35 transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Mental Health & Counselling</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Room selection & counselling</span>
             <div className="flex items-center gap-3">
               <span className="text-3xl shrink-0">🤝</span>
               <div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Calm Spaces</h3>
-                <p className="text-[10px] text-gray-400 mt-0.5">Talk to a counsellor or access resources</p>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Booking Status</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Check group requests and allocation status</p>
               </div>
             </div>
             
             <div className="bg-gray-100/50 dark:bg-slate-800/10 border border-gray-150 dark:border-gray-800/60 rounded-xl p-3 text-xs space-y-1.5">
-              <p className="text-gray-700 dark:text-gray-300 font-semibold text-[11px]">Upcoming Sessions:</p>
-              <p className="text-[10px] text-gray-450 dark:text-gray-500 italic">No scheduled appointments. Access the Book tab to arrange one.</p>
+              <p className="text-gray-700 dark:text-gray-300 font-semibold text-[11px]">Room Allocation:</p>
+              <p className="text-[10px] text-gray-450 dark:text-gray-500 italic">Verify your Leader OTP in the counselling status portal.</p>
             </div>
           </div>
           <Button
             onClick={() => setHostelActiveSubTab("counselling")}
             className="w-full bg-sky-500 hover:bg-sky-600 text-white text-xs mt-4 rounded-xl flex items-center justify-center gap-1.5 h-9"
           >
-            <span>Book Appointment</span>
+            <span>View Booking Status</span>
             <ArrowRight size={14} />
           </Button>
         </div>
