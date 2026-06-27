@@ -251,10 +251,10 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
 }
 
 export default function CourseDashboard({
-  marksData, attendanceData, loginToVTOP, setActiveSubTab,
+  marksData, attendanceData, allGradesData, loginToVTOP, setActiveSubTab,
   calendars, decimalValues, isDayscholarWithBus
 }: {
-  marksData: any; attendanceData: any; loginToVTOP: () => Promise<Creds>; setActiveSubTab: (tab: string) => void;
+  marksData: any; attendanceData: any; allGradesData?: any; loginToVTOP: () => Promise<Creds>; setActiveSubTab: (tab: string) => void;
   calendars?: any; decimalValues?: boolean; isDayscholarWithBus?: boolean;
 }) {
   const [creds, setCreds] = useState<Creds | null>(null);
@@ -301,13 +301,13 @@ export default function CourseDashboard({
           map.set(key, {
             courseCode: key,
             courseTitle: a.courseTitle || key,
-            theory: !finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Theory Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
-            lab: finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Lab Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
+            theory: !finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Theory", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
+            lab: finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Lab", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
           });
         } else {
           const existing = map.get(key);
-          if (finalIsLab) existing.lab = { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Lab Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
-          else existing.theory = { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Theory Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
+          if (finalIsLab) existing.lab = { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Lab", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
+          else existing.theory = { courseCode: key, courseTitle: a.courseTitle, classNbr: a.classId || "", courseType: "Theory", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
         }
       });
     }
@@ -329,8 +329,28 @@ export default function CourseDashboard({
         }
       });
     }
+
+    if (allGradesData?.grades) {
+      Object.values(allGradesData.grades).forEach((semObj: any) => {
+        if (semObj?.grades) {
+          (semObj.grades as any[]).forEach(c => {
+            const isLab = c.courseType?.toLowerCase().includes("lab") || c.courseTitle?.toLowerCase().includes("lab");
+            const key = c.courseCode;
+            if (!map.has(key)) {
+              map.set(key, {
+                courseCode: key,
+                courseTitle: c.courseTitle,
+                theory: !isLab ? { courseCode: key, courseTitle: c.courseTitle, classNbr: "", courseType: c.courseType, slot: "", faculty: "", courseSystem: "Past Semester" } : null,
+                lab: isLab ? { courseCode: key, courseTitle: c.courseTitle, classNbr: "", courseType: c.courseType, slot: "", faculty: "", courseSystem: "Past Semester" } : null,
+              });
+            }
+          });
+        }
+      });
+    }
+
     return Array.from(map.values()) as any[];
-  }, [marksData, attendanceData]);
+  }, [marksData, attendanceData, allGradesData]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
