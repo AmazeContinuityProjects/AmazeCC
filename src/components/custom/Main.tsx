@@ -19,6 +19,9 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.
 
 const FETCH_TIMEOUT = 90000;
 
+let globalLoginPromise: Promise<any> | null = null;
+let cachedVTOPCredentials: { cookies: string[], authorizedID: string, csrf: string } | null = null;
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -40,6 +43,18 @@ type settings = {
   isDayscholarWithBus: boolean;
   residentialStatus?: "hosteller" | "dayscholar";
   friendlyName?: string;
+  syncProfileData?: boolean;
+  syncArrearData?: boolean;
+  syncExamData?: boolean;
+  syncAdditionalData?: boolean;
+  syncCourseOptionChange?: boolean;
+  syncExcRegistration?: boolean;
+  syncMinorHonour?: boolean;
+  syncCourseCompletion?: boolean;
+  syncWishlist?: boolean;
+  syncAdditionalLearning?: boolean;
+  syncProject?: boolean;
+  syncProjectCourse?: boolean;
 }
 
 type IDs = {
@@ -58,7 +73,19 @@ const defaultSettings: settings = {
   loadingScreen: false,
   isDayscholarWithBus: false,
   residentialStatus: "hosteller",
-  friendlyName: ""
+  friendlyName: "",
+  syncProfileData: true,
+  syncArrearData: true,
+  syncExamData: true,
+  syncAdditionalData: true,
+  syncCourseOptionChange: true,
+  syncExcRegistration: true,
+  syncMinorHonour: true,
+  syncCourseCompletion: true,
+  syncWishlist: true,
+  syncAdditionalLearning: true,
+  syncProject: true,
+  syncProjectCourse: true
 };
 
 const defaultIDs: IDs = {
@@ -260,11 +287,10 @@ export default function LoginPage() {
     setTimeout(() => setIsLoading(false), 300);
   }, []);
 
-  let loginPromise: Promise<any> | null = null;
-
-  const loginToVTOP = async (retry = false) => {
-    if (loginPromise) return loginPromise;
-    loginPromise = (async () => {
+  const loginToVTOP = async (retry = false, forceNew = false) => {
+    if (cachedVTOPCredentials && !forceNew && !retry) return cachedVTOPCredentials;
+    if (globalLoginPromise) return globalLoginPromise;
+    globalLoginPromise = (async () => {
       try {
         window.scrollTo({ top: 0, behavior: "smooth" });
         setProgressBar(10);
@@ -281,8 +307,8 @@ export default function LoginPage() {
         const data = await loginRes.json();
 
         if (data.message?.includes("Invalid Captcha") && !retry) {
-          loginPromise = null;
-          return await loginToVTOP(true);
+          globalLoginPromise = null;
+          return await loginToVTOP(true, forceNew);
         }
 
         if (!data.success || !data.authorizedID || !data.cookies)
@@ -291,16 +317,17 @@ export default function LoginPage() {
         setMessage((prev) => prev + "\n✅ Login successful");
         setProgressBar((prev) => prev + 30);
 
-        return {
+        cachedVTOPCredentials = {
           cookies: data.cookies,
           authorizedID: data.authorizedID,
           csrf: data.csrf,
         };
+        return cachedVTOPCredentials;
       } finally {
-        loginPromise = null;
+        globalLoginPromise = null;
       }
     })();
-    return loginPromise;
+    return globalLoginPromise;
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
@@ -465,6 +492,32 @@ export default function LoginPage() {
       localStorage.setItem("hostel", JSON.stringify(HostelRes));
       localStorage.setItem("calender", JSON.stringify(calenderRes));
       if (eventsRes?.events) localStorage.setItem("registeredEvents", JSON.stringify(eventsRes.events));
+      // Past Semester Attendance Fetch
+      try {
+        const pastSemesters = Object.keys(allGradesRes?.grades || {}).filter(sem => sem !== currSemesterID);
+        if (pastSemesters.length > 0) {
+          setMessage(prev => prev + `\nFetching past attendance for ${pastSemesters.length} semesters...`);
+          await Promise.allSettled(
+            pastSemesters.map(sem =>
+              fetch(`${API_BASE}/api/attendance`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: sem }),
+              })
+                .then(r => r.json())
+                .then(data => {
+                  if (data && data.attendance) {
+                    localStorage.setItem(`frozen_att_${sem}`, JSON.stringify(data));
+                  }
+                  setProgressBar(prev => Math.min(prev + 2, 95));
+                })
+                .catch(() => {})
+            )
+          );
+        }
+      } catch (e) {
+        console.error("Failed past attendance", e);
+      }
 
       // Fresher / EPT data
       try {
@@ -491,16 +544,32 @@ export default function LoginPage() {
       } catch {}
 
       // All other VTOP-scoped endpoints (cached for GenericApiView)
-      const bulkEndpoints = [
-        "arrear-schedule", "arrear-details", "arrear-grade",
-        "course-option-change", "exc-registration", "minor-honour", "course-completion",
-        "wishlist", "additional-learning",
-        "project", "project-course",
-        "makeup-exam", "makeup-schedule", "compre-info",
-        "hostel-counselling",
-        "credentials", "registration-schedule", "dayboarder", "bank-info",
-        "library-due",
-      ];
+      const bulkEndpoints: string[] = [];
+      if (settings.syncArrearData !== false) {
+        bulkEndpoints.push("arrear-schedule", "arrear-details", "arrear-grade");
+      }
+      // We still check syncAdditionalData as a master toggle for this section,
+      // but also respect the individual toggles. If syncAdditionalData is false, it skips all of them.
+      if (settings.syncAdditionalData !== false) {
+        if (settings.syncCourseOptionChange !== false) bulkEndpoints.push("course-option-change");
+        if (settings.syncExcRegistration !== false) bulkEndpoints.push("exc-registration");
+        if (settings.syncMinorHonour !== false) bulkEndpoints.push("minor-honour");
+        if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
+        if (settings.syncWishlist !== false) bulkEndpoints.push("wishlist");
+        if (settings.syncAdditionalLearning !== false) bulkEndpoints.push("additional-learning");
+        if (settings.syncProject !== false) bulkEndpoints.push("project");
+        if (settings.syncProjectCourse !== false) bulkEndpoints.push("project-course");
+      }
+      if (settings.syncExamData !== false) {
+        bulkEndpoints.push("makeup-exam", "makeup-schedule", "compre-info");
+      }
+      if (settings.syncProfileData !== false) {
+        bulkEndpoints.push(
+          "credentials", "registration-schedule", "dayboarder", "bank-info", 
+          "library-due", "hostel-counselling"
+        );
+      }
+      
       await Promise.allSettled(
         bulkEndpoints.map(path =>
           fetch(`${API_BASE}/api/${path}`, {
@@ -513,6 +582,8 @@ export default function LoginPage() {
               if (data.success !== false) {
                 localStorage.setItem("cache_" + path, JSON.stringify(data));
               }
+              setMessage(prev => prev + `\n✅ ${path} fetched`);
+              setProgressBar(prev => Math.min(prev + 1, 95));
             })
             .catch(() => {})
         )
@@ -574,34 +645,6 @@ export default function LoginPage() {
     }
   };
 
-  const fetchProfileData = async () => {
-    try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      const endpoints = [
-        "ept-schedule", "registration-schedule", "bank-info",
-        "dayboarder", "acknowledgement", "credentials",
-      ];
-      const results = await Promise.allSettled(
-        endpoints.map(path =>
-          fetch(`${API_BASE}/api/${path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json())
-        )
-      );
-      endpoints.forEach((path, i) => {
-        if (results[i].status === "fulfilled") {
-          localStorage.setItem(`cache_${path.replace(/-/g, "_")}`, JSON.stringify((results[i] as any).value));
-        }
-      });
-      setMessage(prev => prev + "\n✅ Profile data fetched");
-      setProgressBar(prev => prev + 10);
-    } catch (err) {
-      console.error("Failed to fetch profile data:", err);
-    }
-  };
-
   // --- Event Handlers ---
   const handleReloadRequest = async () => {
     setIsReloading(true);
@@ -613,7 +656,6 @@ export default function LoginPage() {
       if ((settings as any).reloadAllData) {
         await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
         await fetchTransportData();
-        await fetchProfileData();
         return;
       }
 
@@ -673,7 +715,6 @@ export default function LoginPage() {
       const moodlePassword = IDs.MoodlePassword;
 
       tasks.push(fetchTransportData());
-      tasks.push(fetchProfileData());
 
       if (moodleUsername && moodlePassword) {
         tasks.push(

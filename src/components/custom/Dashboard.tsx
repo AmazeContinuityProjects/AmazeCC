@@ -272,10 +272,8 @@ export default function DashboardContent({
       setAllGradesData(AllGradesData);
       localStorage.setItem("allGrades", JSON.stringify(AllGradesData));
 
-      setMessage((prev) => prev + "\n🔄 Fetching past semester data (if missing)...");
-      await syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf });
+      setMessage((prev) => prev + "\n🔄 Loading past semester data from cache...");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-
       setMessage((prev) => prev + "\n✅ All grades reloaded successfully!");
       setProgressBar(100);
       setIsReloading(false);
@@ -888,6 +886,8 @@ export default function DashboardContent({
                     setSettings(prev => ({ ...prev, reloadAllData: val }))
                     localStorage.setItem("settings", JSON.stringify({ ...settings, reloadAllData: val }))
                 }}
+                settings={settings}
+                setSettings={setSettings}
               />
             </div>
           )}

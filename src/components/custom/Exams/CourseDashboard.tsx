@@ -407,7 +407,10 @@ export default function CourseDashboard({
       flatCourses = flatCourses.concat(semCourses);
     });
 
-    return flatCourses;
+    return flatCourses.filter(c => 
+      (c.courseCode && c.courseCode.trim() !== "") || 
+      (c.courseTitle && c.courseTitle.trim() !== "")
+    );
   }, [marksData, attendanceData, pastSemesterData]);
 
   useEffect(() => {
@@ -761,9 +764,17 @@ export default function CourseDashboard({
               const isRelative = checkIsRelative(main.courseSystem, courseType);
               const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
               const courseStats = getCourseStats(group);
-              const att = attendanceData?.attendance?.find((a: any) =>
-                a.courseCode?.replace(/\([L]\)$/i, "").trim() === group.courseCode.trim()
+              const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
+              let sourceAttendance = attendanceData?.attendance || [];
+              if (isPastSemester && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+                sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+              }
+              const attItems = sourceAttendance.filter((a: any) =>
+                a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
               );
+              const theoryAttItem = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+              const labAttItem = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+              const att = theoryAttItem || labAttItem;
 
               let percent = 0, text = "0/0";
               if (courseTotalString === "Reload Required") text = "N/A";
@@ -799,7 +810,6 @@ export default function CourseDashboard({
               }
 
               const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
-              const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
               let pastGrade = "";
               if (isPastSemester && allGradesData?.grades?.[group.semesterSubId]?.grades) {
                 const found = allGradesData.grades[group.semesterSubId].grades.find((g: any) => g.courseCode === group.courseCode);
@@ -927,8 +937,28 @@ export default function CourseDashboard({
                         </div>
                       </div>
                     </div>
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center">
-                      <CircularProgress value={percent} text={`${Math.round(percent)}%`} size={64} threshold={25} midThreshold={75} />
+                    <div className="flex shrink-0 items-center justify-center gap-3">
+                      {(group.theory && group.lab) ? (
+                        <>
+                          {theoryAttItem && (
+                            <div className="flex flex-col items-center gap-1">
+                              <CircularProgress value={Number(theoryAttItem.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0)} text={`${theoryAttItem.attendancePercentage || (isPastSemester && pastGrade ? 100 : 0)}%`} size={52} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
+                              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Theory</span>
+                            </div>
+                          )}
+                          {labAttItem && (
+                            <div className="hidden md:flex flex-col items-center gap-1">
+                              <CircularProgress value={Number(labAttItem.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0)} text={`${labAttItem.attendancePercentage || (isPastSemester && pastGrade ? 100 : 0)}%`} size={52} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
+                              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mt-1">Lab</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (att || isPastSemester) && (
+                        <div className="flex flex-col items-center gap-1">
+                          <CircularProgress value={attendancePct} text={`${attendancePct}%`} size={64} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">Attendance</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
