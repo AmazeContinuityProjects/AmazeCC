@@ -342,8 +342,8 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
                     <span className="text-[10px] font-bold self-end text-gray-500 dark:text-gray-400">{dayNum}</span>
                     {slot ? (
                       <div className="text-center pb-0.5">
-                        <span className="text-[7.5px] sm:text-[9px] block font-semibold truncate leading-tight" title={slot.RoomNumber}>
-                          {slot.RoomNumber.replace(/\s+/g, "")}
+                        <span className="text-[7.5px] sm:text-[9px] block font-semibold truncate leading-tight" title={slot.RoomNumber || ""}>
+                          {(slot.RoomNumber || "").replace(/\s+/g, "")}
                         </span>
                         {isToday && <span className="text-[6.5px] sm:text-[7.5px] uppercase font-bold text-emerald-450 block mt-0.5">Today</span>}
                         {isUserSelected && !isToday && <span className="text-[6.5px] sm:text-[7.5px] uppercase font-bold text-sky-400 block mt-0.5">Your Slot</span>}
