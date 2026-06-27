@@ -96,7 +96,8 @@ export default function ProfilePage({
   onCredentialsClick,
   onReload,
   settings,
-  setSettings
+  setSettings,
+  mode = "settings"
 }: any) {
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
@@ -114,7 +115,18 @@ export default function ProfilePage({
 
   // Search & Navigation
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSection, setActiveSection] = useState<SectionId>("profile");
+  
+  const sectionsToUse = useMemo(() => {
+    if (mode === "info") {
+      return SECTIONS.filter(s => s.id === "profile");
+    } else {
+      return SECTIONS.filter(s => s.id !== "profile");
+    }
+  }, [mode]);
+
+  const [activeSection, setActiveSection] = useState<SectionId>(
+    mode === "info" ? "profile" : "preferences"
+  );
 
   // Collapsible Sync states
   const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
@@ -268,8 +280,9 @@ export default function ProfilePage({
 
   useEffect(() => {
     const handleScroll = () => {
-      let current: SectionId = "profile";
-      for (const section of SECTIONS) {
+      if (sectionsToUse.length === 0) return;
+      let current: SectionId = sectionsToUse[0].id;
+      for (const section of sectionsToUse) {
         const el = document.getElementById(`sec-${section.id}`);
         if (el) {
           const rect = el.getBoundingClientRect();
@@ -283,7 +296,7 @@ export default function ProfilePage({
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [sectionsToUse]);
 
   // Theme settings mapping
   const { theme, setTheme } = useTheme();
@@ -338,9 +351,9 @@ export default function ProfilePage({
 
   // Search Filter calculation
   const filteredSections = useMemo(() => {
-    if (!searchQuery) return SECTIONS;
+    if (!searchQuery) return sectionsToUse;
     const query = searchQuery.toLowerCase();
-    return SECTIONS.filter(section => {
+    return sectionsToUse.filter(section => {
       const matchLabel = section.label.toLowerCase().includes(query);
       if (matchLabel) return true;
 
@@ -368,7 +381,7 @@ export default function ProfilePage({
       }
       return false;
     });
-  }, [searchQuery]);
+  }, [searchQuery, sectionsToUse]);
 
   return (
     <div className="w-full h-full pb-16 px-4 md:px-8 max-w-7xl mx-auto">
@@ -451,49 +464,52 @@ export default function ProfilePage({
 
       {/* Main settings body layout */}
       <div className="flex flex-col md:flex-row gap-8 items-start relative">
-        
-        {/* Left Sticky navigation (Desktop) */}
-        <aside className="sticky top-6 w-full md:w-56 shrink-0 hidden md:flex flex-col gap-0.5 border-r border-gray-150 dark:border-gray-800/60 pr-4">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2.5 mb-2">Settings</div>
-          {SECTIONS.map(sec => {
-            const Icon = sec.icon;
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => scrollToSection(sec.id)}
-                className={`flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
-                  isActive
-                    ? "bg-sky-400/10 text-sky-400 border border-sky-400/15"
-                    : "text-gray-600 dark:text-gray-450 hover:bg-gray-100/60 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white border border-transparent"
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? "text-sky-400" : "text-gray-400 dark:text-gray-500"}`} />
-                <span>{sec.label}</span>
-              </button>
-            );
-          })}
-        </aside>
+           {/* Left Sticky navigation (Desktop) */}
+        {sectionsToUse.length > 1 && (
+          <aside className="sticky top-6 w-full md:w-56 shrink-0 hidden md:flex flex-col gap-0.5 border-r border-gray-150 dark:border-gray-800/60 pr-4">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2.5 mb-2">Settings</div>
+            {sectionsToUse.map(sec => {
+              const Icon = sec.icon;
+              const isActive = activeSection === sec.id;
+              return (
+                <button
+                  key={sec.id}
+                  onClick={() => scrollToSection(sec.id)}
+                  className={`flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
+                    isActive
+                      ? "bg-sky-400/10 text-sky-400 border border-sky-400/15"
+                      : "text-gray-600 dark:text-gray-450 hover:bg-gray-100/60 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white border border-transparent"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? "text-sky-400" : "text-gray-400 dark:text-gray-500"}`} />
+                  <span>{sec.label}</span>
+                </button>
+              );
+            })}
+          </aside>
+        )}
 
         {/* Horizontal Navigation tabs (Mobile / Tablet) */}
-        <nav className="flex md:hidden overflow-x-auto w-full border-b border-gray-150 dark:border-gray-800 pb-2 mb-2 gap-1.5 scrollbar-none">
-          {SECTIONS.map(sec => {
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => scrollToSection(sec.id)}
-                className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap rounded-full transition-all ${
-                  isActive
-                    ? "bg-sky-500 text-white shadow-xs"
-                    : "bg-gray-100 dark:bg-slate-850 text-gray-600 dark:text-gray-300"
-                }`}
-              >
-                {sec.label}
-              </button>
-            );
-          })}
-        </nav>
+        {sectionsToUse.length > 1 && (
+          <nav className="flex md:hidden overflow-x-auto w-full border-b border-gray-150 dark:border-gray-800 pb-2 mb-2 gap-1.5 scrollbar-none">
+            {sectionsToUse.map(sec => {
+              const isActive = activeSection === sec.id;
+              return (
+                <button
+                  key={sec.id}
+                  onClick={() => scrollToSection(sec.id)}
+                  className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap rounded-full transition-all ${
+                    isActive
+                      ? "bg-sky-500 text-white shadow-xs"
+                      : "bg-gray-100 dark:bg-slate-850 text-gray-605 dark:text-gray-300"
+                  }`}
+                >
+                  {sec.label}
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
         {/* Right side Settings Content pane */}
         <main className="flex-1 w-full space-y-12">
