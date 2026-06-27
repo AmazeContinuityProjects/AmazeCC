@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Users, UserPlus, Share2, Trash2, Calendar, LayoutDashboard, Eye, EyeOff, UsersRound, Plus } from "lucide-react";
+import FetchButton from "../shared/FetchButton";
 import { getFriends, removeFriend, saveFriend, getFriendGroups, removeFriendGroup, Friend, FriendGroup } from "../../../lib/socialUtils";
 import ShareScheduleModal from "./ShareScheduleModal";
 import AddFriendModal from "./AddFriendModal";
@@ -63,7 +64,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
   return (
     <div className="w-full space-y-6 pb-8 animate-fadeIn">
       {/* Header */}
-      <div className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
+      <div className="glass-card p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -74,12 +75,14 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <button
+            <FetchButton
               onClick={handleOpenAllFreeSlots}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm border border-green-500/20"
+              variant="success"
+              icon={<Calendar className="w-4 h-4" />}
+              className="flex-1 md:flex-none px-4 py-2.5 rounded-xl"
             >
-              <Calendar className="w-4 h-4" /> Compare All
-            </button>
+              Compare All
+            </FetchButton>
             <button
               onClick={() => setIsShareModalOpen(true)}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-sm whitespace-nowrap"
@@ -88,12 +91,14 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
               <span className="hidden sm:inline">Share My Code</span>
               <span className="sm:hidden">Share</span>
             </button>
-            <button
+            <FetchButton
               onClick={() => setIsAddModalOpen(true)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl shadow-lg transition-all duration-300"
+              variant="gradient"
+              icon={<UserPlus className="w-4 h-4" />}
+              className="flex-1 md:flex-none px-4 py-2.5 rounded-xl shadow-lg"
             >
-              <UserPlus className="w-4 h-4" /> Add Friend
-            </button>
+              Add Friend
+            </FetchButton>
           </div>
         </div>
       </div>
@@ -121,7 +126,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
                   <div
                     key={group.id}
                     onClick={() => setSelectedGroup({ group, friends: groupFriends, name: group.name })}
-                    className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-md transition-all flex flex-col cursor-pointer group"
+                    className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer group"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-foreground leading-tight text-lg">{group.name}</h3>
@@ -174,7 +179,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
               <div
                 key={friend.id}
                 onClick={() => setSelectedFriend(friend)}
-                className="bg-white/60 dark:bg-slate-900/50 midnight:bg-white/[0.03] backdrop-blur-2xl border border-white/40 dark:border-gray-700/50 midnight:border-white/10 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
+                className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -239,7 +244,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
       {isAddModalOpen && (
         <AddFriendModal
           onClose={() => setIsAddModalOpen(false)}
-          onAdd={loadData}
+          onFriendAdded={loadData}
         />
       )}
       {isAddGroupModalOpen && (

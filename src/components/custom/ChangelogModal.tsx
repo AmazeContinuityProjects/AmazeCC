@@ -13,6 +13,7 @@ export default function ChangelogModal() {
             const lastSeenVersion = localStorage.getItem('lastSeenChangelogVersion');
             if (lastSeenVersion !== latestVersion.version) {
                 setIsOpen(true);
+                localStorage.setItem('lastSeenChangelogVersion', latestVersion.version);
             }
         }, 1500);
 
@@ -20,7 +21,6 @@ export default function ChangelogModal() {
     }, [latestVersion.version]);
 
     const handleClose = () => {
-        localStorage.setItem('lastSeenChangelogVersion', latestVersion.version);
         setIsOpen(false);
     };
 

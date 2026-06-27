@@ -1,5 +1,5 @@
 "use client";
-import { Analytics } from "@vercel/analytics/next";
+import { getAssetPath } from "@/lib/utils";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./statCards";
 import GradesModal from "./Exams/GradesModal";
@@ -19,22 +19,56 @@ import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
+
 import { API_BASE } from "./Main";
-import MarksSubTab from "./Exams/MarksSubTab";
-import { RefreshCcw } from "lucide-react";
+import CourseDashboard from "./Exams/CourseDashboard";
+import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
 
-import PapersArchiveTab from "./qbank/PapersArchiveTab";
-import PureQBankTab from "./qbank/PureQBankTab";
+const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
+  loading: () => (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-10 w-48 mb-4" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  )
+});
+const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
+  loading: () => (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-10 w-48 mb-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </div>
+  )
+});
 import QBankSubTabs from "./qbank/QBankSubTabs";
-import ProfilePage from "./header/ProfilePage";
+import PaymentsTab from "./PaymentsTab";
+import LibrariesTab from "./Libraries/LibrariesTab";
+import ArrearTab from "./Exams/ArrearTab";
+import MakeupCompreTab from "./Exams/MakeupCompreTab";
+import CourseMgmtTab from "./Exams/CourseMgmtTab";
+import ProjectsTab from "./Exams/ProjectsTab";
+import WishlistTab from "./Exams/WishlistTab";
+import CircularsTab from "./Exams/CircularsTab";
+import FacultyInfoTab from "./Exams/FacultyInfoTab";
+import QCMViewTab from "./Exams/QCMViewTab";
+
+import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
-
-<Analytics/>
+import FresherWelcomePage, { hasFutureExam } from "./FresherWelcomePage";
+import FeedbackStatusModal from "./profile/FeedbackStatusModal";
+import GenericApiView from "./Exams/GenericApiView";
 
 export default function DashboardContent({
+  demoMode = false,
   activeTab,
   setActiveTab,
   handleLogOutRequest,
@@ -80,36 +114,95 @@ export default function DashboardContent({
   setMoodleData,
   IDs,
   setIDs,
+  registeredEvents,
+  setRegisteredEvents,
   vitolData,
   setVitolData,
   settings,
   setSettings
 }) {
+  const [showFresherWelcome, setShowFresherWelcome] = useState(false);
+  const [fresherEptData, setFresherEptData] = useState<any>(null);
+  const [fresherAckData, setFresherAckData] = useState<any>(null);
+  const [fresherResources, setFresherResources] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (demoMode) {
+      setShowFresherWelcome(true);
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/fresher-resources`)
+      .then(r => r.json())
+      .then(data => { if (data.success && data.resources) setFresherResources(data.resources); })
+      .catch(() => {});
+  }, []);
+
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);
   const touchEndY = useRef(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
+
+  useEffect(() => {
+    const updateIcon = () => {
+      const savedIcon = localStorage.getItem("app-icon") || "default";
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
+    };
+    updateIcon();
+    window.addEventListener("app-icon-changed", updateIcon);
+    return () => window.removeEventListener("app-icon-changed", updateIcon);
+  }, []);
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
+  const [activeProfileSubTab, setActiveProfileSubTab] = useState("info");
+  const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
+  const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
+  const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
 
   const [dayscholarBuses, setDayscholarBuses] = useState([]);
+  const [transportData, setTransportData] = useState<any>(null);
+  const [transportLoading, setTransportLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/buses`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.buses) {
-          setDayscholarBuses(data.buses);
-        }
-      })
-      .catch(err => console.error("Failed to fetch buses from API:", err));
+    const cachedBuses = localStorage.getItem("cache_buses");
+    if (cachedBuses) {
+      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
+    }
+
+    const cached = localStorage.getItem("transportData");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setTransportData(parsed);
+      } catch (e) {
+        localStorage.removeItem("transportData");
+      }
+    }
+    setTransportLoading(false);
   }, []);
 
-  const tabsOrder = ["attendance", "academics", "hostel", "dayscholar", "more", "profile"];
-  if (settings?.residentialStatus !== "dayscholar") tabsOrder.push("hostel");
-  if (settings?.residentialStatus !== "hosteller") tabsOrder.push("dayscholar");
+  const tabsOrder = ["attendance", "academics", "payments", "libraries", "more", "profile"];
+  
+  const [profileData, setProfileData] = useState<any>(null);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("profile");
+      if (stored) setProfileData(JSON.parse(stored));
+    } catch(e){}
+  }, []);
+
+  const isHosteller = profileData?.isHosteller;
+  const residentialStatus = settings?.residentialStatus;
+
+  if (isHosteller === true) tabsOrder.push("hostel");
+  else if (isHosteller === false) tabsOrder.push("dayscholar");
+  else if (residentialStatus === "dayscholar") tabsOrder.push("dayscholar");
+  else if (residentialStatus === "hosteller") tabsOrder.push("hostel");
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
@@ -339,6 +432,19 @@ export default function DashboardContent({
     }
   };
 
+  if (showFresherWelcome) {
+    return (
+      <FresherWelcomePage
+        onDismiss={() => setShowFresherWelcome(false)}
+        username={IDs?.VtopUsername || ""}
+        friendlyName={settings?.friendlyName || ""}
+        eptData={fresherEptData}
+        acknowledgementData={fresherAckData}
+        resources={fresherResources}
+      />
+    );
+  }
+
   return (
     <div
       className="w-full max-w-md md:max-w-full mx-auto overflow-hidden"
@@ -391,6 +497,9 @@ export default function DashboardContent({
         setActiveQBankSubTab={setActiveQBankSubTab}
         activeMoreSubTab={activeMoreSubTab}
         setActiveMoreSubTab={setActiveMoreSubTab}
+        activeProfileSubTab={activeProfileSubTab}
+        setActiveProfileSubTab={setActiveProfileSubTab}
+        onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
       />
 
       <div 
@@ -403,12 +512,15 @@ export default function DashboardContent({
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10 dark:bg-emerald-500/10 midnight:bg-emerald-500/5 blur-[120px]" />
         </div>
         <div className={`md:hidden ${settings.hideMobileHeader && activeTab !== "attendance" ? "hidden" : ""} ${isSubpageOpen ? "hidden" : ""}`}>
-          <div className="px-6 pt-6 pb-2 flex justify-between items-start">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 midnight:text-gray-100 flex-1 truncate">
-                {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
-              </h2>
+          <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <img src={currentIcon} alt="Logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
+              <div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight leading-tight">AmazeCC</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate max-w-[180px] font-semibold mt-0.5">
+                  {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {settings.friendlyName || IDs.VtopUsername}
+                </p>
+              </div>
             </div>
             <button
               onClick={async () => {
@@ -441,8 +553,11 @@ export default function DashboardContent({
             localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: val }))
             }
           }
+          onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
         />
         </div>
+
+
 
         {GradesDisplayIsOpen && (
           <GradesModal
@@ -457,10 +572,82 @@ export default function DashboardContent({
 
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <ChangelogModal />
-
+        <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
+              {(() => {
+                // Determine upcoming events within the next 7 days
+                if (!registeredEvents || !Array.isArray(registeredEvents) || registeredEvents.length === 0) return null;
+                const now = new Date();
+                now.setHours(0,0,0,0);
+                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                
+                const parseEventDate = (dateStr: string) => {
+                  const d = new Date(dateStr);
+                  if (!isNaN(d.getTime())) return d;
+                  
+                  // Try parsing DD-MM-YYYY or DD/MM/YYYY
+                  const parts = dateStr.split(/[-/]/);
+                  if (parts.length === 3) {
+                    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                  }
+                  return new Date(0); // fallback
+                };
+                
+                const upcoming = registeredEvents.filter(ev => {
+                  if (!ev.date) return false;
+                  const d = parseEventDate(ev.date);
+                  return d >= now && d <= nextWeek;
+                }).sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
+                
+                if (upcoming.length === 0) return null;
+                
+                return (
+                  <div className={`mb-8 ${isSubpageOpen ? "hidden" : ""}`}>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white midnight:text-white">Upcoming Events</h3>
+                    </div>
+                    <div 
+                      className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0"
+                      data-prevent-swipe="true"
+                    >
+                      {upcoming.map((ev, i) => (
+                        <div 
+                          key={i} 
+                          onClick={() => {
+                            sessionStorage.setItem("pendingEventOpen", ev.name);
+                            setActiveTab("more");
+                            setActiveMoreSubTab("events");
+                          }}
+                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white dark:bg-slate-800 midnight:bg-black rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 midnight:hover:border-blue-500 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
+                        >
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 dark:bg-blue-400/10 midnight:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                          
+                          <div className="z-10">
+                            <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 midnight:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-4 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.date} • {ev.time}</span>
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300 midnight:text-gray-300 truncate pr-2">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.venue}</span>
+                            </span>
+                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 midnight:bg-green-900/20 midnight:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/20 midnight:text-red-400'}`}>
+                              {ev.paymentStatus}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>
                 <AttendanceSubTabs
                   activeSubTab={activeAttendanceSubTab}
@@ -500,7 +687,15 @@ export default function DashboardContent({
                     setMoodleData={setMoodleData}
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
+                    registeredEvents={registeredEvents}
+                    setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                   />
+                </div>
+              )}
+
+              {activeAttendanceSubTab === "circulars" && (
+                <div className="animate-fadeIn">
+                  <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
                 </div>
               )}
             </div>
@@ -517,14 +712,36 @@ export default function DashboardContent({
                 hideMobileHeader={settings.hideMobileHeader} 
                 handleFetchGrades={handleAllGradesFetch} 
               />}
-              {activeSubTab === "marks" && <MarksSubTab data={marksData} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "course-dashboard" && <CourseDashboard marksData={marksData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />}
               {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
-              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />}
               {activeSubTab === "predictor" && <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />}
               {activeSubTab === "qbank" && (
                 <div className="animate-fadeIn">
                   <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
                 </div>
+              )}
+              {activeSubTab === "arrear" && (
+                <ArrearTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "makeup-compre" && (
+                <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "course-mgmt" && (
+                <CourseMgmtTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "projects" && (
+                <ProjectsTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+              {activeSubTab === "wishlist" && (
+                <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+              )}
+
+              {activeSubTab === "faculty-info" && (
+                <FacultyInfoTab loginToVTOP={loginToVTOP} />
+              )}
+              {activeSubTab === "qcm-view" && (
+                <QCMViewTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
               )}
             </div>
           )}
@@ -540,12 +757,39 @@ export default function DashboardContent({
               {HostelActiveSubTab === "mess" && <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
               {HostelActiveSubTab === "laundry" && <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
               {HostelActiveSubTab === "leave" && <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />}
+              {HostelActiveSubTab === "counselling" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Hostel Counselling</h2>
+                    <button
+                      onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
+                      className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+                      title="Reload"
+                    >
+                      <RefreshCcw className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === "dayscholar" && (
+            <div className="animate-fadeIn space-y-8">
+              <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
+            </div>
+          )}
+
+          {activeTab === "payments" && (
             <div className="animate-fadeIn">
-              <BusFinder buses={dayscholarBuses} />
+              <PaymentsTab loginToVTOP={loginToVTOP} />
+            </div>
+          )}
+
+          {activeTab === "libraries" && (
+            <div className="animate-fadeIn">
+              <LibrariesTab loginToVTOP={loginToVTOP} />
             </div>
           )}
 
@@ -554,7 +798,12 @@ export default function DashboardContent({
               <MoreTab 
                 attendanceData={attendanceData} 
                 activeMoreSubTab={activeMoreSubTab} 
-                setActiveMoreSubTab={setActiveMoreSubTab} 
+                setActiveMoreSubTab={setActiveMoreSubTab}
+                IDs={IDs}
+                isSubpageOpen={isSubpageOpen}
+                setIsSubpageOpen={setIsSubpageOpen}
+                registeredEvents={registeredEvents}
+                setRegisteredEvents={setRegisteredEvents}
               />
             </div>
           )}
@@ -563,8 +812,11 @@ export default function DashboardContent({
 
           {activeTab === "profile" && (
             <div className="animate-fadeIn">
-              <ProfilePage
+              <ProfileTab
+                activeProfileSubTab={activeProfileSubTab}
+                setActiveProfileSubTab={setActiveProfileSubTab}
                 isLoggedIn={true}
+                loginToVTOP={loginToVTOP}
                 currSemesterID={settings.currSemesterID}
                 setCurrSemesterID={(val: string) => {
                   setSettings(prev => ({ ...prev, currSemesterID: val }))
@@ -629,5 +881,13 @@ export default function DashboardContent({
       </div>
     </div>
   );
+}
+
+function HostelCounsellingView({ loginToVTOP, refreshKey }: { loginToVTOP: () => Promise<any>; refreshKey: number }) {
+  const [creds, setCreds] = useState<any>(null);
+  useEffect(() => { loginToVTOP().then(setCreds).catch(() => {}); }, [refreshKey]);
+
+  if (!creds) return <Skeleton className="h-32 w-full rounded-2xl" />;
+  return <GenericApiView endpoint="hostel-counselling" title="" creds={creds} refreshKey={refreshKey} />;
 }
 

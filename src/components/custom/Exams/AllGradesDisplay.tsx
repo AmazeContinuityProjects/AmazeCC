@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { X, RefreshCcw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import NoContentFound from "../NoContentFound";
+import Modal from "../shared/Modal";
+import FetchButton from "../shared/FetchButton";
 
 export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, attendance }) {
     if (!data || !data.grades) {
@@ -11,9 +12,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     {/* Mobile View: Inline Center */}
                     <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                        Academic Grades <button onClick={handleAllGradesFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-                            <RefreshCcw className={`w-4 h-4`} />
-                        </button>
+                        Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -21,9 +20,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                         Academic Grades
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
-                        <button onClick={handleAllGradesFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-                            <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-                        </button>
+                        <FetchButton onClick={handleAllGradesFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+                            <span className="text-sm">Reload</span>
+                        </FetchButton>
                     </div>
                 </div>
                 <NoContentFound />
@@ -38,9 +37,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     {/* Mobile View: Inline Center */}
                     <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                        Academic Grades <button onClick={handleAllGradesFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-                            <RefreshCcw className={`w-4 h-4`} />
-                        </button>
+                        Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                     </h1>
                     
                     {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -48,9 +45,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                         Academic Grades
                     </h1>
                     <div className="hidden md:flex items-center justify-end">
-                        <button onClick={handleAllGradesFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-                            <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-                        </button>
+                        <FetchButton onClick={handleAllGradesFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+                            <span className="text-sm">Reload</span>
+                        </FetchButton>
                     </div>
                 </div>
                 <NoContentFound />
@@ -151,9 +148,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 {/* Mobile View: Inline Center */}
                 <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                    Academic Grades <button onClick={handleAllGradesFetch} className="inline-flex ml-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors align-middle">
-                        <RefreshCcw className={`w-4 h-4`} />
-                    </button>
+                    Academic Grades <FetchButton onClick={handleAllGradesFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
                 </h1>
                 
                 {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
@@ -161,9 +156,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                     Academic Grades
                 </h1>
                 <div className="hidden md:flex items-center justify-end">
-                    <button onClick={handleAllGradesFetch} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
-                        <RefreshCcw className={`w-4 h-4`} /> <span className="text-sm">Reload</span>
-                    </button>
+                    <FetchButton onClick={handleAllGradesFetch} icon={<RefreshCcw className="w-4 h-4" />}>
+                        <span className="text-sm">Reload</span>
+                    </FetchButton>
                 </div>
             </div>
 
@@ -237,119 +232,98 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                         </div>
 
                         {openCourse === course.courseId && (
-                            <div
-                                data-scrollable
-                                className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50"
-                            >
-                                <div
-                                    className="bg-white dark:bg-slate-800 midnight:bg-black rounded-xl shadow-lg p-6 max-w-3xl w-[95%] relative max-h-[90vh] overflow-y-auto"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                                        {course.courseCode} – {course.courseTitle}
-                                    </h2>
-                                    <p className="mb-1">
-                                        <strong>Course Type:</strong> {course.courseType}
-                                    </p>
-                                    <p className="mb-3">
-                                        <strong>Grade:</strong> {course.grade}
-                                    </p>
+                            <Modal onClose={() => setOpenCourse(null)} maxWidth="max-w-3xl" className="max-h-[90vh] overflow-y-auto">
+                                <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                                    {course.courseCode} – {course.courseTitle}
+                                </h2>
+                                <p className="mb-1">
+                                    <strong>Course Type:</strong> {course.courseType}
+                                </p>
+                                <p className="mb-3">
+                                    <strong>Grade:</strong> {course.grade}
+                                </p>
 
-                                    {course.range && (
-                                        <div className="overflow-x-auto mt-2">
-                                            <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
-                                                <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
-                                                    <tr>
-                                                        {Object.keys(course.range as Record<string, string | number>).map((grade) => (
-                                                            <th key={grade} className="border p-2 text-center">
-                                                                {grade}
-                                                            </th>
-                                                        ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        {Object.values(course.range as Record<string, string | number>).map((range, idx) => (
-                                                            <td
-                                                                key={idx}
-                                                                className="border p-2 text-center text-gray-800 dark:text-gray-200 midnight:text-gray-200"
-                                                            >
-                                                                {range}
-                                                            </td>
-                                                        ))}
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-
-                                    {course.details && course.details.length > 0 ? (
-                                        <div className="overflow-x-auto mt-6">
-                                            <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
-                                                <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
-                                                    <tr>
-                                                        <th className="border p-2 text-left">Component Name</th>
-                                                        <th className="border p-2 text-center">Max</th>
-                                                        <th className="border p-2 text-center">Scored</th>
-                                                        <th className="border p-2 text-center">Weightage</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {course.details.map((d, idx) => (
-                                                        <tr
-                                                            key={idx}
-                                                            className="border-gray-300 dark:border-gray-600 midnight:border-gray-700"
-                                                        >
-                                                            <td className="border p-2">{d.component}</td>
-                                                            <td className="border p-2 text-center">{formatNumber(d.maxMark)}</td>
-                                                            <td className="border p-2 text-center">{formatNumber(d.scoredMark)}</td>
-                                                            <td className="border p-2 text-center">{formatNumber(d.weightageMark)}</td>
-                                                        </tr>
+                                {course.range && (
+                                    <div className="overflow-x-auto mt-2">
+                                        <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
+                                            <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
+                                                <tr>
+                                                    {Object.keys(course.range as Record<string, string | number>).map((grade) => (
+                                                        <th key={grade} className="border p-2 text-center">
+                                                            {grade}
+                                                        </th>
                                                     ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    {Object.values(course.range as Record<string, string | number>).map((range, idx) => (
+                                                        <td
+                                                            key={idx}
+                                                            className="border p-2 text-center text-gray-800 dark:text-gray-200 midnight:text-gray-200"
+                                                        >
+                                                            {range}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
 
-                                                    <tr className="font-bold border-t border-gray-400 dark:border-gray-500 midnight:border-gray-600">
-                                                        <td className="border p-2">
-                                                            Total
-                                                        </td>
-                                                        <td className="border p-2 text-center">
-                                                            {formatNumber(
-                                                                course.details.reduce((sum, d) => sum + (Number(d.maxMark) || 0), 0)
-                                                            )}
-                                                        </td>
-                                                        <td className="border p-2 text-center">
-                                                            {formatNumber(
-                                                                course.details.reduce((sum, d) => sum + (Number(d.scoredMark) || 0), 0)
-                                                            )}
-                                                        </td>
-                                                        <td className="border p-2 text-center">
-                                                            {formatNumber(
-                                                                course.details.reduce((sum, d) => sum + (Number(d.weightageMark) || 0), 0)
-                                                            )}
-                                                        </td>
+                                {course.details && course.details.length > 0 ? (
+                                    <div className="overflow-x-auto mt-6">
+                                        <table className="w-full border border-gray-300 dark:border-gray-600 midnight:border-gray-700">
+                                            <thead className="bg-gray-800 text-white dark:bg-slate-700 midnight:bg-gray-900">
+                                                <tr>
+                                                    <th className="border p-2 text-left">Component Name</th>
+                                                    <th className="border p-2 text-center">Max</th>
+                                                    <th className="border p-2 text-center">Scored</th>
+                                                    <th className="border p-2 text-center">Weightage</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {course.details.map((d, idx) => (
+                                                    <tr
+                                                        key={idx}
+                                                        className="border-gray-300 dark:border-gray-600 midnight:border-gray-700"
+                                                    >
+                                                        <td className="border p-2">{d.component}</td>
+                                                        <td className="border p-2 text-center">{formatNumber(d.maxMark)}</td>
+                                                        <td className="border p-2 text-center">{formatNumber(d.scoredMark)}</td>
+                                                        <td className="border p-2 text-center">{formatNumber(d.weightageMark)}</td>
                                                     </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ) : (
-                                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                            No breakdown data available.
-                                        </p>
-                                    )}
+                                                ))}
 
-
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setOpenCourse(null)}
-                                        className="top-2 right-2 absolute cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
-                                    >
-                                        <X
-                                            size={22}
-                                            className="text-gray-600 dark:text-gray-300 midnight:text-gray-200"
-                                        />
-                                    </Button>
-                                </div>
-                            </div>
+                                                <tr className="font-bold border-t border-gray-400 dark:border-gray-500 midnight:border-gray-600">
+                                                    <td className="border p-2">
+                                                        Total
+                                                    </td>
+                                                    <td className="border p-2 text-center">
+                                                        {formatNumber(
+                                                            course.details.reduce((sum, d) => sum + (Number(d.maxMark) || 0), 0)
+                                                        )}
+                                                    </td>
+                                                    <td className="border p-2 text-center">
+                                                        {formatNumber(
+                                                            course.details.reduce((sum, d) => sum + (Number(d.scoredMark) || 0), 0)
+                                                        )}
+                                                    </td>
+                                                    <td className="border p-2 text-center">
+                                                        {formatNumber(
+                                                            course.details.reduce((sum, d) => sum + (Number(d.weightageMark) || 0), 0)
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                        No breakdown data available.
+                                    </p>
+                                )}
+                            </Modal>
                         )}
                     </div>
                 ))}

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Search, BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
+import { BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
+import EmptyState from "../shared/EmptyState";
+import SearchInput from "../shared/SearchInput";
+import { LoadingSpinner } from "../shared";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
+import SubpageLayout from "../shared/SubpageLayout";
 
 type ViewState = "courses" | "questions";
 
@@ -126,23 +130,14 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
           </div>
         </div>
 
-        <div className="relative mb-5">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by course code or title..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 midnight:bg-slate-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          />
-        </div>
+        <SearchInput placeholder="Search by course code or title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} containerClassName="mb-5" />
 
         {filteredCourses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500 midnight:text-gray-600">
-            <GraduationCap className="w-12 h-12 mb-3 opacity-50" />
-            <p className="font-medium">No courses found</p>
-            <p className="text-sm mt-1">Load your grades data to populate the course list.</p>
-          </div>
+          <EmptyState
+            icon={<GraduationCap className="w-12 h-12" />}
+            title="No courses found"
+            description="Load your grades data to populate the course list."
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredCourses.map((c) => (
@@ -175,34 +170,22 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
 
   // ─── QUESTIONS VIEW ───
   return (
-    <div className="py-2">
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={handleGoBack}
-          className="p-2 bg-gray-100 dark:bg-slate-800 midnight:bg-slate-900 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-slate-800 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 midnight:text-gray-400" />
-        </button>
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-            {selectedCourse?.code}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-500">
-            {selectedCourse?.title} — {questions.length} questions
-          </p>
-        </div>
-      </div>
+    <SubpageLayout
+      title={selectedCourse?.code || ""}
+      subtitle={selectedCourse?.title ? `${selectedCourse.title} — ${questions.length} questions` : undefined}
+      onBack={handleGoBack}
+    >
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <LoadingSpinner size="lg" />
         </div>
       ) : questions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500 midnight:text-gray-600">
-          <BookOpen className="w-12 h-12 mb-3 opacity-50" />
-          <p className="font-medium">No extracted questions yet</p>
-          <p className="text-sm mt-1">Questions will appear once an admin has approved OCR results.</p>
-        </div>
+        <EmptyState
+          icon={<BookOpen className="w-12 h-12" />}
+          title="No extracted questions yet"
+          description="Questions will appear once an admin has approved OCR results."
+        />
       ) : (
         <div className="space-y-4">
           {questions.map((q, idx) => (
@@ -210,6 +193,6 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
           ))}
         </div>
       )}
-    </div>
+    </SubpageLayout>
   );
 }

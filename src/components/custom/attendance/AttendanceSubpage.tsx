@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react";
-import { Building2, Clock, ChevronDown, ChevronUp, ChevronLeft, User, Star, Calendar, Calendar as CalendarIcon, AlertCircle, CheckCircle2, FileText, List, CalendarDays, Grid3x3 } from "lucide-react"
-import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
-import { Button } from "@/components/ui/button";
+import { Building2, Clock, User, Star, Calendar, Calendar as CalendarIcon, AlertCircle, CheckCircle2, FileText, List, Grid3x3 } from "lucide-react"
+import ExpandableSection from "../shared/ExpandableSection"
+import ViewModeToggle from "../shared/ViewModeToggle"
+import CircularProgress from "../shared/CircularProgress"
 import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
-import "react-circular-progressbar/dist/styles.css"
+import SubpageLayout from "../shared/SubpageLayout";
+import Badge from "../shared/Badge";
 
 type CalendarEvent = {
     text: string;
@@ -244,9 +246,6 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
     const lab = a.courseCode.endsWith("(L)");
     const isTheory = a.courseCode.endsWith("(T)");
 
-    const [openDropdown, setOpenDropdown] = useState(null);
-    const toggleDropdown = (key) => setOpenDropdown(openDropdown === key ? null : key);
-
     const [filter, setFilter] = useState("All"); // All, Present, Absent, On Duty
     const [viewMode, setViewMode] = useState<"list" | "heatmap" | "calendar">("list");
     const [notesTracker, setNotesTracker] = useState({});
@@ -405,40 +404,30 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
     }, [analyzeCalendars]);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6 pb-20">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
-                    <ChevronLeft size={20} />
-                </Button>
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
-                        {a.courseTitle}
-                    </h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
-                        {a.courseCode.slice(0, -3)} <span className="mx-1">•</span> {a.courseCode.endsWith('(L)') ? "Lab" : "Theory"} <span className="mx-1">•</span> {a.credits} Credits
-                    </p>
-                </div>
-            </div>
+        <SubpageLayout
+            title={a.courseTitle}
+            subtitle={`${a.courseCode.slice(0, -3)} • ${a.courseCode.endsWith('(L)') ? "Lab" : "Theory"} • ${a.credits} Credits`}
+            onBack={onBack}
+        >
 
             {/* Badges Row */}
-            <div className="flex flex-wrap gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-                    <Calendar className="w-4 h-4 text-blue-500" /> {a.slotName}
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-                    <Building2 className="w-4 h-4 text-purple-500" /> {a.slotVenue}
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-                    <Clock className="w-4 h-4 text-orange-500" /> {a.time}
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 midnight:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-                    <User className="w-4 h-4 text-green-500" /> {a.faculty}
-                </div>
+            <div className="flex flex-wrap gap-3 mb-8">
+                <Badge variant="info" className="rounded-lg border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 gap-1.5">
+                    <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {a.slotName}
+                </Badge>
+                <Badge variant="purple" className="rounded-lg border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 gap-1.5">
+                    <Building2 className="w-4 h-4 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {a.slotVenue}
+                </Badge>
+                <Badge variant="warning" className="rounded-lg border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 gap-1.5">
+                    <Clock className="w-4 h-4 text-orange-500 dark:text-amber-400 midnight:text-amber-400" /> {a.time}
+                </Badge>
+                <Badge variant="success" className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 gap-1.5">
+                    <User className="w-4 h-4 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {a.faculty}
+                </Badge>
             </div>
 
             {/* Metrics Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {/* Attendance Dial Card */}
                 <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
                     <div>
@@ -447,16 +436,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                         <p className="text-sm text-gray-500 midnight:text-gray-400 font-medium mt-1">{a.attendedClasses} / {a.totalClasses} Classes</p>
                     </div>
                     <div className="w-24 h-24">
-                        <CircularProgressbar
+                        <CircularProgress
                             value={a.attendancePercentage}
                             text={`${!decimalValues ? a.attendancePercentage : (a.attendedClasses/a.totalClasses * 100).toFixed(1)}%`}
-                            styles={buildStyles({
-                                pathColor: a.attendancePercentage < thresholdPct ? "#EF4444" : a.attendancePercentage < thresholdPct + 10 ? "#FACC15" : "#10B981",
-                                textColor: "currentColor",
-                                trailColor: "rgba(163, 198, 240, 0.2)",
-                                strokeLinecap: "round",
-                                pathTransitionDuration: 0.5,
-                            })}
+                            size={96}
+                            threshold={thresholdPct}
+                            midThreshold={thresholdPct + 10}
                         />
                     </div>
                 </div>
@@ -537,33 +522,21 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                     { key: "LID", label: "Classes before FAT", data: classesTillLID },
                                 ].map(({ key, label, data }) => (
                                     Array.isArray(data) && data.length > 0 ? (
-                                        <div key={key} className="w-full">
-                                            <button
-                                                onClick={() => toggleDropdown(key)}
-                                                className="flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900 transition-colors"
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    <CalendarIcon size={18} className="text-blue-500" />
-                                                    {label}
-                                                </span>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>
-                                                    {openDropdown === key ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-                                                </div>
-                                            </button>
-                                            <div className={`transition-all duration-300 ease-in-out ${openDropdown === key ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"} overflow-hidden`}>
-                                                <div className="p-4 bg-gray-50/50 dark:bg-slate-800/20 midnight:bg-gray-900/20">
-                                                    <UpcomingClassesList
-                                                        classes={data}
-                                                        attendedClasses={a.attendedClasses}
-                                                        totalClasses={a.totalClasses}
-                                                        isLab={lab}
-                                                        impDates={impDates}
-                                                        isDayscholarWithBus={isDayscholarWithBus}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <ExpandableSection
+                                            key={key}
+                                            title={label}
+                                            icon={<CalendarIcon size={18} className="text-blue-500" />}
+                                            badge={<span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
+                                        >
+                                            <UpcomingClassesList
+                                                classes={data}
+                                                attendedClasses={a.attendedClasses}
+                                                totalClasses={a.totalClasses}
+                                                isLab={lab}
+                                                impDates={impDates}
+                                                isDayscholarWithBus={isDayscholarWithBus}
+                                            />
+                                        </ExpandableSection>
                                     ) : null
                                 ))}
                             </div>
@@ -580,24 +553,23 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
                                         Attendance Log
                                         {missingNotesCount > 0 && (
-                                            <span className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                                            <Badge variant="danger" className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 font-bold">
                                                 {missingNotesCount} Missing Notes
-                                            </span>
+                                            </Badge>
                                         )}
                                     </h2>
                                     {!hasPredictor && <p className="text-sm text-gray-500 midnight:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
                                 </div>
-                                <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max self-start sm:self-auto">
-                                    <button onClick={() => setViewMode("calendar")} className={`p-1.5 rounded-md transition-colors ${viewMode === "calendar" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <CalendarIcon size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("heatmap")} className={`p-1.5 rounded-md transition-colors ${viewMode === "heatmap" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <Grid3x3 size={18} />
-                                    </button>
-                                    <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}>
-                                        <List size={18} />
-                                    </button>
-                                </div>
+                                <ViewModeToggle
+                                    options={[
+                                        { key: "calendar", icon: <CalendarIcon size={18} /> },
+                                        { key: "heatmap", icon: <Grid3x3 size={18} /> },
+                                        { key: "list", icon: <List size={18} /> },
+                                    ]}
+                                    value={viewMode}
+                                    onChange={(key) => setViewMode(key as "list" | "heatmap" | "calendar")}
+                                    className="self-start sm:self-auto"
+                                />
                             </div>
 
                             {/* Filters (only in list mode) */}
@@ -708,6 +680,6 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                     </div>
                 </div>
             </div>
-        </div>
+        </SubpageLayout>
     );
 }

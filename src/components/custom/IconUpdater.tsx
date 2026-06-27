@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { getAssetPath } from "@/lib/utils";
 
 export default function IconUpdater() {
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      const iconUrl = savedIcon === "fire" ? "/icons/fire.png" : "/logo.png";
+      const iconUrl = getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png");
       
       // Update ALL link[rel~="icon"] tags
       const iconLinks = document.querySelectorAll("link[rel~='icon']");
@@ -35,7 +36,7 @@ export default function IconUpdater() {
       }
 
       // Dynamically update the manifest to a real static file
-      const manifestUrl = savedIcon === "fire" ? "/manifest-fire.json" : "/manifest.json";
+      const manifestUrl = getAssetPath(savedIcon === "fire" ? "/manifest-fire.json" : "/manifest.json");
       let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
       if (!manifestLink) {
         manifestLink = document.createElement("link");

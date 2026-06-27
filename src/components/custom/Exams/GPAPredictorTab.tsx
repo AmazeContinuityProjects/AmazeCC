@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2, ChevronLeft } from "lucide-react";
+import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2 } from "lucide-react";
+import SubpageLayout from "../shared/SubpageLayout";
 
 const GRADE_POINTS: Record<string, number> = {
   "S": 10, "A": 9, "B": 8, "C": 7, "D": 6, "E": 5, "F": 0, "N": 0
@@ -102,18 +103,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      
-      <div className="flex items-center gap-3 mb-2 px-4 md:px-0 mt-4 md:mt-0">
-          <button onClick={() => setActiveSubTab("overview")} className="p-2 rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800 hover:bg-gray-100">
-              <ChevronLeft size={20} />
-          </button>
-          <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
-                  GPA Predictor
-              </h1>
-          </div>
-      </div>
+    <SubpageLayout title="GPA Predictor" onBack={() => setActiveSubTab("overview")}>
       
       {savedGoal && (
         <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 border-none text-white shadow-md">
@@ -267,6 +257,6 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
         </Card>
 
       </div>
-    </div>
+    </SubpageLayout>
   );
 }

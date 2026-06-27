@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Switch } from "@/components/ui/switch"
 import { API_BASE } from "@/components/custom/Main";
 
@@ -16,19 +16,28 @@ export default function PushNotificationManager() {
     const [isSupported, setIsSupported] = useState(false)
     const [subscription, setSubscription] = useState<PushSubscription | null>(null)
     const [vitolEnabled, setVitolEnabled] = useState(false)
-    const [vitolReminderDay, setVitolReminderDay] = useState<number>(1) // Default to Monday
+    const [vitolReminderDay, setVitolReminderDay] = useState<number>(1)
     const [vitolReminderTime, setVitolReminderTime] = useState<string>("10:00")
     const [fetchError, setFetchError] = useState<string | null>(null)
     const [isSaving, setIsSaving] = useState(false)
-
-    const IDs = localStorage.getItem("IDs") || ""
-    const UserID = IDs ? JSON.parse(IDs).VtopUsername : null
+    const [userID, setUserID] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!UserID) return;
+        try {
+            const raw = localStorage.getItem("IDs");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                setUserID(parsed?.VtopUsername || null);
+            }
+        } catch {
+            setUserID(null);
+        }
+    }, [])
 
-        // Check status directly from our internal Next.js API connected to Supabase
-        fetch(`${API_BASE}/api/notifications/status?UserID=${UserID}`)
+    useEffect(() => {
+        if (!userID) return;
+
+        fetch(`${API_BASE}/api/notifications/status?UserID=${userID}`)
             .then(res => res.json())
             .then(data => {
                 setVitolEnabled(!!data.vitol);
@@ -38,7 +47,7 @@ export default function PushNotificationManager() {
             .catch(() => {
                 setVitolEnabled(false);
             });
-    }, [UserID]);
+    }, [userID]);
 
     useEffect(() => {
         if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -50,6 +59,7 @@ export default function PushNotificationManager() {
     async function registerServiceWorker() {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js')
+            await navigator.serviceWorker.ready
             const sub = await registration.pushManager.getSubscription()
             setSubscription(sub)
         } catch (e) {
@@ -58,6 +68,11 @@ export default function PushNotificationManager() {
     }
 
     async function subscribeToPush() {
+        if (!userID) {
+            setFetchError("User not logged in.");
+            return;
+        }
+
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
 
@@ -70,14 +85,18 @@ export default function PushNotificationManager() {
 
         try {
             const registration = await navigator.serviceWorker.ready
-            const sub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            })
+
+            let sub = await registration.pushManager.getSubscription()
+
+            if (!sub) {
+                sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                })
+            }
 
             setSubscription(sub)
 
-            // Local Welcome Notification
             if (Notification.permission === 'granted') {
                 new Notification("Welcome to AmazeCC Alerts!", {
                     body: "Push notifications are now enabled. You will receive scheduled reminders directly on this device.",
@@ -89,7 +108,7 @@ export default function PushNotificationManager() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    UserID,
+                    UserID: userID,
                     subscription: JSON.parse(JSON.stringify(sub)),
                     vitol_enabled: vitolEnabled,
                     vitol_reminder_day: vitolReminderDay,
@@ -103,24 +122,29 @@ export default function PushNotificationManager() {
     }
 
     async function unsubscribeFromPush() {
-        if (!subscription) return
+        if (!subscription || !userID) return
 
-        await subscription.unsubscribe()
+        try {
+            await subscription.unsubscribe()
 
-        await fetch(`${API_BASE}/api/notifications/unsubscribe`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                UserID,
-                endpoint: subscription.endpoint,
-            }),
-        })
+            await fetch(`${API_BASE}/api/notifications/unsubscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserID: userID,
+                    endpoint: subscription.endpoint,
+                }),
+            })
 
-        setSubscription(null)
+            setSubscription(null)
+        } catch (error: any) {
+            console.error("Unsubscribe failed:", error);
+            setFetchError("Failed to unsubscribe from push notifications.");
+        }
     }
 
     async function updateSchedule() {
-        if (!subscription) return;
+        if (!subscription || !userID) return;
         setIsSaving(true);
         
         try {
@@ -128,7 +152,7 @@ export default function PushNotificationManager() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    UserID,
+                    UserID: userID,
                     subscription: JSON.parse(JSON.stringify(subscription)),
                     vitol_enabled: vitolEnabled,
                     vitol_reminder_day: vitolReminderDay,
@@ -143,6 +167,26 @@ export default function PushNotificationManager() {
             setIsSaving(false);
         }
     }
+
+    const handleVitolToggle = useCallback((checked: boolean) => {
+        setVitolEnabled(checked)
+        if (subscription && userID) {
+            fetch(`${API_BASE}/api/notifications/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserID: userID,
+                    subscription: JSON.parse(JSON.stringify(subscription)),
+                    vitol_enabled: checked,
+                    vitol_reminder_day: vitolReminderDay,
+                    vitol_reminder_time: vitolReminderTime
+                }),
+            }).catch(err => {
+                console.error("Failed to update VITOL preference:", err);
+                setFetchError("Failed to update VITOL preference.");
+            });
+        }
+    }, [subscription, userID, vitolReminderDay, vitolReminderTime])
 
     if (!isSupported) {
         return <p>Push notifications are not supported in this browser.</p>
@@ -167,7 +211,6 @@ export default function PushNotificationManager() {
 
             {subscription && (
                 <div className="mt-3 flex flex-col gap-4 p-4 border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/40">
-                    {/* Vitol */}
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div>
@@ -182,23 +225,7 @@ export default function PushNotificationManager() {
                             <Switch
                                 checked={vitolEnabled}
                                 disabled={!subscription}
-                                onCheckedChange={(checked) => {
-                                    setVitolEnabled(checked)
-                                    // If we are turning it on, automatically save the state
-                                    if (subscription) {
-                                        fetch(`${API_BASE}/api/notifications/subscribe`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                UserID,
-                                                subscription: JSON.parse(JSON.stringify(subscription)),
-                                                vitol_enabled: checked,
-                                                vitol_reminder_day: vitolReminderDay,
-                                                vitol_reminder_time: vitolReminderTime
-                                            }),
-                                        });
-                                    }
-                                }}
+                                onCheckedChange={handleVitolToggle}
                             />
                         </div>
 

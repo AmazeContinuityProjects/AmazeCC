@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { RefreshCcw } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import NoContentFound from "../NoContentFound";
+import Modal from "../shared/Modal";
+import FetchButton from "../shared/FetchButton";
 
 const normalizeGradesCategory = (rawCategory?: string | null) => {
   let category = rawCategory?.toLowerCase().trim() || "uncategorized";
@@ -32,19 +32,9 @@ export default function GradesModal({ allGradesData, GradesData, onClose, handle
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="rounded-2xl shadow-lg w-11/12 max-w-md md:max-w-5xl max-h-[90vh] overflow-y-auto relative bg-white dark:bg-slate-800 midnight:bg-black midnight:border midnight:border-gray-800">
-        <GradesDisplay allGradesData={allGradesData} data={GradesData} handleFetchGrades={handleFetchGrades} marksData={marksData} attendance={attendance} />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="top-4 right-4 absolute cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-800 midnight:hover:bg-gray-900"
-        >
-          <X size={22} className="text-gray-600 dark:text-gray-300 midnight:text-gray-200" />
-        </Button>
-      </div>
-    </div>
+    <Modal onClose={onClose} maxWidth="max-w-5xl" className="max-h-[90vh] overflow-y-auto">
+      <GradesDisplay allGradesData={allGradesData} data={GradesData} handleFetchGrades={handleFetchGrades} marksData={marksData} attendance={attendance} />
+    </Modal>
   );
 }
 
@@ -54,9 +44,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
       <div>
         <p className="text-center text-gray-600 dark:text-gray-300 midnight:text-gray-200">
           No Grades Data Available.{" "}
-          <button onClick={handleFetchGrades} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
-            <RefreshCcw className={`w-4 h-4`} />
-          </button>
+          <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" />
         </p>
         <NoContentFound />
       </div>
@@ -165,9 +153,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
     <div>
       <Card className="bg-white dark:bg-slate-800 midnight:bg-black border-0">
         <CardHeader>
-          <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Grade Distribution <button onClick={handleFetchGrades} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
-            <RefreshCcw className={`w-4 h-4`} />
-          </button></CardTitle>
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Grade Distribution <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" /></CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-sm">
           {(() => {

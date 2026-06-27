@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { RefreshCcw, User, CalendarCheck, GraduationCap, Building, Bus, Map, Menu, BookOpen, LayoutGrid } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getAssetPath } from "@/lib/utils";
+import { RefreshCcw, User, CalendarCheck, Building, Bus, Menu, BookOpen, LayoutGrid, Wallet } from "lucide-react";
 
 import { IconToggle } from "../toggle";
 
@@ -35,9 +36,32 @@ export default function NavigationTabs({
   activeQBankSubTab,
   setActiveQBankSubTab,
   activeMoreSubTab,
-  setActiveMoreSubTab
+  setActiveMoreSubTab,
+  activeProfileSubTab,
+  setActiveProfileSubTab,
+  onOpenFeedbackStatus
 }) {
   const [isSpinning, setIsSpinning] = useState(false);
+  const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
+
+  useEffect(() => {
+    const updateIcon = () => {
+      const savedIcon = localStorage.getItem("app-icon") || "default";
+      setCurrentIcon(getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png"));
+    };
+    updateIcon();
+    window.addEventListener("app-icon-changed", updateIcon);
+    
+    try {
+      const stored = localStorage.getItem("profile");
+      if (stored) setProfileData(JSON.parse(stored));
+    } catch(e){}
+    
+    return () => window.removeEventListener("app-icon-changed", updateIcon);
+  }, []);
+
+  const [profileData, setProfileData] = useState<any>(null);
+  const isHosteller = profileData?.isHosteller;
 
   const totalODHours =
     ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
@@ -68,45 +92,60 @@ export default function NavigationTabs({
       >
         {/* Desktop Sidebar Profile / Stats Area */}
         <div className={`hidden md:flex flex-col w-full p-4 mb-2 border-b border-gray-200 dark:border-gray-800 midnight:border-gray-800 pt-6 ${settings.isSidebarCollapsed ? 'items-center' : ''}`}>
-          <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col gap-4' : 'justify-between items-center'} mb-4 w-full`}>
-            {!settings.isSidebarCollapsed && (
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
-                <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
-              </div>
-            )}
-            
-            <div className={`flex ${settings.isSidebarCollapsed ? 'flex-col' : 'items-center'} gap-2`}>
+          {settings.isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-4 w-full mb-4">
+              <img src={currentIcon} alt="Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
               <button 
                 onClick={() => {
                   setSettings(prev => ({ ...prev, isSidebarCollapsed: !prev.isSidebarCollapsed }));
                   localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: !settings.isSidebarCollapsed }));
                 }}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
                 title="Toggle Sidebar"
               >
                 <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
-              {!settings.isSidebarCollapsed && (
-                <>
+            </div>
+          ) : (
+            <div className="flex flex-col w-full mb-4">
+              <div className="flex justify-between items-start w-full">
+                <div className="flex flex-col items-start gap-2">
+                  <img src={currentIcon} alt="Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white tracking-tight">AmazeCC</h2>
+                    <p className="text-xs text-gray-500 truncate max-w-[120px]">{username}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1.5 pt-1">
+                  <button 
+                    onClick={() => {
+                      setSettings(prev => ({ ...prev, isSidebarCollapsed: !prev.isSidebarCollapsed }));
+                      localStorage.setItem("settings", JSON.stringify({ ...settings, isSidebarCollapsed: !settings.isSidebarCollapsed }));
+                    }}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
+                    title="Toggle Sidebar"
+                  >
+                    <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
                   <button 
                     onClick={handleReloadClick}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center"
                     title="Reload Data"
                   >
                     <RefreshCcw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${isSpinning ? "animate-spin" : ""}`} />
                   </button>
                   <button 
                     onClick={() => setActiveTab("profile")}
-                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors ${activeTab === "profile" ? "bg-blue-50 dark:bg-slate-800/50 midnight:bg-gray-900/50" : ""}`}
+                    className={`p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 midnight:hover:bg-gray-800 transition-colors flex items-center justify-center ${activeTab === "profile" ? "bg-blue-50 dark:bg-slate-800/50 midnight:bg-gray-900/50" : ""}`}
                     title="Profile"
                   >
                     <User className={`w-4 h-4 ${activeTab === "profile" ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"}`} />
                   </button>
-                </>
-              )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Compact Stats Grid - Small Cards */}
           {!settings.isSidebarCollapsed && (
@@ -159,7 +198,7 @@ export default function NavigationTabs({
           </div>
 
           {feedbackStatus && (
-            <div className="flex flex-col mt-2 pt-3 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+            <div onClick={onOpenFeedbackStatus} className="flex flex-col mt-2 pt-3 border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 rounded-lg px-2 -mx-2 transition-colors">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Feedback</span>
               <div className="flex justify-between items-center">
                 <span className="text-[10px] text-gray-500">Mid Sem</span>
@@ -173,6 +212,7 @@ export default function NavigationTabs({
                   {feedbackStatus?.EndSem?.Curriculum && feedbackStatus?.EndSem?.Course ? "Given" : "Pending"}
                 </span>
               </div>
+              <span className="text-[10px] text-blue-500 font-medium mt-1.5 text-center">View all semesters →</span>
               </div>
             )}
             </>
@@ -225,10 +265,10 @@ export default function NavigationTabs({
               Overview
             </button>
             <button
-              onClick={() => setActiveSubTab("marks")}
-              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "marks" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+              onClick={() => setActiveSubTab("course-dashboard")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "course-dashboard" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
             >
-              Current Sem Marks
+              Course Dashboard
             </button>
             <button
               onClick={() => setActiveSubTab("grades")}
@@ -254,11 +294,67 @@ export default function NavigationTabs({
             >
               Question Bank
             </button>
+            <div className="border-t border-gray-100 dark:border-gray-800 midnight:border-gray-800 my-1.5" />
+            <button
+              onClick={() => setActiveSubTab("arrear")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "arrear" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Arrear
+            </button>
+            <button
+              onClick={() => setActiveSubTab("makeup-compre")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "makeup-compre" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Makeup & Compre
+            </button>
+            <button
+              onClick={() => setActiveSubTab("course-mgmt")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "course-mgmt" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Course Mgmt
+            </button>
+            <button
+              onClick={() => setActiveSubTab("projects")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "projects" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Projects
+            </button>
+            <button
+              onClick={() => setActiveSubTab("wishlist")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "wishlist" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Wishlist
+            </button>
+            <button
+              onClick={() => setActiveSubTab("faculty-info")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeSubTab === "faculty-info" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Faculty Info
+            </button>
+
           </div>
         )}
 
 
-        {settings?.residentialStatus !== "dayscholar" && (
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={navItemClass(activeTab === "payments")}
+          title="Payments"
+        >
+          <Wallet className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Payments</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("libraries")}
+          className={navItemClass(activeTab === "libraries")}
+          title="Libraries"
+        >
+          <BookOpen className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Libraries</span>
+        </button>
+
+        {isHosteller === true && (
           <>
             <button
               onClick={() => setActiveTab("hostel")}
@@ -288,6 +384,12 @@ export default function NavigationTabs({
                 >
                   Leave
                 </button>
+                <button
+                  onClick={() => setHostelActiveSubTab("counselling")}
+                  className={`text-left text-sm py-1.5 transition-colors ${HostelActiveSubTab === "counselling" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+                >
+                  Counselling
+                </button>
               </div>
             )}
           </>
@@ -297,10 +399,10 @@ export default function NavigationTabs({
             <button
               onClick={() => setActiveTab("dayscholar")}
               className={navItemClass(activeTab === "dayscholar")}
-              title="Bus Pass"
+              title="Bus Info"
             >
               <Bus className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-              <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Bus Pass</span>
+              <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Bus Info</span>
             </button>
         )}
         <button
@@ -325,18 +427,41 @@ export default function NavigationTabs({
             >
               FFCS Planner
             </button>
+            <button
+              onClick={() => setActiveMoreSubTab("events")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeMoreSubTab === "events" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Event Hub
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={navItemClass(activeTab === "profile")}
+          title="Profile"
+        >
+          <User className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
+          <span className={`hidden md:block text-[10px] md:text-sm font-medium ${settings.isSidebarCollapsed ? '!hidden' : ''}`}>Profile</span>
+        </button>
+        {activeTab === "profile" && !settings.isSidebarCollapsed && (
+          <div className="hidden md:flex flex-col w-full pl-12 pr-4 py-1 space-y-1 bg-white dark:bg-slate-900 midnight:bg-black">
+            <button
+              onClick={() => setActiveProfileSubTab("info")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeProfileSubTab === "info" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              My Info
+            </button>
+            <button
+              onClick={() => setActiveProfileSubTab("credentials")}
+              className={`text-left text-sm py-1.5 transition-colors ${activeProfileSubTab === "credentials" ? "text-blue-600 dark:text-blue-400 midnight:text-blue-400 font-medium" : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 midnight:hover:text-gray-200"}`}
+            >
+              Credentials
+            </button>
           </div>
         )}
 
         <div className="hidden md:block w-full flex-grow"></div>
-
-        <button
-          onClick={() => setActiveTab("profile")}
-          className={`${navItemClass(activeTab === "profile")} md:hidden`}
-        >
-          <User className="w-5 h-5 md:w-5 md:h-5 shrink-0" />
-          <span className="hidden md:block text-[10px] md:text-sm font-medium">Profile</span>
-        </button>
 
       </div>
     </>

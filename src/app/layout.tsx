@@ -1,9 +1,7 @@
 import * as React from "react"
-import { Geist, Geist_Mono, Roboto } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
+import { Inter, Geist_Mono, Roboto } from 'next/font/google';
 import { ThemeProvider } from "../components/themeprovider";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import IconUpdater from "../components/custom/IconUpdater";
 import type { Viewport, Metadata } from "next";
 import './globals.css';
@@ -20,8 +18,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -56,9 +54,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico'
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png'
   },
 };
 
@@ -67,7 +65,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
+        suppressHydrationWarning
+        className={`${inter.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
       >
         <IconUpdater />
         <ThemeProvider
@@ -79,8 +78,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
       <GoogleAnalytics gaId="G-40NYS6B13N" />
       <GoogleAnalytics gaId="G-2H76BLP4VK" />

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import Badge from "../shared/Badge";
 
 export default function MarksHistoryTab({ data }) {
   const allSemestersData = data?.grades || {};
@@ -167,12 +168,12 @@ export default function MarksHistoryTab({ data }) {
                   <div>
                     <h4 className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm md:text-base">{course.courseCode} - {course.courseTitle}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-slate-800 text-gray-600 dark:text-gray-300 midnight:text-gray-300">
+                      <Badge variant="default" size="sm" className="rounded font-medium">
                         {course.courseType}
-                      </span>
-                      <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/40 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-400">
+                      </Badge>
+                      <Badge variant="default" size="sm" className="rounded font-bold bg-indigo-100 dark:bg-indigo-900/40 midnight:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 midnight:text-indigo-400">
                         Total: {course.grandTotal}%
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end justify-center">

@@ -1,5 +1,103 @@
 [
   {
+    "version": "v2.1.0",
+    "date": "2026-06-27",
+    "changes": [
+      "Typography: Refactored the default application font to Inter globally.",
+      "VTOP Loader: Minimalised the login loading and in-app reload panels with clear progress counters (x/xx details fetched).",
+      "FFCS: Styled batch chips with school-specific distinct colors and larger text sizes, and optimized their position to flow below course codes on mobile to prevent clutter.",
+      "FFCS: Equalised button widths and centered button text in the Timetable Manager controls for a symmetrical, premium mobile user experience.",
+      "Profile Tab: Updated official GitHub repository link and cleaned up outdated website references."
+    ]
+  },
+  {
+    "version": "v2.0.0",
+    "date": "2026-06-25",
+    "changes": [
+      "Added 136 VTOP Endpoints to the app and API for seamless integration with VTOP services. Reload the data to experience the best of the app.",
+      "Componentised UI and using reusable elements.",
+      "FFCS: Fixed slots not being auto-generated properly error.",
+      "Library Endpoints: Now you can search through Library Books from within the app."
+    ]
+  },
+  {
+    "version": "v1.9",
+    "date": "2026-06-23",
+    "changes": [
+      "Added EventHub integration to the more tab. Now you can register and pay for events, view upcoming events, download certificated all without leaving the app.",
+      "Added upcoming events to the dashboard and calendar view for quick access.",
+      "FFCS: Added a new 'Slot Series Locker' allowing you to lock a series of slots (e.g. all B series (B1, B2, etc.) slots of a particular course) in one go, instead of locking them individually.",
+      "FFCS: Added a advanced linker that allows you to link multiple courses together and lock their slots in a single action, ensuring that all linked courses share the same slot selection. This allows for more customisability than the algorithm can provide; similar to how VTOPREGCC internally links theory and lab components of a course together."
+    ]
+  },
+  {
+    "version": "v1.8.3",
+    "date": "2026-06-22",
+    "changes": [
+      "HOTFIX: Fixed AmazeCC from reloading frequently",
+      "FFCS: Implemented dynamic slot type filtering to show only appropriate selectors in the dropdown based on selected course types.",
+      "FFCS: Redesigned the Timetable Manager UI into a unified, responsive, and intuitive control panel.",
+      "Minor Cosmetic changes"
+    ]
+  },
+  {
+    "version": "v1.8.2",
+    "date": "2026-06-22",
+    "changes": [
+      "FFCS : Added a master target slot lock with the ability to lock specific courses alone. It will be stored in your local storage persistently and it will allow you to focus only on the courses that matter.",
+      "FFCS : Fixed an issue with the auto-generator pipeline."
+    ]
+  },
+  {
+    "version": "v1.8.1",
+    "date": "2026-06-21",
+    "changes": [
+      "FFCS : Fixed a critical bug in the master slot sheet where the slots column was cutoff due to the problem in the way the master excel sheet was released, now that has been fixed.",
+      "Fixed the FFCS planner credit calculator to correctly sum credits (e.g. Theory + Lab) when courses are grouped, rather than taking the maximum credit value.",
+      "Ensured that pre-combined integrated courses (like IA/I-prefixed courses and B/BA-prefixed courses with Embedded components) are perfectly merged and do not double-count credits."
+    ]
+  },
+  {
+    "version": "v1.8.0",
+    "date": "2026-06-21",
+    "changes": [
+      "Implemented smart course component clubbing to group theory and lab codes (e.g. BCSE426L + BCSE426P) into a unified entry with merged names, slots, and summed credits.",
+      "Replaced course type abbreviations with their full forms (e.g., Theory Only, Lab Only, Embedded Theory and Lab) across the course list, search, and previews.",
+      "Standardized timetable table cell heights and aligned vertical dividing lines across all days and columns for visual consistency.",
+      "Resolved build-time Vitest testing configuration and dependency errors."
+    ]
+  },
+  {
+    "version": "v1.7.0",
+    "date": "2026-06-21",
+    "changes": [
+      "Integrated a hardcoded Verified FFCS Course List to streamline course selection and eliminate inconsistencies caused by unverified course entries.",
+      "Renamed the Dayscholar 'Bus Pass' tab to 'Bus Info' to better align with the available features.",
+      "Added a version-tracked browser cache variable to display the changelog modal exactly once per version bump, preventing repetitive popups."
+    ]
+  },
+  {
+    "version": "v1.6.0",
+    "date": "2026-06-20",
+    "changes": [
+      "Completely overhauled the FFCS Predictor Social Score algorithm to accurately measure shared classes, shared half-days, and mutually free slots.",
+      "Introduced the interactive Social Score Breakdown Modal with a 2D Comparison Matrix heatmap to effortlessly find the ultimate overlapping schedule with friends.",
+      "Added ability to seamlessly import a friend's config and instantly cycle through all of their potential FFCS timetable options.",
+      "Upgraded the FFCS Timetable UI with unified overlay schedules and improved course list accessibility in friend view."
+    ]
+  },
+  {
+    "version": "v1.5.0",
+    "date": "2026-06-15",
+    "changes": [
+      "Deployed seamlessly to GitHub Pages via static export architecture.",
+      "Implemented true PWA Offline Fallbacks ensuring native app-like experience even with no internet connection.",
+      "Upgraded Attendance module for Desktop with dynamic Skeleton Loaders for instantly perceived performance.",
+      "Introduced lazy loading mechanisms for heavy modules like QBank.",
+      "Enabled strict TypeScript compilation and initialized unit testing framework for robust code quality."
+    ]
+  },
+  {
     "version": "v1.4.0",
     "date": "2026-06-07",
     "changes": [

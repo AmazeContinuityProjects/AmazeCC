@@ -73,7 +73,7 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any, userna
             const map = new Map();
             if (!marksData || !marksData.courses) return map;
             marksData.courses.forEach((c: any) => {
-                const isLab = c.courseType.toLowerCase().includes("lab");
+                const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
                 if (!map.has(c.courseCode)) {
                     map.set(c.courseCode, {
                         courseCode: c.courseCode,
