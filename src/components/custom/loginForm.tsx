@@ -170,12 +170,8 @@ export default function LoginForm({
                 </div>
               </div>
 
-              {message && (
-                <div className={`p-3.5 rounded-xl border text-xs text-center font-bold ${
-                  message.includes("failed") || message.includes("Invalid")
-                    ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                    : "bg-sky-500/10 border-sky-400/20 text-sky-400"
-                }`}>
+              {message && (message.toLowerCase().includes("failed") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("incorrect") || message.toLowerCase().includes("captcha") || message.toLowerCase().includes("error")) && (
+                <div className="p-3.5 rounded-xl border text-xs text-center font-bold bg-rose-500/10 border-rose-500/20 text-rose-400">
                   {message}
                 </div>
               )}
