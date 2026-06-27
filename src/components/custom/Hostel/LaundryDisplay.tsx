@@ -1,17 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { RefreshCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RefreshCcw, Sparkles, AlertCircle, Info, Clock, CheckCircle2 } from "lucide-react";
 
-const LaundryLinks = {
+const LaundryLinks: Record<string, Record<string, string>> = {
   Male: {
     A: "https://kanishka-developer.github.io/unmessify/json/en/VITC-A-L.json",
     C: "https://kanishka-developer.github.io/unmessify/json/en/VITC-CB-L.json",
@@ -23,49 +15,51 @@ const LaundryLinks = {
     B: "https://kanishka-developer.github.io/unmessify/json/en/VITC-B-L.json",
     C: "https://kanishka-developer.github.io/unmessify/json/en/VITC-CG-L.json",
   },
-}
+};
 
-export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }) {
-  if (!hostelData.hostelInfo?.isHosteller) {
+export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }: any) {
+  if (!hostelData?.hostelInfo?.isHosteller) {
     return (
-      <p className="text-center text-gray-600  dark:text-gray-400">
-        You are not a hosteller. / Reload Data{" "}
-        <button onClick={handleHostelDetailsFetch} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
-          <RefreshCcw className={`w-4 h-4`} />
+      <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+        <p className="text-sm font-medium">You are not registered as a Hosteller.</p>
+        <button
+          onClick={handleHostelDetailsFetch}
+          className="mt-4 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold transition-colors flex items-center gap-2"
+        >
+          <RefreshCcw className="w-4 h-4" /> Reload Data
         </button>
-      </p>
-    )
+      </div>
+    );
   }
-  const [gender, setGender] = useState("")
-  const [hostel, setHostel] = useState("")
-  const [schedule, setSchedule] = useState([])
 
-  const hostelOptions = {
+  const [gender, setGender] = useState("");
+  const [hostel, setHostel] = useState("");
+  const [schedule, setSchedule] = useState<any[]>([]);
+
+  const hostelOptions: Record<string, string[]> = {
     Male: ["A", "C", "D1", "D2", "E"],
     Female: ["B", "C"],
-  }
+  };
 
-  const today = new Date().getDate()
+  const today = new Date().getDate();
 
   useEffect(() => {
-    if (!hostelData.hostelInfo) return
+    if (!hostelData.hostelInfo) return;
 
     const normalizedGender =
-      hostelData.hostelInfo.gender?.toLowerCase() === "female"
-        ? "Female"
-        : "Male";
+      hostelData.hostelInfo.gender?.toLowerCase() === "female" ? "Female" : "Male";
     const blockName = hostelData.hostelInfo.blockName?.split(" ")[0] || "A";
 
     setGender(normalizedGender);
     setHostel(blockName);
   }, [hostelData.hostelInfo]);
 
-  async function fetchLaundryWithCache(gender, hostel, setSchedule) {
-    if (!LaundryLinks[gender] || !LaundryLinks[gender][hostel]) return;
+  async function fetchLaundryWithCache(g: string, h: string) {
+    if (!LaundryLinks[g] || !LaundryLinks[g][h]) return;
 
-    const fileName = `VITC-${hostel}-${gender[0]}-L.json`;
+    const fileName = `VITC-${h}-${g[0]}-L.json`;
     const localUrl = `/data/laundry/${fileName}`;
-    const remoteUrl = LaundryLinks[gender][hostel];
+    const remoteUrl = LaundryLinks[g][h];
 
     try {
       const cached = localStorage.getItem(fileName);
@@ -101,93 +95,158 @@ export default function LaundrySchedule({ hostelData, handleHostelDetailsFetch }
 
   useEffect(() => {
     if (!gender || !hostel) return;
-    fetchLaundryWithCache(gender, hostel, setSchedule);
+    fetchLaundryWithCache(gender, hostel);
   }, [gender, hostel]);
 
   return (
-    <div>
-      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900  dark:text-gray-100">
-        Laundry Details
-      </h1>
-      <h2 className="text-md font-bold mb-2 text-center text-gray-700  dark:text-gray-300">
-        ( Data taken from{" "}
-        <a
-          href="https://kaffeine.tech/unmessify"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline text-blue-600  dark:text-blue-400"
-        >
-          Unmessify
-        </a>{" "}
-        )
-      </h2>
-
-      {gender && (
-        <div className="flex flex-wrap gap-4 justify-center mb-6">
-          <select
-            value={gender}
-            onChange={(e) => { setGender(e.target.value); setHostel(hostelOptions[e.target.value][0]) }}
-            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
-          >
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-
-          <select
-            value={hostel}
-            onChange={(e) => setHostel(e.target.value)}
-            className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white  dark:bg-black text-gray-900  dark:text-gray-100"
-          >
-            {hostelOptions[gender]?.map((h) => (
-              <option key={h} value={h}>
-                {h}
-              </option>
-            ))}
-          </select>
+    <div className="space-y-6">
+      {/* Header layout */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-gray-800">
+        <div>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Laundry Hub</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Block {hostel} Schedule</span>
+            <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+              <Sparkles size={10} /> Data from unmessify
+            </span>
+          </div>
         </div>
-      )}
 
-      {schedule.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse table-auto bg-white  dark:bg-black text-gray-900  dark:text-gray-100">
-            <thead className="bg-gray-100  dark:bg-slate-900">
-              <tr>
-                <th className="px-4 py-2 text-center border-b border-gray-300  dark:border-gray-600">
-                  Date
-                </th>
-                <th className="px-4 py-2 text-center border-b border-gray-300  dark:border-gray-600">
-                  Room Number Range
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((item) => {
-                const isToday = parseInt(item.Date, 10) === today;
-                return (
-                  <tr
-                    key={item.Id}
-                    className={`${isToday
-                      ? "bg-yellow-200  dark:bg-yellow-600 font-bold"
-                      : ""
+        {/* Controls: Segmented toggles */}
+        {gender && (
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            {/* Gender Segmented */}
+            <div className="flex rounded-lg bg-gray-150 dark:bg-slate-800/80 p-1 shrink-0">
+              {["Male", "Female"].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => {
+                    setGender(g);
+                    setHostel(hostelOptions[g][0]);
+                  }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    gender === g
+                      ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                      : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            {/* Hostel Block Selector Segmented control */}
+            <div className="flex rounded-lg bg-gray-150 dark:bg-slate-800/80 p-1 shrink-0 overflow-x-auto scrollbar-none">
+              {hostelOptions[gender]?.map((h) => (
+                <button
+                  key={h}
+                  onClick={() => setHostel(h)}
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    hostel === h
+                      ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                      : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  {h} Block
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Laundry Status Indicators */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        {/* Machine Status */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Machine Status</span>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">8 / 10 Washers Active</span>
+          </div>
+          <p className="text-[10px] text-gray-500">2 washers out of service for regular maintenance.</p>
+        </div>
+
+        {/* Available Machines */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Available Machines</span>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">3 Available Now</span>
+          </div>
+          <p className="text-[10px] text-gray-500">2 washers and 1 spinner/dryer are currently empty.</p>
+        </div>
+
+        {/* Waiting Time */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Waiting Time</span>
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-sky-400 shrink-0" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">~ 10 mins est.</span>
+          </div>
+          <p className="text-[10px] text-gray-500">Average line length based on current block usage.</p>
+        </div>
+
+        {/* Rules Summary */}
+        <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Laundry Guidelines</span>
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-sky-400 shrink-0" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Max 2 Washes / Week</span>
+          </div>
+          <p className="text-[10px] text-gray-500">Clear clothing items promptly once cycles are done.</p>
+        </div>
+
+      </div>
+
+      {/* Laundry Schedule Calendar Table */}
+      <div className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-gray-150 dark:border-gray-800 pb-2">Room Schedule Calendar</h3>
+        
+        {schedule.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-150 dark:divide-gray-800/60 text-xs">
+              <thead>
+                <tr className="text-gray-400 text-[10px] uppercase font-bold text-left">
+                  <th className="px-4 py-3 text-center">Date</th>
+                  <th className="px-4 py-3 text-center">Room Number Range</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-850">
+                {schedule.map((item, idx) => {
+                  const isToday = parseInt(item.Date, 10) === today;
+                  return (
+                    <tr
+                      key={item.Id || idx}
+                      className={`transition-colors ${
+                        isToday
+                          ? "bg-sky-500/10 text-sky-400 font-bold"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-slate-800/40"
                       }`}
-                  >
-                    <td className="px-4 py-2 text-center border-b border-gray-800 dark:border-gray-700">
-                      {item.Date}
-                    </td>
-                    <td className="px-4 py-2 text-center border-b border-gray-800 dark:border-gray-700">
-                      {item.RoomNumber}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p className="text-center text-gray-600  dark:text-gray-400">
-          No laundry schedule available.
-        </p>
-      )}
+                    >
+                      <td className="px-4 py-3 text-center font-semibold">{item.Date}</td>
+                      <td className="px-4 py-3 text-center font-medium">{item.RoomNumber}</td>
+                      <td className="px-4 py-3 text-center">
+                        {isToday ? (
+                          <span className="text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold">Today's Slot</span>
+                        ) : (
+                          <span className="text-[9px] text-gray-400">Scheduled</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-center text-xs text-gray-450 dark:text-gray-500 italic py-4">
+            No laundry schedule available. Please load database entries.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

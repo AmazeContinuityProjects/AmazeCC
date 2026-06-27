@@ -118,6 +118,7 @@ export default function NavigationTabs({
   // Progressive disclosure
   const [expandedGroup, setExpandedGroup] = useState<string>("study");
   const [showAcademicsPanel, setShowAcademicsPanel] = useState(activeTab === "academics");
+  const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
 
   // Theme settings (next-themes)
@@ -153,16 +154,22 @@ export default function NavigationTabs({
     };
   }, []);
 
-  // Update expandedGroup and showAcademicsPanel when activeTab changes
+  // Update expandedGroup and subpanels when activeTab changes
   useEffect(() => {
     if (activeTab === "academics") {
       setShowAcademicsPanel(true);
+      setShowHostelPanel(false);
       setExpandedGroup("study");
+    } else if (activeTab === "hostel") {
+      setShowHostelPanel(true);
+      setShowAcademicsPanel(false);
+      setExpandedGroup("campus");
     } else {
       setShowAcademicsPanel(false);
+      setShowHostelPanel(false);
       if (activeTab === "attendance") {
         setExpandedGroup("study");
-      } else if (["payments", "libraries", "hostel", "dayscholar"].includes(activeTab)) {
+      } else if (["payments", "libraries", "dayscholar"].includes(activeTab)) {
         setExpandedGroup("campus");
       } else if (activeTab === "more") {
         setExpandedGroup("tools");
@@ -324,9 +331,11 @@ export default function NavigationTabs({
         label: "Hostel",
         icon: Home,
         isActive: activeTab === "hostel",
+        isExpandable: true,
         onSelect: () => {
           selectTab("hostel");
-          if (!HostelActiveSubTab) setHostelActiveSubTab("mess");
+          if (!HostelActiveSubTab) setHostelActiveSubTab("overview");
+          setShowHostelPanel(true);
         },
       });
     } else if (isHosteller === false || residentialStatus === "dayscholar") {
@@ -505,6 +514,54 @@ export default function NavigationTabs({
       },
     },
   ], [activeTab, activeSubTab, selectTab, setActiveSubTab]);
+
+  const hostelSubItems = useMemo(() => [
+    {
+      id: "overview",
+      label: "Overview",
+      isActive: activeTab === "hostel" && HostelActiveSubTab === "overview",
+      onSelect: () => {
+        selectTab("hostel");
+        setHostelActiveSubTab("overview");
+      },
+    },
+    {
+      id: "mess",
+      label: "Mess Menu",
+      isActive: activeTab === "hostel" && HostelActiveSubTab === "mess",
+      onSelect: () => {
+        selectTab("hostel");
+        setHostelActiveSubTab("mess");
+      },
+    },
+    {
+      id: "laundry",
+      label: "Laundry",
+      isActive: activeTab === "hostel" && HostelActiveSubTab === "laundry",
+      onSelect: () => {
+        selectTab("hostel");
+        setHostelActiveSubTab("laundry");
+      },
+    },
+    {
+      id: "leave",
+      label: "Leave Management",
+      isActive: activeTab === "hostel" && HostelActiveSubTab === "leave",
+      onSelect: () => {
+        selectTab("hostel");
+        setHostelActiveSubTab("leave");
+      },
+    },
+    {
+      id: "counselling",
+      label: "Counselling",
+      isActive: activeTab === "hostel" && HostelActiveSubTab === "counselling",
+      onSelect: () => {
+        selectTab("hostel");
+        setHostelActiveSubTab("counselling");
+      },
+    },
+  ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
   const renderMobileNav = () => {
     const items = [
@@ -687,7 +744,7 @@ export default function NavigationTabs({
         {isOpen ? (
           <nav className="flex-grow overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "none" }}>
             <AnimatePresence initial={false} mode="wait">
-              {!showAcademicsPanel ? (
+              {!showAcademicsPanel && !showHostelPanel ? (
                 <motion.div
                   key="primary-nav"
                   initial={{ opacity: 0, x: -10 }}
@@ -755,7 +812,7 @@ export default function NavigationTabs({
                     );
                   })}
                 </motion.div>
-              ) : (
+              ) : showAcademicsPanel ? (
                 <motion.div
                   key="academics-nav"
                   initial={{ opacity: 0, x: 10 }}
@@ -801,6 +858,52 @@ export default function NavigationTabs({
                               <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
                             </button>
                           </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="hostel-nav"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.18 }}
+                  className="space-y-4"
+                >
+                  <button
+                    onClick={() => setShowHostelPanel(false)}
+                    className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-white/70 hover:text-white transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Back</span>
+                  </button>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-3 py-1">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/50">
+                        Hostel Hub
+                      </span>
+                      <div className="h-px bg-white/10 flex-grow" />
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {hostelSubItems.map((item) => {
+                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold shadow-2xs";
+                        const inactiveStyles = "border border-transparent text-white/80 hover:bg-white/10 hover:text-white";
+                        return (
+                          <button
+                            key={item.id}
+                            data-sidebar-nav="true"
+                            onClick={item.onSelect}
+                            onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                            className={`group relative flex w-full items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                              item.isActive ? activeStyles : inactiveStyles
+                            }`}
+                          >
+                            <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                          </button>
                         );
                       })}
                     </div>
@@ -1044,41 +1147,7 @@ export default function NavigationTabs({
                     </button>
                   </div>
                 </div>
-              ) : activeRailGroup !== "academics" ? (
-                <div>
-                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-white/50 border-b border-white/10 pb-1.5 mb-1.5">
-                    {activeRailGroup === "study" && "Study"}
-                    {activeRailGroup === "campus" && "Campus"}
-                    {activeRailGroup === "tools" && "Tools"}
-                  </div>
-                  <div className="space-y-0.5">
-                    {groups.find(g => g.id === activeRailGroup)?.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          if (item.id === "academics") {
-                            setActiveRailGroup("academics");
-                          } else {
-                            item.onSelect();
-                            setActiveRailGroup(null);
-                          }
-                        }}
-                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                          item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0 text-white/60" />
-                        <span className="truncate">{item.label}</span>
-                        {item.isExpandable && (
-                          <ChevronRight className="h-3 w-3 ml-auto text-white/55" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
+              ) : activeRailGroup === "academics" ? (
                 <div>
                   <button
                     onClick={() => setActiveRailGroup("study")}
@@ -1111,6 +1180,70 @@ export default function NavigationTabs({
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              ) : activeRailGroup === "hostel-sub" ? (
+                <div>
+                  <button
+                    onClick={() => setActiveRailGroup("campus")}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-white/70 hover:text-white transition-colors border-b border-white/10 pb-1.5 mb-1.5 w-full text-left"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    <span>Back to Campus</span>
+                  </button>
+                  <div className="space-y-0.5 overflow-y-auto max-h-[60vh]" style={{ scrollbarWidth: "none" }}>
+                    {hostelSubItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          item.onSelect();
+                          setActiveRailGroup(null);
+                        }}
+                        className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                          item.isActive
+                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] text-white/50 border-b border-white/10 pb-1.5 mb-1.5">
+                    {activeRailGroup === "study" && "Study"}
+                    {activeRailGroup === "campus" && "Campus"}
+                    {activeRailGroup === "tools" && "Tools"}
+                  </div>
+                  <div className="space-y-0.5">
+                    {groups.find(g => g.id === activeRailGroup)?.items.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (item.id === "academics") {
+                            setActiveRailGroup("academics");
+                          } else if (item.id === "hostel") {
+                            setActiveRailGroup("hostel-sub");
+                          } else {
+                            item.onSelect();
+                            setActiveRailGroup(null);
+                          }
+                        }}
+                        className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
+                          item.isActive
+                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-300 font-semibold"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0 text-white/60" />
+                        <span className="truncate">{item.label}</span>
+                        {item.isExpandable && (
+                          <ChevronRight className="h-3 w-3 ml-auto text-white/55" />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
