@@ -17,6 +17,7 @@ import { countRemainingClasses } from "../attendance/AttendanceSubpage";
 import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
+import CourseQBankTab from "./CourseQBankTab";
 
 const AttendanceCalendarView = dynamic(
   () => import("../attendance/AttendanceCalendarView"),
@@ -286,6 +287,31 @@ export default function CourseDashboard({
 
   const uniqueCourses = useMemo(() => {
     const map = new Map();
+
+    if (attendanceData?.attendance) {
+      (attendanceData.attendance as any[]).forEach(a => {
+        const cleanCode = a.courseCode?.replace(/\([LT]\)$/i, "").trim();
+        const isLab = a.courseCode?.toLowerCase().endsWith("(l)");
+        const isTheory = a.courseCode?.toLowerCase().endsWith("(t)");
+        const isLabFallback = a.slotName?.toLowerCase().startsWith("l");
+        const finalIsLab = isLab || (isLabFallback && !isTheory);
+        
+        const key = cleanCode;
+        if (!map.has(key)) {
+          map.set(key, {
+            courseCode: key,
+            courseTitle: a.courseTitle || key,
+            theory: !finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Theory Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
+            lab: finalIsLab ? { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Lab Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" } : null,
+          });
+        } else {
+          const existing = map.get(key);
+          if (finalIsLab) existing.lab = { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Lab Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
+          else existing.theory = { courseCode: key, courseTitle: a.courseTitle, classNbr: "", courseType: "Theory Only", slot: a.slotName, faculty: a.faculty, courseSystem: "CBCS" };
+        }
+      });
+    }
+
     if (marksData?.courses) {
       (marksData.courses as any[]).forEach(c => {
         const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
@@ -297,12 +323,14 @@ export default function CourseDashboard({
           });
         } else {
           const existing = map.get(key);
-          if (isLab) existing.lab = c; else existing.theory = c;
+          if (isLab) existing.lab = { ...(existing.lab || {}), ...c };
+          else existing.theory = { ...(existing.theory || {}), ...c };
+          existing.courseTitle = c.courseTitle || existing.courseTitle;
         }
       });
     }
     return Array.from(map.values()) as any[];
-  }, [marksData]);
+  }, [marksData, attendanceData]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
@@ -766,6 +794,7 @@ export default function CourseDashboard({
         <TabButton active={innerTab === "marks"} label="Marks" onClick={() => setInnerTab("marks")} />
         {attendanceItem && <TabButton active={innerTab === "attendance"} label="Attendance" onClick={() => setInnerTab("attendance")} />}
         <TabButton active={innerTab === "plan"} label="Course Plan" onClick={() => { setInnerTab("plan"); if (!coursePlan && !planLoading) fetchCoursePlan(); }} />
+        <TabButton active={innerTab === "qbank"} label="QBank" onClick={() => setInnerTab("qbank")} />
       </div>
 
       {error && (
@@ -1410,6 +1439,11 @@ export default function CourseDashboard({
             </div>
           </Card>
         </div>
+      )}
+
+      {/* QBANK */}
+      {innerTab === "qbank" && selectedCode && (
+        <CourseQBankTab courseCode={selectedCode} username={creds?.authorizedID || "unknown"} />
       )}
     </SubpageLayout>
   );
