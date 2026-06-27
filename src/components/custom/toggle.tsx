@@ -15,6 +15,14 @@ import {
 export function IconToggle() {
   const { setTheme } = useTheme()
 
+  const transitionTheme = (val: string) => {
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => setTheme(val));
+    } else {
+      setTheme(val);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -25,10 +33,10 @@ export function IconToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => transitionTheme("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => transitionTheme("dark")}>
           Dark
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -38,6 +46,14 @@ export function IconToggle() {
 
 export function DropdownToggle() {
   const { setTheme } = useTheme()
+
+  const transitionTheme = (val: string) => {
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => setTheme(val));
+    } else {
+      setTheme(val);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -49,8 +65,8 @@ export function DropdownToggle() {
       <DropdownMenuContent className="w-[90vw]
           sm:w-[630px]
           md:w-[770px]">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => transitionTheme("light")}>Light</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => transitionTheme("dark")}>Dark</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

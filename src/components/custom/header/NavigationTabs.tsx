@@ -249,7 +249,13 @@ export default function NavigationTabs({
   }, []);
 
   const handleThemeChange = (selectedTheme: string) => {
-    setTheme(selectedTheme);
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setTheme(selectedTheme);
+      });
+    } else {
+      setTheme(selectedTheme);
+    }
   };
 
   // Keyboard navigation

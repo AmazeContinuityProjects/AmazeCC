@@ -298,10 +298,15 @@ export default function ProfilePage({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [sectionsToUse]);
 
-  // Theme settings mapping
   const { theme, setTheme } = useTheme();
   const handleThemeChange = (val: string) => {
-    setTheme(val);
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setTheme(val);
+      });
+    } else {
+      setTheme(val);
+    }
   };
 
   // Advanced section helpers
