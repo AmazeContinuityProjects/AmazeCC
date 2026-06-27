@@ -64,7 +64,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
   return (
     <div className="w-full space-y-6 pb-8 animate-fadeIn">
       {/* Header */}
-      <div className="glass-card p-6">
+      <div className="solid-card p-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {groups.length === 0 ? (
-              <div className="col-span-full py-6 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02] backdrop-blur-2xl border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
+              <div className="col-span-full py-6 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02]  border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
                 <p className="text-muted-foreground text-sm">No groups created. Create a group to easily compare schedules for project teams!</p>
               </div>
             ) : (
@@ -126,7 +126,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
                   <div
                     key={group.id}
                     onClick={() => setSelectedGroup({ group, friends: groupFriends, name: group.name })}
-                    className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer group"
+                    className="solid-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer group"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-foreground leading-tight text-lg">{group.name}</h3>
@@ -165,7 +165,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {friends.length === 0 ? (
-            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02] backdrop-blur-2xl border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
+            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-white/40  dark:bg-white/[0.02]  border border-white/40  dark:border-white/10 border-dashed rounded-2xl">
               <Users className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
               <h3 className="text-lg font-bold text-foreground mb-1">
                 No friends added yet
@@ -179,7 +179,7 @@ export default function SocialTab({ attendanceData }: { attendanceData: any }) {
               <div
                 key={friend.id}
                 onClick={() => setSelectedFriend(friend)}
-                className="glass-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
+                className="solid-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">

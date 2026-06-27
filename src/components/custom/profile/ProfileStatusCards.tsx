@@ -67,7 +67,7 @@ export default function ProfileStatusCards({ creds, refreshKey, onCardClick }: {
       .finally(() => setLoading(false));
   }, [refreshKey, creds]);
 
-  const statCard = "glass-card p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
+  const statCard = "solid-card p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
 
   const hasEpt = ept?.tables?.length > 0 && ept.tables.some((t: any) => t.rows?.length > 0);
   const hasReg = reg?.tables?.length > 0 && reg.tables.some((t: any) => t.rows?.length > 0);

@@ -506,7 +506,7 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
 
       {showEnlarged && posterSrc && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70  p-4"
           onClick={() => setShowEnlarged(false)}
           onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setShowEnlarged(false); } }}
           tabIndex={0}

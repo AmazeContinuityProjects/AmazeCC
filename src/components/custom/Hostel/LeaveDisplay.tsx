@@ -289,7 +289,7 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
 
       {/* Apply Leave Modal simulation */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
           <div className="bg-slate-900 border border-gray-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-scaleIn">
             <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between bg-slate-950">
               <h4 className="text-sm font-bold text-gray-100 uppercase tracking-wider">File Outing / Leave</h4>

@@ -24,7 +24,7 @@ export default function Card({
     default:
       "bg-surface text-text-primary border border-border shadow-sm",
     glass:
-      "glass-card",
+      "solid-card",
     gradient: gradient
       ? `border-none text-white shadow-md ${gradient}`
       : "bg-gradient-to-r from-blue-600 to-indigo-600 border-none text-white shadow-md",

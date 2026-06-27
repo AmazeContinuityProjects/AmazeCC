@@ -172,7 +172,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
       const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
       const columns = table.headers.map((h: string) => ({ key: h, label: h }));
       return (
-        <div key={idx} className="glass-card mb-5">
+        <div key={idx} className="solid-card mb-5">
           <div className="p-5">
             {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
             {hasRows ? (
@@ -212,7 +212,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     const entries = Object.entries(kv).filter(([k]) => !k.toLowerCase().includes("semester"));
     if (entries.length === 0) return null;
     return (
-      <div className="glass-card mb-5">
+      <div className="solid-card mb-5">
         <div className="p-5">
           <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -241,7 +241,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"))
       : [];
     return (
-      <div className="glass-card mb-5" key={semName}>
+      <div className="solid-card mb-5" key={semName}>
         <div className="p-5">
           <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
           {renderMessages(semData.messages)}
@@ -329,7 +329,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     return (
       <div>
         <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100 mb-4">{title}</h3>
-        <div className="glass-card mb-5">
+        <div className="solid-card mb-5">
           <ErrorDisplay message={error} />
         </div>
       </div>
@@ -351,7 +351,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             .map(([semName, semData]: [string, any]) => {
               if (semData.error) {
                 return (
-                  <div className="glass-card mb-5" key={semName}>
+                  <div className="solid-card mb-5" key={semName}>
                     <div className="p-5">
                       <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
                       <p className="error-banner">{semData.error}</p>
@@ -362,7 +362,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               return renderSingleSemester(semData, semName);
             })
         ) : (
-          <div className="glass-card mb-5">
+          <div className="solid-card mb-5">
             <EmptyState
               icon={<Inbox className="w-10 h-10" />}
               title="No data found"
@@ -375,7 +375,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           {renderMessages(data.messages)}
 
           {semesterOptions && (
-            <div className="glass-card mb-5">
+            <div className="solid-card mb-5">
               <div className="p-4">
                 <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
                 <div className="relative">
@@ -399,7 +399,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               {renderKeyValues(data.keyValuePairs)}
               {renderTables(data.tables)}
               {allSelectOptions.length > 0 && (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <div className="p-5">
                     <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Available Options</h4>
                     <div className="space-y-3">
@@ -418,7 +418,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               )}
               {data.formFields && Object.keys(data.formFields).length > 0 && (writable ? (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <form onSubmit={handleSubmit} className="p-5 space-y-4">
                     <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Submit Form</h4>
                     {submitResult?.messages?.success && <div className="success-banner">{submitResult.messages.success}</div>}
@@ -444,7 +444,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   </form>
                 </div>
               ) : (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <div className="p-5">
                     <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Form Fields</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -456,7 +456,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               ))}
               {!allSelectOptions.length && !data.tables?.length && !Object.keys(data.keyValuePairs || {}).length && !data.formFields && !data.messages && (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <EmptyState
                     icon={<Inbox className="w-10 h-10" />}
                     title="No data found"

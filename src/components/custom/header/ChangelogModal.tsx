@@ -4,7 +4,7 @@ import changelogData from "../../../data/changelog.json";
 
 export default function ChangelogModal({ handleClose }) {
     return (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[60] bg-black/60  flex items-center justify-center p-4 animate-fadeIn">
             <div className="bg-white  dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl border border-gray-200  dark:border-gray-800 animate-slideUp">
                 <div className="flex items-center justify-between p-5 border-b border-gray-100  dark:border-gray-800">
                     <div className="flex items-center gap-2">

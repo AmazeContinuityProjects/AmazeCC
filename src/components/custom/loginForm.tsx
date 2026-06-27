@@ -55,7 +55,7 @@ export default function LoginForm({
 
       <form
         onSubmit={handleFormSubmit}
-        className="bg-white/60  dark:bg-white/[0.02] backdrop-blur-2xl border border-gray-200/50  dark:border-white/10 rounded-2xl p-8 w-full max-w-md space-y-5 shadow-[0_8px_30px_rgba(0,0,0,0.06)]  dark:shadow-[0_8px_30px_rgba(255,255,255,0.02)] relative z-10"
+        className="bg-white dark:bg-gray-900  border border-gray-200/50  dark:border-white/10 rounded-2xl p-8 w-full max-w-md space-y-5 shadow-[0_8px_30px_rgba(0,0,0,0.06)]  dark:shadow-[0_8px_30px_rgba(255,255,255,0.02)] relative z-10"
       >
         <h2 className="text-2xl font-bold text-center text-gray-900  dark:text-gray-100">
           Login
@@ -63,7 +63,7 @@ export default function LoginForm({
 
         <div className="space-y-4">
           <input
-            className="w-full border border-gray-200/80  dark:border-white/10 bg-white/40  dark:bg-black/30 backdrop-blur-sm p-3 rounded-xl text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full border border-gray-200/80  dark:border-white/10 bg-white/40  dark:bg-black/30  p-3 rounded-xl text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="VTOP Username"
@@ -71,7 +71,7 @@ export default function LoginForm({
           />
           <div className="relative">
             <input
-              className="w-full border border-gray-200/80  dark:border-white/10 bg-white/40  dark:bg-black/30 backdrop-blur-sm p-3 rounded-xl text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full border border-gray-200/80  dark:border-white/10 bg-white/40  dark:bg-black/30  p-3 rounded-xl text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}

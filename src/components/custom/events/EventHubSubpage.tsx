@@ -455,7 +455,7 @@ export default function EventHubSubpage({
 
       {/* Status Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md glass-card">
+        <DialogContent className="sm:max-w-md solid-card">
           <DialogHeader>
             <DialogTitle className="text-gray-900  dark:text-white">
               {modalContent.title}

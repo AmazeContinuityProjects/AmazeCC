@@ -41,7 +41,7 @@ interface CurriculumCategoriesTabProps {
   loginToVTOP: () => Promise<Creds>;
 }
 
-const cardBase = "glass-card";
+const cardBase = "solid-card";
 
 export default function CurriculumCategoriesTab({ loginToVTOP }: CurriculumCategoriesTabProps) {
   const [creds, setCreds] = useState<Creds | null>(null);

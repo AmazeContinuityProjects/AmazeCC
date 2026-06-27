@@ -24,7 +24,7 @@ export default function DataTable({
 }: DataTableProps) {
   if (!data || data.length === 0) {
     return (
-      <div className={cn("glass-card", className)}>
+      <div className={cn("solid-card", className)}>
         <div className="p-5">
           {caption && (
             <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">
@@ -40,7 +40,7 @@ export default function DataTable({
   }
 
   return (
-    <div className={cn("glass-card", className)}>
+    <div className={cn("solid-card", className)}>
       <div className="p-5">
         {caption && (
           <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">

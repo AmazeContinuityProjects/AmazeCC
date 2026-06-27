@@ -119,7 +119,7 @@ const formatTitle = (title: string) => {
 };
 
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`glass-card mb-5 ${className}`}>
+  <div className={`solid-card mb-5 ${className}`}>
     {children}
   </div>
 );
@@ -540,6 +540,29 @@ export default function CourseDashboard({
     });
   };
 
+  const resolveFacultyForComp = async (comp: any) => {
+    if (comp.faculty && comp.faculty.trim() !== "") return comp.faculty;
+    try {
+      const r = await fetch(`${API_BASE}/api/course-page`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cookies: creds?.cookies, authorizedID: creds?.authorizedID, csrf: creds?.csrf,
+          formData: { 
+            semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : (selectedGroup?.semesterSubId || ""), 
+            courseCode: comp.classNbr, 
+            slotId: comp.slot 
+          }
+        }),
+      });
+      const d = await r.json();
+      if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
+        comp.faculty = d.results.selectOptions.faculty[1].value;
+        return comp.faculty;
+      }
+    } catch (e) { console.error(e); }
+    return "";
+  };
+
   const fetchCoursePlan = async () => {
     if (!selectedGroup || !creds) return;
     setPlanLoading(true); setError(null);
@@ -549,11 +572,12 @@ export default function CourseDashboard({
       if (selectedGroup.lab) components.push(selectedGroup.lab);
       const planData: any[] = [];
       for (const comp of components) {
+        const resolvedFaculty = await resolveFacultyForComp(comp);
         const r = await fetch(`${API_BASE}/api/course-page`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: comp.faculty }
+            formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
           }),
         });
         const d = await r.json();
@@ -573,12 +597,13 @@ export default function CourseDashboard({
       if (selectedGroup.lab) components.push(selectedGroup.lab);
       const detailData: any[] = [];
       for (const comp of components) {
-        const erpId = comp.faculty?.split("-")[0]?.trim() || "";
+        const resolvedFaculty = await resolveFacultyForComp(comp);
+        const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
         const r = await fetch(`${API_BASE}/api/course-page`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
-            formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: comp.faculty }
+            formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
           }),
         });
         const d = await r.json();

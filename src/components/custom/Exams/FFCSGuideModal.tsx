@@ -7,7 +7,7 @@ interface FFCSGuideModalProps {
 
 export default function FFCSGuideModal({ onClose }: FFCSGuideModalProps) {
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
       <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="p-5 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
           <h3 className="font-bold text-xl text-foreground flex items-center gap-2">

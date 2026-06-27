@@ -500,7 +500,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             const venueDate = row.venueDate || "";
             const seat = row.seatLocation || "";
             return (
-              <div key={idx} className="relative group glass-card hover:shadow-lg transition-shadow">
+              <div key={idx} className="relative group solid-card hover:shadow-lg transition-shadow">
                 <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
                     <User className="w-4 h-4 text-white" />
@@ -563,7 +563,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       )}
 
       {/* App Logins */}
-      <div className="glass-card">
+      <div className="solid-card">
         <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <User className="w-4 h-4 text-white" />
@@ -591,7 +591,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
       </div>
 
       {/* Change VTOP Password */}
-      <div className="glass-card">
+      <div className="solid-card">
         <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
             <Lock className="w-4 h-4 text-white" />
@@ -620,7 +620,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
         </div>
       </div>
 
-      <div className="relative glass-card">
+      <div className="relative solid-card">
         <div className="px-5 py-4 border-b border-gray-100/50  dark:border-gray-800/50 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
             <BookOpen className="w-4 h-4 text-white" />

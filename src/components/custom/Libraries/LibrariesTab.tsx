@@ -128,7 +128,7 @@ function BookSearch() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {books.map((book, i) => (
               <div key={book.biblionumber || `book-${i}`} onClick={() => openDetail(book.biblionumber)}
-                className="relative flex gap-4 p-4 glass-card cursor-pointer hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all"
+                className="relative flex gap-4 p-4 solid-card cursor-pointer hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all"
               >
                 {book.coverUrl ? (
                   <img src={book.coverUrl} alt="" className="w-16 h-24 object-cover rounded-lg shadow-sm shrink-0" />
@@ -171,11 +171,11 @@ function BookSearch() {
       )}
 
       {(detailBook || detailError) && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm" onClick={closeDetail}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 " onClick={closeDetail}>
           <div className="relative w-full sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white  dark:bg-gray-950 border-t sm:border border-gray-200  dark:border-gray-800 shadow-2xl p-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-gray-100  dark:border-gray-800 bg-white/90  dark:bg-gray-950/90 backdrop-blur-sm">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-gray-100  dark:border-gray-800 bg-white/90  dark:bg-gray-950/90 ">
               <h2 className="text-base font-bold text-gray-900  dark:text-gray-100 truncate pr-4">{detailBook?.title || "Book Details"}</h2>
               <button onClick={closeDetail} className="shrink-0 p-1.5 rounded-full bg-gray-100  dark:bg-gray-800 text-gray-500  dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -299,7 +299,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
     <SubpageLayout title="Library Account" onBack={onBack}>
       <div className="space-y-4">
         {!loggedIn ? (
-          <div className="glass-card p-5 space-y-4">
+          <div className="solid-card p-5 space-y-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
                 <Library className="w-5 h-5 text-white" />
@@ -350,7 +350,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
               if (!page) return null;
               const rowCount = page.tables?.reduce((s: number, t: any) => s + (t.rows?.length || 0), 0) ?? 0;
               return (
-                <div key={key} className="overflow-hidden rounded-2xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-2xl border border-white/40  dark:border-white/10 shadow-sm">
+                <div key={key} className="overflow-hidden rounded-2xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm">
                   <div className={`px-5 py-3.5 flex items-center gap-3 border-b ${
                     section.color === "pink"
                       ? "bg-pink-500/10  dark:bg-pink-500/20 border-pink-500/20  dark:border-pink-500/30 text-pink-700  dark:text-pink-300"
@@ -404,7 +404,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl transition-all group-hover:w-1.5 ${
                                   isFine ? "bg-gradient-to-b from-rose-400 to-pink-500" : "bg-gradient-to-b from-emerald-400 to-teal-500"
                                 }`} />
-                                <div className="ml-3 p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all space-y-3">
+                                <div className="ml-3 p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all space-y-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2 flex-wrap">
@@ -456,7 +456,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
                             const date = m("Date");
                             const checkin = date?.includes("Check-in") ? date.replace(/^Check-in date:\s*/i, "") : date;
                             return (
-                              <div key={ri} className="group p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+                              <div key={ri} className="group p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                                 <div className="flex gap-4">
                                   <div className="shrink-0 w-10 h-14 rounded-lg bg-gradient-to-br from-blue-400/30 to-indigo-500/30   dark:from-blue-500/20 dark:to-indigo-600/20 flex items-center justify-center text-blue-600/50  dark:text-blue-400/50">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -488,7 +488,7 @@ function KohaPatronPage({ onBack }: { onBack: () => void }) {
                             const results = m("Results");
                             const date = m("Date");
                             return (
-                              <div key={ri} className="group p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+                              <div key={ri} className="group p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                                 <div className="flex items-start gap-3">
                                   <div className="shrink-0 w-9 h-9 rounded-lg bg-purple-100  dark:bg-purple-500/20 flex items-center justify-center">
                                     <svg className="w-4 h-4 text-purple-600  dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -553,7 +553,7 @@ function KohaPatronCards({ refreshKey }: { refreshKey: number }) {
         if (!page) return null;
         const rowCount = page.tables?.reduce((s: number, t: any) => s + (t.rows?.length || 0), 0) ?? 0;
         return (
-          <div key={key} className="overflow-hidden rounded-2xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-2xl border border-white/40  dark:border-white/10 shadow-sm">
+          <div key={key} className="overflow-hidden rounded-2xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm">
             <div className={`px-5 py-3.5 flex items-center gap-3 border-b ${
               section.color === "pink"
                 ? "bg-pink-500/10  dark:bg-pink-500/20 border-pink-500/20  dark:border-pink-500/30 text-pink-700  dark:text-pink-300"
@@ -598,7 +598,7 @@ function KohaPatronCards({ refreshKey }: { refreshKey: number }) {
                           <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl transition-all group-hover:w-1.5 ${
                             isFine ? "bg-gradient-to-b from-rose-400 to-pink-500" : "bg-gradient-to-b from-emerald-400 to-teal-500"
                           }`} />
-                          <div className="ml-3 p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all space-y-3">
+                          <div className="ml-3 p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all space-y-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -635,7 +635,7 @@ function KohaPatronCards({ refreshKey }: { refreshKey: number }) {
                       const date = m("Date");
                       const checkin = date?.includes("Check-in") ? date.replace(/^Check-in date:\s*/i, "") : date;
                       return (
-                        <div key={ri} className="group p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+                        <div key={ri} className="group p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                           <div className="flex gap-4">
                             <div className="shrink-0 w-10 h-14 rounded-lg bg-gradient-to-br from-blue-400/30 to-indigo-500/30   dark:from-blue-500/20 dark:to-indigo-600/20 flex items-center justify-center text-blue-600/50  dark:text-blue-400/50">
                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -664,7 +664,7 @@ function KohaPatronCards({ refreshKey }: { refreshKey: number }) {
                       const results = m("Results");
                       const date = m("Date");
                       return (
-                        <div key={ri} className="group p-4 rounded-xl bg-white/70  dark:bg-white/[0.04] backdrop-blur-xl border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+                        <div key={ri} className="group p-4 rounded-xl bg-white dark:bg-gray-800  border border-white/40  dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                           <div className="flex items-start gap-3">
                             <div className="shrink-0 w-9 h-9 rounded-lg bg-purple-100  dark:bg-purple-500/20 flex items-center justify-center">
                               <svg className="w-4 h-4 text-purple-600  dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -738,7 +738,7 @@ export default function LibrariesTab({ loginToVTOP }: LibrariesTabProps) {
         </div>
 
         <button onClick={() => setShowPatron(true)}
-          className="w-full flex items-center gap-4 p-4 glass-card hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all text-left"
+          className="w-full flex items-center gap-4 p-4 solid-card hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-900/70 transition-all text-left"
         >
           <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm shrink-0">
             <Library className="w-6 h-6 text-white" />

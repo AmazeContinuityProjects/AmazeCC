@@ -438,7 +438,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
             <Card className="h-full">
             <CardContent className="p-5 h-full overflow-y-auto max-h-[265px] hide-scrollbar">
-                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 backdrop-blur-md">Semester Performance</h3>
+                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 ">Semester Performance</h3>
                 <div className="space-y-3">
                     {Object.entries(data?.grades || {})
                     .filter(([sem, details]: any) => details && details.gpa)
