@@ -19,7 +19,7 @@ import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge } from "../shared";
 
-export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName, loginToVTOP, creds, refreshKey, onCardClick, onCredentialsClick, onReload }) {
+export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleLogin, setIsReloading, handleLogOutRequest, username, password, setPassword, decimalValues, setDecimalValues, loadingScreen, setLoadingScreen, isDayscholarWithBus, setIsDayscholarWithBus, residentialStatus, setResidentialStatus, calendarType, setCalendarType, hideMobileHeader, setHideMobileHeader, reloadAllData, setReloadAllData, isLoggedIn, friendlyName, setFriendlyName, loginToVTOP, creds, refreshKey, onCardClick, onCredentialsClick, onReload, settings, setSettings }) {
     const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
     const [appIcon, setAppIcon] = useState<string>("default");
     const [isEditingName, setIsEditingName] = useState<boolean>(false);
@@ -293,6 +293,80 @@ export default function ProfilePage({ currSemesterID, setCurrSemesterID, handleL
                                 <span className="text-sm font-medium text-gray-700  dark:text-gray-300">I have bus registration</span>
                             </label>
                         )}
+                    </div>
+                </CardContainer>
+
+                {/* Data Sync Preferences */}
+                <SectionTitle title="Data Sync Preferences" />
+                <CardContainer>
+                    <div className="p-4 space-y-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+                        
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sync Profile Data</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Credentials, dayboarder info, bank info</p>
+                            </div>
+                            <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => {
+                                setSettings(prev => ({ ...prev, syncProfileData: val }));
+                                localStorage.setItem("settings", JSON.stringify({ ...settings, syncProfileData: val }));
+                            }} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sync Arrears Data</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Arrear schedule, details, and grades</p>
+                            </div>
+                            <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => {
+                                setSettings(prev => ({ ...prev, syncArrearData: val }));
+                                localStorage.setItem("settings", JSON.stringify({ ...settings, syncArrearData: val }));
+                            }} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sync Exam Data</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Makeup exams, compre info</p>
+                            </div>
+                            <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => {
+                                setSettings(prev => ({ ...prev, syncExamData: val }));
+                                localStorage.setItem("settings", JSON.stringify({ ...settings, syncExamData: val }));
+                            }} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sync Additional Data</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Master toggle for extra APIs</p>
+                                </div>
+                                <Switch checked={settings?.syncAdditionalData ?? true} onCheckedChange={(val) => {
+                                    setSettings(prev => ({ ...prev, syncAdditionalData: val }));
+                                    localStorage.setItem("settings", JSON.stringify({ ...settings, syncAdditionalData: val }));
+                                }} />
+                            </div>
+                            
+                            {(settings?.syncAdditionalData ?? true) && (
+                                <div className="ml-4 pl-4 border-l-2 border-gray-100 dark:border-gray-800 space-y-3 mt-2">
+                                    {[
+                                        { key: "syncCourseOptionChange", label: "Course Option Change" },
+                                        { key: "syncExcRegistration", label: "EXC Registration" },
+                                        { key: "syncMinorHonour", label: "Minor Honour" },
+                                        { key: "syncCourseCompletion", label: "Course Completion" },
+                                        { key: "syncWishlist", label: "Wishlist" },
+                                        { key: "syncAdditionalLearning", label: "Additional Learning" },
+                                        { key: "syncProject", label: "Project" },
+                                        { key: "syncProjectCourse", label: "Project Course" },
+                                    ].map(opt => (
+                                        <div key={opt.key} className="flex items-center justify-between">
+                                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{opt.label}</p>
+                                            <Switch checked={settings?.[opt.key as keyof typeof settings] ?? true} onCheckedChange={(val) => {
+                                                setSettings(prev => ({ ...prev, [opt.key]: val }));
+                                                localStorage.setItem("settings", JSON.stringify({ ...settings, [opt.key]: val }));
+                                            }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </CardContainer>
 

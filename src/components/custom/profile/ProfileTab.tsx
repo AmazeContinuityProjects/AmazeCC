@@ -37,6 +37,8 @@ interface ProfileTabProps {
   setHideMobileHeader: (val: boolean) => void;
   reloadAllData: boolean;
   setReloadAllData: (val: boolean) => void;
+  settings: any;
+  setSettings: (val: any) => void;
 }
 
 function useCredentialSection(loginToVTOP: () => Promise<any>) {
