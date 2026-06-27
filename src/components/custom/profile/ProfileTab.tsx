@@ -138,9 +138,7 @@ export default function ProfileTab(props: ProfileTabProps) {
 
   return (
     <div className="animate-fadeIn w-full max-w-7xl mx-auto">
-      <div className="md:hidden">
-        <ProfileSubTabs activeTab={activeProfileSubTab} onChange={setActiveProfileSubTab} />
-      </div>
+
       <div className="mt-4">
         {activeProfileSubTab === "info" && (
           <div className="space-y-6">

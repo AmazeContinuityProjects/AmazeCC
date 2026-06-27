@@ -18,12 +18,12 @@ export default function PageHeader({
   return (
     <div
       className={cn(
-        "bg-info-surface/60 border-b border-x border-border rounded-b-2xl py-4.5 px-6 shadow-sm flex flex-row items-center justify-between gap-4 -mx-4 md:-mx-6 mb-6 relative z-10",
+        "bg-info-surface/60 border-b border-x border-border rounded-b-2xl py-4 px-5 sm:py-4.5 sm:px-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 -mx-4 md:-mx-6 mb-6 relative z-10",
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-2.5 z-10 min-w-0">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-black font-[family-name:var(--font-outfit)] tracking-tight text-text-heading flex items-center gap-2.5 min-w-0">
+      <div className="flex flex-wrap items-center gap-2.5 z-10 min-w-0 w-full sm:w-auto">
+        <h1 className="text-base sm:text-xl md:text-2xl font-black font-[family-name:var(--font-outfit)] tracking-tight text-text-heading flex items-center gap-2.5 min-w-0">
           {icon}
           <span className="truncate">{title}</span>
         </h1>
@@ -31,7 +31,7 @@ export default function PageHeader({
       </div>
 
       {actions && (
-        <div className="flex items-center gap-2.5 z-10 shrink-0">
+        <div className="flex items-center gap-2.5 z-10 w-full sm:w-auto justify-end sm:justify-start">
           {actions}
         </div>
       )}
