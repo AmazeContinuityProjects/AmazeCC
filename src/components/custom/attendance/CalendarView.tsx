@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { eachDayOfInterval, endOfMonth, getDay, isSameDay } from "date-fns";
 import NoContentFound from "../NoContentFound";
-import { RefreshCcw, Download, Calendar as CalendarIcon, Info, ChevronRight, BookOpen, Clock, EyeOff, Plus, CheckCircle2, ShieldAlert, Award, FileText } from "lucide-react";
+import { RefreshCcw, Download, Calendar as CalendarIcon, ChevronRight, BookOpen, EyeOff, Plus, CheckCircle2, Award, FileText, ListChecks, GraduationCap } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import { motion, AnimatePresence } from "framer-motion";
 import ExamsScheduleDisplay from "../Exams/SchduleDisplay";
@@ -11,7 +11,8 @@ import config from "../../../../config.json";
 import OverallTrackerSubpage from "./OverallTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import Badge from "../shared/Badge";
-import EmptyState from "../shared/EmptyState";
+import PageHeader from "../shared/PageHeader";
+import Modal from "../shared/Modal";
 const CALENDAR_TYPES = {
     ALL: "General Semester",
     ALL02: "General Flexible",
@@ -68,6 +69,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
     });
 
     const [showOverallTracker, setShowOverallTracker] = useState(false);
+    const [showMoodleModal, setShowMoodleModal] = useState(false);
 
     useEffect(() => {
         if (setIsSubpageOpen) {
@@ -515,7 +517,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
                 <button 
                     onClick={() => toggleSchedulePage(false)} 
-                    className="mb-4 text-blue-600 dark:text-blue-400 hover:underline flex items-center font-semibold midnight:text-blue-400"
+                    className="mb-4 text-blue-600  hover:underline flex items-center font-semibold dark:text-blue-400"
                 >
                     &larr; Back to Calendar
                 </button>
@@ -531,7 +533,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     <select
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                        className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-gray-800 midnight:bg-gray-900 text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm"
+                        className="px-4 py-2 rounded-lg border border-gray-300  dark:border-gray-800 bg-white  dark:bg-gray-900 text-gray-900  dark:text-gray-100 shadow-sm"
                     >
                         {Object.entries(CALENDAR_TYPES).map(([value, label]) => (
                             <option key={value} value={value}>{label}</option>
@@ -658,443 +660,691 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
     const next3Exams = upcomingExamsList.slice(0, 3);
     const next3Moodle = upcomingMoodleList.slice(0, 3);
 
+    const formatMonthLabel = (calendar: any) => {
+        const raw = `${calendar.month ?? "Month"} ${calendar.year ?? ""}`.trim();
+        return raw.replace(/\s+\d{4}\s+\d{4}$/g, "");
+    };
+
+    const formatDateLabel = (date: Date) => {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const diffDays = Math.round((target.getTime() - start.getTime()) / 86400000);
+        if (diffDays === 0) return "Today";
+        if (diffDays === 1) return "Tomorrow";
+        return date.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short" });
+    };
+
+    const getDaysRemaining = (date: Date) => {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        return Math.max(0, Math.round((target.getTime() - start.getTime()) / 86400000));
+    };
+
+    const getEventMeta = (event: any) => {
+        if (event.type === "exam") return { label: "Exam", dot: "bg-orange-500", badge: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300" };
+        if (event.type === "moodle" || event.type === "homework") return { label: "Assignment", dot: "bg-purple-500", badge: "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-900/50 dark:bg-purple-950/30 dark:text-purple-300" };
+        if (event.type === "od") return { label: "OD", dot: "bg-blue-500", badge: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300" };
+        if (event.type === "attendance" && event.isAbsent) return { label: "Missed", dot: "bg-red-500", badge: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300" };
+        if (event.type === "attendance") return { label: "Class", dot: "bg-emerald-500", badge: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300" };
+        if (isHolidayEvent(event)) return { label: "Holiday", dot: "bg-red-500", badge: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300" };
+        if (isInstructionalEvent(event)) return { label: "Day Type", dot: "bg-gray-400", badge: "border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300" };
+        return { label: "Event", dot: "bg-gray-400", badge: "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300" };
+    };
+
+    const EventTypePill = ({ event, compact = false }: { event: any, compact?: boolean }) => {
+        const meta = getEventMeta(event);
+        return (
+            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-bold uppercase tracking-wide ${compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs"} ${meta.badge}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                {meta.label}
+            </span>
+        );
+    };
+
+    const getEventPriority = (event: any) => {
+        if (event.type === "exam") return 0;
+        if (event.type === "moodle" || event.type === "homework") return 1;
+        if (event.type === "attendance" && event.isAbsent) return 2;
+        if (event.type === "od") return 3;
+        if (isHolidayEvent(event)) return 4;
+        if (isInstructionalEvent(event)) return 5;
+        if (event.type === "attendance") return 6;
+        return 7;
+    };
+
+    const isWorkingOnlyEvent = (event: any) => isInstructionalEvent(event) && !["attendance", "exam", "moodle", "homework", "od", "event"].includes(event.type);
+
+    const getCellPrimaryEvent = (events: any[]) => {
+        const important = events.filter(event => !isWorkingOnlyEvent(event));
+        return [...(important.length ? important : events)].sort((a, b) => getEventPriority(a) - getEventPriority(b))[0];
+    };
+
+    const getEventTitle = (event: any) => {
+        if (event.type === "exam" && event.text) return String(event.text).replace(/^\[[^\]]+\]\s*/, "");
+        if (event.type === "moodle" && event.text) return String(event.text).replace(/^\[Moodle\]\s*/, "");
+        if (event.type === "homework") return event.category || String(event.text || "").replace(/^\[HW\]\s*/, "");
+        if (isInstructionalEvent(event)) {
+            const value = event.category || event.text || "Working Day";
+            return String(value).replace(/instructional day/ig, "Working Day");
+        }
+        return event.courseTitle || event.text || getEventMeta(event).label;
+    };
+
+    const getEventTimeLabel = (event: any) => {
+        const text = `${event.category || ""} ${event.text || ""}`;
+        const match = text.match(/\d{1,2}:\d{2}\s*(?:AM|PM)?(?:\s*[-|]\s*\d{1,2}:\d{2}\s*(?:AM|PM)?)?/i);
+        if (match) return match[0].replace(/\s+/g, " ").trim();
+        if (isHolidayEvent(event) || isInstructionalEvent(event)) return "Day";
+        return "All day";
+    };
+
+    const getTooltipGroups = (events: any[]) => {
+        const dayTypeEvents = events.filter(e => isHolidayEvent(e) || isInstructionalEvent(e));
+        const classEvents = events.filter(e => e.type === "attendance" || e.type === "od");
+        const assessmentEvents = events.filter(e => e.type === "exam" || e.type === "moodle" || e.type === "homework");
+        const otherEvents = events.filter(e =>
+            e.type !== "attendance" &&
+            e.type !== "od" &&
+            e.type !== "exam" &&
+            e.type !== "moodle" &&
+            e.type !== "homework" &&
+            !isHolidayEvent(e) &&
+            !isInstructionalEvent(e)
+        );
+
+        return [
+            ["Day Type", dayTypeEvents],
+            ["Classes", classEvents],
+            ["Assessments", assessmentEvents],
+            ["Events", otherEvents],
+        ].filter(([, items]: any) => items.length > 0);
+    };
+
+    const getHiddenSummary = (hiddenEvents: any[]) => {
+        const meaningful = hiddenEvents.filter(event => !isWorkingOnlyEvent(event));
+        const source = meaningful.length ? meaningful : hiddenEvents;
+        if (!source.length) return "";
+        const pluralLabels: Record<string, string> = {
+            Assignment: "Assignments",
+            Exam: "Exams",
+            OD: "ODs",
+            Class: "Classes",
+            Missed: "Missed",
+            Holiday: "Holidays",
+            Event: "Events",
+        };
+        const counts = source.reduce((acc: Record<string, number>, event: any) => {
+            const meta = getEventMeta(event);
+            const key = pluralLabels[meta.label] || `${meta.label}s`;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+        const [label, count] = (Object.entries(counts) as [string, number][]).sort((a, b) => b[1] - a[1])[0];
+        return count === source.length ? `${label} +${count}` : `${source.length} more events`;
+    };
+
+    const groupedTasks = next3Moodle.reduce((acc: Record<string, any[]>, item: any) => {
+        const label = formatDateLabel(item.d);
+        acc[label] = acc[label] || [];
+        acc[label].push(item);
+        return acc;
+    }, {});
+    const presentCount = Math.max(totalClassesCount - totalMissedDaysCount, 0);
+    const attendanceRate = totalClassesCount > 0 ? Math.round((presentCount / totalClassesCount) * 100) : 0;
+    const isMoodleConnected = Boolean(moodleData?.length || IDs?.MoodleUsername || IDs?.MoodlePassword);
+
     return (
         <>
-        <div className="flex flex-col gap-6 max-w-full overflow-x-hidden">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-3 text-center md:text-left">
-                    <div className="flex items-center gap-2">
-                        <CalendarIcon className="text-blue-500 shrink-0" />
-                        <span>Super Calendar</span>
-                    </div>
-                    <Badge variant="default" className="rounded-md border border-gray-200 dark:border-gray-700 midnight:border-gray-800 font-medium">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 overflow-x-hidden pb-20">
+            <PageHeader
+                icon={<CalendarIcon className="w-5.5 h-5.5 text-blue-605 dark:text-blue-400" />}
+                title="Super Calendar"
+                meta={
+                    <Badge variant="default" className="rounded-xl border border-gray-200 font-semibold  dark:border-gray-800">
                         {CALENDAR_TYPES[calendarType || "ALL"]}
                     </Badge>
-                </h1>
-                
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={() => setActiveAttendanceSubTab?.("circulars")} 
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm"
-                    >
-                        <FileText size={16} /> <span className="text-sm">Circulars</span>
-                    </button>
-                    <button 
-                        onClick={generateCalendarICS} 
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-500/10 midnight:text-emerald-400 border border-emerald-200 dark:border-emerald-800 midnight:border-emerald-500/30 transition-colors text-sm font-medium"
-                    >
-                        <Download size={16} /> Sync .ics
-                    </button>
-                    <button 
-                        onClick={() => handleCalendarFetch(calendarType || "ALL")} 
-                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 midnight:bg-blue-500/10 midnight:text-blue-400 border border-blue-200 dark:border-blue-800 midnight:border-blue-500/30 transition-colors"
-                    >
-                        <RefreshCcw size={16} />
-                    </button>
-                </div>
-            </div>
+                }
+                actions={
+                    <>
+                        <button
+                            onClick={() => setActiveAttendanceSubTab?.("circulars")}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer"
+                        >
+                            <FileText size={16} /> <span>Circulars</span>
+                        </button>
+                        <button
+                            onClick={generateCalendarICS}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100/85 hover:bg-gray-200/80 text-gray-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700/60 font-extrabold text-[11px] uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                            <Download size={16} /> <span>Sync .ics</span>
+                        </button>
+                        <button
+                            onClick={() => handleCalendarFetch(calendarType || "ALL")}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/85 hover:bg-gray-200/80 text-gray-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700/60 transition-colors cursor-pointer"
+                            aria-label="Refresh calendar"
+                        >
+                            <RefreshCcw size={16} />
+                        </button>
+                    </>
+                }
+            />
 
-            <div className="flex gap-2 justify-center md:justify-end flex-wrap overflow-x-auto pb-2 scrollbar-hide">
-                {safeCalendars.map((calendar, idx) => (
-                    <button
-                        key={calendar.id || idx}
-                        onClick={() => setActiveIdx(idx)}
-                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${idx === activeIdx
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                            : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 midnight:bg-gray-900 midnight:text-gray-300 midnight:border-gray-800 midnight:hover:bg-gray-800"
+            <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4">
+                <div className="flex w-full snap-x gap-2 overflow-x-auto px-1 pb-1 md:flex-wrap md:justify-center md:overflow-visible">
+                    {safeCalendars.map((calendar, idx) => (
+                        <button
+                            key={calendar.id || idx}
+                            onClick={() => setActiveIdx(idx)}
+                            className={`shrink-0 snap-center rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors duration-150 ${
+                                idx === activeIdx
+                                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50   dark:text-gray-300 dark:hover:bg-gray-800 dark:border-gray-800 dark:bg-black"
                             }`}
-                    >
-                        {calendar.month ?? "Month"} {calendar.year ?? ""}
-                    </button>
-                ))}
-            </div>
+                        >
+                            {formatMonthLabel(calendar)}
+                        </button>
+                    ))}
+                </div>
 
-            <div className="flex items-center justify-center gap-4 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 flex-wrap midnight:text-gray-400">
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-500"></div> Exam</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-500"></div> Task/Assignment</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div> OD Approved</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-600"></div> Missed Class</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Class Present</span>
-            </div>
+                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-gray-500  dark:text-gray-400">
+                    {[
+                        ["bg-emerald-500", "Class"],
+                        ["bg-orange-500", "Exam"],
+                        ["bg-purple-500", "Assignment"],
+                        ["bg-blue-500", "OD"],
+                        ["bg-red-500", "Holiday"],
+                    ].map(([dot, label]) => (
+                        <span key={label} className="inline-flex items-center gap-1.5">
+                            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                            {label}
+                        </span>
+                    ))}
+                </div>
 
-            <div className="w-full overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 midnight:border-gray-800 bg-white dark:bg-gray-900 midnight:bg-black shadow-sm">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeIdx}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-full overflow-x-auto"
-                    >
-                        <div className="min-w-[800px] w-full grid grid-cols-7 text-center border-collapse">
-                            {weekdays.map((day) => (
-                                <div
-                                    key={day}
-                                    className="font-bold py-3 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 text-xs tracking-wider uppercase text-gray-500 dark:text-gray-400 midnight:text-gray-500 bg-gray-50/50 dark:bg-gray-900/50 midnight:bg-gray-900/40"
-                                >
-                                    {day}
-                                </div>
-                            ))}
-
-                            {blanks.map((_, i) => (
-                                <div key={`blank-${i}`} className="h-32 border-b border-r border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/30" />
-                            ))}
-
-                            {daysInMonth.map((dateObj, i) => {
-                                const date = dateObj.getDate();
-                                const dayInfo = Array.isArray(activeCalendar.days)
-                                    ? activeCalendar.days.find((d) => Number(d.date) === date)
-                                    : undefined;
-                                const events = dayInfo?.events || [];
-
-                                const hasHoliday = events.some(isHolidayEvent);
-                                const hasInstructional = events.some(isInstructionalEvent);
-                                const hasExam = events.some(e => e.type === "exam");
-                                const hasMoodle = events.some(e => e.type === "moodle" || e.type === "homework");
-                                const hasAbsent = events.some(e => e.type === "attendance" && e.isAbsent);
-                                const hasPresent = events.some(e => e.type === "attendance" && !e.isAbsent);
-                                const hasOD = events.some(e => e.type === "od");
-                                const isEmpty = events.length === 0;
-                                const isToday = isCurrentMonth && dateObj.getDate() === today.getDate();
-                                const isSelected = selectedDay && selectedDay.date === date;
-
-                                const semiHolidayEvents = ["CAT - I", "CAT - II", "TechnoVIT", "Vibrance"];
-                                const hasSemiHoliday = events.some(e =>
-                                    semiHolidayEvents.some(keyword =>
-                                        (e.text || "").toLowerCase().includes(keyword.toLowerCase()) ||
-                                        (e.category || "").toLowerCase().includes(keyword.toLowerCase())
-                                    )
-                                );
-
-                                let dayType = "other";
-                                if (hasSemiHoliday) dayType = "semiholiday";
-                                else if (hasHoliday || isEmpty || (!hasInstructional && events.length > 0 && !hasExam && !hasMoodle)) dayType = "holiday";
-                                else if (hasInstructional) dayType = "instructional";
-
-                                const bgClass =
-                                    dayType === "holiday"
-                                        ? "bg-gradient-to-br from-red-50/80 to-transparent dark:from-red-900/20 midnight:from-red-500/10"
-                                        : dayType === "instructional"
-                                            ? "bg-gradient-to-br from-green-50/80 to-transparent dark:from-green-900/20 midnight:from-green-500/10"
-                                            : dayType === "semiholiday"
-                                                ? "bg-gradient-to-br from-yellow-50/80 to-transparent dark:from-yellow-900/20 midnight:from-amber-500/10"
-                                                : "bg-transparent hover:bg-gray-50/50 dark:hover:bg-gray-800/50 midnight:hover:bg-gray-900/50";
-
-                                const borderClasses = "border-b border-r border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50";
-                                const isLastCol = (blanksCount + i + 1) % 7 === 0;
-
-                                return (
+                <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm   dark:border-gray-800 dark:bg-black">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeIdx}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full"
+                        >
+                            <div className="grid w-full grid-cols-7 text-center">
+                                {weekdays.map((day) => (
                                     <div
-                                        key={date}
-                                        onClick={() => setSelectedDay({ date, dayType, events, fullDate: dayInfo?.fullDate || dateObj })}
-                                        className={`relative flex flex-col p-2 h-32 backdrop-blur-sm transition-all cursor-pointer hover:shadow-inner
-                                            ${bgClass} ${borderClasses} ${isLastCol ? 'border-r-0' : ''}
-                                            ${isSelected ? "ring-2 ring-inset ring-purple-500 dark:ring-purple-400 midnight:ring-purple-500 z-10" : isToday ? "ring-2 ring-inset ring-blue-500 z-10" : ""}
-                                    `}
+                                        key={day}
+                                        className="border-b border-gray-100 bg-gray-50/70 py-3 text-xs font-bold uppercase tracking-wider text-gray-500   dark:text-gray-400 dark:border-gray-800 dark:bg-gray-900/40"
                                     >
-                                        <div className="w-full flex items-center justify-between mb-1">
-                                            <span className={`text-base font-semibold ${isToday ? 'text-blue-600 dark:text-blue-400 midnight:text-blue-400' : 'text-gray-700 dark:text-gray-300 midnight:text-gray-400'}`}>
-                                                {date}
-                                            </span>
-                                            <div className="flex gap-1 flex-wrap justify-end">
-                                                {hasExam && <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" title="Exam"/>}
-                                                {hasMoodle && <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" title="Moodle Due"/>}
-                                                {hasOD && <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="OD Approved"/>}
-                                                {hasAbsent && <div className="w-2 h-2 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.6)]" title="Missed Classes"/>}
-                                                {hasPresent && <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" title="Classes Attended"/>}
+                                        {day}
+                                    </div>
+                                ))}
+
+                                {blanks.map((_, i) => (
+                                    <div key={`blank-${i}`} className="min-h-20 border-b border-r border-gray-100 bg-gray-50/30  dark:bg-gray-900/20 dark:border-gray-800/50" />
+                                ))}
+
+                                {daysInMonth.map((dateObj, i) => {
+                                    const date = dateObj.getDate();
+                                    const dayInfo = Array.isArray(activeCalendar.days)
+                                        ? activeCalendar.days.find((d) => Number(d.date) === date)
+                                        : undefined;
+                                    const events = dayInfo?.events || [];
+                                    const isToday = isCurrentMonth && dateObj.getDate() === today.getDate();
+                                    const isSelected = selectedDay && selectedDay.date === date;
+                                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                                    const hasHoliday = events.some(isHolidayEvent);
+                                    const hasInstructional = events.some(isInstructionalEvent);
+                                    const hasExam = events.some(e => e.type === "exam");
+                                    const hasMoodle = events.some(e => e.type === "moodle" || e.type === "homework");
+                                    const isEmpty = events.length === 0;
+
+                                    const semiHolidayEvents = ["CAT - I", "CAT - II", "TechnoVIT", "Vibrance"];
+                                    const hasSemiHoliday = events.some(e =>
+                                        semiHolidayEvents.some(keyword =>
+                                            (e.text || "").toLowerCase().includes(keyword.toLowerCase()) ||
+                                            (e.category || "").toLowerCase().includes(keyword.toLowerCase())
+                                        )
+                                    );
+
+                                    let dayType = "other";
+                                    if (hasSemiHoliday) dayType = "semiholiday";
+                                    else if (hasHoliday || isEmpty || (!hasInstructional && events.length > 0 && !hasExam && !hasMoodle)) dayType = "holiday";
+                                    else if (hasInstructional) dayType = "instructional";
+
+                                    const priorityEvent = getCellPrimaryEvent(events);
+                                    const priorityMeta = priorityEvent ? getEventMeta(priorityEvent) : null;
+                                    const hiddenEvents = priorityEvent ? events.filter((event) => event !== priorityEvent) : [];
+                                    const hiddenSummary = getHiddenSummary(hiddenEvents);
+                                    let tooltipShownCount = 0;
+                                    const tooltipPreviewGroups = getTooltipGroups([...events].sort((a, b) => getEventPriority(a) - getEventPriority(b)))
+                                        .map(([label, items]: any) => {
+                                            const availableSlots = Math.max(0, 6 - tooltipShownCount);
+                                            const visibleItems = items.slice(0, availableSlots);
+                                            tooltipShownCount += visibleItems.length;
+                                            return [label, visibleItems];
+                                        })
+                                        .filter(([, items]: any) => items.length > 0);
+                                    const tooltipMoreCount = Math.max(events.length - tooltipShownCount, 0);
+
+                                    const dayTone = dayType === "holiday"
+                                        ? "text-red-600 dark:text-red-400"
+                                        : dayType === "instructional"
+                                            ? "text-emerald-700 dark:text-emerald-400"
+                                            : dayType === "semiholiday"
+                                                ? "text-amber-700 dark:text-amber-400"
+                                                : "text-gray-700 dark:text-gray-300";
+
+                                    const isLastCol = (blanksCount + i + 1) % 7 === 0;
+
+                                    return (
+                                        <button
+                                            key={date}
+                                            onClick={() => setSelectedDay({ date, dayType, events, fullDate: dayInfo?.fullDate || dateObj })}
+                                            className={`group relative flex min-h-20 cursor-pointer flex-col border-b border-r border-gray-100 p-2 text-left transition-[background-color,box-shadow,transform] duration-150 hover:z-20 hover:bg-gray-50 dark:hover:bg-gray-900/30 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:ring-blue-400 sm:min-h-28 sm:p-3 lg:min-h-32 ${
+                                                isWeekend ? "bg-gray-50/70  dark:bg-gray-900/25" : "bg-white  dark:bg-black"
+                                            } ${isLastCol ? "border-r-0" : ""}  dark:border-gray-800/50 ${
+                                                isSelected ? "z-10 ring-2 ring-inset ring-blue-600 dark:ring-blue-400" : ""
+                                            }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <span className={`inline-flex h-7 min-w-7 items-center gap-1 rounded-xl px-1.5 text-sm font-black ${
+                                                    isToday
+                                                        ? "bg-blue-600 text-white"
+                                                        : dayTone
+                                                }`}>
+                                                    {date}
+                                                    {priorityMeta && <span className={`h-1.5 w-1.5 rounded-full ${priorityMeta.dot}`} />}
+                                                </span>
                                             </div>
-                                        </div>
 
-                                        <div className="w-full flex-1 overflow-hidden flex flex-col gap-1">
-                                            {events.length > 0 && events.slice(0, 3).map((e, idx) => {
-                                                let eClass = "bg-white/50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300 midnight:bg-gray-900/50 midnight:text-gray-300";
-                                                if(e.type === "exam") eClass = "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 midnight:bg-orange-900/50 midnight:text-orange-300 border border-orange-200 dark:border-orange-800";
-                                                if(e.type === "moodle" || e.type === "homework") eClass = `bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/50 midnight:text-purple-300 ${e.hidden ? 'opacity-50 line-through' : 'border border-purple-200 dark:border-purple-800'}`;
-                                                if(e.type === "od") eClass = "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/50 midnight:text-blue-300";
-                                                if(e.type === "attendance") {
-                                                    eClass = e.isAbsent ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
-                                                }
+                                            <div className="mt-3 hidden flex-1 flex-col gap-1 overflow-hidden sm:flex">
+                                                {priorityMeta && priorityEvent && (
+                                                    <EventTypePill event={priorityEvent} compact />
+                                                )}
+                                                {hiddenSummary && (
+                                                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500">{hiddenSummary}</span>
+                                                )}
+                                            </div>
 
-                                                return (
-                                                    <div key={idx} className={`truncate text-[10px] font-medium px-1.5 py-0.5 rounded text-left w-full ${eClass}`}>
-                                                        {e.text}
+                                            {events.length > 0 && (
+                                                <div className={`pointer-events-none absolute left-3 top-12 z-50 hidden w-64 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-lg group-hover:block   dark:border-gray-800 dark:bg-black ${isLastCol ? "right-3 left-auto" : ""}`}>
+                                                    <p className="text-xs font-black text-gray-900 dark:text-gray-100">
+                                                        {dateObj.toLocaleDateString("en-GB", { day: "2-digit", month: "long" })}
+                                                    </p>
+                                                    <div className="mt-3 space-y-2.5">
+                                                        {tooltipPreviewGroups.map(([label, items]: any) => (
+                                                            <div key={label} className="space-y-1.5">
+                                                                <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
+                                                                {items.map((event: any, idx: number) => (
+                                                                    <div key={`${label}-${event.text}-${idx}`} className="flex min-w-0 items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                                                        <EventTypePill event={event} compact />
+                                                                        <span className="truncate">{getEventTitle(event)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ))}
+                                                        {tooltipMoreCount > 0 && (
+                                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500">{tooltipMoreCount} more events</p>
+                                                        )}
                                                     </div>
-                                                )
-                                            })}
-                                            {events.length > 3 && (
-                                                <div className="text-[10px] font-bold text-gray-400 text-left pl-1">
-                                                    +{events.length - 3} more
                                                 </div>
                                             )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </motion.div>
-                </AnimatePresence>
-            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </section>
 
-            {/* FOCUS PANEL */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-                {/* Left: Selected Day Details */}
-                <div className="lg:col-span-1 flex flex-col gap-4">
-                    <div className="bg-white dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col h-full">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 midnight:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400 midnight:text-purple-400">
-                                <CalendarIcon size={24} />
+            <section className="space-y-6">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black md:p-6">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+                                    <Award size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Attendance Overview</h3>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{totalClassesCount} classes tracked</p>
+                                </div>
+                            </div>
+                            <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-4">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Attendance</p>
+                                    <p className="mt-1 text-4xl font-black text-gray-950 dark:text-gray-50">{attendanceRate}%</p>
+                                    <p className="mt-1 text-sm font-semibold text-gray-500 dark:text-gray-400">{presentCount} / {totalClassesCount} present</p>
+                                </div>
+                                <div className="min-w-[220px] flex-1">
+                                    <div className="h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                                        <div
+                                            className="h-full rounded-full bg-blue-600 transition-all duration-200"
+                                            style={{ width: `${attendanceRate}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                                        {[
+                                            ["Present", presentCount, "text-emerald-600 dark:text-emerald-400"],
+                                            ["Missed", totalMissedDaysCount, "text-red-600 dark:text-red-400"],
+                                            ["OD Hours", totalODHours, "text-blue-600 dark:text-blue-400"],
+                                            ["Valid OD", validODsCount, "text-gray-900 dark:text-gray-100"],
+                                            ["Recovered", recoveredODsCount, "text-purple-600 dark:text-purple-400"],
+                                        ].map(([label, value, color]) => (
+                                            <div key={label as string}>
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
+                                                <p className={`mt-1 text-lg font-black ${color}`}>{value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowOverallTracker(true)}
+                            className="group flex min-w-0 items-center justify-between gap-5 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 text-left transition-colors duration-150 hover:border-blue-200 hover:bg-blue-50/60 dark:border-gray-800 dark:bg-gray-950/30 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20 lg:w-80"
+                        >
+                            <div className="min-w-0">
+                                <p className="text-sm font-black text-gray-900 dark:text-gray-100">Attendance Timeline</p>
+                                <p className="mt-1 text-xs font-medium leading-5 text-gray-500 dark:text-gray-400">View heatmap, recovered classes and attendance history</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm   dark:border-gray-800 dark:bg-black">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+                                <CalendarIcon size={18} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Day Details</h3>
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                                <h3 className="font-[family-name:var(--font-outfit)] text-lg font-black text-gray-900  dark:text-gray-100">Day Details</h3>
+                                <p className="text-sm font-medium text-gray-500  dark:text-gray-400">
                                     {selectedDay ? `${selectedDay.date} ${activeCalendar.month ?? ""}` : "Select a day"}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-5">
-                            {!selectedDay || selectedDay.events.length === 0 ? (
-                                <EmptyState title="No events for this day." className="mt-10" />
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={selectedDay ? `${selectedDay.fullDate instanceof Date ? selectedDay.fullDate.getTime() : selectedDay.date}` : "empty"}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                          >
+                            {!selectedDay ? (
+                              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
+                                      <CalendarIcon className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">Select a day</h4>
+                                      <p className="mt-0.5 text-xs text-gray-550 dark:text-gray-400">View schedule, classes, exams and events.</p>
+                                  </div>
+                              </div>
+                            ) : selectedDay.events.length === 0 ? (
+                              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:text-gray-500 dark:bg-gray-950/50">
+                                      <CalendarIcon className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100">No events scheduled</h4>
+                                      <p className="mt-0.5 text-xs text-gray-550 dark:text-gray-400">Nothing on this day.</p>
+                                  </div>
+                              </div>
                             ) : (
-                                <>
-                                    {/* Render Helper for an Event */}
-                                    {(() => {
-                                        const renderEvent = (e: any, i: number) => {
-                                            const isHol = isHolidayEvent(e);
-                                            const isIns = isInstructionalEvent(e);
-                                            let style = `bg-gray-50 border-gray-100 text-gray-900 dark:bg-gray-800/50 dark:border-gray-700/50 dark:text-gray-200 midnight:bg-gray-800/50 midnight:border-gray-700/50 midnight:text-gray-200`;
-                                            
-                                            if(e.type === "exam") style = "bg-orange-50 border-orange-200 text-orange-900 dark:bg-orange-900/20 dark:border-orange-800/50 dark:text-orange-200 midnight:bg-orange-900/20 midnight:border-orange-800/50 midnight:text-orange-200";
-                                            else if(e.type === "moodle" || e.type === "homework") style = `bg-purple-50 border-purple-200 text-purple-900 dark:bg-purple-900/20 dark:border-purple-800/50 dark:text-purple-200 midnight:bg-purple-900/20 midnight:border-purple-800/50 midnight:text-purple-200 ${e.hidden ? "opacity-60" : ""}`;
-                                            else if(e.type === "od") style = "bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-900/20 dark:border-blue-800/50 dark:text-blue-200 midnight:bg-blue-900/20 midnight:border-blue-800/50 midnight:text-blue-200";
-                                            else if(e.type === "attendance") {
-                                                style = e.isAbsent ? "bg-red-50 border-red-200 text-red-900 dark:bg-red-900/20 dark:border-red-800/50 dark:text-red-200" : "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-200";
-                                            }
-                                            else if(e.type === "event") style = "bg-pink-50 border-pink-200 text-pink-900 dark:bg-pink-900/20 dark:border-pink-800/50 dark:text-pink-200 midnight:bg-pink-900/20 midnight:border-pink-800/50 midnight:text-pink-200";
-                                            else if(isHol) style = 'bg-red-50 border-red-100 text-red-900 dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-200 midnight:bg-red-500/10 midnight:border-red-500/30 midnight:text-red-300';
-                                            else if(isIns) style = 'bg-green-50 border-green-100 text-green-900 dark:bg-green-950/30 dark:border-green-900/50 dark:text-green-200 midnight:bg-green-500/10 midnight:border-green-500/30 midnight:text-green-300';
-                                            
-                                            const canAddHomework = (e.type === "attendance" || e.type === "od");
+                              <div className="mt-4 space-y-4">
+                                  {(() => {
+                                      const uniqueByTitle = (items: any[]) => {
+                                          const seen = new Set<string>();
+                                          return items.filter((item) => {
+                                              const key = `${getEventMeta(item).label}-${getEventTitle(item)}`.toLowerCase();
+                                              if (seen.has(key)) return false;
+                                              seen.add(key);
+                                              return true;
+                                          });
+                                      };
 
-                                            return (
-                                                <div key={i} className={`p-3 rounded-xl border flex gap-3 ${style}`}>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`font-semibold text-sm mb-1 ${e.hidden ? 'line-through' : ''}`}>{e.text}</p>
-                                                        {e.category && <p className="text-xs opacity-80 font-medium">{e.category}</p>}
-                                                    </div>
-                                                    {canAddHomework && (
-                                                        <button 
-                                                            onClick={() => addHomework(e.courseTitle || e.text, selectedDay.date, selectedDay.fullDate)}
-                                                            className="shrink-0 self-center p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 transition-colors text-gray-700 dark:text-gray-300 midnight:bg-white/10 midnight:hover:bg-white/20 midnight:text-gray-300"
-                                                            title="Add Homework for this Class"
-                                                        >
-                                                            <Plus size={16}/>
-                                                        </button>
-                                                    )}
-                                                    {e.type === "moodle" && e.url && !e.hidden && (
-                                                        <a href={e.url} target="_blank" rel="noreferrer" className="shrink-0 p-2 bg-white/50 dark:bg-black/20 rounded-lg hover:bg-white dark:hover:bg-black/40 transition-colors self-start midnight:bg-black/20 midnight:hover:bg-black/40">
-                                                            <BookOpen size={16} className="text-purple-600 dark:text-purple-400 midnight:text-purple-400" />
-                                                        </a>
-                                                    )}
-                                                    {(e.type === "moodle" && e.hidden) && (
-                                                        <div className="shrink-0 self-start text-gray-500" title="Hidden Assignment"><EyeOff size={16}/></div>
-                                                    )}
-                                                </div>
-                                            );
-                                        };
+                                      const dayTypeItems = uniqueByTitle(selectedDay.events.filter((e: any) => isHolidayEvent(e) || isInstructionalEvent(e)));
+                                      const classItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "attendance" || e.type === "od"));
+                                      const assessmentItems = uniqueByTitle(selectedDay.events.filter((e: any) => e.type === "exam" || e.type === "moodle" || e.type === "homework"));
+                                      const eventItems = uniqueByTitle(selectedDay.events.filter((e: any) =>
+                                          e.type !== "attendance" &&
+                                          e.type !== "od" &&
+                                          e.type !== "exam" &&
+                                          e.type !== "moodle" &&
+                                          e.type !== "homework" &&
+                                          !isHolidayEvent(e) &&
+                                          !isInstructionalEvent(e)
+                                      ));
 
-                                        const dayTypeEvents = selectedDay.events.filter(e => isHolidayEvent(e) || isInstructionalEvent(e));
-                                        const dayClassEvents = selectedDay.events.filter(e => e.type === "attendance" || e.type === "od");
-                                        const dayOtherEvents = selectedDay.events.filter(e => e.type !== "attendance" && e.type !== "od" && !isHolidayEvent(e) && !isInstructionalEvent(e));
+                                      const renderActions = (e: any) => {
+                                          const canAddHomework = e.type === "attendance" || e.type === "od";
+                                          return (
+                                              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                                                  {e.hidden && <EyeOff size={14} className="shrink-0 text-gray-400 dark:text-gray-500" />}
+                                                  {canAddHomework && (
+                                                      <button
+                                                          onClick={() => addHomework(e.courseTitle || e.text, selectedDay.date, selectedDay.fullDate)}
+                                                          className="rounded-xl border border-gray-200 bg-white p-1.5 text-gray-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                          title="Add Homework for this Class"
+                                                      >
+                                                          <Plus size={14} />
+                                                      </button>
+                                                  )}
+                                                  {e.type === "moodle" && e.url && !e.hidden && (
+                                                      <a href={e.url} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 bg-white p-1.5 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400 dark:hover:bg-gray-800">
+                                                          <BookOpen size={14} />
+                                                      </a>
+                                                  )}
+                                              </div>
+                                          );
+                                      };
 
-                                        return (
-                                            <>
-                                                {dayTypeEvents.length > 0 && (
-                                                    <div className="space-y-2">
-                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 midnight:text-gray-500 mb-2">Day Type</h4>
-                                                        {dayTypeEvents.map((e, i) => renderEvent(e, i))}
-                                                    </div>
-                                                )}
-                                                {dayOtherEvents.length > 0 && (
-                                                    <div className="space-y-2">
-                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 midnight:text-gray-500 mb-2 mt-4">Day Events</h4>
-                                                        {dayOtherEvents.map((e, i) => renderEvent(e, i))}
-                                                    </div>
-                                                )}
-                                                {dayClassEvents.length > 0 && (
-                                                    <div className="space-y-2">
-                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 midnight:text-gray-500 mb-2 mt-4">Day Classes</h4>
-                                                        {dayClassEvents.map((e, i) => renderEvent(e, i))}
-                                                    </div>
-                                                )}
-                                            </>
-                                        );
-                                    })()}
-                                </>
+                                      return (
+                                          <>
+                                              {dayTypeItems.length > 0 && (
+                                                  <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                                                      <div className="flex flex-wrap gap-2">
+                                                          {dayTypeItems.map((e: any, i: number) => (
+                                                              <span key={`${e.text}-${i}`} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-bold text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                                                                  <span className={`h-1.5 w-1.5 rounded-full ${getEventMeta(e).dot}`} />
+                                                                  {getEventTitle(e)}
+                                                              </span>
+                                                          ))}
+                                                      </div>
+                                                  </div>
+                                              )}
+
+                                              {classItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Classes</h4>
+                                                      <div className="space-y-1.5">
+                                                          {classItems.map((e: any, i: number) => (
+                                                              <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                                  <span className={`h-2 w-2 shrink-0 rounded-full ${getEventMeta(e).dot}`} />
+                                                                  <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
+                                                                  <span className="shrink-0 text-xs font-bold text-gray-400 dark:text-gray-500">{e.category || "Present"}</span>
+                                                                  {renderActions(e)}
+                                                              </div>
+                                                          ))}
+                                                      </div>
+                                                  </div>
+                                              )}
+
+                                              {assessmentItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Assessments</h4>
+                                                      {assessmentItems.map((e: any, i: number) => (
+                                                          <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                              <EventTypePill event={e} compact />
+                                                              <p className={`min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${e.hidden ? "line-through opacity-60" : ""}`}>{getEventTitle(e)}</p>
+                                                              {renderActions(e)}
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              )}
+
+                                              {eventItems.length > 0 && (
+                                                  <div className="space-y-2">
+                                                      <h4 className="text-xs font-black uppercase tracking-wider text-gray-405 dark:text-gray-500">Events</h4>
+                                                      {eventItems.map((e: any, i: number) => (
+                                                          <div key={`${e.text}-${i}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 dark:border-gray-800 dark:bg-gray-950/30">
+                                                              <EventTypePill event={e} compact />
+                                                              <p className="min-w-0 flex-1 truncate text-sm font-bold text-gray-900 dark:text-gray-100">{getEventTitle(e)}</p>
+                                                          </div>
+                                                      ))}
+                                                  </div>
+                                              )}
+                                          </>
+                                      );
+                                  })()}
+                              </div>
                             )}
+                          </motion.div>
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400">
+                                    <BookOpen size={18} />
+                                </div>
+                                <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Upcoming Tasks</h3>
+                            </div>
                         </div>
+
+                        {!isMoodleConnected ? (
+                            <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Not connected</p>
+                                    <p className="mt-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">Connect Moodle to sync assignments.</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowMoodleModal(true)}
+                                    className="shrink-0 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition-colors duration-150 hover:bg-blue-700"
+                                >
+                                    Connect Moodle
+                                </button>
+                            </div>
+                        ) : next3Moodle.length === 0 ? (
+                            <div className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">All caught up</p>
+                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">No upcoming tasks or assignments.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {(Object.entries(groupedTasks) as [string, any[]][]).map(([label, items]) => (
+                                    <div key={label} className="relative pl-5">
+                                        <div className="absolute left-1 top-2 bottom-0 w-px bg-gray-200 dark:bg-gray-800" />
+                                        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+                                        <div className="space-y-2">
+                                            {items.map((md: any, i: number) => (
+                                                <div key={i} className="relative rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                                                    <span className="absolute -left-[19px] top-4 h-2 w-2 rounded-full bg-purple-500" />
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <p className={`truncate text-sm font-bold text-gray-900 dark:text-gray-100 ${md.hidden ? "line-through opacity-60" : ""}`}>{md.name.split("/").pop()}</p>
+                                                            <p className="mt-1 truncate text-xs font-medium text-gray-500 dark:text-gray-400">{md.type === "homework" ? md.courseName : (md.name.split("/")[1] || md.name)}</p>
+                                                        </div>
+                                                        {md.type === "homework" && (
+                                                            <button onClick={() => toggleHomework(md.id)} className="shrink-0 rounded-xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 transition-colors duration-150 hover:bg-purple-100 dark:border-purple-900/50 dark:bg-purple-950/30 dark:text-purple-300">
+                                                                Done
+                                                            </button>
+                                                        )}
+                                                        {md.type === "moodle" && !md.hidden && md.url && (
+                                                            <a href={md.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-xl border border-gray-200 bg-white p-2 text-purple-600 transition-colors duration-150 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-purple-400 dark:hover:bg-gray-950">
+                                                                <ChevronRight size={16} />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right: Upcoming Widgets & Stats */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    {/* Stats Widget */}
-                    <div className="bg-white dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center midnight:text-blue-400">
-                                <Award size={16} />
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400">
+                                <GraduationCap size={18} />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Attendance & OD Overview</h3>
+                            <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Upcoming Exams</h3>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 midnight:bg-gray-900 rounded-xl relative group midnight:border-red-900/30">
-                                <div className="absolute top-2 right-2 text-red-400 opacity-50"><ShieldAlert size={12} /></div>
-                                <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">Missed Days</p>
-                                <p className="text-2xl font-black text-red-600 dark:text-red-400 midnight:text-red-400">{totalMissedDaysCount}</p>
-                            </div>
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 midnight:bg-gray-900 rounded-xl relative group midnight:border-blue-900/30">
-                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Total Classes</p>
-                                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400">{totalClassesCount}</p>
-                            </div>
-                            <div className="p-3 bg-emerald-50 border border-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/10 midnight:bg-gray-900 rounded-xl midnight:border-emerald-900/30">
-                                <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mb-1 midnight:text-emerald-500">Total OD Hours</p>
-                                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400">{totalODHours}</p>
-                            </div>
-                            <div className="p-3 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Valid ODs</p>
-                                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400">{validODsCount}</p>
-                            </div>
-                            <div className="p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 midnight:bg-gray-900 rounded-xl relative group midnight:border-purple-900/30">
-                                <div className="absolute top-2 right-2 text-purple-400 opacity-50"><CheckCircle2 size={12} /></div>
-                                <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Recovered ODs</p>
-                                <p className="text-2xl font-black text-purple-600 dark:text-purple-400 midnight:text-purple-400">{recoveredODsCount}</p>
-                            </div>
-                            
-                            <div className="p-3 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 midnight:bg-gray-900 rounded-xl relative group midnight:border-orange-900/30">
-                                <p className="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1">Wasted ODs</p>
-                                <p className="text-2xl font-black text-orange-600 dark:text-orange-400 midnight:text-orange-400">{wastedODsCount}</p>
-                            </div>
-                        </div>
-
-                        {/* Full Width Button for Aggregated Log */}
-                        <button 
-                            onClick={() => setShowOverallTracker(true)}
-                            className="mt-4 w-full flex items-center justify-between p-3 sm:p-4 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 midnight:bg-gray-900/50 midnight:hover:bg-gray-900 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-xl transition-colors group"
+                        <button
+                            onClick={() => toggleSchedulePage(true)}
+                            className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition-colors duration-150 hover:text-blue-700 dark:text-blue-400"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/30 rounded-lg">
-                                    <Clock size={18} className="text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Aggregated Log</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">View your attendance heatmap & full class log</p>
-                                </div>
-                            </div>
-                            <div className="text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
-                                &rarr;
-                            </div>
+                            Schedule <ChevronRight size={16} />
                         </button>
                     </div>
 
-                    {/* Upcoming Moodle Widget */}
-                    <div className="bg-white dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 midnight:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center midnight:text-purple-400">
-                                    <BookOpen size={16} />
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Upcoming Tasks & Assignments</h3>
+                    {next3Exams.length === 0 ? (
+                        <div className="flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 p-3 dark:border-gray-800">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400">
+                                <GraduationCap className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">No exams scheduled</p>
+                                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">You're all caught up.</p>
                             </div>
                         </div>
-                        
-                        <div className="flex flex-col gap-3">
-                            {(!moodleData || moodleData.length === 0) && (!IDs || !IDs.MoodleUsername || !IDs.MoodlePassword) && (
-                                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700 midnight:bg-gray-900/50 midnight:border-gray-800">
-                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 midnight:text-gray-300">Sign in to Moodle to see upcoming assignments.</p>
-                                    <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
-                                </div>
-                            )}
-
-                            {next3Moodle.length === 0 && (moodleData?.length > 0 || homeworkTracker.length > 0) ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">All caught up! No upcoming tasks.</p>
-                            ) : (
-                                next3Moodle.map((md, i) => (
-                                    <div key={i} className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl border ${md.hidden ? 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 opacity-60' : 'bg-purple-50 dark:bg-purple-900/10 midnight:bg-purple-900/10 border-purple-100 dark:border-purple-900/30'}`}>
-                                        <div className="flex flex-col shrink-0 min-w-[100px]">
-                                            <span className={`text-xs font-bold uppercase tracking-wider ${md.hidden ? 'text-gray-500' : 'text-purple-600 dark:text-purple-400'}`}>
-                                                {md.hidden ? "Hidden" : "Due Date"}
-                                            </span>
-                                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
-                                                {md.d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                            </span>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                            {next3Exams.map((ex, i) => {
+                                const daysLeft = getDaysRemaining(ex.d);
+                                return (
+                                    <div key={i} className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
+                                        <div className="w-16 shrink-0 text-center">
+                                            <p className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">{ex.type}</p>
+                                            <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{ex.d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</p>
                                         </div>
-                                        <div className="flex-1 min-w-0 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700 pt-2 sm:pt-0 sm:pl-3 flex items-center justify-between midnight:border-gray-800">
-                                            <div className="min-w-0 flex-1">
-                                                <p className={`font-bold truncate ${md.hidden ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'}`}>{md.name.split("/").pop()}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate midnight:text-gray-400">{md.type === "homework" ? md.courseName : (md.name.split("/")[1] || md.name)}</p>
-                                            </div>
-                                            
-                                            {md.type === "homework" && (
-                                                <button onClick={() => toggleHomework(md.id)} className="shrink-0 p-2 ml-2 bg-purple-200 dark:bg-purple-900/50 rounded-lg text-purple-700 dark:text-purple-300 font-bold text-xs hover:bg-purple-300 transition-colors midnight:bg-purple-900/50 midnight:text-purple-300">
-                                                    Mark Done
-                                                </button>
-                                            )}
-
-                                            {md.type === "moodle" && !md.hidden && md.url && (
-                                                <a href={md.url} target="_blank" rel="noreferrer" className="shrink-0 p-2 ml-2 bg-white dark:bg-black/20 rounded-lg hover:bg-gray-100 dark:hover:bg-black/40 transition-colors midnight:bg-black/20 midnight:hover:bg-black/40">
-                                                    <ChevronRight size={16} className="text-purple-600 dark:text-purple-400 midnight:text-purple-400" />
-                                                </a>
-                                            )}
+                                        <div className="min-w-0 flex-1 border-l border-gray-200 pl-3 dark:border-gray-800">
+                                            <p className="truncate text-sm font-bold text-gray-900 dark:text-gray-100">{ex.courseTitle}</p>
+                                            <p className="mt-1 truncate text-xs font-medium text-gray-500 dark:text-gray-400">{ex.courseCode} · {ex.examTime} · {ex.venue}</p>
                                         </div>
+                                        <Badge variant={daysLeft <= 3 ? "warning" : "default"} className="shrink-0 rounded-xl font-bold">
+                                            {daysLeft === 0 ? "Today" : `${daysLeft}d`}
+                                        </Badge>
                                     </div>
-                                ))
-                            )}
+                                );
+                            })}
                         </div>
-                    </div>
-
-                    {/* Upcoming Exams Widget */}
-                    <div className="bg-white dark:bg-gray-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 midnight:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center midnight:text-orange-400">
-                                    <Clock size={16} />
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-white">Upcoming Exams</h3>
-                            </div>
-                            <button 
-                                onClick={() => toggleSchedulePage(true)} 
-                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 midnight:text-blue-400"
-                            >
-                                View Full Schedule <ChevronRight size={16}/>
-                            </button>
-                        </div>
-                        
-                        <div className="flex flex-col gap-3">
-                            {next3Exams.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">No upcoming exams found.</p>
-                            ) : (
-                                next3Exams.map((ex, i) => (
-                                    <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 midnight:bg-gray-900/50 border border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                                        <div className="flex flex-col shrink-0 min-w-[80px]">
-                                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider midnight:text-orange-400">{ex.type}</span>
-                                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{ex.examDate}</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700 pt-2 sm:pt-0 sm:pl-3 midnight:border-gray-800">
-                                            <p className="font-bold text-gray-900 dark:text-gray-100 truncate midnight:text-gray-100">{ex.courseTitle}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Badge variant="default" size="sm" className="bg-gray-200 dark:bg-gray-700 midnight:bg-gray-700 rounded font-medium">{ex.courseCode}</Badge>
-                                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate midnight:text-gray-400">{ex.examTime} | {ex.venue}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
+                    )}
                 </div>
-            </div>
+            </section>
         </div>
+
+        <Modal
+            isOpen={showMoodleModal}
+            onClose={() => setShowMoodleModal(false)}
+            title="Connect Moodle"
+            maxWidth="max-w-md"
+        >
+            <div className="space-y-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Sign in once to sync assignments into the calendar.
+                </p>
+                <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
+            </div>
+        </Modal>
         
         <AnimatePresence>
             {showOverallTracker && (
@@ -1102,7 +1352,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
-                    className="fixed inset-0 z-[100] bg-white dark:bg-black midnight:bg-black overflow-y-auto"
+                    className="fixed inset-0 z-[100] bg-white  dark:bg-black overflow-y-auto"
                 >
                     <div className="max-w-7xl mx-auto min-h-screen">
                         <OverallTrackerSubpage 

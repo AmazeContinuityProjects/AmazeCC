@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,13 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const CHEPUS = [
-    "/images/chepu/chepu_on_the_floor.png",
-    "/images/chepu/chepu_says_hi.png",
-    "/images/chepu/chepu_says_sup.png",
-    "/images/chepu/empty_page_chepu.png",
-];
+import { AlertCircle } from "lucide-react";
 
 type ErrorWithDigest = Error & { digest?: string };
 
@@ -47,10 +40,8 @@ export default function ErrorDiagnosticCard({
 }: ErrorDiagnosticCardProps) {
   const [copied, setCopied] = useState(false);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
-  const [chepuImage, setChepuImage] = useState<string | null>(null);
 
   useEffect(() => {
-    setChepuImage(CHEPUS[Math.floor(Math.random() * CHEPUS.length)]);
     setRuntimeInfo({
       href: window.location.href,
       userAgent: navigator.userAgent,
@@ -83,73 +74,85 @@ export default function ErrorDiagnosticCard({
   };
 
   return (
-    <main className="min-h-screen w-full bg-gray-100 px-4 text-foreground transition-colors duration-300 dark:bg-slate-900 midnight:bg-black">
-      <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center py-10">
-        <Card className="w-full border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 midnight:border-gray-800 midnight:bg-[#0a0a0a]">
-          <CardHeader>
-            <p className="text-sm font-medium text-muted-foreground">AmazeCC Error Inspector</p>
-            <CardTitle className="text-2xl tracking-tight md:text-3xl">{title}</CardTitle>
-            <CardDescription className="text-sm md:text-base">{description}</CardDescription>
+    <main className="min-h-screen w-full bg-slate-50 px-4 text-foreground transition-colors duration-300 dark:bg-[#03060F] flex items-center justify-center py-10">
+      <div className="w-full max-w-2xl animate-in fade-in duration-300">
+        <Card className="w-full border-slate-200 bg-white/70 backdrop-blur-md shadow-2xl dark:border-neutral-900 dark:bg-neutral-950/40 rounded-3xl overflow-hidden relative">
+          {/* Subtle background gradient glow */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-bl-full pointer-events-none -z-10" />
+          
+          <CardHeader className="text-center pt-8">
+            {/* Professional Alert Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-455 animate-pulse">
+                <AlertCircle className="w-10 h-10 stroke-[2]" />
+                <div className="absolute inset-0 rounded-full border border-rose-500/30 animate-ping duration-2000 pointer-events-none" />
+              </div>
+            </div>
+            
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500 font-[family-name:var(--font-outfit)]">System Diagnostic</p>
+            <CardTitle className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white mt-1 leading-snug">{title}</CardTitle>
+            <CardDescription className="text-xs md:text-sm mt-2 text-slate-500 dark:text-gray-400 font-medium max-w-md mx-auto leading-relaxed">{description}</CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-5">
-            {chepuImage && (
-              <div className="flex justify-center mb-6">
-                <Image
-                  src={chepuImage}
-                  alt="Random Chepu"
-                  width={200}
-                  height={200}
-                  className="opacity-90 object-contain drop-shadow-md"
-                  priority
-                />
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="space-y-6 px-6 md:px-8 pb-8">
+            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-4 pt-2">
               {onRetry ? (
-                <Button onClick={onRetry} variant="default">
+                <Button onClick={onRetry} variant="default" className="rounded-xl font-bold text-xs py-2 min-h-[38px] cursor-pointer">
                   Try again
                 </Button>
-              ) : null}
-              <Button onClick={() => window.location.reload()} variant="secondary">
-                Reload page
+              ) : (
+                <Button onClick={() => window.location.reload()} variant="default" className="rounded-xl font-bold text-xs py-2 min-h-[38px] cursor-pointer">
+                  Reload page
+                </Button>
+              )}
+              {onRetry && (
+                <Button onClick={() => window.location.reload()} variant="secondary" className="rounded-xl font-bold text-xs py-2 min-h-[38px] cursor-pointer">
+                  Reload page
+                </Button>
+              )}
+              <Button asChild variant="outline" className="rounded-xl font-bold text-xs py-2 min-h-[38px] cursor-pointer">
+                <Link href="/">Dashboard</Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/">Go to dashboard</Link>
-              </Button>
-              <Button onClick={copyReport} variant="outline">
-                {copied ? "Copied" : "Copy full report"}
+              <Button onClick={copyReport} variant="outline" className={`rounded-xl font-bold text-xs py-2 min-h-[38px] cursor-pointer transition-all ${copied ? "text-emerald-500 border-emerald-500 bg-emerald-500/5" : ""}`}>
+                {copied ? "Copied Report" : "Copy Report"}
               </Button>
             </div>
 
             <Tabs defaultValue="summary" className="w-full">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="technical">Technical</TabsTrigger>
+              <TabsList className="w-full justify-start bg-slate-100 dark:bg-neutral-900/50 p-1 rounded-xl">
+                <TabsTrigger value="summary" className="text-xs font-bold rounded-lg px-4 py-1.5">Summary</TabsTrigger>
+                <TabsTrigger value="technical" className="text-xs font-bold rounded-lg px-4 py-1.5">Technical Report</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="summary" className="mt-3">
-                <div className="grid gap-3 rounded-lg border border-border bg-background/60 p-4 text-sm">
-                  <p>
-                    <span className="font-semibold">Message:</span> {error?.message ?? "Unknown client-side exception"}
+              <TabsContent value="summary" className="mt-4 focus-visible:outline-none">
+                <div className="grid gap-3 rounded-2xl border border-slate-200/60 dark:border-neutral-900 bg-slate-50/50 dark:bg-neutral-950/20 p-4 text-xs font-semibold text-slate-700 dark:text-gray-300 leading-relaxed">
+                  <p className="flex justify-between border-b border-slate-100 dark:border-neutral-900/50 pb-2">
+                    <span className="text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Error Message</span>
+                    <span className="truncate max-w-[70%] font-extrabold text-slate-900 dark:text-white">{error?.message ?? "Unknown client-side exception"}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">Digest:</span> {error?.digest ?? "none"}
+                  <p className="flex justify-between border-b border-slate-100 dark:border-neutral-900/50 pb-2">
+                    <span className="text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Digest Hash</span>
+                    <span className="font-mono text-[10px] text-slate-500">{error?.digest ?? "none"}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">Page:</span> {runtimeInfo?.href ?? "collecting..."}
+                  <p className="flex justify-between border-b border-slate-100 dark:border-neutral-900/50 pb-2">
+                    <span className="text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Source Route</span>
+                    <span className="truncate max-w-[70%] font-mono text-[10px] text-slate-500">{runtimeInfo?.href ?? "collecting..."}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">When:</span> {runtimeInfo?.timestamp ?? "collecting..."}
+                  <p className="flex justify-between border-b border-slate-100 dark:border-neutral-900/50 pb-2">
+                    <span className="text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Timestamp</span>
+                    <span className="font-medium">{runtimeInfo?.timestamp ? new Date(runtimeInfo.timestamp).toLocaleString() : "collecting..."}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">Online:</span> {runtimeInfo ? String(runtimeInfo.online) : "collecting..."}
+                  <p className="flex justify-between">
+                    <span className="text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Connection Status</span>
+                    <span className={runtimeInfo?.online ? "text-emerald-500 font-bold" : "text-amber-500 font-bold"}>
+                      {runtimeInfo ? (runtimeInfo.online ? "Online" : "Offline") : "collecting..."}
+                    </span>
                   </p>
                 </div>
               </TabsContent>
 
-              <TabsContent value="technical" className="mt-3">
-                <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-background p-3 text-xs leading-relaxed">
+              <TabsContent value="technical" className="mt-4 focus-visible:outline-none">
+                <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-200 dark:border-neutral-900 bg-slate-50/50 dark:bg-neutral-950/20 p-4 text-[10px] font-mono leading-relaxed text-slate-650 dark:text-gray-400">
                   {JSON.stringify(report, null, 2)}
                 </pre>
               </TabsContent>

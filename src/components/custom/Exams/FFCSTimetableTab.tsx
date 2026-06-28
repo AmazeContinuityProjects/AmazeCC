@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard } from "lucide-react";
 import * as XLSX from "xlsx";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -489,11 +489,10 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
 export default function FFCSTimetableTab() {
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
-  const isMidnight = currentTheme === "midnight";
-  const isDark = currentTheme === "dark" || isMidnight;
-  const themeBgColor = isMidnight ? "#020617" : isDark ? "#0f172a" : "#ffffff";
-  const themeTextColor = isDark ? "#ffffff" : "#000000";
-  const themeHtmlClass = isMidnight ? "dark midnight" : isDark ? "dark" : "light";
+  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
+  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+  const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);
@@ -563,6 +562,7 @@ export default function FFCSTimetableTab() {
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isCourseSearchOpen, setIsCourseSearchOpen] = useState(false);
   const [courseSearchQuery, setCourseSearchQuery] = useState("");
   const [isSlotSearchOpen, setIsSlotSearchOpen] = useState(false);
@@ -1518,7 +1518,7 @@ export default function FFCSTimetableTab() {
     const getCourse = (slotName: string) => renderCourses.find(c => c.slots.includes(slotName));
 
     return (
-      <div className={`mb-8 rounded-xl border border-border shadow-2xl bg-background backdrop-blur-md ${customCourses && !fullSize ? 'scale-[0.85] origin-top-left -mb-10' : ''} ${fullSize ? '' : 'overflow-x-auto'}`}>
+      <div className={`mb-8 rounded-xl border border-border shadow-2xl bg-background  ${customCourses && !fullSize ? 'scale-[0.85] origin-top-left -mb-10' : ''} ${fullSize ? '' : 'overflow-x-auto'}`}>
         <div className="p-4 bg-muted/80 border-b border-border flex items-center justify-between">
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
             Unified Schedule
@@ -1528,6 +1528,11 @@ export default function FFCSTimetableTab() {
             <div className="flex items-center gap-2"><div className="w-3 h-3 bg-white/10 border border-white/20 rounded-sm border-dashed"></div>Lab (Bottom)</div>
           </div>
         </div>
+        {!fullSize && (
+          <div className="flex md:hidden items-center justify-center gap-1.5 py-2 px-3 bg-blue-500/10 border-b border-border text-[10px] font-bold text-blue-500 animate-pulse text-center">
+            <span>← Swipe horizontally to view full timetable grid →</span>
+          </div>
+        )}
         <div className="min-w-max">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -1547,7 +1552,7 @@ export default function FFCSTimetableTab() {
             <tbody>
               {DAYS.map((day) => (
                 <tr key={day.id} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-background/95 backdrop-blur-md sticky left-0 z-20">
+                  <td className="p-3 border-r border-border font-semibold text-slate-200 text-center bg-background/95  sticky left-0 z-20">
                     {day.name.substring(0, 3).toUpperCase()}
                   </td>
                   {theoryPeriods.map((period, pIdx) => {
@@ -1700,21 +1705,79 @@ export default function FFCSTimetableTab() {
     }
   }
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (
+        activeEl.tagName === "INPUT" || 
+        activeEl.tagName === "TEXTAREA" || 
+        activeEl.getAttribute("contenteditable") === "true"
+      )) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === "s" || key === "/") {
+        e.preventDefault();
+        setIsCourseSearchOpen(true);
+      } else if (key === "t") {
+        e.preventDefault();
+        setIsCourseLockOpen(true);
+      } else if (key === "g") {
+        e.preventDefault();
+        setIsGeneratorOpen(true);
+      } else if (key === "f") {
+        e.preventDefault();
+        setIsFriendsManagerOpen(true);
+      } else if (key === "n") {
+        e.preventDefault();
+        createNewTimetable();
+      } else if (key === "p") {
+        e.preventDefault();
+        openPrintablePage();
+      } else if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        if (confirm("Are you sure you want to clear all courses from this timetable?")) {
+          handleClearTimetable();
+        }
+      } else if (key >= "1" && key <= "9") {
+        const index = parseInt(key) - 1;
+        if (index < timetables.length) {
+          e.preventDefault();
+          setActiveTimetableId(timetables[index].id);
+          setSuccessMsg(`Switched to ${timetables[index].name}`);
+          setTimeout(() => setSuccessMsg(null), 1500);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [timetables, createNewTimetable, openPrintablePage, handleClearTimetable]);
+
   return (
     <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* Top Banner / Upload Area */}
-      <div className="glass-card p-6">
+      <div className="solid-card p-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <MapIcon className="text-blue-400 w-6 h-6" /> FFCS Planner
               <button 
                 onClick={() => setIsGuideModalOpen(true)}
-                className="ml-2 text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10"
+                className="ml-2 text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
                 title="How does this work?"
               >
                 <HelpCircle className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setIsShortcutsModalOpen(true)}
+                className="text-muted-foreground hover:text-indigo-500 transition-colors p-1 rounded-full hover:bg-indigo-500/10 cursor-pointer"
+                title="Keyboard Shortcuts"
+              >
+                <Keyboard className="w-5 h-5" />
               </button>
             </h2>
             <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
@@ -1764,7 +1827,7 @@ export default function FFCSTimetableTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Timetable Manager */}
-          <div className="glass-card p-5">
+          <div className="solid-card p-5">
             <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
             <div className="space-y-4">
               {/* Timetable Selector as Modal Trigger */}
@@ -1914,7 +1977,7 @@ export default function FFCSTimetableTab() {
           </div>
 
           {/* Course Selector */}
-          <div className="glass-card p-5">
+          <div className="solid-card p-5">
             <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
               <PlusCircle className="text-blue-400 w-5 h-5" /> Course Selector
             </h2>
@@ -2137,8 +2200,8 @@ export default function FFCSTimetableTab() {
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 && (
-              <div className="glass-card p-6 overflow-x-auto">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
+              <div className="solid-card p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
                     <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
@@ -2153,8 +2216,8 @@ export default function FFCSTimetableTab() {
                   </button>
                 </div>
                 
-                <div className="min-w-[600px]">
-                  <table className="w-full text-left">
+                <div className="overflow-x-auto scrollbar-none">
+                  <table className="w-full text-left min-w-[600px]">
                     <thead>
                       <tr className="border-b border-border">
                         <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
@@ -2381,7 +2444,7 @@ export default function FFCSTimetableTab() {
       />
 
       {isFriendsManagerOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50  p-4">
           <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
               <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
@@ -2553,7 +2616,7 @@ export default function FFCSTimetableTab() {
       )}
 
       {pendingFriendTimetables && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60  p-4 animate-in fade-in">
           <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
@@ -2643,12 +2706,14 @@ export default function FFCSTimetableTab() {
         activeTimetableId={activeTimetableId}
       />
 
-      {/* Guide Modal */}
       {isGuideModalOpen && <FFCSGuideModal onClose={() => setIsGuideModalOpen(false)} />}
+
+      {/* Shortcuts Modal */}
+      {isShortcutsModalOpen && <FFCSShortcutsModal onClose={() => setIsShortcutsModalOpen(false)} />}
 
       {/* Course Search Modal */}
       {isCourseSearchOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -2736,7 +2801,7 @@ export default function FFCSTimetableTab() {
 
       {/* Slot Search Modal */}
       {isSlotSearchOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -2834,7 +2899,7 @@ export default function FFCSTimetableTab() {
       )}
       {/* Timetable Selection Modal */}
       {isTimetableModalOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -2898,7 +2963,7 @@ export default function FFCSTimetableTab() {
       )}
       {/* Variant Search Modal */}
       {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -2990,7 +3055,7 @@ export default function FFCSTimetableTab() {
 
       {/* Manual Linker Modal */}
       {isManualLinkerOpen && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -3079,6 +3144,65 @@ export default function FFCSTimetableTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function FFCSShortcutsModal({ onClose }: { onClose: () => void }) {
+  const shortcuts = [
+    { keys: ["S", "/"], desc: "Open Course Search Palette" },
+    { keys: ["T"], desc: "Open Target Courses Modal" },
+    { keys: ["G"], desc: "Open Auto-Generator Modal" },
+    { keys: ["F"], desc: "Open Friends Manager" },
+    { keys: ["N"], desc: "Create a New Timetable" },
+    { keys: ["P"], desc: "Open Printable View / Print" },
+    { keys: ["1", "-", "9"], desc: "Switch to Timetable 1 to 9" },
+    { keys: ["Backspace", "Delete"], desc: "Clear Current Timetable" },
+    { keys: ["Esc"], desc: "Close Active Modals" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-scaleIn">
+        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+          <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+            <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
+          </h3>
+          <button 
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto max-h-[70vh] space-y-3">
+          <p className="text-xs text-muted-foreground mb-2">
+            Boost your timetable drafting speed with these global hotkeys:
+          </p>
+          <div className="divide-y divide-border/40">
+            {shortcuts.map((shortcut, index) => (
+              <div key={index} className="flex items-center justify-between py-2 text-xs">
+                <span className="text-muted-foreground">{shortcut.desc}</span>
+                <div className="flex items-center gap-1">
+                  {shortcut.keys.map((k, kidx) => (
+                    <kbd key={kidx} className="px-2 py-1 bg-muted border border-border rounded-md font-mono text-[10px] font-bold text-foreground shadow-xs">
+                      {k}
+                    </kbd>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-3 border-t border-border bg-muted/20 text-right">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+          >
+            Got it, thanks!
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

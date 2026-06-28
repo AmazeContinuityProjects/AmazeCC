@@ -42,7 +42,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
   if (!data || !marksData?.cgpa) {
     return (
       <div>
-        <p className="text-center text-gray-600 dark:text-gray-300 midnight:text-gray-200">
+        <p className="text-center text-gray-600  dark:text-gray-200">
           No Grades Data Available.{" "}
           <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" />
         </p>
@@ -151,9 +151,9 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
   return (
     <div>
-      <Card className="bg-white dark:bg-slate-800 midnight:bg-black border-0">
+      <Card className="bg-white  dark:bg-black border-0">
         <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Grade Distribution <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" /></CardTitle>
+            <CardTitle className="text-lg font-bold text-gray-900  dark:text-gray-100">Grade Distribution <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="mt-2" /></CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-sm">
           {(() => {
@@ -174,17 +174,17 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
             return Object.entries(rawGradeCounts).map(([grade, count]) => (
               <div
                 key={grade}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 midnight:bg-gray-800 text-gray-900 dark:text-gray-100 midnight:text-gray-100 font-bold"
+                className="p-2 rounded-lg bg-gray-100  dark:bg-gray-800 text-gray-900  dark:text-gray-100 font-bold"
               >
                 <p>{grade}</p>
-                <p className="text-gray-600 dark:text-gray-300 midnight:text-gray-300 font-medium">{count}</p>
+                <p className="text-gray-600  dark:text-gray-300 font-medium">{count}</p>
               </div>
             ));
           })()}
         </CardContent>
       </Card>
 
-      <Card className="bg-white dark:bg-slate-800 midnight:bg-black border-0">
+      <Card className="bg-white  dark:bg-black border-0">
         <CardContent className="space-y-6">
           {totalCredits && (() => {
             let earned = parseFloat(totalCredits.creditsEarned);
@@ -240,7 +240,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
           <div className="space-y-4 border-b-2 pb-6">
             <div className="relative">
-              <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gray-300 dark:bg-gray-700 midnight:bg-gray-800 transform -translate-x-1/2" />
+              <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-[1px] bg-gray-300  dark:bg-gray-800 transform -translate-x-1/2" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
                 {normalCurriculum.map((c, idx) => {
                   const earned = parseFloat(c.creditsEarned);
@@ -256,7 +256,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
                   return (
                     <div key={idx} className="p-2 space-y-1">
-                      <p className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                      <p className="font-medium text-gray-900  dark:text-gray-100">
                         {c.basketTitle}
                       </p>
 
@@ -291,7 +291,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
           {specialCurriculum.length > 0 && (
             <div className="space-y-4 border-b-2 pb-6">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+              <h3 className="font-semibold text-gray-900  dark:text-gray-100">
                 Basket
               </h3>
               {specialCurriculum.map((c, idx) => {
@@ -308,7 +308,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
                 return (
                   <div key={idx}>
-                    <p className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                    <p className="font-medium text-gray-900  dark:text-gray-100">
                       {c.basketTitle}
                     </p>
                     <div className="relative h-2 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-700">
@@ -340,7 +340,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
           {effectiveGrades.length > 0 && (
             <div className="mt-4">
-              <h4 className="font-semibold mb-3 text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+              <h4 className="font-semibold mb-3 text-gray-900  dark:text-gray-100">
                 Grades
               </h4>
 
@@ -352,7 +352,7 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
 
                   return (
                     <div key={category}>
-                      <h5 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200 midnight:text-gray-200">
+                      <h5 className="text-sm font-semibold mb-2 text-gray-800  dark:text-gray-200">
                         {category}
                       </h5>
                       <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-x-10">
@@ -361,19 +361,19 @@ function GradesDisplay({ allGradesData, data, handleFetchGrades, marksData, atte
                             <div
                               key={`${category}-${basketTitle || "Unknown"}-${idx}`}
                               className="flex items-center justify-between py-2 border-b
-                       text-gray-900 dark:text-gray-100 midnight:text-gray-100"
+                       text-gray-900  dark:text-gray-100"
                             >
                               <div className="flex flex-col text-left">
                                 <span className="text-sm font-medium truncate max-w-[16rem]">
                                   {basketTitle || "Unknown"}
                                 </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-300 midnight:text-gray-400">
+                                <span className="text-xs text-gray-500  dark:text-gray-400">
                                   {distributionType || "—"}
                                 </span>
                               </div>
                               <div className="flex items-center gap-3 text-sm font-semibold">
                                 <span>{grade || "—"}</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-300 midnight:text-gray-400">
+                                <span className="text-xs text-gray-500  dark:text-gray-400">
                                   {Number.isFinite(Number(creditsEarned))
                                     ? `${Number(creditsEarned).toFixed(1)} cr`
                                     : "—"}

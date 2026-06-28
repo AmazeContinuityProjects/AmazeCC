@@ -196,7 +196,7 @@ export default function PushNotificationManager() {
         <div className="w-full flex flex-col gap-3">
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                    <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100">
+                    <p className="text-lg font-semibold text-gray-800  dark:text-gray-100">
                         Push Notifications
                     </p>
                 </div>
@@ -210,11 +210,11 @@ export default function PushNotificationManager() {
             </div>
 
             {subscription && (
-                <div className="mt-3 flex flex-col gap-4 p-4 border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900/50 midnight:bg-black/40">
+                <div className="mt-3 flex flex-col gap-4 p-4 border border-gray-200  dark:border-gray-800 rounded-xl bg-gray-50  dark:bg-black/40">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-100">
+                                <p className="text-sm font-medium text-gray-800  dark:text-gray-100">
                                     VITOL Course Reminder
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -230,11 +230,11 @@ export default function PushNotificationManager() {
                         </div>
 
                         {vitolEnabled && (
-                            <div className="flex flex-col gap-2 p-3 bg-white dark:bg-black/50 midnight:bg-black/50 rounded-lg border border-gray-100 dark:border-gray-800 midnight:border-gray-800 mt-2">
+                            <div className="flex flex-col gap-2 p-3 bg-white  dark:bg-black/50 rounded-lg border border-gray-100  dark:border-gray-800 mt-2">
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule Time</label>
                                 <div className="flex gap-2">
                                     <select 
-                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300 dark:border-gray-700 midnight:border-gray-700 bg-transparent midnight:text-gray-200"
+                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300  dark:border-gray-700 bg-transparent dark:text-gray-200"
                                         value={vitolReminderDay}
                                         onChange={(e) => setVitolReminderDay(Number(e.target.value))}
                                     >
@@ -248,7 +248,7 @@ export default function PushNotificationManager() {
                                     </select>
                                     <input 
                                         type="time" 
-                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300 dark:border-gray-700 midnight:border-gray-700 bg-transparent midnight:text-gray-200"
+                                        className="text-sm flex-1 p-2 rounded-md border border-gray-300  dark:border-gray-700 bg-transparent dark:text-gray-200"
                                         value={vitolReminderTime}
                                         onChange={(e) => setVitolReminderTime(e.target.value)}
                                     />

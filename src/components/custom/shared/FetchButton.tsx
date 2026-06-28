@@ -36,7 +36,7 @@ export default function FetchButton({
     gradient:
       "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg",
     ghost:
-      "bg-transparent hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800 text-gray-700 dark:text-gray-300 midnight:text-gray-300 border border-transparent",
+      "bg-transparent hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-700  dark:text-gray-300 border border-transparent",
   };
 
   return (

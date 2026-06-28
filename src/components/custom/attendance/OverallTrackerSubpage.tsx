@@ -75,10 +75,10 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
             const daysArr = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
             const weekday = daysArr[weekdayNum];
             const scheduled = dayCardsMap[weekday] || [];
-            
+
             const morningClasses = [];
             const eveningClasses = [];
-            const missedClasses = []; 
+            const missedClasses = [];
 
             d.allClasses.forEach(historyEntry => {
                 let sc = scheduled.find(s => s.courseCode === historyEntry.courseCode);
@@ -87,7 +87,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                         if (s.courseCode === historyEntry.courseCode) sc = s;
                     });
                 }
-                
+
                 let isMorning = true;
                 if (sc && sc.time) {
                     const startStr = sc.time.split("-")[0].trim();
@@ -108,12 +108,12 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
             if (missedClasses.length > 0) {
                 const morningMissedCount = morningClasses.filter(c => c.status !== "present").length;
                 const eveningMissedCount = eveningClasses.filter(c => c.status !== "present").length;
-                
+
                 const isAllMorningMissed = morningClasses.length > 0 && morningMissedCount === morningClasses.length;
                 const isAllEveningMissed = eveningClasses.length > 0 && eveningMissedCount === eveningClasses.length;
 
                 if (isAllMorningMissed && isAllEveningMissed) {
-                    overallStatus = "absent"; 
+                    overallStatus = "absent";
                 } else if (isAllMorningMissed && eveningMissedCount === 0) {
                     overallStatus = "morning half-day";
                 } else if (isAllEveningMissed && morningMissedCount === 0) {
@@ -165,12 +165,12 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
             else if (d.overallStatus.includes("half-day")) val = 3;
             else if (d.overallStatus.includes("partial")) val = 4;
             else val = 5; // On duty fallback
-            
+
             // Map OD to yellow if it's OD only
             if (d.overallStatus === "partial od" && d.missedClasses.every(c => c.status.includes("duty"))) {
                 val = 5;
             }
-            
+
             return { date: dateStr, count: val, status: d.overallStatus };
         });
     }, [masterHistory]);
@@ -180,19 +180,19 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
             <div className="grid xl:grid-cols-3 gap-6 items-start h-full">
                 {/* Left Pane (Predictor could go here later, or stats) */}
                 <div className="xl:col-span-1 space-y-6">
-                    <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400 midnight:text-blue-400 flex items-center justify-center mb-4">
+                    <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-blue-100  dark:bg-blue-900/30 text-blue-600  dark:text-blue-400 flex items-center justify-center mb-4">
                             <FileText size={32} />
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 w-full">
-                            <div className="p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-xs font-bold text-gray-500 midnight:text-gray-400 uppercase tracking-wider mb-1">Missed Days</p>
-                                <p className="text-2xl font-black text-red-600 dark:text-red-400 midnight:text-red-400">{totalMissedDaysCount}</p>
+                            <div className="p-4 bg-gray-50  dark:bg-gray-900 rounded-xl">
+                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Missed Days</p>
+                                <p className="text-2xl font-black text-red-600  dark:text-red-400">{totalMissedDaysCount}</p>
                             </div>
-                            <div className="p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl">
-                                <p className="text-xs font-bold text-gray-500 midnight:text-gray-400 uppercase tracking-wider mb-1">Total Classes</p>
-                                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 midnight:text-blue-400">{masterHistory.length}</p>
+                            <div className="p-4 bg-gray-50  dark:bg-gray-900 rounded-xl">
+                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Classes</p>
+                                <p className="text-2xl font-black text-blue-600  dark:text-blue-400">{masterHistory.length}</p>
                             </div>
                         </div>
                     </div>
@@ -200,11 +200,11 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
 
                 {/* Right Pane (Log) */}
                 <div className="xl:col-span-2 min-w-0 w-full">
-                    <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
+                    <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
+                        <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
                                         Aggregated Log
                                     </h2>
                                 </div>
@@ -225,9 +225,9 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                             {viewMode === "calendar" ? (
                                 <div className="p-0 sm:p-4 w-full overflow-x-auto hide-scrollbar">
                                     <div className="min-w-[600px]">
-                                        <AttendanceCalendarView 
-                                            analyzeCalendars={analyzeCalendars} 
-                                            historyList={masterHistory} 
+                                        <AttendanceCalendarView
+                                            analyzeCalendars={analyzeCalendars}
+                                            historyList={masterHistory}
                                             notesTracker={notesTracker}
                                             toggleNotes={toggleMasterNotes}
                                             courseCode={"ALL"}
@@ -237,13 +237,14 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                     </div>
                                 </div>
                             ) : viewMode === "heatmap" ? (
-                                <div className="p-6 flex justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
-                                    <div style={{ direction: "ltr", minWidth: "500px" }}>
+                                <div className="p-6 flex flex-col items-center justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
+                                    <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
                                         <HeatMap
                                             value={heatmapData}
                                             startDate={heatmapStartDate}
                                             endDate={heatmapEndDate}
                                             width={550}
+                                            legendCellSize={0}
                                             rectProps={{ rx: 4, ry: 4 }}
                                             rectRender={(props, dayData) => {
                                                 const data = dayData as any;
@@ -258,10 +259,32 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                 5: "#EAB308", // OD (Yellow)
                                             }}
                                         />
+                                        <div className="flex flex-wrap items-center justify-center gap-4 mt-5 text-xs font-semibold text-gray-550  dark:text-gray-400">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
+                                                <span>Present</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EF4444] shadow-sm"></div>
+                                                <span>Absent</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#F97316] shadow-sm"></div>
+                                                <span>Half-day</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#F43F5E] shadow-sm"></div>
+                                                <span>Partial Absent</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EAB308] shadow-sm"></div>
+                                                <span>On Duty</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                                <div className="divide-y divide-gray-100  dark:divide-gray-800">
                                     {masterHistory.map((d, i) => {
                                         const isPresent = d.overallStatus === "present";
                                         const allSecured = d.missedClasses.length > 0 && d.missedClasses.every(c => notesTracker[c.courseCode]?.[d.date] === true);
@@ -280,7 +303,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                         <div className="flex items-center gap-4">
                                                             <div className={`w-2 h-10 rounded-full ${dotColor}`}></div>
                                                             <div>
-                                                                <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
+                                                                <p className="font-bold text-gray-900  dark:text-gray-100">{d.date}</p>
                                                                 <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${textCol}`}>
                                                                     {d.overallStatus}
                                                                 </p>
@@ -299,7 +322,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     <div className="flex items-center gap-4">
                                                         <div className={`w-2 h-10 rounded-full ${dotColor}`}></div>
                                                         <div>
-                                                            <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
+                                                            <p className="font-bold text-gray-900  dark:text-gray-100">{d.date}</p>
                                                             <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${textCol}`}>
                                                                 {d.overallStatus}
                                                             </p>
@@ -307,12 +330,12 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     </div>
                                                 }
                                                 badge={
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => toggleMasterNotes(d.date, d.missedClasses, e)}
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
-                                                            allSecured 
-                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
+                                                            allSecured
+                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
@@ -320,21 +343,21 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     </button>
                                                 }
                                             >
-                                                <div className="pl-6 border-l-2 border-gray-100 dark:border-gray-800 midnight:border-gray-800 ml-1 space-y-3">
+                                                <div className="pl-6 border-l-2 border-gray-100  dark:border-gray-800 ml-1 space-y-3">
                                                     {d.missedClasses.map((c, idx) => {
                                                         const isSecured = notesTracker[c.courseCode]?.[d.date] === true;
                                                         return (
-                                                            <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-2 rounded-lg">
+                                                            <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50/50  dark:bg-gray-900/50 p-2 rounded-lg">
                                                                 <div>
-                                                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-200 midnight:text-gray-200">{c.courseTitle}</p>
-                                                                    <p className="text-[10px] text-gray-500 midnight:text-gray-400 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
+                                                                    <p className="text-xs font-bold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
+                                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
                                                                 </div>
-                                                                <button 
+                                                                <button
                                                                     onClick={(e) => toggleIndividualNote(d.date, c.courseCode, e)}
                                                                     className={`flex items-center justify-center p-1.5 rounded text-[10px] font-semibold transition-all shrink-0 ${
-                                                                        isSecured 
-                                                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" 
-                                                                            : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-400 midnight:hover:bg-gray-700"
+                                                                        isSecured
+                                                                            ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                                            : "bg-gray-200 text-gray-600 hover:bg-gray-300   dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                                                                     }`}
                                                                 >
                                                                     {isSecured ? <CheckCircle2 size={12} /> : <FileText size={12} />}

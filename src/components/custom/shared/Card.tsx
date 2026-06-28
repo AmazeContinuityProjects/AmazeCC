@@ -22,14 +22,14 @@ export default function Card({
 
   const variants = {
     default:
-      "bg-white dark:bg-slate-800 midnight:bg-black border border-gray-200 dark:border-gray-700 midnight:border-gray-800 shadow-sm",
+      "bg-surface text-text-primary border border-border shadow-sm",
     glass:
-      "glass-card",
+      "solid-card",
     gradient: gradient
       ? `border-none text-white shadow-md ${gradient}`
       : "bg-gradient-to-r from-blue-600 to-indigo-600 border-none text-white shadow-md",
     outline:
-      "border border-gray-200 dark:border-gray-700 midnight:border-gray-800 bg-transparent",
+      "border border-border bg-transparent text-text-primary",
   };
 
   const hoverClasses = hover

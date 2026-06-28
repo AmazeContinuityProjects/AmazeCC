@@ -76,16 +76,16 @@ function parseLocation(loc: string): { floor: string; row: string; column: strin
   return { floor: floor || "—", row: row || "—", column: column || "—", zone: zone || "" };
 }
 
-// Solid color badge classes that work across light/dark/midnight themes
+// Solid color badge classes that work across supported themes
 const badge = {
-  floor: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-800/70 dark:text-amber-200 dark:border-amber-700/50 midnight:bg-amber-900/80 midnight:text-amber-300 midnight:border-amber-800/50",
-  row: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-800/70 dark:text-emerald-200 dark:border-emerald-700/50 midnight:bg-emerald-900/80 midnight:text-emerald-300 midnight:border-emerald-800/50",
-  col: "bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-800/70 dark:text-violet-200 dark:border-violet-700/50 midnight:bg-violet-900/80 midnight:text-violet-300 midnight:border-violet-800/50",
-  zone: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-800/70 dark:text-cyan-200 dark:border-cyan-700/50 midnight:bg-cyan-900/80 midnight:text-cyan-300 midnight:border-cyan-800/50",
-  gray: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700/70 dark:text-gray-200 dark:border-gray-600/50 midnight:bg-gray-800/80 midnight:text-gray-300 midnight:border-gray-700/50",
-  blue: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-800/70 dark:text-blue-200 dark:border-blue-700/50 midnight:bg-blue-900/80 midnight:text-blue-300 midnight:border-blue-800/50",
-  indigo: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-800/70 dark:text-indigo-200 dark:border-indigo-700/50 midnight:bg-indigo-900/80 midnight:text-indigo-300 midnight:border-indigo-800/50",
-  purple: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-800/70 dark:text-purple-200 dark:border-purple-700/50 midnight:bg-purple-900/80 midnight:text-purple-300 midnight:border-purple-800/50",
+  floor: "bg-amber-100 text-amber-800 border-amber-300    dark:bg-amber-900/80 dark:text-amber-300 dark:border-amber-800/50",
+  row: "bg-emerald-100 text-emerald-800 border-emerald-300    dark:bg-emerald-900/80 dark:text-emerald-300 dark:border-emerald-800/50",
+  col: "bg-violet-100 text-violet-800 border-violet-300    dark:bg-violet-900/80 dark:text-violet-300 dark:border-violet-800/50",
+  zone: "bg-cyan-100 text-cyan-800 border-cyan-300    dark:bg-cyan-900/80 dark:text-cyan-300 dark:border-cyan-800/50",
+  gray: "bg-gray-100 text-gray-700 border-gray-300    dark:bg-gray-800/80 dark:text-gray-300 dark:border-gray-700/50",
+  blue: "bg-blue-100 text-blue-800 border-blue-300    dark:bg-blue-900/80 dark:text-blue-300 dark:border-blue-800/50",
+  indigo: "bg-indigo-100 text-indigo-800 border-indigo-300    dark:bg-indigo-900/80 dark:text-indigo-300 dark:border-indigo-800/50",
+  purple: "bg-purple-100 text-purple-800 border-purple-300    dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-800/50",
 };
 
 export default function LibrarySearchPalette({ apiBase }: LibrarySearchPaletteProps) {
@@ -119,8 +119,20 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
   }, [query]);
 
   useEffect(() => {
-    const el = listRef.current?.children[selectedIndex] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
+    const container = listRef.current;
+    if (!container) return;
+    const el = container.children[selectedIndex] as HTMLElement | undefined;
+    if (el) {
+      const top = el.offsetTop;
+      const bottom = top + el.offsetHeight;
+      const cTop = container.scrollTop;
+      const cBottom = cTop + container.clientHeight;
+      if (top < cTop) {
+        container.scrollTop = top - 10;
+      } else if (bottom > cBottom) {
+        container.scrollTop = bottom - container.clientHeight + 10;
+      }
+    }
   }, [selectedIndex]);
 
   useEffect(() => {
@@ -170,9 +182,9 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
 
   return (
     <div className="flex flex-col h-full min-h-[320px]" onKeyDown={handleKeyDown}>
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200/60 dark:border-gray-700/30 midnight:border-gray-800/30 bg-gradient-to-r from-blue-500/[0.03] to-transparent">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-200/60  dark:border-gray-800/30 bg-gradient-to-r from-blue-500/[0.03] to-transparent">
         <div className="p-1.5 rounded-xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 shadow-sm">
-          <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 midnight:text-blue-400" />
+          <Search className="w-4 h-4 text-blue-600  dark:text-blue-400" />
         </div>
         <input
           ref={inputRef}
@@ -181,14 +193,14 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by title, author, or keyword..."
-          className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 midnight:placeholder-gray-500 outline-none"
+          className="flex-1 bg-transparent text-sm text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 outline-none"
         />
         {query ? (
-          <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} className="p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 midnight:hover:bg-gray-800/40 text-gray-400 transition-colors">
+          <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} className="p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 dark:hover:bg-gray-800/40 text-gray-400 transition-colors">
             <X className="w-4 h-4" />
           </button>
         ) : (
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 bg-gray-100 dark:bg-gray-800/60 midnight:bg-gray-900/60 rounded-lg border border-gray-200/60 dark:border-gray-700/30">
+          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-gray-400  dark:text-gray-500 bg-gray-100  dark:bg-gray-900/60 rounded-lg border border-gray-200/60 dark:border-gray-700/30">
             Type to search
           </kbd>
         )}
@@ -198,24 +210,24 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 animate-pulse">Searching library catalog...</p>
+            <p className="text-sm text-gray-500  dark:text-gray-400 animate-pulse">Searching library catalog...</p>
           </div>
         </div>
       ) : selectedBook ? (
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <button
             onClick={() => { setSelectedBook(null); setBookDetail(null); setDetailError(null); setTimeout(() => inputRef.current?.focus(), 0); }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 midnight:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600  dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
             Back to results
-            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 text-[10px] text-gray-400">esc</kbd>
+            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 text-[10px] text-gray-400">esc</kbd>
           </button>
 
           {detailLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">Loading details...</span>
+              <span className="ml-2 text-sm text-gray-500  dark:text-gray-400">Loading details...</span>
             </div>
           ) : detailError ? (
             <div className="flex flex-col items-center py-8 text-center">
@@ -228,19 +240,19 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
             <div className="space-y-5">
               <div className="flex gap-4">
                 {selectedBook?.coverUrl ? (
-                  <div className="shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 shadow-md ring-1 ring-black/5">
+                  <div className="shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-md ring-1 ring-black/5">
                     <img src={selectedBook.coverUrl} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="shrink-0 w-24 h-32 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 midnight:from-blue-900/20 midnight:to-purple-900/20 flex items-center justify-center border border-gray-300 dark:border-gray-700/50">
-                    <BookOpen className="w-8 h-8 text-blue-400 dark:text-blue-500 midnight:text-blue-500/60" />
+                  <div className="shrink-0 w-24 h-32 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100   dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center border border-gray-300 dark:border-gray-700/50">
+                    <BookOpen className="w-8 h-8 text-blue-400  dark:text-blue-500/60" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white leading-snug">{bookDetail.title || selectedBook?.title}</p>
-                  {bookDetail.author && <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">by <span className="font-medium text-gray-800 dark:text-gray-300 midnight:text-gray-300">{bookDetail.author}</span></p>}
-                  {bookDetail.publisher && <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">{bookDetail.publisher}</p>}
-                  {bookDetail.edition && <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 italic">{bookDetail.edition}</p>}
+                  <p className="text-sm font-bold text-gray-900  dark:text-white leading-snug">{bookDetail.title || selectedBook?.title}</p>
+                  {bookDetail.author && <p className="text-xs text-gray-600  dark:text-gray-400">by <span className="font-medium text-gray-800  dark:text-gray-300">{bookDetail.author}</span></p>}
+                  {bookDetail.publisher && <p className="text-xs text-gray-600  dark:text-gray-400">{bookDetail.publisher}</p>}
+                  {bookDetail.edition && <p className="text-xs text-gray-500  dark:text-gray-400 italic">{bookDetail.edition}</p>}
                 </div>
               </div>
 
@@ -265,7 +277,7 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
               {/* Subjects */}
               {bookDetail.subjects?.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1.5 uppercase tracking-wider">Subjects</p>
+                  <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">Subjects</p>
                   <div className="flex flex-wrap gap-1">
                     {bookDetail.subjects.map((s, i) => (
                       <span key={i} className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.blue}`}>
@@ -278,9 +290,9 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
 
               {/* Summary */}
               {bookDetail.summary && (
-                <div className="px-4 py-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
-                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1.5 uppercase tracking-wider">Summary</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 midnight:text-white leading-relaxed">{bookDetail.summary}</p>
+                <div className="px-4 py-3 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
+                  <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1.5 uppercase tracking-wider">Summary</p>
+                  <p className="text-xs font-medium text-gray-900  dark:text-white leading-relaxed">{bookDetail.summary}</p>
                 </div>
               )}
 
@@ -298,15 +310,15 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
                 }
                 return (
                   <div>
-                    <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-2 uppercase tracking-wider">Copies & Locations ({bookDetail.holdings.length})</p>
+                    <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-2 uppercase tracking-wider">Copies & Locations ({bookDetail.holdings.length})</p>
                     <div className="space-y-2">
                       {Array.from(groups.entries()).map(([key, g]) => (
-                        <div key={key} className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800/50 midnight:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30 shadow-sm">
+                        <div key={key} className="px-4 py-3 rounded-xl bg-white  dark:bg-gray-900/50 border border-gray-200/50  dark:border-gray-800/30 shadow-sm">
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-2 min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5">
-                                <div className="p-1 rounded-lg bg-blue-100 dark:bg-blue-800/60 midnight:bg-blue-900/80 shrink-0">
-                                  <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-300 midnight:text-blue-400" />
+                                <div className="p-1 rounded-lg bg-blue-100  dark:bg-blue-900/80 shrink-0">
+                                  <MapPin className="w-3.5 h-3.5 text-blue-600  dark:text-blue-400" />
                                 </div>
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${badge.floor}`}>
                                   Floor {g.parsed.floor}
@@ -343,19 +355,19 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
                               )}
 
                               {/* Compact barcode list */}
-                              <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-gray-500  dark:text-gray-400">
                                 {g.holdings.map((h, hi) => (
                                   <span key={h.itemId || hi} className="flex items-center gap-1.5">
                                     <span className={cn(
                                       "inline-block w-1.5 h-1.5 rounded-full",
                                       h.status === "Available" ? "bg-emerald-500" : h.status === "Checked out" ? "bg-amber-500" : "bg-red-500"
                                     )} />
-                                    <span className="font-mono text-[10px] text-gray-700 dark:text-gray-300 midnight:text-gray-300">{h.barcode || "—"}</span>
+                                    <span className="font-mono text-[10px] text-gray-700  dark:text-gray-300">{h.barcode || "—"}</span>
                                     <span className={cn(
                                       "text-[9px] font-bold px-1 py-0.5 rounded",
-                                      h.status === "Available" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-800/70 dark:text-emerald-200 midnight:bg-emerald-900/80 midnight:text-emerald-300" : h.status === "Checked out" ? "bg-amber-100 text-amber-800 dark:bg-amber-800/70 dark:text-amber-200 midnight:bg-amber-900/80 midnight:text-amber-300" : "bg-red-100 text-red-800 dark:bg-red-800/70 dark:text-red-200 midnight:bg-red-900/80 midnight:text-red-300"
+                                      h.status === "Available" ? "bg-emerald-100 text-emerald-800   dark:bg-emerald-900/80 dark:text-emerald-300" : h.status === "Checked out" ? "bg-amber-100 text-amber-800   dark:bg-amber-900/80 dark:text-amber-300" : "bg-red-100 text-red-800   dark:bg-red-900/80 dark:text-red-300"
                                     )}>{h.status}</span>
-                                    {h.dateDue && <span className="text-[9px] font-medium text-amber-600 dark:text-amber-400 midnight:text-amber-300">due {new Date(h.dateDue).toLocaleDateString()}</span>}
+                                    {h.dateDue && <span className="text-[9px] font-medium text-amber-600  dark:text-amber-300">due {new Date(h.dateDue).toLocaleDateString()}</span>}
                                   </span>
                                 ))}
                               </div>
@@ -369,12 +381,12 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
                               )}>
                                 {g.available}/{g.total}
                               </div>
-                              <p className="text-[9px] text-gray-400 dark:text-gray-500 midnight:text-gray-500 mt-0.5">available</p>
+                              <p className="text-[9px] text-gray-400  dark:text-gray-500 mt-0.5">available</p>
                             </div>
                           </div>
 
                           {key !== "__noloc__" && (
-                            <p className="mt-2 text-[9px] text-gray-400 dark:text-gray-500 midnight:text-gray-500 font-mono">{key}</p>
+                            <p className="mt-2 text-[9px] text-gray-400  dark:text-gray-500 font-mono">{key}</p>
                           )}
                         </div>
                       ))}
@@ -385,9 +397,9 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
 
               {/* Description (MARC 300) */}
               {bookDetail.description && (
-                <div className="px-4 py-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/40 midnight:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 midnight:border-gray-800/30">
-                  <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1 uppercase tracking-wider">Physical Details</p>
-                  <p className="text-xs text-gray-700 dark:text-gray-300 midnight:text-gray-300">{bookDetail.description}</p>
+                <div className="px-4 py-3 rounded-xl bg-gray-50/80  dark:bg-gray-900/40 border border-gray-200/50  dark:border-gray-800/30">
+                  <p className="text-[10px] font-semibold text-gray-500  dark:text-gray-400 mb-1 uppercase tracking-wider">Physical Details</p>
+                  <p className="text-xs text-gray-700  dark:text-gray-300">{bookDetail.description}</p>
                 </div>
               )}
             </div>
@@ -395,18 +407,18 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
             !detailLoading && (
               <div className="flex gap-4">
                 {selectedBook?.coverUrl ? (
-                  <div className="shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 shadow-md ring-1 ring-black/5">
+                  <div className="shrink-0 w-24 h-32 rounded-xl overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-md ring-1 ring-black/5">
                     <img src={selectedBook.coverUrl} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="shrink-0 w-24 h-32 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 midnight:from-blue-900/20 midnight:to-purple-900/20 flex items-center justify-center border border-gray-300 dark:border-gray-700/50">
-                    <BookOpen className="w-8 h-8 text-blue-400 dark:text-blue-500 midnight:text-blue-500/60" />
+                  <div className="shrink-0 w-24 h-32 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100   dark:from-blue-900/20 dark:to-purple-900/20 flex items-center justify-center border border-gray-300 dark:border-gray-700/50">
+                    <BookOpen className="w-8 h-8 text-blue-400  dark:text-blue-500/60" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 space-y-2.5">
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-white leading-snug">{selectedBook?.title}</p>
-                  {selectedBook?.author && <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">by <span className="font-medium text-gray-800 dark:text-gray-300 midnight:text-gray-300">{selectedBook.author}</span></p>}
-                  {selectedBook?.publisher && <p className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">{selectedBook.publisher}</p>}
+                  <p className="text-sm font-bold text-gray-900  dark:text-white leading-snug">{selectedBook?.title}</p>
+                  {selectedBook?.author && <p className="text-xs text-gray-600  dark:text-gray-400">by <span className="font-medium text-gray-800  dark:text-gray-300">{selectedBook.author}</span></p>}
+                  {selectedBook?.publisher && <p className="text-xs text-gray-600  dark:text-gray-400">{selectedBook.publisher}</p>}
                   {selectedBook?.isbn && (
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold border ${badge.gray}`}>
                       <Hash className="w-3 h-3" />
@@ -421,8 +433,8 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
       ) : results.length > 0 ? (
         <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-0.5 scroll-smooth">
           <div className="flex items-center justify-between px-3 py-1.5">
-            <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500">{results.length} result{results.length !== 1 ? "s" : ""}</p>
-            <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800/60 midnight:bg-gray-900/60 text-[10px] text-gray-400 dark:text-gray-500">↑↓ navigate · enter to view</kbd>
+            <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500">{results.length} result{results.length !== 1 ? "s" : ""}</p>
+            <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900/60 text-[10px] text-gray-400 dark:text-gray-500">↑↓ navigate · enter to view</kbd>
           </div>
           {results.map((book, idx) => (
             <button
@@ -432,31 +444,31 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group",
                 idx === safeIndex
-                  ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/20 midnight:from-blue-900/20 midnight:to-purple-900/10 text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm ring-1 ring-blue-500/10"
-                  : "text-gray-700 dark:text-gray-300 midnight:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 midnight:hover:bg-gray-800/30"
+                  ? "bg-gradient-to-r from-blue-50 to-purple-50   dark:from-blue-900/20 dark:to-purple-900/10 text-gray-900  dark:text-gray-100 shadow-sm ring-1 ring-blue-500/10"
+                  : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
               )}
             >
               {book.coverUrl ? (
-                <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5">
+                <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-sm ring-1 ring-black/5">
                   <img src={book.coverUrl} alt="" className="w-full h-full object-cover" />
                 </span>
               ) : (
                 <span className={cn(
                   "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all",
                   idx === safeIndex
-                    ? "bg-white dark:bg-slate-800 midnight:bg-gray-900 shadow-sm ring-1 ring-black/5"
-                    : "bg-gray-100/80 dark:bg-gray-800/60 midnight:bg-gray-900/60"
+                    ? "bg-white  dark:bg-gray-900 shadow-sm ring-1 ring-black/5"
+                    : "bg-gray-100/80  dark:bg-gray-900/60"
                 )}>
-                  <BookOpen className="w-4 h-4 text-gray-400 dark:text-gray-500 midnight:text-gray-500" />
+                  <BookOpen className="w-4 h-4 text-gray-400  dark:text-gray-500" />
                 </span>
               )}
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   "text-sm font-semibold truncate leading-tight",
-                  idx === safeIndex ? "text-gray-900 dark:text-gray-100 midnight:text-gray-100" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"
+                  idx === safeIndex ? "text-gray-900  dark:text-gray-100" : "text-gray-800  dark:text-gray-200"
                 )}>{book.title}</p>
                 {book.author && (
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 midnight:text-gray-500 truncate mt-0.5">{book.author}</p>
+                  <p className="text-[11px] text-gray-500  dark:text-gray-500 truncate mt-0.5">{book.author}</p>
                 )}
               </div>
               {book.isbn && (
@@ -470,21 +482,21 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
       ) : query ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2 py-12">
-            <div className="p-3 rounded-2xl bg-gray-100 dark:bg-gray-800 midnight:bg-gray-900">
-              <BookOpen className="w-6 h-6 text-gray-400 dark:text-gray-500 midnight:text-gray-500" />
+            <div className="p-3 rounded-2xl bg-gray-100  dark:bg-gray-900">
+              <BookOpen className="w-6 h-6 text-gray-400  dark:text-gray-500" />
             </div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">No books found</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500">Try a different title, author, or keyword</p>
+            <p className="text-sm font-medium text-gray-500  dark:text-gray-400">No books found</p>
+            <p className="text-xs text-gray-400  dark:text-gray-500">Try a different title, author, or keyword</p>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2 py-16">
             <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 ring-1 ring-blue-500/10">
-              <BookOpen className="w-10 h-10 text-blue-500 dark:text-blue-400 midnight:text-blue-400" />
+              <BookOpen className="w-10 h-10 text-blue-500  dark:text-blue-400" />
             </div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 midnight:text-gray-300 mt-2">Library Catalog</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 midnight:text-gray-500 text-center max-w-[260px]">Search for books by title, author, or ISBN across the library collection</p>
+            <p className="text-sm font-semibold text-gray-700  dark:text-gray-300 mt-2">Library Catalog</p>
+            <p className="text-xs text-gray-400  dark:text-gray-500 text-center max-w-[260px]">Search for books by title, author, or ISBN across the library collection</p>
           </div>
         </div>
       )}

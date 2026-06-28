@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Inter, Geist_Mono, Roboto } from 'next/font/google';
+import { Geist, Geist_Mono, Roboto, Outfit } from 'next/font/google';
 import { ThemeProvider } from "../components/themeprovider";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
@@ -9,8 +9,7 @@ import './globals.css';
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#111827" },
-    { media: "(prefers-color-scheme: midnight)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
   ],
   width: "device-width",
   initialScale: 1.0,
@@ -18,8 +17,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
@@ -27,6 +26,12 @@ const roboto = Roboto({
   variable: '--font-roboto',
   subsets: ['latin'],
   weight: ['400', '700'],
+});
+
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '800', '900'],
 });
 
 const geistMono = Geist_Mono({
@@ -66,15 +71,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head />
       <body
         suppressHydrationWarning
-        className={`${inter.variable} ${geistMono.variable} ${roboto.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${roboto.variable} ${outfit.variable} antialiased`}
       >
         <IconUpdater />
         <ThemeProvider
           attribute="class"
-          defaultTheme="midnight"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
-          value={{ light: "light", dark: "dark", midnight: "midnight" }}
+          value={{ light: "light", dark: "dark" }}
         >
           {children}
         </ThemeProvider>
