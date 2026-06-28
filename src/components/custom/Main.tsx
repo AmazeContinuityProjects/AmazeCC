@@ -847,6 +847,21 @@ export default function LoginPage() {
       //     setProgressBar(prev => prev + 20);
       //   })()
       // )
+      tasks.push(
+        fetchWithTimeout(`${API_BASE}/api/qcm-view`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: "" }),
+        }).then(async r => {
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.success && d.data) {
+             localStorage.setItem("qcmData", JSON.stringify(d.data));
+             setMessage(prev => prev + "\n✅ QCM data fetched");
+          }
+        }).catch(() => {})
+      );
+
       await Promise.all(tasks);
 
       // Fresher / EPT data
