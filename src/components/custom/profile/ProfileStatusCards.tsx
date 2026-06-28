@@ -67,7 +67,7 @@ export default function ProfileStatusCards({ creds, refreshKey, onCardClick }: {
       .finally(() => setLoading(false));
   }, [refreshKey, creds]);
 
-  const statCard = "glass-card p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
+  const statCard = "solid-card p-4 flex flex-col items-center justify-center text-center min-h-[100px]";
 
   const hasEpt = ept?.tables?.length > 0 && ept.tables.some((t: any) => t.rows?.length > 0);
   const hasReg = reg?.tables?.length > 0 && reg.tables.some((t: any) => t.rows?.length > 0);
@@ -151,7 +151,7 @@ export default function ProfileStatusCards({ creds, refreshKey, onCardClick }: {
           <div className={`p-1.5 rounded-lg ${card.iconBg} mb-2`}>
             <card.icon className={`w-4 h-4 ${card.color}`} />
           </div>
-          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">{card.label}</span>
+          <span className="text-[10px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">{card.label}</span>
           <span className={`text-sm font-bold ${card.color}`}>{card.value}</span>
         </div>
       ))}

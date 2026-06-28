@@ -12,7 +12,7 @@ interface Creds {
 }
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`glass-card mb-5 ${className}`}>
+  <div className={`solid-card mb-5 ${className}`}>
     {children}
   </div>
 );
@@ -24,8 +24,8 @@ function renderKeyValuePairs(kvp: Record<string, string>) {
       <div className="p-5 space-y-3">
         {Object.entries(kvp).map(([key, val]) => (
           <div key={key} className="flex items-center justify-between py-1">
-            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider">{key}</span>
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 text-right">{val || "—"}</span>
+            <span className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{key}</span>
+            <span className="text-sm font-medium text-gray-800  dark:text-gray-200 text-right">{val || "—"}</span>
           </div>
         ))}
       </div>
@@ -40,22 +40,22 @@ function renderTables(tables: any[]) {
     return (
       <CardShell key={idx}>
         <div className="p-5">
-          {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
+          {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
           {hasRows ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                  <tr className="border-b border-gray-200  dark:border-gray-700">
                     {table.headers.map((h: string, i: number) => (
-                      <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {table.rows.map((row: any, ri: number) => (
-                    <tr key={ri} className="border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 last:border-0">
+                    <tr key={ri} className="border-b border-gray-100  dark:border-gray-800/50 last:border-0">
                       {table.headers.map((h: string, ci: number) => (
-                        <td key={ci} className="py-2.5 px-2 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
+                        <td key={ci} className="py-2.5 px-2 text-sm text-gray-800  dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
                       ))}
                     </tr>
                   ))}
@@ -63,7 +63,7 @@ function renderTables(tables: any[]) {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No data</p>
+            <p className="text-sm text-gray-400  dark:text-gray-500">No data</p>
           )}
         </div>
       </CardShell>
@@ -206,12 +206,12 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
       {/* Selectors */}
       <CardShell>
         <div className="p-5 space-y-4">
-          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider">Select Course</h4>
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Select Course</h4>
 
           <div>
-            <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">Semester</label>
+            <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">Semester</label>
             <select value={semesterSubId} onChange={(e) => handleSemesterChange(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+              className="w-full px-3 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700">
               <option value="">-- Choose Semester --</option>
               {semesters.map((s: any, i: number) => (
                 <option key={i} value={s.value}>{s.text}</option>
@@ -221,9 +221,9 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
 
           {semesterSubId && (
             <div>
-              <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">Course {fetching === "courses" && <span className="text-blue-500 ml-1">loading...</span>}</label>
+              <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">Course {fetching === "courses" && <span className="text-blue-500 ml-1">loading...</span>}</label>
               <select value={courseCode} onChange={(e) => handleCourseChange(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                className="w-full px-3 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700">
                 <option value="">-- Choose Course --</option>
                 {courses.map((c: any, i: number) => (
                   <option key={i} value={c.value}>{c.text}</option>
@@ -234,9 +234,9 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
 
           {courseCode && (
             <div>
-              <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">Slot {fetching === "slots" && <span className="text-blue-500 ml-1">loading...</span>}</label>
+              <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">Slot {fetching === "slots" && <span className="text-blue-500 ml-1">loading...</span>}</label>
               <select value={slotId} onChange={(e) => handleSlotChange(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                className="w-full px-3 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700">
                 <option value="">-- Choose Slot --</option>
                 {slots.map((s: any, i: number) => (
                   <option key={i} value={s.value}>{s.text}</option>
@@ -247,9 +247,9 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
 
           {slotId && (
             <div>
-              <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">Faculty {fetching === "faculties" && <span className="text-blue-500 ml-1">loading...</span>}</label>
+              <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">Faculty {fetching === "faculties" && <span className="text-blue-500 ml-1">loading...</span>}</label>
               <select value={faculty} onChange={(e) => handleFacultyChange(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                className="w-full px-3 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700">
                 <option value="">-- Choose Faculty --</option>
                 {faculties.map((f: any, i: number) => (
                   <option key={i} value={f.value}>{f.text}</option>
@@ -261,7 +261,7 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
       </CardShell>
 
       {error && (
-        <div className="p-4 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
@@ -289,20 +289,20 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
             return (
               <CardShell key={idx}>
                 <div className="p-5">
-                  {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
+                  {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
                   {table.headers?.length > 0 && table.rows?.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                          <tr className="border-b border-gray-200  dark:border-gray-700">
                             {table.headers.map((h: string, i: number) => (
-                              <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                              <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {table.rows.map((row: any, ri: number) => (
-                            <tr key={ri} className="border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 last:border-0">
+                            <tr key={ri} className="border-b border-gray-100  dark:border-gray-800/50 last:border-0">
                               {table.headers.map((h: string, ci: number) => {
                                 if (isFirstTable && h === "Action") {
                                   const classId = row["Class Id"] || "";
@@ -318,7 +318,7 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
                                   );
                                 }
                                 return (
-                                  <td key={ci} className="py-2.5 px-2 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
+                                  <td key={ci} className="py-2.5 px-2 text-sm text-gray-800  dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
                                 );
                               })}
                             </tr>

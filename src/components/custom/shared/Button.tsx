@@ -12,9 +12,9 @@ const variants = {
   primary:
     "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98]",
   secondary:
-    "bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-200 border border-gray-200 dark:border-gray-700 midnight:border-gray-700",
+    "bg-surface-secondary hover:bg-surface-hover text-text-primary border border-border",
   ghost:
-    "bg-transparent hover:bg-gray-100 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-800/50 text-gray-600 dark:text-gray-300 midnight:text-gray-300",
+    "bg-transparent hover:bg-surface-hover text-text-secondary hover:text-text-primary",
   danger:
     "bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/25 active:scale-[0.98]",
   success:

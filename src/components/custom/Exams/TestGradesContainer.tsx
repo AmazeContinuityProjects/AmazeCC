@@ -10,10 +10,10 @@ export default function TestGradesContainer({ data, marksData, gradesData, atten
     return (
       <div className="py-8">
         <div className="text-center">
-          <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+          <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
             Grade History
           </h1>
-          <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+          <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
             Grade History
           </h1>
         </div>

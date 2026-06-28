@@ -100,15 +100,15 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex flex-col gap-2 flex-grow">
                             <div className="p-0">
-                                <div className="text-base font-semibold text-gray-800 dark:text-gray-100 midnight:text-gray-100">
+                                <div className="text-base font-semibold text-gray-800  dark:text-gray-100">
                                     {a.courseTitle}
                                 </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                                <p className="text-sm text-gray-500  dark:text-gray-400">
                                     {a.slotName}
                                 </p>
                             </div>
 
-                            <div className="p-0 text-sm text-gray-600 dark:text-gray-300 midnight:text-gray-300 space-y-1">
+                            <div className="p-0 text-sm text-gray-600  dark:text-gray-300 space-y-1">
                                 <InfoRow icon={<Building2 className="w-4 h-4" />}>{a.slotVenue}</InfoRow>
                                 <InfoRow icon={<Clock className="w-4 h-4" />}>{a.time}</InfoRow>
                                 <p><strong>Faculty:</strong> {a.faculty}</p>
@@ -140,7 +140,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                                     pathTransitionDuration: 0.5,
                                 })}
                             />
-                            <p className="text-center text-xs font-semibold mt-1 text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+                            <p className="text-center text-xs font-semibold mt-1 text-gray-700  dark:text-gray-300">
                                 Attendance
                             </p>
                         </div>
@@ -159,7 +159,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                             const neededValue = lab ? Math.ceil(needed / 2) : needed;
 
                             return (
-                                <p className="text-red-500 dark:text-red-400 midnight:text-red-400 text-sm">
+                                <p className="text-red-500  dark:text-red-400 text-sm">
                                     Need to attend <strong>{neededValue}</strong> more {lab ? "lab" : "class"}
                                     {neededValue > 1 && (lab ? "s" : "es")} to reach {thresholdPct}%.
                                 </p>
@@ -170,13 +170,13 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
 
                             if (canMissValue === 0) {
                                 return (
-                                    <p className="text-yellow-500 dark:text-yellow-400 midnight:text-yellow-400 text-sm">
+                                    <p className="text-yellow-500  dark:text-yellow-400 text-sm">
                                         You are on the edge! Attend the next {lab ? "lab" : "class"}.
                                     </p>
                                 );
                             } else {
                                 return (
-                                    <p className="text-green-500 dark:text-green-400 midnight:text-green-400 text-sm">
+                                    <p className="text-green-500  dark:text-green-400 text-sm">
                                         Can miss <strong>{canMissValue}</strong> {lab ? "lab" : "class"}
                                         {canMissValue !== 1 && (lab ? "s" : "es")} and stay above {thresholdPct}%.
                                     </p>
@@ -192,7 +192,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                         classesTillMidSem,
                         classesTillLID,
                     ].some((data) => Array.isArray(data) && data.length > 0) ? (
-                        <div className="text-sm space-y-3 mt-3 border-t border-b border-gray-300 dark:border-gray-700 midnight:border-gray-800 py-2">
+                        <div className="text-sm space-y-3 mt-3 border-t border-b border-gray-300  dark:border-gray-800 py-2">
                             {[
                                 { key: "CAT1", label: "Classes left before CAT I", data: classesTillCAT1 },
                                 { key: "CAT2", label: "Classes left before CAT II", data: classesTillCAT2 },
@@ -204,8 +204,8 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                                         key={key}
                                         title={label}
                                         badge={<strong>{data.length}</strong>}
-                                        headerClassName="px-3 py-2 font-medium hover:bg-gray-200 dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
-                                        contentClassName="px-3 pb-2 bg-gray-50 dark:bg-slate-800 midnight:bg-black rounded-b-lg"
+                                        headerClassName="px-3 py-2 font-medium hover:bg-gray-200 dark:hover:bg-gray-900"
+                                        contentClassName="px-3 pb-2 bg-gray-50  dark:bg-black rounded-b-lg"
                                         className="rounded-lg overflow-hidden"
                                     >
                                         <UpcomingClassesList
@@ -216,7 +216,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                                             impDates={impDates}
                                             isDayscholarWithBus={isDayscholarWithBus}
                                         />
-                                        <div className="flex items-center justify-center gap-4 mt-3 text-xs font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+                                        <div className="flex items-center justify-center gap-4 mt-3 text-xs font-medium text-gray-700  dark:text-gray-300">
                                             <div className="flex items-center gap-1">
                                                 <div className="w-4 h-4 border-2 border-dashed border-gray-500 rounded-sm"></div>
                                                 <span>Attending</span>
@@ -243,15 +243,15 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                         {a.viewLink?.map((d, i) => (
                             <li
                                 key={i}
-                                className={
-                                    d.status.toLowerCase() === "absent"
-                                        ? "text-red-500"
-                                        : d.status.toLowerCase() === "present"
-                                            ? "text-green-500"
-                                            : d.status.toLowerCase() === "on duty"
-                                                ? "text-yellow-500"
-                                                : "text-gray-700 dark:text-gray-300 midnight:text-gray-300"
-                                }
+                                                className={
+                                                    d.status.toLowerCase() === "absent"
+                                                        ? "text-red-500 dark:text-red-400"
+                                                        : d.status.toLowerCase() === "present"
+                                                            ? "text-green-500 dark:text-green-400"
+                                                            : d.status.toLowerCase() === "on duty"
+                                                                ? "text-yellow-500 dark:text-yellow-400"
+                                                                : "text-gray-700  dark:text-gray-300"
+                                                }
                             >
                                 {d.date} – {d.status}
                             </li>
@@ -363,7 +363,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     if (!classes || classes.length === 0) {
         return (
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs text-center">
+            <p className="text-gray-500  dark:text-gray-400 text-xs text-center">
                 No upcoming classes 🎉
             </p>
         );
@@ -426,9 +426,9 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     return (
         <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium 
-                      bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 
-                      px-3 mt-2 py-2 rounded-md border border-gray-200 dark:border-gray-700 midnight:border-gray-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium
+                      bg-gray-100  dark:bg-gray-900
+                      px-3 mt-2 py-2 rounded-md border border-gray-200  dark:border-gray-800">
                 <span className="text-green-600 dark:text-green-400">Attending: <strong>{attending}</strong></span>
                 <span className="text-red-500 dark:text-red-400">Not Attending: <strong>{missed}</strong></span>
                 <span
@@ -465,29 +465,29 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                         <div
                             key={i}
                             onClick={() => toggleAttendance(time)}
-                            className={`flex flex-col items-center justify-center 
-                          rounded-lg border p-2 shadow-sm 
+                            className={`flex flex-col items-center justify-center
+                          rounded-lg border p-2 shadow-sm
                           cursor-pointer select-none transform-gpu
                           transition-all duration-200 ease-in-out
                           ${isSkipped
-                                    ? "bg-red-100 dark:bg-red-900/40 midnight:bg-red-950"
+                                    ? "bg-red-100  dark:bg-red-950"
                                     : isIgnored
-                                        ? "bg-gray-200 dark:bg-gray-500 midnight:bg-gray-700"
-                                        : "bg-white dark:bg-slate-900 midnight:bg-gray-950"
+                                        ? "bg-gray-200  dark:bg-gray-700"
+                                        : "bg-white  dark:bg-gray-950"
                                 }`}
                         >
                             <span
                                 className={`font-semibold ${isSkipped
-                                    ? "text-red-700 dark:text-red-300 midnight:text-red-400"
-                                    : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"
+                                    ? "text-red-700  dark:text-red-400"
+                                    : "text-gray-800  dark:text-gray-200"
                                     }`}
                             >
                                 {dateStr}
                             </span>
                             <span
                                 className={`text-[10px] ${isSkipped
-                                    ? "text-red-500 dark:text-red-400 midnight:text-red-400"
-                                    : "text-gray-500 dark:text-gray-400 midnight:text-gray-500"
+                                    ? "text-red-500  dark:text-red-400"
+                                    : "text-gray-500  dark:text-gray-500"
                                     }`}
                             >
                                 {weekday}

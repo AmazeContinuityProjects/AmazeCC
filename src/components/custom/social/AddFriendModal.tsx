@@ -79,13 +79,13 @@ export default function AddFriendModal({ onClose, onFriendAdded }) {
     <Modal onClose={onClose}>
       <div className="flex items-center gap-2 mb-4">
         <UserPlus className="w-5 h-5 text-blue-500" />
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+        <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">
           Add a Friend
         </h2>
       </div>
 
       <form onSubmit={handleAdd} className="space-y-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+        <p className="text-sm text-gray-500  dark:text-gray-400">
           Paste your friend&apos;s schedule code below, or scan their QR code.
         </p>
 
@@ -103,20 +103,20 @@ export default function AddFriendModal({ onClose, onFriendAdded }) {
               <button
                 type="button"
                 onClick={() => setScanning(true)}
-                className="absolute right-2 bottom-2 p-2 rounded-lg bg-gray-100 dark:bg-slate-700 midnight:bg-gray-800 hover:bg-gray-200 dark:hover:bg-slate-600 midnight:hover:bg-gray-700 transition-colors"
+                className="absolute right-2 bottom-2 p-2 rounded-lg bg-gray-100  dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-slate-600 dark:hover:bg-gray-700 transition-colors"
                 title="Scan QR code"
               >
-                <Camera size={18} className="text-gray-500 dark:text-gray-400 midnight:text-gray-400" />
+                <Camera size={18} className="text-gray-500  dark:text-gray-400" />
               </button>
             )}
           </div>
         </div>
 
         {scanning && (
-          <div className="border border-gray-200 dark:border-gray-700 midnight:border-gray-800 rounded-xl overflow-hidden bg-black">
+          <div className="border border-gray-200  dark:border-gray-800 rounded-xl overflow-hidden bg-black">
             <div id={SCANNER_ID} className="w-full min-h-[200px]" />
-            <div className="p-3 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 flex items-center gap-1.5">
+            <div className="p-3 bg-gray-50  dark:bg-gray-900/50 flex items-center justify-between">
+              <span className="text-xs text-gray-500  dark:text-gray-400 flex items-center gap-1.5">
                 <QrCode size={14} />
                 Point camera at a QR code
               </span>

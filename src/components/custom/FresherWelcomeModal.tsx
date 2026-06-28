@@ -73,7 +73,7 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50  overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) onDismiss(); }}
         >
           <motion.div
@@ -81,7 +81,7 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-lg bg-white dark:bg-slate-900 midnight:bg-black rounded-3xl shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10"
+            className="w-full max-w-lg bg-white  dark:bg-black rounded-3xl shadow-2xl overflow-hidden border border-gray-200/50  dark:border-white/10"
           >
             {/* Header */}
             <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 p-8 text-white">
@@ -103,9 +103,9 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
             <div className="p-6 space-y-6">
               {/* EPT Schedule Card */}
               {eptData && (
-                <div className="rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-amber-900/20 dark:via-orange-900/10 dark:to-red-900/10 midnight:from-amber-900/10 midnight:via-orange-900/5 midnight:to-red-900/5 border border-amber-200/50 dark:border-amber-800/30 midnight:border-amber-800/20 overflow-hidden">
-                  <div className="p-4 border-b border-amber-200/30 dark:border-amber-800/20 midnight:border-amber-800/10">
-                    <h3 className="font-semibold text-amber-900 dark:text-amber-300 midnight:text-amber-300 flex items-center gap-2">
+                <div className="rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50    dark:from-amber-900/10 dark:via-orange-900/5 dark:to-red-900/5 border border-amber-200/50  dark:border-amber-800/20 overflow-hidden">
+                  <div className="p-4 border-b border-amber-200/30  dark:border-amber-800/10">
+                    <h3 className="font-semibold text-amber-900  dark:text-amber-300 flex items-center gap-2">
                       <CalendarDays className="w-5 h-5" />
                       Your EPT Schedule
                     </h3>
@@ -113,17 +113,17 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-amber-200/20 dark:border-amber-800/10 midnight:border-amber-800/5">
+                        <tr className="border-b border-amber-200/20  dark:border-amber-800/5">
                           {(eptData.tables?.[0]?.headers || []).map((h: string, i: number) => (
-                            <th key={i} className="px-3 py-2.5 text-left font-medium text-amber-800 dark:text-amber-400 midnight:text-amber-400 text-xs uppercase tracking-wider">{h}</th>
+                            <th key={i} className="px-3 py-2.5 text-left font-medium text-amber-800  dark:text-amber-400 text-xs uppercase tracking-wider">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {(eptData.tables?.[0]?.rows || []).map((row: any, ri: number) => (
-                          <tr key={ri} className="border-b border-amber-200/10 dark:border-amber-800/5 midnight:border-amber-800/5 last:border-0">
+                          <tr key={ri} className="border-b border-amber-200/10  dark:border-amber-800/5 last:border-0">
                             {(eptData.tables?.[0]?.headers || []).map((h: string, ci: number) => (
-                              <td key={ci} className="px-3 py-2.5 text-amber-900 dark:text-amber-200 midnight:text-amber-200 whitespace-nowrap">{row[h] || ""}</td>
+                              <td key={ci} className="px-3 py-2.5 text-amber-900  dark:text-amber-200 whitespace-nowrap">{row[h] || ""}</td>
                             ))}
                           </tr>
                         ))}
@@ -137,9 +137,9 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
               {eptData?.keyValuePairs && Object.keys(eptData.keyValuePairs).length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(eptData.keyValuePairs).map(([key, val]) => (
-                    <div key={key} className="px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/50 midnight:bg-white/5">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 capitalize">{key.replace(/([A-Z])/g, " $1")}</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 midnight:text-white">{String(val)}</p>
+                    <div key={key} className="px-4 py-2.5 rounded-xl bg-gray-50  dark:bg-white/5">
+                      <p className="text-xs text-gray-500  dark:text-gray-400 capitalize">{key.replace(/([A-Z])/g, " $1")}</p>
+                      <p className="text-sm font-medium text-gray-900  dark:text-white">{String(val)}</p>
                     </div>
                   ))}
                 </div>
@@ -148,7 +148,7 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
               {/* Resources */}
               {resources.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-white mb-3 text-sm uppercase tracking-wider">
+                  <h3 className="font-semibold text-gray-900  dark:text-white mb-3 text-sm uppercase tracking-wider">
                     Helpful Resources
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -158,14 +158,14 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
                         href={r.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-start gap-3 p-3.5 rounded-2xl bg-gray-50 dark:bg-slate-800/50 midnight:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-900/20 midnight:hover:bg-blue-900/10 border border-gray-100 dark:border-gray-800/50 midnight:border-white/10 hover:border-blue-200 dark:hover:border-blue-800/30 transition-all group"
+                        className="flex items-start gap-3 p-3.5 rounded-2xl bg-gray-50  dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:bg-blue-900/10 border border-gray-100  dark:border-white/10 hover:border-blue-200 dark:hover:border-blue-800/30 transition-all group"
                       >
-                        <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 midnight:bg-blue-900/20 text-blue-600 dark:text-blue-400 midnight:text-blue-400 shrink-0 group-hover:scale-105 transition-transform">
+                        <div className="p-2 rounded-xl bg-blue-100  dark:bg-blue-900/20 text-blue-600  dark:text-blue-400 shrink-0 group-hover:scale-105 transition-transform">
                           {iconMap[r.icon] || <ExternalLink className="w-5 h-5" />}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 midnight:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{r.title}</p>
-                          {r.description && <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-0.5 line-clamp-2">{r.description}</p>}
+                          <p className="text-sm font-semibold text-gray-900  dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{r.title}</p>
+                          {r.description && <p className="text-xs text-gray-500  dark:text-gray-400 mt-0.5 line-clamp-2">{r.description}</p>}
                         </div>
                       </a>
                     ))}

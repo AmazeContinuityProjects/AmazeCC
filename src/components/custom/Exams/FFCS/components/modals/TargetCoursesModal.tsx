@@ -28,7 +28,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50  p-4">
       <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
         <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
           <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">

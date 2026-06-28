@@ -12,7 +12,7 @@ interface Creds {
 }
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`glass-card mb-5 ${className}`}>
+  <div className={`solid-card mb-5 ${className}`}>
     {children}
   </div>
 );
@@ -24,22 +24,22 @@ function renderTables(tables: any[]) {
     return (
       <CardShell key={idx}>
         <div className="p-5">
-          {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
+          {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
           {hasRows ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                  <tr className="border-b border-gray-200  dark:border-gray-700">
                     {table.headers.map((h: string, i: number) => (
-                      <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {table.rows.map((row: any, ri: number) => (
-                    <tr key={ri} className="border-b border-gray-100 dark:border-gray-800/50 midnight:border-gray-800/50 last:border-0">
+                    <tr key={ri} className="border-b border-gray-100  dark:border-gray-800/50 last:border-0">
                       {table.headers.map((h: string, ci: number) => (
-                        <td key={ci} className="py-2.5 px-2 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
+                        <td key={ci} className="py-2.5 px-2 text-sm text-gray-800  dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
                       ))}
                     </tr>
                   ))}
@@ -47,7 +47,7 @@ function renderTables(tables: any[]) {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500 midnight:text-gray-500">No data</p>
+            <p className="text-sm text-gray-400  dark:text-gray-500">No data</p>
           )}
         </div>
       </CardShell>
@@ -62,8 +62,8 @@ function renderKeyValuePairs(kvp: Record<string, string>) {
       <div className="p-5 space-y-3">
         {Object.entries(kvp).map(([key, val]) => (
           <div key={key} className="flex items-center justify-between py-1">
-            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider">{key}</span>
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 text-right">{val || "—"}</span>
+            <span className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{key}</span>
+            <span className="text-sm font-medium text-gray-800  dark:text-gray-200 text-right">{val || "—"}</span>
           </div>
         ))}
       </div>
@@ -136,7 +136,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Pro
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder={initData?.searchField?.placeholder || "Search by name or ID..."}
-            className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 midnight:text-gray-200 bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 midnight:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           />
         </div>
         <button
@@ -149,7 +149,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Pro
       </div>
 
       {error && (
-        <div className="p-4 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
@@ -175,7 +175,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Pro
           {renderKeyValuePairs(results.keyValuePairs)}
           {renderTables(results.tables)}
           {!results.tables?.length && !results.keyValuePairs && !results.messages?.error && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">
               <User className="w-12 h-12 mb-3" />
               <p className="text-sm font-medium">No faculty found for "{searchTerm}"</p>
             </div>
@@ -184,7 +184,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Pro
       )}
 
       {!results && !searching && !error && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">
           <Search className="w-12 h-12 mb-3" />
           <p className="text-sm font-medium">Search for faculty by name or employee ID</p>
         </div>

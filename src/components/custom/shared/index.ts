@@ -17,4 +17,7 @@ export { default as DataTable } from "./DataTable";
 export { default as LoadingSpinner } from "./LoadingSpinner";
 export { default as ErrorDisplay } from "./ErrorDisplay";
 export { default as SectionHeader } from "./SectionHeader";
+export { default as PageHeader } from "./PageHeader";
+export { default as SyncNotification } from "./SyncNotification";
 export { default as CommandPalette } from "./CommandPalette";
+export { useIsMobile } from "./useIsMobile";

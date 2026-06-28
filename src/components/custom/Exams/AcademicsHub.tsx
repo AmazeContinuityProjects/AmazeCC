@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard } from "lucide-react";
+import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import GradesModal from "./GradesModal";
+import PageHeader from "../shared/PageHeader";
+import Badge from "../shared/Badge";
 
 export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, hideMobileHeader, handleFetchGrades }) {
   const cards = [
@@ -22,88 +24,88 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       title: "Grade History",
       description: "Analyze your academic performance and past grades.",
       icon: History,
-      color: "text-purple-600 dark:text-purple-400 midnight:text-purple-400",
-      bg: "bg-purple-100 dark:bg-purple-900/30 midnight:bg-purple-900/20",
+      color: "text-purple-600  dark:text-purple-400",
+      bg: "bg-purple-100  dark:bg-purple-900/20",
     },
     {
       id: "curriculum",
       title: "Curriculum",
       description: "Track your completed courses and credit requirements.",
       icon: BookOpen,
-      color: "text-green-600 dark:text-green-400 midnight:text-green-400",
-      bg: "bg-green-100 dark:bg-green-900/30 midnight:bg-green-900/20",
+      color: "text-green-600  dark:text-green-400",
+      bg: "bg-green-100  dark:bg-green-900/20",
     },
     {
       id: "predictor",
       title: "CGPA Predictor",
       description: "Estimate your future CGPA based on expected grades.",
       icon: TrendingUp,
-      color: "text-orange-600 dark:text-orange-400 midnight:text-orange-400",
-      bg: "bg-orange-100 dark:bg-orange-900/30 midnight:bg-orange-900/20",
+      color: "text-orange-600  dark:text-orange-400",
+      bg: "bg-orange-100  dark:bg-orange-900/20",
     },
     {
       id: "qbank",
       title: "Question Bank",
       description: "Access and search past year question papers.",
       icon: Database,
-      color: "text-red-600 dark:text-red-400 midnight:text-red-400",
-      bg: "bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/20",
+      color: "text-red-600  dark:text-red-400",
+      bg: "bg-red-100  dark:bg-red-900/20",
     },
     {
       id: "arrear",
       title: "Arrear Management",
       description: "View arrear schedule, details and grades.",
       icon: AlertTriangle,
-      color: "text-amber-600 dark:text-amber-400 midnight:text-amber-400",
-      bg: "bg-amber-100 dark:bg-amber-900/30 midnight:bg-amber-900/20",
+      color: "text-amber-600  dark:text-amber-400",
+      bg: "bg-amber-100  dark:bg-amber-900/20",
     },
     {
       id: "makeup-compre",
       title: "Makeup & Compre",
       description: "Makeup exam eligibility, schedule and compre info.",
       icon: GraduationCap,
-      color: "text-cyan-600 dark:text-cyan-400 midnight:text-cyan-400",
-      bg: "bg-cyan-100 dark:bg-cyan-900/30 midnight:bg-cyan-900/20",
+      color: "text-cyan-600  dark:text-cyan-400",
+      bg: "bg-cyan-100  dark:bg-cyan-900/20",
     },
     {
       id: "course-mgmt",
       title: "Course Management",
       description: "Course options, extracurriculars, minor/honour courses.",
       icon: ScrollText,
-      color: "text-indigo-600 dark:text-indigo-400 midnight:text-indigo-400",
-      bg: "bg-indigo-100 dark:bg-indigo-900/30 midnight:bg-indigo-900/20",
+      color: "text-indigo-600  dark:text-indigo-400",
+      bg: "bg-indigo-100  dark:bg-indigo-900/20",
     },
     {
       id: "projects",
       title: "Projects",
       description: "View your projects and project courses.",
       icon: FileCode,
-      color: "text-rose-600 dark:text-rose-400 midnight:text-rose-400",
-      bg: "bg-rose-100 dark:bg-rose-900/30 midnight:bg-rose-900/20",
+      color: "text-rose-600  dark:text-rose-400",
+      bg: "bg-rose-100  dark:bg-rose-900/20",
     },
     {
       id: "wishlist",
       title: "Wishlist & Learning",
       description: "Wishlist, registration and additional learning courses.",
       icon: BookMarked,
-      color: "text-teal-600 dark:text-teal-400 midnight:text-teal-400",
-      bg: "bg-teal-100 dark:bg-teal-900/30 midnight:bg-teal-900/20",
+      color: "text-teal-600  dark:text-teal-400",
+      bg: "bg-teal-100  dark:bg-teal-900/20",
     },
     {
       id: "faculty-info",
       title: "Faculty Info",
       description: "Search and view faculty contact details.",
       icon: UserCheck,
-      color: "text-sky-600 dark:text-sky-400 midnight:text-sky-400",
-      bg: "bg-sky-100 dark:bg-sky-900/30 midnight:bg-sky-900/20",
+      color: "text-sky-600  dark:text-sky-400",
+      bg: "bg-sky-100  dark:bg-sky-900/20",
     },
     {
       id: "qcm-view",
       title: "QCM View",
       description: "Quality Circle Meeting records and feedback.",
       icon: ScrollText,
-      color: "text-violet-600 dark:text-violet-400 midnight:text-violet-400",
-      bg: "bg-violet-100 dark:bg-violet-900/30 midnight:bg-violet-900/20",
+      color: "text-violet-600  dark:text-violet-400",
+      bg: "bg-violet-100  dark:bg-violet-900/20",
     },
   ];
 
@@ -176,71 +178,174 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
     });
   });
   const passRate = totalCourses > 0 ? ((passedCourses / totalCourses) * 100).toFixed(0) : 100;
+  const currentCourses = Array.isArray(marksData?.courses) ? marksData.courses : [];
+  const uniqueCurrentCourses = new Set(currentCourses.map((course: any) => course.courseCode || course.code).filter(Boolean));
+  const attendanceRows = Array.isArray(attendance) ? attendance : (attendance?.attendance || []);
+  const avgAttendance = attendanceRows.length > 0
+    ? Math.round(attendanceRows.reduce((sum: number, row: any) => sum + (Number(row.attendancePercentage) || 0), 0) / attendanceRows.length)
+    : 0;
+  const belowTargetCount = attendanceRows.filter((row: any) => Number(row.attendancePercentage) < 75).length;
+  const recentSemester = Object.entries(data?.grades || {}).filter(([, details]: any) => details?.gpa).at(-1) as any;
+  const recentGpa = recentSemester?.[1]?.gpa || currentCgpa;
+
+  const toolSummaries: Record<string, string[]> = {
+    "course-dashboard": [`${uniqueCurrentCourses.size || currentCourses.length} Courses`, `Avg attendance ${avgAttendance || "-"}%`, `${belowTargetCount} below target`],
+    grades: [`${totalCourses} Courses`, `${passRate}% pass rate`, `Latest GPA ${Number(recentGpa || 0).toFixed(2)}`],
+    curriculum: [`${creditsEarned.toFixed(1)} Credits`, `${degreeCompletePercent.toFixed(0)}% complete`, `${Math.max(requiredCredits - creditsEarned, 0).toFixed(1)} remaining`],
+    predictor: [savedGoal ? `${savedGoal.target.toFixed(2)} target` : "No saved target", `${currentCgpa.toFixed(2)} current`, "Live calculator"],
+    qbank: [`${uniqueCurrentCourses.size || currentCourses.length} course paths`, "Papers + extracted questions", "Upload & browse"],
+  };
 
   return (
-    <div className="py-4 animate-fadeIn">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 midnight:text-white">
-          Academics Hub
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
-          Everything you need to manage your academic journey.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-20 animate-fadeIn">
+      <PageHeader
+        icon={<GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+        title="Academics Hub"
+        meta={<Badge variant="default" className="rounded-xl border border-gray-200 font-semibold  dark:border-gray-800">Student OS</Badge>}
+        actions={
+          <button
+            onClick={() => setActiveSubTab("course-dashboard")}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer"
+          >
+            <LayoutDashboard size={16} /> Courses
+          </button>
+        }
+      />
 
       {savedGoal && (
-        <div className="mb-8">
-            <Card className="bg-gradient-to-r from-blue-500 to-indigo-600 border-none text-white shadow-sm">
-            <CardContent className="py-3 px-4 flex items-center gap-4">
-                <div className="p-2 bg-white/20 rounded-lg">
-                <Trophy className="w-5 h-5 text-yellow-300" />
-                </div>
-                <div className="w-full">
-                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider mb-1">Active Goal</p>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                    <span className="text-2xl font-bold">{savedGoal.target.toFixed(2)} CGPA</span>
-                    <span className="text-xs sm:text-sm text-blue-100 bg-white/20 px-2.5 py-1 rounded-md font-medium w-fit">
-                    Requires {savedGoal.requiredSgpa.toFixed(2)} SGPA this semester
-                    </span>
-                </div>
-                </div>
-            </CardContent>
-            </Card>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">Active Goal</p>
+              <p className="truncate text-lg font-black text-gray-900 dark:text-gray-100">{savedGoal.target.toFixed(2)} CGPA <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">requires {savedGoal.requiredSgpa.toFixed(2)} SGPA</span></p>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        {cards.map((card) => (
-          <div
-            key={card.id}
-            onClick={() => {
-                setActiveSubTab(card.id);
-                window.scrollTo(0, 0);
-            }}
-            className={`flex items-center p-4 glass-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 cursor-pointer group ${card.prominent ? 'md:col-span-2 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/10 midnight:from-blue-500/[0.08] midnight:to-indigo-500/[0.08] border-blue-200/50 dark:border-blue-800/50 midnight:border-blue-800/40 hover:border-blue-400 dark:hover:border-blue-500 midnight:hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10' : ''}`}
-          >
-            <div className={`p-3 rounded-xl ${card.bg} ${card.color} mr-4 group-hover:scale-110 transition-transform ${card.prominent ? 'shadow-lg shadow-blue-500/25' : ''}`}>
-              <card.icon className="w-6 h-6" />
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <button
+          onClick={() => { setActiveSubTab("course-dashboard"); window.scrollTo(0, 0); }}
+          className="group rounded-2xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-gray-800/70 dark:border-gray-800 dark:bg-black"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Current Semester</p>
+              <h2 className="mt-2 font-[family-name:var(--font-outfit)] text-3xl font-black text-gray-950 dark:text-gray-50">Course Dashboard</h2>
+              <p className="mt-2 max-w-xl text-sm font-medium text-gray-500 dark:text-gray-400">Marks, attendance, predictions and assessment progress in one place.</p>
             </div>
-            <div className="flex-1">
-              <h3 className={`text-lg font-semibold transition-colors ${card.prominent ? 'text-blue-700 dark:text-blue-300 midnight:text-blue-300' : 'text-gray-900 dark:text-gray-100 midnight:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
-                {card.title}
-              </h3>
-              <p className={`text-sm mt-0.5 ${card.prominent ? 'text-blue-600/70 dark:text-blue-400/70 midnight:text-blue-400/70' : 'text-gray-500 dark:text-gray-400 midnight:text-gray-500'}`}>
-                {card.description}
-              </p>
-            </div>
-            <ChevronRight className={`w-5 h-5 transition-colors ${card.prominent ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 midnight:group-hover:text-gray-400'}`} />
+            <ChevronRight className="h-5 w-5 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
           </div>
-        ))}
-      </div>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {toolSummaries["course-dashboard"].map((item) => (
+              <div key={item} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-2.5 sm:p-3 dark:border-gray-800 dark:bg-gray-950/30 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-gray-950 dark:text-gray-100 truncate" title={item}>{item}</p>
+              </div>
+            ))}
+          </div>
+        </button>
 
-      <div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {[
+            ["CGPA", currentCgpa.toFixed(2), Award, "text-emerald-600 dark:text-emerald-400"],
+            ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-blue-600 dark:text-blue-400"],
+            ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-600 dark:text-purple-400"],
+          ].map(([label, value, Icon, color]: any) => (
+            <div key={label} className="rounded-2xl border border-gray-200 bg-white p-2.5 sm:p-4 shadow-sm dark:border-gray-800 dark:bg-black flex flex-col justify-between min-w-0">
+              <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+              <p className={`mt-2 text-sm sm:text-2xl font-black truncate leading-none ${color}`} title={value}>{value}</p>
+              <p className="mt-1.5 text-[9px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 truncate">{label}</p>
+            </div>
+          ))}
+          <div className="col-span-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Academic Flow</p>
+            <div className="mt-4 space-y-3">
+              {[
+                ["Current", `${uniqueCurrentCourses.size || currentCourses.length} active courses`, "bg-blue-600"],
+                ["Progress", `${degreeCompletePercent.toFixed(0)}% degree complete`, "bg-emerald-500"],
+                ["Next", savedGoal ? `${savedGoal.target.toFixed(2)} CGPA goal` : "Set CGPA target", "bg-purple-500"],
+              ].map(([label, value, dot]) => (
+                <div key={label} className="flex items-center gap-3">
+                  <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900 dark:text-gray-100">Quick Actions</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {cards.slice(1, 5).map((card) => {
+            const summaries = toolSummaries[card.id] || ["Open tool", "View details"];
+            return (
+              <button
+                key={card.id}
+                onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
+                className={`group rounded-2xl border bg-white p-4 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50  dark:hover:bg-gray-800/70 dark:bg-black ${
+                  card.id === "qbank"
+                    ? "border-purple-200 bg-purple-50/50 dark:border-purple-900/50 dark:bg-purple-950/20"
+                    : card.id === "predictor"
+                      ? "border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-950/20"
+                      : "border-gray-200  dark:border-gray-800"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${card.bg} ${card.color}`}>
+                    <card.icon className="h-5 w-5" />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                </div>
+                <h3 className="mt-4 text-sm font-black text-gray-900 dark:text-gray-100">{card.title}</h3>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {summaries.map((item) => (
+                    <span key={item} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-300">{item}</span>
+                  ))}
+                </div>
+                <p className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400">Open <ChevronRight className="h-3 w-3" /></p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900 dark:text-gray-100">Academic Tools</h2>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {cards.slice(5).map((card) => (
+            <button
+              key={card.id}
+              onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
+              className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-gray-800/70 dark:border-gray-800 dark:bg-black"
+            >
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${card.bg} ${card.color}`}>
+                <card.icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-gray-900 dark:text-gray-100">{card.title}</p>
+                <p className="truncate text-xs font-medium text-gray-500 dark:text-gray-400">{card.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
         {hideMobileHeader && (
-            <Card className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl shadow-sm mb-8">
+            <Card className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl shadow-sm mb-8">
             <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold uppercase text-gray-800 dark:text-gray-100 midnight:text-gray-100 tracking-wide">Overall<br/>Performance</h2>
+                <h2 className="text-xl font-bold uppercase text-gray-800  dark:text-gray-100 tracking-wide">Overall<br/>Performance</h2>
                 <div className="relative w-16 h-16 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -262,7 +367,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute flex flex-col items-center justify-center">
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{degreeCompletePercent.toFixed(0)}%</span>
+                        <span className="text-xs font-bold text-gray-900  dark:text-gray-100">{degreeCompletePercent.toFixed(0)}%</span>
                         <span className="text-[8px] text-gray-500 uppercase leading-none">Complete</span>
                     </div>
                 </div>
@@ -278,20 +383,20 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
                 <div className="grid grid-cols-2 gap-4 mt-6">
                     <div 
-                    className="border-t border-gray-200 dark:border-gray-800 pt-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900/50 rounded-b-lg transition-colors p-2 -mx-2 -mb-2"
+                    className="border-t border-gray-200 dark:border-gray-800 pt-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 dark:hover:bg-gray-900/50 rounded-b-lg transition-colors p-2 -mx-2 -mb-2"
                     onClick={() => setIsModalOpen(true)}
                     >
                         <p className="text-xs text-gray-500 mb-1">Credits Earned</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{creditsEarned.toFixed(1)} / {requiredCredits.toFixed(1)}</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{creditsEarned.toFixed(1)} / {requiredCredits.toFixed(1)}</p>
                     </div>
                     <div className="border-t border-gray-200 dark:border-gray-800 pt-3 p-2 -mx-2 -mb-2 flex justify-between">
                         <div>
                         <p className="text-xs text-gray-500 mb-1">Total Courses</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{totalCourses}</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{totalCourses}</p>
                         </div>
                         <div className="text-right">
                         <p className="text-xs text-gray-500 mb-1">Pass Rate</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{passRate}%</p>
+                        <p className="text-sm font-bold text-gray-900  dark:text-gray-100">{passRate}%</p>
                         </div>
                     </div>
                 </div>
@@ -302,7 +407,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <Card className="h-full">
             <CardContent className="p-5 h-full flex flex-col">
-                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-6">Grade Distribution</h3>
+                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-6">Grade Distribution</h3>
                 <div className="w-full flex-1 min-h-[200px]">
                     {gradeDistributionData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
@@ -333,7 +438,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
             <Card className="h-full">
             <CardContent className="p-5 h-full overflow-y-auto max-h-[265px] hide-scrollbar">
-                <h3 className="text-md font-medium text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 backdrop-blur-md">Semester Performance</h3>
+                <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-4 sticky top-0 bg-transparent pb-2 ">Semester Performance</h3>
                 <div className="space-y-3">
                     {Object.entries(data?.grades || {})
                     .filter(([sem, details]: any) => details && details.gpa)
@@ -376,14 +481,14 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                         }
                         
                         return (
-                        <div key={sem} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800/60 bg-gray-50/50 dark:bg-slate-800/50 midnight:bg-gray-900/50">
+                        <div key={sem} className="flex justify-between items-center p-3 rounded-xl border border-gray-100  dark:border-gray-800/60 bg-gray-50/50  dark:bg-gray-900/50">
                             <div>
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 midnight:text-gray-100 text-sm">{semName}</p>
+                            <p className="font-semibold text-gray-900  dark:text-gray-100 text-sm">{semName}</p>
                             <p className="text-xs text-gray-500 mt-0.5">{courseCount} courses · {semCredits > 0 ? `${semCredits.toFixed(1)} credits` : 'N/A credits'}</p>
                             </div>
-                            <div className="flex flex-col items-center bg-indigo-500/10 dark:bg-indigo-900/30 midnight:bg-indigo-900/30 px-3 py-1.5 rounded-lg border border-indigo-500/20">
-                            <span className="font-bold text-indigo-600 dark:text-indigo-300 midnight:text-indigo-300 text-sm">{gpa}</span>
-                            <span className="text-[10px] text-indigo-500 dark:text-indigo-400 midnight:text-indigo-400 font-medium">GPA</span>
+                            <div className="flex flex-col items-center bg-indigo-500/10  dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+                            <span className="font-bold text-indigo-600  dark:text-indigo-300 text-sm">{gpa}</span>
+                            <span className="text-[10px] text-indigo-500  dark:text-indigo-400 font-medium">GPA</span>
                             </div>
                         </div>
                         );
@@ -392,7 +497,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             </CardContent>
             </Card>
         </div>
-      </div>
+      </section>
 
       {isModalOpen && (
         <GradesModal allGradesData={data} GradesData={gradesData} marksData={marksData} attendance={attendance} onClose={() => setIsModalOpen(false)} handleFetchGrades={handleFetchGrades} />
