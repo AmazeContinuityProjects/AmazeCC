@@ -252,7 +252,8 @@ export default function EventHubSubpage({
                   {(() => {
                     const registrationDetails = registeredEvents?.find(e => e.name === selectedEvent.title) || selectedEvent.registeredDetails;
                     if (registrationDetails) {
-                      const isUnpaid = !registrationDetails.paymentStatus.toLowerCase().includes('paid') && !registrationDetails.paymentStatus.toLowerCase().includes('free') && !registrationDetails.paymentStatus.toLowerCase().includes('success');
+                      const payStatus = registrationDetails.paymentStatus || "";
+                      const isUnpaid = !payStatus.toLowerCase().includes('paid') && !payStatus.toLowerCase().includes('free') && !payStatus.toLowerCase().includes('success');
                       
                       return (
                         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
