@@ -9,7 +9,8 @@ export default function HostelSubTabs({
   return (
     <SubTabStrip
       tabs={[
-        { id: "mess", label: "Mess" },
+        { id: "overview", label: "Overview" },
+        { id: "mess", label: "Mess Menu" },
         { id: "laundry", label: "Laundry" },
         { id: "leave", label: "Leave" },
         { id: "counselling", label: "Counselling" },

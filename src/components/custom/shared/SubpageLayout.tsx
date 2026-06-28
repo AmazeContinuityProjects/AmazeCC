@@ -25,11 +25,11 @@ export default function SubpageLayout({
         <div className="flex items-center gap-3 min-w-0">
           <BackButton onClick={onBack} className="flex-shrink-0" />
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 truncate">
+            <h1 className="text-xl font-black font-[family-name:var(--font-outfit)] text-text-heading truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 truncate">
+              <p className="text-xs text-text-secondary truncate">
                 {subtitle}
               </p>
             )}
@@ -43,11 +43,11 @@ export default function SubpageLayout({
         <div className="flex items-center gap-3">
           <BackButton onClick={onBack} />
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 leading-tight">
+            <h1 className="text-2xl md:text-3xl font-black font-[family-name:var(--font-outfit)] text-text-heading leading-tight">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mt-1">
+              <p className="text-sm text-text-secondary mt-1">
                 {subtitle}
               </p>
             )}

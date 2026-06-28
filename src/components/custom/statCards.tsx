@@ -46,7 +46,7 @@ export default function StatsCards({
       customContent: (
         <div className="flex items-center justify-center gap-3 mt-2 text-center">
           <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            <span className="text-xs text-gray-600  dark:text-gray-400">
               Mid Sem
             </span>
             <span
@@ -61,9 +61,9 @@ export default function StatsCards({
                 : "Not Given"}
             </span>
           </div>
-          <div className="h-8 w-[1.5px] bg-gray-300 dark:bg-gray-600 midnight:bg-gray-700 rounded-full" />
+          <div className="h-8 w-[1.5px] bg-gray-300  dark:bg-gray-700 rounded-full" />
           <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-600 dark:text-gray-400 midnight:text-gray-400">
+            <span className="text-xs text-gray-600  dark:text-gray-400">
               End Sem
             </span>
             <span
@@ -103,14 +103,14 @@ export default function StatsCards({
         {cards.filter(c => c.show).map((card) => (
           <div
             key={card.key}
-            className={`${cardBase} bg-white dark:bg-slate-800 midnight:bg-black midnight:border midnight:border-gray-800`}
+            className={`${cardBase} bg-white  dark:bg-black dark:border dark:border-gray-800`}
             onClick={card.onClick}
           >
-            <h2 className="text-lg font-semibold text-gray-600 dark:text-gray-300 midnight:text-gray-200">
+            <h2 className="text-lg font-semibold text-gray-600  dark:text-gray-200">
               {card.label}
             </h2>
             {card.customContent || (
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mt-2 select-none">
+              <p className="text-3xl font-bold text-gray-900  dark:text-gray-100 mt-2 select-none">
                 {card.value}
               </p>
             )}

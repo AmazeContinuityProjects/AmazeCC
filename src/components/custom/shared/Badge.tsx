@@ -8,12 +8,12 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-300",
-  success: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 midnight:bg-emerald-900/20 midnight:text-emerald-300",
-  warning: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 midnight:bg-amber-900/20 midnight:text-amber-300",
-  danger: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 midnight:bg-red-900/20 midnight:text-red-300",
-  info: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/20 midnight:text-blue-300",
-  purple: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/20 midnight:text-purple-300",
+  default: "bg-surface-secondary text-text-primary",
+  success: "bg-success-surface text-success-foreground",
+  warning: "bg-warning-surface text-warning-foreground",
+  danger: "bg-danger-surface text-danger-foreground",
+  info: "bg-info-surface text-info-foreground",
+  purple: "bg-purple-50 text-purple-700   dark:bg-purple-900/20 dark:text-purple-300",
 };
 
 const sizes = {

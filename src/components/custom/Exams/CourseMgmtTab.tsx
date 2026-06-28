@@ -15,7 +15,7 @@ export default function CourseMgmtTab({ loginToVTOP, setActiveSubTab }: { loginT
       title="Course Management"
       onBack={() => setActiveSubTab("overview")}
       action={
-        <button onClick={() => { clearApiCache(); setRefreshKey(k => k + 1); }} className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload all">
+        <button onClick={() => { clearApiCache(); setRefreshKey(k => k + 1); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload all">
           <RefreshCcw className="w-5 h-5" />
         </button>
       }

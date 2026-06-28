@@ -1,26 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, ExternalLink, Clock, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { useIsMobile } from "../shared";
 
-const messLinks = {
+const messLinks: Record<string, Record<string, string>> = {
   Male: {
-    "Non Veg":
-      "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-N.json",
+    "Non Veg": "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-N.json",
     Veg: "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-V.json",
-    Special:
-      "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-S.json",
+    Special: "https://kanishka-developer.github.io/unmessify/json/en/VITC-M-S.json",
   },
   Female: {
-    "Non Veg":
-      "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-N.json",
+    "Non Veg": "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-N.json",
     Veg: "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-V.json",
-    Special:
-      "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-S.json",
+    Special: "https://kanishka-developer.github.io/unmessify/json/en/VITC-W-S.json",
   },
 };
 
-const fullToShortDay = {
+const fullToShortDay: Record<string, string> = {
   Monday: "MON",
   Tuesday: "TUE",
   Wednesday: "WED",
@@ -30,27 +27,29 @@ const fullToShortDay = {
   Sunday: "SUN",
 };
 
-const shortToFullDay = Object.fromEntries(
+const shortToFullDay: Record<string, string> = Object.fromEntries(
   Object.entries(fullToShortDay).map(([full, short]) => [short, full])
 );
 
-export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
-  if (!hostelData.hostelInfo?.isHosteller) {
+export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: any) {
+  if (!hostelData?.hostelInfo?.isHosteller) {
     return (
-      <p className="text-center text-gray-600 dark:text-gray-400 midnight:text-gray-400">
-        You are not a hosteller. / Reload Data{" "}
-        <button onClick={handleHostelDetailsFetch} className="mt-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors">
-          <RefreshCcw className={`w-4 h-4`} />
+      <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+        <p className="text-sm font-medium">You are not registered as a Hosteller.</p>
+        <button
+          onClick={handleHostelDetailsFetch}
+          className="mt-4 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold transition-colors flex items-center gap-2"
+        >
+          <RefreshCcw className="w-4 h-4" /> Reload Data
         </button>
-      </p>
-    )
+      </div>
+    );
   }
 
-  const normalizeGender = (g) =>
-    g?.toLowerCase() === "male" ? "Male" : "Female";
+  const normalizeGender = (g: string) => (g?.toLowerCase() === "male" ? "Male" : "Female");
 
-  const normalizeType = (t) => {
-    const map = {
+  const normalizeType = (t: string) => {
+    const map: Record<string, string> = {
       VEG: "Veg",
       NON: "Non Veg",
       SPECIAL: "Special",
@@ -59,23 +58,32 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
   };
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
-  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  const currentMonth = new Date().toLocaleString("default", { month: "long" });
 
   const [gender, setGender] = useState(
-    normalizeGender(hostelData.hostelInfo?.gender.toUpperCase()) || "Male"
+    normalizeGender(hostelData.hostelInfo?.gender?.toUpperCase()) || "Male"
   );
   const [type, setType] = useState(
-    normalizeType(hostelData.hostelInfo?.messInfo.toUpperCase()) || "Veg"
+    normalizeType(hostelData.hostelInfo?.messInfo?.toUpperCase()) || "Veg"
   );
-  const [menu, setMenu] = useState([]);
+  const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
+  const isMobile = useIsMobile();
+  const getInitialMeal = () => {
+    const hour = new Date().getHours();
+    if (hour < 10) return "Breakfast";
+    if (hour < 15) return "Lunch";
+    if (hour < 18) return "Snacks";
+    return "Dinner";
+  };
+  const [activeMealMobile, setActiveMealMobile] = useState(getInitialMeal());
 
   const shortDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-  async function fetchMenuWithCache(gender, type, setMenu) {
-    const fileName = `VITC-${gender[0].toUpperCase()}-${type[0].toUpperCase()}.json`;
+  async function fetchMenuWithCache(g: string, t: string) {
+    const fileName = `VITC-${g[0].toUpperCase()}-${t[0].toUpperCase()}.json`;
     const localUrl = `/data/mess/${fileName}`;
-    const remoteUrl = messLinks[gender][type];
+    const remoteUrl = messLinks[g][t];
 
     try {
       const cached = localStorage.getItem(fileName);
@@ -110,96 +118,195 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }) {
   }
 
   useEffect(() => {
-    fetchMenuWithCache(gender, type, setMenu);
+    fetchMenuWithCache(gender, type);
   }, [gender, type]);
 
   const todayMenu = menu.find((day) => day.Day === activeDay);
 
+  const mealsList = [
+    { name: "Breakfast", icon: "🍳", time: "7:30 AM - 9:00 AM", key: "Breakfast", color: "from-amber-400/20 to-orange-400/10 text-amber-400" },
+    { name: "Lunch", icon: "🍲", time: "12:30 PM - 2:00 PM", key: "Lunch", color: "from-sky-400/20 to-indigo-400/10 text-sky-300" },
+    { name: "Snacks", icon: "☕", time: "4:30 PM - 5:30 PM", key: "Snacks", color: "from-emerald-400/20 to-teal-400/10 text-emerald-400" },
+    { name: "Dinner", icon: "🍽️", time: "7:30 PM - 9:00 PM", key: "Dinner", color: "from-rose-400/20 to-pink-400/10 text-rose-450" }
+  ];
+
   return (
-    <div>
-      <h1 className="text-xl md:text-3xl font-bold mb-2 md:mb-4 text-center md:text-left text-gray-900 dark:text-gray-100 midnight:text-white">
-        Mess Menu ({currentMonth})
-      </h1>
-      <h2 className="text-md font-bold mb-2 text-center text-gray-700 dark:text-gray-300 midnight:text-gray-300">
-        ( Data taken from{" "}
-        <a
-          href="https://kaffeine.tech/unmessify"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline text-blue-600 dark:text-blue-400 midnight:text-blue-400"
-        >
-          Unmessify
-        </a>{" "}
-        )
-      </h2>
-
-      <div className="flex flex-wrap gap-4 justify-center mb-6">
-        <select
-          value={gender}
-          onChange={(e) => setGender(e.target.value)}
-          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
-        >
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-        </select>
-
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="border rounded-lg p-2 shadow-sm hover:cursor-pointer bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100"
-        >
-          <option value="Veg">Veg</option>
-          <option value="Non Veg">Non Veg</option>
-          <option value="Special">Special</option>
-        </select>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-4 justify-center">
-        {shortDays.map((short) => (
-          <button
-            key={short}
-            onClick={() => setActiveDay(shortToFullDay[short])}
-            className={`px-4 py-2 rounded-lg transition-colors hover:cursor-pointer duration-200 shadow-sm ${activeDay === shortToFullDay[short]
-              ? "bg-blue-600 text-white dark:bg-blue-500 midnight:bg-blue-700 dark:text-gray-100 midnight:text-gray-100"
-              : "bg-gray-200 text-gray-700 hover:bg-blue-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 midnight:bg-black midnight:text-gray-200 midnight:hover:bg-gray-800 midnight:outline midnight:outline-1 midnight:outline-gray-800"
-              }`}
-          >
-            {short}
-          </button>
-        ))}
-      </div>
-
-      {todayMenu ? (
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-6 text-center dark:text-white midnight:text-white">
-            {todayMenu.Day}
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
-              <h3 className="text-lg font-bold mb-2">🍳 Breakfast</h3>
-              <p className="whitespace-pre-line">{todayMenu.Breakfast}</p>
-            </div>
-
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
-              <h3 className="text-lg font-bold mb-2">🍲 Lunch</h3>
-              <p className="whitespace-pre-line">{todayMenu.Lunch}</p>
-            </div>
-
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
-              <h3 className="text-lg font-bold mb-2">☕ Snacks</h3>
-              <p className="whitespace-pre-line">{todayMenu.Snacks}</p>
-            </div>
-
-            <div className="p-4 border rounded-2xl shadow bg-white dark:bg-gray-900 dark:text-gray-200 midnight:text-gray-200 midnight:bg-black midnight:outline midnight:outline-1 midnight:outline-gray-800">
-              <h3 className="text-lg font-bold mb-2">🍽️ Dinner</h3>
-              <p className="whitespace-pre-line">{todayMenu.Dinner}</p>
-            </div>
+    <div className="space-y-6">
+      {/* Header layout */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-gray-150 dark:border-gray-800">
+        <div>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Mess Menu</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">{currentMonth} Schedule</span>
+            <span className="text-[9px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+              <Sparkles size={10} /> Data from unmessify
+            </span>
           </div>
         </div>
+
+        {/* Controls: Segmented toggles */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* Gender Selector Segmented control */}
+          <div className="flex rounded-lg bg-gray-150 dark:bg-slate-800/80 p-1 shrink-0">
+            {["Male", "Female"].map(g => (
+              <button
+                key={g}
+                onClick={() => setGender(g)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  gender === g
+                    ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                    : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          {/* Mess Category Selector Segmented control */}
+          <div className="flex rounded-lg bg-gray-150 dark:bg-slate-800/80 p-1 shrink-0">
+            {["Veg", "Non Veg", "Special"].map(t => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  type === t
+                    ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                    : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Day Selector pills list */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none w-full justify-start md:justify-center">
+        {shortDays.map((short) => {
+          const isSelected = shortToFullDay[short] === activeDay;
+          const isActualToday = shortToFullDay[short] === today;
+          return (
+            <button
+              key={short}
+              onClick={() => setActiveDay(shortToFullDay[short])}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                isSelected
+                  ? "bg-sky-500 text-white shadow-md shadow-sky-500/15"
+                  : "bg-white/50 dark:bg-slate-900/50 text-gray-600 dark:text-gray-350 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              {isActualToday ? `Today (${short})` : short}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Meals cards */}
+      {todayMenu ? (
+        <div className="space-y-4">
+          <div className="text-center font-bold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+            {activeDay} Menu
+          </div>
+
+          {isMobile ? (
+            <div className="space-y-4">
+              {/* Mobile Meal Tab Switcher */}
+              <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl w-full border border-gray-200/50 dark:border-gray-800">
+                {mealsList.map(meal => (
+                  <button
+                    key={meal.name}
+                    onClick={() => setActiveMealMobile(meal.name)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all text-center min-h-[36px] ${
+                      activeMealMobile === meal.name 
+                        ? "bg-white dark:bg-black text-sky-500 shadow-xs" 
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900"
+                    }`}
+                  >
+                    {meal.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Single Active Meal Card */}
+              {(() => {
+                const meal = mealsList.find(m => m.name === activeMealMobile);
+                if (!meal) return null;
+                const itemsText = todayMenu[meal.key] || "No items listed.";
+                return (
+                  <div className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{meal.icon}</span>
+                        <div>
+                          <h3 className="font-bold text-gray-900 dark:text-white text-sm">{meal.name}</h3>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-450 font-medium mt-0.5">
+                            <Clock size={10} />
+                            <span>{meal.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50/50 dark:bg-black/20 rounded-2xl p-4 border border-gray-100 dark:border-gray-850">
+                      <p className="whitespace-pre-line text-xs text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
+                        {itemsText}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="text-[9px] font-bold bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full uppercase">Standard Choice</span>
+                      {type === "Non Veg" && meal.name === "Lunch" && (
+                        <span className="text-[9px] font-bold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full uppercase">Non-Veg Option</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mealsList.map((meal) => {
+                const itemsText = todayMenu[meal.key] || "No items listed.";
+                return (
+                  <div
+                    key={meal.name}
+                    className="bg-white/50 dark:bg-slate-900/50 border border-gray-200/80 dark:border-gray-800 rounded-2xl p-5 shadow-2xs hover:shadow-sm hover:border-sky-500/20 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{meal.icon}</span>
+                          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{meal.name}</h3>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-450 font-medium">
+                          <Clock size={10} />
+                          <span>{meal.time}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50/50 dark:bg-slate-800/10 border border-gray-150 dark:border-gray-850/60 rounded-xl p-3.5 min-h-36">
+                        <p className="whitespace-pre-line text-xs text-gray-700 dark:text-gray-300 font-semibold leading-relaxed">
+                          {itemsText}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Optional nutrition tag */}
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      <span className="text-[9px] font-bold bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-full uppercase">Standard Choice</span>
+                      {type === "Non Veg" && meal.name === "Lunch" && (
+                        <span className="text-[9px] font-bold bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full uppercase">Non-Veg Option</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       ) : (
-        <p className="text-center text-gray-600 dark:text-gray-300 midnight:text-gray-300">
-          No menu found for {activeDay}.
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+          No menu found for {activeDay}. Please trigger reload if data is outdated.
         </p>
       )}
     </div>

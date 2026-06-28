@@ -59,6 +59,19 @@ export default function EventHubSubpage({
     }
 
     setIsRegistering(true); // Re-use loading state to show "Processing..."
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const element = document.createElement("a");
+      const file = new Blob(["This is a mock AmazeCC Event Hub document for " + selectedEvent.title], { type: 'text/plain' });
+      element.href = URL.createObjectURL(file);
+      element.download = isCert ? "Certificate.txt" : "Receipt.txt";
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      setIsRegistering(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/events/download`, {
         method: "POST",
@@ -160,6 +173,14 @@ export default function EventHubSubpage({
     }
 
     setIsRegistering(true);
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setModalContent({ title: "Registration Successful", message: "Mock registration successful! DevSprint '26 Hackathon is added to your registered events list." });
+      setModalOpen(true);
+      setIsRegistering(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/events/register`, {
         method: "POST",
@@ -209,10 +230,10 @@ export default function EventHubSubpage({
 
   return (
     <SubpageLayout title={selectedEvent.title} onBack={onClose} className="max-w-6xl xl:max-w-7xl mx-auto">
-      <div className="bg-white dark:bg-slate-800 midnight:bg-black rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-slate-700 midnight:border-gray-800">
+      <div className="bg-white  dark:bg-black rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100  dark:border-gray-800">
         {selectedEvent.eligibility && (
           <div className="flex justify-end mb-6">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 midnight:bg-blue-900/20 midnight:text-blue-300">
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700   dark:bg-blue-900/20 dark:text-blue-300">
               <Users className="w-4 h-4" /> {selectedEvent.eligibility}
             </span>
           </div>
@@ -222,16 +243,17 @@ export default function EventHubSubpage({
         {(() => {
           const renderActionButtons = () => {
             return (
-              <div className="pt-8 border-t border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50 flex flex-col xl:flex-row gap-4 items-center justify-between">
+              <div className="pt-8 border-t border-gray-100  dark:border-gray-800/50 flex flex-col xl:flex-row gap-4 items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white midnight:text-white">Ready to join?</h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">Registration and payments are handled securely on the official portal.</p>
+                  <h4 className="font-semibold text-gray-900  dark:text-white">Ready to join?</h4>
+                  <p className="text-sm text-gray-500  dark:text-gray-400">Registration and payments are handled securely on the official portal.</p>
                 </div>
                   {/* Conditional Registration/Payment Button */}
                   {(() => {
                     const registrationDetails = registeredEvents?.find(e => e.name === selectedEvent.title) || selectedEvent.registeredDetails;
                     if (registrationDetails) {
-                      const isUnpaid = !registrationDetails.paymentStatus.toLowerCase().includes('paid') && !registrationDetails.paymentStatus.toLowerCase().includes('free') && !registrationDetails.paymentStatus.toLowerCase().includes('success');
+                      const payStatus = registrationDetails.paymentStatus || "";
+                      const isUnpaid = !payStatus.toLowerCase().includes('paid') && !payStatus.toLowerCase().includes('free') && !payStatus.toLowerCase().includes('success');
                       
                       return (
                         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -240,6 +262,13 @@ export default function EventHubSubpage({
                               onClick={async () => {
                                 const linkToPay = registrationDetails.payNowLink || `/EventHub/showPaymentTC/${registrationDetails.orderId}/`;
                                 setIsRegistering(true);
+                                if (IDs?.VtopUsername === "demo") {
+                                  await new Promise(resolve => setTimeout(resolve, 650));
+                                  setModalContent({ title: "Payment Successful", message: "Mock transaction of ₹150 processed successfully through offline sandbox!" });
+                                  setModalOpen(true);
+                                  setIsRegistering(false);
+                                  return;
+                                }
                                 try {
                                   const res = await fetch(`${API_BASE}/api/events/paynow`, {
                                     method: "POST",
@@ -296,19 +325,19 @@ export default function EventHubSubpage({
                           ) : (
                             <button 
                               disabled
-                              className="w-full xl:w-auto px-8 py-3 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 midnight:bg-green-900/30 midnight:text-green-400 font-medium rounded-xl text-center flex items-center justify-center gap-2 whitespace-nowrap cursor-not-allowed"
+                              className="w-full xl:w-auto px-8 py-3 bg-green-100 text-green-700   dark:bg-green-900/30 dark:text-green-400 font-medium rounded-xl text-center flex items-center justify-center gap-2 whitespace-nowrap cursor-not-allowed"
                             >
                               Registered
                             </button>
                           )}
                           
                           {registrationDetails.certificateLink && (
-                            <button onClick={() => handleSecureDownload(registrationDetails.certificateLink, true)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 midnight:bg-purple-900/30 midnight:text-purple-300 font-medium rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                            <button onClick={() => handleSecureDownload(registrationDetails.certificateLink, true)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-purple-100 text-purple-700   dark:bg-purple-900/30 dark:text-purple-300 font-medium rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
                               {isRegistering ? "Wait..." : <><Award className="w-4 h-4" /> Certificate</>}
                             </button>
                           )}
                           {registrationDetails.receiptLink && (
-                            <button onClick={() => handleSecureDownload(registrationDetails.receiptLink, false)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 midnight:bg-gray-800 midnight:text-gray-300 font-medium rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                            <button onClick={() => handleSecureDownload(registrationDetails.receiptLink, false)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-gray-200 text-gray-700   dark:bg-gray-800 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
                               {isRegistering ? "Wait..." : <><FileText className="w-4 h-4" /> Receipt</>}
                             </button>
                           )}
@@ -348,7 +377,7 @@ export default function EventHubSubpage({
                     <button 
                       onClick={handleOpenInEventHub}
                       disabled={isRegistering}
-                      className="w-full xl:w-auto px-8 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 midnight:bg-gray-800 midnight:hover:bg-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-200 font-medium rounded-xl transition-colors text-center flex items-center justify-center gap-2 whitespace-nowrap"
+                      className="w-full xl:w-auto px-8 py-3 bg-gray-100 hover:bg-gray-200  dark:hover:bg-slate-600 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700  dark:text-gray-200 font-medium rounded-xl transition-colors text-center flex items-center justify-center gap-2 whitespace-nowrap"
                     >
                       Open in Event Hub
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,7 +401,7 @@ export default function EventHubSubpage({
           </div>
         ) : previewError ? (
           <div className="space-y-6">
-            <div className="text-center p-8 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/10 text-red-600 rounded-2xl">
+            <div className="text-center p-8 bg-red-50  dark:bg-red-900/10 text-red-600 rounded-2xl">
               <p>{previewError}</p>
               {!selectedEvent.isPastEvent && (
                 <p className="text-sm mt-2 opacity-80">Make sure your VTOP credentials are correct, as Event Hub requires them for authentication.</p>
@@ -385,7 +414,7 @@ export default function EventHubSubpage({
             {/* Left Column: Image */}
             {previewData.imageSrc && (
               <div className="md:w-5/12 lg:w-1/3 shrink-0">
-                <div className="rounded-2xl overflow-hidden bg-gray-50 dark:bg-slate-900 midnight:bg-gray-900 flex justify-center border border-gray-100 dark:border-slate-700 midnight:border-gray-800 md:sticky md:top-8">
+                <div className="rounded-2xl overflow-hidden bg-gray-50  dark:bg-gray-900 flex justify-center border border-gray-100  dark:border-gray-800 md:sticky md:top-8">
                   <img 
                     src={previewData.imageSrc} 
                     alt={selectedEvent.title}
@@ -412,7 +441,7 @@ export default function EventHubSubpage({
                     else if (key.includes('Conducted') || key.includes('By')) Icon = User;
 
                     return (
-                      <div key={key} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50 flex flex-col justify-center">
+                      <div key={key} className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50 flex flex-col justify-center">
                         <InfoRow icon={<Icon className="w-4 h-4" />}>{key}: {value}</InfoRow>
                       </div>
                     );
@@ -420,24 +449,24 @@ export default function EventHubSubpage({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
                     <InfoRow icon={<Calendar className="w-4 h-4" />}>Date: {selectedEvent.date}</InfoRow>
                   </div>
-                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
                     <InfoRow icon={<MapPin className="w-4 h-4" />}>Location: {selectedEvent.location}</InfoRow>
                   </div>
-                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
                     <InfoRow icon={<IndianRupee className="w-4 h-4" />}>Price: {selectedEvent.price || "Free"}</InfoRow>
                   </div>
-                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/30 midnight:bg-gray-900/50 border border-gray-100 dark:border-slate-700/50 midnight:border-gray-800/50">
+                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
                     <InfoRow icon={<Tag className="w-4 h-4" />}>Type: {selectedEvent.type}</InfoRow>
                   </div>
                 </div>
               )}
 
               <div className="prose dark:prose-invert max-w-none">
-                <h3 className="font-bold text-xl mb-4 text-gray-900 dark:text-white midnight:text-white">About this Event</h3>
-                <p className="text-gray-700 dark:text-gray-300 midnight:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                <h3 className="font-bold text-xl mb-4 text-gray-900  dark:text-white">About this Event</h3>
+                <p className="text-gray-700  dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                   {previewData.description || "No description provided."}
                 </p>
               </div>
@@ -455,12 +484,12 @@ export default function EventHubSubpage({
 
       {/* Status Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md glass-card">
+        <DialogContent className="sm:max-w-md solid-card">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white midnight:text-white">
+            <DialogTitle className="text-gray-900  dark:text-white">
               {modalContent.title}
             </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-300 midnight:text-gray-300 mt-2">
+            <DialogDescription className="text-gray-600  dark:text-gray-300 mt-2">
               {modalContent.message}
             </DialogDescription>
           </DialogHeader>
@@ -474,18 +503,18 @@ export default function EventHubSubpage({
 
       {/* PWA Mobile Fallback Modal */}
       <Dialog open={!!pwaUrl} onOpenChange={(open) => !open && setPwaUrl(null)}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 midnight:bg-black border-gray-200 dark:border-slate-800 midnight:border-gray-800 rounded-2xl">
+        <DialogContent className="sm:max-w-md bg-white  dark:bg-black border-gray-200  dark:border-gray-800 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white midnight:text-white">Secure Access Required</DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-2">
+            <DialogTitle className="text-gray-900  dark:text-white">Secure Access Required</DialogTitle>
+            <DialogDescription className="text-gray-600  dark:text-gray-400 mt-2">
               Because of Mobile App security policies, accessing Event Hub securely requires two steps. 
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 midnight:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 midnight:border-blue-900/30">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-300 midnight:text-blue-400 mb-1">Step 1: Authenticate</h4>
-              <p className="text-sm text-blue-700 dark:text-blue-400 midnight:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
+            <div className="bg-blue-50  dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100  dark:border-blue-900/30">
+              <h4 className="font-semibold text-blue-900  dark:text-blue-400 mb-1">Step 1: Authenticate</h4>
+              <p className="text-sm text-blue-700  dark:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
               
               <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
                 <input type="hidden" name="username" value={IDs?.VtopUsername} />
@@ -497,13 +526,13 @@ export default function EventHubSubpage({
               </form>
             </div>
             
-            <div className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700 midnight:border-gray-800">
-              <h4 className="font-semibold text-gray-900 dark:text-white midnight:text-white mb-1">Step 2: Open Details</h4>
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-3">After completing Step 1, click here to proceed.</p>
+            <div className="bg-gray-50  dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100  dark:border-gray-800">
+              <h4 className="font-semibold text-gray-900  dark:text-white mb-1">Step 2: Open Details</h4>
+              <p className="text-sm text-gray-500  dark:text-gray-400 mb-3">After completing Step 1, click here to proceed.</p>
               <Button 
                 onClick={() => window.open(pwaUrl || "", "_blank")}
                 variant="outline" 
-                className="w-full border-gray-200 dark:border-slate-600 midnight:border-gray-700 text-gray-700 dark:text-gray-200 midnight:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800 whitespace-normal h-auto py-3 text-center"
+                className="w-full border-gray-200  dark:border-gray-700 text-gray-700  dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 whitespace-normal h-auto py-3 text-center"
               >
                 {pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
               </Button>
@@ -511,7 +540,7 @@ export default function EventHubSubpage({
           </div>
           
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setPwaUrl(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white midnight:hover:text-white">Cancel</Button>
+            <Button variant="ghost" onClick={() => setPwaUrl(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white dark:hover:text-white">Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

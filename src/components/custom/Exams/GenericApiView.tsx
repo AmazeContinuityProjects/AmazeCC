@@ -7,8 +7,8 @@ import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/sh
 
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-0">
-    <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider">{label}</p>
-    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200 break-words">{value || "—"}</p>
+    <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
+    <p className="text-sm font-medium text-gray-800  dark:text-gray-200 break-words">{value || "—"}</p>
   </div>
 );
 
@@ -52,6 +52,75 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     setError(null);
     try {
       const { cookies, authorizedID, csrf } = credsRef.current;
+      
+      if (authorizedID === "DEMO123") {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        let result: any = null;
+        if (endpoint === "hostel-counselling") {
+          result = {
+            tables: [
+              {
+                caption: "Hostel Counselling Requests",
+                headers: ["S.NO.", "REQUEST FRIEND REGNO", "BASKETID", "ROOM CAPACITY", "ROOM CATEGORY", "OTP", "OTP STATUS"],
+                rows: [
+                  ["1", "25BYB1043", "4AC-DBL-COT-NORMAL", "4", "AC-DBL-COT", "6919", "OTP accepted by Room Leader"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint === "library-due") {
+          result = {
+            tables: [
+              {
+                caption: "Active Library Dues",
+                headers: ["Book ID", "Title", "Issue Date", "Due Date", "Fine Amount"],
+                rows: [
+                  ["BK-90123", "Introduction to Algorithms", "2026-06-10", "2026-06-25", "Rs. 0.00"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint === "ept-schedule") {
+          result = {
+            tables: [
+              {
+                caption: "English Proficiency Test Schedule",
+                headers: ["Date", "Time", "Venue", "Seat Number"],
+                rows: [
+                  ["2026-07-02", "10:00 AM", "Netaji Auditorium", "A-12"]
+                ]
+              }
+            ]
+          };
+        } else if (endpoint.includes("project")) {
+          result = {
+            tables: [
+              {
+                caption: "Academic Projects Summary",
+                headers: ["Project Title", "Guide Name", "Status", "Review 1 Marks", "Review 2 Marks"],
+                rows: [
+                  ["AmazeCC Developer Portal", "Dr. K. Srinivasan", "In Progress", "18/20", "19/20"]
+                ]
+              }
+            ]
+          };
+        } else {
+          result = {
+            tables: [
+              {
+                caption: "Information Summary",
+                headers: ["Item", "Details", "Remarks"],
+                rows: [
+                  ["Demo Mode Record", "Active", "No records found on VTOP server."]
+                ]
+              }
+            ]
+          };
+        }
+        setData(result);
+        return;
+      }
+
       const body: Record<string, any> = { cookies, authorizedID, csrf, ...(extraParams || {}) };
       if (semesterId) body.semesterId = semesterId;
       const res = await fetch(`${API_BASE}/api/${endpoint}`, {
@@ -172,24 +241,24 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
       const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
       const columns = table.headers.map((h: string) => ({ key: h, label: h }));
       return (
-        <div key={idx} className="glass-card mb-5">
+        <div key={idx} className="solid-card mb-5">
           <div className="p-5">
-            {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
+            {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
             {hasRows ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 midnight:border-gray-700">
+                    <tr className="border-b border-gray-200  dark:border-gray-700">
                       {table.headers.map((h: string, i: number) => (
-                        <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {table.rows.map((row: any, ri: number) => (
-                      <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <tr key={ri} className="border-b border-gray-100  dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                         {table.headers.map((h: string, ci: number) => (
-                          <td key={ci} className="py-2.5 px-2 text-gray-800 dark:text-gray-200 midnight:text-gray-200 whitespace-nowrap">
+                          <td key={ci} className="py-2.5 px-2 text-gray-800  dark:text-gray-200 whitespace-nowrap">
                             {typeof row === "object" ? (row[h] || row[ci] || "") : (Array.isArray(row) ? row[ci] || "" : "")}
                           </td>
                         ))}
@@ -212,9 +281,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     const entries = Object.entries(kv).filter(([k]) => !k.toLowerCase().includes("semester"));
     if (entries.length === 0) return null;
     return (
-      <div className="glass-card mb-5">
+      <div className="solid-card mb-5">
         <div className="p-5">
-          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {entries.map(([key, val]) => (
               <Field key={key} label={key} value={String(val)} />
@@ -241,9 +310,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem"))
       : [];
     return (
-      <div className="glass-card mb-5" key={semName}>
+      <div className="solid-card mb-5" key={semName}>
         <div className="p-5">
-          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
           {renderMessages(semData.messages)}
           {hasContent ? (
             <>
@@ -262,13 +331,13 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           )}
           {semSelectOptions.length > 0 && (
             <div className="space-y-3 mt-4">
-              <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider">Available Options</h5>
+              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Available Options</h5>
               {semSelectOptions.map(([key, options]: any) => (
                 <div key={key}>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1.5 capitalize">{key.replace(/-/g, " ")}</p>
+                  <p className="text-xs font-medium text-gray-500  dark:text-gray-400 mb-1.5 capitalize">{key.replace(/-/g, " ")}</p>
                   <div className="flex flex-wrap gap-2">
                     {(options as Array<{value: string; text: string}>).map((opt: any, i: number) => (
-                      <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300 midnight:text-gray-300">{opt.text}</span>
+                      <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300">{opt.text}</span>
                     ))}
                   </div>
                 </div>
@@ -276,21 +345,21 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             </div>
           )}
           {semData?.cascadingOptions && Object.keys(semData.cascadingOptions).length > 0 && (
-            <div className="space-y-4 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700/50 midnight:border-gray-700/50">
-              <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider">Available Minor / Honour Combinations</h5>
+            <div className="space-y-4 mt-5 pt-4 border-t border-gray-100  dark:border-gray-700/50">
+              <h5 className="text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Available Minor / Honour Combinations</h5>
               {Object.entries(semData.cascadingOptions).map(([fieldName, fieldData]: [string, any]) => (
                 <div key={fieldName} className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 midnight:text-gray-300 capitalize">{fieldName.replace(/-/g, " ")}</p>
+                  <p className="text-xs font-semibold text-gray-600  dark:text-gray-300 capitalize">{fieldName.replace(/-/g, " ")}</p>
                   <div className="space-y-2 ml-2">
                     {(fieldData.options || []).map((opt: any, i: number) => (
-                      <div key={i} className="bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-800/50 rounded-lg p-3">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200 midnight:text-gray-200">{opt.text}</p>
+                      <div key={i} className="bg-gray-50  dark:bg-gray-800/50 rounded-lg p-3">
+                        <p className="text-sm font-medium text-gray-700  dark:text-gray-200">{opt.text}</p>
                         {fieldData.children?.[opt.text]?.selectOptions && Object.entries(fieldData.children[opt.text].selectOptions).map(([childField, childOpts]: [string, any]) => (
                           <div key={childField} className="mt-2 ml-2">
-                            <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1">{childField.replace(/-/g, " ")}</p>
+                            <p className="text-[11px] font-medium text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1">{childField.replace(/-/g, " ")}</p>
                             <div className="flex flex-wrap gap-1.5">
                               {(childOpts as Array<{value: string; text: string}>).map((co: any, ci: number) => (
-                                <span key={ci} className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 midnight:bg-gray-900 text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400 border border-gray-200 dark:border-gray-700 midnight:border-gray-700">{co.text}</span>
+                                <span key={ci} className="px-2.5 py-1 rounded-md bg-white  dark:bg-gray-900 text-xs text-gray-500  dark:text-gray-400 border border-gray-200  dark:border-gray-700">{co.text}</span>
                               ))}
                             </div>
                           </div>
@@ -328,8 +397,8 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
   if (error) {
     return (
       <div>
-        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 mb-4">{title}</h3>
-        <div className="glass-card mb-5">
+        <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100 mb-4">{title}</h3>
+        <div className="solid-card mb-5">
           <ErrorDisplay message={error} />
         </div>
       </div>
@@ -342,7 +411,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{title}</h3>
+      <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100">{title}</h3>
 
       {hasSemestersResponse ? (
         semestersKeys.length > 0 ? (
@@ -351,9 +420,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
             .map(([semName, semData]: [string, any]) => {
               if (semData.error) {
                 return (
-                  <div className="glass-card mb-5" key={semName}>
+                  <div className="solid-card mb-5" key={semName}>
                     <div className="p-5">
-                      <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
+                      <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{semName}</h4>
                       <p className="error-banner">{semData.error}</p>
                     </div>
                   </div>
@@ -362,7 +431,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               return renderSingleSemester(semData, semName);
             })
         ) : (
-          <div className="glass-card mb-5">
+          <div className="solid-card mb-5">
             <EmptyState
               icon={<Inbox className="w-10 h-10" />}
               title="No data found"
@@ -375,12 +444,12 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
           {renderMessages(data.messages)}
 
           {semesterOptions && (
-            <div className="glass-card mb-5">
+            <div className="solid-card mb-5">
               <div className="p-4">
-                <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
+                <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
                 <div className="relative">
                   <select value={selectedSemester} onChange={(e) => handleSemesterChange(e.target.value)}
-                    className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-900 midnight:bg-gray-800 border border-gray-200 dark:border-gray-700 midnight:border-gray-700 text-gray-800 dark:text-gray-200 midnight:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">-- Select --</option>
                     {(semesterOptions[1] as Array<{value: string; text: string}>).map((opt: any, i: number) => (
                       <option key={i} value={opt.value}>{opt.text}</option>
@@ -399,16 +468,16 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               {renderKeyValues(data.keyValuePairs)}
               {renderTables(data.tables)}
               {allSelectOptions.length > 0 && (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Available Options</h4>
+                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Available Options</h4>
                     <div className="space-y-3">
                       {allSelectOptions.map(([key, options]: any) => (
                         <div key={key}>
                           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 capitalize">{key.replace(/-/g, " ")}</p>
                           <div className="flex flex-wrap gap-2">
                             {(options as Array<{value: string; text: string}>).map((opt: any, i: number) => (
-                              <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300 midnight:text-gray-300">{opt.text}</span>
+                              <span key={i} className="px-3 py-1.5 rounded-lg bg-gray-100  dark:bg-gray-800 text-xs font-medium text-gray-600  dark:text-gray-300">{opt.text}</span>
                             ))}
                           </div>
                         </div>
@@ -418,20 +487,20 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               )}
               {data.formFields && Object.keys(data.formFields).length > 0 && (writable ? (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Submit Form</h4>
+                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Submit Form</h4>
                     {submitResult?.messages?.success && <div className="success-banner">{submitResult.messages.success}</div>}
                     {submitResult?.messages?.error && <div className="error-banner">{submitResult.messages.error}</div>}
                     {submitResult?.error && <div className="error-banner">{submitResult.error}</div>}
                     {Object.entries(data.formFields).map(([key, val]: any) => (
                       <div key={key}>
-                        <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 midnight:text-gray-500 uppercase tracking-wider mb-1.5 block">{key.replace(/-/g, " ")}</label>
+                        <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-1.5 block">{key.replace(/-/g, " ")}</label>
                         <input
                           name={key}
                           defaultValue={typeof val === "string" ? val : ""}
                           onChange={(e) => handleFormFieldChange(key, e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 midnight:bg-gray-800 border border-gray-200 dark:border-gray-700 midnight:border-gray-700 text-gray-800 dark:text-gray-200 midnight:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     ))}
@@ -444,9 +513,9 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   </form>
                 </div>
               ) : (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider mb-4">Form Fields</h4>
+                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Form Fields</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                       {Object.entries(data.formFields).map(([key, field]: any) => (
                         <Field key={key} label={field.label || key} value={field.value || ""} />
@@ -456,7 +525,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               ))}
               {!allSelectOptions.length && !data.tables?.length && !Object.keys(data.keyValuePairs || {}).length && !data.formFields && !data.messages && (
-                <div className="glass-card mb-5">
+                <div className="solid-card mb-5">
                   <EmptyState
                     icon={<Inbox className="w-10 h-10" />}
                     title="No data found"

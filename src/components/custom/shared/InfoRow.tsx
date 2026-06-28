@@ -15,10 +15,10 @@ export default function InfoRow({
 }: InfoRowProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className={cn("text-gray-400 dark:text-gray-500 midnight:text-gray-500 flex-shrink-0", iconClassName)}>
+      <div className={cn("text-gray-400  dark:text-gray-500 flex-shrink-0", iconClassName)}>
         {icon}
       </div>
-      <div className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+      <div className="text-sm text-gray-700  dark:text-gray-300">
         {children}
       </div>
     </div>

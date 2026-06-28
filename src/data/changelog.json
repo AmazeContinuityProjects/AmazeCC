@@ -1,5 +1,17 @@
 [
   {
+    "version": "v3.0.0",
+    "date": "2026-06-27",
+    "changes": [
+      "New Login Screen: Redesigned the login screen with a modern, minimalistic aesthetic and improved user experience.",
+      "Course Dashboard Redesign: Revamped the course dashboard with a clean, card-based layout, enhanced visual hierarchy, and improved navigation.",
+      "New UI System: We are now officially shifting from Shadcn to our own UI system, which is more lightweight and tailored to our needs. This change will improve performance and allow for more customization in the future. We call this UI: Organic Glassmorphism.",
+      "Mobile Experience Reimagined: Optimized the mobile experience with a responsive design, improved touch interactions, and better performance on smaller screens.",
+      "Profile Tab: Broke it up.",
+      "This is our biggest visual overhaul yet, and we are excited to bring you a more modern and user-friendly experience. We hope you enjoy the new look and feel of AmazeCC!"
+    ]
+  },
+  {
     "version": "v2.1.0",
     "date": "2026-06-27",
     "changes": [

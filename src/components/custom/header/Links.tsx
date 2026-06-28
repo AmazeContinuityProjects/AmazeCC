@@ -25,7 +25,7 @@ export default function Links() {
         <div className="w-full">
             <button
                 onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between text-left text-xl font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-100 hover:cursor-pointer"
+                className="w-full flex items-center justify-between text-left text-xl font-semibold text-gray-800  dark:text-gray-100 hover:cursor-pointer"
             >
                 <span>Links</span>
                 {open ? (
@@ -43,10 +43,10 @@ export default function Links() {
                     {Links.map((link, index) => (
                         <div
                             key={index}
-                            className="flex items-center justify-between px-4 py-3 bg-gray-200 dark:bg-slate-800 midnight:bg-gray-900 rounded-lg"
+                            className="flex items-center justify-between px-4 py-3 bg-gray-200  dark:bg-gray-900 rounded-lg"
                         >
                             <span
-                                className="flex-1 text-gray-800 dark:text-gray-200 midnight:text-gray-100 truncate"
+                                className="flex-1 text-gray-800  dark:text-gray-100 truncate"
                                 title={link}
                             >
                                 {link}
@@ -54,12 +54,12 @@ export default function Links() {
 
                             <button
                                 onClick={() => handleCopy(link, index)}
-                                className="ml-3 p-2 rounded-md bg-gray-300 dark:bg-slate-700 midnight:bg-gray-800 hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors"
+                                className="ml-3 p-2 rounded-md bg-gray-300  dark:bg-gray-800 hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors"
                             >
                                 {copiedIndex === index ? (
                                     <Check className="w-4 h-4 text-green-500 scale-110 transition-transform duration-300" />
                                 ) : (
-                                    <Copy className="w-4 h-4 text-gray-700 dark:text-gray-200 midnight:text-gray-300" />
+                                    <Copy className="w-4 h-4 text-gray-700  dark:text-gray-300" />
                                 )}
                             </button>
                         </div>
