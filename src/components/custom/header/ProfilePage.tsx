@@ -25,7 +25,8 @@ import {
   Grid,
   Search,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Keyboard
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "../../ui/button";
@@ -41,7 +42,7 @@ import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
-import { Badge } from "../shared";
+import { Badge, useIsMobile } from "../shared";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 
@@ -55,7 +56,7 @@ interface SectionConfig {
 
 const SECTIONS: SectionConfig[] = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "preferences", label: "Preferences", icon: Sliders },
+  { id: "preferences", label: "Appearance", icon: Sliders },
   { id: "academic", label: "Academic Settings", icon: Settings },
   { id: "sync", label: "Data Sync", icon: RefreshCcw },
   { id: "resources", label: "Resources", icon: Link2 },
@@ -97,8 +98,11 @@ export default function ProfilePage({
   onReload,
   settings,
   setSettings,
-  mode = "settings"
+  mode = "settings",
+  onOpenShortcutsHelp
 }: any) {
+  const isMobile = useIsMobile();
+  const [expandedSection, setExpandedSection] = useState<string>("preferences");
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
@@ -415,6 +419,43 @@ export default function ProfilePage({
     });
   }, [searchQuery, sectionsToUse]);
 
+  const renderSection = (id: string, label: string, Icon: any, children: React.ReactNode) => {
+    if (!filteredSections.some(s => s.id === id)) return null;
+
+    if (isMobile && mode === "settings") {
+      const isOpen = expandedSection === id;
+      return (
+        <div key={id} className="border border-gray-200/85 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-2xl overflow-hidden shadow-xs">
+          <button
+            onClick={() => setExpandedSection(isOpen ? "" : id)}
+            className="w-full flex items-center justify-between p-4 font-bold text-gray-850 dark:text-gray-200 hover:bg-gray-100/40 dark:hover:bg-slate-800/30 transition-colors text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <Icon className="w-4.5 h-4.5 text-sky-505" />
+              <span className="text-sm font-extrabold">{label}</span>
+            </div>
+            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-sky-505" : ""}`} />
+          </button>
+          {isOpen && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-850 space-y-5 animate-fadeIn">
+              {children}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <section key={id} id={`sec-${id}`} className="scroll-mt-6 space-y-5">
+        <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
+          <Icon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{label}</h2>
+        </div>
+        {children}
+      </section>
+    );
+  };
+
   return (
     <div className="w-full h-full pb-16 px-4 md:px-8 max-w-7xl mx-auto">
       {/* Footer Modals */}
@@ -522,7 +563,7 @@ export default function ProfilePage({
         )}
 
         {/* Horizontal Navigation tabs (Mobile / Tablet) */}
-        {sectionsToUse.length > 1 && (
+        {sectionsToUse.length > 1 && mode !== "settings" && (
           <nav className="flex md:hidden overflow-x-auto w-full border-b border-gray-150 dark:border-gray-800 pb-2 mb-2 gap-1.5 scrollbar-none">
             {sectionsToUse.map(sec => {
               const isActive = activeSection === sec.id;
@@ -544,18 +585,11 @@ export default function ProfilePage({
         )}
 
         {/* Right side Settings Content pane */}
-        <main className="flex-1 w-full space-y-12">
+        <main className="flex-1 w-full space-y-3.5 md:space-y-12">
           
           {/* Section: Profile */}
-          {filteredSections.some(s => s.id === "profile") && (
-            <section id="sec-profile" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Profile</h2>
-              </div>
-
-              {/* Grouped Profile Card */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-6">
+          {renderSection("profile", "Profile", User, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
                 
                 {/* Residential Status Subsection */}
                 <div className="space-y-3">
@@ -665,19 +699,11 @@ export default function ProfilePage({
                 )}
 
               </div>
-            </section>
-          )}
+          ))}
 
           {/* Section: Preferences */}
-          {filteredSections.some(s => s.id === "preferences") && (
-            <section id="sec-preferences" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <Sliders className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Preferences</h2>
-              </div>
-
-              {/* Grouped Preferences Card */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-6">
+          {renderSection("preferences", "Appearance", Sliders, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
                 
                 {/* Subsection: Appearance */}
                 <div className="space-y-4">
@@ -855,16 +881,12 @@ export default function ProfilePage({
                 </div>
 
               </div>
-            </section>
-          )}
+          ))}
 
           {/* Section: Academic Settings */}
-          {filteredSections.some(s => s.id === "academic") && (
-            <section id="sec-academic" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <Settings className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Academic Overview</h2>
-              </div>
+          {renderSection("academic", "Academic Settings", Settings, (
+            <div className="space-y-6">
+
 
               {/* Status and Proctor overview cards */}
               {creds ? (
@@ -946,27 +968,21 @@ export default function ProfilePage({
               ) : (
                 <div className="text-center py-6 text-xs text-gray-500">Log in to VTOP to view details</div>
               )}
-            </section>
-          )}
+            </div>
+          ))}
 
           {/* Section: Data Sync */}
-          {filteredSections.some(s => s.id === "sync") && (
-            <section id="sec-sync" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <RefreshCcw className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Data Sync Preferences</h2>
-              </div>
-
-              <div className="relative">
-                {username === "demo" && (
-                  <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-10 border border-amber-500/10">
-                    <span className="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
-                      🔒 Sync Disabled in Demo Mode
-                    </span>
-                  </div>
-                )}
-                
-                <div className={`bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
+          {renderSection("sync", "Data Sync", RefreshCcw, (
+            <div className="relative">
+              {username === "demo" && (
+                <div className="absolute inset-0 bg-neutral-950/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-10 border border-amber-500/10">
+                  <span className="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
+                    🔒 Sync Disabled in Demo Mode
+                  </span>
+                </div>
+              )}
+              
+              <div className={`bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
                   <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
                 
                 {/* Collapsible Sync Toggles */}
@@ -1188,19 +1204,11 @@ export default function ProfilePage({
                 </div>
               </div>
             </div>
-          </section>
-        )}
+          ))}
 
           {/* Section: Resources */}
-          {filteredSections.some(s => s.id === "resources") && (
-            <section id="sec-resources" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <Link2 className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Resources</h2>
-              </div>
-
-              {/* Clean resources list view */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
+          {renderSection("resources", "Resources", Link2, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
                 
                 {/* Utilities / Important Links */}
                 {quickLinks.importantLinks.map((link) => (
@@ -1310,19 +1318,11 @@ export default function ProfilePage({
                 </div>
 
               </div>
-            </section>
-          )}
+          ))}
 
           {/* Section: About */}
-          {filteredSections.some(s => s.id === "about") && (
-            <section id="sec-about" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <Info className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">About AmazeCC</h2>
-              </div>
-
-              {/* Grouped About App Info card */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-6 flex flex-col items-center text-center space-y-4">
+          {renderSection("about", "About AmazeCC", Info, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 p-6 flex flex-col items-center text-center space-y-4">
                 <div className="scale-125 mb-1 shrink-0">
                   <IconToggle />
                 </div>
@@ -1354,19 +1354,11 @@ export default function ProfilePage({
                   MADE WITH ❤️ BY SUGEETHJSA AND DHIVYANJ
                 </p>
               </div>
-            </section>
-          )}
+          ))}
 
           {/* Section: Advanced */}
-          {filteredSections.some(s => s.id === "advanced") && (
-            <section id="sec-advanced" className="scroll-mt-6 space-y-5">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-                <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Advanced</h2>
-              </div>
-
-              {/* Developer options, local storage reset & backup */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
+          {renderSection("advanced", "Advanced Settings", Shield, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
                 
                 {/* Local Storage Viewer */}
                 <div onClick={openStoragePage} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
@@ -1410,6 +1402,20 @@ export default function ProfilePage({
                   <ChevronRight size={14} className="text-gray-400 shrink-0" />
                 </div>
 
+                {/* Keyboard Shortcuts */}
+                <div onClick={onOpenShortcutsHelp} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                      <Keyboard size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Keyboard Shortcuts Cheat-Sheet</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block truncate mt-0.5">Show the interactive global keyboard hotkeys dialog</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                </div>
+
                 {/* Reset Cache */}
                 <div onClick={handleResetCache} className="flex items-center justify-between p-4 hover:bg-red-500/5 hover:bg-red-550/10 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
@@ -1439,8 +1445,7 @@ export default function ProfilePage({
                 </div>
 
               </div>
-            </section>
-          )}
+          ))}
 
         </main>
       </div>

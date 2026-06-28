@@ -14,11 +14,6 @@ export default function TimetableVtop({ attendance }) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [viewMode, setViewMode] = useState<"schedule" | "grid">("grid");
 
-    useEffect(() => {
-        if (isMobile) {
-            setViewMode("schedule");
-        }
-    }, [isMobile]);
     const { theme, resolvedTheme } = useTheme();
     const currentTheme = resolvedTheme || theme || "light";
     const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
@@ -747,32 +742,30 @@ export default function TimetableVtop({ attendance }) {
                 {/* View Controls & Action Buttons */}
                 <div className="flex items-center flex-wrap gap-2">
                     {/* View Switcher */}
-                    {!isMobile && (
-                        <div className="flex items-center bg-gray-100  dark:bg-gray-950 p-1 rounded-xl border border-gray-200/60  dark:border-gray-800/80 text-xs font-semibold">
-                            <button
-                                onClick={() => setViewMode("schedule")}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                                    viewMode === "schedule"
-                                        ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
-                                        : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
-                                }`}
-                            >
-                                <CalendarDays size={13} />
-                                <span>Planner</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode("grid")}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                                    viewMode === "grid"
-                                        ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
-                                        : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
-                                }`}
-                            >
-                                <Grid size={13} />
-                                <span>Grid Matrix</span>
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex items-center bg-gray-100  dark:bg-gray-950 p-1 rounded-xl border border-gray-200/60  dark:border-gray-800/80 text-xs font-semibold">
+                        <button
+                            onClick={() => setViewMode("schedule")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                                viewMode === "schedule"
+                                    ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
+                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
+                            }`}
+                        >
+                            <CalendarDays size={13} />
+                            <span>Planner</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode("grid")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                                viewMode === "grid"
+                                    ? "bg-white  dark:bg-black text-blue-600  dark:text-blue-400 shadow-xs"
+                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-250"
+                            }`}
+                        >
+                            <Grid size={13} />
+                            <span>Grid Matrix</span>
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-1.5">
                         <button

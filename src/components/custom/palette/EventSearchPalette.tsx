@@ -128,6 +128,31 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
     let reg: EventItem[] = [];
     try { if (stored) reg = JSON.parse(stored); } catch {}
     setRegisteredEvents(reg);
+    const isDemo = localStorage.getItem("demoMode") === "true";
+    if (isDemo) {
+      setEventHubEvents([
+        {
+          eid: "evt-001",
+          title: "DevSprint '26 Hackathon",
+          eligibility: "Open to all branches",
+          type: "Coding Hackathon",
+          date: "2026-07-15",
+          location: "Netaji Auditorium",
+          price: "Free",
+        },
+        {
+          eid: "evt-002",
+          title: "RoboSoccer Workshop",
+          eligibility: "Open to all branches",
+          type: "Robotics Workshop",
+          date: "2026-07-22",
+          location: "MG Block Lab 202",
+          price: "Paid",
+        }
+      ]);
+      setLoading(false);
+      return;
+    }
     fetch(`${apiBase}/api/events`).then(r => r.json()).then(data => {
       if (cancelled) return;
       setEventHubEvents(Array.isArray(data) ? data : []);
@@ -155,6 +180,19 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
       } catch {}
     }
     if (!username || !password) { setPreviewLoading(false); setPreviewError("VTOP credentials not found. Login to view posters."); return; }
+    const isDemo = localStorage.getItem("demoMode") === "true";
+    if (isDemo) {
+      setTimeout(() => {
+        if (cancelled) return;
+        setPreviewData({
+          description: selectedEvent.eid === "evt-001"
+            ? "Build innovative products and compete for cash prizes at the annual flagship dev sprint event hosted by VIT Chennai's Coding Club."
+            : "Hands-on calibration workshop for micro-controllers and servo engines to build autonomous soccer robots.",
+        });
+        setPreviewLoading(false);
+      }, 100);
+      return;
+    }
     fetch(`${apiBase}/api/events/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

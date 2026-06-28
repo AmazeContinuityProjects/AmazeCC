@@ -261,6 +261,13 @@ export default function EventHubSubpage({
                               onClick={async () => {
                                 const linkToPay = registrationDetails.payNowLink || `/EventHub/showPaymentTC/${registrationDetails.orderId}/`;
                                 setIsRegistering(true);
+                                if (IDs?.VtopUsername === "demo") {
+                                  await new Promise(resolve => setTimeout(resolve, 650));
+                                  setModalContent({ title: "Payment Successful", message: "Mock transaction of ₹150 processed successfully through offline sandbox!" });
+                                  setModalOpen(true);
+                                  setIsRegistering(false);
+                                  return;
+                                }
                                 try {
                                   const res = await fetch(`${API_BASE}/api/events/paynow`, {
                                     method: "POST",

@@ -16,6 +16,7 @@ import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
+import { X, Keyboard } from "lucide-react";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
@@ -111,7 +112,7 @@ export default function LoginPage() {
   const [Calender, setCalender] = useState<object>({});
   const [activeDay, setActiveDay] = useState<string>("");
   const [isReloading, setIsReloading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("attendance");
+  const [activeTab, setActiveTab] = useState<string>("home");
   const [attendancePercentage, setattendancePercentage] = useState<object>({});
   const [ODhoursData, setODhoursData] = useState<object>({});
   const [ODhoursIsOpen, setODhoursIsOpen] = useState<boolean>(false);
@@ -123,6 +124,7 @@ export default function LoginPage() {
   const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
   const [activeQBankSubTab, setActiveQBankSubTab] = useState<string>("archive");
   const [activeMoreSubTab, setActiveMoreSubTab] = useState<string>("social");
+  const [activeProfileSubTab, setActiveProfileSubTab] = useState<string>("info");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [progressBar, setProgressBar] = useState<number>(0);
   const [moodleData, setMoodleData] = useState([]);
@@ -134,6 +136,7 @@ export default function LoginPage() {
   const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
   const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [kohaBooks, setKohaBooks] = useState<any[]>([]);
   const [kohaLoading, setKohaLoading] = useState(false);
@@ -141,10 +144,6 @@ export default function LoginPage() {
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     setActiveDay(day);
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setActiveTab("home");
-    }
-
     const checkAPIStatus = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/status`);
@@ -289,11 +288,27 @@ export default function LoginPage() {
         ...parsedSettings
       });
     }
-    setIsLoggedIn((storedUsername && storedPassword) || (JSON.parse(IDs)?.VtopUsername && JSON.parse(IDs)?.VtopPassword) ? true : false);
+    const isDemoStored = localStorage.getItem("demoMode") === "true";
+    if (isDemoStored) {
+      setDemoMode(true);
+      setIsLoggedIn(true);
+    } else {
+      let hasVtop = false;
+      try {
+        const parsedIDs = IDs ? JSON.parse(IDs) : null;
+        if (parsedIDs?.VtopUsername && parsedIDs?.VtopPassword) {
+          hasVtop = true;
+        }
+      } catch (e) {}
+      setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
+    }
     setTimeout(() => setIsLoading(false), 300);
   }, []);
 
   const loginToVTOP = async (retry = false, forceNew = false) => {
+    if (demoMode || IDs.VtopUsername === "demo") {
+      return { cookies: [], authorizedID: "DEMO123", csrf: "" };
+    }
     if (cachedVTOPCredentials && !forceNew && !retry) return cachedVTOPCredentials;
     if (globalLoginPromise) return globalLoginPromise;
     globalLoginPromise = (async () => {
@@ -337,7 +352,9 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
-    if (demoMode) {
+    if (demoMode || IDs.VtopUsername === "demo") {
+      setDemoMode(true);
+      localStorage.setItem("demoMode", "true");
       setIsReloading(true);
       setProgressBar(10);
       setMessage("Initializing Demo environment...");
@@ -997,6 +1014,7 @@ export default function LoginPage() {
 
   const handleDemoClick = () => {
     setDemoMode(true);
+    localStorage.setItem("demoMode", "true");
     setIDs({
       VtopUsername: demoData.username,
       VtopPassword: demoData.password,
@@ -1030,14 +1048,82 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Toggle search palette (Ctrl/Cmd + K)
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // Toggle shortcuts help sheet (Shift + ? or just ?)
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsShortcutsHelpOpen(true);
+        return;
+      }
+
+      if (e.key === "Escape") {
+        setIsShortcutsHelpOpen(false);
+      }
+
+      // Ignore shortcuts if typing inside inputs/textareas
+      const activeEl = document.activeElement;
+      if (activeEl && (
+        activeEl.tagName === "INPUT" || 
+        activeEl.tagName === "TEXTAREA" || 
+        activeEl.getAttribute("contenteditable") === "true"
+      )) {
+        return;
+      }
+
+      // We only listen for Alt (Option) key combinations for global actions
+      if (e.altKey) {
+        const key = e.key.toLowerCase();
+        
+        // Navigation Shortcuts
+        if (key === "h") {
+          e.preventDefault();
+          setActiveTab("home");
+        } else if (key === "a") {
+          e.preventDefault();
+          setActiveTab("attendance");
+        } else if (key === "e") {
+          e.preventDefault();
+          setActiveTab("more");
+          setActiveMoreSubTab("events");
+        } else if (key === "l") {
+          e.preventDefault();
+          setActiveTab("libraries");
+        } else if (key === "g") {
+          e.preventDefault();
+          setActiveTab("academics");
+          setActiveSubTab("grades");
+        } else if (key === "s") {
+          e.preventDefault();
+          setActiveTab("profile");
+          setActiveProfileSubTab("settings");
+        } 
+        
+        // Modal & Action Shortcuts
+        else if (key === "o") {
+          e.preventDefault();
+          setODhoursIsOpen(prev => !prev);
+        } else if (key === "b") {
+          e.preventDefault();
+          setSettings(prev => {
+            const nextVal = !prev.CGPAHidden;
+            localStorage.setItem("settings", JSON.stringify({ ...prev, CGPAHidden: nextVal }));
+            return { ...prev, CGPAHidden: nextVal };
+          });
+        } else if (key === "t") {
+          e.preventDefault();
+          setTheme(theme === "dark" ? "light" : "dark");
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [theme, setTheme, settings, setSettings, setActiveTab, setActiveMoreSubTab, setActiveSubTab, setActiveProfileSubTab, setODhoursIsOpen]);
 
   // ── Dynamic palette search (KOHA catalog via "koha" prefix) ──
   useEffect(() => {
@@ -1048,6 +1134,18 @@ export default function LoginPage() {
     const searchTerm = paletteQuery.slice(kohaIdx + 4).trim().replace(/^[:;,\-\s]+/, "");
     if (!searchTerm) { setKohaBooks([]); setKohaLoading(true); return; }
     setKohaLoading(true);
+    if (demoMode || IDs.VtopUsername === "demo") {
+      setTimeout(() => {
+        const mockResults = [
+          { title: "Introduction to Algorithms", author: "Cormen, Leiserson, Rivest, Stein", availability: "Available (4 copies)" },
+          { title: "Computer Networking: A Top-Down Approach", author: "Kurose, Ross", availability: "Reference Only (1 copy)" },
+          { title: "Design Patterns: Elements of Reusable Object-Oriented Software", author: "Gamma, Helm, Johnson, Vlissides", availability: "Checked Out (Due 2026-07-10)" }
+        ].filter(book => book.title.toLowerCase().includes(searchTerm.toLowerCase()) || book.author.toLowerCase().includes(searchTerm.toLowerCase()));
+        setKohaBooks(mockResults);
+        setKohaLoading(false);
+      }, 150);
+      return;
+    }
     const controller = new AbortController();
     fetch(`${API_BASE}/api/koha/search?q=${encodeURIComponent(searchTerm)}&count=10`, { signal: controller.signal })
       .then(r => r.json())
@@ -2319,6 +2417,8 @@ export default function LoginPage() {
             setActiveQBankSubTab={setActiveQBankSubTab}
             activeMoreSubTab={activeMoreSubTab}
             setActiveMoreSubTab={setActiveMoreSubTab}
+            activeProfileSubTab={activeProfileSubTab}
+            setActiveProfileSubTab={setActiveProfileSubTab}
             calendarData={Calender}
             setCalender={setCalender}
             setIsReloading={setIsReloading}
@@ -2341,6 +2441,7 @@ export default function LoginPage() {
             settings={settings}
             setSettings={setSettings}
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+            onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
           />
         </>
       )}
@@ -2359,7 +2460,86 @@ export default function LoginPage() {
         commands={mergedCommands}
         onQueryChange={setPaletteQuery}
       />
+      {isShortcutsHelpOpen && (
+        <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
+      )}
     </motion.div>
+  );
+}
+
+function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
+  const categories = [
+    {
+      title: "Navigation",
+      items: [
+        { keys: ["Alt", "H"], desc: "Go to Home Tab" },
+        { keys: ["Alt", "A"], desc: "Go to Attendance & Timetable" },
+        { keys: ["Alt", "E"], desc: "Go to Event Hub" },
+        { keys: ["Alt", "L"], desc: "Go to Koha Library Search" },
+        { keys: ["Alt", "G"], desc: "Go to Academic Grades" },
+        { keys: ["Alt", "S"], desc: "Go to Settings" },
+      ]
+    },
+    {
+      title: "Quick Tools & Actions",
+      items: [
+        { keys: ["Ctrl", "K"], desc: "Toggle Spotlight Command Palette" },
+        { keys: ["Alt", "O"], desc: "Toggle On-Duty (OD) hours popup planner" },
+        { keys: ["Alt", "B"], desc: "Toggle privacy blur filter (hides GPA)" },
+        { keys: ["Alt", "T"], desc: "Toggle Theme (Light / Dark mode)" },
+        { keys: ["?"], desc: "Show this keyboard shortcuts cheat-sheet" },
+      ]
+    }
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs pointer-events-auto">
+      <div className="bg-white dark:bg-slate-950 rounded-2xl border border-gray-250 dark:border-gray-800 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-scaleIn">
+        <div className="p-4.5 border-b border-gray-150 dark:border-gray-800/80 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/30">
+          <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
+          </h3>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-900 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-5 overflow-y-auto max-h-[75vh] space-y-5">
+          {categories.map((cat, idx) => (
+            <div key={idx} className="space-y-2">
+              <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{cat.title}</h4>
+              <div className="divide-y divide-gray-100 dark:divide-gray-850/40 border border-gray-150 dark:border-gray-800/80 rounded-xl overflow-hidden bg-white/40 dark:bg-slate-900/10">
+                {cat.items.map((item, iIdx) => (
+                  <div key={iIdx} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">{item.desc}</span>
+                    <div className="flex items-center gap-1">
+                      {item.keys.map((k, kIdx) => (
+                        <span key={kIdx} className="flex items-center gap-1">
+                          {kIdx > 0 && <span className="text-[10px] text-gray-400 font-bold px-0.5">+</span>}
+                          <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md font-mono text-[10px] font-bold text-gray-800 dark:text-gray-200 shadow-xs">
+                            {k}
+                          </kbd>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="p-3.5 border-t border-gray-150 dark:border-gray-800/80 bg-gray-50/50 dark:bg-slate-900/30 text-right">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+          >
+            Got it, thanks!
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

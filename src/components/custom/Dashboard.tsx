@@ -70,6 +70,10 @@ import ChangelogModal from "./ChangelogModal";
 import FresherWelcomePage, { hasFutureExam } from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
 import GenericApiView from "./Exams/GenericApiView";
+import Modal from "./shared/Modal";
+import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
+import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
+import { useMemo } from "react";
 
 export default function DashboardContent({
   demoMode = false,
@@ -103,6 +107,8 @@ export default function DashboardContent({
   setActiveQBankSubTab,
   activeMoreSubTab,
   setActiveMoreSubTab,
+  activeProfileSubTab,
+  setActiveProfileSubTab,
   calendarData,
   setCalender,
   setIsReloading,
@@ -124,12 +130,18 @@ export default function DashboardContent({
   setVitolData,
   settings,
   setSettings,
-  onOpenCommandPalette
+  onOpenCommandPalette,
+  onOpenShortcutsHelp
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
   const [fresherAckData, setFresherAckData] = useState<any>(null);
   const [fresherResources, setFresherResources] = useState<any[]>([]);
+
+  const results = useMemo(() => {
+    const analysis = analyzeAllCalendars(calendarData?.calendars);
+    return analysis?.results || [];
+  }, [calendarData]);
 
   useEffect(() => {
     if (demoMode) {
@@ -164,7 +176,6 @@ export default function DashboardContent({
   const [isSubpageOpen, setIsSubpageOpen] = useState(false);
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
-  const [activeProfileSubTab, setActiveProfileSubTab] = useState("info");
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
   const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
@@ -233,7 +244,7 @@ export default function DashboardContent({
     setTransportLoading(false);
   }, []);
 
-  const tabsOrder = ["attendance", "academics", "payments", "libraries", "more", "profile"];
+  const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
   
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -630,9 +641,19 @@ export default function DashboardContent({
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <ChangelogModal />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
+        {ODhoursIsOpen && (
+          <Modal onClose={() => setODhoursIsOpen(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
+            <ODTrackerSubpage
+              ODhoursData={ODhoursData}
+              attendanceData={attendanceData?.attendance}
+              analyzeCalendars={results}
+              onBack={() => setODhoursIsOpen(false)}
+            />
+          </Modal>
+        )}
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "home" && (
-            <div className="md:hidden">
+            <div>
               <MobileHome
                 attendanceData={attendanceData}
                 marksData={marksData}
@@ -640,6 +661,7 @@ export default function DashboardContent({
                 registeredEvents={registeredEvents}
                 moodleData={moodleData}
                 settings={settings}
+                setSettings={setSettings}
                 IDs={IDs}
                 setActiveTab={setActiveTab}
                 setActiveSubTab={setActiveSubTab}
@@ -648,6 +670,7 @@ export default function DashboardContent({
                 setActiveMoreSubTab={setActiveMoreSubTab}
                 handleReloadRequest={handleReloadRequest}
                 onOpenCommandPalette={onOpenCommandPalette}
+                profileData={profileData}
               />
             </div>
           )}
@@ -774,25 +797,79 @@ export default function DashboardContent({
             </div>
           )}
 
-          {activeTab === "academics" && marksData && (
+          {activeTab === "academics" && (
             <div className="animate-fadeIn">
-              {activeSubTab === "overview" && <AcademicsHub 
-                setActiveSubTab={setActiveSubTab} 
-                data={allGradesData} 
-                marksData={marksData} 
-                gradesData={GradesData} 
-                attendance={attendanceData.attendance} 
-                hideMobileHeader={settings.hideMobileHeader} 
-                handleFetchGrades={handleAllGradesFetch} 
-              />}
-              {activeSubTab === "course-dashboard" && <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />}
-              {activeSubTab === "grades" && <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />}
-              {activeSubTab === "curriculum" && <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />}
-              {activeSubTab === "predictor" && <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />}
+              {activeSubTab === "overview" && (
+                marksData ? (
+                  <AcademicsHub 
+                    setActiveSubTab={setActiveSubTab} 
+                    data={allGradesData} 
+                    marksData={marksData} 
+                    gradesData={GradesData} 
+                    attendance={attendanceData.attendance} 
+                    hideMobileHeader={settings.hideMobileHeader} 
+                    handleFetchGrades={handleAllGradesFetch} 
+                  />
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
+              )}
+              {activeSubTab === "course-dashboard" && (
+                marksData ? (
+                  <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
+              )}
+              {activeSubTab === "grades" && (
+                marksData ? (
+                  <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
+              )}
+              {activeSubTab === "curriculum" && (
+                marksData ? (
+                  <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
+              )}
+              {activeSubTab === "predictor" && (
+                marksData ? (
+                  <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
+              )}
               {activeSubTab === "qbank" && (
-                <div className="animate-fadeIn">
-                  <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
-                </div>
+                marksData ? (
+                  <div className="animate-fadeIn">
+                    <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
+                  </div>
+                ) : (
+                  <div className="space-y-4 p-4">
+                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                  </div>
+                )
               )}
               {activeSubTab === "arrear" && (
                 <ArrearTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
@@ -833,6 +910,9 @@ export default function DashboardContent({
               )}
               {HostelActiveSubTab === "leave" && (
                 <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+              )}
+              {HostelActiveSubTab === "payment" && (
+                <PaymentsTab loginToVTOP={loginToVTOP} />
               )}
               {HostelActiveSubTab === "counselling" && (
                 <div className="space-y-4">
@@ -890,6 +970,7 @@ export default function DashboardContent({
           {activeTab === "profile" && (
             <div className="animate-fadeIn">
               <ProfileTab
+                onOpenShortcutsHelp={onOpenShortcutsHelp}
                 activeProfileSubTab={activeProfileSubTab}
                 setActiveProfileSubTab={setActiveProfileSubTab}
                 isLoggedIn={true}
@@ -961,4 +1042,3 @@ export default function DashboardContent({
     </div>
   );
 }
-

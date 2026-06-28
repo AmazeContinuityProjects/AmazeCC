@@ -78,50 +78,49 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40  p-4">
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative"
+                <motion.div 
+                    initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 30, scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="fixed bottom-24 md:bottom-6 right-4 left-4 md:left-auto md:w-[350px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] pointer-events-auto"
+                >
+                    <button 
+                        onClick={handleClose}
+                        className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 dark:bg-gray-900 rounded-full transition-colors cursor-pointer"
                     >
+                        <X size={14} />
+                    </button>
+                    
+                    <div className="flex gap-3.5 mt-1">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                            <Bell size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">
+                                Never Miss a Class!
+                            </h3>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 leading-normal">
+                                AmazeCC can send you push notifications for your weekly VITOL classes directly to this device.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4">
+                        <button 
+                            onClick={handleEnable}
+                            className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                        >
+                            Enable Alerts
+                        </button>
                         <button 
                             onClick={handleClose}
-                            className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200  dark:hover:bg-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            className="flex-1 py-2 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                         >
-                            <X size={16} />
+                            Maybe Later
                         </button>
-                        
-                        <div className="flex justify-center mb-4 mt-2">
-                            <div className="w-12 h-12 rounded-full bg-blue-100  dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                <Bell size={24} />
-                            </div>
-                        </div>
-
-                        <h3 className="text-xl font-bold text-center text-gray-900  dark:text-gray-100 mb-2">
-                            Never Miss a Class!
-                        </h3>
-                        
-                        <p className="text-sm text-center text-gray-600  dark:text-gray-400 mb-6">
-                            AmazeCC can now send you push notifications for your weekly VITOL classes directly to your device. Would you like to enable this?
-                        </p>
-
-                        <div className="flex flex-col gap-2">
-                            <button 
-                                onClick={handleEnable}
-                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-colors"
-                            >
-                                Enable Notifications
-                            </button>
-                            <button 
-                                onClick={handleClose}
-                                className="w-full py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-900 font-medium rounded-lg transition-colors"
-                            >
-                                Maybe Later
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
+                    </div>
+                </motion.div>
             )}
         </AnimatePresence>
     );

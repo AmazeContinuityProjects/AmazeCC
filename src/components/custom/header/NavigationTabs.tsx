@@ -161,6 +161,44 @@ export default function NavigationTabs({
     };
   }, []);
 
+  // Swipe up gesture from bottom of screen to open App Library (Modules)
+  useEffect(() => {
+    let startY = 0;
+    let startX = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      startY = touch.clientY;
+      startX = touch.clientX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!startY || !startX) return;
+
+      const touch = e.changedTouches[0];
+      const diffY = startY - touch.clientY;
+      const diffX = Math.abs(touch.clientX - startX);
+
+      // Swipe up of at least 65px, starting from bottom 22% of the viewport (near the bottom capsule/dock)
+      if (diffY > 65 && diffX < 40 && startY > window.innerHeight * 0.78) {
+        setIsAppLibraryOpen(true);
+        setMobilePanel("primary");
+      }
+      
+      startY = 0;
+      startX = 0;
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [setIsAppLibraryOpen]);
+
+
   // Update expandedGroup and subpanels when activeTab changes
   useEffect(() => {
     if (activeTab === "academics") {
@@ -174,7 +212,7 @@ export default function NavigationTabs({
     } else {
       setShowAcademicsPanel(false);
       setShowHostelPanel(false);
-      if (activeTab === "attendance") {
+      if (activeTab === "home" || activeTab === "attendance") {
         setExpandedGroup("study");
       } else if (["payments", "libraries", "dayscholar"].includes(activeTab)) {
         setExpandedGroup("campus");
@@ -286,6 +324,13 @@ export default function NavigationTabs({
 
   // Navigation Items Memoization
   const studyItems = useMemo<NavItem[]>(() => [
+    {
+      id: "home",
+      label: "Home",
+      icon: Home,
+      isActive: activeTab === "home",
+      onSelect: () => selectTab("home"),
+    },
     {
       id: "attendance",
       label: "Attendance",
@@ -631,7 +676,6 @@ export default function NavigationTabs({
       { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
       
       { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-      { label: "Preferences", group: "Account", icon: Settings, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
       { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
       { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
     ];
@@ -668,7 +712,6 @@ export default function NavigationTabs({
         name: "Account",
         items: [
           { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-          { label: "Preferences", icon: Settings, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
           { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
           { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
         ]
@@ -687,7 +730,7 @@ export default function NavigationTabs({
       <>
         {/* Floating Action Capsule (FAC) */}
         <div
-          className="fixed left-1/2 z-[50] flex w-[min(24rem,calc(100vw-1.5rem))] -translate-x-1/2 items-center justify-between gap-1 rounded-[1.75rem] border border-white/10 bg-gray-950/92 px-2 py-2 shadow-[0_18px_50px_rgba(15,23,42,0.35)] backdrop-blur-xl md:hidden dark:bg-black/92"
+          className="fixed left-1/2 z-[50] flex w-[min(24rem,calc(100vw-1.5rem))] -translate-x-1/2 items-center justify-between gap-1 rounded-[1.75rem] border border-white/55 bg-white/65 px-2 py-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl md:hidden dark:border-white/10 dark:bg-gray-950/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
         >
           <button
@@ -697,8 +740,8 @@ export default function NavigationTabs({
             }}
             className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               activeTab === "home" && !isAppLibraryOpen 
-                ? "text-blue-400 bg-white/10 scale-105" 
-                : "text-gray-400 hover:text-white"
+                ? "bg-white/80 text-blue-600 shadow-sm dark:bg-white/10 dark:text-blue-300 scale-105" 
+                : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
             }`}
           >
             <Home className="h-5 w-5 stroke-[2]" />
@@ -707,7 +750,7 @@ export default function NavigationTabs({
           
           <button
             onClick={openCommandPalette}
-            className="flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold text-gray-400 transition-all hover:bg-white/5 hover:text-white"
+            className="flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold text-gray-500 transition-all hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
           >
             <Search className="h-5 w-5 stroke-[2]" />
             <span className="mt-0.5">Search</span>
@@ -720,10 +763,10 @@ export default function NavigationTabs({
             }}
             className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               isAppLibraryOpen 
-                ? "text-blue-400 bg-white/10 scale-105" 
+                ? "bg-white/80 text-blue-600 shadow-sm dark:bg-white/10 dark:text-blue-300 scale-105" 
                 : activeTab !== "home"
-                  ? "text-blue-400/80 hover:text-white"
-                  : "text-gray-400 hover:text-white"
+                  ? "text-blue-600/80 hover:bg-white/50 hover:text-blue-700 dark:text-blue-300/80 dark:hover:bg-white/5 dark:hover:text-white"
+                  : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
             }`}
           >
             <LayoutGrid className="h-5 w-5 stroke-[2]" />
@@ -734,14 +777,33 @@ export default function NavigationTabs({
         {/* App Library Overlay Drawer */}
         <AnimatePresence>
           {isAppLibraryOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 15 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-gray-50/98 backdrop-blur-xl md:hidden dark:bg-black/98"
-              style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            >
+            <>
+              {/* Backdrop Dimmer Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => {
+                  setIsAppLibraryOpen(false);
+                  setLibrarySearchQuery("");
+                }}
+                className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs md:hidden"
+              />
+
+              {/* Bottom Sheet Modal */}
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 220 }}
+                className="fixed bottom-0 left-0 right-0 z-[60] h-[86vh] flex flex-col overflow-hidden bg-gray-50/98 backdrop-blur-xl md:hidden dark:bg-black/98 rounded-t-[2rem] border-t border-gray-200/50 dark:border-neutral-900/60 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)]"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+              >
+                {/* Drag Handle Indicator */}
+                <div className="shrink-0 w-full flex justify-center pt-3 pb-1">
+                  <div className="w-12 h-1 bg-gray-300 dark:bg-neutral-800 rounded-full" />
+                </div>
+
               {/* Drawer Header */}
               <div className="shrink-0 border-b border-gray-200/50 px-5 pb-4 pt-5 dark:border-gray-800/50">
                 <div className="flex items-center justify-between gap-3">
@@ -797,7 +859,7 @@ export default function NavigationTabs({
               )}
 
               {/* Drawer Grid Modules */}
-              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4 pb-6">
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4 pb-36">
                 {librarySearchQuery ? (
                   // Flat search matches
                   filteredSearchItems.length === 0 ? (
@@ -955,6 +1017,7 @@ export default function NavigationTabs({
               </div>
 
             </motion.div>
+            </>
           )}
         </AnimatePresence>
       </>
@@ -1032,7 +1095,7 @@ export default function NavigationTabs({
                       title="Click to show/hide CGPA"
                     >
                       <span className="text-sidebar-foreground/">CGPA</span>
-                      <span className="font-semibold text-sidebar-foreground">{settings.CGPAHidden ? "###" : marksData?.cgpa?.cgpa || "-"}</span>
+                      <span className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}>{marksData?.cgpa?.cgpa || "-"}</span>
                     </button>
 
                     <button
@@ -1134,7 +1197,7 @@ export default function NavigationTabs({
                         <div className="space-y-0.5 pt-0.5 pb-1">
                           {group.items.map((item) => {
                             const ItemIcon = item.icon;
-                            const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs animate-pulse";
+                            const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
                             const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                             return (
                               <button
@@ -1274,7 +1337,7 @@ export default function NavigationTabs({
               {groups.map(group => {
                 const GroupIcon = group.icon;
                 const isActive = group.id === "study"
-                  ? activeTab === "attendance" || activeTab === "academics"
+                  ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
                   : group.id === "campus"
                   ? ["payments", "libraries", "hostel", "dayscholar"].includes(activeTab)
                   : group.id === "tools"
