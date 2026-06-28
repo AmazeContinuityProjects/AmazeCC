@@ -738,8 +738,8 @@ export default function DashboardContent({
                               <MapPin className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">{ev.venue}</span>
                             </span>
-                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${ev.paymentStatus.toLowerCase().includes('paid') || ev.paymentStatus.toLowerCase().includes('free') ? 'bg-green-100 text-green-700   dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700   dark:bg-red-900/20 dark:text-red-400'}`}>
-                              {ev.paymentStatus}
+                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${(ev.paymentStatus || "").toLowerCase().includes('paid') || (ev.paymentStatus || "").toLowerCase().includes('free') ? 'bg-green-100 text-green-700   dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700   dark:bg-red-900/20 dark:text-red-400'}`}>
+                              {ev.paymentStatus || "Registered"}
                             </span>
                           </div>
                         </div>

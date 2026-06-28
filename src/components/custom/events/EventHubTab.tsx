@@ -396,13 +396,13 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
                 </div>
                 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {event.registeredDetails ? (
+                   {event.registeredDetails ? (
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      event.registeredDetails.paymentStatus.toLowerCase().includes('paid') || event.registeredDetails.paymentStatus.toLowerCase().includes('free')
+                      (event.registeredDetails.paymentStatus || "").toLowerCase().includes('paid') || (event.registeredDetails.paymentStatus || "").toLowerCase().includes('free')
                         ? 'bg-green-100 text-green-800   dark:bg-green-900/40 dark:text-green-300'
                         : 'bg-orange-100 text-orange-800   dark:bg-orange-900/40 dark:text-orange-300'
                     }`}>
-                      {event.registeredDetails.paymentStatus}
+                      {event.registeredDetails.paymentStatus || "Registered"}
                     </span>
                   ) : null}
                   {event.eligibility && (
