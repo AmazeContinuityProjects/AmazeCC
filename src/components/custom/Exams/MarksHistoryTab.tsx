@@ -219,13 +219,27 @@ export default function MarksHistoryTab({ data }) {
                 {isOpen && (
                   <div className="border-t border-gray-100 p-4  dark:border-gray-800">
                     {course.details && course.details.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                        {course.details.map((detail: any, dIdx: number) => (
-                          <div key={dIdx} className="rounded-xl border border-gray-200 bg-gray-50/70 p-2 text-center dark:border-gray-800  dark:bg-slate-800">
-                            <p className="mb-1 line-clamp-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500  dark:text-gray-400">{detail.component}</p>
-                            <p className="text-sm font-bold text-gray-800  dark:text-gray-100">{detail.scoredMark} <span className="text-xs font-normal text-gray-400">/ {detail.maxMark}</span></p>
-                          </div>
-                        ))}
+                      <div className="space-y-4">
+                        {(() => {
+                           const types = Array.from(new Set(course.details.map((d: any) => d.type || 'Theory')));
+                           const showLabels = types.length > 1;
+                           return types.map((typeLabel: any) => {
+                             const typeDetails = course.details.filter((d: any) => (d.type || 'Theory') === typeLabel);
+                             return (
+                               <div key={typeLabel}>
+                                 {showLabels && <h5 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-500">{typeLabel}</h5>}
+                                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                   {typeDetails.map((detail: any, dIdx: number) => (
+                                     <div key={dIdx} className="rounded-xl border border-gray-200 bg-gray-50/70 p-2 text-center dark:border-gray-800  dark:bg-slate-800">
+                                       <p className="mb-1 line-clamp-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500  dark:text-gray-400" title={detail.component}>{detail.component}</p>
+                                       <p className="text-sm font-bold text-gray-800  dark:text-gray-100">{detail.scoredMark} <span className="text-xs font-normal text-gray-400">/ {detail.maxMark}</span></p>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </div>
+                             );
+                           });
+                        })()}
                       </div>
                     )}
                 

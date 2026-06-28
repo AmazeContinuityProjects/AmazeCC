@@ -8,7 +8,7 @@ import ExpandableSection from "../shared/ExpandableSection";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
-  ChevronLeft, FileText, Calendar, Calendar as CalendarIcon,
+  ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
   Building2, AlertCircle, Star, Grid3x3, List, CheckCircle2,
   FileText as FileTextIcon
 } from "lucide-react";
@@ -281,6 +281,10 @@ export default function CourseDashboard({
   const [error, setError] = useState<string | null>(null);
   const [allStats, setAllStats] = useState<Record<string, any>>({});
   const [embeddedScope, setEmbeddedScope] = useState<"theory" | "lab">("theory");
+
+  const [qcmData, setQcmData] = useState<any>(null);
+  const [qcmLoading, setQcmLoading] = useState(false);
+  const [qcmError, setQcmError] = useState("");
 
   // Attendance tab state
   const [attFilter, setAttFilter] = useState("All");
@@ -601,7 +605,9 @@ export default function CourseDashboard({
   };
 
   const resolveFacultyForComp = async (comp: any) => {
-    if (comp.faculty && comp.faculty.trim() !== "") return comp.faculty;
+    // If it already looks like a valid VTOP faculty ID string (e.g. "12345 - NAME" or "12345-NAME")
+    if (comp.faculty && /^\w+\s*-/.test(comp.faculty.trim())) return comp.faculty;
+    
     try {
       const r = await fetch(`${API_BASE}/api/course-page`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -616,7 +622,13 @@ export default function CourseDashboard({
       });
       const d = await r.json();
       if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
-        comp.faculty = d.results.selectOptions.faculty[1].value;
+        const options = d.results.selectOptions.faculty.slice(1);
+        let selectedOpt = options[0];
+        if (comp.faculty && comp.faculty.trim() !== "") {
+          const match = options.find((opt: any) => opt.text.toLowerCase().includes(comp.faculty.toLowerCase()));
+          if (match) selectedOpt = match;
+        }
+        comp.faculty = selectedOpt.value;
         return comp.faculty;
       }
     } catch (e) { console.error(e); }
@@ -674,7 +686,83 @@ export default function CourseDashboard({
     finally { setViewLoading(false); }
   };
 
-  useEffect(() => { if (selectedCode) { setCoursePlan(null); setViewDetail(null); setInnerTab("overview"); fetchCoursePlan(); } }, [selectedCode]);
+  useEffect(() => { 
+    if (selectedCode) { 
+      setCoursePlan(null); 
+      setViewDetail(null); 
+      setQcmError(""); 
+      setInnerTab("overview"); 
+      fetchCoursePlan(); 
+
+      const cached = localStorage.getItem("qcmData");
+      if (cached) {
+         try {
+           const d = JSON.parse(cached);
+           let courseQcmTables: any[] = [];
+           for (const [key, sem] of Object.entries(d)) {
+              if ((sem as any).tables) {
+                for (const table of (sem as any).tables) {
+                   const matchingRows = table.rows.filter((row: any) => {
+                     return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
+                   });
+                   if (matchingRows.length > 0) {
+                     courseQcmTables.push({
+                       caption: table.caption,
+                       headers: table.headers,
+                       rows: matchingRows
+                     });
+                   }
+                }
+              }
+           }
+           setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
+         } catch (e) {
+           setQcmData(null);
+         }
+      } else {
+         setQcmData(null);
+      }
+    } 
+  }, [selectedCode]);
+
+  const fetchQcmForCourse = async () => {
+    if (!selectedGroup || !creds) return;
+    setQcmLoading(true); setQcmError("");
+    try {
+      const semId = selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || "");
+      const res = await fetch(`${API_BASE}/api/qcm-view`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId }),
+      });
+      const d = await res.json();
+      if (d.success && d.data) {
+        let courseQcmTables = [];
+        for (const [key, sem] of Object.entries(d.data)) {
+           if ((sem as any).tables) {
+             for (const table of (sem as any).tables) {
+                const matchingRows = table.rows.filter((row: any) => {
+                  return Object.values(row).some((val: any) => typeof val === "string" && val.includes(selectedCode));
+                });
+                if (matchingRows.length > 0) {
+                  courseQcmTables.push({
+                    caption: table.caption,
+                    headers: table.headers,
+                    rows: matchingRows
+                  });
+                }
+             }
+           }
+        }
+        setQcmData(courseQcmTables.length > 0 ? courseQcmTables : []);
+      } else {
+        setQcmError(d.error || "Failed to fetch QCM data");
+      }
+    } catch (e: any) {
+      setQcmError(e.message);
+    } finally {
+      setQcmLoading(false);
+    }
+  };
 
   const handleSelectCourse = (code: string) => setSelectedCode(code);
   const handleSelectCourseTab = (code: string, tab: string) => {
@@ -1158,6 +1246,75 @@ export default function CourseDashboard({
                 </div>
               ) : <p className="text-sm text-gray-400  dark:text-gray-500">No marks data</p>}
             </div>
+          </Card>
+          <Card className="md:col-span-2">
+             <div className="p-5">
+               <div className="flex items-center justify-between mb-4">
+                 <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Quality Circle Meeting (QCM)</h4>
+                 {!qcmData && (
+                   <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
+                     {qcmLoading ? "Loading..." : "Load QCM Data"}
+                   </button>
+                 )}
+               </div>
+               
+               {qcmError && <p className="text-sm text-red-500">{qcmError}</p>}
+               
+               {qcmData && qcmData.length === 0 && (
+                 <p className="text-sm text-gray-500">No QCM data found for {selectedCode} in this semester.</p>
+               )}
+
+               {qcmData && qcmData.length > 0 && (
+                 <div className="space-y-4">
+                   {qcmData.map((table: any, ti: number) => (
+                      <div key={ti} className="space-y-4">
+                        {table.caption && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">{table.caption}</p>}
+                        {table.rows.map((row: any, ri: number) => {
+                          const findCol = (keywords: string[]) => {
+                             const key = Object.keys(row).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+                             return key ? row[key] : null;
+                          };
+                          
+                          const qcmNo = findCol(["qcm no", "qcm"]);
+                          const action = findCol(["action"]);
+                          const suggestions = findCol(["suggestion", "feedback", "remarks"]);
+                          const facultyReply = findCol(["faculty reply", "faculty comment"]);
+                          const hodComments = findCol(["hod comment", "hod reply", "hod"]);
+                          
+                          return (
+                            <div key={ri} className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
+                               <div className="flex justify-between items-center mb-3">
+                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
+                                  {action && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 uppercase">{action}</span>}
+                               </div>
+                               <div className="space-y-3">
+                                  {suggestions && (
+                                     <div>
+                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Suggestions / Feedback</p>
+                                        <p className="text-sm text-gray-800 dark:text-gray-200">{suggestions}</p>
+                                     </div>
+                                  )}
+                                  {facultyReply && (
+                                     <div className="pl-3 border-l-2 border-emerald-200 dark:border-emerald-900/50">
+                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Faculty Reply</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">{facultyReply}</p>
+                                     </div>
+                                  )}
+                                  {hodComments && (
+                                     <div className="pl-3 border-l-2 border-purple-200 dark:border-purple-900/50">
+                                        <p className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-0.5">HOD Comments</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">{hodComments}</p>
+                                     </div>
+                                  )}
+                               </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                   ))}
+                 </div>
+               )}
+             </div>
           </Card>
           <Card className="md:col-span-2">
             <div className="p-5">
