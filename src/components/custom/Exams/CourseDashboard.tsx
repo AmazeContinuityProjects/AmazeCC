@@ -285,6 +285,7 @@ export default function CourseDashboard({
   const [qcmData, setQcmData] = useState<any>(null);
   const [qcmLoading, setQcmLoading] = useState(false);
   const [qcmError, setQcmError] = useState("");
+  const [arrearsCourses, setArrearsCourses] = useState<Set<string>>(new Set());
 
   // Attendance tab state
   const [attFilter, setAttFilter] = useState("All");
@@ -294,6 +295,32 @@ export default function CourseDashboard({
 
   useEffect(() => {
     loginToVTOP().then(c => { credsRef.current = c; setCreds(c); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    try {
+      const savedTracker = localStorage.getItem("notesTracker");
+      if (savedTracker) setNotesTracker(JSON.parse(savedTracker));
+    } catch {}
+
+    try {
+      const raw = localStorage.getItem("cache_arrear-details");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.tables) {
+          const codes = new Set<string>();
+          parsed.tables.forEach((table: any) => {
+            const hIdx = table.headers?.findIndex((h: string) => h.toLowerCase().includes("course code"));
+            if (hIdx !== -1 && table.rows) {
+              table.rows.forEach((r: any[]) => {
+                if (r[hIdx]) codes.add(r[hIdx].replace(/\s*\([LPT]\)$/i, "").trim());
+              });
+            }
+          });
+          setArrearsCourses(codes);
+        }
+      }
+    } catch (e) {}
   }, []);
 
   useEffect(() => {
@@ -1017,7 +1044,14 @@ export default function CourseDashboard({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-gray-900  dark:text-gray-100">{group.courseCode}</p>
+                          <p className="text-sm font-black text-gray-900  dark:text-gray-100 flex items-center gap-2">
+                            {group.courseCode}
+                            {arrearsCourses.has(group.courseCode) && (
+                              <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300 uppercase">
+                                Arrear
+                              </span>
+                            )}
+                          </p>
                           <h3 className="mt-0.5 line-clamp-2 text-base font-bold leading-tight text-gray-700  dark:text-gray-300">{group.courseTitle}</h3>
                         </div>
                         <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusTone}`}>

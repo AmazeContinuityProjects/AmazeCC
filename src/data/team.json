@@ -1,0 +1,72 @@
+{
+  "committees": [
+    {
+      "id": "steering",
+      "name": "Steering Committee",
+      "description": "The leadership driving Amaze Continuity Projects.",
+      "order": 1,
+      "members": [
+        {
+          "name": "Sugeeth Jayaraj",
+          "role": "Overall Head",
+          "avatar": "",
+          "github": "SugeethJSA",
+          "linkedin": "",
+          "order": 1
+        },
+        {
+          "name": "Dhivyan Jeshua",
+          "role": "Technical Director",
+          "avatar": "",
+          "github": "",
+          "linkedin": "",
+          "order": 2
+        },
+        {
+          "name": "Joshua Franklin",
+          "role": "Non-technical Director",
+          "avatar": "",
+          "github": "",
+          "linkedin": "",
+          "order": 3
+        },
+        {
+          "name": "Advisors",
+          "role": "Advisors on the steering committee",
+          "avatar": "",
+          "github": "",
+          "linkedin": "",
+          "order": 4
+        }
+      ]
+    },
+    {
+      "id": "technical",
+      "name": "Technical Department",
+      "description": "The engineers and developers behind the codebase.",
+      "order": 2,
+      "members": []
+    },
+    {
+      "id": "non-technical",
+      "name": "Non-Technical Department",
+      "description": "Designers, managers, and operational leads.",
+      "order": 3,
+      "members": []
+    },
+    {
+      "id": "bug-hunters",
+      "name": "Bug Hunters",
+      "description": "Dedicated testers who keep the app stable.",
+      "order": 4,
+      "members": []
+    },
+    {
+      "id": "legacies",
+      "name": "Legacies",
+      "description": "Past contributors who helped shape the project.",
+      "order": 5,
+      "members": []
+    }
+  ]
+}

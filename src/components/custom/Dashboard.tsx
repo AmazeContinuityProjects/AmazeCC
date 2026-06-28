@@ -595,6 +595,7 @@ export default function DashboardContent({
                   const updatedGrades = JSON.parse(localStorage.getItem("allGrades") || "{}");
                   setPastSemesterData(loadFrozenPastSemesters(updatedGrades));
                 } catch (e) {}
+                setResetKey(k => k + 1);
                 setTimeout(() => setIsSpinning(false), 600);
               }}
               className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
@@ -805,7 +806,7 @@ export default function DashboardContent({
                 )
               )}
               {activeSubTab === "arrear" && (
-                <ArrearTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                <ArrearTab key={`arrear-${resetKey}`} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} allGradesData={allGradesData} />
               )}
               {activeSubTab === "makeup-compre" && (
                 <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />

@@ -25,6 +25,7 @@ interface GenericApiViewProps {
   extraParams?: Record<string, any>;
   refreshKey?: number;
   writable?: boolean;
+  allGradesData?: any;
 }
 
 const LS_PREFIX = "uni_cc_generic_";
@@ -35,7 +36,7 @@ export const clearApiCache = () => {
   keys.forEach(k => localStorage.removeItem(k));
 };
 
-export default function GenericApiView({ endpoint, title, creds, extraParams, refreshKey = 0, writable = false }: GenericApiViewProps) {
+export default function GenericApiView({ endpoint, title, creds, extraParams, refreshKey = 0, writable = false, allGradesData }: GenericApiViewProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -214,11 +215,31 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     }
   };
 
-  const semesterOptions = data?.selectOptions ? (
+  let semesterOptions = data?.selectOptions ? (
     Object.entries(data.selectOptions).find(([key, val]: any) =>
       val?.some?.((o: any) => o.value && (o.text?.toLowerCase().includes("sem") || key.toLowerCase().includes("sem")))
     )
   ) : undefined;
+
+  if (semesterOptions && allGradesData && allGradesData.grades && endpoint.includes("arrear")) {
+    const [key, val] = semesterOptions;
+    const filteredVal = (val as any[]).filter(o => {
+      if (!o.value || typeof o.value !== "string") return true;
+      const semId = o.value;
+      const sem = allGradesData.grades[semId];
+      if (!sem) return false; // Ignore if not present in allgradesdata
+      let total = 0;
+      const courses = sem.grades || sem;
+      if (Array.isArray(courses)) {
+        courses.forEach((c: any) => {
+          total += (parseFloat(c.creditsEarned) || parseFloat(c.credits) || 0);
+        });
+      }
+      if (total === 0) return false;
+      return true;
+    });
+    semesterOptions = [key, filteredVal] as any;
+  }
 
   const hasSemestersResponse = data?.semesters !== undefined;
   const semestersKeys = data?.semesters ? Object.keys(data.semesters) : [];
@@ -296,6 +317,10 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   const semesterHasContent = (semData: any) => {
     if (semData.error) return true;
+    if (endpoint.includes("arrear")) {
+      const regCreds = semData.keyValuePairs?.["Registered Credits"];
+      if (regCreds === "0.0" || regCreds === "0" || regCreds === 0) return false;
+    }
     return semData.tables?.length > 0
       || Object.keys(semData.keyValuePairs || {}).length > 0
       || !!semData.formFields
@@ -409,6 +434,26 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   const allSelectOptions = data?.selectOptions ? Object.entries(data.selectOptions).filter(([key, val]: any) => Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem")) : [];
 
+  const showArrearContent = () => {
+    if (!endpoint.includes("arrear")) return true;
+    const regCreds = data?.keyValuePairs?.["Registered Credits"];
+    if (regCreds === "0.0" || regCreds === "0" || regCreds === 0) return false;
+
+    if (allGradesData && allGradesData.grades && selectedSemester) {
+      const sem = allGradesData.grades[selectedSemester];
+      if (!sem) return false;
+      let total = 0;
+      const courses = sem.grades || sem;
+      if (Array.isArray(courses)) {
+        courses.forEach((c: any) => {
+          total += (parseFloat(c.creditsEarned) || parseFloat(c.credits) || 0);
+        });
+      }
+      if (total === 0) return false;
+    }
+    return true;
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100">{title}</h3>
@@ -463,7 +508,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
           {loading && <LoadingSpinner size="lg" className="py-8" />}
 
-          {!loading && (
+          {!loading && showArrearContent() ? (
             <>
               {renderKeyValues(data.keyValuePairs)}
               {renderTables(data.tables)}
@@ -515,7 +560,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               ) : (
                 <div className="solid-card mb-5">
                   <div className="p-5">
-                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Form Fields</h4>
+                    <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">Details</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                       {Object.entries(data.formFields).map(([key, field]: any) => (
                         <Field key={key} label={field.label || key} value={field.value || ""} />
@@ -534,7 +579,11 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               )}
             </>
-          )}
+          ) : !loading && !showArrearContent() ? (
+            <div className="solid-card mb-5">
+              <EmptyState title="No arrears registered for this semester" className="py-12" />
+            </div>
+          ) : null}
         </>
       )}
     </div>

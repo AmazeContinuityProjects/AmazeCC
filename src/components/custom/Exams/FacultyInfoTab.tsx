@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { RefreshCcw, Search, User, XCircle } from "lucide-react";
+import { RefreshCcw, Search, User, XCircle, Mail, Phone, MapPin, Badge, Building2, IdCard, Info } from "lucide-react";
 
 interface Creds {
   cookies: string[];
@@ -17,10 +17,133 @@ const CardShell = ({ children, className = "" }: { children: React.ReactNode; cl
   </div>
 );
 
+const StaffCard = ({ data }: { data: Record<string, string> }) => {
+  const getFacultyName = (data: Record<string, string>) => data['Faculty Name'] || data['Name of the Faculty'] || data['Name'] || data['name'] || data['faculty_name'] || 'N/A';
+  const getDesignation = (data: Record<string, string>) => data['Faculty Designation'] || data['Designation'] || data['designation'] || data['Post'] || data['post'] || 'N/A';
+  const getDepartment = (data: Record<string, string>) => data['Faculty Department'] || data['Department'] || data['department'] || data['School'] || data['school'] || 'N/A';
+  const getEmail = (data: Record<string, string>) => data['Faculty Email'] || data['Email ID'] || data['Email'] || data['email'] || data['E-Mail'] || data['e-mail'] || data['Mail'] || data['mail'];
+  const getPhone = (data: Record<string, string>) => data['Faculty Mobile Number'] || data['Mobile Number'] || data['Phone'] || data['phone'] || data['Mobile'] || data['mobile'] || data['Contact'] || data['contact'] || data['Phone Number'] || data['phone_number'];
+  const getOfficeLocation = (data: Record<string, string>) => data['Cabin'] || data['Cabin Number'] || data['Office'] || data['office'] || data['Room'] || data['room'] || data['Location'] || data['location'];
+  const getEmployeeId = (data: Record<string, string>) => data['Faculty ID'] || data['Employee ID'] || data['employee_id'] || data['ID'] || data['id'] || data['Staff ID'] || data['staff_id'];
+  
+  const extractedKeys = new Set([
+    'Faculty Name', 'Name of the Faculty', 'Name', 'name', 'faculty_name',
+    'Faculty Designation', 'Designation', 'designation', 'Post', 'post',
+    'Faculty Department', 'Department', 'department', 'School', 'school',
+    'Faculty Email', 'Email ID', 'Email', 'email', 'E-Mail', 'e-mail', 'Mail', 'mail',
+    'Faculty Mobile Number', 'Mobile Number', 'Phone', 'phone', 'Mobile', 'mobile', 'Contact', 'contact', 'Phone Number', 'phone_number',
+    'Cabin', 'Cabin Number', 'Office', 'office', 'Room', 'room', 'Location', 'location',
+    'Faculty ID', 'Employee ID', 'employee_id', 'ID', 'id', 'Staff ID', 'staff_id',
+  ]);
+  const additionalDetails: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (!extractedKeys.has(key) && value) additionalDetails[key] = value;
+  }
+
+  const name = getFacultyName(data);
+  const designation = getDesignation(data);
+  const department = getDepartment(data);
+  const email = getEmail(data);
+  const phone = getPhone(data);
+  const office = getOfficeLocation(data);
+  const employeeId = getEmployeeId(data);
+
+  return (
+    <CardShell className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+      <div className="p-4 bg-blue-500/10 dark:bg-blue-500/10 border-b border-blue-500/10 flex items-center gap-4">
+        <div className="p-3 bg-blue-600 rounded-xl shrink-0">
+          <User className="w-6 h-6 text-white" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">{name}</h3>
+          {designation !== 'N/A' && <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{designation}</p>}
+        </div>
+      </div>
+      <div className="p-5 space-y-4 bg-white dark:bg-[#0a0a0a]">
+        {department !== 'N/A' && (
+          <div className="flex items-start gap-3">
+            <Building2 className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{department}</p>
+            </div>
+          </div>
+        )}
+        {employeeId && (
+          <div className="flex items-start gap-3">
+            <IdCard className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employee ID</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{employeeId}</p>
+            </div>
+          </div>
+        )}
+        {office && (
+          <div className="flex items-start gap-3">
+            <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Office</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{office}</p>
+            </div>
+          </div>
+        )}
+        {email && (
+          <div className="flex items-start gap-3">
+            <Mail className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
+              <a href={`mailto:${email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">{email}</a>
+            </div>
+          </div>
+        )}
+        {phone && (
+          <div className="flex items-start gap-3">
+            <Phone className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</p>
+              <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">{phone}</a>
+            </div>
+          </div>
+        )}
+        {Object.entries(additionalDetails).length > 0 && (
+          <>
+            <div className="h-px bg-gray-100 dark:bg-gray-800/50 my-2" />
+            {Object.entries(additionalDetails).map(([k, v]) => (
+              <div key={k} className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{k}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{v}</p>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </CardShell>
+  );
+};
+
 function renderTables(tables: any[]) {
   if (!tables || tables.length === 0) return null;
   return tables.map((table: any, idx: number) => {
     const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
+    
+    const isFacultyTable = table.headers?.some((h: string) => 
+      h.toLowerCase().includes("name") || h.toLowerCase().includes("faculty") || h.toLowerCase().includes("employee")
+    );
+
+    if (isFacultyTable && hasRows) {
+      return (
+        <div key={idx} className="space-y-4 mb-5">
+          {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
+          {table.rows.map((row: any, ri: number) => (
+            <StaffCard key={ri} data={row} />
+          ))}
+        </div>
+      );
+    }
+
     return (
       <CardShell key={idx}>
         <div className="p-5">
