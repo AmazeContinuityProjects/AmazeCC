@@ -239,25 +239,25 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             </div>
             <ChevronRight className="h-5 w-5 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
           </div>
-          <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {toolSummaries["course-dashboard"].map((item) => (
-              <div key={item} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                <p className="text-sm font-black text-gray-900 dark:text-gray-100">{item}</p>
+              <div key={item} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-2.5 sm:p-3 dark:border-gray-800 dark:bg-gray-950/30 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-gray-950 dark:text-gray-100 truncate" title={item}>{item}</p>
               </div>
             ))}
           </div>
         </button>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
             ["CGPA", currentCgpa.toFixed(2), Award, "text-emerald-600 dark:text-emerald-400"],
             ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-blue-600 dark:text-blue-400"],
             ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-600 dark:text-purple-400"],
           ].map(([label, value, Icon, color]: any) => (
-            <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm   dark:border-gray-800 dark:bg-black">
-              <Icon className={`h-4 w-4 ${color}`} />
-              <p className={`mt-3 text-2xl font-black ${color}`}>{value}</p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
+            <div key={label} className="rounded-2xl border border-gray-200 bg-white p-2.5 sm:p-4 shadow-sm dark:border-gray-800 dark:bg-black flex flex-col justify-between min-w-0">
+              <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+              <p className={`mt-2 text-sm sm:text-2xl font-black truncate leading-none ${color}`} title={value}>{value}</p>
+              <p className="mt-1.5 text-[9px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 truncate">{label}</p>
             </div>
           ))}
           <div className="col-span-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">

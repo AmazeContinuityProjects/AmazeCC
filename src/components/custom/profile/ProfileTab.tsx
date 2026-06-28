@@ -9,6 +9,7 @@ import { RefreshCcw, Eye, EyeOff, Save, CheckCircle, AlertCircle, User, Clock, C
 import { API_BASE } from "../Main";
 
 interface ProfileTabProps {
+  onOpenShortcutsHelp?: () => void;
   activeProfileSubTab: string;
   setActiveProfileSubTab: (val: string) => void;
   isLoggedIn: boolean;

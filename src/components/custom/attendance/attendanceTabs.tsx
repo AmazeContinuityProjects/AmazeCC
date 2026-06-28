@@ -401,18 +401,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
     );
   }
 
-  if (ODhoursIsOpen) {
-    return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 md:-mx-4">
-        <ODTrackerSubpage
-          ODhoursData={ODhoursData}
-          attendanceData={data.attendance}
-          analyzeCalendars={results}
-          onBack={() => setODhoursIsOpen(false)}
-        />
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -449,7 +438,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
           return (
             <div
-              className={`flex w-full min-w-0 ${isMobile ? "h-[90px] rounded-xl" : "min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl"} border overflow-hidden bg-white  dark:bg-black transition-all duration-300 ${
+              className={`flex w-full min-w-0 ${isMobile ? "h-[102px] rounded-xl" : "min-w-[595px] sm:min-w-0 h-[115px] rounded-2xl"} border overflow-hidden bg-white  dark:bg-black transition-all duration-300 ${
                 isAnyDaySelected
                   ? "border-blue-600 dark:border-blue-500 ring-2 ring-blue-500/15 shadow-md"
                   : "border-gray-250 dark:border-gray-850 shadow-sm"
@@ -493,7 +482,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
                 let mobileBadgeLabel = badgeLabel;
                 if (badgeLabel === "Free Day") mobileBadgeLabel = "Free";
-                else if (badgeLabel === "Weekend") mobileBadgeLabel = "Wknd";
+                else if (badgeLabel === "Weekend") mobileBadgeLabel = "Weekend";
                 else if (badgeLabel === "Holiday") mobileBadgeLabel = "Hldy";
                 else if (badgeLabel.includes("Class")) {
                   mobileBadgeLabel = `${details.classesCount} Cls`;
@@ -509,7 +498,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                   <button
                     key={info.dayName}
                     onClick={() => setActiveDay(info.dayName)}
-                    className={`w-1/7 flex-1 h-full flex flex-col items-center justify-between ${isMobile ? "py-1.5 px-0.5" : "p-2.5"} text-center transition-all duration-300 cursor-pointer select-none focus:outline-none ${
+                    className={`w-1/7 flex-1 h-full flex flex-col items-center justify-between ${isMobile ? "py-2 px-0.5" : "p-2.5"} text-center transition-all duration-300 cursor-pointer select-none focus:outline-none ${
                       isSelected
                         ? "bg-blue-600 text-white"
                         : "hover:bg-gray-50/50 dark:hover:bg-slate-800/30 hover:text-blue-500 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
@@ -529,8 +518,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                         <span className={`${isMobile ? "text-[6px]" : "text-[8px]"} tracking-widest mt-0.5 ${monthStyle}`}>{monthName}</span>
                       </div>
                     </div>
-                    <div className="w-full flex justify-center mt-1 sm:mt-1.5">
-                      <span className={`${isMobile ? "text-[7px]" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                    <div className="w-full flex justify-center mt-1 sm:mt-1.5 px-0.5">
+                      <span className={`${isMobile ? "flex min-h-[20px] w-full max-w-[44px] items-center justify-center text-[7.5px] leading-none" : "text-[9px]"} font-semibold px-1 sm:px-1.5 py-0.5 rounded border ${badgeClass}`}>
                         {isMobile ? mobileBadgeLabel : badgeLabel}
                       </span>
                     </div>

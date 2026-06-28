@@ -472,6 +472,9 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">Esc</kbd> close
                 </span>
+                <span className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400/80 hover:text-indigo-600 cursor-help font-medium" title="Alt+H: Home | Alt+A: Attendance | Alt+E: Events | Alt+L: Library | Alt+G: Grades | Alt+S: Settings | Alt+O: OD Tracker | Alt+B: Blur GPA | Alt+T: Switch Theme">
+                  💡 Global Hotkeys
+                </span>
               </div>
             </>
           )}
