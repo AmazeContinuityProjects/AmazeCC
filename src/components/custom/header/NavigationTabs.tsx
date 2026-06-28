@@ -38,6 +38,8 @@ import {
   Search,
   X,
   Coffee,
+  Info,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -473,6 +475,24 @@ export default function NavigationTabs({
         setActiveProfileSubTab("settings");
       },
     },
+    {
+      id: "about",
+      label: "About & Resources",
+      icon: Info,
+      isActive: activeTab === "about",
+      onSelect: () => {
+        selectTab("about");
+      },
+    },
+    {
+      id: "logout",
+      label: "Logout",
+      icon: Lock,
+      onSelect: () => {
+        handleLogOutRequest();
+      },
+      isActive: false,
+    },
   ], [activeTab, activeProfileSubTab, selectTab, setActiveProfileSubTab]);
 
   const groups = useMemo<Group[]>(() => [
@@ -677,6 +697,7 @@ export default function NavigationTabs({
       
       { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
       { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+      { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
       { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
     ];
 
@@ -713,6 +734,7 @@ export default function NavigationTabs({
         items: [
           { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
           { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+          { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
           { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
         ]
       }

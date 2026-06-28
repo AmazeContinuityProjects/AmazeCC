@@ -38,6 +38,7 @@ import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
 import { IconToggle } from "../toggle";
+import { AboutSection } from "./AboutSection";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
@@ -46,7 +47,7 @@ import { Badge, useIsMobile } from "../shared";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 
-type SectionId = "profile" | "preferences" | "academic" | "sync" | "resources" | "about" | "advanced";
+type SectionId = "profile" | "preferences" | "academic" | "sync" | "advanced";
 
 interface SectionConfig {
   id: SectionId;
@@ -59,8 +60,6 @@ const SECTIONS: SectionConfig[] = [
   { id: "preferences", label: "Appearance", icon: Sliders },
   { id: "academic", label: "Academic Settings", icon: Settings },
   { id: "sync", label: "Data Sync", icon: RefreshCcw },
-  { id: "resources", label: "Resources", icon: Link2 },
-  { id: "about", label: "About", icon: Info },
   { id: "advanced", label: "Advanced", icon: Shield },
 ];
 
@@ -405,12 +404,6 @@ export default function ProfilePage({
       }
       if (section.id === "sync") {
         return "sync arrears exams additional wishlist projects".includes(query);
-      }
-      if (section.id === "resources") {
-        return "utilities socials links updates changelog fame policy terms".includes(query);
-      }
-      if (section.id === "about") {
-        return "version build sugeeth dhivyan".includes(query);
       }
       if (section.id === "advanced") {
         return "storage developer export import reset logout cache".includes(query);
@@ -1204,156 +1197,6 @@ export default function ProfilePage({
                 </div>
               </div>
             </div>
-          ))}
-
-          {/* Section: Resources */}
-          {renderSection("resources", "Resources", Link2, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
-                
-                {/* Utilities / Important Links */}
-                {quickLinks.importantLinks.map((link) => (
-                  <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                        <Link2 size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">{link.desc}</span>
-                      </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  </a>
-                ))}
-
-                {/* Social Community links */}
-                {quickLinks.communityLinks.map((link, idx) => (
-                  <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                        <ExternalLink size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">VIT community discussion forums and updates</span>
-                      </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  </a>
-                ))}
-
-                {/* Local Link Component integrations */}
-                <div className="p-4 bg-transparent">
-                  <Links />
-                </div>
-
-                {/* Changelog */}
-                <div onClick={() => setShowChangelog(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                      <History size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Changelog</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">View latest updates, features and releases in AmazeCC</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Hall of Fame */}
-                <div onClick={() => setShowHallOfFame(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                      <Trophy size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Hall of Fame</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the contributors, developers, and testers of the app</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Source on GitHub */}
-                <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                      <Github size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">GitHub Repository</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Check out code, contribute fixes or report system bugs</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </a>
-
-                {/* Privacy Policy */}
-                <div onClick={() => window.open("/privacy", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Privacy Policy</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Read about local credentials and encryption safety</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Terms of Service */}
-                <div onClick={() => window.open("/terms", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                      <Shield size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Terms of Service</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Understand guidelines and rules of utilizing AmazeCC services</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-              </div>
-          ))}
-
-          {/* Section: About */}
-          {renderSection("about", "About AmazeCC", Info, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 p-6 flex flex-col items-center text-center space-y-4">
-                <div className="scale-125 mb-1 shrink-0">
-                  <IconToggle />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">AmazeCC</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your ultimate college companion application.</p>
-                </div>
-                
-                <div className="w-full max-w-xs grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-left pt-2 border-t border-gray-150 dark:border-gray-800/60 mt-2">
-                  <div>
-                    <span className="text-gray-400 font-medium block">Version</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">v2.0.4</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Build Number</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0627</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Last Updated</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">June 2026</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Platform</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">Web App</span>
-                  </div>
-                </div>
-                
-                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-widest uppercase pt-2 border-t border-gray-150 dark:border-gray-850/60 w-full">
-                  MADE WITH ❤️ BY SUGEETHJSA AND DHIVYANJ
-                </p>
-              </div>
           ))}
 
           {/* Section: Advanced */}
