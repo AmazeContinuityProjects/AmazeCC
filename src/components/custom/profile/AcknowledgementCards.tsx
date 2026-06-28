@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { API_BASE } from "../Main";
 import { FileText } from "lucide-react";
 
-const cardBase = "glass-card";
+const cardBase = "solid-card";
 
 export default function AcknowledgementCards({ creds, refreshKey }: { creds: any; refreshKey: number }) {
   const [data, setData] = useState<any>(null);
@@ -46,24 +46,24 @@ export default function AcknowledgementCards({ creds, refreshKey }: { creds: any
 
   return (
     <div className={cardBase}>
-      <div className="p-5 border-b border-gray-100/50 dark:border-gray-800/50 midnight:border-gray-800/50">
+      <div className="p-5 border-b border-gray-100/50  dark:border-gray-800/50">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400 midnight:text-gray-400" />
-          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400 uppercase tracking-wider">Document Acknowledgement</h4>
+          <FileText className="w-4 h-4 text-gray-500  dark:text-gray-400" />
+          <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider">Document Acknowledgement</h4>
         </div>
       </div>
-      <div className="divide-y divide-gray-100/50 dark:divide-gray-800/50 midnight:divide-gray-800/50">
+      <div className="divide-y divide-gray-100/50  dark:divide-gray-800/50">
         {docs.map((row: any, idx: number) => {
           const docName = row[docsTable.headers[1]] || "";
           const status = row[docsTable.headers[2]] || "";
           const isSubmitted = /submitted/i.test(status);
           return (
-            <div key={idx} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 transition-colors">
-              <div className={`p-1.5 rounded-lg shrink-0 ${isSubmitted ? "bg-emerald-100 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
+            <div key={idx} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors">
+              <div className={`p-1.5 rounded-lg shrink-0 ${isSubmitted ? "bg-emerald-100  dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-gray-100  text-gray-400"}`}>
                 <FileText className="w-3.5 h-3.5" />
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300 flex-1 min-w-0 leading-snug">{docName}</p>
-              <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${isSubmitted ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 midnight:bg-emerald-900/30 midnight:text-emerald-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 midnight:bg-gray-800 midnight:text-gray-400"}`}>
+              <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0 leading-snug">{docName}</p>
+              <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${isSubmitted ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-gray-100 text-gray-500   dark:bg-gray-800 dark:text-gray-400"}`}>
                 {status}
               </span>
             </div>

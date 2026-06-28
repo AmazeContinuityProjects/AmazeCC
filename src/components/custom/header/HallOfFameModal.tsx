@@ -48,12 +48,12 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="fixed inset-0 z-[100] bg-gray-50/80 dark:bg-slate-900/80 midnight:bg-black/80 backdrop-blur-3xl overflow-hidden flex flex-col"
+                className="fixed inset-0 z-[100] bg-gray-50/80  dark:bg-black/80  overflow-hidden flex flex-col"
             >
                 {/* Ambient Glows */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-                    <div className="absolute -top-[10%] -right-[5%] w-[60%] h-[60%] bg-amber-400/40 dark:bg-amber-500/30 midnight:bg-amber-500/20 rounded-full blur-[100px]" />
-                    <div className="absolute top-[30%] -left-[10%] w-[50%] h-[50%] bg-orange-500/40 dark:bg-orange-600/30 midnight:bg-orange-600/20 rounded-full blur-[100px]" />
+                    <div className="absolute -top-[10%] -right-[5%] w-[60%] h-[60%] bg-amber-400/40  dark:bg-amber-500/20 rounded-full blur-[100px]" />
+                    <div className="absolute top-[30%] -left-[10%] w-[50%] h-[50%] bg-orange-500/40  dark:bg-orange-600/20 rounded-full blur-[100px]" />
                 </div>
 
                 <div className="relative z-10 w-full max-w-3xl mx-auto h-full flex flex-col px-4 sm:px-6">
@@ -61,7 +61,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                     <div className="flex items-center gap-4 py-6 mb-2 mt-4 sm:mt-8">
                         <button 
                             onClick={handleClose}
-                            className="p-2.5 bg-white/50 hover:bg-white dark:bg-slate-800/50 dark:hover:bg-slate-800 midnight:bg-white/5 midnight:hover:bg-white/10 text-gray-700 dark:text-gray-300 midnight:text-gray-200 rounded-full transition-all border border-gray-200/50 dark:border-gray-700/50 midnight:border-white/10 backdrop-blur-md shadow-sm"
+                            className="p-2.5 bg-white/50 hover:bg-white  dark:hover:bg-slate-800 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700  dark:text-gray-200 rounded-full transition-all border border-gray-200/50  dark:border-white/10  shadow-sm"
                         >
                             <ChevronLeft size={24} />
                         </button>
@@ -71,7 +71,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-500">Hall of Fame</h2>
-                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400">The giants whose shoulders we stand on</p>
+                                <p className="text-xs font-medium text-gray-500  dark:text-gray-400">The giants whose shoulders we stand on</p>
                             </div>
                         </div>
                     </div>
@@ -89,36 +89,36 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: idx * 0.1 }}
-                                className="group block p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 midnight:bg-white/[0.02] hover:bg-white/80 dark:hover:bg-slate-800/80 midnight:hover:bg-white/[0.04] border border-gray-100/50 dark:border-gray-700/30 midnight:border-white/5 transition-all cursor-pointer"
+                                className="group block p-4 rounded-2xl bg-white/50  dark:bg-white/[0.02] hover:bg-white/80 dark:hover:bg-slate-800/80 dark:hover:bg-white/[0.04] border border-gray-100/50  dark:border-white/5 transition-all cursor-pointer"
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="p-2.5 bg-gray-100/80 dark:bg-slate-900/80 midnight:bg-black/80 rounded-xl text-gray-700 dark:text-gray-300 midnight:text-gray-400 group-hover:text-amber-500 group-hover:scale-110 transition-all">
+                                        <div className="p-2.5 bg-gray-100/80  dark:bg-black/80 rounded-xl text-gray-700  dark:text-gray-400 group-hover:text-amber-500 group-hover:scale-110 transition-all">
                                             <Github size={22} />
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-gray-900 dark:text-white midnight:text-gray-100 flex items-center gap-2 leading-tight">
+                                            <h3 className="text-base font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2 leading-tight">
                                                 {credit.name}
                                             </h3>
-                                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 midnight:text-blue-400 mt-0.5">
+                                            <p className="text-xs font-semibold text-blue-600  dark:text-blue-400 mt-0.5">
                                                 by {credit.author}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="p-1.5 bg-gray-100/50 dark:bg-slate-800/50 midnight:bg-white/5 rounded-full text-gray-400 midnight:text-gray-500 group-hover:text-amber-500 group-hover:bg-amber-50 dark:group-hover:bg-amber-500/10 transition-colors">
+                                    <div className="p-1.5 bg-gray-100/50  dark:bg-white/5 rounded-full text-gray-400 dark:text-gray-500 group-hover:text-amber-500 group-hover:bg-amber-50 dark:group-hover:bg-amber-500/10 transition-colors">
                                         <ExternalLink size={16} />
                                     </div>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 midnight:text-gray-400 leading-relaxed font-medium">
+                                <p className="text-sm text-gray-600  dark:text-gray-400 leading-relaxed font-medium">
                                     {credit.description}
                                 </p>
                             </motion.a>
                             ))}
                         </div>
 
-                        <div className="relative z-10 mt-10 mb-8 pt-6 border-t border-gray-200/50 dark:border-gray-800/50 midnight:border-white/10 text-center">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 flex items-center justify-center gap-2">
-                                Curated with <Star size={16} className="text-amber-500" /> by <span className="text-gray-900 dark:text-white midnight:text-gray-100 font-bold">SugeethJSA</span>
+                        <div className="relative z-10 mt-10 mb-8 pt-6 border-t border-gray-200/50  dark:border-white/10 text-center">
+                            <p className="text-sm font-medium text-gray-500  dark:text-gray-400 flex items-center justify-center gap-2">
+                                Curated with <Star size={16} className="text-amber-500" /> by <span className="text-gray-900  dark:text-gray-100 font-bold">SugeethJSA</span>
                             </p>
                         </div>
                     </div>

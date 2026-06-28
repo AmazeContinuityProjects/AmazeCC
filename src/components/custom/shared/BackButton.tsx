@@ -11,14 +11,14 @@ export default function BackButton({ onClick, className }: BackButtonProps) {
     <button
       onClick={onClick}
       className={cn(
-        "p-2 rounded-full bg-white dark:bg-slate-800 midnight:bg-gray-900",
-        "shadow-sm border border-gray-200 dark:border-gray-700 midnight:border-gray-800",
-        "hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800",
+        "p-2 rounded-full bg-white  dark:bg-gray-900",
+        "shadow-sm border border-gray-200  dark:border-gray-800",
+        "hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800",
         "transition-all duration-200",
         className
       )}
     >
-      <ArrowLeft size={18} className="text-gray-600 dark:text-gray-400 midnight:text-gray-400" />
+      <ArrowLeft size={18} className="text-gray-600  dark:text-gray-400" />
     </button>
   );
 }

@@ -580,7 +580,7 @@ export function AutoGeneratorModal({
       {isGeneratorOpen && (
         <div className="fixed inset-0 z-[200] bg-background flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
           {/* Header */}
-          <div className="p-4 border-b border-border flex flex-wrap justify-between items-center gap-4 bg-muted/30 backdrop-blur-md sticky top-0 z-10">
+          <div className="p-4 border-b border-border flex flex-wrap justify-between items-center gap-4 bg-muted/30  sticky top-0 z-10">
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-center lg:justify-start">
               <button 
                 onClick={() => setIsGeneratorOpen(false)} 
@@ -724,7 +724,7 @@ export function AutoGeneratorModal({
                   />
 
                   {generatorPreviewTimetable?.courses && generatorPreviewTimetable.courses.length > 0 && (
-                    <div className="glass-card p-6 overflow-x-auto">
+                    <div className="solid-card p-6 overflow-x-auto">
                       <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
                         <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           Selected Courses
@@ -794,7 +794,7 @@ export function AutoGeneratorModal({
 
               {/* Dash Details Modal */}
               {selectedDashDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 ">
                   <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
                     <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
                       <h3 className="font-bold text-foreground flex items-center gap-2">
@@ -840,7 +840,7 @@ export function AutoGeneratorModal({
 
               {/* Gap Details Modal */}
               {selectedGapDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 ">
                   <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
                     <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
                       <h3 className="font-bold text-foreground flex items-center gap-2">
@@ -1544,7 +1544,7 @@ export function AutoGeneratorModal({
 
       {/* Variant Search Modal inside AutoGeneratorModal */}
       {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 ">
           <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
               <h3 className="font-bold text-lg text-foreground flex items-center gap-2">

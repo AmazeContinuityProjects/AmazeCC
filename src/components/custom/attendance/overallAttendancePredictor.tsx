@@ -199,8 +199,8 @@ export default function OverallAttendancePredictor({
   const buttonOptions = [impDates.cat1Date > new Date() ? "CAT1" : null, impDates.cat2Date > new Date() ? "CAT2" : null, impDates.lidLabDate > new Date() || impDates.lidTheoryDate > new Date() ? "LID" : null].filter(Boolean);
 
   return (
-    <div data-scrollable className="bg-gray-100 dark:bg-slate-800 midnight:bg-black p-5 rounded-2xl shadow-lg transition-all duration-300">
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 midnight:text-gray-100 mb-2">
+    <div data-scrollable className="bg-gray-100  dark:bg-black p-5 rounded-2xl shadow-lg transition-all duration-300">
+      <h2 className="text-lg font-semibold text-gray-800  dark:text-gray-100 mb-2">
         Overall Attendance Predictor
       </h2>
 
@@ -213,8 +213,8 @@ export default function OverallAttendancePredictor({
               size="sm"
               onClick={() => setMode(type)}
               className={`text-xs ${mode === type
-                ? "bg-blue-600 text-white dark:bg-blue-700 midnight:bg-blue-700"
-                : "bg-gray-200 dark:bg-slate-700 midnight:bg-gray-900 text-gray-700 dark:text-gray-200 midnight:text-gray-200 hover:bg-blue-200 dark:hover:bg-blue-800 midnight:hover:bg-gray-800"
+                ? "bg-blue-600 text-white  dark:bg-blue-700"
+                : "bg-gray-200  dark:bg-gray-900 text-gray-700  dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-gray-800"
                 }`}
             >
               {type === "CAT1"
@@ -231,11 +231,11 @@ export default function OverallAttendancePredictor({
             variant="ghost"
             size="sm"
             onClick={() => setMonthIdx((i) => Math.max(0, i - 1))}
-            className="dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
           >
             <ChevronLeft />
           </Button>
-          <p className="font-semibold text-gray-800 dark:text-gray-100 midnight:text-gray-100 text-center">
+          <p className="font-semibold text-gray-800  dark:text-gray-100 text-center">
             {currentMonth?.slice(0, -4) || ""}
           </p>
           <Button
@@ -244,7 +244,7 @@ export default function OverallAttendancePredictor({
             onClick={() =>
               setMonthIdx((i) => Math.min(monthsAvailable.length - 1, i + 1))
             }
-            className="dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
           >
             <ChevronRight />
           </Button>
@@ -253,7 +253,7 @@ export default function OverallAttendancePredictor({
             variant="ghost"
             size="sm"
             onClick={resetSelected}
-            className="dark:hover:bg-slate-700 midnight:hover:bg-gray-900"
+            className="dark:hover:bg-gray-900"
             title="Reset selections"
           >
             <RotateCcw size={16} />
@@ -285,14 +285,14 @@ export default function OverallAttendancePredictor({
                     ? "bg-gray-500 text-white opacity-70"
                     : d.date.toDateString() === new Date().toDateString()
                       ? "bg-blue-500 text-white font-bold"
-                      : "bg-white dark:bg-slate-900 midnight:bg-gray-950 text-gray-700 dark:text-gray-200 midnight:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900/30 midnight:hover:bg-gray-800"
+                      : "bg-white  dark:bg-gray-950 text-gray-700  dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-800"
                 }`}
             >
               <span className="text-base">{formatted}</span>
               <span
                 className={`text-[10px] uppercase ${isToday
                   ? "text-white"
-                  : "text-gray-500 dark:text-gray-400 midnight:text-gray-400"
+                  : "text-gray-500  dark:text-gray-400"
                   }`}
               >
                 {weekday}
@@ -302,7 +302,7 @@ export default function OverallAttendancePredictor({
         })}
       </div>
 
-      <div className="flex items-center justify-center gap-4 mb-3 text-xs font-medium text-gray-700 dark:text-gray-300 midnight:text-gray-300">
+      <div className="flex items-center justify-center gap-4 mb-3 text-xs font-medium text-gray-700  dark:text-gray-300">
         <div className="flex items-center gap-1">
           <div className="w-4 h-4 border-2 border-dashed border-gray-500 rounded-sm"></div>
           <span>Attending</span>
@@ -317,18 +317,18 @@ export default function OverallAttendancePredictor({
         </div>
       </div>
 
-      <p className="font-semibold text-center text-blue-600 dark:text-blue-400 midnight:text-blue-400 mb-3">
+      <p className="font-semibold text-center text-blue-600  dark:text-blue-400 mb-3">
         Predicted Overall Attendance ({mode}): {overallAvg}%
       </p>
 
-      <div className="max-h-64 overflow-y-auto space-y-2 text-sm rounded-lg bg-white dark:bg-slate-900 midnight:bg-gray-950 p-3 shadow-inner">
+      <div className="max-h-64 overflow-y-auto space-y-2 text-sm rounded-lg bg-white  dark:bg-gray-950 p-3 shadow-inner">
         {predictions.map((p, i) => (
           <div
             key={i}
-            className="flex justify-between items-center border-b border-gray-300 dark:border-gray-700 midnight:border-gray-800 pb-1"
+            className="flex justify-between items-center border-b border-gray-300  dark:border-gray-800 pb-1"
           >
             <span
-              className="text-gray-700 dark:text-gray-200 midnight:text-gray-200 truncate max-w-[70%]"
+              className="text-gray-700  dark:text-gray-200 truncate max-w-[70%]"
               title={p.courseTitle}
             >
               <span className="hidden sm:inline">{p.courseTitle}</span>
@@ -340,10 +340,10 @@ export default function OverallAttendancePredictor({
             </span>
             <span
               className={`font-semibold ${p.predictedPercent < (isDayscholarWithBus ? 85 : 75)
-                ? "text-red-500"
+                ? "text-red-500 dark:text-red-400"
                 : p.predictedPercent < (isDayscholarWithBus ? 90 : 85)
-                  ? "text-yellow-400"
-                  : "text-green-400"
+                  ? "text-yellow-400 dark:text-yellow-300"
+                  : "text-green-400 dark:text-green-300"
                 }`}
             >
               {p.predictedAttended}/{p.predictedTotal} ({p.predictedPercent}%)

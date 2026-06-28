@@ -141,7 +141,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     if (!classes || classes.length === 0) {
         return (
-            <p className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 text-xs text-center py-4">
+            <p className="text-gray-500  dark:text-gray-400 text-xs text-center py-4">
                 No upcoming classes 🎉
             </p>
         );
@@ -196,24 +196,24 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 midnight:border-gray-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-medium bg-gray-50  dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100  dark:border-gray-800">
                 <div className="flex gap-4">
                     <span className="text-emerald-600 dark:text-emerald-400">Attending: <strong>{attending}</strong></span>
                     <span className="text-red-500 dark:text-red-400">Skipping: <strong>{missed}</strong></span>
                 </div>
-                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50 midnight:bg-emerald-900/30 midnight:text-emerald-400 midnight:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50 midnight:bg-red-900/30 midnight:text-red-400 midnight:border-red-800/50"}`}>
+                <div className={`px-3 py-1 rounded-full border ${predictedPercent >= thresholdPct ? "bg-emerald-100 text-emerald-700 border-emerald-200    dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50" : "bg-red-100 text-red-700 border-red-200    dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50"}`}>
                     Predicted: {predictedPercent}%
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 text-xs">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 text-xs">
                 {classes.map((day, i) => {
                     const time = normalize(day.fullDate);
                     const state = getEffectiveState(time, dayStates, lockDates);
                     const d = new Date(day.fullDate);
                     const dateStr = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
                     const weekday = d.toLocaleDateString("en-IN", { weekday: "short" });
-                    
+
                     const isSkipped = state === 1;
                     const isIgnored = state === 2;
 
@@ -221,22 +221,22 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
                         <div
                             key={i}
                             onClick={() => toggleAttendance(time)}
-                            className={`flex flex-col items-center justify-center rounded-xl border p-3 shadow-sm cursor-pointer select-none transform-gpu transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98] ${
-                                isSkipped ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/50 midnight:bg-red-950 midnight:border-red-900" : 
-                                isIgnored ? "bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700 midnight:bg-gray-900 midnight:border-gray-800 opacity-60" : 
-                                "bg-white border-gray-200 dark:bg-slate-800 dark:border-gray-700 midnight:bg-gray-950 midnight:border-gray-800"
+                            className={`flex flex-col items-center justify-center rounded-xl border p-2 sm:p-2.5 shadow-sm cursor-pointer select-none transform-gpu transition-all duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.98] ${
+                                isSkipped ? "bg-red-50 border-red-200   dark:bg-red-950 dark:border-red-900" :
+                                isIgnored ? "bg-gray-100 border-gray-200   dark:bg-gray-900 dark:border-gray-800 opacity-60" :
+                                "bg-white border-gray-200   dark:bg-gray-950 dark:border-gray-800"
                             }`}
                         >
-                            <span className={`font-bold text-sm ${isSkipped ? "text-red-700 dark:text-red-400 midnight:text-red-400" : "text-gray-800 dark:text-gray-200 midnight:text-gray-200"}`}>{dateStr}</span>
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-500 midnight:text-red-500" : "text-gray-500 dark:text-gray-400 midnight:text-gray-400"}`}>{weekday}</span>
+                            <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${isSkipped ? "text-red-700  dark:text-red-400" : "text-gray-800  dark:text-gray-200"}`}>{dateStr}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-semibold mt-1 ${isSkipped ? "text-red-500 dark:text-red-400" : "text-gray-500  dark:text-gray-400"}`}>{weekday}</span>
                         </div>
                     );
                 })}
             </div>
-            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400 midnight:text-gray-400">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300 dark:bg-slate-800 dark:border-gray-600 midnight:bg-gray-900 midnight:border-gray-700"></div>Attending</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300 dark:bg-red-900/40 dark:border-red-800 midnight:bg-red-900/40 midnight:border-red-800"></div>Skipping</div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300 dark:bg-gray-700 dark:border-gray-600 midnight:bg-gray-800 midnight:border-gray-700"></div>Ignored</div>
+            <div className="flex items-center justify-center gap-6 mt-4 text-xs font-semibold text-gray-500  dark:text-gray-400">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-gray-300   dark:bg-gray-900 dark:border-gray-700"></div>Attending</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-100 border border-red-300   dark:bg-red-900/40 dark:border-red-800"></div>Skipping</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300   dark:bg-gray-800 dark:border-gray-700"></div>Ignored</div>
             </div>
         </div>
     );
@@ -325,7 +325,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
     const thresholdPct = isDayscholarWithBus ? 85 : 75;
     const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
-    
+
     // Process History
     const historyList = a.viewLink || [];
     const filteredHistory = historyList.filter(d => {
@@ -346,15 +346,15 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
     // Heatmap data prep
     const heatmapData = useMemo(() => {
         const dateMap: Record<string, { present: number; absent: number; od: number }> = {};
-        
+
         historyList.forEach(d => {
             const dateObj = new Date(d.date);
             const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
-            
+
             if (!dateMap[dateStr]) {
                 dateMap[dateStr] = { present: 0, absent: 0, od: 0 };
             }
-            
+
             const status = d.status.toLowerCase();
             if (status === "present") dateMap[dateStr].present++;
             else if (status === "absent") dateMap[dateStr].absent++;
@@ -377,7 +377,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
             return { date: dateStr, count: val, status };
         });
     }, [historyList]);
-    
+
     // Calculate start date for heatmap (approx 5 months ago to cover the semester)
     const heatmapStartDate = useMemo(() => {
         if (analyzeCalendars && analyzeCalendars.length > 0) {
@@ -403,6 +403,14 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
         return new Date();
     }, [analyzeCalendars]);
 
+    const heatmapWidth = useMemo(() => {
+        if (!heatmapStartDate || !heatmapEndDate) return 500;
+        const diffTime = Math.abs(heatmapEndDate.getTime() - heatmapStartDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const weeks = Math.ceil(diffDays / 7) + 1;
+        return (weeks * 18) + 45; // 15px rectSize + 3px space = 18px per week. 45px for weekday labels.
+    }, [heatmapStartDate, heatmapEndDate]);
+
     return (
         <SubpageLayout
             title={a.courseTitle}
@@ -412,122 +420,49 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
             {/* Badges Row */}
             <div className="flex flex-wrap gap-3 mb-8">
-                <Badge variant="info" className="rounded-lg border border-blue-100 dark:border-blue-900/30 midnight:border-blue-900/40 gap-1.5">
-                    <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400 midnight:text-blue-400" /> {a.slotName}
+                <Badge variant="info" className="rounded-lg border border-blue-100  dark:border-blue-900/40 gap-1.5">
+                    <Calendar className="w-4 h-4 text-blue-500  dark:text-blue-400" /> {a.slotName}
                 </Badge>
-                <Badge variant="purple" className="rounded-lg border border-purple-100 dark:border-purple-900/30 midnight:border-purple-900/40 gap-1.5">
-                    <Building2 className="w-4 h-4 text-purple-500 dark:text-purple-400 midnight:text-purple-400" /> {a.slotVenue}
+                <Badge variant="purple" className="rounded-lg border border-purple-100  dark:border-purple-900/40 gap-1.5">
+                    <Building2 className="w-4 h-4 text-purple-500  dark:text-purple-400" /> {a.slotVenue}
                 </Badge>
-                <Badge variant="warning" className="rounded-lg border border-amber-100 dark:border-amber-900/30 midnight:border-amber-900/40 gap-1.5">
-                    <Clock className="w-4 h-4 text-orange-500 dark:text-amber-400 midnight:text-amber-400" /> {a.time}
+                <Badge variant="warning" className="rounded-lg border border-amber-100  dark:border-amber-900/40 gap-1.5">
+                    <Clock className="w-4 h-4 text-orange-500  dark:text-amber-400" /> {a.time}
                 </Badge>
-                <Badge variant="success" className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 midnight:border-emerald-900/40 gap-1.5">
-                    <User className="w-4 h-4 text-green-500 dark:text-emerald-400 midnight:text-emerald-400" /> {a.faculty}
+                <Badge variant="success" className="rounded-lg border border-emerald-100  dark:border-emerald-900/40 gap-1.5">
+                    <User className="w-4 h-4 text-green-500  dark:text-emerald-400" /> {a.faculty}
                 </Badge>
-            </div>
-
-            {/* Metrics Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* Attendance Dial Card */}
-                <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
-                    <div>
-                        <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
-                        <p className="text-3xl font-black text-gray-900 dark:text-gray-100 midnight:text-gray-100">{a.attendancePercentage}%</p>
-                        <p className="text-sm text-gray-500 midnight:text-gray-400 font-medium mt-1">{a.attendedClasses} / {a.totalClasses} Classes</p>
-                    </div>
-                    <div className="w-24 h-24">
-                        <CircularProgress
-                            value={a.attendancePercentage}
-                            text={`${!decimalValues ? a.attendancePercentage : (a.attendedClasses/a.totalClasses * 100).toFixed(1)}%`}
-                            size={96}
-                            threshold={thresholdPct}
-                            midThreshold={thresholdPct + 10}
-                        />
-                    </div>
-                </div>
-
-                {/* Insights Card */}
-                <div className="bg-white dark:bg-slate-800 midnight:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 midnight:border-gray-800 shadow-sm md:col-span-2 flex flex-col justify-center">
-                    <h3 className="text-gray-500 dark:text-gray-400 midnight:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
-                    {a.totalClasses > 0 && (() => {
-                        const attended = a.attendedClasses;
-                        const total = a.totalClasses;
-                        const percentage = (attended / total) * 100;
-
-                        if (percentage < thresholdPct) {
-                            const needed = Math.ceil((thresholdDec * total - attended) / (1 - thresholdDec));
-                            const neededValue = lab ? Math.ceil(needed / 2) : needed;
-
-                            return (
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-red-100 dark:bg-red-900/30 midnight:bg-red-900/30 text-red-600 dark:text-red-400 midnight:text-red-400 rounded-xl">
-                                        <AlertCircle size={24} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Critical Status</p>
-                                        <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {lab ? "lab" : "class"}{neededValue > 1 && (lab ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
-                                    </div>
-                                </div>
-                            );
-                        } else {
-                            const canMiss = Math.floor(attended / thresholdDec - total);
-                            const canMissValue = lab ? Math.floor(canMiss / 2) : canMiss;
-
-                            if (canMissValue === 0) {
-                                return (
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 midnight:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400 rounded-xl">
-                                            <AlertCircle size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">On the Edge</p>
-                                            <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You cannot afford to miss the next {lab ? "lab" : "class"}. Attend to build a safety buffer.</p>
-                                        </div>
-                                    </div>
-                                );
-                            } else {
-                                return (
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 midnight:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400 rounded-xl">
-                                            <Star size={24} />
-                                        </div>
-                                        <div>
-                                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Safe Margin</p>
-                                            <p className="text-gray-600 dark:text-gray-400 midnight:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {lab ? "lab" : "class"}{canMissValue !== 1 && (lab ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        }
-                    })()}
-                </div>
             </div>
 
             {/* Layout Split for Desktop (if predictor is visible) */}
-            <div className={`grid grid-cols-1 gap-6 ${hasPredictor ? 'xl:grid-cols-3' : ''}`}>
-                
-                {/* Left Pane (Predictor) */}
+            <div className={`grid grid-cols-1 gap-6 ${hasPredictor ? 'lg:grid-cols-12' : ''} items-start`}>
+
+                {/* Left Pane (Predictor) - Always Active, flat list */}
                 {hasPredictor && (
-                    <div className="xl:col-span-2">
-                        <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
-                            <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">Interactive Predictor</h2>
-                                <p className="text-sm text-gray-500 midnight:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+                    <div className="lg:col-span-6 w-full">
+                        <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="p-5 border-b border-gray-100  dark:border-gray-800">
+                                <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">Interactive Predictor</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                             </div>
-                            <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                            <div className="p-5 space-y-6 divide-y divide-gray-100  dark:divide-gray-800/80">
                                 {[
                                     { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
                                     { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
                                     { key: "MIDSEM", label: "Classes before Mid Term Test", data: classesTillMidSem },
                                     { key: "LID", label: "Classes before FAT", data: classesTillLID },
-                                ].map(({ key, label, data }) => (
+                                ].map(({ key, label, data }, idx) => (
                                     Array.isArray(data) && data.length > 0 ? (
-                                        <ExpandableSection
-                                            key={key}
-                                            title={label}
-                                            icon={<CalendarIcon size={18} className="text-blue-500" />}
-                                            badge={<span className="text-sm font-medium bg-gray-100 dark:bg-slate-800 midnight:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
-                                        >
+                                        <div key={key} className={`space-y-3 ${idx > 0 ? 'pt-5' : ''}`}>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                                    <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
+                                                    <span>{label}</span>
+                                                </h3>
+                                                <span className="text-[11px] font-extrabold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
+                                                    {data.length} Left
+                                                </span>
+                                            </div>
                                             <UpcomingClassesList
                                                 classes={data}
                                                 attendedClasses={a.attendedClasses}
@@ -536,7 +471,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                 impDates={impDates}
                                                 isDayscholarWithBus={isDayscholarWithBus}
                                             />
-                                        </ExpandableSection>
+                                        </div>
                                     ) : null
                                 ))}
                             </div>
@@ -545,20 +480,20 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                 )}
 
                 {/* Right Pane (Attendance Log) */}
-                <div className={`${hasPredictor ? "xl:col-span-1" : ""} min-w-0 w-full`}>
-                    <div className="bg-white dark:bg-slate-900 midnight:bg-black border border-gray-200 dark:border-gray-800 midnight:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 midnight:border-gray-800 flex flex-col gap-4">
+                <div className={`${hasPredictor ? "lg:col-span-6" : "lg:col-span-12"} min-w-0 w-full`}>
+                    <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+                        <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100 flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
                                         Attendance Log
                                         {missingNotesCount > 0 && (
-                                            <Badge variant="danger" className="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 midnight:bg-red-900/30 midnight:text-red-400 font-bold">
+                                            <Badge variant="danger" className="bg-red-100 text-red-600   dark:bg-red-900/30 dark:text-red-400 font-bold">
                                                 {missingNotesCount} Missing Notes
                                             </Badge>
                                         )}
                                     </h2>
-                                    {!hasPredictor && <p className="text-sm text-gray-500 midnight:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
+                                    {!hasPredictor && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
                                 </div>
                                 <ViewModeToggle
                                     options={[
@@ -574,12 +509,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
 
                             {/* Filters (only in list mode) */}
                             {viewMode === "list" && (
-                                <div className="flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
+                                <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
                                     {["All", "Present", "Absent", "On Duty"].map(f => (
                                         <button
                                             key={f}
                                             onClick={() => setFilter(f)}
-                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"}`}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-100 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
                                         >
                                             {f}
                                         </button>
@@ -588,13 +523,19 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                             )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[450px] xl:max-h-[500px]">
+                        <div className={`flex-1 overflow-y-auto ${
+                            viewMode === "list"
+                                ? "max-h-[450px] xl:max-h-[500px] overflow-x-hidden"
+                                : viewMode === "calendar"
+                                ? "w-full overflow-x-auto min-h-[380px] p-2"
+                                : "w-full overflow-x-auto min-h-[180px] p-2"
+                        }`}>
                             {viewMode === "calendar" ? (
                                 <div className="p-0 sm:p-4 w-full overflow-x-auto hide-scrollbar">
-                                    <div className="min-w-[600px]">
-                                        <AttendanceCalendarView 
-                                            analyzeCalendars={analyzeCalendars} 
-                                            historyList={historyList} 
+                                    <div className="min-w-[480px] w-full">
+                                        <AttendanceCalendarView
+                                            analyzeCalendars={analyzeCalendars}
+                                            historyList={historyList}
                                             notesTracker={notesTracker}
                                             toggleNotes={toggleNotes}
                                             courseCode={a.courseCode}
@@ -604,13 +545,16 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                     </div>
                                 </div>
                             ) : viewMode === "heatmap" ? (
-                                <div className="p-6 flex justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
-                                    <div style={{ direction: "ltr", minWidth: "500px" }}>
+                                <div className="p-6 flex flex-col items-center justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
+                                    <div style={{ direction: "ltr", width: heatmapWidth }} className="flex flex-col items-center">
                                         <HeatMap
                                             value={heatmapData}
                                             startDate={heatmapStartDate}
                                             endDate={heatmapEndDate}
-                                            width={550}
+                                            width={heatmapWidth}
+                                            rectSize={15}
+                                            space={3}
+                                            legendCellSize={0}
                                             rectProps={{
                                                 rx: 4,
                                                 ry: 4,
@@ -631,40 +575,54 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                                 3: "#EAB308", // On Duty (Yellow)
                                             }}
                                         />
+                                        <div className="flex flex-wrap items-center justify-center gap-5 mt-5 text-xs font-semibold text-gray-550  dark:text-gray-400">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
+                                                <span>Present</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EF4444] shadow-sm"></div>
+                                                <span>Absent</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-3 h-3 rounded bg-[#EAB308] shadow-sm"></div>
+                                                <span>On Duty</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : filteredHistory.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+                                <div className="p-8 text-center text-gray-550  dark:text-gray-400">
                                     No records found for "{filter}".
                                 </div>
                             ) : (
-                                <div className="divide-y divide-gray-100 dark:divide-gray-800 midnight:divide-gray-800">
+                                <div className="divide-y divide-gray-100  dark:divide-gray-800">
                                     {filteredHistory.map((d, i) => {
                                         const status = d.status.toLowerCase();
                                         const isPresent = status === "present";
                                         const isAbsent = status === "absent";
-                                        
+
                                         const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
 
                                         return (
-                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-900/30 transition-colors">
+                                            <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">{d.date}</p>
-                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400 midnight:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400 midnight:text-red-400" : "text-yellow-600 dark:text-yellow-400 midnight:text-yellow-400"}`}>
+                                                        <p className="font-bold text-gray-950  dark:text-gray-100">{d.date}</p>
+                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
                                                             {d.status}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {!isPresent && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => toggleNotes(d.date)}
                                                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
-                                                            hasNotes 
-                                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 midnight:bg-emerald-900/20 midnight:border-emerald-800/50 midnight:text-emerald-400" 
-                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-slate-700 midnight:bg-gray-900 midnight:border-gray-800 midnight:text-gray-300 midnight:hover:bg-gray-800"
+                                                            hasNotes
+                                                                ? "bg-emerald-55/10 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
+                                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
                                                         }`}
                                                     >
                                                         {hasNotes ? <CheckCircle2 size={14} /> : <FileText size={14} />}

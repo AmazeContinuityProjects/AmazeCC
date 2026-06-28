@@ -12,12 +12,12 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
   const captureRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const { theme, resolvedTheme } = useTheme();
-  const isDark = theme === "dark" || resolvedTheme === "dark";
-  const isMidnight = theme === "midnight";
-  const themeBgColor = isMidnight ? "#020617" : isDark ? "#0f172a" : "#ffffff";
-  const themeTextColor = isDark ? "#ffffff" : "#000000";
-  const themeHtmlClass = isMidnight ? "dark midnight" : isDark ? "dark" : "light";
-  
+  const currentTheme = resolvedTheme || theme || "light";
+  const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
+  const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+  const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
+
   const allCourseCodes = scheduleObj
     ? [...new Set(Object.values(scheduleObj).flat().map((s: any) => s.courseCode).filter(Boolean))]
     : [];
@@ -56,18 +56,18 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
       setIsDownloading(false);
     }
   }, [themeBgColor]);
-  
+
   if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
     return (
       <div>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
           {/* Mobile View: Inline Center */}
-          <h1 className="md:hidden text-xl font-bold text-center text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+          <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
             Exam Schedule <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
           </h1>
-          
+
           {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-          <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+          <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
             Exam Schedule
           </h1>
           <div className="hidden md:flex items-center justify-end">
@@ -212,7 +212,7 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
         {/* Mobile View: Inline Center */}
         <div className="md:hidden flex items-center justify-between w-full mb-3">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+          <h1 className="text-xl font-bold text-gray-900  dark:text-gray-100">
             Exam Schedule
           </h1>
           <div className="flex items-center gap-1.5">
@@ -228,9 +228,9 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
             <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="p-2" />
           </div>
         </div>
-        
+
         {/* Desktop View: Left Aligned Heading + Right Aligned Buttons */}
-        <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+        <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
           Exam Schedule
         </h1>
         <div className="hidden md:flex items-center gap-2">
@@ -262,20 +262,20 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
         </div>
       </div>
 
-      <div ref={captureRef}>  
+      <div ref={captureRef}>
       {sortedTodayExams.length > 0 && (
-        <div className="bg-green-100 dark:bg-green-700/40 midnight:bg-green-800/40 
-                  rounded-xl p-4 shadow mb-6 border border-green-300 
-                  dark:border-green-600 midnight:border-green-700">
+        <div className="bg-green-100  dark:bg-green-800/40
+                  rounded-xl p-4 shadow mb-6 border border-green-300
+                   dark:border-green-700">
 
           <div className="space-y-6">
             {sortedTodayExams.map((exam, i) => (
               <div
                 key={i}
                 className="grid grid-cols-2 lg:grid-cols-3 gap-4
-                     bg-white/40 dark:bg-black/20 midnight:bg-black/20
-                     p-4 rounded-lg border border-green-200 
-                     dark:border-green-600/40 midnight:border-green-700/40"
+                     bg-white/40  dark:bg-black/20
+                     p-4 rounded-lg border border-green-200
+                      dark:border-green-700/40"
               >
                 <div>
                   <p className="font-semibold">Course:</p>
@@ -323,10 +323,10 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
         return (
           <div
             key={examType}
-            className="bg-slate-50 dark:bg-slate-800 midnight:bg-black shadow rounded-2xl p-4 midnight:outline midnight:outline-1 midnight:outline-gray-800"
+            className="bg-slate-50  dark:bg-black shadow rounded-2xl p-4 dark:outline dark:outline-1 dark:outline-gray-800"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-blue-700 dark:text-blue-400 midnight:text-white">
+              <h2 className="text-xl font-semibold text-blue-700  dark:text-white">
                 {examType}
               </h2>
 
@@ -351,13 +351,13 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
 
                 let cardClass =
                   "flex flex-col p-4 rounded-xl shadow-sm border transition-all ";
-                
+
                 if (isPast) {
-                  cardClass += "bg-gray-100 dark:bg-gray-800/50 midnight:bg-gray-900/50 border-gray-200 dark:border-gray-700 midnight:border-gray-800 opacity-60";
+                  cardClass += "bg-gray-100  dark:bg-gray-900/50 border-gray-200  dark:border-gray-800 opacity-60";
                 } else if (isToday) {
-                  cardClass += "bg-green-50 dark:bg-green-900/20 midnight:bg-green-900/30 border-green-300 dark:border-green-700 midnight:border-green-800";
+                  cardClass += "bg-green-50  dark:bg-green-900/30 border-green-300  dark:border-green-800";
                 } else {
-                  cardClass += "bg-white dark:bg-slate-800 midnight:bg-gray-900 border-gray-200 dark:border-slate-700 midnight:border-gray-800 hover:shadow-md";
+                  cardClass += "bg-white  dark:bg-gray-900 border-gray-200  dark:border-gray-800 hover:shadow-md";
                 }
 
                 const finalSeatLocation = subj.seatLocation === "-" && subj.seatNo && subj.seatNo !== "-"
@@ -368,10 +368,10 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
                   <div key={idx} className={`stagger-enter ${cardClass}`}>
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-blue-700 dark:text-blue-400 midnight:text-blue-400'}`}>
+                        <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500  line-through' : 'text-blue-700  dark:text-blue-400'}`}>
                           {subj.courseCode}
                         </h3>
-                        <p className={`text-sm font-medium ${isPast ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 midnight:text-gray-300'}`}>
+                        <p className={`text-sm font-medium ${isPast ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
                           {subj.courseTitle}
                         </p>
                       </div>
@@ -382,14 +382,14 @@ export default function ExamSchedule({ data, handleScheduleFetch }) {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-auto pt-3 border-t border-gray-100 dark:border-slate-700 midnight:border-gray-800">
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-auto pt-3 border-t border-gray-100  dark:border-gray-800">
                       <div>
                         <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Date & Time</p>
                         <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                           {subj.examDate}<br/>{subj.examTime}
                         </p>
                       </div>
-                      
+
                       <div>
                         <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Venue</p>
                         <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>

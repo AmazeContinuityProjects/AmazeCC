@@ -62,10 +62,10 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
   if (item.id != null && item.title) {
     return (
-      <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 transition-colors group" style={{ paddingLeft: `${16 + depth * 20}px` }}>
+      <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group" style={{ paddingLeft: `${16 + depth * 20}px` }}>
         <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-        <p className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300 flex-1 min-w-0">{item.title}</p>
-        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 midnight:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
+        <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0">{item.title}</p>
+        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
           <Download className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -74,10 +74,10 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
   return (
     <div>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 midnight:hover:bg-gray-800/30 transition-colors text-left" style={{ paddingLeft: `${16 + depth * 20}px` }}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors text-left" style={{ paddingLeft: `${16 + depth * 20}px` }}>
         {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
         <FolderOpen className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 midnight:text-gray-200">{item.name}</span>
+        <span className="text-sm font-medium text-gray-800  dark:text-gray-200">{item.name}</span>
       </button>
       {open && hasChildren && (
         <div>
@@ -93,31 +93,31 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 midnight:bg-gray-950 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 midnight:border-gray-800 max-w-lg w-full mx-4 max-h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 midnight:border-gray-800">
+      <div className="absolute inset-0 bg-black/40 " onClick={onClose} />
+      <div className="relative bg-white  dark:bg-gray-950 rounded-2xl shadow-2xl border border-gray-200  dark:border-gray-800 max-w-lg w-full mx-4 max-h-[70vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-200  dark:border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 midnight:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+            <div className="p-2 rounded-xl bg-blue-50  dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
               <Bell className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">New Circulars</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 midnight:text-gray-400">{circulars.length} new circular{circulars.length !== 1 ? "s" : ""} published</p>
+              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">New Circulars</h3>
+              <p className="text-xs text-gray-500  dark:text-gray-400">{circulars.length} new circular{circulars.length !== 1 ? "s" : ""} published</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 midnight:hover:bg-gray-800 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 dark:hover:bg-gray-800 transition-colors">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
         <div className="overflow-y-auto p-5 space-y-2 flex-1">
           {circulars.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 midnight:bg-gray-900/50">
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50  dark:bg-gray-900/50">
               <FileText className="w-4 h-4 shrink-0 text-blue-500" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 midnight:text-gray-300">{c.title}</span>
+              <span className="text-sm text-gray-700  dark:text-gray-300">{c.title}</span>
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 midnight:border-gray-800 flex justify-end">
+        <div className="p-4 border-t border-gray-200  dark:border-gray-800 flex justify-end">
           <button onClick={onClose} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
             Got it
           </button>
@@ -203,7 +203,7 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
       title="Circulars"
       onBack={onBack || (() => {})}
       action={
-        <button onClick={() => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEEN_KEY); if (creds) fetchData(creds, true); }} className="p-2.5 rounded-full bg-blue-50 dark:bg-slate-800 midnight:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+        <button onClick={() => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEEN_KEY); if (creds) fetchData(creds, true); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
           <RefreshCcw className="w-5 h-5" />
         </button>
       }
@@ -213,15 +213,15 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
       )}
 
       {error && (
-        <div className="p-4 text-sm text-red-600 dark:text-red-500 midnight:text-red-500 bg-red-50 dark:bg-red-900/20 midnight:bg-red-900/20 rounded-2xl mb-4">{error}</div>
+        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4">{error}</div>
       )}
       {circulars.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500 midnight:text-gray-500">
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">
           <FileText className="w-12 h-12 mb-3" />
           <p className="text-sm font-medium">No circulars found</p>
         </div>
       )}
-      <div className="glass-card divide-y divide-gray-100/50 dark:divide-gray-800/50 midnight:divide-gray-800/50">
+      <div className="solid-card divide-y divide-gray-100/50  dark:divide-gray-800/50">
         {circulars.map((item, i) => (
           <TreeNode key={i} item={item} creds={creds} />
         ))}

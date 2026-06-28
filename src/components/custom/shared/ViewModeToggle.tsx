@@ -20,7 +20,7 @@ export default function ViewModeToggle({
   className,
 }: ViewModeToggleProps) {
   return (
-    <div className={cn("flex bg-gray-100 dark:bg-slate-800 midnight:bg-gray-900 p-1 rounded-lg w-max", className)}>
+    <div className={cn("flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg w-max", className)}>
       {options.map((opt) => (
         <button
           key={opt.key}
@@ -28,8 +28,8 @@ export default function ViewModeToggle({
           className={cn(
             "p-1.5 rounded-md transition-colors",
             value === opt.key
-              ? "bg-white dark:bg-slate-700 midnight:bg-black text-gray-900 dark:text-gray-100 midnight:text-gray-100 shadow-sm"
-              : "text-gray-500 dark:text-gray-400 midnight:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 midnight:hover:text-gray-300"
+              ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-100 shadow-sm"
+              : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"
           )}
           title={opt.label}
         >

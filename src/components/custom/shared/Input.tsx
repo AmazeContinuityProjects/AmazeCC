@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1 ml-1"
+            className="block text-xs font-medium text-gray-500  dark:text-gray-400 mb-1 ml-1"
           >
             {label}
           </label>
@@ -23,10 +23,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "w-full bg-white dark:bg-slate-900 midnight:bg-black",
-            "border border-gray-200 dark:border-gray-700 midnight:border-gray-800",
+            "w-full bg-white  dark:bg-black",
+            "border border-gray-200  dark:border-gray-800",
             "rounded-xl px-4 py-2.5",
-            "text-gray-900 dark:text-gray-100 midnight:text-gray-100",
+            "text-gray-900  dark:text-gray-100",
             "focus:outline-none focus:border-blue-500/50 transition-colors",
             error && "border-red-500",
             className
@@ -55,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1 ml-1"
+            className="block text-xs font-medium text-gray-500  dark:text-gray-400 mb-1 ml-1"
           >
             {label}
           </label>
@@ -64,10 +64,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "w-full bg-white dark:bg-slate-900 midnight:bg-black",
-            "border border-gray-200 dark:border-gray-700 midnight:border-gray-800",
+            "w-full bg-white  dark:bg-black",
+            "border border-gray-200  dark:border-gray-800",
             "rounded-xl px-4 py-2",
-            "text-sm text-gray-900 dark:text-gray-100 midnight:text-gray-100",
+            "text-sm text-gray-900  dark:text-gray-100",
             "font-mono focus:outline-none focus:border-blue-500/50 transition-colors resize-none",
             error && "border-red-500",
             className
@@ -96,7 +96,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-1 ml-1"
+            className="block text-xs font-medium text-gray-500  dark:text-gray-400 mb-1 ml-1"
           >
             {label}
           </label>
@@ -105,10 +105,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "w-full bg-white dark:bg-slate-900 midnight:bg-black",
-            "border border-gray-200 dark:border-gray-700 midnight:border-gray-800",
+            "w-full bg-white  dark:bg-black",
+            "border border-gray-200  dark:border-gray-800",
             "rounded-xl px-4 py-2.5",
-            "text-gray-900 dark:text-gray-100 midnight:text-gray-100",
+            "text-gray-900  dark:text-gray-100",
             "focus:outline-none focus:border-blue-500/50 transition-colors",
             className
           )}

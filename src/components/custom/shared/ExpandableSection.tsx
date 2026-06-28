@@ -30,7 +30,7 @@ export default function ExpandableSection({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800 dark:text-gray-200 midnight:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 midnight:hover:bg-gray-900 transition-colors",
+          "flex items-center justify-between w-full p-4 text-left font-semibold text-gray-800  dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 dark:hover:bg-gray-900 transition-colors",
           headerClassName
         )}
       >
@@ -53,7 +53,7 @@ export default function ExpandableSection({
           isOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className={cn("p-4 bg-gray-50/50 dark:bg-slate-800/20 midnight:bg-gray-900/20", contentClassName)}>
+        <div className={cn("p-4 bg-gray-50/50  dark:bg-gray-900/20", contentClassName)}>
           {children}
         </div>
       </div>

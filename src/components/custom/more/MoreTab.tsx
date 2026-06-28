@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import MoreSubTabs from "./MoreSubTabs";
 import FFCSTimetableTab from "../Exams/FFCSTimetableTab";
 import SocialTab from "../social/SocialTab";
 import EventHubTab from "../events/EventHubTab";
+import PageHeader from "../shared/PageHeader";
+import { LayoutGrid } from "lucide-react";
 
 export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMoreSubTab, IDs, isSubpageOpen, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: {
   attendanceData: any;
@@ -16,18 +18,17 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
 }) {
 
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto">
-      <div className={`md:hidden ${isSubpageOpen ? "hidden" : ""}`}>
-        <MoreSubTabs
-          activeMoreSubTab={activeMoreSubTab}
-          setActiveMoreSubTab={setActiveMoreSubTab}
+    <div className="animate-fadeIn w-full max-w-7xl mx-auto pb-24 md:pb-0">
+      <div className="mb-4 space-y-4">
+        <PageHeader
+          icon={<LayoutGrid className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+          title="More"
         />
+        <MoreSubTabs activeMoreSubTab={activeMoreSubTab} setActiveMoreSubTab={setActiveMoreSubTab} />
       </div>
 
-
-
-      <div className="mt-4">
-        {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} />}
+      <div>
+        {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />}
         {activeMoreSubTab === "ffcs" && <FFCSTimetableTab />}
         {activeMoreSubTab === "events" && <EventHubTab IDs={IDs} setIsSubpageOpen={setIsSubpageOpen} registeredEvents={registeredEvents} setRegisteredEvents={setRegisteredEvents} />}
       </div>

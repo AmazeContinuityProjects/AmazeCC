@@ -2,16 +2,37 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2 } from "lucide-react";
+import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2, Plus, Minus } from "lucide-react";
 import SubpageLayout from "../shared/SubpageLayout";
+import { useIsMobile } from "../shared";
 
 const GRADE_POINTS: Record<string, number> = {
   "S": 10, "A": 9, "B": 8, "C": 7, "D": 6, "E": 5, "F": 0, "N": 0
 };
 
 export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab }) {
+  const isMobile = useIsMobile();
   const currentCgpa = Number(marksData?.cgpa?.cgpa || 0);
   const creditsEarned = Number(marksData?.cgpa?.creditsEarned || 0);
+  const gradesList = ["S", "A", "B", "C", "D", "E", "F"];
+
+  const handleGradeChange = (courseCode: string, direction: "inc" | "dec") => {
+    const currentGrade = courseGrades[courseCode] || "A";
+    const currentIndex = gradesList.indexOf(currentGrade);
+    if (currentIndex === -1) return;
+
+    let nextIndex = currentIndex;
+    if (direction === "inc") {
+      nextIndex = Math.max(0, currentIndex - 1);
+    } else {
+      nextIndex = Math.min(gradesList.length - 1, currentIndex + 1);
+    }
+
+    setCourseGrades(prev => ({
+      ...prev,
+      [courseCode]: gradesList[nextIndex]
+    }));
+  };
   
   // Parse and group current courses
   const [currentCourses, setCurrentCourses] = useState<any[]>([]);
@@ -133,29 +154,33 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 min-w-0 w-full">
+      <div className="space-y-6 min-w-0 w-full">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm   dark:border-gray-800 dark:bg-black">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {[
+              ["Current CGPA", currentCgpa.toFixed(2), "text-blue-600 dark:text-blue-400"],
+              ["Credits Earned", creditsEarned, "text-gray-900 dark:text-gray-100"],
+              ["Semester Credits", currentSemesterCredits.toFixed(1), "text-purple-600 dark:text-purple-400"],
+              ["Predicted CGPA", predictedCgpa.toFixed(2), "text-emerald-600 dark:text-emerald-400"],
+            ].map(([label, value, color]) => (
+              <div key={label as string} className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-950/30">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</p>
+                <p className={`mt-2 text-2xl font-black ${color}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
         
         {/* Left Col: Target Calculator */}
-        <Card className="bg-white dark:bg-slate-900 midnight:bg-black shadow-sm min-w-0">
-          <CardHeader className="pb-3 border-b dark:border-slate-800 midnight:border-gray-800 min-w-0">
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
             <CardTitle className="flex items-center gap-2 text-lg min-w-0">
               <Target className="w-5 h-5 text-blue-500 shrink-0" />
-              <span className="truncate">Target CGPA Calculator</span>
+              <span className="truncate">1. Set Target CGPA</span>
             </CardTitle>
-            <CardDescription className="truncate">Find out what SGPA you need to hit your goal.</CardDescription>
+            <CardDescription className="truncate">Calculations update as your target and expected grades change.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5 space-y-6 min-w-0">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Current CGPA</p>
-                <p className="text-xl font-bold">{currentCgpa.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Current Credits</p>
-                <p className="text-xl font-bold">{creditsEarned}</p>
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Target CGPA
@@ -169,7 +194,7 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
                   value={targetCgpa}
                   onChange={(e) => setTargetCgpa(e.target.value)}
                   placeholder="e.g. 9.00"
-                  className="flex-1 min-w-0 px-4 py-2 border rounded-lg bg-white dark:bg-slate-800 midnight:bg-black dark:border-slate-700 midnight:border-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="flex-1 min-w-0 px-4 py-2 border rounded-lg bg-white  dark:bg-black  dark:border-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 />
                 <button
                   onClick={saveGoal}
@@ -208,16 +233,16 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
         </Card>
 
         {/* Right Col: Current Courses Predictor */}
-        <Card className="bg-white dark:bg-slate-900 midnight:bg-black shadow-sm min-w-0">
-          <CardHeader className="pb-3 border-b dark:border-slate-800 midnight:border-gray-800 min-w-0">
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
             <CardTitle className="flex items-center gap-2 text-lg min-w-0">
               <Calculator className="w-5 h-5 text-purple-500 shrink-0" />
-              <span className="truncate">GPA Predictor</span>
+              <span className="truncate">2. Expected Semester Grades</span>
             </CardTitle>
             <CardDescription className="truncate">Estimate your GPA based on expected grades.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5 min-w-0">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 midnight:bg-gray-900 rounded-xl mb-6 min-w-0 gap-2">
+            <div className="flex items-center justify-between p-4 bg-gray-50  dark:bg-gray-900 rounded-xl mb-6 min-w-0 gap-2">
               <div className="text-center min-w-0 flex-1">
                 <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider mb-1 truncate">Predicted SGPA</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{predictedSgpa.toFixed(2)}</p>
@@ -229,26 +254,46 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
               </div>
             </div>
 
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
               {currentCourses.length === 0 ? (
                 <p className="text-center text-sm text-gray-500 py-4">No current courses found.</p>
               ) : (
                 currentCourses.map(course => (
-                  <div key={course.baseCode} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-slate-800 midnight:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <div key={course.baseCode} className="flex items-center justify-between p-3 rounded-lg border border-gray-100  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                     <div className="flex-1 pr-4 min-w-0">
                       <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{course.baseCode}</p>
                       <p className="text-xs text-gray-500 truncate" title={course.courseTitle}>{course.courseTitle}</p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{course.credits} Credits</p>
                     </div>
-                    <select
-                      value={courseGrades[course.baseCode] || "A"}
-                      onChange={(e) => setCourseGrades(prev => ({ ...prev, [course.baseCode]: e.target.value }))}
-                      className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 midnight:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
-                    >
-                      {Object.keys(GRADE_POINTS).map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
+                    {isMobile ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleGradeChange(course.baseCode, "dec")}
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-55 dark:hover:bg-slate-800 active:scale-90 transition-all"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-black text-sm text-gray-800 dark:text-gray-200">
+                          {courseGrades[course.baseCode] || "A"}
+                        </span>
+                        <button
+                          onClick={() => handleGradeChange(course.baseCode, "inc")}
+                          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-55 dark:hover:bg-slate-800 active:scale-90 transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={courseGrades[course.baseCode] || "A"}
+                        onChange={(e) => setCourseGrades(prev => ({ ...prev, [course.baseCode]: e.target.value }))}
+                        className="px-3 py-2 rounded-md border border-gray-200 dark:border-slate-700 bg-white  dark:bg-black font-semibold text-center focus:ring-2 focus:ring-purple-500 outline-none"
+                      >
+                        {Object.keys(GRADE_POINTS).map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 ))
               )}
@@ -256,6 +301,32 @@ export default function GPAPredictorTab({ marksData, attendance, setActiveSubTab
           </CardContent>
         </Card>
 
+        <Card className="bg-white  dark:bg-black shadow-sm min-w-0">
+          <CardHeader className="pb-3 border-b  dark:border-gray-800 min-w-0">
+            <CardTitle className="flex items-center gap-2 text-lg min-w-0">
+              <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
+              <span className="truncate">3. Result</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-950/30">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Predicted SGPA</p>
+                <p className="mt-2 text-2xl font-black text-purple-600 dark:text-purple-400">{predictedSgpa.toFixed(2)}</p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-950/30">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Predicted CGPA</p>
+                <p className="mt-2 text-2xl font-black text-blue-600 dark:text-blue-400">{predictedCgpa.toFixed(2)}</p>
+              </div>
+              <div className={`rounded-2xl border p-4 ${targetCgpaNum > 0 && !isTargetPossible ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30" : "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30"}`}>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Required SGPA</p>
+                <p className={`mt-2 text-2xl font-black ${targetCgpaNum > 0 && !isTargetPossible ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                  {targetCgpaNum > 0 ? (isTargetPossible ? requiredSgpa.toFixed(2) : "Impossible") : "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </SubpageLayout>
   );

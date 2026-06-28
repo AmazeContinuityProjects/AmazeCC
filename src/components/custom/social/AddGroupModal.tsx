@@ -44,7 +44,7 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
     <Modal onClose={onClose}>
       <div className="flex items-center gap-2 mb-4">
         <Users className="w-5 h-5 text-blue-500" />
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+        <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">
           Create Group
         </h2>
       </div>
@@ -59,12 +59,12 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
         />
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 midnight:text-gray-400 mb-2 ml-1">
+          <label className="block text-xs font-medium text-gray-500  dark:text-gray-400 mb-2 ml-1">
             Select Friends ({selectedIds.size} selected)
           </label>
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {friends.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 midnight:text-gray-400">
+              <p className="text-sm text-gray-500  dark:text-gray-400">
                 You need to add friends first.
               </p>
             ) : (
@@ -77,7 +77,7 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${
                       isSelected
                         ? "border-blue-500 bg-blue-500/10"
-                        : "border-gray-200 dark:border-gray-700 midnight:border-gray-800 bg-white dark:bg-slate-900 midnight:bg-black hover:border-gray-400"
+                        : "border-gray-200  dark:border-gray-800 bg-white  dark:bg-black hover:border-gray-400"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -87,7 +87,7 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
                       >
                         {friend.nickname.substring(0, 1).toUpperCase()}
                       </div>
-                      <span className="font-medium text-gray-900 dark:text-gray-100 midnight:text-gray-100">
+                      <span className="font-medium text-gray-900  dark:text-gray-100">
                         {friend.nickname}
                       </span>
                     </div>
