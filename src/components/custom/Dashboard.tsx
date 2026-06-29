@@ -61,6 +61,7 @@ import MakeupCompreTab from "./Exams/MakeupCompreTab";
 import CourseMgmtTab from "./Exams/CourseMgmtTab";
 import ProjectsTab from "./Exams/ProjectsTab";
 import WishlistTab from "./Exams/WishlistTab";
+import FreeClassroomsTab from "./Exams/FreeClassroomsTab";
 import CircularsTab from "./Exams/CircularsTab";
 import FacultyInfoTab from "./Exams/FacultyInfoTab";
 import QCMViewTab from "./Exams/QCMViewTab";
@@ -820,9 +821,12 @@ export default function DashboardContent({
               {activeSubTab === "wishlist" && (
                 <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
               )}
+              {activeSubTab === "free-class" && (
+                <FreeClassroomsTab setActiveSubTab={setActiveSubTab} />
+              )}
 
               {activeSubTab === "faculty-info" && (
-                <FacultyInfoTab loginToVTOP={loginToVTOP} />
+                <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
               )}
               {activeSubTab === "qcm-view" && (
                 <QCMViewTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />

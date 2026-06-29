@@ -24,6 +24,7 @@ import {
   FolderOpen
 } from "lucide-react";
 import config from "../../../../config.json";
+import FreeClassroomsWidget from "./FreeClassroomsWidget";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -466,6 +467,9 @@ export default function MobileHome({
           </div>
         )}
       </div>
+
+      {/* ── FREE CLASSROOMS WIDGET ── */}
+      <FreeClassroomsWidget />
 
       {/* ── QUICK ACTIONS GRID ── */}
       <div className="space-y-3">

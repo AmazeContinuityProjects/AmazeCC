@@ -82,7 +82,7 @@ const FacultyCard = ({ profile }: { profile: FacultyProfile }) => {
   );
 };
 
-export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP?: any }) {
+export default function FacultyInfoTab({ loginToVTOP, setActiveSubTab }: { loginToVTOP?: any, setActiveSubTab?: (t: string) => void }) {
   const [schools, setSchools] = useState<School[]>([]);
   const [loadingSchools, setLoadingSchools] = useState(true);
   
@@ -149,7 +149,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP?: any }) {
 
   if (loadingSchools) {
     return (
-      <SubpageLayout title="Global Faculty Directory" onBack={() => {}}>
+      <SubpageLayout title="Global Faculty Directory" onBack={() => setActiveSubTab && setActiveSubTab("overview")}>
         <Skeleton className="h-10 w-full rounded-2xl mb-4" />
         <Skeleton className="h-12 w-full rounded-2xl mb-4" />
         <Skeleton className="h-64 w-full rounded-2xl" />
@@ -158,7 +158,7 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP?: any }) {
   }
 
   return (
-    <SubpageLayout title="Global Faculty Directory" onBack={() => {}}>
+    <SubpageLayout title="Global Faculty Directory" onBack={() => setActiveSubTab && setActiveSubTab("overview")}>
       
       {/* School Selector Pills */}
       <div className="flex overflow-x-auto pb-4 mb-2 gap-2 hide-scrollbar">
