@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from "react";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
-import LoginFooter from "./footer/LoginFooter";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
@@ -2449,11 +2448,7 @@ export default function LoginPage() {
         Scheduled maintenance on December 29, 2025 ( afternoon ). API services will be temporarily unavailable.
       </div> */}
 
-      {!isLoggedIn && (
-        <div className={`md:hidden ${demoMode ? 'pb-24' : 'pb-6'}`}>
-          <LoginFooter />
-        </div>
-      )}
+
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}

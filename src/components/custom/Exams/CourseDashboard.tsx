@@ -10,7 +10,7 @@ import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
   ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
   Building2, AlertCircle, Star, Grid3x3, List, CheckCircle2,
-  FileText as FileTextIcon
+  FileText as FileTextIcon, Search, ChevronDown
 } from "lucide-react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { countRemainingClasses } from "../attendance/AttendanceSubpage";
@@ -262,6 +262,28 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
     </ExpandableSection>
   );
 }
+
+const getCourseHealth = (attendancePct: number, internalPct: number, predictedGrade: string, isPastSemester: boolean) => {
+  if (isPastSemester) return { label: "Completed", color: "bg-slate-50 text-slate-650 border-slate-200/50 dark:bg-neutral-800/40 dark:text-gray-300 dark:border-neutral-700/50" };
+  
+  if (attendancePct < 75 || predictedGrade === "F") {
+    return { label: "Critical", color: "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/30" };
+  }
+  if (attendancePct < 80 || predictedGrade === "D" || predictedGrade === "E") {
+    return { label: "Watch", color: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/30" };
+  }
+  return { label: "Healthy", color: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/30" };
+};
+
+const getGradeBadgeStyle = (grade: string) => {
+  const g = grade.toUpperCase();
+  if (["S", "A"].includes(g)) return "bg-emerald-50 text-emerald-700 border-emerald-100/50 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/30";
+  if (["B", "C"].includes(g)) return "bg-blue-50 text-blue-700 border-blue-100/50 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/30";
+  if (["D", "E"].includes(g)) return "bg-amber-50 text-amber-700 border-amber-100/50 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/30";
+  if (g === "F") return "bg-rose-50 text-rose-700 border-rose-100/50 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/30";
+  return "bg-slate-50 text-slate-650 border-slate-100/50 dark:bg-neutral-800/40 dark:text-gray-300 dark:border-neutral-700/50";
+};
+
 export default function CourseDashboard({
   marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
   calendars, decimalValues, isDayscholarWithBus
@@ -292,6 +314,13 @@ export default function CourseDashboard({
   const [viewMode, setViewMode] = useState<"list" | "heatmap" | "calendar">("list");
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
   const [targetGrade, setTargetGrade] = useState("A");
+
+  // Redesigned dashboard state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("default");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [viewType, setViewType] = useState<"grid" | "list">("grid");
+  const [selectedSemester, setSelectedSemester] = useState("All");
 
   useEffect(() => {
     loginToVTOP().then(c => { credsRef.current = c; setCreds(c); }).catch(() => {});
@@ -503,6 +532,241 @@ export default function CourseDashboard({
       (c.courseTitle && c.courseTitle.trim() !== "")
     );
   }, [marksData, attendanceData, pastSemesterData]);
+
+  const semestersList = useMemo(() => {
+    const sems = new Set<string>();
+    uniqueCourses.forEach(c => {
+      const sem = c.semesterSubId || "Current";
+      if (sem !== "Current") sems.add(sem);
+    });
+    return ["Current", ...Array.from(sems)];
+  }, [uniqueCourses]);
+
+  const filteredAndSortedCourses = useMemo(() => {
+    let result = [...uniqueCourses];
+
+    // 1. Filter by Semester
+    if (selectedSemester !== "All") {
+      result = result.filter(group => (group.semesterSubId || "Current") === selectedSemester);
+    }
+
+    // 2. Filter by Search Term
+    if (searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(group => 
+        group.courseCode?.toLowerCase().includes(term) || 
+        group.courseTitle?.toLowerCase().includes(term)
+      );
+    }
+
+    // 3. Filter by Status/Type
+    if (filterStatus !== "all") {
+      result = result.filter(group => {
+        const main = group.theory || group.lab;
+        const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
+        const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
+        
+        let sourceAttendance = attendanceData?.attendance || [];
+        if (isPastSemester && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+          sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+        }
+        const attItems = sourceAttendance.filter((a: any) =>
+          a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
+        );
+        const theoryAttItem = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+        const labAttItem = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+        const attendancePct = Number(theoryAttItem?.attendancePercentage || labAttItem?.attendancePercentage) || (isPastSemester ? 100 : 0);
+
+        const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
+        let percent = 0;
+        if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
+          const [w, wp] = courseTotalString.split("/");
+          if (Number(wp) > 0) percent = (Number(w) / Number(wp)) * 100;
+        }
+
+        const courseStats = getCourseStats(group);
+        const isRelative = checkIsRelative(main.courseSystem, courseType);
+        let predictedGrade = "?";
+        if (isRelative) {
+          const statInfo = allStats[main.classNbr]?.overall;
+          if (statInfo && statInfo.count > 0 && courseStats.projected > 0) {
+            const { mean, sd } = statInfo;
+            const proj = courseStats.projected;
+            if (proj >= Math.min(Math.max(mean + 1.5 * sd, 80), 100)) predictedGrade = "S";
+            else if (proj >= mean + 0.5 * sd) predictedGrade = "A";
+            else if (proj >= mean - 0.5 * sd) predictedGrade = "B";
+            else if (proj >= mean - 1.0 * sd) predictedGrade = "C";
+            else if (proj >= mean - 1.5 * sd) predictedGrade = "D";
+            else if (proj >= Math.min(mean - 2.0 * sd, 50)) predictedGrade = "E";
+            else predictedGrade = "F";
+          }
+        } else {
+          const proj = courseStats.projected;
+          if (proj >= 90) predictedGrade = "S";
+          else if (proj >= 80) predictedGrade = "A";
+          else if (proj >= 70) predictedGrade = "B";
+          else if (proj >= 60) predictedGrade = "C";
+          else if (proj >= 50) predictedGrade = "D";
+          else if (proj >= 40) predictedGrade = "E";
+          else predictedGrade = "F";
+        }
+
+        const healthLabel = isPastSemester ? "Completed" : (attendancePct < 75 || predictedGrade === "F") ? "Critical" : (attendancePct < 80 || predictedGrade === "D" || predictedGrade === "E") ? "Watch" : "Healthy";
+
+        if (filterStatus === "healthy") return healthLabel === "Healthy";
+        if (filterStatus === "watch") return healthLabel === "Watch";
+        if (filterStatus === "critical") return healthLabel === "Critical";
+        if (filterStatus === "theory") return courseType?.toLowerCase().includes("theory") && !courseType?.toLowerCase().includes("lab");
+        if (filterStatus === "lab") return courseType?.toLowerCase().includes("lab") && !courseType?.toLowerCase().includes("theory");
+        if (filterStatus === "embedded") return courseType?.toLowerCase().includes("embedded") || (group.theory && group.lab);
+        return true;
+      });
+    }
+
+    // 4. Sort courses
+    if (sortBy !== "default") {
+      result.sort((a, b) => {
+        if (sortBy === "name") {
+          return (a.courseTitle || "").localeCompare(b.courseTitle || "");
+        }
+        if (sortBy === "code") {
+          return (a.courseCode || "").localeCompare(b.courseCode || "");
+        }
+        if (sortBy === "attendance") {
+          const getAtt = (group: any) => {
+            const isPast = group.semesterSubId && group.semesterSubId !== "Current";
+            let sourceAttendance = attendanceData?.attendance || [];
+            if (isPast && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+              sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+            }
+            const attItems = sourceAttendance.filter((a: any) =>
+              a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
+            );
+            const tAtt = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+            const lAtt = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+            return Number(tAtt?.attendancePercentage || lAtt?.attendancePercentage) || (isPast ? 100 : 0);
+          };
+          return getAtt(b) - getAtt(a); // descending
+        }
+        if (sortBy === "marks") {
+          const getMarks = (group: any) => {
+            const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
+            if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
+              const [w, wp] = courseTotalString.split("/");
+              return Number(wp) > 0 ? (Number(w) / Number(wp)) * 100 : 0;
+            }
+            return 0;
+          };
+          return getMarks(b) - getMarks(a); // descending
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [uniqueCourses, selectedSemester, searchTerm, filterStatus, sortBy, attendanceData, pastSemesterData, allStats]);
+
+  const currentSemesterStats = useMemo(() => {
+    const targetCourses = filteredAndSortedCourses;
+    
+    let totalAttendance = 0;
+    let attendanceCount = 0;
+    let totalInternalPct = 0;
+    let internalCount = 0;
+    let totalCredits = 0;
+    let atRiskCount = 0;
+    let totalAssessments = 0;
+
+    targetCourses.forEach(group => {
+      const main = group.theory || group.lab;
+      const isPast = group.semesterSubId && group.semesterSubId !== "Current";
+      
+      // Attendance
+      let sourceAttendance = attendanceData?.attendance || [];
+      if (isPast && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+        sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+      }
+      const attItems = sourceAttendance.filter((a: any) =>
+        a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
+      );
+      const theoryAtt = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+      const labAtt = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+      
+      if (theoryAtt && theoryAtt.attendancePercentage) {
+        totalAttendance += Number(theoryAtt.attendancePercentage);
+        attendanceCount++;
+      }
+      if (labAtt && labAtt.attendancePercentage) {
+        totalAttendance += Number(labAtt.attendancePercentage);
+        attendanceCount++;
+      }
+
+      const attendancePct = Number(theoryAtt?.attendancePercentage || labAtt?.attendancePercentage) || (isPast ? 100 : 0);
+
+      // Credits
+      const cCredits = (group.theory ? getCourseCredits(group.theory) : 0) + (group.lab ? getCourseCredits(group.lab) : 0);
+      totalCredits += cCredits;
+
+      // Internal Marks
+      const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
+      let percent = 0;
+      if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
+        const [w, wp] = courseTotalString.split("/");
+        if (Number(wp) > 0) {
+          percent = (Number(w) / Number(wp)) * 100;
+          totalInternalPct += percent;
+          internalCount++;
+        }
+      }
+
+      // Assessments
+      const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
+      totalAssessments += assessmentCount;
+
+      // Predicted grade
+      const courseStats = getCourseStats(group);
+      const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
+      const isRelative = checkIsRelative(main.courseSystem, courseType);
+      let predictedGrade = "?";
+      if (isRelative) {
+        const statInfo = allStats[main.classNbr]?.overall;
+        if (statInfo && statInfo.count > 0 && courseStats.projected > 0) {
+          const { mean, sd } = statInfo;
+          const proj = courseStats.projected;
+          if (proj >= Math.min(Math.max(mean + 1.5 * sd, 80), 100)) predictedGrade = "S";
+          else if (proj >= mean + 0.5 * sd) predictedGrade = "A";
+          else if (proj >= mean - 0.5 * sd) predictedGrade = "B";
+          else if (proj >= mean - 1.0 * sd) predictedGrade = "C";
+          else if (proj >= mean - 1.5 * sd) predictedGrade = "D";
+          else if (proj >= Math.min(mean - 2.0 * sd, 50)) predictedGrade = "E";
+          else predictedGrade = "F";
+        }
+      } else {
+        const proj = courseStats.projected;
+        if (proj >= 90) predictedGrade = "S";
+        else if (proj >= 80) predictedGrade = "A";
+        else if (proj >= 70) predictedGrade = "B";
+        else if (proj >= 60) predictedGrade = "C";
+        else if (proj >= 50) predictedGrade = "D";
+        else if (proj >= 40) predictedGrade = "E";
+        else predictedGrade = "F";
+      }
+
+      if (!isPast) {
+        if (attendancePct < 75 || predictedGrade === "F") {
+          atRiskCount++;
+        }
+      }
+    });
+
+    return {
+      avgAttendance: attendanceCount > 0 ? (totalAttendance / attendanceCount).toFixed(1) : "0.0",
+      avgInternalMarks: internalCount > 0 ? (totalInternalPct / internalCount).toFixed(1) : "0.0",
+      totalCredits,
+      atRiskCount,
+      totalAssessments,
+    };
+  }, [filteredAndSortedCourses, attendanceData, pastSemesterData, allStats]);
 
   useEffect(() => {
     if (!marksData?.courses) return;
@@ -975,252 +1239,526 @@ export default function CourseDashboard({
     return (
       <SubpageLayout title="Course Dashboard" onBack={() => setActiveSubTab("overview")}>
         {uniqueCourses.length === 0 ? (
-          <Card><div className="p-10 text-center"><BookOpen className="w-10 h-10 text-gray-300  dark:text-gray-700 mx-auto mb-3" /><p className="text-sm text-gray-400  dark:text-gray-500">No course data available</p></div></Card>
+          <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+            <BookOpen className="w-10 h-10 text-slate-300 dark:text-neutral-700 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-slate-400 dark:text-neutral-500">No course data available</p>
+          </div>
         ) : (
-          <div className="space-y-8">
-            {Array.from(
-              uniqueCourses.reduce((acc, group) => {
-                const sem = group.semesterSubId || "Current";
-                if (!acc.has(sem)) acc.set(sem, []);
-                acc.get(sem)!.push(group);
-                return acc;
-              }, new Map<string, any[]>()).entries()
-            ).map(([semester, courses], semIdx) => (
-              <div key={semester}>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <div className="w-2 h-6 bg-blue-500 rounded-full" />
-                  {semester === "Current" ? "Current Semester" : `${formatSemesterName(semester)}`}
-                  <span className="text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md ml-2">
-                    {courses.length} Courses
-                  </span>
-                </h3>
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {courses.map((group: any, idx: number) => {
-              const main = group.theory || group.lab;
-              const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
-              const isRelative = checkIsRelative(main.courseSystem, courseType);
-              const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
-              const courseStats = getCourseStats(group);
-              const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
-              let sourceAttendance = attendanceData?.attendance || [];
-              if (isPastSemester && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
-                sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
-              }
-              const attItems = sourceAttendance.filter((a: any) =>
-                a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
-              );
-              const theoryAttItem = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
-              const labAttItem = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
-              const att = theoryAttItem || labAttItem;
+          <div className="space-y-6">
+            {/* Quick Stats Panel */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              {/* Card 1: Average Attendance */}
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">Avg Attendance</p>
+                <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">{currentSemesterStats.avgAttendance}%</p>
+              </div>
+              {/* Card 2: Average Internal Marks */}
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">Avg Internals</p>
+                <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">{currentSemesterStats.avgInternalMarks}%</p>
+              </div>
+              {/* Card 3: Courses at Risk */}
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">At Risk</p>
+                <p className={`mt-1 text-2xl font-black font-[family-name:var(--font-outfit)] ${Number(currentSemesterStats.atRiskCount) > 0 ? "text-rose-500" : "text-emerald-500"}`}>{currentSemesterStats.atRiskCount}</p>
+              </div>
+              {/* Card 4: Total Credits */}
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">Total Credits</p>
+                <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">{currentSemesterStats.totalCredits}</p>
+              </div>
+              {/* Card 5: Assessments */}
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-4 col-span-2 md:col-span-1 shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <p className="text-[10px] font-bold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">Assessments</p>
+                <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">{currentSemesterStats.totalAssessments}</p>
+              </div>
+            </div>
 
-              let percent = 0, text = "0/0";
-              if (courseTotalString === "Reload Required") text = "N/A";
-              else if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
-                const [w, wp] = courseTotalString.split("/");
-                if (Number(wp) > 0) percent = (Number(w) / Number(wp)) * 100;
-                text = `${formatNumber(w)}/${formatNumber(wp)}`;
-              } else text = String(courseTotalString);
-
-              let predictedGrade = "?";
-              if (isRelative) {
-                const statInfo = allStats[main.classNbr]?.overall;
-                if (statInfo && statInfo.count > 0 && courseStats.projected > 0) {
-                  const { mean, sd } = statInfo;
-                  const proj = courseStats.projected;
-                  if (proj >= Math.min(Math.max(mean + 1.5 * sd, 80), 100)) predictedGrade = "S";
-                  else if (proj >= mean + 0.5 * sd) predictedGrade = "A";
-                  else if (proj >= mean - 0.5 * sd) predictedGrade = "B";
-                  else if (proj >= mean - 1.0 * sd) predictedGrade = "C";
-                  else if (proj >= mean - 1.5 * sd) predictedGrade = "D";
-                  else if (proj >= Math.min(mean - 2.0 * sd, 50)) predictedGrade = "E";
-                  else predictedGrade = "F";
-                }
-              } else {
-                const proj = courseStats.projected;
-                if (proj >= 90) predictedGrade = "S";
-                else if (proj >= 80) predictedGrade = "A";
-                else if (proj >= 70) predictedGrade = "B";
-                else if (proj >= 60) predictedGrade = "C";
-                else if (proj >= 50) predictedGrade = "D";
-                else if (proj >= 40) predictedGrade = "E";
-                else predictedGrade = "F";
-              }
-
-              const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
-              let pastGrade = "";
-              if (isPastSemester && allGradesData?.grades) {
-                let gradeArray: any[] = [];
-                if (allGradesData.grades[group.semesterSubId]) {
-                  const sem = allGradesData.grades[group.semesterSubId];
-                  gradeArray = sem?.grades || sem || [];
-                } else if (Array.isArray(allGradesData.grades)) {
-                  gradeArray = allGradesData.grades;
-                } else {
-                  gradeArray = Object.values(allGradesData.grades).flatMap((s: any) => s?.grades || s || []);
-                }
-                const items = Array.isArray(gradeArray) ? gradeArray : Object.values(gradeArray);
-                const found = items.find((g: any) => (g.courseCode || g.code) === group.courseCode);
-                if (found) pastGrade = found.grade || found.courseGrade;
-              }
-
-              const faculty = main.faculty || att?.faculty || (isPastSemester ? "Past Faculty" : "Faculty not listed");
-              const attendancePct = Number(att?.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0);
-              const statusTone = isPastSemester 
-                ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
-                : predictedGrade === "F" || attendancePct < 75
-                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
-                : percent >= 75 && attendancePct >= 75
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
-                  : "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-300";
-              const statusLabel = isPastSemester ? `Completed: ${pastGrade}` : predictedGrade === "F" || attendancePct < 75 ? "Needs attention" : percent >= 75 ? "On track" : "Watchlist";
-
-              return (
-                <div key={group.courseCode} onClick={() => handleSelectCourse(group.courseCode)}
-                  className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer transition-colors duration-150 hover:bg-gray-50   dark:hover:bg-slate-800/70 dark:border-gray-800 dark:bg-black">
-                  <div className="flex items-start gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-black text-gray-900  dark:text-gray-100 flex items-center gap-2">
-                            {group.courseCode}
-                            {arrearsCourses.has(group.courseCode) && (
-                              <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:bg-red-900/40 dark:text-red-300 uppercase">
-                                Arrear
-                              </span>
-                            )}
-                          </p>
-                          <h3 className="mt-0.5 line-clamp-2 text-base font-bold leading-tight text-gray-700  dark:text-gray-300">{group.courseTitle}</h3>
-                        </div>
-                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusTone}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mt-1">
-                          <div className="bg-gray-50 dark:bg-slate-800/50 dark:border-gray-800 border p-2.5 rounded-xl transition-colors group-hover:bg-gray-100 dark:group-hover:bg-gray-900/50 flex flex-col justify-center">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                              {isPastSemester ? "Final Grade" : "Attendance"}
-                            </span>
-                            <div className="flex items-center">
-                              {isPastSemester ? (
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                  {pastGrade || "N/A"}
-                                </span>
-                              ) : attendancePct ? (
-                                <CircularProgress value={attendancePct} size={34} strokeWidth={12} />
-                              ) : (
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">N/A</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="bg-gray-50 dark:bg-slate-800/50 dark:border-gray-800 border p-2.5 rounded-xl transition-colors group-hover:bg-gray-100 dark:group-hover:bg-gray-900/50 flex flex-col justify-center">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
-                              {isPastSemester ? "Past Internal" : "Internal Marks"}
-                            </span>
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{isPastSemester ? (courseTotalString !== "Reload Required" && String(courseTotalString).includes("/") ? String(courseTotalString).split("/")[0] : "N/A") : percent.toFixed(1)}</span>
-                              {!isPastSemester && <span className="text-[10px] font-bold text-gray-400">/ 100</span>}
-                            </div>
-                          </div>
-                        </div>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        <TypeBadge label={courseType} />
-                        {predictedGrade !== "?" && !isPastSemester && (
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setActiveSubTab("predictor");
-                            }}
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100  dark:hover:bg-indigo-900/50 dark:bg-indigo-900/30 text-indigo-700  dark:text-indigo-300 uppercase tracking-wider transition-colors"
-                            title="Open GPA Predictor"
-                          >
-                            Pred: {predictedGrade}
-                          </button>
-                        )}
-                        {att && (
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleSelectCourseTab(group.courseCode, "attendance");
-                            }}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider transition-colors ${
-                            Number(att.attendancePercentage) >= 85 ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-300" :
-                            Number(att.attendancePercentage) >= 75 ? "bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-300" :
-                            "bg-red-100 text-red-700   dark:bg-red-900/30 dark:text-red-300"
-                          }`}
-                            title="Open course attendance"
-                          >
-                            {att.attendancePercentage}% att
-                          </button>
-                        )}
-                      </div>
-                      <div className="mt-4 grid grid-cols-3 gap-3">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Marks</p>
-                          <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{text}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                            {isPastSemester ? "Final Grade" : "Prediction"}
-                          </p>
-                          <p className="mt-1 text-sm font-black text-indigo-600 dark:text-indigo-400">
-                            {isPastSemester ? (pastGrade || "N/A") : predictedGrade}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Assessments</p>
-                          <p className="mt-1 text-sm font-black text-gray-900 dark:text-gray-100">{assessmentCount}</p>
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setActiveSubTab("faculty-info");
-                            }}
-                            className="truncate flex items-center gap-1.5 rounded-lg px-1 py-0.5 transition-colors hover:bg-gray-100 hover:text-blue-600 dark:hover:bg-gray-800 dark:hover:text-blue-400"
-                            title="Open Faculty Info"
-                          >
-                            <User className="h-3.5 w-3.5 shrink-0" /> {faculty}
-                          </button>
-                          <span className="shrink-0">{Math.round(percent)}%</span>
-                        </div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                          <div className="h-full rounded-full bg-blue-600 transition-all duration-150" style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center justify-center gap-3">
-                      {(group.theory && group.lab) ? (
-                        <>
-                          {theoryAttItem && (
-                            <div className="flex flex-col items-center gap-1">
-                              <CircularProgress value={Number(theoryAttItem.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0)} text={`${theoryAttItem.attendancePercentage || (isPastSemester && pastGrade ? 100 : 0)}%`} size={52} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
-                              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Theory</span>
-                            </div>
-                          )}
-                          {labAttItem && (
-                            <div className="hidden md:flex flex-col items-center gap-1">
-                              <CircularProgress value={Number(labAttItem.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0)} text={`${labAttItem.attendancePercentage || (isPastSemester && pastGrade ? 100 : 0)}%`} size={52} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
-                              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mt-1">Lab</span>
-                            </div>
-                          )}
-                        </>
-                      ) : (att || isPastSemester) && (
-                        <div className="flex flex-col items-center gap-1">
-                          <CircularProgress value={attendancePct} text={`${attendancePct}%`} size={64} threshold={isDayscholarWithBus ? 85 : 75} midThreshold={100} />
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">Attendance</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            {/* Utility Toolbar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 bg-slate-50/50 dark:bg-neutral-900/30 p-3 rounded-2xl border border-slate-100/80 dark:border-neutral-900/60">
+              {/* Left controls: Semester, Search */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1">
+                {/* Semester selector */}
+                <div className="relative">
+                  <select
+                    value={selectedSemester}
+                    onChange={(e) => setSelectedSemester(e.target.value)}
+                    className="w-full sm:w-auto appearance-none bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-850 rounded-xl px-3.5 py-2 pr-8 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  >
+                    <option value="All">All Semesters</option>
+                    {semestersList.map(sem => (
+                      <option key={sem} value={sem}>
+                        {sem === "Current" ? "Current Semester" : formatSemesterName(sem)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
-              );
-            })}
+
+                {/* Search input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search courses..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-850 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-700 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  />
                 </div>
               </div>
-            ))}
+
+              {/* Right controls: Filter, Sort, View Toggle */}
+              <div className="flex items-center gap-2">
+                {/* Filter status */}
+                <div className="relative">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="appearance-none bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-850 rounded-xl px-3.5 py-2 pr-8 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  >
+                    <option value="all">All Health</option>
+                    <option value="healthy">Healthy</option>
+                    <option value="watch">Watch</option>
+                    <option value="critical">Critical</option>
+                    <option value="theory">Theory Only</option>
+                    <option value="lab">Lab Only</option>
+                    <option value="embedded">Embedded</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Sort by */}
+                <div className="relative">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-850 rounded-xl px-3.5 py-2 pr-8 text-xs font-bold text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  >
+                    <option value="default">Sort: Default</option>
+                    <option value="name">Name</option>
+                    <option value="code">Code</option>
+                    <option value="attendance">Attendance</option>
+                    <option value="marks">Internal Marks</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Grid / List Toggle */}
+                <div className="flex items-center border border-indigo-500/25 dark:border-indigo-500/30 rounded-xl bg-white dark:bg-neutral-950 p-1 shadow-2xs">
+                  <button
+                    onClick={() => setViewType("grid")}
+                    className={`p-1.5 rounded-lg transition-all duration-205 ${viewType === "grid" ? "bg-indigo-600 text-white dark:bg-indigo-500 shadow-xs scale-105" : "text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300"}`}
+                    title="Grid View"
+                  >
+                    <Grid3x3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setViewType("list")}
+                    className={`p-1.5 rounded-lg transition-all duration-205 ${viewType === "list" ? "bg-indigo-600 text-white dark:bg-indigo-500 shadow-xs scale-105" : "text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300"}`}
+                    title="List View"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {filteredAndSortedCourses.length === 0 ? (
+              <div className="bg-white dark:bg-neutral-950 border border-slate-100 dark:border-neutral-900 rounded-2xl p-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.01)]">
+                <Search className="w-10 h-10 text-slate-300 dark:text-neutral-700 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-slate-400 dark:text-neutral-500">No courses match the current search or filters</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {Array.from(
+                  filteredAndSortedCourses.reduce((acc, group) => {
+                    const sem = group.semesterSubId || "Current";
+                    if (!acc.has(sem)) acc.set(sem, []);
+                    acc.get(sem)!.push(group);
+                    return acc;
+                  }, new Map<string, any[]>()).entries()
+                ).map(([semester, courses]) => (
+                  <div key={semester} className="space-y-4">
+                    <h3 className="text-lg font-black text-slate-900 dark:text-neutral-100 flex items-center gap-2 font-[family-name:var(--font-outfit)]">
+                      <div className="w-1.5 h-5 bg-indigo-650 dark:bg-indigo-500 rounded-full" />
+                      {semester === "Current" ? "Current Semester" : `${formatSemesterName(semester)}`}
+                      <span className="text-xs font-bold bg-slate-105 dark:bg-neutral-900 text-slate-500 dark:text-neutral-400 px-2 py-0.5 rounded-lg ml-2">
+                        {courses.length} {courses.length === 1 ? 'Course' : 'Courses'}
+                      </span>
+                    </h3>
+
+                    {viewType === "grid" ? (
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        {courses.map((group: any) => {
+                          const main = group.theory || group.lab;
+                          const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
+                          const isRelative = checkIsRelative(main.courseSystem, courseType);
+                          const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
+                          const courseStats = getCourseStats(group);
+                          const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
+                          
+                          let sourceAttendance = attendanceData?.attendance || [];
+                          if (isPastSemester && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+                            sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+                          }
+                          const attItems = sourceAttendance.filter((a: any) =>
+                            a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
+                          );
+                          const theoryAttItem = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+                          const labAttItem = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+                          const att = theoryAttItem || labAttItem;
+
+                          let percent = 0, text = "0/0";
+                          if (courseTotalString === "Reload Required") text = "N/A";
+                          else if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
+                            const [w, wp] = courseTotalString.split("/");
+                            if (Number(wp) > 0) percent = (Number(w) / Number(wp)) * 100;
+                            text = `${formatNumber(w)}/${formatNumber(wp)}`;
+                          } else text = String(courseTotalString);
+
+                          let predictedGrade = "?";
+                          if (isRelative) {
+                            const statInfo = allStats[main.classNbr]?.overall;
+                            if (statInfo && statInfo.count > 0 && courseStats.projected > 0) {
+                              const { mean, sd } = statInfo;
+                              const proj = courseStats.projected;
+                              if (proj >= Math.min(Math.max(mean + 1.5 * sd, 80), 100)) predictedGrade = "S";
+                              else if (proj >= mean + 0.5 * sd) predictedGrade = "A";
+                              else if (proj >= mean - 0.5 * sd) predictedGrade = "B";
+                              else if (proj >= mean - 1.0 * sd) predictedGrade = "C";
+                              else if (proj >= mean - 1.5 * sd) predictedGrade = "D";
+                              else if (proj >= Math.min(mean - 2.0 * sd, 50)) predictedGrade = "E";
+                              else predictedGrade = "F";
+                            }
+                          } else {
+                            const proj = courseStats.projected;
+                            if (proj >= 90) predictedGrade = "S";
+                            else if (proj >= 80) predictedGrade = "A";
+                            else if (proj >= 70) predictedGrade = "B";
+                            else if (proj >= 60) predictedGrade = "C";
+                            else if (proj >= 50) predictedGrade = "D";
+                            else if (proj >= 40) predictedGrade = "E";
+                            else predictedGrade = "F";
+                          }
+
+                          const assessmentCount = (group.theory?.assessments?.length || 0) + (group.lab?.assessments?.length || 0);
+                          let pastGrade = "";
+                          if (isPastSemester && allGradesData?.grades) {
+                            let gradeArray: any[] = [];
+                            if (allGradesData.grades[group.semesterSubId]) {
+                              const sem = allGradesData.grades[group.semesterSubId];
+                              gradeArray = sem?.grades || sem || [];
+                            } else if (Array.isArray(allGradesData.grades)) {
+                              gradeArray = allGradesData.grades;
+                            } else {
+                              gradeArray = Object.values(allGradesData.grades).flatMap((s: any) => s?.grades || s || []);
+                            }
+                            const items = Array.isArray(gradeArray) ? gradeArray : Object.values(gradeArray);
+                            const found = items.find((g: any) => (g.courseCode || g.code) === group.courseCode);
+                            if (found) pastGrade = found.grade || found.courseGrade;
+                          }
+
+                          const faculty = main.faculty || att?.faculty || (isPastSemester ? "Past Faculty" : "Faculty not listed");
+                          const attendancePct = Number(att?.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0);
+                          const health = getCourseHealth(attendancePct, percent, predictedGrade, isPastSemester);
+
+                          const credits = (group.theory ? getCourseCredits(group.theory) : 0) + (group.lab ? getCourseCredits(group.lab) : 0);
+                          const metadataParts = [
+                            group.courseCode,
+                            courseType,
+                            credits > 0 ? `${credits} Credits` : null
+                          ].filter(Boolean);
+                          const metadataString = metadataParts.join(" • ");
+
+                          return (
+                            <div 
+                              key={group.courseCode} 
+                              onClick={() => handleSelectCourse(group.courseCode)}
+                              className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-950/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] cursor-pointer"
+                            >
+                              <div>
+                                {/* Course Code */}
+                                <span className="text-[10px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-widest block mb-1">
+                                  {group.courseCode}
+                                </span>
+
+                                {/* Level 1: Title */}
+                                <h3 className="text-base font-black leading-tight text-slate-900 dark:text-neutral-50 tracking-tight transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400 font-[family-name:var(--font-outfit)]">
+                                  {group.courseTitle}
+                                </h3>
+
+                                {/* Level 2: Metadata */}
+                                <p className="mt-1 text-[11px] font-semibold text-slate-450 dark:text-neutral-500 uppercase tracking-wider truncate">
+                                  {courseType}{credits > 0 ? ` • ${credits} Credits` : ""}
+                                </p>
+
+                                {/* Level 3: Status / Chips */}
+                                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border ${health.color}`}>
+                                    {health.label}
+                                  </span>
+                                  {predictedGrade !== "?" && !isPastSemester && (
+                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border ${getGradeBadgeStyle(predictedGrade)}`}>
+                                      Pred: {predictedGrade}
+                                    </span>
+                                  )}
+                                  {isPastSemester && pastGrade && (
+                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border ${getGradeBadgeStyle(pastGrade)}`}>
+                                      Grade: {pastGrade}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Level 4: Primary Metrics */}
+                              <div className="mt-5 grid grid-cols-4 gap-4 pt-4 border-t border-slate-100/80 dark:border-neutral-900/60">
+                                {/* Metric 1: Attendance */}
+                                <div className="flex flex-col">
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Attendance</span>
+                                  <div className="mt-1 flex items-center min-h-[28px]">
+                                    {isPastSemester ? (
+                                      <span className="text-sm font-bold text-slate-800 dark:text-neutral-200">100%</span>
+                                    ) : (group.theory && group.lab) ? (
+                                      <div className="flex flex-col justify-center">
+                                        {theoryAttItem && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500">T:</span>
+                                            <span className="text-[11px] font-bold text-slate-800 dark:text-neutral-200">{theoryAttItem.attendancePercentage || 0}%</span>
+                                            <CircularProgress value={Number(theoryAttItem.attendancePercentage) || 0} size={10} strokeWidth={16} text="" />
+                                          </div>
+                                        )}
+                                        {labAttItem && (
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                            <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500">L:</span>
+                                            <span className="text-[11px] font-bold text-slate-800 dark:text-neutral-200">{labAttItem.attendancePercentage || 0}%</span>
+                                            <CircularProgress value={Number(labAttItem.attendancePercentage) || 0} size={10} strokeWidth={16} text="" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : attendancePct ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-850 dark:text-neutral-200">{attendancePct}%</span>
+                                        <CircularProgress value={attendancePct} size={14} strokeWidth={14} text="" />
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs font-semibold text-slate-400 dark:text-neutral-600">N/A</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Metric 2: Internal Marks */}
+                                <div className="flex flex-col">
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Internals</span>
+                                  <div className="mt-1 flex items-baseline gap-0.5 min-h-[28px] align-middle pt-0.5">
+                                    <span className="text-sm font-bold text-slate-850 dark:text-neutral-200">
+                                      {isPastSemester ? (courseTotalString !== "Reload Required" && String(courseTotalString).includes("/") ? String(courseTotalString).split("/")[0] : "N/A") : percent.toFixed(1)}
+                                    </span>
+                                    {!isPastSemester && <span className="text-[9px] text-slate-400 dark:text-neutral-605 font-bold">/100</span>}
+                                  </div>
+                                </div>
+
+                                {/* Metric 3: Marks (Raw) */}
+                                <div className="flex flex-col">
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Marks (Raw)</span>
+                                  <span className="mt-1 text-sm font-bold text-slate-850 dark:text-neutral-200 min-h-[28px] pt-0.5">{text}</span>
+                                </div>
+
+                                {/* Metric 4: Assessments */}
+                                <div className="flex flex-col">
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Assessments</span>
+                                  <span className="mt-1 text-sm font-bold text-slate-850 dark:text-neutral-200 min-h-[28px] pt-0.5">{assessmentCount}</span>
+                                </div>
+                              </div>
+
+                              {/* Level 5: Secondary Metadata */}
+                              <div className="mt-5 border-t border-slate-100/80 dark:border-neutral-900/60 pt-3">
+                                <div className="h-1 overflow-hidden rounded-full bg-slate-105 dark:bg-neutral-900">
+                                  <div className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-350" style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }} />
+                                </div>
+                                <div className="mt-2.5 flex items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-neutral-450">
+                                  <button
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setActiveSubTab("faculty-info");
+                                    }}
+                                    className="truncate flex items-center gap-1.5 rounded-lg py-0.5 transition-colors hover:text-indigo-650 dark:hover:text-indigo-400 font-semibold"
+                                    title="Open Faculty Info"
+                                  >
+                                    <User className="h-3.5 w-3.5 shrink-0 text-slate-450 dark:text-neutral-500" />
+                                    <span className="truncate">{faculty}</span>
+                                  </button>
+                                  <span className="shrink-0 font-bold text-[9px] text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Progress: {Math.round(percent)}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {courses.map((group: any) => {
+                          const main = group.theory || group.lab;
+                          const courseType = (group.theory && group.lab) ? "Embedded" : main.courseType;
+                          const isRelative = checkIsRelative(main.courseSystem, courseType);
+                          const courseTotalString = getCourseTotal(group.theory || group.lab, group.theory ? group.lab : null);
+                          const courseStats = getCourseStats(group);
+                          const isPastSemester = group.semesterSubId && group.semesterSubId !== "Current";
+                          
+                          let sourceAttendance = attendanceData?.attendance || [];
+                          if (isPastSemester && pastSemesterData?.[group.semesterSubId]?.attendance?.attendance) {
+                            sourceAttendance = pastSemesterData[group.semesterSubId].attendance.attendance;
+                          }
+                          const attItems = sourceAttendance.filter((a: any) =>
+                            a.courseCode?.replace(/\s*\([LPT]\)$/i, "").trim() === group.courseCode.trim()
+                          );
+                          const theoryAttItem = attItems.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || attItems[0];
+                          const labAttItem = attItems.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
+                          const att = theoryAttItem || labAttItem;
+
+                          let percent = 0, text = "0/0";
+                          if (courseTotalString === "Reload Required") text = "N/A";
+                          else if (typeof courseTotalString === "string" && courseTotalString.includes("/")) {
+                            const [w, wp] = courseTotalString.split("/");
+                            if (Number(wp) > 0) percent = (Number(w) / Number(wp)) * 100;
+                            text = `${formatNumber(w)}/${formatNumber(wp)}`;
+                          } else text = String(courseTotalString);
+
+                          let predictedGrade = "?";
+                          if (isRelative) {
+                            const statInfo = allStats[main.classNbr]?.overall;
+                            if (statInfo && statInfo.count > 0 && courseStats.projected > 0) {
+                              const { mean, sd } = statInfo;
+                              const proj = courseStats.projected;
+                              if (proj >= Math.min(Math.max(mean + 1.5 * sd, 80), 100)) predictedGrade = "S";
+                              else if (proj >= mean + 0.5 * sd) predictedGrade = "A";
+                              else if (proj >= mean - 0.5 * sd) predictedGrade = "B";
+                              else if (proj >= mean - 1.0 * sd) predictedGrade = "C";
+                              else if (proj >= mean - 1.5 * sd) predictedGrade = "D";
+                              else if (proj >= Math.min(mean - 2.0 * sd, 50)) predictedGrade = "E";
+                              else predictedGrade = "F";
+                            }
+                          } else {
+                            const proj = courseStats.projected;
+                            if (proj >= 90) predictedGrade = "S";
+                            else if (proj >= 80) predictedGrade = "A";
+                            else if (proj >= 70) predictedGrade = "B";
+                            else if (proj >= 60) predictedGrade = "C";
+                            else if (proj >= 50) predictedGrade = "D";
+                            else if (proj >= 40) predictedGrade = "E";
+                            else predictedGrade = "F";
+                          }
+
+                          let pastGrade = "";
+                          if (isPastSemester && allGradesData?.grades) {
+                            let gradeArray: any[] = [];
+                            if (allGradesData.grades[group.semesterSubId]) {
+                              const sem = allGradesData.grades[group.semesterSubId];
+                              gradeArray = sem?.grades || sem || [];
+                            } else if (Array.isArray(allGradesData.grades)) {
+                              gradeArray = allGradesData.grades;
+                            } else {
+                              gradeArray = Object.values(allGradesData.grades).flatMap((s: any) => s?.grades || s || []);
+                            }
+                            const items = Array.isArray(gradeArray) ? gradeArray : Object.values(gradeArray);
+                            const found = items.find((g: any) => (g.courseCode || g.code) === group.courseCode);
+                            if (found) pastGrade = found.grade || found.courseGrade;
+                          }
+
+                          const faculty = main.faculty || att?.faculty || (isPastSemester ? "Past Faculty" : "Faculty not listed");
+                          const attendancePct = Number(att?.attendancePercentage) || (isPastSemester && pastGrade ? 100 : 0);
+                          const health = getCourseHealth(attendancePct, percent, predictedGrade, isPastSemester);
+
+                          const credits = (group.theory ? getCourseCredits(group.theory) : 0) + (group.lab ? getCourseCredits(group.lab) : 0);
+                          const metadataParts = [
+                            group.courseCode,
+                            courseType,
+                            credits > 0 ? `${credits} Credits` : null
+                          ].filter(Boolean);
+                          const metadataString = metadataParts.join(" • ");
+
+                          return (
+                            <div 
+                              key={group.courseCode} 
+                              onClick={() => handleSelectCourse(group.courseCode)}
+                              className="group relative grid grid-cols-1 sm:grid-cols-12 gap-4 items-start sm:items-center rounded-xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-all duration-200 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-955/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 cursor-pointer"
+                            >
+                              {/* Title & Metadata & Badges */}
+                              <div className="min-w-0 flex-1 sm:col-span-6">
+                                {/* Course Code */}
+                                <span className="text-[10px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-widest block mb-0.5">
+                                  {group.courseCode}
+                                </span>
+                                <h3 className="text-base font-black text-slate-900 dark:text-neutral-50 truncate font-[family-name:var(--font-outfit)] group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors">
+                                  {group.courseTitle}
+                                </h3>
+                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="text-[11px] font-semibold text-slate-450 dark:text-neutral-500 uppercase tracking-wider">
+                                    {courseType}{credits > 0 ? ` • ${credits} Credits` : ""}
+                                  </span>
+                                  <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider border ${health.color}`}>
+                                    {health.label}
+                                  </span>
+                                  {predictedGrade !== "?" && !isPastSemester && (
+                                    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider border ${getGradeBadgeStyle(predictedGrade)}`}>
+                                      Pred: {predictedGrade}
+                                    </span>
+                                  )}
+                                  {isPastSemester && pastGrade && (
+                                    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider border ${getGradeBadgeStyle(pastGrade)}`}>
+                                      Grade: {pastGrade}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Attendance */}
+                              <div className="flex flex-col min-w-[80px] sm:col-span-2">
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Attendance</span>
+                                <div className="mt-0.5 flex items-center gap-1">
+                                  {isPastSemester ? (
+                                    <span className="font-semibold text-slate-800 dark:text-neutral-200">100%</span>
+                                  ) : (group.theory && group.lab) ? (
+                                    <span className="font-semibold text-slate-800 dark:text-neutral-200 text-[11px]">
+                                      T: {theoryAttItem?.attendancePercentage || 0}% • L: {labAttItem?.attendancePercentage || 0}%
+                                    </span>
+                                  ) : attendancePct ? (
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-semibold text-slate-800 dark:text-neutral-200">{attendancePct}%</span>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${
+                                        attendancePct >= 85 ? "bg-emerald-500" :
+                                        attendancePct >= 75 ? "bg-blue-500" :
+                                        "bg-rose-500"
+                                      }`} />
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 dark:text-neutral-600 font-semibold">N/A</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Internals */}
+                              <div className="flex flex-col min-w-[70px] sm:col-span-2">
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Internals</span>
+                                <span className="mt-0.5 font-semibold text-slate-850 dark:text-neutral-200">
+                                  {isPastSemester ? (courseTotalString !== "Reload Required" && String(courseTotalString).includes("/") ? String(courseTotalString).split("/")[0] : "N/A") : percent.toFixed(1)}
+                                </span>
+                              </div>
+
+                              {/* Faculty */}
+                              <div className="flex flex-col max-w-[140px] truncate sm:col-span-2">
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-wider">Faculty</span>
+                                <span className="mt-0.5 font-semibold text-slate-650 dark:text-neutral-350 truncate" title={faculty}>{faculty}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </SubpageLayout>

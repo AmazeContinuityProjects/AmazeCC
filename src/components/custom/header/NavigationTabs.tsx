@@ -40,10 +40,12 @@ import {
   Coffee,
   Info,
   Link2,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
+import config from "../../../../config.json";
 
 type NavItem = {
   id: string;
@@ -60,6 +62,19 @@ type Group = {
   icon: LucideIcon;
   items: NavItem[];
 };
+
+function formatSemesterName(semId: string): string {
+  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
+  const year1 = semId.substring(2, 6);
+  const year2 = semId.substring(6, 8);
+  const term = semId.substring(8, 10);
+  let termName = "";
+  if (term === "01") termName = "Fall";
+  else if (term === "05") termName = "Winter";
+  else if (term === "07") termName = "Summer";
+  else termName = `Term ${term}`;
+  return `${termName} ${year1}-${year2}`;
+}
 
 const navButtonBase =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
@@ -845,6 +860,31 @@ export default function NavigationTabs({
                   <p className="text-xs text-gray-500 font-semibold mt-0.5">
                     {mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
                   </p>
+                  <div className="mt-2.5 flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Active Sem:</span>
+                    <div className="relative flex items-center">
+                      <select
+                        value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSettings((prev: any) => {
+                            const next = { ...prev, currSemesterID: val };
+                            localStorage.setItem("settings", JSON.stringify(next));
+                            return next;
+                          });
+                          handleReloadRequest();
+                        }}
+                        className="appearance-none bg-transparent border-none text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none"
+                      >
+                        {config.semesterIDs.map((semId: string) => (
+                          <option key={semId} value={semId} className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white text-xs">
+                            {formatSemesterName(semId)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-indigo-500 pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
@@ -1102,7 +1142,31 @@ export default function NavigationTabs({
               >
                 {/* Left-aligned clean Semester Summary Card */}
                 <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-[11px] space-y-1.5 shadow-2xs">
-                  <div className="font-semibold text-sidebar-foreground/ tracking-wide text-[10px] uppercase">Current Semester</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">Current Semester</div>
+                    <div className="relative flex items-center">
+                      <select
+                        value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSettings((prev: any) => {
+                            const next = { ...prev, currSemesterID: val };
+                            localStorage.setItem("settings", JSON.stringify(next));
+                            return next;
+                          });
+                          handleReloadRequest();
+                        }}
+                        className="appearance-none bg-transparent border-none text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none text-right"
+                      >
+                        {config.semesterIDs.map((semId: string) => (
+                          <option key={semId} value={semId} className="bg-sidebar text-sidebar-foreground text-xs">
+                            {formatSemesterName(semId)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-indigo-500 pointer-events-none" />
+                    </div>
+                  </div>
                   <div className="space-y-1">
                     <button
                       onClick={() => {
