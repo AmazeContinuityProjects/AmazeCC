@@ -64,7 +64,6 @@ import WishlistTab from "./Exams/WishlistTab";
 import FreeClassroomsTab from "./Exams/FreeClassroomsTab";
 import CircularsTab from "./Exams/CircularsTab";
 import FacultyInfoTab from "./Exams/FacultyInfoTab";
-import QCMViewTab from "./Exams/QCMViewTab";
 
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
@@ -193,7 +192,6 @@ export default function DashboardContent({
     const academicAliases: Record<string, string> = {
       gpa: "predictor",
       faculty: "faculty-info",
-      qcm: "qcm-view",
       timetable: "course-dashboard",
     };
 
@@ -827,9 +825,6 @@ export default function DashboardContent({
 
               {activeSubTab === "faculty-info" && (
                 <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "qcm-view" && (
-                <QCMViewTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
               )}
             </div>
           )}

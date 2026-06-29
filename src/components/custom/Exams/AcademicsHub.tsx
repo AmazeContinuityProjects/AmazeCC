@@ -99,14 +99,6 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       color: "text-sky-600  dark:text-sky-400",
       bg: "bg-sky-100  dark:bg-sky-900/20",
     },
-    {
-      id: "qcm-view",
-      title: "QCM View",
-      description: "Quality Circle Meeting records and feedback.",
-      icon: ScrollText,
-      color: "text-violet-600  dark:text-violet-400",
-      bg: "bg-violet-100  dark:bg-violet-900/20",
-    },
   ];
 
   // Performance Logic
