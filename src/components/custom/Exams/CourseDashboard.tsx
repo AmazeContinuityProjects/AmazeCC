@@ -903,6 +903,43 @@ export default function CourseDashboard({
   const stats = selectedGroup ? allStats[mainCourse?.classNbr]?.overall : null;
   const asmStats = selectedGroup ? (allStats[mainCourse?.classNbr]?.assessments || {}) : {};
 
+  const isSelectedPastSemester = selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current";
+  let selectedPastGrade = "";
+  if (isSelectedPastSemester && allGradesData?.grades) {
+    let gradeArray: any[] = [];
+    if (allGradesData.grades[selectedGroup.semesterSubId]) {
+      const sem = allGradesData.grades[selectedGroup.semesterSubId];
+      gradeArray = sem?.grades || sem || [];
+    } else if (Array.isArray(allGradesData.grades)) {
+      gradeArray = allGradesData.grades;
+    } else {
+      gradeArray = Object.values(allGradesData.grades).flatMap((s: any) => s?.grades || s || []);
+    }
+    const items = Array.isArray(gradeArray) ? gradeArray : Object.values(gradeArray);
+    const found = items.find((g: any) => (g.courseCode || g.code) === selectedGroup.courseCode);
+    if (found) selectedPastGrade = found.grade || found.courseGrade;
+  }
+
+  const courseGradeHistory = useMemo(() => {
+    if (!selectedGroup || !allGradesData?.grades) return [];
+    let history: any[] = [];
+    const gradeObj = allGradesData.grades;
+    
+    if (Array.isArray(gradeObj)) {
+      history = gradeObj.filter((g: any) => (g.courseCode || g.code) === selectedGroup.courseCode);
+    } else {
+      for (const [semName, semData] of Object.entries(gradeObj)) {
+        const semGrades = (semData as any)?.grades || semData || [];
+        const items = Array.isArray(semGrades) ? semGrades : Object.values(semGrades);
+        const found = items.filter((g: any) => (g.courseCode || g.code) === selectedGroup.courseCode);
+        found.forEach(f => {
+          history.push({ ...f, semester: semName });
+        });
+      }
+    }
+    return history.filter((v, i, a) => a.findIndex(t => t.semester === v.semester) === i);
+  }, [selectedGroup, allGradesData]);
+
   const renderAssessmentTable = (assessments: any[], typeLabel: string) => {
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
@@ -1196,8 +1233,9 @@ export default function CourseDashboard({
     <SubpageLayout title={selectedCode || ""} subtitle={selectedGroup?.courseTitle || ""} onBack={handleBack}>
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
         <TabButton active={innerTab === "overview"} label="Overview" onClick={() => setInnerTab("overview")} />
+        <TabButton active={innerTab === "grades"} label="Grade History" onClick={() => setInnerTab("grades")} />
         <TabButton active={innerTab === "marks"} label="Marks" onClick={() => setInnerTab("marks")} />
-        {attendanceItem && <TabButton active={innerTab === "attendance"} label="Attendance" onClick={() => setInnerTab("attendance")} />}
+        <TabButton active={innerTab === "attendance"} label="Attendance" onClick={() => setInnerTab("attendance")} />
         <TabButton active={innerTab === "plan"} label="Course Plan" onClick={() => { setInnerTab("plan"); if (!coursePlan && !planLoading) fetchCoursePlan(); }} />
         <TabButton active={innerTab === "qbank"} label="QBank" onClick={() => setInnerTab("qbank")} />
       </div>
@@ -1411,14 +1449,23 @@ export default function CourseDashboard({
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Total Score</p>
               <p className="text-sm font-bold text-blue-600  dark:text-blue-400">{courseTotalString}</p>
             </div>
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Projected %</p>
-              <p className="text-sm font-bold text-indigo-600  dark:text-indigo-400">{courseStats.projected}%</p>
-            </div>
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Max Grade Achievable</p>
-              <p className="text-sm font-bold text-orange-600  dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
-            </div>
+            {isSelectedPastSemester && selectedPastGrade ? (
+              <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm text-center col-span-2">
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider mb-1">Final Grade</p>
+                <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{selectedPastGrade}</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Projected %</p>
+                  <p className="text-sm font-bold text-indigo-600  dark:text-indigo-400">{courseStats.projected}%</p>
+                </div>
+                <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Max Grade Achievable</p>
+                  <p className="text-sm font-bold text-orange-600  dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
+                </div>
+              </>
+            )}
             <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
               <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Grading Mode</p>
               <p className={`text-sm font-bold ${isRelative ? 'text-indigo-600  dark:text-indigo-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
@@ -1967,6 +2014,88 @@ export default function CourseDashboard({
       {/* QBANK */}
       {innerTab === "qbank" && selectedCode && (
         <CourseQBankTab courseCode={selectedCode} username={creds?.authorizedID || "unknown"} />
+      )}
+
+      {/* GRADES HISTORY */}
+      {innerTab === "grades" && (
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" /> Grade History
+          </h4>
+              {courseGradeHistory.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500">No past grade history found for this course.</p>
+              ) : (
+                <div className="space-y-4">
+                  {courseGradeHistory.map((gh: any, idx: number) => {
+                    return (
+                    <div key={idx} className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800 flex flex-col">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{gh.semester === "Current" ? "Current Semester" : formatSemesterName(gh.semester || "") || "Unknown Semester"}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{gh.courseTitle || selectedGroup?.courseTitle}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Grade Earned</p>
+                          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{gh.grade || gh.courseGrade || "N/A"}</p>
+                        </div>
+                      </div>
+
+                      {gh.details && gh.details.length > 0 && (
+                        <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                          <div className="space-y-4">
+                            {(() => {
+                               const types = Array.from(new Set(gh.details.map((d: any) => d.type || 'Theory')));
+                               const showLabels = types.length > 1;
+                               return types.map((typeLabel: any) => {
+                                 const typeDetails = gh.details.filter((d: any) => (d.type || 'Theory') === typeLabel);
+                                 return (
+                                   <div key={typeLabel}>
+                                     {showLabels && <h5 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-500">{typeLabel}</h5>}
+                                     <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                       {typeDetails.map((detail: any, dIdx: number) => (
+                                         <div key={dIdx} className="rounded-xl border border-gray-200 bg-gray-50/70 p-2 text-center dark:border-gray-800  dark:bg-slate-800">
+                                           <p className="mb-1 line-clamp-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500  dark:text-gray-400" title={detail.component}>{detail.component}</p>
+                                           <p className="text-sm font-bold text-gray-800  dark:text-gray-100">{detail.scoredMark} <span className="text-xs font-normal text-gray-400">/ {detail.maxMark}</span></p>
+                                         </div>
+                                       ))}
+                                     </div>
+                                   </div>
+                                 );
+                               });
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                  
+                      {gh.range && (
+                        <div className="mt-4 border-t border-gray-100 pt-4  dark:border-gray-800">
+                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500  dark:text-gray-400">Grade Ranges</p>
+                          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
+                            {Object.entries(gh.range).map(([grade, rangeStr]: any, idx) => {
+                              let colorClass = 'bg-gray-50 text-gray-700 border-gray-200   dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400';
+                              if (grade === 'S') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200   dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400';
+                              else if (grade === 'A') colorClass = 'bg-green-50 text-green-700 border-green-200   dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-400';
+                              else if (grade === 'B') colorClass = 'bg-blue-50 text-blue-700 border-blue-200   dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-400';
+                              else if (grade === 'C') colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-200   dark:border-indigo-800/50 dark:bg-indigo-900/20 dark:text-indigo-400';
+                              else if (grade === 'D') colorClass = 'bg-purple-50 text-purple-700 border-purple-200   dark:border-purple-800/50 dark:bg-purple-900/20 dark:text-purple-400';
+                              else if (grade === 'E') colorClass = 'bg-orange-50 text-orange-700 border-orange-200   dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-400';
+                              else if (grade === 'F' || grade === 'N') colorClass = 'bg-red-50 text-red-700 border-red-200   dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400';
+
+                              return (
+                                <div key={idx} className={`flex flex-col items-center justify-center rounded-xl border p-2 ${colorClass}`}>
+                                  <span className="mb-1 text-lg font-black">{grade}</span>
+                                  <span className="text-center text-[10px] font-bold tracking-wider">{rangeStr}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )})}
+                </div>
+              )}
+        </div>
       )}
     </SubpageLayout>
   );
