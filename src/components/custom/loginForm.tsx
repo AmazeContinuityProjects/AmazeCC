@@ -693,12 +693,12 @@ export default function LoginForm({
 
                   <div className="space-y-4 text-left">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider pl-0.5">Registration Number</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider pl-0.5">VTop Username</label>
                       <input
                         className="w-full border border-slate-200 bg-slate-50 dark:border-neutral-900 dark:bg-neutral-950 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-semibold uppercase"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="E.g., 22BCE0001"
+                        placeholder="E.g., VITUSER12345"
                         disabled={isLoading}
                         required
                       />
@@ -792,7 +792,7 @@ export default function LoginForm({
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms</Link>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 dark:hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/AmazeContinuityProjects/AmazeCC" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 dark:hover:text-white transition-colors">GitHub</a>
           </div>
           <p className="text-[10px] font-semibold">
             Made with ❤️ by students. Not affiliated with VIT or VTOP.
