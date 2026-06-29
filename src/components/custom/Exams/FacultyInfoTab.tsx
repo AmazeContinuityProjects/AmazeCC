@@ -1,14 +1,24 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { RefreshCcw, Search, User, XCircle, Mail, Phone, MapPin, Badge, Building2, IdCard, Info } from "lucide-react";
+import { Search, User, XCircle, Mail, Phone, MapPin, Building2, IdCard } from "lucide-react";
 
-interface Creds {
-  cookies: string[];
-  authorizedID: string;
-  csrf: string;
+interface School {
+  id: string;
+  school_name: string;
+}
+
+interface FacultyProfile {
+  id: string;
+  name: string;
+  designation: string;
+  imageUrl: string;
+  profileUrl: string;
+  email: string;
+  employeeId: string;
+  intercom: string;
 }
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -17,229 +27,130 @@ const CardShell = ({ children, className = "" }: { children: React.ReactNode; cl
   </div>
 );
 
-const StaffCard = ({ data }: { data: Record<string, string> }) => {
-  const getFacultyName = (data: Record<string, string>) => data['Faculty Name'] || data['Name of the Faculty'] || data['Name'] || data['name'] || data['faculty_name'] || 'N/A';
-  const getDesignation = (data: Record<string, string>) => data['Faculty Designation'] || data['Designation'] || data['designation'] || data['Post'] || data['post'] || 'N/A';
-  const getDepartment = (data: Record<string, string>) => data['Faculty Department'] || data['Department'] || data['department'] || data['School'] || data['school'] || 'N/A';
-  const getEmail = (data: Record<string, string>) => data['Faculty Email'] || data['Email ID'] || data['Email'] || data['email'] || data['E-Mail'] || data['e-mail'] || data['Mail'] || data['mail'];
-  const getPhone = (data: Record<string, string>) => data['Faculty Mobile Number'] || data['Mobile Number'] || data['Phone'] || data['phone'] || data['Mobile'] || data['mobile'] || data['Contact'] || data['contact'] || data['Phone Number'] || data['phone_number'];
-  const getOfficeLocation = (data: Record<string, string>) => data['Cabin'] || data['Cabin Number'] || data['Office'] || data['office'] || data['Room'] || data['room'] || data['Location'] || data['location'];
-  const getEmployeeId = (data: Record<string, string>) => data['Faculty ID'] || data['Employee ID'] || data['employee_id'] || data['ID'] || data['id'] || data['Staff ID'] || data['staff_id'];
-  
-  const extractedKeys = new Set([
-    'Faculty Name', 'Name of the Faculty', 'Name', 'name', 'faculty_name',
-    'Faculty Designation', 'Designation', 'designation', 'Post', 'post',
-    'Faculty Department', 'Department', 'department', 'School', 'school',
-    'Faculty Email', 'Email ID', 'Email', 'email', 'E-Mail', 'e-mail', 'Mail', 'mail',
-    'Faculty Mobile Number', 'Mobile Number', 'Phone', 'phone', 'Mobile', 'mobile', 'Contact', 'contact', 'Phone Number', 'phone_number',
-    'Cabin', 'Cabin Number', 'Office', 'office', 'Room', 'room', 'Location', 'location',
-    'Faculty ID', 'Employee ID', 'employee_id', 'ID', 'id', 'Staff ID', 'staff_id',
-  ]);
-  const additionalDetails: Record<string, string> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (!extractedKeys.has(key) && value) additionalDetails[key] = value;
-  }
-
-  const name = getFacultyName(data);
-  const designation = getDesignation(data);
-  const department = getDepartment(data);
-  const email = getEmail(data);
-  const phone = getPhone(data);
-  const office = getOfficeLocation(data);
-  const employeeId = getEmployeeId(data);
-
+const FacultyCard = ({ profile }: { profile: FacultyProfile }) => {
   return (
     <CardShell className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-4 bg-blue-500/10 dark:bg-blue-500/10 border-b border-blue-500/10 flex items-center gap-4">
-        <div className="p-3 bg-blue-600 rounded-xl shrink-0">
-          <User className="w-6 h-6 text-white" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">{name}</h3>
-          {designation !== 'N/A' && <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{designation}</p>}
+        {profile.imageUrl ? (
+          <img src={profile.imageUrl} alt={profile.name} className="w-12 h-12 rounded-xl object-cover shrink-0 bg-blue-100" />
+        ) : (
+          <div className="p-3 bg-blue-600 rounded-xl shrink-0">
+            <User className="w-6 h-6 text-white" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+            {profile.profileUrl ? (
+              <a href={profile.profileUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{profile.name}</a>
+            ) : (
+              profile.name
+            )}
+          </h3>
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{profile.designation}</p>
         </div>
       </div>
       <div className="p-5 space-y-4 bg-white dark:bg-[#0a0a0a]">
-        {department !== 'N/A' && (
-          <div className="flex items-start gap-3">
-            <Building2 className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Department</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{department}</p>
-            </div>
-          </div>
-        )}
-        {employeeId && (
+        {profile.employeeId && (
           <div className="flex items-start gap-3">
             <IdCard className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employee ID</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{employeeId}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{profile.employeeId}</p>
             </div>
           </div>
         )}
-        {office && (
+        {profile.intercom && (
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <Phone className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Office</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{office}</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Intercom</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{profile.intercom}</p>
             </div>
           </div>
         )}
-        {email && (
+        {profile.email && (
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
-              <a href={`mailto:${email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">{email}</a>
+              <a href={`mailto:${profile.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">{profile.email}</a>
             </div>
           </div>
-        )}
-        {phone && (
-          <div className="flex items-start gap-3">
-            <Phone className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</p>
-              <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">{phone}</a>
-            </div>
-          </div>
-        )}
-        {Object.entries(additionalDetails).length > 0 && (
-          <>
-            <div className="h-px bg-gray-100 dark:bg-gray-800/50 my-2" />
-            {Object.entries(additionalDetails).map(([k, v]) => (
-              <div key={k} className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{k}</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{v}</p>
-                </div>
-              </div>
-            ))}
-          </>
         )}
       </div>
     </CardShell>
   );
 };
 
-function renderTables(tables: any[]) {
-  if (!tables || tables.length === 0) return null;
-  return tables.map((table: any, idx: number) => {
-    const hasRows = table.headers?.length > 0 && table.rows?.length > 0;
-    
-    const isFacultyTable = table.headers?.some((h: string) => 
-      h.toLowerCase().includes("name") || h.toLowerCase().includes("faculty") || h.toLowerCase().includes("employee")
-    );
-
-    if (isFacultyTable && hasRows) {
-      return (
-        <div key={idx} className="space-y-4 mb-5">
-          {table.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
-          {table.rows.map((row: any, ri: number) => (
-            <StaffCard key={ri} data={row} />
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <CardShell key={idx}>
-        <div className="p-5">
-          {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
-          {hasRows ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200  dark:border-gray-700">
-                    {table.headers.map((h: string, i: number) => (
-                      <th key={i} className="text-left py-2 px-2 text-xs font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.rows.map((row: any, ri: number) => (
-                    <tr key={ri} className="border-b border-gray-100  dark:border-gray-800/50 last:border-0">
-                      {table.headers.map((h: string, ci: number) => (
-                        <td key={ci} className="py-2.5 px-2 text-sm text-gray-800  dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400  dark:text-gray-500">No data</p>
-          )}
-        </div>
-      </CardShell>
-    );
-  });
-}
-
-function renderKeyValuePairs(kvp: Record<string, string>) {
-  if (!kvp || Object.keys(kvp).length === 0) return null;
-  return (
-    <CardShell>
-      <div className="p-5 space-y-3">
-        {Object.entries(kvp).map(([key, val]) => (
-          <div key={key} className="flex items-center justify-between py-1">
-            <span className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{key}</span>
-            <span className="text-sm font-medium text-gray-800  dark:text-gray-200 text-right">{val || "—"}</span>
-          </div>
-        ))}
-      </div>
-    </CardShell>
-  );
-}
-
-export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Promise<Creds> }) {
-  const [creds, setCreds] = useState<Creds | null>(null);
-  const [initData, setInitData] = useState<any>(null);
-  const [results, setResults] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP?: any }) {
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(true);
+  
+  const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
+  const [faculties, setFaculties] = useState<FacultyProfile[]>([]);
+  const [loadingFaculties, setLoadingFaculties] = useState(false);
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loginToVTOP().then(c => {
-      setCreds(c);
-      fetch(`${API_BASE}/api/faculty-info`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
-      }).then(r => r.json()).then(setInitData).catch(() => setError("Failed to load")).finally(() => setLoading(false));
-    }).catch(() => setLoading(false));
+    fetch(`${API_BASE}/api/faculty/schools`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setSchools(data.schools);
+          if (data.schools.length > 0) {
+            handleSelectSchool(data.schools[0].id);
+          }
+        } else {
+          setError(data.error || "Failed to load schools");
+        }
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoadingSchools(false));
   }, []);
 
-  const handleSearch = async () => {
-    if (!creds || !searchTerm.trim()) return;
-    setSearching(true);
+  const handleSelectSchool = async (schoolId: string) => {
+    setSelectedSchool(schoolId);
+    setLoadingFaculties(true);
     setError(null);
-    setResults(null);
+    setFaculties([]);
+    setSearchTerm("");
+
     try {
-      const res = await fetch(`${API_BASE}/api/faculty-info`, {
+      const res = await fetch(`${API_BASE}/api/faculty/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, searchTerm: searchTerm.trim() }),
+        body: JSON.stringify({ schoolId }),
       });
       const data = await res.json();
-      if (data.success === false) setError(data.error || "Search failed");
-      else setResults(data.results);
+      if (data.success === false) {
+        setError(data.error || "Failed to fetch faculty list");
+      } else {
+        setFaculties(data.faculties || []);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setSearching(false);
+      setLoadingFaculties(false);
     }
   };
 
-  if (!creds || loading) {
+  const filteredFaculties = useMemo(() => {
+    if (!searchTerm.trim()) return faculties;
+    const lower = searchTerm.toLowerCase();
+    return faculties.filter(f => 
+      f.name.toLowerCase().includes(lower) || 
+      f.employeeId.toLowerCase().includes(lower) ||
+      f.email.toLowerCase().includes(lower) ||
+      f.designation.toLowerCase().includes(lower)
+    );
+  }, [faculties, searchTerm]);
+
+  if (loadingSchools) {
     return (
-      <SubpageLayout title="Faculty Info" onBack={() => {}}>
-        <Skeleton className="h-8 w-48 rounded-lg mb-4" />
+      <SubpageLayout title="Global Faculty Directory" onBack={() => {}}>
+        <Skeleton className="h-10 w-full rounded-2xl mb-4" />
         <Skeleton className="h-12 w-full rounded-2xl mb-4" />
         <Skeleton className="h-64 w-full rounded-2xl" />
       </SubpageLayout>
@@ -247,71 +158,78 @@ export default function FacultyInfoTab({ loginToVTOP }: { loginToVTOP: () => Pro
   }
 
   return (
-    <SubpageLayout title="Faculty Info" onBack={() => {}}>
-      {/* Search Box */}
-      <div className="flex gap-2 mb-5">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder={initData?.searchField?.placeholder || "Search by name or ID..."}
-            className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-800  dark:text-gray-200 bg-gray-50  dark:bg-gray-800/50 rounded-xl border border-gray-200  dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-          />
-        </div>
-        <button
-          onClick={handleSearch}
-          disabled={searching || !searchTerm.trim()}
-          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shrink-0"
-        >
-          {searching ? "Searching..." : "Search"}
-        </button>
+    <SubpageLayout title="Global Faculty Directory" onBack={() => {}}>
+      
+      {/* School Selector Pills */}
+      <div className="flex overflow-x-auto pb-4 mb-2 gap-2 hide-scrollbar">
+        {schools.map(school => (
+          <button
+            key={school.id}
+            onClick={() => handleSelectSchool(school.id)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              selectedSchool === school.id 
+                ? "bg-blue-600 text-white" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            }`}
+          >
+            {school.school_name}
+          </button>
+        ))}
       </div>
 
       {error && (
-        <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
+        <div className="p-4 text-sm text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
 
-      {searching && (
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-48 rounded-lg" />
-          <Skeleton className="h-32 w-full rounded-2xl" />
-          <Skeleton className="h-32 w-full rounded-2xl" />
-        </div>
-      )}
-
-      {results && !searching && (
+      {selectedSchool && (
         <>
-          {results.messages && (results.messages.warning || results.messages.error) && (
-            <CardShell>
-              <div className={`p-4 text-sm ${results.messages.error ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400"} flex items-center gap-2`}>
-                <span dangerouslySetInnerHTML={{ __html: results.messages.error || results.messages.warning }} />
-              </div>
-            </CardShell>
-          )}
-          {renderKeyValuePairs(results.keyValuePairs)}
-          {renderTables(results.tables)}
-          {!results.tables?.length && !results.keyValuePairs && !results.messages?.error && (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">
-              <User className="w-12 h-12 mb-3" />
-              <p className="text-sm font-medium">No faculty found for "{searchTerm}"</p>
+          {/* Instant Client-side Search Box */}
+          <div className="relative mb-5">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Instant search by name, ID, or email..."
+              className="w-full pl-10 pr-4 py-3 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+
+          {loadingFaculties ? (
+            <div className="space-y-4">
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-32 w-full rounded-2xl" />
+              <Skeleton className="h-32 w-full rounded-2xl" />
             </div>
+          ) : (
+            <>
+              {filteredFaculties.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredFaculties.map((f, i) => (
+                    <FacultyCard key={f.id || i} profile={f} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+                  <User className="w-12 h-12 mb-3 opacity-50" />
+                  <p className="text-sm font-medium">No faculty found matching "{searchTerm}"</p>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
-      {!results && !searching && !error && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400  dark:text-gray-500">
-          <Search className="w-12 h-12 mb-3" />
-          <p className="text-sm font-medium">Search for faculty by name or employee ID</p>
+      {!selectedSchool && !loadingSchools && (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+          <Building2 className="w-12 h-12 mb-3 opacity-50" />
+          <p className="text-sm font-medium">Select a school to view its faculty directory</p>
         </div>
       )}
+
     </SubpageLayout>
   );
 }
