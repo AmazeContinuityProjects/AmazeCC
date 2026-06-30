@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
+import ClubDetailsModal from "./ClubDetailsModal";
+import { getSimilarity } from "@/lib/string-similarity";
 
 export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }> }) {
   const [clubs, setClubs] = useState<any[]>([]);
@@ -14,9 +16,19 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
   const [error, setError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("All");
+  const [publicClubDetails, setPublicClubDetails] = useState<any[]>([]);
+  const [selectedClub, setSelectedClub] = useState<any | null>(null);
 
   useEffect(() => {
     fetchClubs();
+    fetch(`${API_BASE}/api/clubs/details`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.clubs) {
+          setPublicClubDetails(data.clubs);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const fetchClubs = async () => {
@@ -160,20 +172,32 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClubs.map((club) => (
-            <motion.div
-              key={club.id}
-              whileHover={{ y: -4 }}
-              className="bg-white dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full group"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {club.name}
-                  </h3>
-                </div>
+          {filteredClubs.map((club) => {
+            let matchedDetail = null;
+            for (const detail of publicClubDetails) {
+              if (getSimilarity(club.name, detail.club_name) > 0.8 || (detail.club_id && getSimilarity(club.id, detail.club_id) > 0.8)) {
+                matchedDetail = detail as any;
+                break;
+              }
+            }
+
+            return (
+              <motion.div
+                key={club.id}
+                whileHover={{ y: -4 }}
+                className="bg-white dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full group"
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-3 gap-3">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {club.name}
+                    </h3>
+                    {matchedDetail?.logo_url && (
+                      <img src={matchedDetail.logo_url} alt="Logo" className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-100 dark:border-gray-800" />
+                    )}
+                  </div>
                 
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-2 mt-4 mb-4">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
                     club.type === 'CLUB' 
                       ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
@@ -187,11 +211,29 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
                     <Hash className="w-3.5 h-3.5" /> {club.id}
                   </span>
                 </div>
+                
+                <button
+                  onClick={() => {
+                    // We already found the matched detail above
+
+                    setSelectedClub({ ...club, ...matchedDetail, club_name: club.name });
+                  }}
+                  className="w-full mt-2 py-2.5 bg-gray-50 hover:bg-blue-50 dark:bg-gray-800/50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-sm font-semibold rounded-xl transition-colors"
+                >
+                  View Details
+                </button>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
       )}
+      
+      <ClubDetailsModal
+        isOpen={!!selectedClub}
+        onClose={() => setSelectedClub(null)}
+        club={selectedClub}
+      />
     </motion.div>
   );
 }
