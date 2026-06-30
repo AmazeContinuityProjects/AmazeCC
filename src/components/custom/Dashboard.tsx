@@ -890,6 +890,7 @@ export default function DashboardContent({
                 activeMoreSubTab={activeMoreSubTab} 
                 setActiveMoreSubTab={setActiveMoreSubTab}
                 IDs={IDs}
+                loginToVTOP={loginToVTOP}
                 isSubpageOpen={isSubpageOpen}
                 setIsSubpageOpen={setIsSubpageOpen}
                 registeredEvents={registeredEvents}
