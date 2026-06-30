@@ -448,14 +448,24 @@ export default function NavigationTabs({
       },
     },
     {
-      id: "events",
+      id: "more-events",
       label: "Event Hub",
       icon: Calendar,
       isActive: activeTab === "more" && activeMoreSubTab === "events",
       onSelect: () => {
         selectTab("more");
         setActiveMoreSubTab("events");
-      },
+      }
+    },
+    {
+      id: "more-clubs",
+      label: "Club Hub",
+      icon: LayoutGrid,
+      isActive: activeTab === "more" && activeMoreSubTab === "clubs",
+      onSelect: () => {
+        selectTab("more");
+        setActiveMoreSubTab("clubs");
+      }
     },
   ], [activeTab, activeMoreSubTab, selectTab, setActiveMoreSubTab]);
 
@@ -707,6 +717,7 @@ export default function NavigationTabs({
       
       { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
       { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+      { label: "Club Hub", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
       { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
       
       { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
@@ -740,7 +751,8 @@ export default function NavigationTabs({
         items: [
           { label: "Social", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
           { label: "FFCS Planner", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-          { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } }
+          { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+          { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } }
         ]
       },
       {

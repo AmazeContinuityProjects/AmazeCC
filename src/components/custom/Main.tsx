@@ -1358,6 +1358,7 @@ export default function LoginPage() {
       { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("pure"); } },
       { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
       { id: "more-events", label: "Events Hub", description: "Registered events & activities", icon: "🎉", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); } },
+      { id: "more-clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("clubs"); } },
       { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("ffcs"); } },
     );
 
