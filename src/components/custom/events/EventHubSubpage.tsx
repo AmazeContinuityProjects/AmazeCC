@@ -8,6 +8,8 @@ import { API_BASE } from "../Main";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import SubpageLayout from "../shared/SubpageLayout";
+import ClubDetailsModal from "../more/ClubDetailsModal";
+import { getSimilarity } from "@/lib/string-similarity";
 
 interface EventHubSubpageProps {
   selectedEvent: EventHubEvent;
@@ -36,6 +38,19 @@ export default function EventHubSubpage({
   const [modalContent, setModalContent] = useState<{title: string, message: string}>({title: "", message: ""});
   const [pwaUrl, setPwaUrl] = useState<string | null>(null);
   const [pwaMode, setPwaMode] = useState<"pay" | "view" | null>(null);
+  const [clubsList, setClubsList] = useState<any[]>([]);
+  const [selectedClub, setSelectedClub] = useState<any | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/clubs/details`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.clubs) {
+          setClubsList(data.clubs);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const isMobilePWA = () => {
     if (typeof window === 'undefined') return false;
@@ -440,9 +455,32 @@ export default function EventHubSubpage({
                     else if (key.includes('Participant')) Icon = Users;
                     else if (key.includes('Conducted') || key.includes('By')) Icon = User;
 
+                    let matchedClub = null;
+                    if (key.includes('Conducted') || key.includes('By')) {
+                      Icon = User;
+                      if (clubsList.length > 0 && value) {
+                        for (const club of clubsList) {
+                          if (getSimilarity(value, club.club_name) > 0.8 || (club.club_id && getSimilarity(value, club.club_id) > 0.8)) {
+                            matchedClub = club;
+                            break;
+                          }
+                        }
+                      }
+                    }
+
                     return (
                       <div key={key} className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50 flex flex-col justify-center">
-                        <InfoRow icon={<Icon className="w-4 h-4" />}>{key}: {value}</InfoRow>
+                        {matchedClub ? (
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-xs text-gray-500 flex items-center gap-1.5 font-medium uppercase tracking-wider"><Icon className="w-3.5 h-3.5" /> Organized By</span>
+                            <button onClick={() => setSelectedClub(matchedClub)} className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left leading-tight bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-2.5 rounded-lg border border-blue-100 dark:border-blue-800/50 flex items-center gap-1.5 w-fit">
+                              <Award className="w-4 h-4 shrink-0" />
+                              {matchedClub.club_name}
+                            </button>
+                          </div>
+                        ) : (
+                          <InfoRow icon={<Icon className="w-4 h-4" />}>{key}: {value}</InfoRow>
+                        )}
                       </div>
                     );
                   })}
@@ -544,6 +582,12 @@ export default function EventHubSubpage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ClubDetailsModal 
+        isOpen={!!selectedClub} 
+        onClose={() => setSelectedClub(null)} 
+        club={selectedClub} 
+      />
     </SubpageLayout>
   );
 }
