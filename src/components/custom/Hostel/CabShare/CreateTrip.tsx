@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../Main";
-import { Loader2, Calendar as CalendarIcon, Clock, MapPin, Users, CheckCircle2, MessageSquareText, SlidersHorizontal } from "lucide-react";
-import { createLocalTrip, fallbackHubs, readJsonResponse } from "./cabShareFallback";
+import { Loader2, Calendar as CalendarIcon, Clock, MapPin, Users, CheckCircle2, MessageSquareText, SlidersHorizontal, ArrowRight } from "lucide-react";
+import { createLocalTrip, fallbackHubs, readJsonResponse, dedupeHubs } from "./cabShareFallback";
 
 export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUser: any, onTripCreated: () => void }) {
   const [hubs, setHubs] = useState<any[]>([]);
@@ -11,6 +11,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   
+  const [fromHubId, setFromHubId] = useState("");
   const [hubId, setHubId] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -29,15 +30,24 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
       const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
       const data = await readJsonResponse(res);
       if (data?.success) {
-        setHubs(data.hubs);
-        if (data.hubs.length > 0) setHubId(data.hubs[0].hub_id.toString());
+        const unique = dedupeHubs(data.hubs);
+        setHubs(unique);
+        if (unique.length > 0) {
+          setFromHubId(unique[0].hub_id.toString());
+          if (unique.length > 1) setHubId(unique[1].hub_id.toString());
+          else setHubId(unique[0].hub_id.toString());
+        }
       } else {
         setHubs(fallbackHubs);
-        setHubId(fallbackHubs[0].hub_id.toString());
+        setFromHubId(fallbackHubs[0].hub_id.toString());
+        if (fallbackHubs.length > 1) setHubId(fallbackHubs[1].hub_id.toString());
+        else setHubId(fallbackHubs[0].hub_id.toString());
       }
     } catch (e) {
       setHubs(fallbackHubs);
-      setHubId(fallbackHubs[0].hub_id.toString());
+      setFromHubId(fallbackHubs[0].hub_id.toString());
+      if (fallbackHubs.length > 1) setHubId(fallbackHubs[1].hub_id.toString());
+      else setHubId(fallbackHubs[0].hub_id.toString());
     }
     setLoading(false);
   };
@@ -48,6 +58,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
     setError("");
     const payload = {
       reg_number: cabShareUser.reg_number,
+      from_hub_id: parseInt(fromHubId),
       hub_id: parseInt(hubId),
       travel_date: date,
       preferred_time: time,
@@ -87,7 +98,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
           <div>
             <h2 className="text-lg font-black text-gray-950 dark:text-white">Post a ride</h2>
             <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
-              Add your destination and timing so others can request to share the cab.
+              Add your route and timing so others can request to share the cab.
             </p>
           </div>
         </div>
@@ -103,17 +114,31 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
             </div>
           )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Destination Hub</label>
-            <select 
-              value={hubId} 
-              onChange={(e) => setHubId(e.target.value)}
-              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-            >
-              {hubs.map(h => (
-                <option key={h.hub_id} value={h.hub_id}>{h.hub_name}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
+              <select 
+                value={fromHubId} 
+                onChange={(e) => setFromHubId(e.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+              >
+                {hubs.map(h => (
+                  <option key={`from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
+              <select 
+                value={hubId} 
+                onChange={(e) => setHubId(e.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+              >
+                {hubs.map(h => (
+                  <option key={`to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

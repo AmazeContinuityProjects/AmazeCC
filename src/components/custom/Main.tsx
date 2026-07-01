@@ -2401,6 +2401,319 @@ export default function LoginPage() {
 
   const mergedCommands = useMemo(() => {
     const result = [...cmds];
+    const lowerQ = paletteQuery.toLowerCase().trim();
+
+    // ── Smart contextual welcome (shown when empty) ──
+    if (!lowerQ) {
+      const today = new Date();
+      const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+      const hour = today.getHours();
+      const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+      const friendlyName = (settings as any)?.friendlyName;
+      const displayName = friendlyName || IDs.VtopUsername || "there";
+
+      // Count upcoming exams in next 7 days
+      let upcomingExams: any[] = [];
+      if (ScheduleData && typeof ScheduleData === "object") {
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        Object.values(ScheduleData).forEach((exams: any) => {
+          if (Array.isArray(exams)) {
+            exams.forEach((exam: any) => {
+              if (exam.examDate) {
+                const examDate = new Date(exam.examDate);
+                if (examDate >= today && examDate <= nextWeek) {
+                  upcomingExams.push(exam);
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // Count courses below 75%
+      const below75 = Array.isArray((attendanceData as any)?.attendance)
+        ? (attendanceData as any).attendance.filter((c: any) => {
+            const a = c.attendedClasses || 0;
+            const t = c.totalClasses || 0;
+            return t > 0 && (a / t) < 0.75;
+          })
+        : [];
+
+      // Today's calendar events
+      const todayStr = `${today.getDate()} ${today.toLocaleDateString("en-US", { month: "short" })}`;
+      const calData = Calender as any;
+      let todayEvents: any[] = [];
+      if (calData?.results) {
+        calData.results.forEach((month: any) => {
+          if (!month?.days) return;
+          month.days.forEach((day: any) => {
+            if (!day?.events || day.date !== today.getDate().toString()) return;
+            day.events.forEach((ev: any) => todayEvents.push(ev));
+          });
+        });
+      }
+
+      result.unshift({
+        id: "smart-welcome",
+        label: `${greeting}, ${displayName}!`,
+        description: `${dayName} · ${today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
+        icon: "👋",
+        category: "✨ Today",
+        detail: (
+          <div className="space-y-2.5">
+            {(below75.length > 0 || upcomingExams.length > 0 || todayEvents.length > 0) && (
+              <div className="flex flex-wrap gap-1.5">
+                {below75.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-50 dark:bg-red-900/15 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                    ⚠️ {below75.length} course{below75.length > 1 ? "s" : ""} below 75%
+                  </span>
+                )}
+                {upcomingExams.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
+                    📝 {upcomingExams.length} exam{upcomingExams.length > 1 ? "s" : ""} this week
+                  </span>
+                )}
+                {todayEvents.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
+                    📅 {todayEvents.length} event{todayEvents.length > 1 ? "s" : ""} today
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="space-y-1">
+              {below75.slice(0, 3).map((c: any, i: number) => {
+                const a = c.attendedClasses || 0;
+                const t = c.totalClasses || 0;
+                const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
+                return (
+                  <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                    <span className="truncate">{c.courseTitle}</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400 shrink-0">{p}%</span>
+                  </div>
+                );
+              })}
+              {upcomingExams.slice(0, 3).map((exam: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="truncate">{exam.courseTitle || exam.courseCode}</span>
+                  <span className="shrink-0">{exam.examDate}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">Tip: Try @today, @exams, @help, or type a course code</p>
+          </div>
+        ),
+        onSelect: () => {},
+      });
+    }
+
+    // ── @-commands ──
+    if (lowerQ.startsWith("@")) {
+      if (lowerQ.includes("@today") || lowerQ.includes("@today's")) {
+        const today = new Date();
+        const calData = Calender as any;
+        let dayEvents: any[] = [];
+        if (calData?.results) {
+          calData.results.forEach((month: any) => {
+            if (!month?.days) return;
+            month.days.forEach((day: any) => {
+              if (!day?.events || day.date !== today.getDate().toString()) return;
+              day.events.forEach((ev: any) => dayEvents.push(ev));
+            });
+          });
+        }
+        result.push({
+          id: "smart-today",
+          label: "📅 Today's Schedule",
+          description: `${today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`,
+          icon: "📅",
+          category: "✨ Smart",
+          detail: dayEvents.length > 0 ? (
+            <div className="space-y-1.5">
+              {dayEvents.map((ev: any, i: number) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${ev.type === "Holiday" ? "bg-emerald-500" : ev.type === "Instructional Day" ? "bg-blue-500" : "bg-purple-500"}`} />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{ev.text}</span>
+                  <span className="text-[11px] text-gray-400 ml-auto">{ev.type}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No events scheduled for today.</p>
+          ),
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); },
+        });
+      }
+
+      if (lowerQ.includes("@exam")) {
+        const today = new Date();
+        let exams: any[] = [];
+        if (ScheduleData && typeof ScheduleData === "object") {
+          const next30 = new Date();
+          next30.setDate(next30.getDate() + 30);
+          Object.values(ScheduleData).forEach((examList: any) => {
+            if (Array.isArray(examList)) {
+              examList.forEach((exam: any) => {
+                if (exam.examDate) {
+                  const d = new Date(exam.examDate);
+                  if (d >= today && d <= next30) exams.push(exam);
+                }
+              });
+            }
+          });
+          exams.sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime());
+        }
+        result.push({
+          id: "smart-exams",
+          label: "📝 Upcoming Exams (Next 30 Days)",
+          description: exams.length > 0 ? `${exams.length} exam${exams.length > 1 ? "s" : ""} scheduled` : "No upcoming exams",
+          icon: "📝",
+          category: "✨ Smart",
+          detail: exams.length > 0 ? (
+            <div className="space-y-1.5">
+              {exams.slice(0, 8).map((exam: any, i: number) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 truncate">{exam.courseTitle || exam.courseCode}</span>
+                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">{exam.examDate}</span>
+                  <span className="text-[11px] text-gray-400">{exam.examSession || ""}</span>
+                </div>
+              ))}
+              {exams.length > 8 && (
+                <p className="text-[11px] text-gray-400 text-center pt-1">+{exams.length - 8} more exams</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No exams in the next 30 days.</p>
+          ),
+          onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); },
+        });
+      }
+
+      if (lowerQ.includes("@help") || lowerQ.includes("@commands")) {
+        const tips = [
+          { cmd: "@today", desc: "View today's schedule & events" },
+          { cmd: "@exams", desc: "Show upcoming exams (next 30 days)" },
+          { cmd: "@info", desc: "Display your account information" },
+          { cmd: "=2+2*3", desc: "Quick calculator for math expressions" },
+          { cmd: "koha: <query>", desc: "Search library catalog" },
+          { cmd: "<course code>", desc: "Quick attendance lookup (e.g. MAT101)" },
+        ];
+        result.push({
+          id: "smart-help",
+          label: "💡 Available Smart Commands",
+          description: "Type any of these to get instant results",
+          icon: "💡",
+          category: "✨ Smart",
+          detail: (
+            <div className="space-y-1">
+              {tips.map((tip, i) => (
+                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                  <code className="text-[11px] font-bold text-blue-600 dark:text-blue-400 min-w-[7rem]">{tip.cmd}</code>
+                  <span className="text-[11px] text-gray-600 dark:text-gray-400">{tip.desc}</span>
+                </div>
+              ))}
+            </div>
+          ),
+          onSelect: () => {},
+        });
+      }
+
+      if (lowerQ.includes("@info")) {
+        result.push({
+          id: "smart-info",
+          label: `👤 ${IDs.VtopUsername || "User"}`,
+          description: "Your account information",
+          icon: "👤",
+          category: "✨ Smart",
+          detail: (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Username</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{IDs.VtopUsername || "—"}</span>
+              </div>
+              {settings.friendlyName && (
+                <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                  <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Name</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{settings.friendlyName}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
+                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Status</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{settings.residentialStatus === "hosteller" ? "🏠 Hosteller" : "🚶 Day Scholar"}</span>
+              </div>
+            </div>
+          ),
+          onSelect: () => { setActiveTab("profile"); },
+        });
+      }
+    }
+
+    // ── Course code quick lookup ──
+    const courseCodeRegex = /^([a-zA-Z]{2,4})\s*(\d{3,4})$/;
+    const codeMatch = lowerQ.match(courseCodeRegex);
+    if (codeMatch) {
+      const code = (codeMatch[1] + codeMatch[2]).toUpperCase();
+      const attCourses = (attendanceData as any)?.attendance;
+      const course = Array.isArray(attCourses)
+        ? attCourses.find((c: any) => c.courseCode?.toUpperCase() === code)
+        : null;
+      if (course) {
+        const a = course.attendedClasses || 0;
+        const t = course.totalClasses || 0;
+        const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
+        const pNum = parseFloat(p);
+        const canMiss = t > 0 ? Math.max(0, Math.floor((a - 0.75 * t) / 0.75)) : 0;
+        const needAttend = canMiss === 0 && t > 0 ? Math.ceil((0.75 * t - a) / 0.25) : 0;
+        const color = pNum >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20" : pNum >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20";
+
+        result.unshift({
+          id: `smart-course-${code}`,
+          label: `📋 ${course.courseTitle} (${course.courseCode})`,
+          description: `Attendance: ${p}% · ${a}/${t} classes · ${course.slotName || course.slotVenue || ""}`,
+          icon: "📋",
+          category: `✨ Smart · Course`,
+          rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${color}`}>{p}%</span>,
+          detail: (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl shrink-0 ${pNum >= 75 ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}>
+                  <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{course.courseTitle}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{course.courseCode} · {course.slotName || course.slotVenue || "—"}</p>
+                </div>
+                <span className={`text-lg font-black tabular-nums ${pNum >= 80 ? "text-green-600" : pNum >= 75 ? "text-yellow-600" : "text-red-600"}`}>{p}%</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-800/30">
+                  {a}/{t} classes attended
+                </span>
+                {canMiss > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                    Can miss {canMiss} more
+                  </span>
+                )}
+                {needAttend > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50 dark:bg-red-900/15 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
+                    Need {needAttend} more to reach 75%
+                  </span>
+                )}
+                {course.faculty && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                    {course.faculty}
+                  </span>
+                )}
+              </div>
+            </div>
+          ),
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); },
+        });
+      }
+    }
+
     const hasKoha = paletteQuery.toLowerCase().indexOf("koha") !== -1;
     if (hasKoha) {
       const searchTerm = paletteQuery.slice(paletteQuery.toLowerCase().indexOf("koha") + 4).trim().replace(/^[:;,\\-s]+/, "");
@@ -2440,7 +2753,7 @@ export default function LoginPage() {
       });
     });
     return result;
-  }, [cmds, paletteQuery, kohaBooks, kohaLoading]);
+  }, [cmds, paletteQuery, kohaBooks, kohaLoading, attendanceData, ScheduleData, Calender, IDs, settings, setActiveTab, setActiveAttendanceSubTab, setActiveSubTab]);
 
   if (isLoading) {
     return (
