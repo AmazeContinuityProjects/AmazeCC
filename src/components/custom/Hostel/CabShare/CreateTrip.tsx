@@ -52,8 +52,32 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
     setLoading(false);
   };
 
+  const toOptions = hubs.filter(h => h.hub_id.toString() !== fromHubId);
+  const fromOptions = hubs.filter(h => h.hub_id.toString() !== hubId);
+
+  const handleFromChange = (val: string) => {
+    setFromHubId(val);
+    if (val === hubId) {
+      const next = hubs.find(h => h.hub_id.toString() !== val);
+      setHubId(next ? next.hub_id.toString() : "");
+    }
+  };
+
+  const handleToChange = (val: string) => {
+    setHubId(val);
+    if (val === fromHubId) {
+      const next = hubs.find(h => h.hub_id.toString() !== val);
+      setFromHubId(next ? next.hub_id.toString() : "");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (fromHubId === hubId) {
+      setError("From and To cannot be the same location.");
+      setSubmitting(false);
+      return;
+    }
     setSubmitting(true);
     setError("");
     const payload = {
@@ -119,10 +143,10 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
               <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
               <select 
                 value={fromHubId} 
-                onChange={(e) => setFromHubId(e.target.value)}
+                onChange={(e) => handleFromChange(e.target.value)}
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
-                {hubs.map(h => (
+                {fromOptions.map(h => (
                   <option key={`from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
               </select>
@@ -131,10 +155,10 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
               <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
               <select 
                 value={hubId} 
-                onChange={(e) => setHubId(e.target.value)}
+                onChange={(e) => handleToChange(e.target.value)}
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
-                {hubs.map(h => (
+                {toOptions.map(h => (
                   <option key={`to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
               </select>

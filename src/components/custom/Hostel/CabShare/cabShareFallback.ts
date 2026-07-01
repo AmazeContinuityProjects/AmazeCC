@@ -1,9 +1,18 @@
 export const fallbackHubs = [
-  { hub_id: 1, hub_name: "Chennai Airport" },
-  { hub_id: 2, hub_name: "Tambaram Railway Station" },
-  { hub_id: 3, hub_name: "Chengalpattu Railway Station" },
-  { hub_id: 4, hub_name: "Kelambakkam" },
-  { hub_id: 5, hub_name: "VIT Chennai" },
+  { hub_id: 1, hub_name: "VIT Chennai" },
+  { hub_id: 2, hub_name: "Chennai Airport" },
+  { hub_id: 3, hub_name: "Chennai Central Railway Station" },
+  { hub_id: 4, hub_name: "Tambaram Railway Station" },
+  { hub_id: 5, hub_name: "Chengalpattu Railway Station" },
+  { hub_id: 6, hub_name: "Koyambedu Bus Stand" },
+  { hub_id: 7, hub_name: "Kelambakkam" },
+  { hub_id: 8, hub_name: "Sholinganallur" },
+  { hub_id: 9, hub_name: "T Nagar" },
+  { hub_id: 10, hub_name: "Guindy" },
+  { hub_id: 11, hub_name: "OMR" },
+  { hub_id: 12, hub_name: "Perungudi" },
+  { hub_id: 13, hub_name: "Thoraipakkam" },
+  { hub_id: 14, hub_name: "Velachery" },
 ];
 
 export function dedupeHubs(hubs: { hub_id: number; hub_name: string }[]) {
