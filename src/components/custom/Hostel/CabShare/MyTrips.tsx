@@ -102,7 +102,7 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <h4 className="flex items-center gap-2 text-base font-black text-gray-950 dark:text-white">
-                      <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /> <span className="truncate">{trip.hub_name}</span>
+                      <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /> <span className="truncate">{trip.from_hub_name || trip.from_hub_id ? `${trip.from_hub_name || `Hub #${trip.from_hub_id}`} → ` : ''}{trip.hub_name}</span>
                     </h4>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
                       <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10">
@@ -183,19 +183,19 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
             {joinedTrips.map(trip => (
               <article key={trip.trip_id} className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <h4 className="flex items-center gap-2 text-base font-black text-gray-950 dark:text-white">
-                    <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /> <span className="truncate">{trip.hub_name}</span>
-                  </h4>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
-                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10">
-                      <Calendar className="h-3.5 w-3.5" /> {new Date(trip.travel_date).toLocaleDateString()}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10">
-                      <Clock className="h-3.5 w-3.5" /> {trip.preferred_time}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                    Host: <strong>{trip.owner_name}</strong>
+                    <h4 className="flex items-center gap-2 text-base font-black text-gray-950 dark:text-white">
+                      <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /> <span className="truncate">{trip.from_hub_name || trip.from_hub_id ? `${trip.from_hub_name || `Hub #${trip.from_hub_id}`} → ` : ''}{trip.hub_name}</span>
+                    </h4>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10">
+                        <Calendar className="h-3.5 w-3.5" /> {new Date(trip.travel_date).toLocaleDateString()}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10">
+                        <Clock className="h-3.5 w-3.5" /> {trip.preferred_time}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      Host: <strong>{trip.owner_name}</strong>
                   </p>
                   {trip.match_status === 'accepted' && (
                     <p className="mt-1 flex items-center gap-1 text-sm font-black text-emerald-600 dark:text-emerald-400">

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Search, ArrowRight, Command, Sparkles, ArrowLeft, X, Clock, SlidersHorizontal } from "lucide-react";
+import { Search, ArrowRight, Command, Sparkles, ArrowLeft, X, Clock, SlidersHorizontal, Calculator, History, Trash2, Hash, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface CommandItem {
@@ -82,6 +82,51 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
   const mousePos = useRef({ x: 0, y: 0 });
   onQueryChangeRef.current = onQueryChange;
 
+  // ── Search History ──
+  const SEARCH_HISTORY_KEY = "amazecc_search_history";
+  const MAX_SEARCH_HISTORY = 8;
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  const saveToHistory = useCallback((q: string) => {
+    if (!q.trim() || q.startsWith("=") || q.startsWith("@")) return;
+    setSearchHistory(prev => {
+      const next = [q.trim(), ...prev.filter(item => item !== q.trim())].slice(0, MAX_SEARCH_HISTORY);
+      try { localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setSearchHistory([]);
+    try { localStorage.removeItem(SEARCH_HISTORY_KEY); } catch {}
+  }, []);
+
+  // ── Quick Calculator ──
+  const calculatorResult = useMemo(() => {
+    if (!query.startsWith("=")) return null;
+    const expr = query.slice(1).trim();
+    if (!expr) return null;
+    try {
+      const sanitized = expr.replace(/[^0-9+\-*/.()%\s]/g, "");
+      if (!sanitized) return null;
+      const result = Function(`"use strict"; return (${sanitized})`)();
+      if (typeof result !== "number" || !isFinite(result)) return null;
+      return { expr, result };
+    } catch { return null; }
+  }, [query]);
+
+  // ── Smart Tips ──
+  const smartTips = useMemo(() => {
+    if (query) return [];
+    const tips = [
+      { id: "tip-calc", icon: <Calculator className="w-3.5 h-3.5" />, text: "Type = to calculate (e.g. =2+2*3)", category: "Quick Actions" },
+      { id: "tip-today", icon: <Hash className="w-3.5 h-3.5" />, text: "Type @today for today's overview", category: "Quick Actions" },
+      { id: "tip-exams", icon: <Hash className="w-3.5 h-3.5" />, text: "Type @exams for upcoming exams", category: "Quick Actions" },
+      { id: "tip-course", icon: <Hash className="w-3.5 h-3.5" />, text: "Type a course code (e.g. MAT101) for details", category: "Quick Actions" },
+    ];
+    return tips;
+  }, [query]);
+
   const categories = useMemo(() => {
     const commandCategories = Array.from(new Set(commands.map(cmd => cmd.category || "General")));
     return ["All", "Recent", ...commandCategories].filter((category, index, all) => {
@@ -139,6 +184,12 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
       } catch {
         setRecentCommandIds([]);
       }
+      try {
+        const stored = localStorage.getItem(SEARCH_HISTORY_KEY);
+        setSearchHistory(stored ? JSON.parse(stored) : []);
+      } catch {
+        setSearchHistory([]);
+      }
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
@@ -179,8 +230,9 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
   const executeCommand = useCallback((cmd: CommandItem) => {
     rememberCommand(cmd);
+    saveToHistory(query);
     cmd.onSelect();
-  }, [rememberCommand]);
+  }, [rememberCommand, saveToHistory, query]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -367,7 +419,38 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
 
               {/* Results */}
               <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 scroll-smooth md:max-h-[22rem]">
-                {results.length === 0 ? (
+                {/* ── Calculator result ── */}
+                {calculatorResult && (
+                  <div className="mx-1 mb-2 flex items-center gap-3 rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 px-4 py-3 dark:border-blue-800/30 dark:from-blue-950/30 dark:to-indigo-950/20">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-gray-900">
+                      <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{calculatorResult.expr} <span className="text-blue-600 dark:text-blue-400">=</span></p>
+                    </div>
+                    <span className="shrink-0 text-lg font-black tabular-nums text-blue-700 dark:text-blue-300">
+                      {calculatorResult.result}
+                    </span>
+                  </div>
+                )}
+
+                {results.length === 0 && !query && searchHistory.length === 0 && smartTips.length > 0 ? (
+                  /* ── Smart tips (empty state) ── */
+                  <div className="space-y-1 px-3 py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                      <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Pro Tips</p>
+                      <div className="flex-1 h-px bg-gradient-to-r from-gray-200/60 to-transparent dark:from-gray-800/30" />
+                    </div>
+                    {smartTips.map(tip => (
+                      <div key={tip.id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-default">
+                        <span className="text-gray-400 dark:text-gray-500">{tip.icon}</span>
+                        <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">{tip.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : results.length === 0 ? (
+                  /* ── Empty state ── */
                   <div className="flex flex-col items-center py-12 text-center">
                     <div className="p-3 rounded-2xl bg-gray-100  dark:bg-gray-900 mb-3">
                       <Sparkles className="w-6 h-6 text-gray-400  dark:text-gray-500" />
@@ -451,6 +534,34 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                     </div>
                   ))
                 )}
+
+                {/* ── Search history (when no query, at the bottom) ── */}
+                {!query && searchHistory.length > 0 && (
+                  <div className="mt-2 border-t border-gray-100 dark:border-gray-800/30 pt-2 px-1">
+                    <div className="flex items-center gap-2 mb-1.5 px-2">
+                      <History className="w-3 h-3 text-gray-400" />
+                      <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex-1">Recent Searches</p>
+                      <button
+                        onClick={clearHistory}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" /> Clear
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {searchHistory.map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => setQuery(term)}
+                          className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-gray-200"
+                        >
+                          <Clock className="w-3 h-3" />
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Detail panel */}
@@ -472,8 +583,8 @@ export default function CommandPalette({ isOpen, onClose, commands, onQueryChang
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 rounded bg-gray-100  dark:bg-gray-900 font-semibold">Esc</kbd> close
                 </span>
-                <span className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400/80 hover:text-indigo-600 cursor-help font-medium" title="Alt+H: Home | Alt+A: Attendance | Alt+E: Events | Alt+L: Library | Alt+G: Grades | Alt+S: Settings | Alt+O: OD Tracker | Alt+B: Blur GPA | Alt+T: Switch Theme">
-                  💡 Global Hotkeys
+                <span className="flex items-center gap-1 text-indigo-500 dark:text-indigo-400/80 hover:text-indigo-600 cursor-help font-medium" title="Alt+H: Home | Alt+A: Attendance | Alt+E: Events | Alt+L: Library | Alt+G: Grades | Alt+S: Settings | Alt+O: OD Tracker | Alt+B: Blur GPA | Alt+T: Switch Theme | =2+2: Calculator | @today: Overview | @exams: Exams">
+                  💡 Smart Tips
                 </span>
               </div>
             </>

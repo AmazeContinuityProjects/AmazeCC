@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { API_BASE } from "../../Main";
 import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
-import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips } from "./cabShareFallback";
+import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
 
 export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [hubs, setHubs] = useState<any[]>([]);
@@ -13,6 +13,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   
+  const [fromHubId, setFromHubId] = useState("");
   const [hubId, setHubId] = useState("");
   const [date, setDate] = useState("");
 
@@ -28,15 +29,13 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
       const data = await readJsonResponse(res);
       if (data?.success) {
-        setHubs(data.hubs);
-        if (data.hubs.length > 0) setHubId(data.hubs[0].hub_id.toString());
+        const unique = dedupeHubs(data.hubs);
+        setHubs(unique);
       } else {
         setHubs(fallbackHubs);
-        setHubId(fallbackHubs[0].hub_id.toString());
       }
     } catch (e) {
       setHubs(fallbackHubs);
-      setHubId(fallbackHubs[0].hub_id.toString());
     }
   };
 
@@ -46,6 +45,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     setMessage(null);
     try {
       const params = new URLSearchParams();
+      if (fromHubId) params.append("from_hub_id", fromHubId);
       if (hubId) params.append("hub_id", hubId);
       if (date) params.append("date", date);
       params.append("reg_number", cabShareUser.reg_number); // To exclude own trips
@@ -56,10 +56,11 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
         setTrips(data.trips);
       } else {
         const localTrips = getLocalTrips().filter((trip: any) => {
+          const matchesFrom = !fromHubId || Number(trip.from_hub_id) === Number(fromHubId);
           const matchesHub = !hubId || Number(trip.hub_id) === Number(hubId);
           const matchesDate = !date || trip.travel_date === date;
           const notMine = trip.reg_number !== cabShareUser.reg_number;
-          return matchesHub && matchesDate && notMine;
+          return matchesFrom && matchesHub && matchesDate && notMine;
         });
         setTrips(localTrips);
         if (localTrips.length === 0) {
@@ -150,17 +151,30 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
           </div>
         </div>
 
-        <form onSubmit={handleSearch} className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px_140px]">
+        <form onSubmit={handleSearch} className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_140px]">
           <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Hub</label>
+            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
+            <select 
+              value={fromHubId} 
+              onChange={(e) => setFromHubId(e.target.value)}
+              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+            >
+              <option value="">Any</option>
+              {hubs.map(h => (
+                <option key={`search-from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
             <select 
               value={hubId} 
               onChange={(e) => setHubId(e.target.value)}
               className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
             >
-              <option value="">Any Hub</option>
+              <option value="">Any</option>
               {hubs.map(h => (
-                <option key={h.hub_id} value={h.hub_id}>{h.hub_name}</option>
+                <option key={`search-to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
               ))}
             </select>
           </div>
@@ -235,7 +249,9 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-lg font-black text-gray-950 dark:text-white">{trip.hub_name}</h3>
+                      <h3 className="truncate text-lg font-black text-gray-950 dark:text-white">
+                        {trip.from_hub_name || trip.from_hub_id ? `${trip.from_hub_name || `Hub #${trip.from_hub_id}`} → ` : ''}{trip.hub_name}
+                      </h3>
                       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Hosted by {trip.name}</p>
                     </div>
                   </div>
