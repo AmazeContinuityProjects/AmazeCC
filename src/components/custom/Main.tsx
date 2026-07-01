@@ -1117,7 +1117,7 @@ export default function LoginPage() {
     setIDs(defaultIDs);
     setDemoMode(false);
 
-    const keysToKeep = ["theme", "activityTree", "settings"];
+    const keysToKeep = ["activityTree"];
 
     const saved: Record<string, string | null> = {};
     keysToKeep.forEach((key) => {
@@ -1131,6 +1131,11 @@ export default function LoginPage() {
         localStorage.setItem(key, saved[key]!);
       }
     });
+
+    localStorage.setItem("theme", "light");
+    localStorage.setItem("settings", JSON.stringify(defaultSettings));
+    setTheme("light");
+    setSettings(defaultSettings);
 
     setAttendanceData({});
     setMarksData({});
