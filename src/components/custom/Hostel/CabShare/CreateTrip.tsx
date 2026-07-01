@@ -49,23 +49,20 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
     setLoading(false);
   };
 
-  const toOptions = hubs.filter(h => h.hub_id.toString() !== fromHubId);
-  const fromOptions = hubs.filter(h => h.hub_id.toString() !== hubId);
-
   const handleFromChange = (val: string) => {
-    setFromHubId(val);
-    if (val === hubId) {
+    if (val === hubId && hubs.length > 1) {
       const next = hubs.find(h => h.hub_id.toString() !== val);
       setHubId(next ? next.hub_id.toString() : "");
     }
+    setFromHubId(val);
   };
 
   const handleToChange = (val: string) => {
-    setHubId(val);
-    if (val === fromHubId) {
+    if (val === fromHubId && hubs.length > 1) {
       const next = hubs.find(h => h.hub_id.toString() !== val);
       setFromHubId(next ? next.hub_id.toString() : "");
     }
+    setHubId(val);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +140,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
                 onChange={(e) => handleFromChange(e.target.value)}
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
-                {fromOptions.map(h => (
+                {hubs.map(h => (
                   <option key={`from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
               </select>
@@ -155,7 +152,7 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
                 onChange={(e) => handleToChange(e.target.value)}
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
-                {toOptions.map(h => (
+                {hubs.map(h => (
                   <option key={`to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
               </select>

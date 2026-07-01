@@ -39,23 +39,20 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     }
   };
 
-  const toOptions = fromHubId ? hubs.filter(h => h.hub_id.toString() !== fromHubId) : hubs;
-  const fromOptions = hubId ? hubs.filter(h => h.hub_id.toString() !== hubId) : hubs;
-
   const handleFromChange = (val: string) => {
-    setFromHubId(val);
-    if (val && val === hubId) {
+    if (val && val === hubId && hubs.length > 1) {
       const next = hubs.find(h => h.hub_id.toString() !== val);
       setHubId(next ? next.hub_id.toString() : "");
     }
+    setFromHubId(val);
   };
 
   const handleToChange = (val: string) => {
-    setHubId(val);
-    if (val && val === fromHubId) {
+    if (val && val === fromHubId && hubs.length > 1) {
       const next = hubs.find(h => h.hub_id.toString() !== val);
       setFromHubId(next ? next.hub_id.toString() : "");
     }
+    setHubId(val);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -177,28 +174,28 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
         <form onSubmit={handleSearch} className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_140px]">
           <div className="space-y-1">
             <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
-            <select 
-              value={fromHubId} 
-              onChange={(e) => handleFromChange(e.target.value)}
-              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-            >
-              <option value="">Any</option>
-              {fromOptions.map(h => (
-                <option key={`search-from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
-            <select 
-              value={hubId} 
-              onChange={(e) => handleToChange(e.target.value)}
-              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-            >
-              <option value="">Any</option>
-              {toOptions.map(h => (
-                <option key={`search-to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
-              ))}
+              <select 
+                value={fromHubId} 
+                onChange={(e) => handleFromChange(e.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+              >
+                <option value="">Any</option>
+                {hubs.map(h => (
+                  <option key={`search-from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
+              <select 
+                value={hubId} 
+                onChange={(e) => handleToChange(e.target.value)}
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+              >
+                <option value="">Any</option>
+                {hubs.map(h => (
+                  <option key={`search-to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                ))}
             </select>
           </div>
           <div className="space-y-1">
