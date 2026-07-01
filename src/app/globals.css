@@ -348,6 +348,25 @@ input, textarea, [contenteditable] {
   user-select: auto; /* Keep text fields selectable */
 }
 
+.cabshare-input {
+  background: var(--surface) !important;
+  border-color: var(--border-muted) !important;
+  color: var(--text-primary) !important;
+  caret-color: var(--info);
+}
+
+.cabshare-input:focus {
+  border-color: var(--info) !important;
+}
+
+.cabshare-input:-webkit-autofill,
+.cabshare-input:-webkit-autofill:hover,
+.cabshare-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  transition: background-color 9999s ease-out;
+}
+
 ::placeholder {
   color: var(--text-muted);
   opacity: 1;
