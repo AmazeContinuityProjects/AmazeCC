@@ -1,6 +1,6 @@
 "use client";
 
-import { Share2, Link2, Copy, Check } from "lucide-react";
+import { Share2, Check } from "lucide-react";
 import { useState } from "react";
 
 export default function ShareTripButton({ trip }: { trip: any }) {
@@ -27,7 +27,7 @@ export default function ShareTripButton({ trip }: { trip: any }) {
   return (
     <button
       onClick={handleShare}
-      className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-lg flex items-center gap-1 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+      className="flex items-center gap-1 rounded-xl bg-gray-100 px-2.5 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
       title="Share Trip"
     >
       {copied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}

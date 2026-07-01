@@ -39,9 +39,9 @@ export default function CabShareMatchCard() {
   if (!match) return null;
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-lg text-white mb-6 animate-fadeIn">
+    <div className="mb-6 animate-fadeIn rounded-3xl bg-blue-600 p-4 text-white shadow-sm">
       <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-white/20 rounded-lg">
+        <div className="rounded-2xl bg-white/20 p-2">
           <Car className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -50,7 +50,7 @@ export default function CabShareMatchCard() {
         </div>
       </div>
       
-      <div className="bg-white/10 rounded-xl p-3 flex justify-between items-center mt-3">
+      <div className="mt-3 flex items-center justify-between rounded-2xl bg-white/10 p-3">
         <div>
           <p className="text-sm font-semibold flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {match.hub_name}</p>
           <p className="text-xs text-blue-100 flex items-center gap-1 mt-1"><Clock className="w-3.5 h-3.5" /> {match.preferred_time}</p>

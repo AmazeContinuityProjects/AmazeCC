@@ -23,8 +23,8 @@ import {
   Bookmark,
   FolderOpen
 } from "lucide-react";
-import config from "../../../../config.json";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
+import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -65,7 +65,6 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
-  const slotMap = config.slotMap as any;
 
   useEffect(() => {
     if (profileDataProp) {
@@ -102,38 +101,8 @@ export default function MobileHome({
 
   // Today's classes schedule
   const todayClasses = useMemo(() => {
-    if (!attendanceData?.attendance) return [];
-    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    const todayIndex = new Date().getDay();
-    const todayStr = days[todayIndex];
-
-    const result: any[] = [];
-    attendanceData.attendance.forEach((course: any) => {
-      if (!course.slotName) return;
-      const slots = course.slotName.split("+");
-      slots.forEach((slot: string) => {
-        const cleanSlot = slot.trim();
-        if (slotMap[todayStr] && slotMap[todayStr][cleanSlot]) {
-          const info = slotMap[todayStr][cleanSlot];
-          result.push({
-            ...course,
-            slotName: cleanSlot,
-            time: info.time,
-          });
-        }
-      });
-    });
-
-    // Sort classes by time
-    const parseTime = (timeStr: string) => {
-      const [start] = timeStr.split("-").map(t => t.trim());
-      let [h, m] = start.split(":").map(Number);
-      if (h < 8) h += 12;
-      return h * 60 + m;
-    };
-
-    return result.sort((a, b) => parseTime(a.time) - parseTime(b.time));
-  }, [attendanceData, slotMap]);
+    return getTodayAttendanceClasses(attendanceData?.attendance || []);
+  }, [attendanceData]);
 
   // Current or Next class
   const classStatus = useMemo(() => {
@@ -465,12 +434,47 @@ export default function MobileHome({
                 <p className="text-xs text-gray-500 font-semibold">Done with classes for today!</p>
               </div>
             ) : null}
+
+            <div className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Full Schedule</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{todayClasses.length} total</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {todayClasses.map((cls: any) => {
+                  const isCurrent = classStatus.current === cls;
+                  const isNext = classStatus.next === cls;
+                  return (
+                    <button
+                      key={`${cls.courseCode}-${cls.slotName}-${cls.time}`}
+                      onClick={() => { setActiveTab("attendance"); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-all"
+                    >
+                      <div className={`w-1.5 h-10 rounded-full shrink-0 ${
+                        isCurrent ? "bg-emerald-500" : isNext ? "bg-info" : "bg-gray-200 dark:bg-gray-700"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-xs font-black text-gray-900 dark:text-white truncate">{cls.courseTitle}</p>
+                          {isCurrent && <span className="shrink-0 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400">Now</span>}
+                          {isNext && <span className="shrink-0 text-[8px] font-black uppercase text-info">Next</span>}
+                        </div>
+                        <p className="mt-0.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 truncate">
+                          {cls.courseCode} • Slot {cls.slotName}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[11px] font-black text-gray-700 dark:text-gray-200">{cls.time}</p>
+                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-gray-400 dark:text-gray-500">{cls.slotVenue || "N/A"}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
-
-      {/* ── FREE CLASSROOMS WIDGET ── */}
-      <FreeClassroomsWidget />
 
       {/* ── QUICK ACTIONS GRID ── */}
       <div className="space-y-3">
@@ -596,78 +600,6 @@ export default function MobileHome({
           </div>
         </div>
       )}
-
-      {(() => {
-        // Determine upcoming events within the next 7 days
-        if (!registeredEvents || !Array.isArray(registeredEvents) || registeredEvents.length === 0) return null;
-        const now = new Date();
-        now.setHours(0,0,0,0);
-        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        
-        const parseEventDate = (dateStr: string) => {
-          const d = new Date(dateStr);
-          if (!isNaN(d.getTime())) return d;
-          
-          // Try parsing DD-MM-YYYY or DD/MM/YYYY
-          const parts = dateStr.split(/[-/]/);
-          if (parts.length === 3) {
-            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-          }
-          return new Date(0); // fallback
-        };
-        
-        const upcoming = registeredEvents.filter(ev => {
-          if (!ev.date) return false;
-          const d = parseEventDate(ev.date);
-          return d >= now && d <= nextWeek;
-        }).sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
-        
-        if (upcoming.length === 0) return null;
-        
-        return (
-          <div className="space-y-3 mb-6">
-            <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">
-              Upcoming Events
-            </h2>
-            <div 
-              className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide"
-              data-prevent-swipe="true"
-            >
-              {upcoming.map((ev, i) => (
-                <div 
-                  key={i} 
-                  onClick={() => {
-                    sessionStorage.setItem("pendingEventOpen", ev.name);
-                    setActiveTab("more");
-                    setActiveMoreSubTab("events");
-                  }}
-                  className="min-w-[85vw] sm:min-w-[300px] snap-center bg-white dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
-                >
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 dark:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                  
-                  <div className="z-10">
-                    <h4 className="font-bold text-lg mb-2 text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{ev.date} • {ev.time}</span>
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100 dark:border-gray-800/50">
-                    <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300 truncate pr-2">
-                      <MapPin className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{ev.venue}</span>
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-full shrink-0 ${(ev.paymentStatus || "").toLowerCase().includes('paid') || (ev.paymentStatus || "").toLowerCase().includes('free') ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'}`}>
-                      {ev.paymentStatus || "Registered"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ── REGISTERED EVENTS TODAY ── */}
       {registeredEvents && registeredEvents.length > 0 && (
