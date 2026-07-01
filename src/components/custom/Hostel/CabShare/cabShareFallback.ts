@@ -15,9 +15,10 @@ export const fallbackHubs = [
   { hub_id: 14, hub_name: "Velachery" },
 ];
 
-export function dedupeHubs(hubs: { hub_id: number; hub_name: string }[]) {
+export function dedupeHubs(hubs: { hub_id: number; hub_name: string }[], withFallback?: { hub_id: number; hub_name: string }[]) {
   const seen = new Set<string>();
-  return hubs.filter(h => {
+  const merged = withFallback ? [...withFallback, ...hubs] : hubs;
+  return merged.filter(h => {
     const key = h.hub_name.trim().toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);

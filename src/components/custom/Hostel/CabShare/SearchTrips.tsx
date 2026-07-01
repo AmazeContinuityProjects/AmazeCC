@@ -29,7 +29,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
       const data = await readJsonResponse(res);
       if (data?.success) {
-        const unique = dedupeHubs(data.hubs);
+        const unique = dedupeHubs(data.hubs, fallbackHubs);
         setHubs(unique);
       } else {
         setHubs(fallbackHubs);

@@ -30,24 +30,21 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
       const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
       const data = await readJsonResponse(res);
       if (data?.success) {
-        const unique = dedupeHubs(data.hubs);
+        const unique = dedupeHubs(data.hubs, fallbackHubs);
         setHubs(unique);
         if (unique.length > 0) {
           setFromHubId(unique[0].hub_id.toString());
-          if (unique.length > 1) setHubId(unique[1].hub_id.toString());
-          else setHubId(unique[0].hub_id.toString());
+          setHubId(unique[1]?.hub_id.toString() || unique[0].hub_id.toString());
         }
       } else {
         setHubs(fallbackHubs);
         setFromHubId(fallbackHubs[0].hub_id.toString());
-        if (fallbackHubs.length > 1) setHubId(fallbackHubs[1].hub_id.toString());
-        else setHubId(fallbackHubs[0].hub_id.toString());
+        setHubId(fallbackHubs[1]?.hub_id.toString() || fallbackHubs[0].hub_id.toString());
       }
     } catch (e) {
       setHubs(fallbackHubs);
       setFromHubId(fallbackHubs[0].hub_id.toString());
-      if (fallbackHubs.length > 1) setHubId(fallbackHubs[1].hub_id.toString());
-      else setHubId(fallbackHubs[0].hub_id.toString());
+      setHubId(fallbackHubs[1]?.hub_id.toString() || fallbackHubs[0].hub_id.toString());
     }
     setLoading(false);
   };
