@@ -23,7 +23,8 @@ import {
   Bookmark,
   FolderOpen
 } from "lucide-react";
-import config from "../../../../config.json";
+import FreeClassroomsWidget from "./FreeClassroomsWidget";
+import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -64,7 +65,6 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
-  const slotMap = config.slotMap as any;
 
   useEffect(() => {
     if (profileDataProp) {
@@ -101,38 +101,8 @@ export default function MobileHome({
 
   // Today's classes schedule
   const todayClasses = useMemo(() => {
-    if (!attendanceData?.attendance) return [];
-    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    const todayIndex = new Date().getDay();
-    const todayStr = days[todayIndex];
-
-    const result: any[] = [];
-    attendanceData.attendance.forEach((course: any) => {
-      if (!course.slotName) return;
-      const slots = course.slotName.split("+");
-      slots.forEach((slot: string) => {
-        const cleanSlot = slot.trim();
-        if (slotMap[todayStr] && slotMap[todayStr][cleanSlot]) {
-          const info = slotMap[todayStr][cleanSlot];
-          result.push({
-            ...course,
-            slotName: cleanSlot,
-            time: info.time,
-          });
-        }
-      });
-    });
-
-    // Sort classes by time
-    const parseTime = (timeStr: string) => {
-      const [start] = timeStr.split("-").map(t => t.trim());
-      let [h, m] = start.split(":").map(Number);
-      if (h < 8) h += 12;
-      return h * 60 + m;
-    };
-
-    return result.sort((a, b) => parseTime(a.time) - parseTime(b.time));
-  }, [attendanceData, slotMap]);
+    return getTodayAttendanceClasses(attendanceData?.attendance || []);
+  }, [attendanceData]);
 
   // Current or Next class
   const classStatus = useMemo(() => {
@@ -464,6 +434,44 @@ export default function MobileHome({
                 <p className="text-xs text-gray-500 font-semibold">Done with classes for today!</p>
               </div>
             ) : null}
+
+            <div className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Full Schedule</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{todayClasses.length} total</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {todayClasses.map((cls: any) => {
+                  const isCurrent = classStatus.current === cls;
+                  const isNext = classStatus.next === cls;
+                  return (
+                    <button
+                      key={`${cls.courseCode}-${cls.slotName}-${cls.time}`}
+                      onClick={() => { setActiveTab("attendance"); }}
+                      className="w-full px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-all"
+                    >
+                      <div className={`w-1.5 h-10 rounded-full shrink-0 ${
+                        isCurrent ? "bg-emerald-500" : isNext ? "bg-info" : "bg-gray-200 dark:bg-gray-700"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-xs font-black text-gray-900 dark:text-white truncate">{cls.courseTitle}</p>
+                          {isCurrent && <span className="shrink-0 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400">Now</span>}
+                          {isNext && <span className="shrink-0 text-[8px] font-black uppercase text-info">Next</span>}
+                        </div>
+                        <p className="mt-0.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 truncate">
+                          {cls.courseCode} • Slot {cls.slotName}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[11px] font-black text-gray-700 dark:text-gray-200">{cls.time}</p>
+                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-gray-400 dark:text-gray-500">{cls.slotVenue || "N/A"}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
