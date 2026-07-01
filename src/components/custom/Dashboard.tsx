@@ -19,6 +19,8 @@ import { useState, useEffect, useRef } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import HostelOverview from "./Hostel/HostelOverview";
 import HostelCounsellingView from "./Hostel/HostelCounsellingView";
+import CabShareTab from "./Hostel/CabShare/CabShareTab";
+import CabShareMatchCard from "./Hostel/CabShare/CabShareMatchCard";
 import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
 import MobileHome from "./mobile/MobileHome";
@@ -603,6 +605,7 @@ export default function DashboardContent({
               <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
             </button>
           </div>
+          <CabShareMatchCard />
           <StatsCards
             attendancePercentage={attendancePercentage}
           ODhoursData={ODhoursData}
@@ -931,6 +934,10 @@ export default function DashboardContent({
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === "cabshare" && (
+            <CabShareTab />
           )}
 
           {activeTab === "dayscholar" && (

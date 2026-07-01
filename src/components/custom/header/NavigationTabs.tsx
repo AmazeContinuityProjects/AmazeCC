@@ -40,7 +40,9 @@ import {
   Coffee,
   Info,
   Link2,
+  Link2,
   ChevronDown,
+  Car,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -397,6 +399,13 @@ export default function NavigationTabs({
         icon: CreditCard,
         isActive: activeTab === "payments",
         onSelect: () => selectTab("payments"),
+      },
+      {
+        id: "cabshare",
+        label: "Cab Share",
+        icon: Car,
+        isActive: activeTab === "cabshare",
+        onSelect: () => selectTab("cabshare"),
       },
       {
         id: "libraries",
