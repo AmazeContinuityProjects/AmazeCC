@@ -572,7 +572,7 @@ export default function DashboardContent({
       >
         {/* Ambient Background Glows */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10  dark:bg-blue-500/5 blur-[120px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
         <div className="hidden">
@@ -596,7 +596,7 @@ export default function DashboardContent({
                 } catch (e) {}
                 setTimeout(() => setIsSpinning(false), 600);
               }}
-              className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors shadow-sm"
               title="Reload Data"
             >
               <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
@@ -721,12 +721,12 @@ export default function DashboardContent({
                             setActiveTab("more");
                             setActiveMoreSubTab("events");
                           }}
-                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white  dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 dark:hover:border-blue-500 transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
+                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white  dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer hover:border-info transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
                         >
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10  dark:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-info-surface rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                           
                           <div className="z-10">
-                            <h4 className="font-bold text-lg mb-2 text-gray-900  dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{ev.name}</h4>
+                            <h4 className="font-bold text-lg mb-2 text-gray-900  dark:text-white group-hover:text-info transition-colors line-clamp-1">{ev.name}</h4>
                             <p className="text-sm text-gray-500  dark:text-gray-400 mb-4 flex items-center gap-1.5">
                               <Calendar className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">{ev.date} • {ev.time}</span>
@@ -920,7 +920,7 @@ export default function DashboardContent({
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
                     <button
                       onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+                      className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
                       title="Reload"
                     >
                       <RefreshCcw className="w-5 h-5" />

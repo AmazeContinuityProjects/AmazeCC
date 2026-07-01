@@ -462,10 +462,10 @@ export default function ProfilePage({
             className="w-full flex items-center justify-between p-4 font-bold text-gray-850 dark:text-gray-200 hover:bg-gray-100/40 dark:hover:bg-slate-800/30 transition-colors text-left cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <Icon className="w-4.5 h-4.5 text-sky-505" />
+              <Icon className="w-4.5 h-4.5 text-info" />
               <span className="text-sm font-extrabold">{label}</span>
             </div>
-            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-sky-505" : ""}`} />
+            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-info" : ""}`} />
           </button>
           {isOpen && (
             <div className="p-4 border-t border-gray-200 dark:border-gray-850 space-y-5 animate-fadeIn">
@@ -503,7 +503,7 @@ export default function ProfilePage({
             {displayProfileImage && profileData?.image ? (
               <img src={profileData.image} alt="Profile" className="w-16 h-16 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800" />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center shadow-xs">
+              <div className="w-16 h-16 rounded-full bg-info flex items-center justify-center shadow-xs">
                 <User size={28} className="text-white" />
               </div>
             )}
@@ -515,7 +515,7 @@ export default function ProfilePage({
                     value={tempFriendlyName}
                     onChange={(e) => setTempFriendlyName(e.target.value)}
                     placeholder="Preferred name..."
-                    className="px-2.5 py-1 text-base font-semibold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="px-2.5 py-1 text-base font-semibold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-info"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -524,12 +524,12 @@ export default function ProfilePage({
                       }
                     }}
                   />
-                  <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-sky-500 hover:bg-sky-600 text-white py-1 h-8 rounded-lg">Save</Button>
+                  <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-info hover:bg-info text-white py-1 h-8 rounded-lg">Save</Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50 tracking-tight truncate">{friendlyName || username || "Student"}</h1>
-                  <button onClick={() => setIsEditingName(true)} className="text-[10px] font-semibold text-sky-600 bg-sky-500/10 px-2 py-0.5 rounded-full hover:bg-sky-500/15 transition-colors">Edit</button>
+                  <button onClick={() => setIsEditingName(true)} className="text-[10px] font-semibold text-info bg-info-surface px-2 py-0.5 rounded-full hover:bg-info-surface transition-colors">Edit</button>
                 </div>
               )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-1.5 font-medium">
@@ -561,7 +561,7 @@ export default function ProfilePage({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Settings..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-info transition-all"
           />
         </div>
       </div>
@@ -581,11 +581,11 @@ export default function ProfilePage({
                   onClick={() => scrollToSection(sec.id)}
                   className={`flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
                     isActive
-                      ? "bg-sky-400/10 text-sky-400 border border-sky-400/15"
+                      ? "bg-info-surface text-info border border-info/30"
                       : "text-gray-600 dark:text-gray-450 hover:bg-gray-100/60 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white border border-transparent"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-sky-400" : "text-gray-400 dark:text-gray-500"}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-info" : "text-gray-400 dark:text-gray-500"}`} />
                   <span>{sec.label}</span>
                 </button>
               );
@@ -604,7 +604,7 @@ export default function ProfilePage({
                   onClick={() => scrollToSection(sec.id)}
                   className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap rounded-full transition-all ${
                     isActive
-                      ? "bg-sky-500 text-white shadow-xs"
+                      ? "bg-info text-white shadow-xs"
                       : "bg-gray-100 dark:bg-slate-850 text-gray-605 dark:text-gray-300"
                   }`}
                 >
@@ -633,7 +633,7 @@ export default function ProfilePage({
                       onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                         residentialStatus === "hosteller"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                           : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                       }`}
                     >
@@ -643,7 +643,7 @@ export default function ProfilePage({
                       onClick={() => setResidentialStatus("dayscholar")}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                         residentialStatus === "dayscholar"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                           : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                       }`}
                     >
@@ -651,12 +651,12 @@ export default function ProfilePage({
                     </button>
                   </div>
                   {residentialStatus === "dayscholar" && (
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-sky-400/40">
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-info/40">
                       <input
                         type="checkbox"
                         checked={isDayscholarWithBus}
                         onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-400/50 bg-transparent"
+                        className="w-4 h-4 rounded border-gray-300 text-info focus:ring-info/50 bg-transparent"
                       />
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
                     </label>
@@ -751,7 +751,7 @@ export default function ProfilePage({
                         onClick={() => handleThemeChange("light")}
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           theme === "light"
-                            ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                             : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                         }`}
                       >
@@ -761,7 +761,7 @@ export default function ProfilePage({
                         onClick={() => handleThemeChange("dark")}
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           theme === "dark"
-                            ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                             : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                         }`}
                       >
@@ -794,7 +794,7 @@ export default function ProfilePage({
                           onClick={() => updateSetting("colorPalette", palette.id)}
                           className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
                             activePalette === palette.id
-                              ? "border-sky-500 bg-sky-500/10"
+                              ? "border-info bg-info-surface"
                               : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
                           }`}
                         >
@@ -844,7 +844,7 @@ export default function ProfilePage({
                         onClick={() => handleIconChange("default")}
                         className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
                           appIcon === "default"
-                            ? "border-sky-500 bg-sky-500/10"
+                            ? "border-info bg-info-surface"
                             : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
                         }`}
                       >
@@ -855,7 +855,7 @@ export default function ProfilePage({
                         onClick={() => handleIconChange("fire")}
                         className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
                           appIcon === "fire"
-                            ? "border-sky-500 bg-sky-500/10"
+                            ? "border-info bg-info-surface"
                             : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
                         }`}
                       >
@@ -882,7 +882,7 @@ export default function ProfilePage({
                       <select
                         value={selectedSemester}
                         onChange={(e) => setSelectedSemester(e.target.value)}
-                        className="flex-1 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                        className="flex-1 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info"
                       >
                         {config.semesterIDs?.map((id: string, index: number) => (
                           <option key={index} value={id}>
@@ -893,7 +893,7 @@ export default function ProfilePage({
                       <Button
                         onClick={handleSaveSemester}
                         disabled={!selectedSemester || selectedSemester === currSemesterID}
-                        className="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3.5 py-1.5 h-auto rounded-lg"
+                        className="bg-info hover:bg-info text-white text-xs px-3.5 py-1.5 h-auto rounded-lg"
                       >
                         <Save size={14} className="mr-1.5" /> Save
                       </Button>
@@ -909,7 +909,7 @@ export default function ProfilePage({
                     <select
                       value={calendarType || "ALL"}
                       onChange={(e) => setCalendarType(e.target.value)}
-                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400 shrink-0"
+                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0"
                     >
                       <option value="ALL">General Semester</option>
                       <option value="ALL02">General Flexible</option>
@@ -1008,12 +1008,12 @@ export default function ProfilePage({
                             {person.photo ? (
                               <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
                             ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center shadow-xs shrink-0">
+                              <div className="w-12 h-12 rounded-full bg-info flex items-center justify-center shadow-xs shrink-0">
                                 <User size={20} className="text-white" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">{person.role}</span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-info block mb-0.5">{person.role}</span>
                               <p className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
                               {person.details.designation && (
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{person.details.designation}</p>
@@ -1038,10 +1038,10 @@ export default function ProfilePage({
                   {/* Credentials card row */}
                   <div
                     onClick={() => onCredentialsClick && onCredentialsClick()}
-                    className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:bg-sky-400/5 transition-all group"
+                    className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:bg-info-surface transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-sky-400" />
+                      <Key className="w-5 h-5 text-info" />
                       <div>
                         <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Your Credentials</span>
                         <span className="block text-xs text-gray-500 dark:text-gray-450 mt-0.5">VTOP accounts, credentials sync & password management</span>
@@ -1308,7 +1308,7 @@ export default function ProfilePage({
                 {quickLinks.importantLinks.map((link) => (
                   <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
                     <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                         <Link2 size={18} />
                       </div>
                       <div className="min-w-0">
@@ -1324,7 +1324,7 @@ export default function ProfilePage({
                 {quickLinks.communityLinks.map((link, idx) => (
                   <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
                     <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                         <ExternalLink size={18} />
                       </div>
                       <div className="min-w-0">
@@ -1344,7 +1344,7 @@ export default function ProfilePage({
                 {/* Changelog */}
                 <div onClick={() => setShowChangelog(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <History size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1358,7 +1358,7 @@ export default function ProfilePage({
                 {/* Hall of Fame */}
                 <div onClick={() => setShowHallOfFame(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Trophy size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1372,7 +1372,7 @@ export default function ProfilePage({
                 {/* Source on GitHub */}
                 <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Github size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1386,7 +1386,7 @@ export default function ProfilePage({
                 {/* Privacy Policy */}
                 <div onClick={() => window.open("/privacy", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <FileText size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1400,7 +1400,7 @@ export default function ProfilePage({
                 {/* Terms of Service */}
                 <div onClick={() => window.open("/terms", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Shield size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1457,7 +1457,7 @@ export default function ProfilePage({
                 {/* Local Storage Viewer */}
                 <div onClick={openStoragePage} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Database size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1471,7 +1471,7 @@ export default function ProfilePage({
                 {/* Export Settings */}
                 <div onClick={handleExportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Save size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1485,7 +1485,7 @@ export default function ProfilePage({
                 {/* Import Settings */}
                 <div onClick={handleImportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <ExternalLink size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1499,7 +1499,7 @@ export default function ProfilePage({
                 {/* Keyboard Shortcuts */}
                 <div onClick={onOpenShortcutsHelp} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Keyboard size={18} />
                     </div>
                     <div className="min-w-0">
