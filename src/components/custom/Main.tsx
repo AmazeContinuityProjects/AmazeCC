@@ -1100,16 +1100,18 @@ export default function LoginPage() {
   };
 
   const handleLogOutRequest = () => {
+    const savedTheme = localStorage.getItem("theme") || theme || "light";
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
 
-    const keysToKeep = ["activityTree"];
+    const keysToKeep = ["activityTree", "theme"];
 
     const saved: Record<string, string | null> = {};
     keysToKeep.forEach((key) => {
       saved[key] = localStorage.getItem(key);
     });
+    saved.theme = saved.theme || savedTheme;
 
     localStorage.clear();
 
@@ -1119,9 +1121,8 @@ export default function LoginPage() {
       }
     });
 
-    localStorage.setItem("theme", "light");
     localStorage.setItem("settings", JSON.stringify(defaultSettings));
-    setTheme("light");
+    setTheme(savedTheme);
     setSettings(defaultSettings);
 
     setAttendanceData({});

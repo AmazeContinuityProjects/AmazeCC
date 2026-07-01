@@ -40,7 +40,6 @@ import {
   Coffee,
   Info,
   Link2,
-  Link2,
   ChevronDown,
   Car,
   type LucideIcon,
