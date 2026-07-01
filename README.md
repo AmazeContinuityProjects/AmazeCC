@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/icons/AmazeCC.png">
-    <img src="public/icons/AmazeCC.png" width="320" alt="AmazeCC">
-  </picture>
+  <img src="public/images/icons/AmazeCC.png" width="320" alt="AmazeCC">
 </p>
 
 <p align="center">
@@ -18,8 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/license/AmazeContinuityProjects/AmazeCC?style=flat-square&label=License" alt="License">
   <img src="https://img.shields.io/github/last-commit/AmazeContinuityProjects/AmazeCC/main?style=flat-square&label=Last%20Commit" alt="Last Commit">
-  <img src="https://img.shields.io/github/languages/code-size/AmazeContinuityProjects/AmazeCC?style=flat-square&label=Code%20Size" alt="Code Size">
-  <img src="https://img.shields.io/github/stars/AmazeContinuityProjects/AmazeCC?style=flat-square&label=Stars" alt="Stars">
+  <img src="https://img.shields.io/github/repo-size/AmazeContinuityProjects/AmazeCC?style=flat-square&label=Repo%20Size&color=blueviolet" alt="Repo Size">
   <br>
   <img src="https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
   <img src="https://img.shields.io/badge/TypeScript_5.9-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
@@ -259,7 +255,7 @@ This project is licensed under the [MIT License](LICENSE).
   <a href="https://github.com/dhivyanj">
     <img src="https://img.shields.io/badge/dhivyanj-181717?style=for-the-badge&logo=github&logoColor=white" alt="dhivyanj">
   </a>
-  <a href="https://github.com/anasa">
-    <img src="https://img.shields.io/badge/anasa-181717?style=for-the-badge&logo=github&logoColor=white" alt="anasa">
+  <a href="https://github.com/ANASARFEEN123">
+    <img src="https://img.shields.io/badge/ANASARFEEN123-181717?style=for-the-badge&logo=github&logoColor=white" alt="ANASARFEEN123">
   </a>
 </p>
