@@ -1,16 +1,17 @@
 "use client";
 import React, { useState } from "react";
-import { Link2, ExternalLink, History, Trophy, Github, FileText, Shield, ChevronRight } from "lucide-react";
+import { Link2, ExternalLink, History, Trophy, Github, FileText, Shield, ChevronRight, Users } from "lucide-react";
 import quickLinks from "../../data/quickLinks.json";
 import Links from "./header/Links";
 import ChangelogModal from "./header/ChangelogModal";
 import HallOfFameModal from "./header/HallOfFameModal";
 
 // Re-use the Links component
-export default function ResourcesSection() {
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [showHallOfFame, setShowHallOfFame] = useState(false);
+interface ResourcesSectionProps {
+  setActiveSubpage: (page: "main" | "hallOfFame" | "changelog" | "team") => void;
+}
 
+export default function ResourcesSection({ setActiveSubpage }: ResourcesSectionProps) {
   return (
     <>
       <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
@@ -52,7 +53,7 @@ export default function ResourcesSection() {
         </div>
 
         {/* Changelog */}
-        <div onClick={() => setShowChangelog(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+        <div onClick={() => setActiveSubpage("changelog")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
           <div className="flex items-center gap-4 min-w-0 pr-4">
             <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
               <History size={18} />
@@ -65,8 +66,22 @@ export default function ResourcesSection() {
           <ChevronRight size={14} className="text-gray-400 shrink-0" />
         </div>
 
+        {/* Team */}
+        <div onClick={() => setActiveSubpage("team")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+          <div className="flex items-center gap-4 min-w-0 pr-4">
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+              <Users size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">The Team</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the Amaze Continuity Projects team</span>
+            </div>
+          </div>
+          <ChevronRight size={14} className="text-gray-400 shrink-0" />
+        </div>
+
         {/* Hall of Fame */}
-        <div onClick={() => setShowHallOfFame(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+        <div onClick={() => setActiveSubpage("hallOfFame")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
           <div className="flex items-center gap-4 min-w-0 pr-4">
             <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
               <Trophy size={18} />
@@ -121,9 +136,6 @@ export default function ResourcesSection() {
           <ExternalLink size={14} className="text-gray-400 shrink-0" />
         </div>
       </div>
-      
-      {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
-      {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
     </>
   );
 }

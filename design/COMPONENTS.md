@@ -57,6 +57,22 @@ Cards organize content into distinct, readable units. All cards use `Shadow Smal
   - *Purpose*: Serves as an interactive button/panel to trigger navigation or commands.
   - *Structure*: Contains a title, description, leading Lucide icon, and a trailing arrow/chevron icon.
   - *States*: Hover changes background to elevated surface and increases shadow depth to Shadow Medium.
+* **Course Card (Grid View)**:
+  - *Purpose*: Displays details for a single academic course in the Grid layout of the Course Dashboard.
+  - *Structure*:
+    - Course Code: Top-aligned small metadata label with light grey captioning and wide letter-spacing.
+    - Title: High-contrast title typography in Outfit font.
+    - Metadata: Muted subtitle line combining course type and credit value.
+    - Status Badges: Small inline semantic status badges (Healthy/Watch/Critical) and grades.
+    - Primary Metrics: Core data panel divided into 4 horizontal columns (Attendance, Internals, Raw Marks, Assessments).
+    - Progress Bar: Minimalist horizontal slider positioned directly above secondary info row.
+    - Secondary Info: Inline row showing Faculty info and progress percentage.
+* **Course Card (List View)**:
+  - *Purpose*: Displays details for a single academic course in the aligned List layout of the Course Dashboard.
+  - *Structure*:
+    - Layout: Arranged in a CSS Grid (12-column layout on desktop) to enforce consistent vertical margins/columns without borders.
+    - Header: Course Code (top), Course Title (middle), and inline Metadata + Status Badges (bottom) aligned in `col-span-6`.
+    - Columns: Aligned columns for Attendance (`col-span-2`), Internals (`col-span-2`), and Faculty (`col-span-2`).
 
 ---
 

@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import CourseCard from "./courseCard";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import PopupCard from "./PopupCard";
-import config from '../../../../config.json';
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
 import { BadgeQuestionMark, Calendar, Users, ChevronDown, Clock, MapPin, User } from "lucide-react";
@@ -17,6 +16,7 @@ import Modal from "../shared/Modal";
 import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";
 import { useIsMobile } from "../shared";
+import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
@@ -32,13 +32,12 @@ const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
 });
 export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
   const isMobile = useIsMobile();
-  const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  const days = [...ATTENDANCE_DAYS];
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
-  const slotMap = config.slotMap as any;
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
   const [expandedScheduleIdx, setExpandedScheduleIdx] = useState<number | null>(null);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
@@ -112,98 +111,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
     setDashboardFriends(allFriends.filter(f => f.showInHomePage));
   }, []);
 
-  const dayCardsMap = {};
-  days.forEach((day) => (dayCardsMap[day] = []));
+  const dayCardsMap = buildAttendanceDayCardsMap(data?.attendance || []);
 
-  data.attendance.forEach((a) => {
-    const slots = a.slotName.split("+");
-    slots.forEach((slotName) => {
-      const cleanSlot = slotName.trim();
-      for (const day of days) {
-        if (slotMap[day] && slotMap[day][cleanSlot]) {
-          const info = slotMap[day][cleanSlot];
-          const pct = parseInt(a.attendancePercentage);
-          const cleanCourseCode = a.courseCode;
-          const cls = pct < 50 ? "low" : pct < 75 ? "medium" : "high";
-          dayCardsMap[day].push({
-            ...a,
-            courseCode: cleanCourseCode,
-            slotName: cleanSlot,
-            time: info.time,
-            cls,
-          });
-        }
-      }
-    });
-  });
-
-  function parseTime(timeStr) {
-    let [h, m] = timeStr.trim().split(":").map(Number);
-    if (h < 8) h += 12;
-    return h * 60 + m;
-  }
-
-  function getTimeRange(time) {
-    const [start, end] = time.split("-").map((t) => t.trim());
-    return {
-      start: parseTime(start),
-      end: parseTime(end),
-    };
-  }
-
-  for (const day of days) {
-    if (!dayCardsMap[day]) dayCardsMap[day] = [];
-
-    dayCardsMap[day].sort((a, b) => {
-      const timeA = getTimeRange(a.time);
-      const timeB = getTimeRange(b.time);
-      if (timeA.start !== timeB.start) return timeA.start - timeB.start;
-      return a.slotName.localeCompare(b.slotName, undefined, { numeric: true });
-    });
-
-    const merged = [];
-    for (let i = 0; i < dayCardsMap[day].length; i++) {
-      const current = dayCardsMap[day][i];
-      const next = dayCardsMap[day][i + 1];
-
-      if (
-        next &&
-        current.courseTitle === next.courseTitle &&
-        current.courseType === next.courseType &&
-        current.faculty === next.faculty &&
-        current.cls === next.cls
-      ) {
-        const currentRange = getTimeRange(current.time);
-        const nextRange = getTimeRange(next.time);
-        const gapInMinutes = nextRange.start - currentRange.end;
-
-        if (gapInMinutes >= 0 && gapInMinutes <= 5) {
-          const mergedSlotName = `${current.slotName}+${next.slotName}`;
-          const mergedSlotTime = `${current.time.split("-")[0]}-${next.time.split("-")[1]}`;
-          merged.push({
-            ...current,
-            slotName: mergedSlotName,
-            time: mergedSlotTime,
-          });
-          i++;
-        } else {
-          merged.push(current);
-        }
-      } else {
-        merged.push(current);
-      }
-    }
-
-    merged.sort((a, b) => {
-      const startA = parseTime(a.time.split("-")[0]);
-      const startB = parseTime(b.time.split("-")[0]);
-      return startA - startB;
-    });
-
-    dayCardsMap[day] = merged.length > 0 ? merged : [];
-  }
-
-  const daysWithClasses = days.filter((d) => dayCardsMap[d].length > 0);
   const { results, importantEvents } = analyzeAllCalendars(calendars);
 
   const today = new Date();
@@ -302,9 +211,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   const activeDate = activeDayInfo?.dateObj || new Date();
 
   useEffect(() => {
-    if (!activeDay || !days.includes(activeDay)) {
+    if (!activeDay || !(days as readonly string[]).includes(activeDay)) {
       const todayShort = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-      setActiveDay(days.includes(todayShort) ? todayShort : "MON");
+      setActiveDay((days as readonly string[]).includes(todayShort) ? todayShort : "MON");
     }
   }, [activeDay]);
 
