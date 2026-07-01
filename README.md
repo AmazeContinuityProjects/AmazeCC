@@ -1,3 +1,5 @@
+# AmazeCC
+
 <p align="center">
   <img src="public/images/icons/AmazeCC.png" width="320" alt="AmazeCC">
 </p>
@@ -7,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://amazecc.com">Live Site</a> ·
-  <a href="https://api.amazecc.com/docs">API Docs</a> ·
-  <a href="https://api.amazecc.com/stats">API Stats</a>
+  <a href="https://amazecc.com"><strong>Live Site</strong></a> ·
+  <a href="https://api.amazecc.com/docs"><strong>API Docs</strong></a> ·
+  <a href="https://api.amazecc.com/stats"><strong>API Stats</strong></a>
 </p>
 
 <p align="center">
@@ -18,7 +20,7 @@
   <img src="https://img.shields.io/github/repo-size/AmazeContinuityProjects/AmazeCC?style=flat-square&label=Repo%20Size&color=blueviolet" alt="Repo Size">
   <br>
   <img src="https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
-  <img src="https://img.shields.io/badge/TypeScript_5.9-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript_5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind">
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white" alt="Framer">
@@ -37,84 +39,41 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 
 ## Features
 
-<table>
-<tr>
-<td width="50%">
-
-**🎓 Academics**
-- Attendance tracking with color-coded percentages
-- Marks & assessment breakdown per course
-- Semester-wise grades with CGPA tracking
-- GPA predictor & what-if simulations
-- Exam schedule (CAT/FAT) with venue info
-- Course curriculum & syllabus viewer
-
-</td>
-<td width="50%">
-
-**🏠 Campus Life**
-- Hostel mess menu, laundry & leave management
-- Day scholar transport & bus route finder
-- Library catalog search (KOHA integration)
-- Fee dues, payment history & receipts
-- Event discovery & registration (EventHub)
-- Cab sharing platform
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**⚡ Productivity**
-- Command palette (`⌘K`) with fuzzy search
-- Real-time attendance predictor
-- Moodle/LMS assignment deadlines
-- Academic calendar with event overlay
-- On-duty (OD) hours tracker
-- Course dashboard with deep analytics
-
-</td>
-<td width="50%">
-
-**🎨 Experience**
-- Light / Dark / Midnight themes
-- Custom accent colors & palettes
-- PWA with offline support
-- Push notifications
-- Touch gesture navigation
-- Export to PDF, iCal & images
-
-</td>
-</tr>
-</table>
+| Area | Features |
+|------|----------|
+| **Academics** | Attendance tracking with color-coded percentages, marks & assessment breakdown, semester-wise grades with CGPA tracking, GPA predictor & what-if simulations, exam schedule (CAT/FAT) with venue info, course curriculum & syllabus viewer |
+| **Campus Life** | Hostel mess menu, laundry & leave management, day scholar transport & bus route finder, library catalog search (KOHA integration), fee dues, payment history & receipts, event discovery & registration (EventHub), cab sharing platform |
+| **Productivity** | Command palette (Ctrl+K) with fuzzy search, real-time attendance predictor, Moodle/LMS assignment deadlines, academic calendar with event overlay, on-duty (OD) hours tracker, course dashboard with deep analytics |
+| **Experience** | Light / Dark / Midnight themes, custom accent colors & palettes, PWA with offline support, push notifications, touch gesture navigation, export to PDF, iCal & images |
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    AmazeCC (Next.js 16)                      │
-│  :3001                                                       │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │  Main.tsx (Entry) → LoginForm / Dashboard            │    │
-│  │    ├── NavigationTabs (desktop sidebar + mobile nav) │    │
-│  │    ├── StatsCards (attendance, CGPA, marks, OD)      │    │
-│  │    ├── Sub-tab content (conditional render)          │    │
-│  │    └── CommandPalette (⌘K overlay)                   │    │
-│  └──────────────────────────────────────────────────────┘    │
-│  API_BASE → env(NEXT_PUBLIC_API_URL)                         │
-└──────────────┬───────────────────────────────────────────────┘
-               │ HTTPS / JSON
-               ▼
-┌──────────────────────────────────────────────────────────────┐
-│              AmazeCC API (Next.js API Routes)                │
-│  ~130 POST endpoints (VTOP scraping proxy)                   │
-│  ~15  GET endpoints (public data, DB-backed)                │
-│  ~10  Admin endpoints (admin auth required)                 │
-│  DB: PostgreSQL (Supabase)                                  │
-│  Auth: HMAC-SHA256 tokens                                   │
-└──────────────────────────────────────────────────────────────┘
+                          AmazeCC (Next.js 16)
+                              :3001
+                                │
+                    Main.tsx (Entry) → LoginForm / Dashboard
+                        │
+                    NavigationTabs (desktop sidebar + mobile nav)
+                        │
+                    StatsCards (attendance, CGPA, marks, OD)
+                        │
+                    Sub-tab content (conditional render)
+                        │
+                    CommandPalette (Ctrl+K overlay)
+                        │
+              ┌─────────┴──────────┐
+              │                    │
+         API_BASE ← env(NEXT_PUBLIC_API_URL)
+              │                    │
+              ▼                    ▼
+        AmazeCC API         External Services
+     (Next.js API Routes)   (Supabase, VTOP, etc.)
+      ~130 POST endpoints
+       ~15 GET endpoints
+        ~10 Admin endpoints
 ```
 
 <p align="center">
@@ -128,7 +87,7 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js">
-  <img src="https://img.shields.io/badge/TypeScript_5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript_5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind">
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white" alt="Framer Motion">
@@ -145,7 +104,7 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 | **Auth** | `/api/login`, `/api/status` |
 | **Academic** | `/api/attendance`, `/api/marks`, `/api/grades`, `/api/all-grades`, `/api/schedule`, `/api/calendar` |
 | **Hostel** | `/api/hostel`, `/api/hostel-leave`, `/api/mess-menu`, `/api/mess-feedback` |
-| **Profile** | `/api/student`, `/api/profile-images`, `/api/bank-info` |
+| **Profile** | `/api/student`, `/api/profile-image`, `/api/bank-info` |
 | **Payments** | `/api/payments`, `/api/payment-receipts`, `/api/wallet`, `/api/online-transfer` |
 | **Library** | `/api/koha/search`, `/api/koha/login`, `/api/koha/patron`, `/api/library-due` |
 | **Transport** | `/api/buses`, `/api/transport`, `/api/dayboarder` |
@@ -246,16 +205,8 @@ This project is licensed under the [MIT License](LICENSE).
 ## Contributors
 
 <p align="center">
-  <a href="https://github.com/AmazeContinuityProjects">
-    <img src="https://img.shields.io/badge/AmazeContinuityProjects-181717?style=for-the-badge&logo=github&logoColor=white" alt="Org">
-  </a>
-  <a href="https://github.com/SugeethJSA">
-    <img src="https://img.shields.io/badge/SugeethJSA-181717?style=for-the-badge&logo=github&logoColor=white" alt="SugeethJSA">
-  </a>
-  <a href="https://github.com/dhivyanj">
-    <img src="https://img.shields.io/badge/dhivyanj-181717?style=for-the-badge&logo=github&logoColor=white" alt="dhivyanj">
-  </a>
-  <a href="https://github.com/ANASARFEEN123">
-    <img src="https://img.shields.io/badge/ANASARFEEN123-181717?style=for-the-badge&logo=github&logoColor=white" alt="ANASARFEEN123">
-  </a>
+  <a href="https://github.com/AmazeContinuityProjects"><img src="https://img.shields.io/badge/AmazeContinuityProjects-181717?style=for-the-badge&logo=github&logoColor=white" alt="Org"></a>
+  <a href="https://github.com/SugeethJSA"><img src="https://img.shields.io/badge/SugeethJSA-181717?style=for-the-badge&logo=github&logoColor=white" alt="SugeethJSA"></a>
+  <a href="https://github.com/dhivyanj"><img src="https://img.shields.io/badge/dhivyanj-181717?style=for-the-badge&logo=github&logoColor=white" alt="dhivyanj"></a>
+  <a href="https://github.com/ANASARFEEN123"><img src="https://img.shields.io/badge/ANASARFEEN123-181717?style=for-the-badge&logo=github&logoColor=white" alt="ANASARFEEN123"></a>
 </p>
