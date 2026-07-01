@@ -245,7 +245,7 @@ export default function DashboardContent({
   }, []);
 
   const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
-  
+
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
     try {
@@ -323,7 +323,7 @@ export default function DashboardContent({
 
       setMessage((prev) => prev + "\n🔄 Loading past semester data from cache...");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-      
+
       // Fetch missing past semesters and update cache
       syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf }).then(() => {
         setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
@@ -566,13 +566,13 @@ export default function DashboardContent({
         onOpenCommandPalette={onOpenCommandPalette}
       />
 
-      <div 
+      <div
         className={`relative bg-gray-50/50  dark:bg-black min-h-[100dvh] text-gray-900  dark:text-gray-100 transition-all duration-300 pb-24 md:pb-0 ${settings.isSidebarCollapsed ? 'md:pl-24' : 'md:pl-80'} w-full overflow-hidden`}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Ambient Background Glows */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10  dark:bg-blue-500/5 blur-[120px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-info-surface blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-400/10  dark:bg-emerald-500/5 blur-[120px]" />
         </div>
         <div className="hidden">
@@ -597,7 +597,7 @@ export default function DashboardContent({
                 setResetKey(k => k + 1);
                 setTimeout(() => setIsSpinning(false), 600);
               }}
-              className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors shadow-sm"
               title="Reload Data"
             >
               <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
@@ -679,7 +679,75 @@ export default function DashboardContent({
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
               {(() => {
-                return null;
+                // Determine upcoming events within the next 7 days
+                if (!registeredEvents || !Array.isArray(registeredEvents) || registeredEvents.length === 0) return null;
+                const now = new Date();
+                now.setHours(0,0,0,0);
+                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+                const parseEventDate = (dateStr: string) => {
+                  const d = new Date(dateStr);
+                  if (!isNaN(d.getTime())) return d;
+
+                  // Try parsing DD-MM-YYYY or DD/MM/YYYY
+                  const parts = dateStr.split(/[-/]/);
+                  if (parts.length === 3) {
+                    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                  }
+                  return new Date(0); // fallback
+                };
+
+                const upcoming = registeredEvents.filter(ev => {
+                  if (!ev.date) return false;
+                  const d = parseEventDate(ev.date);
+                  return d >= now && d <= nextWeek;
+                }).sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
+
+                if (upcoming.length === 0) return null;
+
+                return (
+                  <div className={`mb-8 ${isSubpageOpen ? "hidden" : ""}`}>
+                    <div className="flex items-center justify-between mb-4 px-1">
+                      <h3 className="text-lg font-bold text-gray-900  dark:text-white">Upcoming Events</h3>
+                    </div>
+                    <div
+                      className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0"
+                      data-prevent-swipe="true"
+                    >
+                      {upcoming.map((ev, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            sessionStorage.setItem("pendingEventOpen", ev.name);
+                            setActiveTab("more");
+                            setActiveMoreSubTab("events");
+                          }}
+                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white  dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer hover:border-info transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
+                        >
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-info-surface rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+
+                          <div className="z-10">
+                            <h4 className="font-bold text-lg mb-2 text-gray-900  dark:text-white group-hover:text-info transition-colors line-clamp-1">{ev.name}</h4>
+                            <p className="text-sm text-gray-500  dark:text-gray-400 mb-4 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.date} • {ev.time}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100  dark:border-gray-800/50">
+                            <span className="flex items-center gap-1 text-gray-600  dark:text-gray-300 truncate pr-2">
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{ev.venue}</span>
+                            </span>
+                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${(ev.paymentStatus || "").toLowerCase().includes('paid') || (ev.paymentStatus || "").toLowerCase().includes('free') ? 'bg-green-100 text-green-700   dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700   dark:bg-red-900/20 dark:text-red-400'}`}>
+                              {ev.paymentStatus || "Registered"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
               })()}
 
 
@@ -734,14 +802,14 @@ export default function DashboardContent({
             <div className="animate-fadeIn">
               {activeSubTab === "overview" && (
                 marksData ? (
-                  <AcademicsHub 
-                    setActiveSubTab={setActiveSubTab} 
-                    data={allGradesData} 
-                    marksData={marksData} 
-                    gradesData={GradesData} 
-                    attendance={attendanceData.attendance} 
-                    hideMobileHeader={settings.hideMobileHeader} 
-                    handleFetchGrades={handleAllGradesFetch} 
+                  <AcademicsHub
+                    setActiveSubTab={setActiveSubTab}
+                    data={allGradesData}
+                    marksData={marksData}
+                    gradesData={GradesData}
+                    attendance={attendanceData.attendance}
+                    hideMobileHeader={settings.hideMobileHeader}
+                    handleFetchGrades={handleAllGradesFetch}
                   />
                 ) : (
                   <div className="space-y-4 p-4">
@@ -853,7 +921,7 @@ export default function DashboardContent({
                     <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
                     <button
                       onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
+                      className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
                       title="Reload"
                     >
                       <RefreshCcw className="w-5 h-5" />
@@ -885,9 +953,9 @@ export default function DashboardContent({
 
           {activeTab === "more" && (
             <div className="animate-fadeIn">
-              <MoreTab 
-                attendanceData={attendanceData} 
-                activeMoreSubTab={activeMoreSubTab} 
+              <MoreTab
+                attendanceData={attendanceData}
+                activeMoreSubTab={activeMoreSubTab}
                 setActiveMoreSubTab={setActiveMoreSubTab}
                 IDs={IDs}
                 loginToVTOP={loginToVTOP}

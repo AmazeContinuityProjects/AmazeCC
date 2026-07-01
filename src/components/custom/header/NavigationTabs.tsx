@@ -278,6 +278,7 @@ export default function NavigationTabs({
   }`;
 
   const profileName = settings.friendlyName || profileData?.name || username || "Student";
+  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -309,7 +310,12 @@ export default function NavigationTabs({
     setActiveRailGroup(current => (current === groupId ? null : groupId));
   }, []);
 
+  const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
+  const sidebarActiveIconStyles = "text-info font-semibold";
+  const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
+
   const handleThemeChange = (selectedTheme: string) => {
+    if (theme === selectedTheme) return;
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
       (document as any).startViewTransition(() => {
         setTheme(selectedTheme);
@@ -317,6 +323,7 @@ export default function NavigationTabs({
     } else {
       setTheme(selectedTheme);
     }
+    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Keyboard navigation
@@ -788,7 +795,7 @@ export default function NavigationTabs({
             }}
             className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               activeTab === "home" && !isAppLibraryOpen 
-                ? "bg-white/80 text-blue-600 shadow-sm dark:bg-white/10 dark:text-blue-300 scale-105" 
+                ? "bg-white/80 text-info shadow-sm dark:bg-white/10 scale-105"
                 : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
             }`}
           >
@@ -811,9 +818,9 @@ export default function NavigationTabs({
             }}
             className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
               isAppLibraryOpen 
-                ? "bg-white/80 text-blue-600 shadow-sm dark:bg-white/10 dark:text-blue-300 scale-105" 
+                ? "bg-white/80 text-info shadow-sm dark:bg-white/10 scale-105"
                 : activeTab !== "home"
-                  ? "text-blue-600/80 hover:bg-white/50 hover:text-blue-700 dark:text-blue-300/80 dark:hover:bg-white/5 dark:hover:text-white"
+                  ? "text-info hover:bg-white/50 hover:text-info dark:hover:bg-white/5"
                   : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
             }`}
           >
@@ -860,7 +867,7 @@ export default function NavigationTabs({
                     {mobilePanel !== "primary" && (
                       <button
                         onClick={() => setMobilePanel("primary")}
-                        className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 text-blue-500 font-bold flex items-center gap-1 -ml-1 text-xs"
+                        className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 text-info font-bold flex items-center gap-1 -ml-1 text-xs"
                       >
                         <ArrowLeft className="w-4 h-4" /> Back
                       </button>
@@ -886,7 +893,7 @@ export default function NavigationTabs({
                           });
                           handleReloadRequest();
                         }}
-                        className="appearance-none bg-transparent border-none text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none"
+                        className="appearance-none bg-transparent border-none text-xs font-black text-info hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none"
                       >
                         {config.semesterIDs.map((semId: string) => (
                           <option key={semId} value={semId} className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white text-xs">
@@ -894,7 +901,7 @@ export default function NavigationTabs({
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-indigo-500 pointer-events-none" />
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-info pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -957,7 +964,7 @@ export default function NavigationTabs({
                               }}
                               className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
                             >
-                              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shrink-0">
+                              <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                                 <Icon className="h-4.5 w-4.5 stroke-[2]" />
                               </div>
                               <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
@@ -992,7 +999,7 @@ export default function NavigationTabs({
                               className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                                   <Icon className="h-4.5 w-4.5 stroke-[2]" />
                                 </div>
                                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight truncate">
@@ -1076,7 +1083,7 @@ export default function NavigationTabs({
                       onClick={() => handleThemeChange(t)}
                       className={`flex-1 py-2 text-xs font-black rounded-lg transition-all capitalize flex items-center justify-center gap-1.5 min-h-[36px] ${
                         theme === t 
-                          ? "bg-white dark:bg-black text-blue-500 shadow-xs" 
+                          ? "bg-white dark:bg-black text-info shadow-xs"
                           : "text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white"
                       }`}
                     >
@@ -1168,7 +1175,7 @@ export default function NavigationTabs({
                           });
                           handleReloadRequest();
                         }}
-                        className="appearance-none bg-transparent border-none text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none text-right"
+                        className="appearance-none bg-transparent border-none text-[10px] font-black text-info hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none text-right"
                       >
                         {config.semesterIDs.map((semId: string) => (
                           <option key={semId} value={semId} className="bg-sidebar text-sidebar-foreground text-xs">
@@ -1176,7 +1183,7 @@ export default function NavigationTabs({
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-indigo-500 pointer-events-none" />
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-info pointer-events-none" />
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -1294,7 +1301,7 @@ export default function NavigationTabs({
                         <div className="space-y-0.5 pt-0.5 pb-1">
                           {group.items.map((item) => {
                             const ItemIcon = item.icon;
-                            const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                            const activeStyles = sidebarActiveStyles;
                             const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                             return (
                               <button
@@ -1308,7 +1315,7 @@ export default function NavigationTabs({
                               >
                                 <ItemIcon
                                   className={`h-4 w-4 shrink-0 transition-colors ${
-                                    item.isActive ? "text-sky-700 dark:text-sky-300 font-semibold" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"
+                                    item.isActive ? sidebarActiveIconStyles : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"
                                   }`}
                                 />
                                 <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
@@ -1351,7 +1358,7 @@ export default function NavigationTabs({
                     <div className="space-y-0.5">
                       {academicsItems.map((item, index) => {
                         const showDivider = index === 6;
-                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                        const activeStyles = sidebarActiveStyles;
                         const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                         return (
                           <div key={item.id}>
@@ -1401,7 +1408,7 @@ export default function NavigationTabs({
 
                     <div className="space-y-0.5">
                       {hostelSubItems.map((item) => {
-                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                        const activeStyles = sidebarActiveStyles;
                         const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                         return (
                           <button
@@ -1447,13 +1454,13 @@ export default function NavigationTabs({
                       onClick={() => toggleRailPopover(group.id)}
                       className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
                         isActive
-                          ? "bg-gradient-to-tr from-sky-400/20 to-indigo-500/20 text-sky-900 dark:text-sky-100 border border-sky-600/30 dark:border-sky-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(56,189,248,0.15)]"
+                          ? railActiveStyles
                           : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
                       } ${navButtonBase}`}
                       title={group.label}
                       aria-label={`Open ${group.label} menu`}
                     >
-                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
+                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 text-info' : ''}`} />
                     </button>
                   </div>
                 );
@@ -1475,7 +1482,7 @@ export default function NavigationTabs({
             >
               {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
-                {profileData?.image ? (
+                {showProfileImage && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
@@ -1504,16 +1511,16 @@ export default function NavigationTabs({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleThemeChange("light")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "light" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}`}
+                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "light" ? "text-info font-medium" : ""}`}
                   >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-sky-400 bg-sky-400" : "border-sidebar-border"}`} />
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-info bg-info" : "border-sidebar-border"}`} />
                     <span>Light</span>
                   </button>
                   <button
                     onClick={() => handleThemeChange("dark")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "dark" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}`}
+                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "dark" ? "text-info font-medium" : ""}`}
                   >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 bg-sky-400" : "border-sidebar-border"}`} />
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-info bg-info" : "border-sidebar-border"}`} />
                     <span>Dark</span>
                   </button>
                 </div>
@@ -1552,7 +1559,7 @@ export default function NavigationTabs({
                 className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
                 title="Account Settings"
               >
-                {profileData?.image ? (
+                {showProfileImage && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
@@ -1591,11 +1598,11 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                            ? sidebarActiveStyles
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
-                        <item.icon className="h-4 w-4 shrink-0 text-sidebar-foreground/" />
+                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/"}`} />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1626,19 +1633,19 @@ export default function NavigationTabs({
                             onClick={() => handleThemeChange("light")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-sky-400 text-sky-700 dark:text-sky-300 bg-sky-400/15" : "border-sidebar-border"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
                               {theme === "light" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "light" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}>Light</span>
+                            <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
                           </button>
                           <button
                             onClick={() => handleThemeChange("dark")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 text-sky-700 dark:text-sky-300 bg-sky-400/15" : "border-sidebar-border"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
                               {theme === "dark" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "dark" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}>Dark</span>
+                            <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
                           </button>
                         </div>
                       </motion.div>
@@ -1681,7 +1688,7 @@ export default function NavigationTabs({
                             }}
                             className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                               item.isActive
-                                ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                                ? sidebarActiveStyles
                                 : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                             }`}
                           >
@@ -1711,7 +1718,7 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                            ? sidebarActiveStyles
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
@@ -1729,7 +1736,7 @@ export default function NavigationTabs({
                   </div>
                   <div className="space-y-1">
                     {groups.find(g => g.id === activeRailGroup)?.items.map((item) => {
-                      const activeStyles = "bg-gradient-to-r from-sky-400/20 to-indigo-500/20 border-sky-600/30 dark:border-sky-400/30 text-sidebar-foreground font-bold shadow-sm dark:shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                      const activeStyles = railActiveStyles;
                       const inactiveStyles = "border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground hover:translate-x-1";
                       return (
                         <button
@@ -1748,7 +1755,7 @@ export default function NavigationTabs({
                             item.isActive ? activeStyles : inactiveStyles
                           }`}
                         >
-                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-sky-700 dark:text-sky-300 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`} />
+                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-info scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`} />
                           <span className="truncate transition-transform duration-300">{item.label}</span>
                           {item.isExpandable && (
                             <ChevronRight className="h-3.5 w-3.5 ml-auto text-sidebar-foreground/" />

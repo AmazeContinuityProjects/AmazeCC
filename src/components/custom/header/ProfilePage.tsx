@@ -63,6 +63,15 @@ const SECTIONS: SectionConfig[] = [
   { id: "advanced", label: "Advanced", icon: Shield },
 ];
 
+const COLOR_PALETTES = [
+  { id: "default", label: "Default", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
+  { id: "neonPink", label: "Neon Pink", swatches: ["#ff2bd6", "#ffffff", "#fff7fd"] },
+  { id: "forest", label: "Forest", swatches: ["#059669", "#ffffff", "#f7fee7"] },
+  { id: "rose", label: "Rose", swatches: ["#e11d48", "#ffffff", "#fff1f2"] },
+  { id: "amber", label: "Amber", swatches: ["#d97706", "#ffffff", "#fffbeb"] },
+  { id: "custom", label: "Custom", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
+];
+
 export default function ProfilePage({
   currSemesterID,
   setCurrSemesterID,
@@ -118,7 +127,7 @@ export default function ProfilePage({
 
   // Search & Navigation
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const sectionsToUse = useMemo(() => {
     if (mode === "info") {
       return SECTIONS.filter(s => s.id === "profile");
@@ -130,6 +139,13 @@ export default function ProfilePage({
   const [activeSection, setActiveSection] = useState<SectionId>(
     mode === "info" ? "profile" : "preferences"
   );
+  const activePalette = settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
+  const customPalette = settings?.customPalette || {
+    accent: "#0ea5e9",
+    background: "#f8fafc",
+    surface: "#ffffff",
+  };
+  const displayProfileImage = !(settings?.hideProfileImageOutsideInfo && mode !== "info");
 
   // Collapsible Sync states
   const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
@@ -145,6 +161,19 @@ export default function ProfilePage({
     setSyncOpen(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
+  const updateSetting = (key: string, value: any) => {
+    const updated = { ...settings, [key]: value };
+    setSettings((prev: any) => ({ ...prev, [key]: value }));
+    localStorage.setItem("settings", JSON.stringify(updated));
+  };
+
+  const updateCustomPalette = (key: "accent" | "background" | "surface", value: string) => {
+    const nextPalette = { ...customPalette, [key]: value };
+    const updated = { ...settings, colorPalette: "custom", customPalette: nextPalette };
+    setSettings((prev: any) => ({ ...prev, colorPalette: "custom", customPalette: nextPalette }));
+    localStorage.setItem("settings", JSON.stringify(updated));
+  };
+
   const handleSaveSemester = async () => {
     if (!selectedSemester) return;
     setIsReloading(true);
@@ -155,7 +184,7 @@ export default function ProfilePage({
   useEffect(() => {
     setSelectedSemester(currSemesterID);
     setAppIcon(localStorage.getItem("app-icon") || "default");
-    
+
     if (username === "demo") {
       setProfileData({
         name: "Demo Student",
@@ -330,6 +359,7 @@ export default function ProfilePage({
 
   const { theme, setTheme } = useTheme();
   const handleThemeChange = (val: string) => {
+    if (theme === val) return;
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
       (document as any).startViewTransition(() => {
         setTheme(val);
@@ -337,6 +367,7 @@ export default function ProfilePage({
     } else {
       setTheme(val);
     }
+    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Advanced section helpers
@@ -397,7 +428,7 @@ export default function ProfilePage({
         return "personal info address residential hostel scholar".includes(query);
       }
       if (section.id === "preferences") {
-        return "theme appearance icon semester calendar decimal loading mobile header reload".includes(query);
+        return "theme appearance icon palette color profile image semester calendar decimal loading mobile header reload".includes(query);
       }
       if (section.id === "academic") {
         return "overview proctor faculty credentials mentor".includes(query);
@@ -424,10 +455,10 @@ export default function ProfilePage({
             className="w-full flex items-center justify-between p-4 font-bold text-gray-850 dark:text-gray-200 hover:bg-gray-100/40 dark:hover:bg-slate-800/30 transition-colors text-left cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <Icon className="w-4.5 h-4.5 text-sky-505" />
+              <Icon className="w-4.5 h-4.5 text-info" />
               <span className="text-sm font-extrabold">{label}</span>
             </div>
-            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-sky-505" : ""}`} />
+            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-info" : ""}`} />
           </button>
           {isOpen && (
             <div className="p-4 border-t border-gray-200 dark:border-gray-850 space-y-5 animate-fadeIn">
@@ -462,10 +493,10 @@ export default function ProfilePage({
       <div className="pt-6 pb-6 border-b border-gray-150 dark:border-gray-800/80 mb-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4.5">
-            {profileData?.image ? (
+            {displayProfileImage && profileData?.image ? (
               <img src={profileData.image} alt="Profile" className="w-16 h-16 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800" />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center shadow-xs">
+              <div className="w-16 h-16 rounded-full bg-info flex items-center justify-center shadow-xs">
                 <User size={28} className="text-white" />
               </div>
             )}
@@ -477,7 +508,7 @@ export default function ProfilePage({
                     value={tempFriendlyName}
                     onChange={(e) => setTempFriendlyName(e.target.value)}
                     placeholder="Preferred name..."
-                    className="px-2.5 py-1 text-base font-semibold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="px-2.5 py-1 text-base font-semibold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-info"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -486,12 +517,12 @@ export default function ProfilePage({
                       }
                     }}
                   />
-                  <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-sky-500 hover:bg-sky-600 text-white py-1 h-8 rounded-lg">Save</Button>
+                  <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-info hover:bg-info text-white py-1 h-8 rounded-lg">Save</Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50 tracking-tight truncate">{friendlyName || username || "Student"}</h1>
-                  <button onClick={() => setIsEditingName(true)} className="text-[10px] font-semibold text-sky-600 bg-sky-500/10 px-2 py-0.5 rounded-full hover:bg-sky-500/15 transition-colors">Edit</button>
+                  <button onClick={() => setIsEditingName(true)} className="text-[10px] font-semibold text-info bg-info-surface px-2 py-0.5 rounded-full hover:bg-info-surface transition-colors">Edit</button>
                 </div>
               )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-1.5 font-medium">
@@ -523,7 +554,7 @@ export default function ProfilePage({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Settings..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-info transition-all"
           />
         </div>
       </div>
@@ -543,11 +574,11 @@ export default function ProfilePage({
                   onClick={() => scrollToSection(sec.id)}
                   className={`flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
                     isActive
-                      ? "bg-sky-400/10 text-sky-400 border border-sky-400/15"
+                      ? "bg-info-surface text-info border border-info/30"
                       : "text-gray-600 dark:text-gray-450 hover:bg-gray-100/60 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white border border-transparent"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-sky-400" : "text-gray-400 dark:text-gray-500"}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-info" : "text-gray-400 dark:text-gray-500"}`} />
                   <span>{sec.label}</span>
                 </button>
               );
@@ -566,7 +597,7 @@ export default function ProfilePage({
                   onClick={() => scrollToSection(sec.id)}
                   className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap rounded-full transition-all ${
                     isActive
-                      ? "bg-sky-500 text-white shadow-xs"
+                      ? "bg-info text-white shadow-xs"
                       : "bg-gray-100 dark:bg-slate-850 text-gray-605 dark:text-gray-300"
                   }`}
                 >
@@ -579,7 +610,7 @@ export default function ProfilePage({
 
         {/* Right side Settings Content pane */}
         <main className="flex-1 w-full space-y-3.5 md:space-y-12">
-          
+
           {/* Section: Profile */}
           {renderSection("profile", "Profile", User, (
             <div className="space-y-6">
@@ -595,7 +626,7 @@ export default function ProfilePage({
                   {profileImages?.proctor && (
                     <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
                       <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Faculty Mentors</h3>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {[{
                           role: "Proctor",
@@ -610,17 +641,17 @@ export default function ProfilePage({
                             {person.photo ? (
                               <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
                             ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center shadow-xs shrink-0">
+                              <div className="w-12 h-12 rounded-full bg-info flex items-center justify-center shadow-xs shrink-0">
                                 <User size={20} className="text-white" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">{person.role}</span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-info block mb-0.5">{person.role}</span>
                               <p className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
                               {person.details.designation && (
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{person.details.designation}</p>
                               )}
-                              
+
                               {/* Extra contact rows */}
                               <div className="mt-2 space-y-0.5 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-150 dark:border-gray-800/60 pt-1.5">
                                 {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([k, val]) => (
@@ -640,6 +671,8 @@ export default function ProfilePage({
               )}
 
               <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
+
+                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
 
                 {/* Personal Information Grid */}
                 {[profileData?.nativeLanguage, profileData?.nationality, profileData?.community, profileData?.aadharNumber, profileData?.mobileNumber].some(Boolean) && (
@@ -705,31 +738,6 @@ export default function ProfilePage({
                   </>
                 )}
 
-                {/* Credentials card row */}
-                {creds && (
-                  <div
-                    onClick={() => onCredentialsClick && onCredentialsClick()}
-                    className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:bg-sky-400/5 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-sky-400" />
-                      <div>
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Your Credentials</span>
-                        <span className="block text-xs text-gray-500 dark:text-gray-450 mt-0.5">VTOP accounts, credentials sync & password management</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <button
-                        onClick={handleReload}
-                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-colors shrink-0"
-                        title="Refresh credentials"
-                      >
-                        <RefreshCcw className="w-3.5 h-3.5" />
-                      </button>
-                      <ChevronRight className="w-4 h-4 text-gray-450 group-hover:translate-x-0.5 transition-transform" />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -737,11 +745,11 @@ export default function ProfilePage({
           {/* Section: Preferences */}
           {renderSection("preferences", "Appearance", Sliders, (
             <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
-                
+
                 {/* Subsection: Appearance */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Appearance</h3>
-                  
+
                   {/* Theme Toggle pills */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div>
@@ -753,7 +761,7 @@ export default function ProfilePage({
                         onClick={() => handleThemeChange("light")}
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           theme === "light"
-                            ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                             : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                         }`}
                       >
@@ -763,13 +771,76 @@ export default function ProfilePage({
                         onClick={() => handleThemeChange("dark")}
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           theme === "dark"
-                            ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                             : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                         }`}
                       >
                         Dark
                       </button>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Profile Image Privacy</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Only show your profile image in My Info</p>
+                    </div>
+                    <Switch
+                      checked={settings?.hideProfileImageOutsideInfo ?? false}
+                      onCheckedChange={(val) => updateSetting("hideProfileImageOutsideInfo", val)}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-450">Pick a preset or tune your own colors</p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {COLOR_PALETTES.map((palette) => (
+                        <button
+                          key={palette.id}
+                          type="button"
+                          onClick={() => updateSetting("colorPalette", palette.id)}
+                          className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
+                            activePalette === palette.id
+                              ? "border-info bg-info-surface"
+                              : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
+                          }`}
+                        >
+                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{palette.label}</span>
+                          <span className="flex -space-x-1">
+                            {palette.swatches.map((color) => (
+                              <span
+                                key={color}
+                                className="h-4 w-4 rounded-full border border-white/70 dark:border-slate-900 shadow-xs"
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {activePalette === "custom" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-gray-200 dark:border-gray-800 p-3 bg-white/30 dark:bg-slate-900/30">
+                        {[
+                          ["accent", "Accent"],
+                          ["background", "Background"],
+                          ["surface", "Surface"],
+                        ].map(([key, label]) => (
+                          <label key={key} className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            <span>{label}</span>
+                            <input
+                              type="color"
+                              value={customPalette[key as "accent" | "background" | "surface"]}
+                              onChange={(e) => updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)}
+                              className="h-8 w-12 cursor-pointer rounded-md border border-gray-200 dark:border-gray-800 bg-transparent p-0.5"
+                              aria-label={`${label} color`}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* App Icon selector */}
@@ -783,7 +854,7 @@ export default function ProfilePage({
                         onClick={() => handleIconChange("default")}
                         className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
                           appIcon === "default"
-                            ? "border-sky-500 bg-sky-500/10"
+                            ? "border-info bg-info-surface"
                             : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
                         }`}
                       >
@@ -794,7 +865,7 @@ export default function ProfilePage({
                         onClick={() => handleIconChange("fire")}
                         className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
                           appIcon === "fire"
-                            ? "border-sky-500 bg-sky-500/10"
+                            ? "border-info bg-info-surface"
                             : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
                         }`}
                       >
@@ -810,7 +881,7 @@ export default function ProfilePage({
                 {/* Subsection: Academic settings */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Academic Settings</h3>
-                  
+
                   {/* Select Semester dropdown + save */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
@@ -821,7 +892,7 @@ export default function ProfilePage({
                       <select
                         value={selectedSemester}
                         onChange={(e) => setSelectedSemester(e.target.value)}
-                        className="flex-1 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                        className="flex-1 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info"
                       >
                         {config.semesterIDs?.map((id: string, index: number) => (
                           <option key={index} value={id}>
@@ -832,7 +903,7 @@ export default function ProfilePage({
                       <Button
                         onClick={handleSaveSemester}
                         disabled={!selectedSemester || selectedSemester === currSemesterID}
-                        className="bg-sky-500 hover:bg-sky-600 text-white text-xs px-3.5 py-1.5 h-auto rounded-lg"
+                        className="bg-info hover:bg-info text-white text-xs px-3.5 py-1.5 h-auto rounded-lg"
                       >
                         <Save size={14} className="mr-1.5" /> Save
                       </Button>
@@ -848,7 +919,7 @@ export default function ProfilePage({
                     <select
                       value={calendarType || "ALL"}
                       onChange={(e) => setCalendarType(e.target.value)}
-                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400 shrink-0"
+                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0"
                     >
                       <option value="ALL">General Semester</option>
                       <option value="ALL02">General Flexible</option>
@@ -867,7 +938,7 @@ export default function ProfilePage({
                 {/* Subsection: Display and Behaviour */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Display & Behaviour</h3>
-                  
+
                   {/* Decimal toggle */}
                   <div className="flex items-center justify-between">
                     <div>
@@ -933,7 +1004,7 @@ export default function ProfilePage({
                       onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                         residentialStatus === "hosteller"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                           : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                       }`}
                     >
@@ -943,7 +1014,7 @@ export default function ProfilePage({
                       onClick={() => setResidentialStatus("dayscholar")}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                         residentialStatus === "dayscholar"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
                           : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
                       }`}
                     >
@@ -951,12 +1022,12 @@ export default function ProfilePage({
                     </button>
                   </div>
                   {residentialStatus === "dayscholar" && (
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-sky-400/40">
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-info/40">
                       <input
                         type="checkbox"
                         checked={isDayscholarWithBus}
                         onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-400/50 bg-transparent"
+                        className="w-4 h-4 rounded border-gray-300 text-info focus:ring-info/50 bg-transparent"
                       />
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
                     </label>
@@ -976,13 +1047,13 @@ export default function ProfilePage({
                   </span>
                 </div>
               )}
-              
+
               <div className={`bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
                   <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
-                
+
                 {/* Collapsible Sync Toggles */}
                 <div className="space-y-2">
-                  
+
                   {/* Category: Academics */}
                   <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
                     <button
@@ -1201,14 +1272,164 @@ export default function ProfilePage({
             </div>
           ))}
 
+          {/* Section: Resources */}
+          {renderSection("resources", "Resources", Link2, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
+
+                {/* Utilities / Important Links */}
+                {quickLinks.importantLinks.map((link) => (
+                  <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <div className="flex items-center gap-4 min-w-0 pr-4">
+                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                        <Link2 size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">{link.desc}</span>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                  </a>
+                ))}
+
+                {/* Social Community links */}
+                {quickLinks.communityLinks.map((link, idx) => (
+                  <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <div className="flex items-center gap-4 min-w-0 pr-4">
+                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                        <ExternalLink size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">VIT community discussion forums and updates</span>
+                      </div>
+                    </div>
+                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                  </a>
+                ))}
+
+                {/* Local Link Component integrations */}
+                <div className="p-4 bg-transparent">
+                  <Links />
+                </div>
+
+                {/* Changelog */}
+                <div onClick={() => setShowChangelog(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <History size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Changelog</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">View latest updates, features and releases in AmazeCC</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+                {/* Hall of Fame */}
+                <div onClick={() => setShowHallOfFame(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <Trophy size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Hall of Fame</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the contributors, developers, and testers of the app</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+                {/* Source on GitHub */}
+                <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <Github size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">GitHub Repository</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Check out code, contribute fixes or report system bugs</span>
+                    </div>
+                  </div>
+                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                </a>
+
+                {/* Privacy Policy */}
+                <div onClick={() => window.open("/privacy", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <FileText size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Privacy Policy</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Read about local credentials and encryption safety</span>
+                    </div>
+                  </div>
+                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+                {/* Terms of Service */}
+                <div onClick={() => window.open("/terms", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <Shield size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Terms of Service</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Understand guidelines and rules of utilizing AmazeCC services</span>
+                    </div>
+                  </div>
+                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+              </div>
+          ))}
+
+          {/* Section: About */}
+          {renderSection("about", "About AmazeCC", Info, (
+            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 p-6 flex flex-col items-center text-center space-y-4">
+                <div className="scale-125 mb-1 shrink-0">
+                  <IconToggle />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">AmazeCC</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your ultimate college companion application.</p>
+                </div>
+
+                <div className="w-full max-w-xs grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-left pt-2 border-t border-gray-150 dark:border-gray-800/60 mt-2">
+                  <div>
+                    <span className="text-gray-400 font-medium block">Version</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">v2.0.4</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium block">Build Number</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0627</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium block">Last Updated</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">June 2026</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 font-medium block">Platform</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">Web App</span>
+                  </div>
+                </div>
+
+                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-widest uppercase pt-2 border-t border-gray-150 dark:border-gray-850/60 w-full">
+                  MADE WITH ❤️ BY SUGEETHJSA AND DHIVYANJ
+                </p>
+              </div>
+          ))}
+
           {/* Section: Advanced */}
           {renderSection("advanced", "Advanced Settings", Shield, (
             <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
-                
+
                 {/* Local Storage Viewer */}
                 <div onClick={openStoragePage} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Database size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1222,7 +1443,7 @@ export default function ProfilePage({
                 {/* Export Settings */}
                 <div onClick={handleExportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Save size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1236,7 +1457,7 @@ export default function ProfilePage({
                 {/* Import Settings */}
                 <div onClick={handleImportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <ExternalLink size={18} />
                     </div>
                     <div className="min-w-0">
@@ -1250,7 +1471,7 @@ export default function ProfilePage({
                 {/* Keyboard Shortcuts */}
                 <div onClick={onOpenShortcutsHelp} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
                   <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
                       <Keyboard size={18} />
                     </div>
                     <div className="min-w-0">
