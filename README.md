@@ -2,35 +2,25 @@
 
 <img src="public/icons/AmazeCC.png" width="300">
 
-**Live site:** [https://amaze-cc.vercel.app/](https://amaze-cc.vercel.app/)
+**Live site:** [https://amazecc.com](https://amazecc.com)
 
-**Repository:** [https://github.com/SugeethJSA/UniCC](https://github.com/SugeethJSA/UniCC)
-**API Docs:** [https://api.uni-cc.site/docs](https://api.uni-cc.site/docs)
-**API Stats:** [https://api.uni-cc.site/stats](https://api.uni-cc.site/docs)
+**Repository:** [https://github.com/AmazeContinuityProjects/AmazeCC](https://github.com/AmazeContinuityProjects/AmazeCC)
+**API Docs:** [https://api.amazecc.com/docs](https://api.amazecc.com/docs)
+**API Stats:** [https://api.amazecc.com/stats](https://api.amazecc.com/stats)
 
 ---
 
 ## Overview
 
-AmazeCC is a web application designed specifically for students of a particular university.  
+AmazeCC is a web application designed specifically for students of **VIT University**.  
 It provides a clean, minimalist interface to access campus-related information such as attendance, grades, schedules, hostel status, and file storage.
 
-> Forked from [UniCC](https://github.com/Arya4930/UniCC) by Arya4930
+> Originally forked from [Arya4930/UniCC](https://github.com/Arya4930/UniCC)
 
-> Captcha solver logic is adapted from  
-> [ViBoot-Enhanced](https://github.com/arshsaxena/ViBoot-Enhanced/blob/main/js/captcha/captchaparser.js)
+> Captcha solver logic adapted from  
+> [arshsaxena/ViBoot-Enhanced](https://github.com/arshsaxena/ViBoot-Enhanced/blob/main/js/captcha/captchaparser.js)
 
----
 
-## Sister Project
-
-**ParentsCC** is a companion project built specifically for **parents**.  
-It is a **stripped-down version of UniCC**, focusing only on essential information in a simpler and more accessible interface.
-
-- **Repository:** [https://github.com/Arya4930/ParentsCC](https://github.com/Arya4930/ParentsCC)
-- **Live site:** [https://parents.uni-cc.site/](https://parents.uni-cc.site/)
-
----
 
 ## Backend Usage (Important)
 
@@ -40,10 +30,10 @@ Hosting your own backend is **not recommended** unless you specifically need to,
 - A MongoDB database
 - A Backblaze B2 bucket for file storage
 
-Instead, you can directly use the **hosted UniCC backend API**: ```https://uniccapi.uni-cc.site/```
-To do this, modify the API base URL in: `src/components/custom/main.tsx` Change it to:
+The app uses the hosted backend API by default via the `NEXT_PUBLIC_API_URL` environment variable (default: `https://api.amazecc.com`).
+You can override this by setting `NEXT_PUBLIC_API_URL` in your environment or modifying the fallback in `src/components/custom/Main.tsx`:
 ```ts
-export const API_BASE = "https://uniccapi.uni-cc.site";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 ```
 ---
 ## Optional: Hosting Your Own Backend
@@ -100,20 +90,18 @@ To run AmazeCC locally:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/SugeethJSA/AmazeCC-Dashboard.git
-   cd AmazeCC-Dashboard
+   git clone https://github.com/AmazeContinuityProjects/AmazeCC.git
+   cd AmazeCC
    ```
 2. **Install dependencies:**
-   *(If a package manager like pnpm is used)*
 
    ```bash
-   pnpm install
+   npm install
    ```
 3. **Start the development server:**
-   *(This may vary based on setup)*
 
    ```bash
-   npx serve@latest out
+   npm run dev
    ```
 
 ## Contributing
@@ -128,5 +116,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contributors
 
+[![AmazeContinuityProjects](https://img.shields.io/badge/AmazeContinuityProjects-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/AmazeContinuityProjects)
 [![SugeethJSA](https://img.shields.io/badge/SugeethJSA-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SugeethJSA)
 [![dhivyanj](https://img.shields.io/badge/dhivyanj-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/dhivyanj)
+[![anasa](https://img.shields.io/badge/anasa-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/anasa)
