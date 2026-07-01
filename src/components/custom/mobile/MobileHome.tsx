@@ -230,6 +230,7 @@ export default function MobileHome({
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
   const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
+  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -242,14 +243,14 @@ export default function MobileHome({
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3.5 min-w-0">
-          {profileImage ? (
+          {showProfileImage && profileImage ? (
             <img
               src={profileImage}
               alt=""
-              className="h-12 w-12 rounded-2xl border border-white/60 object-cover shadow-md shadow-blue-500/20 dark:border-gray-800 md:h-14 md:w-14"
+              className="h-12 w-12 rounded-2xl border border-white/60 object-cover shadow-md dark:border-gray-800 md:h-14 md:w-14"
             />
           ) : (
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-800 flex items-center justify-center text-white font-black text-sm shadow-md shadow-blue-500/25 border border-white/15 shrink-0 md:h-14 md:w-14">
+            <div className="w-12 h-12 rounded-2xl bg-info flex items-center justify-center text-white font-black text-sm shadow-md border border-white/15 shrink-0 md:h-14 md:w-14">
               {initials}
             </div>
           )}
@@ -258,7 +259,7 @@ export default function MobileHome({
               {getGreeting()}
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5 flex items-center gap-1.5 min-w-0">
-              <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 text-info shrink-0" />
               <span className="truncate">Welcome, {profileName}</span>
             </p>
           </div>
@@ -276,7 +277,7 @@ export default function MobileHome({
         onClick={onOpenCommandPalette}
         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-info-surface opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
         <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-500">Search anything... (Spotlight)</span>
         <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
@@ -305,8 +306,8 @@ export default function MobileHome({
 
         {/* Credits Card */}
         <div className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-8 h-8 bg-indigo-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">Credits Earned</span>
+          <div className="absolute top-0 right-0 w-8 h-8 bg-info-surface rounded-bl-full pointer-events-none" />
+          <span className="text-[9px] font-black text-info uppercase tracking-widest">Credits Earned</span>
           <p className="text-lg font-black text-gray-950 dark:text-white leading-none mt-1">
             {marksData?.cgpa?.creditsEarned ? Number(marksData.cgpa.creditsEarned) : "—"}
           </p>
@@ -325,8 +326,8 @@ export default function MobileHome({
       </div>
 
       {/* ── ATTENDANCE HERO CIRCLE CARD ── */}
-      <div className="bg-gradient-to-br from-indigo-500/12 via-blue-500/6 to-transparent dark:from-indigo-950/25 dark:via-blue-950/15 dark:to-transparent border border-blue-500/15 dark:border-blue-900/30 rounded-3xl p-5.5 md:p-6 flex items-center gap-6 relative overflow-hidden shadow-xs backdrop-blur-md">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/5 rounded-bl-full pointer-events-none" />
+      <div className="bg-info-surface border border-info/15 rounded-3xl p-5.5 md:p-6 flex items-center gap-6 relative overflow-hidden shadow-xs backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-info-surface rounded-bl-full pointer-events-none" />
         <div className="relative w-20 h-20 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
             <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-gray-100/80 dark:text-gray-800/60" />
@@ -367,7 +368,7 @@ export default function MobileHome({
           </div>
           <button 
             onClick={() => setActiveTab("attendance")}
-            className="mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-500/5 border border-blue-500/10 dark:bg-blue-500/10 dark:border-blue-500/20 px-3 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider"
+            className="mt-3.5 flex items-center gap-1.5 text-[10px] font-black text-info bg-info-surface border border-info/10 px-3 py-1.5 rounded-xl w-fit active:scale-95 transition-all shadow-2xs hover:shadow-xs uppercase tracking-wider"
           >
             Predict Attendance <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -422,7 +423,7 @@ export default function MobileHome({
           <div className="space-y-3">
             {/* Current Ongoing Class */}
             {classStatus.current && (
-              <div className="p-4 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-650 dark:from-blue-700 dark:to-indigo-900 text-white shadow-md shadow-blue-500/20 border border-blue-550/20 relative overflow-hidden">
+              <div className="p-4 rounded-3xl bg-info text-white shadow-md border border-info/20 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full pointer-events-none" />
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white/20 dark:bg-black/30 rounded-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-450 animate-ping" />
@@ -444,11 +445,11 @@ export default function MobileHome({
                 onClick={() => { setActiveTab("attendance"); }}
                 className="p-4 rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex items-center gap-3 active:scale-[0.99] transition-all"
               >
-                <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+                <div className="p-2.5 rounded-2xl bg-info-surface text-info shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">Next Class</span>
+                  <span className="text-[10px] text-info font-bold uppercase tracking-wider">Next Class</span>
                   <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate mt-0.5">
                     {classStatus.next.courseTitle}
                   </h4>
@@ -479,9 +480,9 @@ export default function MobileHome({
         <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
           <button 
             onClick={() => { setActiveTab("attendance"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-50/20 border border-blue-100/50 dark:bg-blue-950/10 dark:border-blue-900/30 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs"
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-info-surface border border-info/20 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs"
           >
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-550/20 flex items-center justify-center mb-1.5 text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-info-surface flex items-center justify-center mb-1.5 text-info shrink-0">
               <Sliders className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
             <span className="text-[10px] font-black text-slate-805 dark:text-gray-300">Predict Att.</span>
@@ -529,9 +530,9 @@ export default function MobileHome({
 
           <button 
             onClick={onOpenCommandPalette}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-50/20 border border-indigo-100/50 dark:bg-indigo-950/10 dark:border-indigo-900/30 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs"
+            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-info-surface border border-info/20 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs"
           >
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 dark:bg-indigo-550/20 flex items-center justify-center mb-1.5 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-info-surface flex items-center justify-center mb-1.5 text-info shrink-0">
               <FolderOpen className="w-4.5 h-4.5 stroke-[2.5]" />
             </div>
             <span className="text-[10px] font-black text-slate-805 dark:text-gray-300">All Modules</span>
@@ -549,7 +550,7 @@ export default function MobileHome({
             </h2>
             <button 
               onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }}
-              className="text-xs font-bold text-blue-600 dark:text-blue-400"
+              className="text-xs font-bold text-info"
             >
               Full Menu
             </button>
@@ -688,7 +689,7 @@ export default function MobileHome({
                 </p>
                 <div className="flex items-center justify-between text-[10px] font-bold mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 gap-2 min-w-0">
                   <span className="text-gray-600 dark:text-gray-400 truncate flex-1 text-left">{ev.venue}</span>
-                  <span className="text-blue-500 shrink-0">{ev.paymentStatus}</span>
+                  <span className="text-info shrink-0">{ev.paymentStatus}</span>
                 </div>
               </div>
             ))}

@@ -242,6 +242,49 @@
 
 /* ── Design System Utilities ── */
 
+[data-color-palette]:not([data-color-palette="default"]) [class*="border-sky-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="border-blue-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="border-indigo-"] {
+  border-color: color-mix(in oklab, var(--theme-accent) 42%, transparent) !important;
+}
+
+[data-color-palette]:not([data-color-palette="default"]) [class*="ring-sky-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="ring-blue-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="ring-indigo-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="focus:ring-sky-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="focus:ring-blue-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="focus-visible:ring-sky-"] {
+  --tw-ring-color: color-mix(in oklab, var(--theme-accent) 42%, transparent) !important;
+}
+
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-400"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-500"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-sky-600"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-400"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-500"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-blue-600"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-indigo-500"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="bg-indigo-600"],
+[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-sky-600"]:hover,
+[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-blue-600"]:hover,
+[data-color-palette]:not([data-color-palette="default"]) [class~="hover:bg-indigo-600"]:hover {
+  background-color: var(--theme-accent) !important;
+  color: white !important;
+}
+
+[data-color-palette]:not([data-color-palette="default"]) [class*="from-sky-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="from-blue-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="from-indigo-"] {
+  --tw-gradient-from: var(--theme-accent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)) !important;
+}
+
+[data-color-palette]:not([data-color-palette="default"]) [class*="to-sky-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="to-blue-"],
+[data-color-palette]:not([data-color-palette="default"]) [class*="to-indigo-"] {
+  --tw-gradient-to: color-mix(in oklab, var(--theme-accent) 74%, #111827) var(--tw-gradient-to-position) !important;
+}
+
 
 .solid-card {
   background: var(--surface);

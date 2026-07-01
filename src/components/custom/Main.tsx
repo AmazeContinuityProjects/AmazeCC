@@ -43,6 +43,16 @@ type settings = {
   calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
   loadingScreen: boolean;
   isDayscholarWithBus: boolean;
+  hideProfileImageOutsideInfo?: boolean;
+  colorPalette?: string;
+  customPalette?: {
+    accent: string;
+    background: string;
+    surface: string;
+  };
+  hideMobileHeader?: boolean;
+  reloadAllData?: boolean;
+  isSidebarCollapsed?: boolean;
   residentialStatus?: "hosteller" | "dayscholar";
   friendlyName?: string;
   syncProfileData?: boolean;
@@ -74,6 +84,16 @@ const defaultSettings: settings = {
   calendarType: "ALL",
   loadingScreen: false,
   isDayscholarWithBus: false,
+  hideProfileImageOutsideInfo: false,
+  colorPalette: "default",
+  customPalette: {
+    accent: "#0ea5e9",
+    background: "#f8fafc",
+    surface: "#ffffff",
+  },
+  hideMobileHeader: false,
+  reloadAllData: false,
+  isSidebarCollapsed: false,
   residentialStatus: "hosteller",
   friendlyName: "",
   syncProfileData: true,
@@ -96,6 +116,19 @@ const defaultIDs: IDs = {
   MoodleUsername: "",
   MoodlePassword: "",
 }
+
+const COLOR_PALETTES: Record<string, { accent: string; background?: string; surface?: string }> = {
+  default: { accent: "" },
+  neonPink: { accent: "#ff2bd6", background: "#fff7fd", surface: "#ffffff" },
+  ocean: { accent: "#ff2bd6", background: "#fff7fd", surface: "#ffffff" },
+  forest: { accent: "#059669", background: "#f8fffb", surface: "#ffffff" },
+  rose: { accent: "#e11d48", background: "#fff8fa", surface: "#ffffff" },
+  amber: { accent: "#d97706", background: "#fffdf6", surface: "#ffffff" },
+};
+
+const reloadAfterThemeChange = () => {
+  window.setTimeout(() => window.location.reload(), 80);
+};
 
 export default function LoginPage() {
   const { theme, setTheme } = useTheme();
@@ -154,6 +187,126 @@ export default function LoginPage() {
     };
     checkAPIStatus();
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const selectedPalette = settings.colorPalette === "ocean" ? "neonPink" : settings.colorPalette;
+    const palette =
+      selectedPalette === "custom"
+        ? settings.customPalette
+        : COLOR_PALETTES[selectedPalette || "default"];
+
+    const vars = [
+      "--theme-accent",
+      "--background",
+      "--foreground",
+      "--text-heading",
+      "--text-primary",
+      "--text-secondary",
+      "--text-muted",
+      "--surface",
+      "--surface-raised",
+      "--surface-secondary",
+      "--surface-tertiary",
+      "--surface-hover",
+      "--border-muted",
+      "--border-strong",
+      "--card",
+      "--card-foreground",
+      "--popover",
+      "--popover-foreground",
+      "--primary",
+      "--primary-foreground",
+      "--secondary",
+      "--secondary-foreground",
+      "--muted",
+      "--muted-foreground",
+      "--accent",
+      "--accent-foreground",
+      "--border",
+      "--input",
+      "--info",
+      "--info-foreground",
+      "--info-surface",
+      "--ring",
+      "--chart-1",
+      "--chart-2",
+      "--chart-3",
+      "--sidebar",
+      "--sidebar-foreground",
+      "--sidebar-primary",
+      "--sidebar-primary-foreground",
+      "--sidebar-accent",
+      "--sidebar-accent-foreground",
+      "--sidebar-border",
+      "--sidebar-ring",
+    ];
+
+    if (!palette || settings.colorPalette === "default") {
+      vars.forEach((name) => root.style.removeProperty(name));
+      delete root.dataset.colorPalette;
+      return;
+    }
+
+    const isDarkMode = root.classList.contains("dark");
+    const accent = palette.accent || "#0ea5e9";
+    const background = palette.background || "#f8fafc";
+    const surface = palette.surface || "#ffffff";
+    root.dataset.colorPalette = selectedPalette || "custom";
+    root.style.setProperty("--theme-accent", accent);
+
+    if (isDarkMode) {
+      root.style.setProperty("--background", `color-mix(in oklab, ${accent} 4%, oklch(0.09 0.015 255))`);
+      root.style.setProperty("--surface", `color-mix(in oklab, ${accent} 5%, oklch(0.20 0 0))`);
+      root.style.setProperty("--surface-raised", `color-mix(in oklab, ${accent} 5%, oklch(0.23 0 0))`);
+      root.style.setProperty("--surface-secondary", `color-mix(in oklab, ${accent} 6%, oklch(0.25 0 0))`);
+      root.style.setProperty("--surface-tertiary", `color-mix(in oklab, ${accent} 8%, oklch(0.28 0 0))`);
+      root.style.setProperty("--surface-hover", `color-mix(in oklab, ${accent} 9%, oklch(0.27 0 0))`);
+      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 18%, oklch(0.98 0.004 247 / 0.16))`);
+      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 24%, oklch(0.98 0.004 247 / 0.28))`);
+      root.style.setProperty("--sidebar", `color-mix(in oklab, ${accent} 5%, oklch(0.18 0 0))`);
+      root.style.setProperty("--sidebar-primary", `color-mix(in oklab, ${accent} 8%, oklch(0.22 0 0))`);
+      root.style.setProperty("--sidebar-accent", `color-mix(in oklab, ${accent} 8%, oklch(0.22 0 0))`);
+      root.style.setProperty("--sidebar-border", `color-mix(in oklab, ${accent} 22%, oklch(0.985 0 0 / 0.12))`);
+    } else {
+      root.style.setProperty("--background", `color-mix(in oklab, ${accent} 4%, oklch(0.982 0.004 247))`);
+      root.style.setProperty("--surface", `color-mix(in oklab, ${accent} 2%, ${surface})`);
+      root.style.setProperty("--surface-raised", `color-mix(in oklab, ${accent} 2%, ${surface})`);
+      root.style.setProperty("--surface-secondary", `color-mix(in oklab, ${accent} 5%, oklch(0.965 0.005 247))`);
+      root.style.setProperty("--surface-tertiary", `color-mix(in oklab, ${accent} 7%, oklch(0.935 0.008 247))`);
+      root.style.setProperty("--surface-hover", `color-mix(in oklab, ${accent} 8%, oklch(0.955 0.007 247))`);
+      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 14%, oklch(0.93 0.007 247))`);
+      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 20%, oklch(0.84 0.012 247))`);
+      root.style.setProperty("--sidebar", `color-mix(in oklab, ${accent} 4%, ${surface})`);
+      root.style.setProperty("--sidebar-primary", `color-mix(in oklab, ${accent} 8%, oklch(0.9 0 0))`);
+      root.style.setProperty("--sidebar-accent", `color-mix(in oklab, ${accent} 8%, oklch(0.95 0 0))`);
+      root.style.setProperty("--sidebar-border", `color-mix(in oklab, ${accent} 15%, oklch(0.9 0 0))`);
+    }
+
+    root.style.setProperty("--card", "var(--surface)");
+    root.style.setProperty("--card-foreground", "var(--text-primary)");
+    root.style.setProperty("--popover", "var(--surface-raised)");
+    root.style.setProperty("--popover-foreground", "var(--text-primary)");
+    root.style.setProperty("--primary", accent);
+    root.style.setProperty("--primary-foreground", "#ffffff");
+    root.style.setProperty("--secondary", "var(--surface-secondary)");
+    root.style.setProperty("--secondary-foreground", "var(--text-primary)");
+    root.style.setProperty("--muted", "var(--surface-secondary)");
+    root.style.setProperty("--muted-foreground", "var(--text-muted)");
+    root.style.setProperty("--accent", "var(--surface-tertiary)");
+    root.style.setProperty("--accent-foreground", "var(--text-primary)");
+    root.style.setProperty("--border", "var(--border-muted)");
+    root.style.setProperty("--input", "var(--border-strong)");
+    root.style.setProperty("--info", accent);
+    root.style.setProperty("--info-foreground", accent);
+    root.style.setProperty("--info-surface", `color-mix(in oklab, ${accent} 14%, transparent)`);
+    root.style.setProperty("--ring", accent);
+    root.style.setProperty("--sidebar-ring", accent);
+    root.style.setProperty("--chart-1", accent);
+    root.style.setProperty("--chart-2", `color-mix(in oklab, ${accent} 70%, #10b981)`);
+    root.style.setProperty("--chart-3", `color-mix(in oklab, ${accent} 70%, #f59e0b)`);
+  }, [settings.colorPalette, settings.customPalette, theme]);
 
   function setAttendanceAndOD(attendance: attendanceRes): void {
     setAttendanceData(attendance);
@@ -951,7 +1104,7 @@ export default function LoginPage() {
     setIDs(defaultIDs);
     setDemoMode(false);
 
-    const keysToKeep = ["theme", "activityTree", "settings"];
+    const keysToKeep = ["activityTree"];
 
     const saved: Record<string, string | null> = {};
     keysToKeep.forEach((key) => {
@@ -965,6 +1118,11 @@ export default function LoginPage() {
         localStorage.setItem(key, saved[key]!);
       }
     });
+
+    localStorage.setItem("theme", "light");
+    localStorage.setItem("settings", JSON.stringify(defaultSettings));
+    setTheme("light");
+    setSettings(defaultSettings);
 
     setAttendanceData({});
     setMarksData({});
@@ -1104,6 +1262,7 @@ export default function LoginPage() {
         } else if (key === "t") {
           e.preventDefault();
           setTheme(theme === "dark" ? "light" : "dark");
+          reloadAfterThemeChange();
         }
       }
     };
@@ -1402,6 +1561,7 @@ export default function LoginPage() {
     toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
     toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
+    toggle("Hide Profile Image Outside My Info", "hideProfileImageOutsideInfo", "Settings", "👤");
 
     [
       { id: "light", label: "Light", icon: "☀️" },
@@ -1415,7 +1575,11 @@ export default function LoginPage() {
         icon: option.icon,
         category: "Settings",
         rightSlot: theme === option.id ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-900/20">Active</span> : undefined,
-        onSelect: () => setTheme(option.id),
+        onSelect: () => {
+          if (theme === option.id) return;
+          setTheme(option.id);
+          reloadAfterThemeChange();
+        },
       });
     });
 

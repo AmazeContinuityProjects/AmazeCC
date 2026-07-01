@@ -16,7 +16,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       description: "Your one-stop hub — courses, grades, arrears, projects and more.",
       icon: LayoutDashboard,
       color: "text-white",
-      bg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+      bg: "bg-info",
       prominent: true,
     },
     {
@@ -72,8 +72,8 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       title: "Course Management",
       description: "Course options, extracurriculars, minor/honour courses.",
       icon: ScrollText,
-      color: "text-indigo-600  dark:text-indigo-400",
-      bg: "bg-indigo-100  dark:bg-indigo-900/20",
+      color: "text-info",
+      bg: "bg-info-surface",
     },
     {
       id: "projects",
@@ -96,8 +96,8 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       title: "Faculty Info",
       description: "Search and view faculty contact details.",
       icon: UserCheck,
-      color: "text-sky-600  dark:text-sky-400",
-      bg: "bg-sky-100  dark:bg-sky-900/20",
+      color: "text-info",
+      bg: "bg-info-surface",
     },
   ];
 
@@ -191,13 +191,13 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-20 animate-fadeIn">
       <PageHeader
-        icon={<GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+        icon={<GraduationCap className="w-5 h-5 text-info" />}
         title="Academics Hub"
         meta={<Badge variant="default" className="rounded-xl border border-gray-200 font-semibold  dark:border-gray-800">Student OS</Badge>}
         actions={
           <button
             onClick={() => setActiveSubTab("course-dashboard")}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-info hover:bg-info text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer"
           >
             <LayoutDashboard size={16} /> Courses
           </button>
@@ -205,13 +205,13 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       />
 
       {savedGoal && (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
+        <div className="rounded-2xl border border-info/20 bg-info-surface p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-info dark:bg-black/20">
               <Trophy className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">Active Goal</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-info">Active Goal</p>
               <p className="truncate text-lg font-black text-gray-900 dark:text-gray-100">{savedGoal.target.toFixed(2)} CGPA <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">requires {savedGoal.requiredSgpa.toFixed(2)} SGPA</span></p>
             </div>
           </div>
@@ -225,11 +225,11 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Current Semester</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-info">Current Semester</p>
               <h2 className="mt-2 font-[family-name:var(--font-outfit)] text-3xl font-black text-gray-950 dark:text-gray-50">Course Dashboard</h2>
               <p className="mt-2 max-w-xl text-sm font-medium text-gray-500 dark:text-gray-400">Marks, attendance, predictions and assessment progress in one place.</p>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+            <ChevronRight className="h-5 w-5 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-info" />
           </div>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {toolSummaries["course-dashboard"].map((item) => (
@@ -243,7 +243,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[
             ["CGPA", currentCgpa.toFixed(2), Award, "text-emerald-600 dark:text-emerald-400"],
-            ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-blue-600 dark:text-blue-400"],
+            ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-info"],
             ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-600 dark:text-purple-400"],
           ].map(([label, value, Icon, color]: any) => (
             <div key={label} className="rounded-2xl border border-gray-200 bg-white p-2.5 sm:p-4 shadow-sm dark:border-gray-800 dark:bg-black flex flex-col justify-between min-w-0">
@@ -252,11 +252,11 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               <p className="mt-1.5 text-[9px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 truncate">{label}</p>
             </div>
           ))}
-          <div className="col-span-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm   dark:border-blue-900/50 dark:bg-blue-950/20">
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Academic Flow</p>
+          <div className="col-span-3 rounded-2xl border border-info/20 bg-info-surface p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-info">Academic Flow</p>
             <div className="mt-4 space-y-3">
               {[
-                ["Current", `${uniqueCurrentCourses.size || currentCourses.length} active courses`, "bg-blue-600"],
+                ["Current", `${uniqueCurrentCourses.size || currentCourses.length} active courses`, "bg-info"],
                 ["Progress", `${degreeCompletePercent.toFixed(0)}% degree complete`, "bg-emerald-500"],
                 ["Next", savedGoal ? `${savedGoal.target.toFixed(2)} CGPA goal` : "Set CGPA target", "bg-purple-500"],
               ].map(([label, value, dot]) => (
@@ -296,7 +296,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                   <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${card.bg} ${card.color}`}>
                     <card.icon className="h-5 w-5" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                  <ChevronRight className="h-4 w-4 text-gray-400 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-info" />
                 </div>
                 <h3 className="mt-4 text-sm font-black text-gray-900 dark:text-gray-100">{card.title}</h3>
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -304,7 +304,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                     <span key={item} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-300">{item}</span>
                   ))}
                 </div>
-                <p className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400">Open <ChevronRight className="h-3 w-3" /></p>
+                <p className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-info">Open <ChevronRight className="h-3 w-3" /></p>
               </button>
             );
           })}
@@ -478,9 +478,9 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                             <p className="font-semibold text-gray-900  dark:text-gray-100 text-sm">{semName}</p>
                             <p className="text-xs text-gray-500 mt-0.5">{courseCount} courses · {semCredits > 0 ? `${semCredits.toFixed(1)} credits` : 'N/A credits'}</p>
                             </div>
-                            <div className="flex flex-col items-center bg-indigo-500/10  dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg border border-indigo-500/20">
-                            <span className="font-bold text-indigo-600  dark:text-indigo-300 text-sm">{gpa}</span>
-                            <span className="text-[10px] text-indigo-500  dark:text-indigo-400 font-medium">GPA</span>
+                            <div className="flex flex-col items-center bg-info-surface px-3 py-1.5 rounded-lg border border-info/20">
+                            <span className="font-bold text-info text-sm">{gpa}</span>
+                            <span className="text-[10px] text-info font-medium">GPA</span>
                             </div>
                         </div>
                         );

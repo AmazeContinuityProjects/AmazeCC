@@ -125,7 +125,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Users className="text-blue-500 w-6 h-6" /> Social & Schedules
+              <Users className="text-info w-6 h-6" /> Social & Schedules
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
               Compare schedules, find common free time, and plan group study sessions!
@@ -167,7 +167,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <UsersRound className="w-4 h-4" /> Groups
             </h3>
-            <button onClick={() => { if (isDemo) { alert("Creating groups is disabled in Demo Mode."); } else { setIsAddGroupModalOpen(true); } }} className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1">
+            <button onClick={() => { if (isDemo) { alert("Creating groups is disabled in Demo Mode."); } else { setIsAddGroupModalOpen(true); } }} className="text-sm text-info hover:text-info font-medium flex items-center gap-1">
               <Plus className="w-4 h-4" /> Create Group
             </button>
           </div>
@@ -236,7 +236,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
               <div
                 key={friend.id}
                 onClick={() => setSelectedFriend(friend)}
-                className="solid-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-blue-500/30"
+                className="solid-card p-5 hover:shadow-md transition-all flex flex-col cursor-pointer hover:border-info/30"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                       onClick={(e) => toggleDashboardVisibility(friend, e)}
                       className={`p-2 rounded-lg transition-colors ${
                         friend.showInHomePage
-                          ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20"
+                          ? "text-info bg-info-surface hover:bg-info-surface"
                           : "text-muted-foreground bg-muted hover:bg-muted/80"
                       }`}
                       title={friend.showInHomePage ? "Shown on Dashboard" : "Hidden on Dashboard"}
@@ -283,7 +283,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
                     </span>{" "}
                     classes
                   </p>
-                  <span className="text-xs text-blue-500 font-medium">View Schedule &rarr;</span>
+                  <span className="text-xs text-info font-medium">View Schedule &rarr;</span>
                 </div>
               </div>
             ))
