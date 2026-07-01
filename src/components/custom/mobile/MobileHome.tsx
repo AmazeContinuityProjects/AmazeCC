@@ -229,6 +229,7 @@ export default function MobileHome({
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
   const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
+  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -241,7 +242,7 @@ export default function MobileHome({
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3.5 min-w-0">
-          {profileImage ? (
+          {showProfileImage && profileImage ? (
             <img
               src={profileImage}
               alt=""

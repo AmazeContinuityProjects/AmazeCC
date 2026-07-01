@@ -276,6 +276,7 @@ export default function NavigationTabs({
   }`;
 
   const profileName = settings.friendlyName || profileData?.name || username || "Student";
+  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -307,7 +308,12 @@ export default function NavigationTabs({
     setActiveRailGroup(current => (current === groupId ? null : groupId));
   }, []);
 
+  const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
+  const sidebarActiveIconStyles = "text-info font-semibold";
+  const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
+
   const handleThemeChange = (selectedTheme: string) => {
+    if (theme === selectedTheme) return;
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
       (document as any).startViewTransition(() => {
         setTheme(selectedTheme);
@@ -315,6 +321,7 @@ export default function NavigationTabs({
     } else {
       setTheme(selectedTheme);
     }
+    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Keyboard navigation
@@ -1261,7 +1268,7 @@ export default function NavigationTabs({
                         <div className="space-y-0.5 pt-0.5 pb-1">
                           {group.items.map((item) => {
                             const ItemIcon = item.icon;
-                            const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                            const activeStyles = sidebarActiveStyles;
                             const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                             return (
                               <button
@@ -1275,7 +1282,7 @@ export default function NavigationTabs({
                               >
                                 <ItemIcon
                                   className={`h-4 w-4 shrink-0 transition-colors ${
-                                    item.isActive ? "text-sky-700 dark:text-sky-300 font-semibold" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"
+                                    item.isActive ? sidebarActiveIconStyles : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"
                                   }`}
                                 />
                                 <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
@@ -1318,7 +1325,7 @@ export default function NavigationTabs({
                     <div className="space-y-0.5">
                       {academicsItems.map((item, index) => {
                         const showDivider = index === 6;
-                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                        const activeStyles = sidebarActiveStyles;
                         const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                         return (
                           <div key={item.id}>
@@ -1368,7 +1375,7 @@ export default function NavigationTabs({
 
                     <div className="space-y-0.5">
                       {hostelSubItems.map((item) => {
-                        const activeStyles = "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold shadow-2xs";
+                        const activeStyles = sidebarActiveStyles;
                         const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
                         return (
                           <button
@@ -1414,13 +1421,13 @@ export default function NavigationTabs({
                       onClick={() => toggleRailPopover(group.id)}
                       className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
                         isActive
-                          ? "bg-gradient-to-tr from-sky-400/20 to-indigo-500/20 text-sky-900 dark:text-sky-100 border border-sky-600/30 dark:border-sky-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(56,189,248,0.15)]"
+                          ? railActiveStyles
                           : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
                       } ${navButtonBase}`}
                       title={group.label}
                       aria-label={`Open ${group.label} menu`}
                     >
-                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
+                      <GroupIcon className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110 text-info' : ''}`} />
                     </button>
                   </div>
                 );
@@ -1442,7 +1449,7 @@ export default function NavigationTabs({
             >
               {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
-                {profileData?.image ? (
+                {showProfileImage && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
@@ -1471,16 +1478,16 @@ export default function NavigationTabs({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleThemeChange("light")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "light" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}`}
+                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "light" ? "text-info font-medium" : ""}`}
                   >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-sky-400 bg-sky-400" : "border-sidebar-border"}`} />
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-info bg-info" : "border-sidebar-border"}`} />
                     <span>Light</span>
                   </button>
                   <button
                     onClick={() => handleThemeChange("dark")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "dark" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}`}
+                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "dark" ? "text-info font-medium" : ""}`}
                   >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 bg-sky-400" : "border-sidebar-border"}`} />
+                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-info bg-info" : "border-sidebar-border"}`} />
                     <span>Dark</span>
                   </button>
                 </div>
@@ -1519,7 +1526,7 @@ export default function NavigationTabs({
                 className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
                 title="Account Settings"
               >
-                {profileData?.image ? (
+                {showProfileImage && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
@@ -1558,11 +1565,11 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                            ? sidebarActiveStyles
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
-                        <item.icon className="h-4 w-4 shrink-0 text-sidebar-foreground/" />
+                        <item.icon className={`h-4 w-4 shrink-0 ${item.isActive ? "text-info" : "text-sidebar-foreground/"}`} />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1593,19 +1600,19 @@ export default function NavigationTabs({
                             onClick={() => handleThemeChange("light")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-sky-400 text-sky-700 dark:text-sky-300 bg-sky-400/15" : "border-sidebar-border"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "light" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
                               {theme === "light" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "light" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}>Light</span>
+                            <span className={theme === "light" ? "text-info font-medium" : ""}>Light</span>
                           </button>
                           <button
                             onClick={() => handleThemeChange("dark")}
                             className="flex items-center gap-2 w-full text-left text-xs text-sidebar-foreground/ hover:text-sidebar-foreground py-0.5 transition-colors"
                           >
-                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-sky-400 text-sky-700 dark:text-sky-300 bg-sky-400/15" : "border-sidebar-border"}`}>
+                            <span className={`flex h-3 w-3 items-center justify-center rounded-full border transition-colors ${theme === "dark" ? "border-info text-info bg-info-surface" : "border-sidebar-border"}`}>
                               {theme === "dark" && <span className="h-1 w-1 rounded-full bg-info" />}
                             </span>
-                            <span className={theme === "dark" ? "text-sky-700 dark:text-sky-300 font-medium" : ""}>Dark</span>
+                            <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
                           </button>
                         </div>
                       </motion.div>
@@ -1648,7 +1655,7 @@ export default function NavigationTabs({
                             }}
                             className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                               item.isActive
-                                ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                                ? sidebarActiveStyles
                                 : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                             }`}
                           >
@@ -1678,7 +1685,7 @@ export default function NavigationTabs({
                         }}
                         className={`group relative flex w-full items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
                           item.isActive
-                            ? "bg-sky-400/15 border border-sky-400/25 text-sky-700 dark:text-sky-300 font-semibold"
+                            ? sidebarActiveStyles
                             : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >
@@ -1696,7 +1703,7 @@ export default function NavigationTabs({
                   </div>
                   <div className="space-y-1">
                     {groups.find(g => g.id === activeRailGroup)?.items.map((item) => {
-                      const activeStyles = "bg-gradient-to-r from-sky-400/20 to-indigo-500/20 border-sky-600/30 dark:border-sky-400/30 text-sidebar-foreground font-bold shadow-sm dark:shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                      const activeStyles = railActiveStyles;
                       const inactiveStyles = "border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground hover:translate-x-1";
                       return (
                         <button
@@ -1715,7 +1722,7 @@ export default function NavigationTabs({
                             item.isActive ? activeStyles : inactiveStyles
                           }`}
                         >
-                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-sky-700 dark:text-sky-300 drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`} />
+                          <item.icon className={`h-4.5 w-4.5 shrink-0 transition-all duration-300 ${item.isActive ? "text-info scale-110" : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"}`} />
                           <span className="truncate transition-transform duration-300">{item.label}</span>
                           {item.isExpandable && (
                             <ChevronRight className="h-3.5 w-3.5 ml-auto text-sidebar-foreground/" />

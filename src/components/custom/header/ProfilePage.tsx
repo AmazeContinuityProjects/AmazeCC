@@ -64,6 +64,15 @@ const SECTIONS: SectionConfig[] = [
   { id: "advanced", label: "Advanced", icon: Shield },
 ];
 
+const COLOR_PALETTES = [
+  { id: "default", label: "Default", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
+  { id: "neonPink", label: "Neon Pink", swatches: ["#ff2bd6", "#ffffff", "#fff7fd"] },
+  { id: "forest", label: "Forest", swatches: ["#059669", "#ffffff", "#f7fee7"] },
+  { id: "rose", label: "Rose", swatches: ["#e11d48", "#ffffff", "#fff1f2"] },
+  { id: "amber", label: "Amber", swatches: ["#d97706", "#ffffff", "#fffbeb"] },
+  { id: "custom", label: "Custom", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
+];
+
 export default function ProfilePage({
   currSemesterID,
   setCurrSemesterID,
@@ -131,6 +140,13 @@ export default function ProfilePage({
   const [activeSection, setActiveSection] = useState<SectionId>(
     mode === "info" ? "profile" : "preferences"
   );
+  const activePalette = settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
+  const customPalette = settings?.customPalette || {
+    accent: "#0ea5e9",
+    background: "#f8fafc",
+    surface: "#ffffff",
+  };
+  const displayProfileImage = !(settings?.hideProfileImageOutsideInfo && mode !== "info");
 
   // Collapsible Sync states
   const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
@@ -144,6 +160,19 @@ export default function ProfilePage({
 
   const toggleSyncCategory = (cat: string) => {
     setSyncOpen(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    const updated = { ...settings, [key]: value };
+    setSettings((prev: any) => ({ ...prev, [key]: value }));
+    localStorage.setItem("settings", JSON.stringify(updated));
+  };
+
+  const updateCustomPalette = (key: "accent" | "background" | "surface", value: string) => {
+    const nextPalette = { ...customPalette, [key]: value };
+    const updated = { ...settings, colorPalette: "custom", customPalette: nextPalette };
+    setSettings((prev: any) => ({ ...prev, colorPalette: "custom", customPalette: nextPalette }));
+    localStorage.setItem("settings", JSON.stringify(updated));
   };
 
   const handleSaveSemester = async () => {
@@ -331,6 +360,7 @@ export default function ProfilePage({
 
   const { theme, setTheme } = useTheme();
   const handleThemeChange = (val: string) => {
+    if (theme === val) return;
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
       (document as any).startViewTransition(() => {
         setTheme(val);
@@ -338,6 +368,7 @@ export default function ProfilePage({
     } else {
       setTheme(val);
     }
+    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Advanced section helpers
@@ -398,7 +429,7 @@ export default function ProfilePage({
         return "personal info address residential hostel scholar".includes(query);
       }
       if (section.id === "preferences") {
-        return "theme appearance icon semester calendar decimal loading mobile header reload".includes(query);
+        return "theme appearance icon palette color profile image semester calendar decimal loading mobile header reload".includes(query);
       }
       if (section.id === "academic") {
         return "overview proctor faculty credentials mentor".includes(query);
@@ -469,7 +500,7 @@ export default function ProfilePage({
       <div className="pt-6 pb-6 border-b border-gray-150 dark:border-gray-800/80 mb-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4.5">
-            {profileData?.image ? (
+            {displayProfileImage && profileData?.image ? (
               <img src={profileData.image} alt="Profile" className="w-16 h-16 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center shadow-xs">
@@ -737,6 +768,69 @@ export default function ProfilePage({
                         Dark
                       </button>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Profile Image Privacy</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Only show your profile image in My Info</p>
+                    </div>
+                    <Switch
+                      checked={settings?.hideProfileImageOutsideInfo ?? false}
+                      onCheckedChange={(val) => updateSetting("hideProfileImageOutsideInfo", val)}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-450">Pick a preset or tune your own colors</p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {COLOR_PALETTES.map((palette) => (
+                        <button
+                          key={palette.id}
+                          type="button"
+                          onClick={() => updateSetting("colorPalette", palette.id)}
+                          className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
+                            activePalette === palette.id
+                              ? "border-sky-500 bg-sky-500/10"
+                              : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
+                          }`}
+                        >
+                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{palette.label}</span>
+                          <span className="flex -space-x-1">
+                            {palette.swatches.map((color) => (
+                              <span
+                                key={color}
+                                className="h-4 w-4 rounded-full border border-white/70 dark:border-slate-900 shadow-xs"
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {activePalette === "custom" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-gray-200 dark:border-gray-800 p-3 bg-white/30 dark:bg-slate-900/30">
+                        {[
+                          ["accent", "Accent"],
+                          ["background", "Background"],
+                          ["surface", "Surface"],
+                        ].map(([key, label]) => (
+                          <label key={key} className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            <span>{label}</span>
+                            <input
+                              type="color"
+                              value={customPalette[key as "accent" | "background" | "surface"]}
+                              onChange={(e) => updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)}
+                              className="h-8 w-12 cursor-pointer rounded-md border border-gray-200 dark:border-gray-800 bg-transparent p-0.5"
+                              aria-label={`${label} color`}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* App Icon selector */}
