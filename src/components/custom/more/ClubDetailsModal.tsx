@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star } from "lucide-react";
+import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
 import ReactMarkdown from 'react-markdown';
@@ -205,14 +205,53 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
               </div>
 
               {/* Point of Contact */}
-              {club.poc && (
-                <div className="flex items-center gap-3 p-4 bg-gray-100/50 dark:bg-gray-800/80 rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
-                  <div className="p-2 bg-white dark:bg-gray-700 rounded-full shadow-sm">
-                    <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              {(club.poc || club.poc_name || club.poc_contact || club.poc_email) && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-100/50 dark:bg-gray-800/80 rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white dark:bg-gray-700 rounded-full shadow-sm shrink-0">
+                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-0.5">Point of Contact</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                        {club.poc_name || club.poc || "Club Representative"}
+                        {club.poc_designation && (
+                           <span className="text-xs text-gray-500 font-normal">({club.poc_designation})</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-0.5">Point of Contact</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{club.poc}</p>
+                  
+                  <div className="flex items-center gap-2 sm:ml-auto pl-12 sm:pl-0">
+                    {club.poc_contact && (
+                      <>
+                        <a 
+                          href={`tel:${club.poc_contact}`} 
+                          className="p-2 rounded-xl bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors border border-gray-200 dark:border-gray-600 shadow-sm"
+                          title="Call POC"
+                        >
+                          <Phone className="w-4 h-4" />
+                        </a>
+                        <a 
+                          href={`https://wa.me/${club.poc_contact.replace(/\D/g, '').length === 10 ? '91' + club.poc_contact.replace(/\D/g, '') : club.poc_contact.replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="p-2 rounded-xl bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors border border-gray-200 dark:border-gray-600 shadow-sm"
+                          title="Message on WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </a>
+                      </>
+                    )}
+                    {club.poc_email && (
+                      <a 
+                        href={`mailto:${club.poc_email}`} 
+                        className="p-2 rounded-xl bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors border border-gray-200 dark:border-gray-600 shadow-sm"
+                        title="Email POC"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </a>
+                    )}
                   </div>
                 </div>
               )}

@@ -582,50 +582,64 @@ export default function ProfilePage({
           
           {/* Section: Profile */}
           {renderSection("profile", "Profile", User, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
-                
-                {/* Residential Status Subsection */}
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Residential Settings</h3>
-                    <p className="text-xs text-gray-550 dark:text-gray-400">Configure your boarding status and transport settings</p>
-                  </div>
-                  <div className="flex rounded-lg bg-gray-100 dark:bg-slate-800 p-1 w-full sm:w-64">
-                    <button
-                      onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
-                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                        residentialStatus === "hosteller"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
-                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                      }`}
-                    >
-                      Hosteller
-                    </button>
-                    <button
-                      onClick={() => setResidentialStatus("dayscholar")}
-                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                        residentialStatus === "dayscholar"
-                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
-                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                      }`}
-                    >
-                      Dayscholar
-                    </button>
-                  </div>
-                  {residentialStatus === "dayscholar" && (
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-sky-400/40">
-                      <input
-                        type="checkbox"
-                        checked={isDayscholarWithBus}
-                        onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-400/50 bg-transparent"
-                      />
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
-                    </label>
-                  )}
-                </div>
+            <div className="space-y-6">
 
-                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
+              {/* Status and Proctor overview cards */}
+              {creds && (
+                <>
+                  {/* Status overview metrics */}
+                  <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
+                  <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
+
+                  {/* Proctor & Dean section */}
+                  {profileImages?.proctor && (
+                    <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
+                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Faculty Mentors</h3>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[{
+                          role: "Proctor",
+                          photo: profileImages.proctor.photoBase64,
+                          details: profileImages.proctor.details || {}
+                        }, ...(profileImages.hodDean?.people?.map((p: any) => ({
+                          role: p.role,
+                          photo: p.photoBase64,
+                          details: p.details || {}
+                        })) || [])].map((person, idx) => (
+                          <div key={idx} className="bg-gray-100/50 dark:bg-slate-800/10 p-4 rounded-xl border border-gray-150 dark:border-gray-800/60 flex items-start gap-4">
+                            {person.photo ? (
+                              <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center shadow-xs shrink-0">
+                                <User size={20} className="text-white" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">{person.role}</span>
+                              <p className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
+                              {person.details.designation && (
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{person.details.designation}</p>
+                              )}
+                              
+                              {/* Extra contact rows */}
+                              <div className="mt-2 space-y-0.5 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-150 dark:border-gray-800/60 pt-1.5">
+                                {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([k, val]) => (
+                                  <div key={k} className="truncate">
+                                    <span className="capitalize font-semibold">{k.replace(/([A-Z])/g, " $1").trim()}: </span>
+                                    <span>{String(val)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
 
                 {/* Personal Information Grid */}
                 {[profileData?.nativeLanguage, profileData?.nationality, profileData?.community, profileData?.aadharNumber, profileData?.mobileNumber].some(Boolean) && (
@@ -691,7 +705,33 @@ export default function ProfilePage({
                   </>
                 )}
 
+                {/* Credentials card row */}
+                {creds && (
+                  <div
+                    onClick={() => onCredentialsClick && onCredentialsClick()}
+                    className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:bg-sky-400/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Key className="w-5 h-5 text-sky-400" />
+                      <div>
+                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Your Credentials</span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-450 mt-0.5">VTOP accounts, credentials sync & password management</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={handleReload}
+                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-colors shrink-0"
+                        title="Refresh credentials"
+                      >
+                        <RefreshCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-gray-450 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
           ))}
 
           {/* Section: Preferences */}
@@ -881,86 +921,48 @@ export default function ProfilePage({
             <div className="space-y-6">
 
 
-              {/* Status and Proctor overview cards */}
-              {creds ? (
-                <div className="space-y-6">
-                  {/* Status overview metrics */}
-                  <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
-                  <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
-
-                  {/* Proctor & Dean section */}
-                  {profileImages?.proctor && (
-                    <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
-                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Faculty Mentors</h3>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[{
-                          role: "Proctor",
-                          photo: profileImages.proctor.photoBase64,
-                          details: profileImages.proctor.details || {}
-                        }, ...(profileImages.hodDean?.people?.map((p: any) => ({
-                          role: p.role,
-                          photo: p.photoBase64,
-                          details: p.details || {}
-                        })) || [])].map((person, idx) => (
-                          <div key={idx} className="bg-gray-100/50 dark:bg-slate-800/10 p-4 rounded-xl border border-gray-150 dark:border-gray-800/60 flex items-start gap-4">
-                            {person.photo ? (
-                              <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center shadow-xs shrink-0">
-                                <User size={20} className="text-white" />
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">{person.role}</span>
-                              <p className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
-                              {person.details.designation && (
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{person.details.designation}</p>
-                              )}
-                              
-                              {/* Extra contact rows */}
-                              <div className="mt-2 space-y-0.5 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-150 dark:border-gray-800/60 pt-1.5">
-                                {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([k, val]) => (
-                                  <div key={k} className="truncate">
-                                    <span className="capitalize font-semibold">{k.replace(/([A-Z])/g, " $1").trim()}: </span>
-                                    <span>{String(val)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Credentials card row */}
-                  <div
-                    onClick={() => onCredentialsClick && onCredentialsClick()}
-                    className="flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 cursor-pointer hover:bg-sky-400/5 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-sky-400" />
-                      <div>
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Your Credentials</span>
-                        <span className="block text-xs text-gray-500 dark:text-gray-450 mt-0.5">VTOP accounts, credentials sync & password management</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <button
-                        onClick={handleReload}
-                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800/80 transition-colors shrink-0"
-                        title="Refresh credentials"
-                      >
-                        <RefreshCcw className="w-3.5 h-3.5" />
-                      </button>
-                      <ChevronRight className="w-4 h-4 text-gray-450 group-hover:translate-x-0.5 transition-transform" />
-                    </div>
+              {/* Residential Status Subsection */}
+              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Residential Settings</h3>
+                    <p className="text-xs text-gray-550 dark:text-gray-400">Configure your boarding status and transport settings</p>
                   </div>
+                  <div className="flex rounded-lg bg-gray-100 dark:bg-slate-800 p-1 w-full sm:w-64">
+                    <button
+                      onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                        residentialStatus === "hosteller"
+                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      Hosteller
+                    </button>
+                    <button
+                      onClick={() => setResidentialStatus("dayscholar")}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                        residentialStatus === "dayscholar"
+                          ? "bg-white dark:bg-slate-700 text-sky-400 shadow-xs"
+                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      Dayscholar
+                    </button>
+                  </div>
+                  {residentialStatus === "dayscholar" && (
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-sky-400/40">
+                      <input
+                        type="checkbox"
+                        checked={isDayscholarWithBus}
+                        onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-400/50 bg-transparent"
+                      />
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
+                    </label>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-6 text-xs text-gray-500">Log in to VTOP to view details</div>
-              )}
+              </div>
             </div>
           ))}
 
