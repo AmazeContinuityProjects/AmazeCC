@@ -48,15 +48,15 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="fixed inset-0 z-[100] bg-gray-50/80  dark:bg-black/80  overflow-hidden flex flex-col"
+                className="w-full h-full flex flex-col relative pb-10"
             >
                 {/* Ambient Glows */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 hidden sm:block">
                     <div className="absolute -top-[10%] -right-[5%] w-[60%] h-[60%] bg-amber-400/40  dark:bg-amber-500/20 rounded-full blur-[100px]" />
                     <div className="absolute top-[30%] -left-[10%] w-[50%] h-[50%] bg-orange-500/40  dark:bg-orange-600/20 rounded-full blur-[100px]" />
                 </div>
 
-                <div className="relative z-10 w-full max-w-3xl mx-auto h-full flex flex-col px-4 sm:px-6">
+                <div className="relative z-10 w-full max-w-3xl mx-auto flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-4 py-6 mb-2 mt-4 sm:mt-8">
                         <button 
@@ -78,7 +78,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
 
 
 
-                    <div className="relative z-10 flex-1 overflow-y-auto pb-24 custom-scrollbar">
+                    <div className="relative z-10 w-full pb-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {credits.map((credit, idx) => (
                             <motion.a 

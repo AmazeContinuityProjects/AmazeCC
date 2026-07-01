@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { RefreshCcw } from "lucide-react";
 
-export default function ArrearTab({ loginToVTOP, setActiveSubTab }: { loginToVTOP: any; setActiveSubTab: any }) {
+export default function ArrearTab({ loginToVTOP, setActiveSubTab, allGradesData }: { loginToVTOP: any; setActiveSubTab: any; allGradesData?: any }) {
   const [creds, setCreds] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => { loginToVTOP().then(setCreds).catch(() => {}); }, []);
@@ -21,9 +21,9 @@ export default function ArrearTab({ loginToVTOP, setActiveSubTab }: { loginToVTO
       }
     >
       <div className="space-y-6">
-        <GenericApiView endpoint="arrear-schedule" title="Arrear Schedule" creds={creds} refreshKey={refreshKey} />
-        <GenericApiView endpoint="arrear-details" title="Arrear Details" creds={creds} refreshKey={refreshKey} />
-        <GenericApiView endpoint="arrear-grade" title="Arrear Grades" creds={creds} refreshKey={refreshKey} />
+        <GenericApiView endpoint="arrear-schedule" title="Arrear Schedule" creds={creds} refreshKey={refreshKey} allGradesData={allGradesData} />
+        <GenericApiView endpoint="arrear-details" title="Arrear Details" creds={creds} refreshKey={refreshKey} allGradesData={allGradesData} />
+        <GenericApiView endpoint="arrear-grade" title="Arrear Grades" creds={creds} refreshKey={refreshKey} allGradesData={allGradesData} />
       </div>
     </SubpageLayout>
   );

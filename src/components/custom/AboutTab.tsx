@@ -1,8 +1,37 @@
-import React from "react";
+import React, { useState } from "react";
 import { AboutSection } from "./header/AboutSection";
 import ResourcesSection from "./ResourcesSection";
+import HallOfFameModal from "./header/HallOfFameModal";
+import ChangelogModal from "./header/ChangelogModal";
+import TeamModal from "./header/TeamModal";
 
 export default function AboutTab() {
+  const [activeSubpage, setActiveSubpage] = useState<"main" | "hallOfFame" | "changelog" | "team">("main");
+
+  if (activeSubpage === "team") {
+    return (
+      <div className="animate-fadeIn">
+        <TeamModal handleClose={() => setActiveSubpage("main")} />
+      </div>
+    );
+  }
+
+  if (activeSubpage === "hallOfFame") {
+    return (
+      <div className="animate-fadeIn">
+        <HallOfFameModal handleClose={() => setActiveSubpage("main")} />
+      </div>
+    );
+  }
+
+  if (activeSubpage === "changelog") {
+    return (
+      <div className="animate-fadeIn">
+        <ChangelogModal handleClose={() => setActiveSubpage("main")} />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 pt-2 pb-24 md:pb-8 animate-fadeIn">
       <div className="flex flex-col mb-6">
@@ -20,7 +49,7 @@ export default function AboutTab() {
           Resources
         </h3>
       </div>
-      <ResourcesSection />
+      <ResourcesSection setActiveSubpage={setActiveSubpage} />
     </div>
   );
 }
