@@ -279,13 +279,6 @@ export default function NavigationTabs({
   }`;
 
   const profileName = settings.friendlyName || profileData?.name || username || "Student";
-  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
-  const initials = String(profileName)
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   const persistSidebarState = useCallback((nextCollapsed: boolean) => {
     setSettings(prev => ({ ...prev, isSidebarCollapsed: nextCollapsed }));
@@ -1198,21 +1191,6 @@ export default function NavigationTabs({
                     <button
                       onClick={() => {
                         setSettings((prev: any) => {
-                          const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-                          localStorage.setItem("settings", JSON.stringify(next));
-                          return next;
-                        });
-                      }}
-                      className="flex justify-between items-center w-full text-left hover:bg-sidebar-accent rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-sidebar-foreground/ hover:text-sidebar-foreground"
-                      title="Click to show/hide CGPA"
-                    >
-                      <span className="text-sidebar-foreground/">CGPA</span>
-                      <span className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}>{marksData?.cgpa?.cgpa || "-"}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSettings((prev: any) => {
                           const next = { ...prev, attendancePercentageOrString: prev.attendancePercentageOrString === "percentage" ? "str" : "percentage" };
                           localStorage.setItem("settings", JSON.stringify(next));
                           return next;
@@ -1490,13 +1468,6 @@ export default function NavigationTabs({
             >
               {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
-                {showProfileImage && profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
-                ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
-                    {initials || "ST"}
-                  </div>
-                )}
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-semibold text-sidebar-foreground">{profileName}</span>
                   <span className="block truncate text-[10px] text-sidebar-foreground/">Computer Science</span>
@@ -1561,19 +1532,14 @@ export default function NavigationTabs({
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
 
-              {/* Profile Avatar */}
+              {/* Profile Shortcut */}
               <button
                 onClick={() => selectTab("profile")}
-                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-sidebar-foreground transition-colors hover:bg-sidebar-accent/80"
                 title="Account Settings"
+                aria-label="Open profile"
               >
-                {showProfileImage && profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
-                ) : (
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
-                    {initials || "ST"}
-                  </span>
-                )}
+                <User className="h-4 w-4" />
               </button>
             </motion.div>
           )}
