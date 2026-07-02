@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
+import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -199,7 +200,8 @@ export default function MobileHome({
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
   const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
-  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
+  const shouldDisplayGpa = shouldShowGpa(settings);
+  const shouldDisplayProfilePhoto = shouldShowProfilePhoto(settings);
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -212,7 +214,7 @@ export default function MobileHome({
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3.5 min-w-0">
-          {showProfileImage && profileImage ? (
+          {shouldDisplayProfilePhoto && profileImage ? (
             <img
               src={profileImage}
               alt=""
@@ -255,23 +257,25 @@ export default function MobileHome({
       {/* ── QUICK INSIGHTS DOCK ── */}
       <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-none px-1" data-prevent-swipe="true">
         {/* CGPA Card */}
-        <button
-          onClick={() => {
-            setSettings((prev: any) => {
-              const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-              localStorage.setItem("settings", JSON.stringify(next));
-              return next;
-            });
-          }}
-          className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">Cumulative GPA</span>
-          <p className={`text-lg font-black text-gray-950 dark:text-white leading-none mt-1 transition-all duration-300 ${settings.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
-            {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
-          </p>
-          <span className="text-[8px] text-gray-400 dark:text-gray-500 font-semibold leading-none">VTOP Verified</span>
-        </button>
+        {shouldDisplayGpa ? (
+          <button
+            onClick={() => {
+              setSettings((prev: any) => {
+                const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
+                localStorage.setItem("settings", JSON.stringify(next));
+                return next;
+              });
+            }}
+            className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
+            <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">Cumulative GPA</span>
+            <p className={`text-lg font-black text-gray-950 dark:text-white leading-none mt-1 transition-all duration-300 ${settings.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
+              {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
+            </p>
+            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-semibold leading-none">VTOP Verified</span>
+          </button>
+        ) : null}
 
         {/* Credits Card */}
         <div className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden">

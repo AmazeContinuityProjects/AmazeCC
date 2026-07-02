@@ -791,6 +791,28 @@ export default function ProfilePage({
                     />
                   </div>
 
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showGpa ?? false}
+                      onCheckedChange={(val) => updateSetting("showGpa", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display your profile photo in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showProfilePhoto ?? false}
+                      onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>

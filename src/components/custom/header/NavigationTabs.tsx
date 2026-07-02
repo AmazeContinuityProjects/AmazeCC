@@ -47,6 +47,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import config from "../../../../config.json";
+import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
 type NavItem = {
   id: string;
@@ -279,7 +280,8 @@ export default function NavigationTabs({
   }`;
 
   const profileName = settings.friendlyName || profileData?.name || username || "Student";
-  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
+  const shouldDisplayGpa = shouldShowGpa(settings);
+  const shouldDisplayProfilePhoto = shouldShowProfilePhoto(settings);
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -1195,20 +1197,22 @@ export default function NavigationTabs({
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <button
-                      onClick={() => {
-                        setSettings((prev: any) => {
-                          const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-                          localStorage.setItem("settings", JSON.stringify(next));
-                          return next;
-                        });
-                      }}
-                      className="flex justify-between items-center w-full text-left hover:bg-sidebar-accent rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-sidebar-foreground/ hover:text-sidebar-foreground"
-                      title="Click to show/hide CGPA"
-                    >
-                      <span className="text-sidebar-foreground/">CGPA</span>
-                      <span className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}>{marksData?.cgpa?.cgpa || "-"}</span>
-                    </button>
+                    {shouldDisplayGpa && (
+                      <button
+                        onClick={() => {
+                          setSettings((prev: any) => {
+                            const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
+                            localStorage.setItem("settings", JSON.stringify(next));
+                            return next;
+                          });
+                        }}
+                        className="flex justify-between items-center w-full text-left hover:bg-sidebar-accent rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-sidebar-foreground/ hover:text-sidebar-foreground"
+                        title="Click to show/hide CGPA"
+                      >
+                        <span className="text-sidebar-foreground/">CGPA</span>
+                        <span className={`font-semibold text-sidebar-foreground transition-all duration-300 ${settings.CGPAHidden ? "blur-[4.5px] select-none" : ""}`}>{marksData?.cgpa?.cgpa || "-"}</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {
@@ -1490,7 +1494,7 @@ export default function NavigationTabs({
             >
               {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
-                {showProfileImage && profileData?.image ? (
+                {shouldDisplayProfilePhoto && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
@@ -1567,7 +1571,7 @@ export default function NavigationTabs({
                 className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
                 title="Account Settings"
               >
-                {showProfileImage && profileData?.image ? (
+                {shouldDisplayProfilePhoto && profileData?.image ? (
                   <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
                 ) : (
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
