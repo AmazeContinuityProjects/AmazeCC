@@ -9,14 +9,9 @@
 </p>
 
 <p align="center">
-<<<<<<< HEAD
-  <a href="https://amazecc.com">Live Site</a> ·
-  <a href="https://api.amazecc.com">API Docs</a> ·
-=======
   <a href="https://amazecc.com"><strong>Live Site</strong></a> ·
   <a href="https://api.amazecc.com/docs"><strong>API Docs</strong></a> ·
   <a href="https://api.amazecc.com/stats"><strong>API Stats</strong></a>
->>>>>>> main
 </p>
 
 <p align="center">
