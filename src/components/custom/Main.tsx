@@ -23,6 +23,8 @@ const FETCH_TIMEOUT = 90000;
 
 let globalLoginPromise: Promise<any> | null = null;
 let cachedVTOPCredentials: { cookies: string[], authorizedID: string, csrf: string } | null = null;
+let cachedEventHubSession: string | null = null;
+let globalEventHubLoginPromise: Promise<string> | null = null;
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
   const controller = new AbortController();
@@ -33,6 +35,31 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = F
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function loginToEventHub(IDs: { VtopUsername: string; VtopPassword: string }, demoMode: boolean, forceNew = false): Promise<string> {
+  if (demoMode || IDs.VtopUsername === "demo") return "";
+  if (cachedEventHubSession && !forceNew) return cachedEventHubSession;
+  if (globalEventHubLoginPromise) return globalEventHubLoginPromise;
+  globalEventHubLoginPromise = (async () => {
+    try {
+      const res = await fetchWithTimeout(`${API_BASE}/api/events/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
+      }, 30000);
+      const data = await res.json();
+      if (!data.success || !data.jsessionid) {
+        throw new Error(data.error || "Event Hub login failed");
+      }
+      cachedEventHubSession = data.jsessionid;
+      localStorage.setItem("eventHubSession", data.jsessionid);
+      return data.jsessionid;
+    } finally {
+      globalEventHubLoginPromise = null;
+    }
+  })();
+  return globalEventHubLoginPromise;
 }
 
 type settings = {
@@ -411,6 +438,7 @@ export default function LoginPage() {
     const settings = localStorage.getItem("settings");
     const IDs = localStorage.getItem("IDs");
     const storedRegisteredEvents = localStorage.getItem("registeredEvents");
+    const storedEventHubSession = localStorage.getItem("eventHubSession");
 
     const parsedStoredAttendance: attendanceRes | null = storedAttendance ? JSON.parse(storedAttendance) : null;
     if (parsedStoredAttendance && parsedStoredAttendance.attendance) {
@@ -425,6 +453,7 @@ export default function LoginPage() {
     if (MoodleData) setMoodleData(JSON.parse(MoodleData));
     if (VitolData) setVitolData(JSON.parse(VitolData));
     if (storedRegisteredEvents) setRegisteredEvents(JSON.parse(storedRegisteredEvents));
+    if (storedEventHubSession) cachedEventHubSession = storedEventHubSession;
     
     setIDs({
       VtopUsername: storedUsername || "",
@@ -638,11 +667,13 @@ export default function LoginPage() {
           setProgressBar(prev => prev + 5);
           return j;
         }),
-        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-        }).then(async r => {
+        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
+          if (!jsessionid) return { events: [] };
+          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsessionid }),
+          });
           if (!r.ok) return { events: [] };
           const j = await r.json();
           setMessage(prev => prev + "\n✅ Event Hub data fetched");
@@ -927,11 +958,13 @@ export default function LoginPage() {
       const tasks: Promise<void>[] = [coreTask];
       
       tasks.push(
-        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-        }).then(async r => {
+        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
+          if (!jsessionid) return;
+          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsessionid }),
+          });
           if (!r.ok) return;
           const { events } = await r.json();
           if (events) {
@@ -1104,6 +1137,7 @@ export default function LoginPage() {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
+    cachedEventHubSession = null;
 
     const keysToKeep = ["activityTree", "theme"];
 
@@ -3004,22 +3038,25 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EventPreviewCard({ eid, username, password }: { eid: string; username: string; password: string }) {
+function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoMode: boolean }) {
   const [data, setData] = useState<{ imageSrc: string; description: string; metaDetails: Record<string, string> } | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/events/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, eid }),
-      signal: controller.signal
-    }).then(async r => { if (!r.ok) return null; return r.json(); }).then(j => {
+    loginToEventHub(IDs, demoMode).then(jsessionid => {
+      if (!jsessionid || cancelled) { if (!cancelled) setLoading(false); return; }
+      return fetch(`${API_BASE}/api/events/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsessionid, eid }),
+        signal: controller.signal
+      });
+    }).then(async r => { if (!r || !r.ok) return null; return r.json(); }).then(j => {
       if (!cancelled) { setData(j); setLoading(false); }
     }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; controller.abort(); };
-  }, [eid, username, password]);
+  }, [eid, IDs, demoMode]);
   if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100  dark:bg-gray-900 animate-pulse" />;
   if (!data?.imageSrc) return null;
   return (

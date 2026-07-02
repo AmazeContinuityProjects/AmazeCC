@@ -4,7 +4,7 @@ import InfoRow from "../shared/InfoRow";
 import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
-import { API_BASE } from "../Main";
+import { API_BASE, loginToEventHub } from "../Main";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import SubpageLayout from "../shared/SubpageLayout";
@@ -88,12 +88,18 @@ export default function EventHubSubpage({
     }
 
     try {
+      const jsessionid = await loginToEventHub(IDs, IDs?.VtopUsername === "demo");
+      if (!jsessionid) {
+        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
+        setModalOpen(true);
+        setIsRegistering(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/download`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
+          jsessionid,
           url: url
         })
       });
@@ -197,12 +203,18 @@ export default function EventHubSubpage({
     }
 
     try {
+      const jsessionid = await loginToEventHub(IDs, false);
+      if (!jsessionid) {
+        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
+        setModalOpen(true);
+        setIsRegistering(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
+          jsessionid,
           eid: selectedEvent.eid
         })
       });
@@ -285,12 +297,18 @@ export default function EventHubSubpage({
                                   return;
                                 }
                                 try {
+                                  const jsessionid = await loginToEventHub(IDs, false);
+                                  if (!jsessionid) {
+                                    setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
+                                    setModalOpen(true);
+                                    setIsRegistering(false);
+                                    return;
+                                  }
                                   const res = await fetch(`${API_BASE}/api/events/paynow`, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
-                                      username: IDs?.VtopUsername,
-                                      password: IDs?.VtopPassword,
+                                      jsessionid,
                                       url: linkToPay
                                     })
                                   });
