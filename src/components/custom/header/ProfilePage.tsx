@@ -1422,15 +1422,15 @@ export default function ProfilePage({
                 <div className="w-full max-w-xs grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-left pt-2 border-t border-gray-150 dark:border-gray-800/60 mt-2">
                   <div>
                     <span className="text-gray-400 font-medium block">Version</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">v2.0.4</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">v3.1.0</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Build Number</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0627</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0703</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Last Updated</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">June 2026</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">July 2026</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Platform</span>

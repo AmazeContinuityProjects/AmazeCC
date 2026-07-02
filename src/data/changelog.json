@@ -1,5 +1,13 @@
 [
   {
+    "version": "v3.1.0",
+    "date": "2026-07-03",
+    "changes": [
+      "AmazeCC rebrand: Welcome to the new AmazeCC App",
+      "UX Polish: Streamlined UI elements and cleaned up duplicate theme toggles in modals."
+    ]
+  },
+  {
     "version": "v3.0.0",
     "date": "2026-06-27",
     "changes": [

@@ -1,12 +1,21 @@
 @import "@amazecontinuityprojects/amazeui/tailwind.css";
 @source "../node_modules/@amazecontinuityprojects/amazeui/dist";
 
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-outfit: "DM Sans", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "DM Sans", var(--font-outfit), sans-serif;
   }
 }
 
