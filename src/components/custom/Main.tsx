@@ -16,6 +16,7 @@ import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard } from "lucide-react";
+import { getAssetPath } from "@/lib/utils";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
@@ -2814,13 +2815,14 @@ export default function LoginPage() {
           {/* Logo container */}
           <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200/80 dark:border-neutral-800 shadow-2xl animate-pulse">
             <img src="/logo.png" alt="AmazeCC Logo" className="w-14 h-14 object-contain" onError={(e) => {
-              (e.target as HTMLImageElement).src = "/images/icons/AmazeCC.png";
+              (e.target as HTMLImageElement).src = "/images/icons/logo.png";
             }} />
             <div className="absolute -inset-1.5 rounded-[28px] border border-blue-500/20 animate-ping duration-3000 pointer-events-none" />
           </div>
           
-          <div className="space-y-2 pt-2">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</h2>
+          <div className="space-y-3 pt-2.5">
+            <img src={getAssetPath("/images/icons/wordmarkLight.svg")} alt="AmazeCC" className="h-6 object-contain mx-auto block dark:hidden" />
+            <img src={getAssetPath("/images/icons/wordmarkDark.svg")} alt="AmazeCC" className="h-6 object-contain mx-auto hidden dark:block" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Student Operating System</p>
           </div>
 

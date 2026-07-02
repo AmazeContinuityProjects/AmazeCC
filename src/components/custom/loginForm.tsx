@@ -172,7 +172,7 @@ export default function LoginForm({
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowLoginCard(false)}>
               <img src="/logo.png" alt="AmazeCC Logo" className="h-7 w-7 rounded-lg object-contain shadow-md" onError={(e) => {
-                (e.target as HTMLImageElement).src = "/images/icons/AmazeCC.png";
+                (e.target as HTMLImageElement).src = "/images/icons/logo.png";
               }} />
               <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</span>
             </div>
