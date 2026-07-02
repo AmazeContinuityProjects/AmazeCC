@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Calendar, ExternalLink } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
@@ -17,8 +17,8 @@ export default function CommunityFeed({ IDs, loginToVTOP }: { IDs?: any, loginTo
     try {
       const vtopIdParam = currentVtopId ? `?vtop_id=${currentVtopId}` : "";
       const [feedRes, eventsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/club-admin/feed${vtopIdParam}`).then(res => res.json()),
-        fetch(`${API_BASE}/api/events`).then(res => res.json()).catch(() => [])
+        fetch(`${API_BASE}/api/club-admin/feed${vtopIdParam}`).then(res => res.ok ? res.json() : Promise.reject(new Error(`API Error: ${res.status}`))),
+        fetch(`${API_BASE}/api/events`).then(res => res.ok ? res.json() : []).catch(() => [])
       ]);
 
       if (feedRes.success) {

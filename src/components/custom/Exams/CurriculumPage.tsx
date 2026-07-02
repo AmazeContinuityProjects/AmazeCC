@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import { Search, X, RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap, Layers, Download } from "lucide-react";
 import { API_BASE } from "../Main";
 import FetchButton from "../shared/FetchButton";

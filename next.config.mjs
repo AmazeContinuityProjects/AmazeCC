@@ -21,6 +21,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
+  transpilePackages: ['@amazecontinuityprojects/amazeui'],
   reactStrictMode: true,
   devIndicators: false,
   images: {
@@ -43,6 +44,10 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push("@napi-rs/canvas");
+    }
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'react-native$': 'react-native-web',
     }
     return config;
   },
