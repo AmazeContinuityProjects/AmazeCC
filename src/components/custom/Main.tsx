@@ -44,6 +44,8 @@ type settings = {
   loadingScreen: boolean;
   isDayscholarWithBus: boolean;
   hideProfileImageOutsideInfo?: boolean;
+  showGpa?: boolean;
+  showProfilePhoto?: boolean;
   colorPalette?: string;
   customPalette?: {
     accent: string;
@@ -85,6 +87,8 @@ const defaultSettings: settings = {
   loadingScreen: false,
   isDayscholarWithBus: false,
   hideProfileImageOutsideInfo: false,
+  showGpa: false,
+  showProfilePhoto: false,
   colorPalette: "default",
   customPalette: {
     accent: "#0ea5e9",
