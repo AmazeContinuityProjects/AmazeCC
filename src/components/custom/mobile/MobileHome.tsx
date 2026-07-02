@@ -198,40 +198,19 @@ export default function MobileHome({
   };
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
-  const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
-  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
-  const initials = String(profileName)
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <div className="w-full space-y-6 pb-24 md:pb-0 animate-in fade-in duration-300">
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
-        <div className="flex items-center gap-3.5 min-w-0">
-          {showProfileImage && profileImage ? (
-            <img
-              src={profileImage}
-              alt=""
-              className="h-12 w-12 rounded-2xl border border-white/60 object-cover shadow-md dark:border-gray-800 md:h-14 md:w-14"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-info flex items-center justify-center text-white font-black text-sm shadow-md border border-white/15 shrink-0 md:h-14 md:w-14">
-              {initials}
-            </div>
-          )}
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-              {getGreeting()}
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5 flex items-center gap-1.5 min-w-0">
-              <Sparkles className="w-3.5 h-3.5 text-info shrink-0" />
-              <span className="truncate">Welcome, {profileName}</span>
-            </p>
-          </div>
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
+            {getGreeting()}
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5 flex items-center gap-1.5 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 text-info shrink-0" />
+            <span className="truncate">Welcome, {profileName}</span>
+          </p>
         </div>
         <button
           onClick={handleRefresh}
@@ -254,25 +233,6 @@ export default function MobileHome({
 
       {/* ── QUICK INSIGHTS DOCK ── */}
       <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-none px-1" data-prevent-swipe="true">
-        {/* CGPA Card */}
-        <button
-          onClick={() => {
-            setSettings((prev: any) => {
-              const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-              localStorage.setItem("settings", JSON.stringify(next));
-              return next;
-            });
-          }}
-          className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">Cumulative GPA</span>
-          <p className={`text-lg font-black text-gray-950 dark:text-white leading-none mt-1 transition-all duration-300 ${settings.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
-            {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
-          </p>
-          <span className="text-[8px] text-gray-400 dark:text-gray-500 font-semibold leading-none">VTOP Verified</span>
-        </button>
-
         {/* Credits Card */}
         <div className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden">
           <div className="absolute top-0 right-0 w-8 h-8 bg-info-surface rounded-bl-full pointer-events-none" />
