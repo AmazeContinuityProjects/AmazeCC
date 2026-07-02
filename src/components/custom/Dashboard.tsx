@@ -515,7 +515,7 @@ export default function DashboardContent({
 
   return (
     <div
-      className="w-full max-w-md md:max-w-full mx-auto overflow-hidden"
+      className="w-full max-w-md md:max-w-full mx-auto overflow-visible"
     >
       <NavigationTabs
         activeTab={activeTab}

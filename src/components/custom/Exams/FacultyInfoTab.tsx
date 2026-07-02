@@ -95,7 +95,12 @@ export default function FacultyInfoTab({ loginToVTOP, setActiveSubTab }: { login
 
   useEffect(() => {
     fetch(`${API_BASE}/api/faculty/schools`)
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          throw new Error(`Failed to load schools: API returned ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => {
         if (data.success) {
           setSchools(data.schools);
@@ -123,6 +128,9 @@ export default function FacultyInfoTab({ loginToVTOP, setActiveSubTab }: { login
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schoolId }),
       });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch faculty list: API returned ${res.status}`);
+      }
       const data = await res.json();
       if (data.success === false) {
         setError(data.error || "Failed to fetch faculty list");

@@ -13,7 +13,7 @@
     "api-start": "node backend/dist/server.js"
   },
   "dependencies": {
-    "@amazecontinuityprojects/amazeui": "^1.0.0",
+    "@amazecontinuityprojects/amazeui": "file:../AmazeUI",
     "@aws-sdk/client-s3": "^3.946.0",
     "@next/third-parties": "16.0.0",
     "@opennextjs/cloudflare": "^1.11.0",

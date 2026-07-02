@@ -1,4 +1,5 @@
 @import "@amazecontinuityprojects/amazeui/tailwind.css";
+@source "../node_modules/@amazecontinuityprojects/amazeui/dist";
 
 @layer base {
   * {

@@ -43,7 +43,10 @@ export default function EventHubSubpage({
 
   useEffect(() => {
     fetch(`${API_BASE}/api/clubs/details`)
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.success && data.clubs) {
           setClubsList(data.clubs);
@@ -206,14 +209,17 @@ export default function EventHubSubpage({
           eid: selectedEvent.eid
         })
       });
-
-      const data = await res.json();
       
       if (!res.ok) {
-        setModalContent({ title: "Registration Failed", message: data.error || "Failed to register for event." });
+        const errText = await res.text();
+        let errMsg = "Failed to register for event.";
+        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
+        setModalContent({ title: "Registration Failed", message: errMsg });
         setModalOpen(true);
         return;
       }
+
+      const data = await res.json();
 
       if (data.status === "success") {
         setModalContent({ title: "Registration Successful", message: data.message });
@@ -294,6 +300,9 @@ export default function EventHubSubpage({
                                       url: linkToPay
                                     })
                                   });
+                                  if (!res.ok) {
+                                    throw new Error(`Payment API failed with status ${res.status}`);
+                                  }
                                   const data = await res.json();
                                   if (data.status === "payment_required" || data.status === "redirect") {
                                     window.open(data.url, "_blank");
