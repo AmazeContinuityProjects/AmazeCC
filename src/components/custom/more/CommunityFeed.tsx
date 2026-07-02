@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Calendar, ExternalLink } from "lucide-react";
 import ReactMarkdown from 'react-markdown';

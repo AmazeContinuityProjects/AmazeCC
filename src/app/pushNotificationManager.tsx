@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Switch } from "@/components/ui/switch"
+import { Switch } from "@amazecontinuityprojects/amazeui"
 import { API_BASE } from "@/components/custom/Main";
 
 function urlBase64ToUint8Array(base64String: string) {

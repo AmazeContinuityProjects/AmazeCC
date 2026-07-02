@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@amazecontinuityprojects/amazeui";
 import { Target, Calculator, Save, AlertCircle, ArrowRight, Trophy, Trash2, Plus, Minus } from "lucide-react";
 import SubpageLayout from "../shared/SubpageLayout";
 import { useIsMobile } from "../shared";

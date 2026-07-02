@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { API_BASE } from "../Main";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,8 +10,8 @@ import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
+import { Button } from "@amazecontinuityprojects/amazeui";
 
 export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: { 
   IDs: any, 

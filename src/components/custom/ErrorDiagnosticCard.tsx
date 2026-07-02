@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@amazecontinuityprojects/amazeui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@amazecontinuityprojects/amazeui";
 import { AlertCircle } from "lucide-react";
 
 type ErrorWithDigest = Error & { digest?: string };

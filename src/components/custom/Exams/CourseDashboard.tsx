@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
   ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,

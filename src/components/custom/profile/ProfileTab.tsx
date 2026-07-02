@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import ProfilePage from "../header/ProfilePage";
 import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
 import ProfileSubTabs from "./ProfileSubTabs";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Card, Badge, Modal } from "../shared";
 import { RefreshCcw, Eye, EyeOff, Save, CheckCircle, AlertCircle, User, Clock, Copy, Lock, BookOpen } from "lucide-react";
 import { API_BASE } from "../Main";
