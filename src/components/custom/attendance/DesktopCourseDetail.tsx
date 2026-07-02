@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import Badge from "../shared/Badge";
 import { Building2, Clock, User, Star, AlertCircle, FileText, CheckCircle2, CalendarDays, ExternalLink, HelpCircle, Calendar as CalendarIcon, Minus, Plus } from "lucide-react";
 import ExpandableSection from "../shared/ExpandableSection";

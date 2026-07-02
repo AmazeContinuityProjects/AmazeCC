@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Geist, Geist_Mono, Roboto, Outfit } from 'next/font/google';
-import { ThemeProvider } from "../components/themeprovider";
+import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
 import type { Viewport, Metadata } from "next";

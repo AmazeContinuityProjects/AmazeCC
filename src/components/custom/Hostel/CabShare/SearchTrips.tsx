@@ -180,8 +180,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
                 <option value="">Any</option>
-                {hubs.map(h => (
-                  <option key={`search-from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                {hubs.map((h, idx) => (
+                  <option key={`search-from-${h.hub_id}-${idx}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
               </select>
             </div>
@@ -193,8 +193,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               >
                 <option value="">Any</option>
-                {hubs.map(h => (
-                  <option key={`search-to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
+                {hubs.map((h, idx) => (
+                  <option key={`search-to-${h.hub_id}-${idx}`} value={h.hub_id}>{h.hub_name}</option>
                 ))}
             </select>
           </div>

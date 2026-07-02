@@ -29,10 +29,10 @@ import {
   Keyboard
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button } from "../../ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@amazecontinuityprojects/amazeui";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
@@ -788,6 +788,28 @@ export default function ProfilePage({
                     <Switch
                       checked={settings?.hideProfileImageOutsideInfo ?? false}
                       onCheckedChange={(val) => updateSetting("hideProfileImageOutsideInfo", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showGpa ?? false}
+                      onCheckedChange={(val) => updateSetting("showGpa", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display your profile photo in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showProfilePhoto ?? false}
+                      onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
                     />
                   </div>
 

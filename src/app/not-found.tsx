@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@amazecontinuityprojects/amazeui";
 import { HelpCircle } from "lucide-react";
 
 export default function NotFoundPage() {

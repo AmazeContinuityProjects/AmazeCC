@@ -2,7 +2,7 @@
 
 import { X, ChevronDown, ChevronUp, Save, Copy, Check } from "lucide-react";
 import { useState, useEffect, use } from "react";
-import { Button } from "../../ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 
 interface LocalStorageItemProps {
     storageKey: string;

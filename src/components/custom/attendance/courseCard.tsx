@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui"
 import InfoRow from "../shared/InfoRow"
 import { Building2, Clock, Minus, Plus } from "lucide-react"
 import CircularProgress from "../shared/CircularProgress"

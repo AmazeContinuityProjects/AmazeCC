@@ -1,5 +1,5 @@
 import { X, History, Sparkles } from "lucide-react";
-import { Button } from "../../ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import changelogData from "../../../data/changelog.json";
 
 export default function ChangelogModal({ handleClose }) {

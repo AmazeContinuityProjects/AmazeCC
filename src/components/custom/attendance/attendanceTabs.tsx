@@ -11,7 +11,7 @@ import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 import AttendanceSubpage from "./AttendanceSubpage";
 import ODTrackerSubpage from "./ODTrackerSubpage";
 import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import Modal from "../shared/Modal";
 import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";

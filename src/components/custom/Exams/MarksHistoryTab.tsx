@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import Badge from "../shared/Badge";
 import { ChevronDown, ChevronRight, Trophy, TrendingDown, BarChart3, Award } from "lucide-react";
 
