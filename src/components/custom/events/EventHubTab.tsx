@@ -163,7 +163,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to load event preview");
+      if (!res.ok) throw new Error(`Failed to load event preview (status: ${res.status})`);
       const data = await res.json();
       setPreviewData(data);
     } catch (err: any) {
@@ -233,8 +233,13 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
           password: IDs.VtopPassword,
         })
       });
+      if (!res.ok) {
+        const errText = await res.text();
+        let errMsg = "Failed to fetch registered events";
+        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch registered events");
       if (setRegisteredEvents) {
         setRegisteredEvents(data.events || []);
         localStorage.setItem("registeredEvents", JSON.stringify(data.events || []));

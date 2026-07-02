@@ -21,6 +21,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
+  transpilePackages: ['@amazecontinuityprojects/amazeui'],
   reactStrictMode: true,
   devIndicators: false,
   images: {

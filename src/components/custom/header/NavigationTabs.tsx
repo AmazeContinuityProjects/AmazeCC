@@ -45,7 +45,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "next-themes";
+import { 
+  useTheme, 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent, 
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarItem,
+} from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
@@ -132,7 +141,7 @@ export default function NavigationTabs({
   void feedbackStatus;
   void onOpenFeedbackStatus;
 
-  const sidebarRef = useRef<HTMLElement | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const flyoutRef = useRef<HTMLDivElement | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
@@ -326,7 +335,7 @@ export default function NavigationTabs({
     } else {
       setTheme(selectedTheme);
     }
-    window.setTimeout(() => window.location.reload(), 80);
+    
   };
 
   // Keyboard navigation
@@ -1118,16 +1127,15 @@ export default function NavigationTabs({
     <>
       {renderMobileNav()}
 
-      <aside
+      <Sidebar
         ref={sidebarRef}
         data-sidebar-root="true"
-        className={`fixed left-4 top-4 z-40 hidden h-[calc(100vh-2rem)] flex-col overflow-visible rounded-[24px] border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:flex ${
-          isOpen ? "w-[280px]" : "w-[72px]"
-        }`}
         aria-label="Primary navigation"
+        isOpen={isOpen}
+        onOpenChange={(val) => persistSidebarState(!val)}
       >
         {/* Sidebar Header */}
-        <div className={`flex flex-col border-b border-sidebar-border shrink-0 ${isOpen ? "px-4 pb-4 pt-5" : "px-3.5 py-4"}`}>
+        <SidebarHeader>
           {/* Logo & Expand Toggle */}
           <div className={`flex items-center ${isOpen ? "justify-between w-full" : "justify-center w-full"}`}>
             <div className={`flex items-center min-w-0 ${isOpen ? "gap-2.5" : "justify-center"}`}>
@@ -1285,166 +1293,94 @@ export default function NavigationTabs({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </SidebarHeader>
 
         {/* Navigation Content (Expanded Mode vs Compact Rail) */}
         {isOpen ? (
-          <nav className="flex-grow overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "none" }}>
-            <AnimatePresence initial={false} mode="wait">
-              {!showAcademicsPanel && !showHostelPanel ? (
-                <motion.div
-                  key="primary-nav"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.18 }}
-                  className="space-y-4"
-                >
-                  {groups.map((group) => {
-                    return (
-                      <div key={group.id} className="space-y-1">
-                        {/* Group Header with subtle line */}
-                        <div className="flex w-full items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/">
-                          <span>{group.label}</span>
-                          <div className="h-px bg-sidebar-accent flex-grow" />
-                        </div>
-
-                        {/* Group Items (Always Expanded) */}
-                        <div className="space-y-0.5 pt-0.5 pb-1">
-                          {group.items.map((item) => {
-                            const ItemIcon = item.icon;
-                            const activeStyles = sidebarActiveStyles;
-                            const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
-                            return (
-                              <button
-                                key={item.id}
-                                data-sidebar-nav="true"
-                                onClick={item.onSelect}
-                                onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                                className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                  item.isActive ? activeStyles : inactiveStyles
-                                }`}
-                              >
-                                <ItemIcon
-                                  className={`h-4 w-4 shrink-0 transition-colors ${
-                                    item.isActive ? sidebarActiveIconStyles : "text-sidebar-foreground/ group-hover:text-sidebar-foreground"
-                                  }`}
-                                />
-                                <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                                {item.isExpandable && (
-                                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </motion.div>
-              ) : showAcademicsPanel ? (
-                <motion.div
-                  key="academics-nav"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.18 }}
-                  className="space-y-4"
-                >
-                  <button
-                    onClick={() => setShowAcademicsPanel(false)}
-                    className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    <span>Back</span>
-                  </button>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-3 py-1">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/">
-                        Academics
-                      </span>
-                      <div className="h-px bg-sidebar-accent flex-grow" />
+          <SidebarContent>
+            {!showAcademicsPanel && !showHostelPanel ? (
+              <div className="space-y-4">
+                {groups.map((group) => (
+                  <SidebarGroup key={group.id}>
+                    <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                    <div className="space-y-0.5 pt-0.5 pb-1">
+                      {group.items.map((item) => (
+                        <SidebarItem
+                          key={item.id}
+                          icon={<item.icon className="h-5 w-5" />}
+                          label={item.label}
+                          isActive={item.isActive}
+                          onClick={item.onSelect}
+                          onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                          rightElement={item.isExpandable ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : undefined}
+                        />
+                      ))}
                     </div>
-
-                    <div className="space-y-0.5">
-                      {academicsItems.map((item, index) => {
-                        const showDivider = index === 6;
-                        const activeStyles = sidebarActiveStyles;
-                        const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
-                        return (
-                          <div key={item.id}>
-                            {showDivider && (
-                              <div className="my-2 border-t border-sidebar-border" />
-                            )}
-                            <button
-                              data-sidebar-nav="true"
-                              onClick={item.onSelect}
-                              onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                              className={`group relative flex w-full items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                                item.isActive ? activeStyles : inactiveStyles
-                              }`}
-                            >
-                              <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="hostel-nav"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.18 }}
-                  className="space-y-4"
+                  </SidebarGroup>
+                ))}
+              </div>
+            ) : showAcademicsPanel ? (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowAcademicsPanel(false)}
+                  className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
                 >
-                  <button
-                    onClick={() => setShowHostelPanel(false)}
-                    className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    <span>Back</span>
-                  </button>
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Back</span>
+                </button>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-3 py-1">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/">
-                        Hostel Hub
-                      </span>
-                      <div className="h-px bg-sidebar-accent flex-grow" />
-                    </div>
-
-                    <div className="space-y-0.5">
-                      {hostelSubItems.map((item) => {
-                        const activeStyles = sidebarActiveStyles;
-                        const inactiveStyles = "border border-transparent text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground";
-                        return (
-                          <button
-                            key={item.id}
-                            data-sidebar-nav="true"
+                <SidebarGroup>
+                  <SidebarGroupLabel>Academics</SidebarGroupLabel>
+                  <div className="space-y-0.5">
+                    {academicsItems.map((item, index) => {
+                      const showDivider = index === 6;
+                      return (
+                        <div key={item.id}>
+                          {showDivider && <div className="my-2 border-t border-sidebar-border" />}
+                          <SidebarItem
+                            icon={item.icon}
+                            label={item.label}
+                            isActive={item.isActive}
                             onClick={item.onSelect}
                             onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
-                            className={`group relative flex w-full items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-[color,background-color] duration-150 ${navButtonBase} ${
-                              item.isActive ? activeStyles : inactiveStyles
-                            }`}
-                          >
-                            <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </nav>
+                </SidebarGroup>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowHostelPanel(false)}
+                  className="flex items-center gap-2 px-2 py-1 text-xs font-bold text-sidebar-foreground/ hover:text-sidebar-foreground transition-colors"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Back</span>
+                </button>
+
+                <SidebarGroup>
+                  <SidebarGroupLabel>Hostel Hub</SidebarGroupLabel>
+                  <div className="space-y-0.5">
+                    {hostelSubItems.map((item) => (
+                      <SidebarItem
+                        key={item.id}
+                        icon={item.icon}
+                        label={item.label}
+                        isActive={item.isActive}
+                        onClick={item.onSelect}
+                        onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                      />
+                    ))}
+                  </div>
+                </SidebarGroup>
+              </div>
+            )}
+          </SidebarContent>
         ) : (
           /* Compact Mode Rail Content */
-          <div className="flex flex-1 flex-col items-center justify-start w-full mt-3">
+            <div className="flex flex-1 min-h-0 flex-col items-center justify-start w-full mt-3">
             {/* Divider */}
             <div className="w-8 border-t border-sidebar-border mb-3" />
 
@@ -1482,7 +1418,8 @@ export default function NavigationTabs({
         )}
 
         {/* Profile, Theme, and Logout Footer */}
-        <AnimatePresence initial={false}>
+        <SidebarFooter>
+          <AnimatePresence initial={false}>
           {isOpen ? (
             <motion.div
               key="footer-expanded"
@@ -1490,7 +1427,7 @@ export default function NavigationTabs({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
-              className="shrink-0 border-t border-sidebar-border px-4 py-3 rounded-b-[24px] space-y-2.5"
+              className="shrink-0 px-4 py-3 rounded-b-[24px] space-y-2.5"
             >
               {/* Profile Row: Name, Branch & Logout */}
               <div className="flex items-center gap-2.5">
@@ -1582,6 +1519,7 @@ export default function NavigationTabs({
             </motion.div>
           )}
         </AnimatePresence>
+        </SidebarFooter>
 
         {/* Floating popover beside the compact rail */}
         <AnimatePresence>
@@ -1781,7 +1719,7 @@ export default function NavigationTabs({
             </motion.div>
           )}
         </AnimatePresence>
-      </aside>
+      </Sidebar>
     </>
   );
 }
