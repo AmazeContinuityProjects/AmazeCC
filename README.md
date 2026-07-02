@@ -8,8 +8,7 @@
 
 <p align="center">
   <a href="https://amazecc.com">Live Site</a> ·
-  <a href="https://api.amazecc.com/docs">API Docs</a> ·
-  <a href="https://api.amazecc.com/stats">API Stats</a>
+  <a href="https://api.amazecc.com">API Docs</a> ·
 </p>
 
 <p align="center">
@@ -155,7 +154,7 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 | **Research** | `/api/faculty-info`, `/api/research-profile`, `/api/project` |
 | **Admin** | `/api/admin/auth`, `/api/admin/fresher-resources`, `/api/admin/buses`, `/api/admin/migrate` |
 
-> Full API documentation is available at [api.amazecc.com/docs](https://api.amazecc.com/docs).
+> Full API documentation is available at [api.amazecc.com](https://api.amazecc.com).
 
 ---
 
