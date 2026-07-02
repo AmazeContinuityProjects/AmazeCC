@@ -1338,7 +1338,6 @@ export default function NavigationTabs({
                         <div key={item.id}>
                           {showDivider && <div className="my-2 border-t border-sidebar-border" />}
                           <SidebarItem
-                            icon={item.icon}
                             label={item.label}
                             isActive={item.isActive}
                             onClick={item.onSelect}
@@ -1366,7 +1365,6 @@ export default function NavigationTabs({
                     {hostelSubItems.map((item) => (
                       <SidebarItem
                         key={item.id}
-                        icon={item.icon}
                         label={item.label}
                         isActive={item.isActive}
                         onClick={item.onSelect}
