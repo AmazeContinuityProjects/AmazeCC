@@ -44,6 +44,10 @@ const nextConfig = {
     if (isServer) {
       config.externals.push("@napi-rs/canvas");
     }
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'react-native$': 'react-native-web',
+    }
     return config;
   },
   typescript: {

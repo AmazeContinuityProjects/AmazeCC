@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Search, User, XCircle, Mail, Phone, MapPin, Building2, IdCard } from "lucide-react";
 
 interface School {

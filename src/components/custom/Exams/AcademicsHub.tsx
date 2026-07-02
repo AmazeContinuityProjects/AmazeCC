@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import GradesModal from "./GradesModal";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";

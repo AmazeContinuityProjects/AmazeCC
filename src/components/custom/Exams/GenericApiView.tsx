@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { API_BASE } from "../Main";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { ChevronDown, Inbox, Send } from "lucide-react";
 import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/shared";
 

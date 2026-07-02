@@ -29,10 +29,10 @@ import {
   Keyboard
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button } from "../../ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@amazecontinuityprojects/amazeui";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";

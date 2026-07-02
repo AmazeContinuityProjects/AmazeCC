@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Modal, Card, Badge } from "../shared";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { API_BASE } from "../Main";
 import { XCircle, CheckCircle, Clock, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 

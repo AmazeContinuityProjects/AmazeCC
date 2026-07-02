@@ -13,6 +13,7 @@
     "api-start": "node backend/dist/server.js"
   },
   "dependencies": {
+    "@amazecontinuityprojects/amazeui": "^1.0.0",
     "@aws-sdk/client-s3": "^3.946.0",
     "@next/third-parties": "16.0.0",
     "@opennextjs/cloudflare": "^1.11.0",
@@ -61,6 +62,7 @@
     "react-dropzone": "^14.3.8",
     "react-latex-next": "^3.0.0",
     "react-markdown": "^10.1.0",
+    "react-native-web": "^0.21.2",
     "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1",
     "swiper": "^12.0.3",

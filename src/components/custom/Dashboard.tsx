@@ -32,7 +32,7 @@ import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 
 const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
   loading: () => (

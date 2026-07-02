@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { API_BASE } from "../Main";
 import { FileText } from "lucide-react";
 

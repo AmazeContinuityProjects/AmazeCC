@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui";
 import { Search, MapPin, Phone, MessageCircle, BusFront, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Modal from "../shared/Modal";

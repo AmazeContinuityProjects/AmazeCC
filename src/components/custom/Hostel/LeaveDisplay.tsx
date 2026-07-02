@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCcw, Calendar, MapPin, ClipboardList, Info, Phone, PlusCircle, CheckCircle2, AlertCircle, Clock, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 
 interface LeaveDisplayProps {
   leaveData: any[];

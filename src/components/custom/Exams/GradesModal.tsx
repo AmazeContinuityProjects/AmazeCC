@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@amazecontinuityprojects/amazeui";
 import NoContentFound from "../NoContentFound";
 import Modal from "../shared/Modal";
 import FetchButton from "../shared/FetchButton";
