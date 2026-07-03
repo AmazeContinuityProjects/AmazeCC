@@ -1,5 +1,6 @@
 import { API_BASE, fetchWithTimeout } from "./fetch-utils";
 import { storage } from "./storage";
+import { loginToEventHub } from "./event-hub";
 import type { LoginCredentials } from "./auth";
 
 async function apiPost(path: string, body: unknown): Promise<Response> {
@@ -106,11 +107,12 @@ export async function fetchEventData(
   const [eventsRes, publicEvents] = await Promise.all([
     (async () => {
       try {
-        if (demoMode || ids.VtopUsername === "demo") return { events: [] };
+        const jsessionid = await loginToEventHub(ids, demoMode);
+        if (!jsessionid) return { events: [] };
         const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: ids.VtopUsername, password: ids.VtopPassword }),
+          body: JSON.stringify({ jsessionid }),
         });
         if (!r.ok) return { events: [] };
         return await r.json();
