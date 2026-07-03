@@ -1,5 +1,7 @@
 // @ts-check
 import withSerwistInit from "@serwist/next";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: false,
@@ -47,7 +49,7 @@ const nextConfig = {
     }
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      'react-native$': 'react-native-web',
+      'react-native$': require.resolve('react-native-web'),
     }
     return config;
   },
