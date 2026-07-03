@@ -17,7 +17,7 @@ import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
-import { loginToVTOP as vtopLogin, clearCachedCredentials } from "@/lib/auth";
+import { loginToVTOP as vtopLogin } from "@/lib/auth";
 import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
 import { storage } from "@/lib/storage";
 import { fetchWithTimeout, API_BASE } from "@/lib/fetch-utils";
