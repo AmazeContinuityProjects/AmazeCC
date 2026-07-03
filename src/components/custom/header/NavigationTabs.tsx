@@ -54,7 +54,11 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarItem,
+  SidebarProfile,
+  SidebarThemeControl,
+  SidebarExpandButton,
 } from "@amazecontinuityprojects/amazeui";
+import { AppLibrary } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
@@ -189,42 +193,7 @@ export default function NavigationTabs({
     };
   }, []);
 
-  // Swipe up gesture from bottom of screen to open App Library (Modules)
-  useEffect(() => {
-    let startY = 0;
-    let startX = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      startY = touch.clientY;
-      startX = touch.clientX;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!startY || !startX) return;
-
-      const touch = e.changedTouches[0];
-      const diffY = startY - touch.clientY;
-      const diffX = Math.abs(touch.clientX - startX);
-
-      // Swipe up of at least 65px, starting from bottom 22% of the viewport (near the bottom capsule/dock)
-      if (diffY > 65 && diffX < 40 && startY > window.innerHeight * 0.78) {
-        setIsAppLibraryOpen(true);
-        setMobilePanel("primary");
-      }
-      
-      startY = 0;
-      startX = 0;
-    };
-
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    return () => {
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [setIsAppLibraryOpen]);
+  // No swipe-up gesture — App Library is opened only via the Modules button
 
 
   // Update expandedGroup and subpanels when activeTab changes
@@ -848,277 +817,162 @@ export default function NavigationTabs({
           </button>
         </div>
 
-        {/* App Library Overlay Drawer */}
-        <AnimatePresence>
-          {isAppLibraryOpen && (
-            <>
-              {/* Backdrop Dimmer Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => {
-                  setIsAppLibraryOpen(false);
-                  setLibrarySearchQuery("");
-                }}
-                className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs md:hidden"
-              />
-
-              {/* Bottom Sheet Modal */}
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 28, stiffness: 220 }}
-                className="fixed bottom-0 left-0 right-0 z-[60] h-[86vh] flex flex-col overflow-hidden bg-gray-50/98 backdrop-blur-xl md:hidden dark:bg-black/98 rounded-t-[2rem] border-t border-gray-200/50 dark:border-neutral-900/60 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)]"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-              >
-                {/* Drag Handle Indicator */}
-                <div className="shrink-0 w-full flex justify-center pt-3 pb-1">
-                  <div className="w-12 h-1 bg-gray-300 dark:bg-neutral-800 rounded-full" />
-                </div>
-
-              {/* Drawer Header */}
-              <div className="shrink-0 border-b border-gray-200/50 px-5 pb-4 pt-5 dark:border-gray-800/50">
-                <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    {mobilePanel !== "primary" && (
-                      <button
-                        onClick={() => setMobilePanel("primary")}
-                        className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-800 text-info font-bold flex items-center gap-1 -ml-1 text-xs"
-                      >
-                        <ArrowLeft className="w-4 h-4" /> Back
-                      </button>
-                    )}
-                    <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
-                      {mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
-                    </h2>
-                  </div>
-                  <p className="text-xs text-gray-500 font-semibold mt-0.5">
-                    {mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
-                  </p>
-                  <div className="mt-2.5 flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Active Sem:</span>
-                    <div className="relative flex items-center">
-                      <select
-                        value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSettings((prev: any) => {
-                            const next = { ...prev, currSemesterID: val };
-                            localStorage.setItem("settings", JSON.stringify(next));
-                            return next;
-                          });
-                          handleReloadRequest();
-                        }}
-                        className="appearance-none bg-transparent border-none text-xs font-black text-info hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none"
-                      >
-                        {config.semesterIDs.map((semId: string) => (
-                          <option key={semId} value={semId} className="bg-white dark:bg-neutral-900 text-gray-900 dark:text-white text-xs">
-                            {formatSemesterName(semId)}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-info pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsAppLibraryOpen(false);
-                    setLibrarySearchQuery("");
+        <AppLibrary
+          open={isAppLibraryOpen}
+          onClose={() => { setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
+          title={mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
+          subtitle={mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
+          showBack={mobilePanel !== "primary"}
+          onBack={() => setMobilePanel("primary")}
+          searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
+          onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
+        >
+          {mobilePanel === "primary" && (
+            <div className="flex items-center gap-1.5 px-1 pb-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Active Sem:</span>
+              <div className="relative flex items-center">
+                <select
+                  value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSettings((prev: any) => {
+                      const next = { ...prev, currSemesterID: val };
+                      localStorage.setItem("settings", JSON.stringify(next));
+                      return next;
+                    });
+                    handleReloadRequest();
                   }}
-                  className="p-2.5 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200/30 dark:border-gray-800 text-gray-600 dark:text-gray-400"
+                  className="appearance-none border-none bg-transparent py-0 pr-3.5 text-xs font-black text-info hover:underline focus:outline-none"
                 >
-                  <X className="w-5 h-5" />
-                </button>
-                </div>
-              </div>
-
-              {/* Drawer Search (Hidden inside sub-panels for clean UI, shown on primary) */}
-              {mobilePanel === "primary" && (
-                <div className="shrink-0 border-b border-gray-200/20 px-5 py-3 dark:border-gray-800/20">
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/80">
-                    <Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Search modules..."
-                      value={librarySearchQuery}
-                      onChange={(e) => setLibrarySearchQuery(e.target.value)}
-                      className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    />
-                    {librarySearchQuery && (
-                      <button onClick={() => setLibrarySearchQuery("")} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600">
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Drawer Grid Modules */}
-              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-4 pb-36">
-                {librarySearchQuery ? (
-                  // Flat search matches
-                  filteredSearchItems.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
-                        Search Results
-                      </h3>
-                      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                        {filteredSearchItems.map(item => {
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={item.label}
-                              onClick={() => {
-                                item.action();
-                                setIsAppLibraryOpen(false);
-                                setLibrarySearchQuery("");
-                              }}
-                              className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                            >
-                              <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                                <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                              </div>
-                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
-                                {item.label}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )
-                ) : mobilePanel === "primary" ? (
-                  // Primary Groups (Study, Campus, Tools, Account)
-                  primaryGroups.map(group => (
-                    <div key={group.name} className="space-y-2">
-                      <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
-                        {group.name}
-                      </h3>
-                      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                        {group.items.map(item => {
-                          const Icon = item.icon;
-                          const isPanelTrigger = item.type === "panel";
-                          return (
-                            <button
-                              key={item.label}
-                              onClick={() => {
-                                item.action();
-                                if (!isPanelTrigger) {
-                                  setIsAppLibraryOpen(false);
-                                }
-                              }}
-                              className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                                  <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                                </div>
-                                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight truncate">
-                                  {item.label}
-                                </span>
-                              </div>
-                              {isPanelTrigger && (
-                                <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))
-                ) : mobilePanel === "academics" ? (
-                  // Academics Sub-Pages
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                      {academicsItemsMobile.map(item => {
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.label}
-                            onClick={() => {
-                              item.action();
-                              setIsAppLibraryOpen(false);
-                            }}
-                            className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                          >
-                            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 shrink-0">
-                              <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                            </div>
-                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
-                              {item.label.replace("Academics ", "")}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  // Hostel Sub-Pages
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                      {hostelItemsMobile.map(item => {
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.label}
-                            onClick={() => {
-                              item.action();
-                              setIsAppLibraryOpen(false);
-                            }}
-                            className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                          >
-                            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
-                              <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                            </div>
-                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 leading-tight">
-                              {item.label.replace("Hostel ", "")}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Theme Switcher */}
-              <div
-                className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
-              >
-                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-0.5">Interface Theme</h4>
-                <div className="flex bg-gray-200/50 dark:bg-gray-900/50 p-1 rounded-xl w-full border border-gray-200/20 dark:border-gray-800/50">
-                  {["light", "dark", "system"].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => handleThemeChange(t)}
-                      className={`flex-1 py-2 text-xs font-black rounded-lg transition-all capitalize flex items-center justify-center gap-1.5 min-h-[36px] ${
-                        theme === t 
-                          ? "bg-white dark:bg-black text-info shadow-xs"
-                          : "text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-white"
-                      }`}
-                    >
-                      {t === "light" && <Sun className="w-3.5 h-3.5" />}
-                      {t === "dark" && <Moon className="w-3.5 h-3.5" />}
-                      {t === "system" && <Settings className="w-3.5 h-3.5" />}
-                      <span>{t}</span>
-                    </button>
+                  {config.semesterIDs.map((semId: string) => (
+                    <option key={semId} value={semId} className="bg-white text-xs text-gray-900 dark:bg-neutral-900 dark:text-white">
+                      {formatSemesterName(semId)}
+                    </option>
                   ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-info" />
+              </div>
+            </div>
+          )}
+
+          {librarySearchQuery ? (
+            filteredSearchItems.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Search Results</h3>
+                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                  {filteredSearchItems.map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => { item.action(); setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
+                        className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                      >
+                        <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
+                          <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                        </div>
+                        <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-
-            </motion.div>
-            </>
+            )
+          ) : mobilePanel === "primary" ? (
+            primaryGroups.map(group => (
+              <div key={group.name} className="space-y-2">
+                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{group.name}</h3>
+                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                  {group.items.map(item => {
+                    const Icon = item.icon;
+                    const isPanelTrigger = item.type === "panel";
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => { item.action(); if (!isPanelTrigger) setIsAppLibraryOpen(false); }}
+                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
+                            <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                          </div>
+                          <span className="truncate text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
+                        </div>
+                        {isPanelTrigger && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          ) : mobilePanel === "academics" ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                {academicsItemsMobile.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
+                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                    >
+                      <div className="rounded-xl bg-purple-50 p-2 text-purple-600 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
+                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                      </div>
+                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Academics ", "")}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                {hostelItemsMobile.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
+                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                    >
+                      <div className="rounded-xl bg-amber-50 p-2 text-amber-600 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
+                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                      </div>
+                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Hostel ", "")}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
-        </AnimatePresence>
+
+          <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Interface Theme</h4>
+            <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
+              {["light", "dark", "system"].map(t => (
+                <button
+                  key={t}
+                  onClick={() => handleThemeChange(t)}
+                  className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all ${
+                    theme === t
+                      ? "bg-white text-info shadow-xs dark:bg-black"
+                      : "text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white"
+                  }`}
+                >
+                  {t === "light" && <Sun className="h-3.5 w-3.5" />}
+                  {t === "dark" && <Moon className="h-3.5 w-3.5" />}
+                  {t === "system" && <Settings className="h-3.5 w-3.5" />}
+                  <span>{t}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </AppLibrary>
       </>
     );
   };
@@ -1427,51 +1281,17 @@ export default function NavigationTabs({
               transition={{ duration: 0.18 }}
               className="shrink-0 px-4 py-3 rounded-b-[24px] space-y-2.5"
             >
-              {/* Profile Row: Name, Branch & Logout */}
-              <div className="flex items-center gap-2.5">
-                {shouldDisplayProfilePhoto && profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
-                ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-bold text-sidebar-foreground">
-                    {initials || "ST"}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-semibold text-sidebar-foreground">{profileName}</span>
-                  <span className="block truncate text-[10px] text-sidebar-foreground/">Computer Science</span>
-                </div>
-                <button
-                  onClick={handleLogOutRequest}
-                  className={`p-1.5 text-sidebar-foreground/ hover:text-red-400 hover:bg-sidebar-accent rounded-lg transition-colors ${navButtonBase}`}
-                  title="Log out"
-                  aria-label="Log out"
-                >
-                  <Lock className="h-4 w-4" />
-                </button>
-              </div>
+              <SidebarProfile
+                name={profileName}
+                degree={(profileData?.program || profileData?.branch || profileData?.batch || "").replace("B.Tech ", "")}
+                avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                initials={initials || "ST"}
+                onLogout={handleLogOutRequest}
+              />
 
               <div className="h-px bg-sidebar-accent" />
 
-              {/* Theme Selection Row */}
-              <div className="flex items-center justify-between text-[11px] text-sidebar-foreground/ px-0.5">
-                <span className="font-semibold tracking-wide uppercase text-[8px] text-sidebar-foreground/">Theme</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => handleThemeChange("light")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "light" ? "text-info font-medium" : ""}`}
-                  >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "light" ? "border-info bg-info" : "border-sidebar-border"}`} />
-                    <span>Light</span>
-                  </button>
-                  <button
-                    onClick={() => handleThemeChange("dark")}
-                    className={`flex items-center gap-1 hover:text-sidebar-foreground transition-colors ${theme === "dark" ? "text-info font-medium" : ""}`}
-                  >
-                    <span className={`h-2 w-2 rounded-full border transition-colors ${theme === "dark" ? "border-info bg-info" : "border-sidebar-border"}`} />
-                    <span>Dark</span>
-                  </button>
-                </div>
-              </div>
+              <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
             </motion.div>
           ) : (
             <motion.div
@@ -1482,38 +1302,17 @@ export default function NavigationTabs({
               className="flex flex-col items-center gap-3 pb-4 w-full shrink-0"
             >
               {/* Expand Toggle Button */}
-              <button
-                onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${navButtonBase}`}
-                title="Expand sidebar"
-                aria-label="Expand sidebar"
-              >
-                <Menu className="h-4.5 w-4.5" />
-              </button>
+              <SidebarExpandButton onClick={() => persistSidebarState(!settings.isSidebarCollapsed)} />
 
               {/* Theme Toggler (Compact Icon) */}
-              <button
-                onClick={() => handleThemeChange(theme === "dark" ? "light" : "dark")}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${navButtonBase}`}
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
+              <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
 
               {/* Profile Avatar */}
-              <button
-                onClick={() => selectTab("profile")}
-                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:ring-2 hover:ring-white/20 transition-all"
-                title="Account Settings"
-              >
-                {shouldDisplayProfilePhoto && profileData?.image ? (
-                  <img src={profileData.image} alt="" className="h-8 w-8 rounded-full object-cover border border-sidebar-border" />
-                ) : (
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[10px] font-bold text-sidebar-foreground">
-                    {initials || "ST"}
-                  </span>
-                )}
-              </button>
+              <SidebarProfile
+                avatarUrl={shouldDisplayProfilePhoto ? profileData?.image : undefined}
+                initials={initials || "ST"}
+                onProfileClick={() => selectTab("profile")}
+              />
             </motion.div>
           )}
         </AnimatePresence>
