@@ -32,7 +32,7 @@
     "@types/pg": "^8.20.0",
     "@uiw/react-heat-map": "^2.3.3",
     "@uiw/react-tooltip": "^4.22.3",
-    "axios": "^1.13.2",
+    "axios": "^1.16.0",
     "canvas": "^3.2.0",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
