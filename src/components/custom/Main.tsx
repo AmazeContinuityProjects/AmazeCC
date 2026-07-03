@@ -674,23 +674,21 @@ export default function LoginPage() {
       const tasks: Promise<void>[] = [coreTask];
       
       tasks.push(
-        (async () => {
-          if (demoMode || IDs.VtopUsername === "demo") return;
-          try {
-            const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-            });
-            if (!r.ok) return;
-            const { events } = await r.json();
-            if (events) {
-              setRegisteredEvents(events);
-              storage.registeredEvents.set(events);
-              setMessage(prev => prev + "\n✅ Registered events fetched");
-            }
-          } catch {}
-        })()
+        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
+          if (!jsessionid) return;
+          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsessionid }),
+          });
+          if (!r.ok) return;
+          const { events } = await r.json();
+          if (events) {
+            setRegisteredEvents(events);
+            storage.registeredEvents.set(events);
+            setMessage(prev => prev + "\n✅ Registered events fetched");
+          }
+        }).catch(() => {})
       );
 
       tasks.push(
@@ -2763,12 +2761,14 @@ function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoM
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    if (demoMode || IDs.VtopUsername === "demo") { setLoading(false); return; }
-    fetch(`${API_BASE}/api/events/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword, eid }),
-      signal: controller.signal
+    loginToEventHub(IDs, demoMode).then(jsessionid => {
+      if (!jsessionid || cancelled) { if (!cancelled) setLoading(false); return; }
+      return fetch(`${API_BASE}/api/events/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsessionid, eid }),
+        signal: controller.signal
+      });
     }).then(async r => { if (!r || !r.ok) return null; return r.json(); }).then(j => {
       if (!cancelled) { setData(j); setLoading(false); }
     }).catch(() => { if (!cancelled) setLoading(false); });
