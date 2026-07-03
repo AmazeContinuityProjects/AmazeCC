@@ -17,51 +17,14 @@ import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
+import { loginToVTOP as vtopLogin, clearCachedCredentials } from "@/lib/auth";
+import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
+import { storage } from "@/lib/storage";
+import { fetchWithTimeout, API_BASE } from "@/lib/fetch-utils";
+import { reportError } from "@/lib/error-utils";
+import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
-
-const FETCH_TIMEOUT = 90000;
-
-let globalLoginPromise: Promise<any> | null = null;
-let cachedVTOPCredentials: { cookies: string[], authorizedID: string, csrf: string } | null = null;
-let cachedEventHubSession: string | null = null;
-let globalEventHubLoginPromise: Promise<string> | null = null;
-
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export async function loginToEventHub(IDs: { VtopUsername: string; VtopPassword: string }, demoMode: boolean, forceNew = false): Promise<string> {
-  if (demoMode || IDs.VtopUsername === "demo") return "";
-  if (cachedEventHubSession && !forceNew) return cachedEventHubSession;
-  if (globalEventHubLoginPromise) return globalEventHubLoginPromise;
-  globalEventHubLoginPromise = (async () => {
-    try {
-      const res = await fetchWithTimeout(`${API_BASE}/api/events/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-      }, 30000);
-      const data = await res.json();
-      if (!data.success || !data.jsessionid) {
-        throw new Error(data.error || "Event Hub login failed");
-      }
-      cachedEventHubSession = data.jsessionid;
-      localStorage.setItem("eventHubSession", data.jsessionid);
-      return data.jsessionid;
-    } finally {
-      globalEventHubLoginPromise = null;
-    }
-  })();
-  return globalEventHubLoginPromise;
-}
+export { API_BASE, loginToEventHub };
 
 type settings = {
   decimalValues: boolean;
@@ -427,38 +390,35 @@ export default function LoginPage() {
 
   // --- Effects ---
   useEffect(() => {
-    const storedAttendance = localStorage.getItem("attendance");
-    const storedMarks = localStorage.getItem("marks");
-    const storedGrades = localStorage.getItem("grades");
-    const storedAllGrades = localStorage.getItem("allGrades");
-    const storedUsername = localStorage.getItem("username");
-    const storedPassword = localStorage.getItem("password");
-    const storedMoodleUsername = localStorage.getItem("moodle_username");
-    const storedMoodlePassword = localStorage.getItem("moodle_password");
-    const storedSchedule = localStorage.getItem("schedule");
-    const storedHoste = localStorage.getItem("hostel");
-    const calendar = localStorage.getItem("calender");
-    const MoodleData = localStorage.getItem("moodleData");
-    const VitolData = localStorage.getItem("vitolData");
-    const settings = localStorage.getItem("settings");
-    const IDs = localStorage.getItem("IDs");
-    const storedRegisteredEvents = localStorage.getItem("registeredEvents");
-    const storedEventHubSession = localStorage.getItem("eventHubSession");
+    const storedAttendance = storage.attendance.get();
+    const storedMarks = storage.marks.get();
+    const storedGrades = storage.grades.get();
+    const storedAllGrades = storage.allGrades.get();
+    const storedUsername = storage.username.get();
+    const storedPassword = storage.password.get();
+    const storedMoodleUsername = storage.moodleUsername.get();
+    const storedMoodlePassword = storage.moodlePassword.get();
+    const storedSchedule = storage.schedule.get();
+    const storedHoste = storage.hostel.get();
+    const calendar = storage.calendar.get();
+    const MoodleData = storage.moodleData.get();
+    const VitolData = storage.vitolData.get();
+    const settingsRaw = storage.settings.get();
+    const IDsRaw = storage.ids.get();
+    const storedRegisteredEvents = storage.registeredEvents.get();
 
-    const parsedStoredAttendance: attendanceRes | null = storedAttendance ? JSON.parse(storedAttendance) : null;
-    if (parsedStoredAttendance && parsedStoredAttendance.attendance) {
-      setAttendanceAndOD(parsedStoredAttendance);
+    if (storedAttendance?.attendance) {
+      setAttendanceAndOD(storedAttendance);
     }
-    if (storedMarks) setMarksData(JSON.parse(storedMarks));
-    if (storedSchedule) setScheduleData(JSON.parse(storedSchedule));
-    if (storedGrades) setGradesData(JSON.parse(storedGrades));
-    if (storedAllGrades) setAllGradesData(JSON.parse(storedAllGrades));
-    if (storedHoste) sethostelData(JSON.parse(storedHoste));
-    if (calendar) setCalender(JSON.parse(calendar));
-    if (MoodleData) setMoodleData(JSON.parse(MoodleData));
-    if (VitolData) setVitolData(JSON.parse(VitolData));
-    if (storedRegisteredEvents) setRegisteredEvents(JSON.parse(storedRegisteredEvents));
-    if (storedEventHubSession) cachedEventHubSession = storedEventHubSession;
+    if (storedMarks) setMarksData(storedMarks as object);
+    if (storedSchedule) setScheduleData(storedSchedule as object);
+    if (storedGrades) setGradesData(storedGrades as object);
+    if (storedAllGrades) setAllGradesData(storedAllGrades);
+    if (storedHoste) sethostelData(storedHoste as object);
+    if (calendar) setCalender(calendar as object);
+    if (MoodleData) setMoodleData(MoodleData as never[]);
+    if (VitolData) setVitolData(VitolData as never[]);
+    if (storedRegisteredEvents) setRegisteredEvents(storedRegisteredEvents);
     
     setIDs({
       VtopUsername: storedUsername || "",
@@ -466,23 +426,21 @@ export default function LoginPage() {
       MoodleUsername: storedMoodleUsername || "",
       MoodlePassword: storedMoodlePassword || ""
     })
-    if (IDs) setIDs(JSON.parse(IDs));
-    if (settings) {
-      const parsedSettings = JSON.parse(settings);
+    if (IDsRaw) setIDs(IDsRaw);
+    if (settingsRaw) {
       setSettings({
         ...defaultSettings,
-        ...parsedSettings
+        ...settingsRaw
       });
     }
-    const isDemoStored = localStorage.getItem("demoMode") === "true";
+    const isDemoStored = storage.demoMode.get();
     if (isDemoStored) {
       setDemoMode(true);
       setIsLoggedIn(true);
     } else {
       let hasVtop = false;
       try {
-        const parsedIDs = IDs ? JSON.parse(IDs) : null;
-        if (parsedIDs?.VtopUsername && parsedIDs?.VtopPassword) {
+        if (IDsRaw?.VtopUsername && IDsRaw?.VtopPassword) {
           hasVtop = true;
         }
       } catch (e) {}
@@ -495,52 +453,16 @@ export default function LoginPage() {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
-    if (cachedVTOPCredentials && !forceNew && !retry) return cachedVTOPCredentials;
-    if (globalLoginPromise) return globalLoginPromise;
-    globalLoginPromise = (async () => {
-      try {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setProgressBar(10);
-        setMessage("Logging in and fetching data...");
-        const loginRes = await fetchWithTimeout(`${API_BASE}/api/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: IDs.VtopUsername,
-            password: IDs.VtopPassword
-          }),
-        }, 60000);
-
-        const data = await loginRes.json();
-
-        if (data.message?.includes("Invalid Captcha") && !retry) {
-          globalLoginPromise = null;
-          return await loginToVTOP(true, forceNew);
-        }
-
-        if (!data.success || !data.authorizedID || !data.cookies)
-          throw new Error(data.message || "Login failed.");
-
-        setMessage((prev) => prev + "\n✅ Login successful");
-        setProgressBar((prev) => prev + 30);
-
-        cachedVTOPCredentials = {
-          cookies: data.cookies,
-          authorizedID: data.authorizedID,
-          csrf: data.csrf,
-        };
-        return cachedVTOPCredentials;
-      } finally {
-        globalLoginPromise = null;
-      }
-    })();
-    return globalLoginPromise;
+    return vtopLogin(IDs, demoMode, retry, forceNew, (msg, progress) => {
+      if (msg) setMessage(prev => prev + "\n" + msg);
+      if (progress) setProgressBar(prev => prev + progress);
+    });
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
     if (demoMode || IDs.VtopUsername === "demo") {
       setDemoMode(true);
-      localStorage.setItem("demoMode", "true");
+      storage.demoMode.set(true);
       setIsReloading(true);
       setProgressBar(10);
       setMessage("Initializing Demo environment...");
@@ -570,266 +492,55 @@ export default function LoginPage() {
       return;
     }
 
+    const onProgress = (msg: string, delta: number) => {
+      if (msg) setMessage(prev => prev + "\n✅ " + msg);
+      if (delta) setProgressBar(prev => prev + delta);
+    };
+
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      localStorage.setItem("IDs", JSON.stringify(IDs));
+      const creds = await loginToVTOP();
+      storage.ids.set(IDs);
 
-      const verifyRes = await fetchWithTimeout(`${API_BASE}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: currSemesterID }),
-      });
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.attRes || !verifyData.attRes.attendance) {
-        throw new Error("Session verification failed. Please try again.");
-      }
-
-      if (verifyData.marksRes && typeof verifyData.marksRes === 'string') {
-        throw new Error(`Marks fetch failed: ${verifyData.marksRes}`);
-      }
-
-      const attRes = verifyData.attRes;
-      const marksRes = verifyData.marksRes;
-      setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
-      setProgressBar(prev => prev + 10);
-
-      let profileRes = JSON.parse(localStorage.getItem("profile") || "null");
-      try {
-        const studentFetch = await fetchWithTimeout(`${API_BASE}/api/student`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf }),
-        });
-        const studentData = await studentFetch.json();
-        if (studentData && studentData.profile) {
-          profileRes = studentData.profile;
-          localStorage.setItem("profile", JSON.stringify(profileRes));
-          setMessage(prev => prev + "\n✅ Profile details fetched");
-          setProgressBar(prev => prev + 5);
-        }
-      } catch (e) {
-        console.error("Failed to fetch profile", e);
-      }
-
-      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, eventHubRes, profileImagesRes] = await Promise.all([
-
-        fetchWithTimeout(`${API_BASE}/api/grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Grades fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        fetchWithTimeout(`${API_BASE}/api/schedule`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Exam schedule fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        (profileRes?.isHosteller) ? fetchWithTimeout(`${API_BASE}/api/hostel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Hostel details fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }) : Promise.resolve({}),
-
-        fetchWithTimeout(`${API_BASE}/api/calendar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: cookies,
-            authorizedID, csrf,
-            type: settings.calendarType || "ALL",
-            semesterId: currSemesterID
-          }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Calendar fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-        fetchWithTimeout(`${API_BASE}/api/all-grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ All grades fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
-          if (!jsessionid) return { events: [] };
-          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsessionid }),
-          });
-          if (!r.ok) return { events: [] };
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Event Hub data fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }).catch(() => ({ events: [] })),
-        fetch(`${API_BASE}/api/events`).then(async r => {
-          if (!r.ok) return [];
-          const events = await r.json();
-          if (Array.isArray(events)) {
-            setEventHubEvents(events);
-            setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
-          }
-          return events;
-        }).catch(() => []),
-        fetchWithTimeout(`${API_BASE}/api/profile-images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf }),
-        }).then(async r => {
-          if (!r.ok) return null;
-          const j = await r.json();
-          if (j?.success) {
-            setMessage(prev => prev + "\n✅ Profile images cached");
-            setProgressBar(prev => prev + 3);
-            return j;
-          }
-          return null;
-        }).catch(() => null),
-      ]);
-
-      setMessage(prev => prev + "\nFinalizing and saving data...");
+      onProgress("Attendance/Marks fetched", 10);
+      const { attRes, marksRes } = await fetchAttendanceAndMarks(creds, currSemesterID);
 
       setAttendanceAndOD(attRes);
-      setMarksData(marksRes);
-      setGradesData(gradesRes);
-      setAllGradesData(allGradesRes);
-      setScheduleData(ScheduleRes);
-      sethostelData(HostelRes);
-      setCalender(calenderRes);
-      if (eventsRes?.events) setRegisteredEvents(eventsRes.events);
-      if (profileImagesRes?.success) localStorage.setItem("profileImages", JSON.stringify(profileImagesRes));
+      setMarksData(marksRes as object);
 
-      const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+      storage.attendance.set(attRes);
+      storage.marks.set(marksRes);
+
+      const oldMarks = storage.marks.get() || {};
       syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
 
-      localStorage.setItem("attendance", JSON.stringify(attRes));
-      localStorage.setItem("marks", JSON.stringify(marksRes));
-      localStorage.setItem("grades", JSON.stringify(gradesRes));
-      localStorage.setItem("allGrades", JSON.stringify(allGradesRes));
-      localStorage.setItem("schedule", JSON.stringify(ScheduleRes));
-      localStorage.setItem("hostel", JSON.stringify(HostelRes));
-      localStorage.setItem("calender", JSON.stringify(calenderRes));
-      if (eventsRes?.events) localStorage.setItem("registeredEvents", JSON.stringify(eventsRes.events));
-      // Past Semester Attendance Fetch
-      try {
-        const pastSemesters = Object.keys(allGradesRes?.grades || {}).filter(sem => sem !== currSemesterID);
-        if (pastSemesters.length > 0) {
-          setMessage(prev => prev + `\nFetching past attendance for ${pastSemesters.length} semesters...`);
-          await Promise.allSettled(
-            pastSemesters.map(sem =>
-              fetch(`${API_BASE}/api/attendance`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: sem }),
-              })
-                .then(r => r.json())
-                .then(data => {
-                  if (data && data.attendance) {
-                    localStorage.setItem(`frozen_att_${sem}`, JSON.stringify(data));
-                  }
-                  setProgressBar(prev => Math.min(prev + 2, 95));
-                })
-                .catch(() => {})
-            )
-          );
-        }
-      } catch (e) {
-        console.error("Failed past attendance", e);
+      let profileRes = storage.profile.get();
+      const fetchedProfile = await fetchStudentProfile(creds);
+      if (fetchedProfile) {
+        profileRes = fetchedProfile;
+        onProgress("Profile details fetched", 5);
       }
 
-      // Fresher / EPT data
-      try {
-        const [eptRes, ackRes] = await Promise.all([
-          fetch(`${API_BASE}/api/ept-schedule`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-          fetch(`${API_BASE}/api/acknowledgement`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-        ]);
-        if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
-        if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
-        setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
-      } catch {}
+      const isHosteller = (profileRes as any)?.isHosteller ?? false;
 
-      // Bus routes
-      try {
-        const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
-        if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-        setMessage(prev => prev + "\n✅ Bus routes fetched");
-      } catch {}
+      onProgress("Core data fetched", 23);
+      const coreData = await fetchCoreData(creds, currSemesterID, settings.calendarType, isHosteller);
 
-      // All other VTOP-scoped endpoints (cached for GenericApiView)
-      const bulkEndpoints: string[] = [];
-      if (settings.syncArrearData !== false) {
-        bulkEndpoints.push("arrear-schedule", "arrear-details", "arrear-grade");
-      }
-      // We still check syncAdditionalData as a master toggle for this section,
-      // but also respect the individual toggles. If syncAdditionalData is false, it skips all of them.
-      if (settings.syncAdditionalData !== false) {
-        if (settings.syncCourseOptionChange !== false) bulkEndpoints.push("course-option-change");
-        if (settings.syncExcRegistration !== false) bulkEndpoints.push("exc-registration");
-        if (settings.syncMinorHonour !== false) bulkEndpoints.push("minor-honour");
-        if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
-        if (settings.syncWishlist !== false) bulkEndpoints.push("wishlist");
-        if (settings.syncAdditionalLearning !== false) bulkEndpoints.push("additional-learning");
-        if (settings.syncProject !== false) bulkEndpoints.push("project");
-        if (settings.syncProjectCourse !== false) bulkEndpoints.push("project-course");
-      }
-      if (settings.syncExamData !== false) {
-        bulkEndpoints.push("makeup-exam", "makeup-schedule", "compre-info");
-      }
-      if (settings.syncProfileData !== false) {
-        bulkEndpoints.push(
-          "credentials", "registration-schedule", "dayboarder", "bank-info", 
-          "library-due", "hostel-counselling"
-        );
-      }
-      
-      await Promise.allSettled(
-        bulkEndpoints.map(path =>
-          fetch(`${API_BASE}/api/${path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          })
-            .then(r => r.json())
-            .then(data => {
-              if (data.success !== false) {
-                localStorage.setItem("cache_" + path, JSON.stringify(data));
-              }
-              setMessage(prev => prev + `\n✅ ${path} fetched`);
-              setProgressBar(prev => Math.min(prev + 1, 95));
-            })
-            .catch(() => {})
-        )
-      );
-      setMessage(prev => prev + "\n✅ All tab data cached");
+      setGradesData(coreData.gradesRes);
+      setAllGradesData(coreData.allGradesRes);
+      setScheduleData(coreData.scheduleRes);
+      sethostelData(coreData.hostelRes);
+      setCalender(coreData.calendarRes);
+
+      onProgress("Event data fetched", 10);
+      const eventData = await fetchEventData(IDs, demoMode);
+      setRegisteredEvents(eventData.registeredEvents);
+      setEventHubEvents(eventData.eventHubEvents);
+
+      onProgress("Past attendance fetched", 2);
+      await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
+      await fetchFresherData(creds);
+      await fetchBusRoutes();
+      await fetchBulkEndpoints(creds, settings);
 
       setMessage(prev => prev + "\n✅ All data loaded successfully!");
       setProgressBar(100);
@@ -842,7 +553,7 @@ export default function LoginPage() {
 
       return true;
     } catch (err) {
-      console.error(err);
+      reportError(err, { context: "handleLogin" });
       setMessage(
         "❌ " + (err instanceof Error ? err.message : "Login failed")
       );
@@ -951,7 +662,7 @@ export default function LoginPage() {
       }).then(async r => {
         const { attRes, marksRes } = await r.json();
         setAttendanceAndOD(attRes);
-        setMarksData(marksRes);
+      setMarksData(marksRes as object);
         const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
         syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
         localStorage.setItem("attendance", JSON.stringify(attRes));
@@ -1142,7 +853,7 @@ export default function LoginPage() {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
-    cachedEventHubSession = null;
+    clearEventHubSession();
 
     const keysToKeep = ["activityTree", "theme"];
 
