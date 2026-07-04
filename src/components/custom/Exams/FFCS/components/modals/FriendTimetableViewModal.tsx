@@ -3,6 +3,7 @@ import { Eye, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { TimetableState, AddedCourse } from '../../types';
 import { getBatchColorClass } from '@/lib/utils';
 import { TimetableGrid } from '../TimetableGrid';
+import { CourseListTable } from '@amazecontinuityprojects/amazeui';
 
 export interface SelectedFriendTimetableData {
   name: string;
@@ -83,62 +84,11 @@ export function FriendTimetableViewModal({
                   labPeriods={labPeriods}
                 />
 
-                <div className="bg-background border border-border rounded-xl shadow-sm flex flex-col">
-                  <div className="p-4 border-b border-border bg-muted/30 rounded-t-xl">
-                    <h3 className="font-bold text-foreground">Course List</h3>
-                  </div>
-                  <div>
-                    <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead className="bg-muted/50 border-b border-border">
-                      <tr>
-                        <th className="py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Slots</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue</th>
-                        <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Credits</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {getGroupedCourses(selectedFriendTimetablesData.timetables[selectedFriendTimetablesData.currentIndex].courses as AddedCourse[]).map(c => (
-                        <tr key={c.id} className="hover:bg-muted/10 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${c.color} shadow-sm shrink-0`} />
-                              <div>
-                                <p className="text-foreground font-semibold text-sm flex items-center gap-2 flex-wrap">
-                                  {c.code}
-                                  {c.batch && c.batch.split(",").map(b => b.trim()).filter(Boolean).map(b => (
-                                    <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
-                                      {b}
-                                    </span>
-                                  ))}
-                                </p>
-                                <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">
-                            {renderTypeChips(c.type)}
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
-                          <td className="py-3 px-2">
-                            <div className="flex flex-wrap gap-1">
-                              {c.slots.map(s => (
-                                <span key={s} className="bg-accent/50 border border-border text-[10px] px-1.5 py-0.5 rounded-md">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                <CourseListTable
+                  courses={getGroupedCourses(selectedFriendTimetablesData.timetables[selectedFriendTimetablesData.currentIndex].courses as AddedCourse[])}
+                  renderTypeChips={renderTypeChips}
+                  getBatchBadgeClass={getBatchColorClass}
+                />
             </div>
             </div>
           </div>

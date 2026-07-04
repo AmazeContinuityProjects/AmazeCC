@@ -20,12 +20,14 @@ import {
   ChevronRight,
   Plane,
   Bus,
+  Car,
   Bookmark,
   FolderOpen
 } from "lucide-react";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { API_BASE } from "@/lib/fetch-utils";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -66,6 +68,18 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
+  const [globalPromoteCab, setGlobalPromoteCab] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/settings/global`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.success && data.config?.promoteCabShare?.enabled === true) {
+          setGlobalPromoteCab(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (profileDataProp) {
@@ -242,6 +256,25 @@ export default function MobileHome({
           <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {/* ── CAB SHARE PROMO ── */}
+      {(settings?.promoteCabShare || globalPromoteCab) && (
+        <button
+          onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md active:scale-[0.98] transition-all"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+            <Car className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-black uppercase tracking-wider">Use CAB !!</p>
+            <p className="text-xs font-semibold text-white/80">Share a cab with students heading the same way</p>
+          </div>
+          <div className="ml-auto shrink-0 rounded-xl bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
+            Open
+          </div>
+        </button>
+      )}
 
       {/* ── QUICK SPOTLIGHT TRIGGER ── */}
       <button 
