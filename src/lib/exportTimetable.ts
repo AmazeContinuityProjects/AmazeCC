@@ -66,6 +66,9 @@ export function openTimetablePrintablePage(
   themeBgColor: string,
   themeTextColor: string
 ): Window | null {
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
   const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
     .map((el) => el.outerHTML)
     .join("\n");
@@ -80,11 +83,16 @@ export function openTimetablePrintablePage(
     : "1px solid rgba(99,102,241,0.15)";
   const accentGrad = "linear-gradient(135deg, #6366f1, #a855f7, #ec4899)";
 
+  const safeName = escapeHtml(timetableName);
+  const safeClass = escapeHtml(themeHtmlClass);
+  const safeBg = escapeHtml(themeBgColor);
+  const safeText = escapeHtml(themeTextColor);
+
   const fullHtml = `
     <!DOCTYPE html>
-    <html class="${themeHtmlClass}">
+    <html class="${safeClass}">
       <head>
-        <title>${timetableName} - Timetable</title>
+        <title>${safeName} - Timetable</title>
         ${styles}
         <style>
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -132,7 +140,7 @@ export function openTimetablePrintablePage(
             padding: 48px 40px 40px;
             box-shadow: 0 8px 64px rgba(0,0,0,0.12), 0 2px 8px rgba(99,102,241,0.08);
             overflow-x: auto; overflow-y: visible;
-            color: ${themeTextColor};
+            color: ${safeText};
           }
           @media print {
             .print-toolbar { display: none !important; }
@@ -153,7 +161,7 @@ export function openTimetablePrintablePage(
       <body>
         <div class="print-toolbar">
           <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-weight:700;font-size:16px;background:${accentGrad};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${timetableName}</span>
+            <span style="font-weight:700;font-size:16px;background:${accentGrad};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${safeName}</span>
             <span class="hint">— Timetable</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px">
