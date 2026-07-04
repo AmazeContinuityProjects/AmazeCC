@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import SubTabStrip from "../../shared/SubTabStrip";
 import CreateTrip from "./CreateTrip";
 import SearchTrips from "./SearchTrips";
@@ -8,20 +8,41 @@ import MyTrips from "./MyTrips";
 import PageHeader from "../../shared/PageHeader";
 import { Car, Loader2, Plus, Search, UserRoundCheck } from "lucide-react";
 import CabShareAuthModal from "./CabShareAuthModal";
+import { API_BASE } from "../../Main";
+import { readJsonResponse } from "./cabShareFallback";
 
 export default function CabShareTab() {
   const [activeTab, setActiveTab] = useState("search");
   const [cabShareUser, setCabShareUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    // Check if we have auth state
     const userStr = localStorage.getItem("cabshare_user");
     if (userStr) {
       setCabShareUser(JSON.parse(userStr));
     }
     setLoading(false);
   }, []);
+
+  const refreshPendingCount = useCallback(async () => {
+    if (!cabShareUser) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/cabshare/trips/me?reg_number=${cabShareUser.reg_number}`);
+      const data = await readJsonResponse(res);
+      if (data?.success) {
+        const count = (data.my_trips || []).reduce((acc: number, trip: any) =>
+          acc + (trip.requests || []).filter((r: any) => r.status === 'pending').length, 0);
+        setPendingCount(count);
+      }
+    } catch {}
+  }, [cabShareUser]);
+
+  useEffect(() => {
+    refreshPendingCount();
+    const interval = setInterval(refreshPendingCount, 15000);
+    return () => clearInterval(interval);
+  }, [refreshPendingCount]);
 
   if (loading) {
     return (

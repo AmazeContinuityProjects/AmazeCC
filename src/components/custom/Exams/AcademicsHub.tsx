@@ -338,7 +338,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             <CardContent className="p-5">
                 <div className="flex justify-between items-start mb-4">
                 <h2 className="text-xl font-bold uppercase text-gray-800  dark:text-gray-100 tracking-wide">Overall<br/>Performance</h2>
-                <div className="relative w-16 h-16 flex items-center justify-center">
+                <div className="relative w-16 h-16 shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                         <Pie
@@ -358,7 +358,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                         </Pie>
                         </PieChart>
                     </ResponsiveContainer>
-                    <div className="absolute flex flex-col items-center justify-center">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-xs font-bold text-gray-900  dark:text-gray-100">{degreeCompletePercent.toFixed(0)}%</span>
                         <span className="text-[8px] text-gray-500 uppercase leading-none">Complete</span>
                     </div>
@@ -400,7 +400,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             <Card className="h-full">
             <CardContent className="p-5 h-full flex flex-col">
                 <h3 className="text-md font-medium text-gray-800  dark:text-gray-100 mb-6">Grade Distribution</h3>
-                <div className="w-full flex-1 min-h-[200px]">
+                <div className="w-full h-[250px]">
                     {gradeDistributionData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={gradeDistributionData} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>

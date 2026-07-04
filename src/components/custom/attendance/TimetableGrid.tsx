@@ -7,6 +7,7 @@ import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/export
 import { useTheme } from "next-themes";
 import Badge from "../shared/Badge";
 import { useIsMobile } from "../shared";
+import { TimetableGrid as AmazeUITimetableGrid, type AddedCourse, type TimetablePeriod } from '@amazecontinuityprojects/amazeui';
 
 export default function TimetableVtop({ attendance }) {
     const captureRef = useRef<HTMLDivElement>(null);
@@ -414,84 +415,61 @@ export default function TimetableVtop({ attendance }) {
     const todayDay = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     const isToday = activeDay === (todayDay === "SUN" ? "SUN" : todayDay);
 
+    const ATT_COLORS = [
+      "bg-blue-600", "bg-purple-600", "bg-emerald-500", "bg-red-600",
+      "bg-amber-500", "bg-pink-500", "bg-indigo-600", "bg-teal-500",
+      "bg-cyan-600", "bg-fuchsia-500", "bg-lime-500", "bg-rose-600",
+    ];
+
+    function convertToAddedCourses(data: any[]): AddedCourse[] {
+      const colorMap: Record<string, string> = {};
+      let colorIdx = 0;
+      return (data || []).map((c: any) => {
+        const code = c.courseCode || '';
+        if (!colorMap[code]) colorMap[code] = ATT_COLORS[colorIdx++ % ATT_COLORS.length];
+        return {
+          id: `att-${code}`,
+          code,
+          title: c.courseTitle || '',
+          slots: (c.slotName || '').split('+').map((s: string) => s.trim()).filter(Boolean),
+          faculty: c.faculty || '',
+          venue: c.slotVenue || '',
+          credits: c.credits || '0',
+          type: c.courseType || '',
+          color: colorMap[code],
+        };
+      });
+    }
+
+    const addedCourses = convertToAddedCourses(attendance);
+    const attDaysList = days.map(d => ({ id: d.toLowerCase(), name: d }));
+
+    function buildPeriodForPair(pair: any, isLab: boolean): TimetablePeriod {
+      const entry = isLab ? pair.lab : pair.theory;
+      if (!entry) return { start: '', end: '', days: {} };
+      const [start, end] = entry.time.split('-');
+      const daysMap: Record<string, string> = {};
+      for (const d of days) {
+        const matched = slotsMatchingTimes(d, pair);
+        const match = matched.find((s: string) => isLab ? s.startsWith('L') : !s.startsWith('L'));
+        if (match) daysMap[d.toLowerCase()] = match;
+      }
+      return { start, end, days: daysMap };
+    }
+
+    const amazeTheoryPeriods = mergedPairs.map(p => buildPeriodForPair(p, false));
+    const amazeLabPeriods = mergedPairs.map(p => buildPeriodForPair(p, true));
+
     const renderTraditionalGrid = () => (
         <div className="space-y-4">
-            <table className="border-collapse w-full text-center border-gray-200 dark:border-gray-800">
-                <thead>
-                    <tr>
-                        <th className="border px-1 py-1 bg-gray-255  dark:bg-black text-[9px] font-bold text-gray-800 dark:text-gray-100 w-[40px] min-w-[40px] max-w-[40px] truncate">
-                            DAY
-                        </th>
-
-                        {beforeLunch.map((p, i) => (
-                            <th key={i} className={headerClass}>
-                                {p.theory && fmtRange(p.theory.time)}
-                                {p.lab && (
-                                    <div className="opacity-70">{fmtRange(p.lab.time)}</div>
-                                )}
-                            </th>
-                        ))}
-
-                        <th className={lunchHeaderClass}>
-                            <div className="flex flex-col items-center gap-1">
-                                <div className="text-[9px] font-semibold">LUNCH</div>
-                            </div>
-                        </th>
-
-                        {afterLunch.map((p, i) => (
-                            <th key={i} className={headerClass}>
-                                {p.theory && fmtRange(p.theory.time)}
-                                {p.lab && (
-                                    <div className="opacity-70">{fmtRange(p.lab.time)}</div>
-                                )}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {days.map((day) => (
-                        <tr key={day}>
-                            <td className="border font-semibold bg-gray-100  dark:bg-[#020409] text-gray-900  dark:text-gray-100 text-[10px] w-[40px] min-w-[40px] max-w-[40px] truncate">
-                                {day}
-                            </td>
-
-                            {beforeLunch.map((p, i) => {
-                                const { slotLabel, title, code } = buildCell(day, p);
-                                const colorClass = code ? neon : normal;
-                                return (
-                                    <td key={i} className={`${cellBase} ${colorClass}`} title={title ? `${code}: ${title}` : undefined}>
-                                        <div className="font-semibold text-[9px]">{slotLabel}</div>
-                                        {code && (
-                                            <div className="text-[9px] font-black mt-0.5 tracking-tight text-blue-650 dark:text-blue-400">
-                                                {code}
-                                            </div>
-                                        )}
-                                    </td>
-                                );
-                            })}
-
-                            <td className={lunchHeaderClass}></td>
-
-                            {afterLunch.map((p, i) => {
-                                const { slotLabel, title, code } = buildCell(day, p);
-                                const colorClass = code ? neon : normal;
-                                return (
-                                    <td key={i} className={`${cellBase} ${colorClass}`} title={title ? `${code}: ${title}` : undefined}>
-                                        <div className="font-semibold text-[9px]">{slotLabel}</div>
-                                        {code && (
-                                            <div className="text-[9px] font-black mt-0.5 tracking-tight text-blue-650 dark:text-blue-400">
-                                                {code}
-                                            </div>
-                                        )}
-                                    </td>
-                                );
-                            })}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
+            <AmazeUITimetableGrid
+              courses={addedCourses}
+              theoryPeriods={amazeTheoryPeriods}
+              labPeriods={amazeLabPeriods}
+              days={attDaysList}
+              title=""
+              showLegend={false}
+            />
             {uniqueCourses.length > 0 && (
                 <div className="bg-white  dark:bg-[#03070e] border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden shadow-sm">
                     <div className="flex items-center justify-between px-4 py-3 bg-gray-55  dark:bg-[#04070a] border-b border-gray-200  dark:border-gray-800/80">

@@ -15,7 +15,7 @@ import MessDisplay from "./Hostel/messDisplay";
 import LaundryDisplay from "./Hostel/LaundryDisplay";
 import AttendanceSubTabs from "./attendance/AttendanceSubsTabs";
 import CalendarView from "./attendance/CalendarView";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import HostelOverview from "./Hostel/HostelOverview";
 import HostelCounsellingView from "./Hostel/HostelCounsellingView";
@@ -246,6 +246,33 @@ export default function DashboardContent({
     setTransportLoading(false);
   }, []);
 
+  const [transportBuses, setTransportBuses] = useState<any[]>([]);
+  const [transportBusesLoading, setTransportBusesLoading] = useState(false);
+
+  useEffect(() => {
+    const cached = localStorage.getItem("cache_buses");
+    if (cached) {
+      try { setTransportBuses(JSON.parse(cached)); } catch {}
+    }
+  }, []);
+
+  const refreshTransportBuses = useCallback(async () => {
+    setTransportBusesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/buses`);
+      const data = await res.json();
+      if (data.success) {
+        setTransportBuses(data.buses);
+        setDayscholarBuses(data.buses);
+        localStorage.setItem("cache_buses", JSON.stringify(data.buses));
+      }
+    } catch (e) {
+      console.error("Failed to fetch transport buses:", e);
+    } finally {
+      setTransportBusesLoading(false);
+    }
+  }, []);
+
   const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
@@ -259,10 +286,12 @@ export default function DashboardContent({
   const isHosteller = profileData?.isHosteller;
   const residentialStatus = settings?.residentialStatus;
 
-  if (isHosteller === true) tabsOrder.push("hostel");
-  else if (isHosteller === false) tabsOrder.push("dayscholar");
-  else if (residentialStatus === "dayscholar") tabsOrder.push("dayscholar");
-  else if (residentialStatus === "hosteller") tabsOrder.push("hostel");
+  if (isHosteller === true || residentialStatus === "hosteller") tabsOrder.push("hostel");
+  else if (isHosteller === false || residentialStatus === "dayscholar") {
+    /* no separate dayscholar tab — transport covers it */
+  }
+
+  tabsOrder.push("cabshare", "transport");
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
@@ -943,6 +972,26 @@ export default function DashboardContent({
           {activeTab === "dayscholar" && (
             <div className="animate-fadeIn space-y-8">
               <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
+            </div>
+          )}
+
+          {activeTab === "transport" && (
+            <div className="animate-fadeIn space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transport</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bus routes, boarding points, vehicle placements & contact info</p>
+                </div>
+                <button
+                  onClick={refreshTransportBuses}
+                  disabled={transportBusesLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/25"
+                >
+                  <RefreshCcw className={`w-4 h-4 ${transportBusesLoading ? "animate-spin" : ""}`} />
+                  {transportBusesLoading ? "Refreshing..." : "Refresh Bus Data"}
+                </button>
+              </div>
+              <BusFinder buses={transportBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
             </div>
           )}
 

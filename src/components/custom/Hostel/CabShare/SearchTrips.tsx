@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../Main";
-import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle } from "lucide-react";
+import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle, Clock3 } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
 import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
 
@@ -12,6 +12,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showPendingModal, setShowPendingModal] = useState(false);
   
   const [fromHubId, setFromHubId] = useState("");
   const [hubId, setHubId] = useState("");
@@ -109,7 +110,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       });
       const data = await readJsonResponse(res);
       if (data?.success) {
-        setMessage({ type: "success", text: "Request sent successfully." });
+        setShowPendingModal(true);
         handleSearch({ preventDefault: () => {} } as React.FormEvent);
       } else {
         const trips = getLocalTrips().map((trip: any) =>
@@ -129,7 +130,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
             : trip
         );
         saveLocalTrips(trips);
-        setMessage({ type: "success", text: "Request saved locally on this device." });
+        setShowPendingModal(true);
       }
     } catch (e) {
       setMessage({ type: "error", text: "Cab Share server is unavailable. Requests can only be saved locally right now." });
@@ -296,6 +297,27 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
           ))
         )}
       </div>
+      {showPendingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowPendingModal(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-black" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400">
+                <Clock3 className="h-8 w-8" />
+              </div>
+              <h3 className="mt-5 text-xl font-black text-gray-950 dark:text-white">Request Pending</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
+                The host will see your request and respond soon. You can check the status in My Trips.
+              </p>
+              <button
+                onClick={() => setShowPendingModal(false)}
+                className="mt-6 w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
