@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { API_BASE } from "../Main";
-import { Bus, MapPin, CreditCard, QrCode, ExternalLink, User, GraduationCap, BookOpen, CheckCircle2, XCircle, Navigation, Loader2, Phone, Shield, Clock, ChevronRight } from "lucide-react";
+import { Bus, MapPin, CreditCard, QrCode, ExternalLink, CheckCircle2, XCircle, Navigation, Loader2, Phone, Shield, Clock, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "../shared";
 
 import type { BusRoute, TransportData } from '@/types/transport';
