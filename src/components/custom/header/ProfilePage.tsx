@@ -813,6 +813,17 @@ export default function ProfilePage({
                     />
                   </div>
 
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Promote Cab Share</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Show a Cab Share promo card at the top of the mobile home screen</p>
+                    </div>
+                    <Switch
+                      checked={settings?.promoteCabShare ?? false}
+                      onCheckedChange={(val) => updateSetting("promoteCabShare", val)}
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>

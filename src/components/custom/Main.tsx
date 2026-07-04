@@ -10,7 +10,7 @@ import demoData from '../../data/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
-import { CommandPalette } from "@/components/custom/shared";
+import { CommandPalette, LoadingScreen } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
@@ -60,6 +60,7 @@ type settings = {
   syncAdditionalLearning?: boolean;
   syncProject?: boolean;
   syncProjectCourse?: boolean;
+  promoteCabShare?: boolean;
 }
 
 type IDs = {
@@ -102,7 +103,8 @@ const defaultSettings: settings = {
   syncWishlist: true,
   syncAdditionalLearning: true,
   syncProject: true,
-  syncProjectCourse: true
+  syncProjectCourse: true,
+  promoteCabShare: false
 };
 
 const defaultIDs: IDs = {
@@ -1213,9 +1215,10 @@ export default function LoginPage() {
       { id: "nav-attendance", label: "Attendance", description: "Track your attendance records", icon: "📋", category: "Navigation" },
       { id: "nav-academics", label: "Academics Hub", description: "Marks, curriculum, timetable & more", icon: "📚", category: "Navigation" },
       { id: "nav-payments", label: "Payments", description: "Dues, receipts & wallet", icon: "💳", category: "Navigation" },
+      { id: "nav-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Navigation" },
       { id: "nav-libraries", label: "Libraries", description: "Search books & library account", icon: "📖", category: "Navigation" },
       { id: "nav-hostel", label: "Hostel", description: "Mess, laundry & leave", icon: "🏠", category: "Navigation" },
-      { id: "nav-dayscholar", label: "Day Scholar", description: "Bus finder & transport", icon: "🚌", category: "Navigation" },
+      { id: "nav-transport", label: "Transport", description: "Bus routes, stops & placements", icon: "🚏", category: "Navigation" },
       { id: "nav-more", label: "More", description: "Events, social & schedules", icon: "➕", category: "Navigation" },
     ];
     nav.forEach(c => result.push({ ...c, onSelect: () => setActiveTab(c.id.replace("nav-", "")) }));
@@ -1249,8 +1252,10 @@ export default function LoginPage() {
       { id: "hostel-laundry", label: "Laundry", description: "Laundry service status", icon: "👕", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); } },
       { id: "hostel-leave", label: "Leave", description: "Leave applications & history", icon: "✈️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); } },
       { id: "hostel-counselling", label: "Hostel Counselling", description: "Hostel counselling sessions", icon: "🤝", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("counselling"); } },
-      { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); } },
-      { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("registration"); } },
+      { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "tr-placements", label: "Vehicle Placements", description: "5 PM & 6 PM vehicle placement info", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("archive"); } },
       { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("pure"); } },
       { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
@@ -2134,7 +2139,7 @@ export default function LoginPage() {
                   )}
                 </div>
               ),
-              onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); }
+              onSelect: () => setActiveTab("transport")
             });
           });
         }
@@ -2507,42 +2512,12 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#03060F] transition-colors relative overflow-hidden">
-        {/* Style block for linear loading bar animation */}
-        <style>{`
-          @keyframes loaderBar {
-            0% { left: -35%; }
-            100% { left: 100%; }
-          }
-          .animate-loaderBar {
-            animation: loaderBar 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          }
-        `}</style>
-        
-        {/* Abstract background glow */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-purple-500/5 blur-[120px] rounded-full -z-10" />
-
-        <div className="flex flex-col items-center space-y-6 max-w-xs text-center z-10">
-          {/* Logo container */}
-          <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200/80 dark:border-neutral-800 shadow-2xl animate-pulse">
-            <img src="/logo.png" alt="AmazeCC Logo" className="w-14 h-14 object-contain" onError={(e) => {
-              (e.target as HTMLImageElement).src = "/images/icons/logo.png";
-            }} />
-            <div className="absolute -inset-1.5 rounded-[28px] border border-blue-500/20 animate-ping duration-3000 pointer-events-none" />
-          </div>
-          
-          <div className="space-y-3 pt-2.5">
-            <img src={getAssetPath("/images/icons/wordmarkLight.svg")} alt="AmazeCC" className="h-6 object-contain mx-auto block dark:hidden" />
-            <img src={getAssetPath("/images/icons/wordmarkDark.svg")} alt="AmazeCC" className="h-6 object-contain mx-auto hidden dark:block" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Student Operating System</p>
-          </div>
-
-          {/* Sleek Progress Bar */}
-          <div className="w-40 h-1 bg-slate-200 dark:bg-neutral-800 rounded-full overflow-hidden relative shadow-inner">
-            <div className="absolute top-0 bottom-0 left-0 w-[35%] bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-loaderBar" />
-          </div>
-        </div>
-      </div>
+      <LoadingScreen
+        logoSrc="/logo.png"
+        wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
+        wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
+        title="Student Operating System"
+      />
     );
   }
 
