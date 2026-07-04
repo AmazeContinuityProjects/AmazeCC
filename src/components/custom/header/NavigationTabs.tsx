@@ -42,6 +42,7 @@ import {
   Link2,
   ChevronDown,
   Car,
+  CarTaxiFront,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,7 +59,7 @@ import {
   SidebarThemeControl,
   SidebarExpandButton,
 } from "@amazecontinuityprojects/amazeui";
-import { AppLibrary } from "@amazecontinuityprojects/amazeui";
+import { AppLibrary, MobileBottomNav } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
@@ -211,7 +212,7 @@ export default function NavigationTabs({
       setShowHostelPanel(false);
       if (activeTab === "home" || activeTab === "attendance") {
         setExpandedGroup("study");
-      } else if (["payments", "libraries", "dayscholar"].includes(activeTab)) {
+      } else if (["payments", "libraries", "transport"].includes(activeTab)) {
         setExpandedGroup("campus");
       } else if (activeTab === "more") {
         setExpandedGroup("tools");
@@ -408,15 +409,15 @@ export default function NavigationTabs({
           setShowHostelPanel(true);
         },
       });
-    } else if (isHosteller === false || residentialStatus === "dayscholar") {
-      items.push({
-        id: "dayscholar",
-        label: "Bus Finder",
-        icon: Bus,
-        isActive: activeTab === "dayscholar",
-        onSelect: () => selectTab("dayscholar"),
-      });
     }
+
+    items.push({
+      id: "transport",
+      label: "Transport",
+      icon: Bus,
+      isActive: activeTab === "transport",
+      onSelect: () => selectTab("transport"),
+    });
 
     return items;
   }, [activeTab, isHosteller, residentialStatus, selectTab, HostelActiveSubTab, setHostelActiveSubTab]);
@@ -706,7 +707,8 @@ export default function NavigationTabs({
       { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
       { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
       
-      { label: "Bus Finder", group: "Campus", icon: Bus, action: () => { selectTab("dayscholar"); } },
+      { label: "Cab Share", group: "Campus", icon: CarTaxiFront, action: () => { selectTab("cabshare"); } },
+      { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
       { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
       { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
       
@@ -734,11 +736,12 @@ export default function NavigationTabs({
       {
         name: "Campus",
         items: [
+          { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => selectTab("cabshare") },
           { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
           { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
           ...(isHosteller === true || residentialStatus === "hosteller" 
             ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
-            : [{ label: "Bus Finder", icon: Bus, type: "link", action: () => selectTab("dayscholar") }])
+            : [{ label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") }])
         ]
       },
       {
@@ -771,51 +774,36 @@ export default function NavigationTabs({
 
     return (
       <>
-        {/* Floating Action Capsule (FAC) */}
-        <div
-          className="fixed left-1/2 z-[50] flex w-[min(24rem,calc(100vw-1.5rem))] -translate-x-1/2 items-center justify-between gap-1 rounded-[1.75rem] border border-white/55 bg-white/65 px-2 py-2 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-2xl md:hidden dark:border-white/10 dark:bg-gray-950/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
-        >
-          <button
-            onClick={() => {
-              setIsAppLibraryOpen(false);
-              selectTab("home");
-            }}
-            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
-              activeTab === "home" && !isAppLibraryOpen 
-                ? "bg-white/80 text-info shadow-sm dark:bg-white/10 scale-105"
-                : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
-            }`}
-          >
-            <Home className="h-5 w-5 stroke-[2]" />
-            <span className="mt-0.5">Home</span>
-          </button>
-          
-          <button
-            onClick={openCommandPalette}
-            className="flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold text-gray-500 transition-all hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
-          >
-            <Search className="h-5 w-5 stroke-[2]" />
-            <span className="mt-0.5">Search</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setMobilePanel("primary");
-              setIsAppLibraryOpen(prev => !prev);
-            }}
-            className={`flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-[1.35rem] px-3 py-2 text-[10px] font-bold transition-all ${
-              isAppLibraryOpen 
-                ? "bg-white/80 text-info shadow-sm dark:bg-white/10 scale-105"
-                : activeTab !== "home"
-                  ? "text-info hover:bg-white/50 hover:text-info dark:hover:bg-white/5"
-                  : "text-gray-500 hover:bg-white/50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
-            }`}
-          >
-            <LayoutGrid className="h-5 w-5 stroke-[2]" />
-            <span className="mt-0.5">Modules</span>
-          </button>
-        </div>
+        <MobileBottomNav
+          items={[
+            {
+              id: "home",
+              icon: <Home className="h-5 w-5 stroke-[2]" />,
+              label: "Home",
+              isActive: activeTab === "home" && !isAppLibraryOpen,
+              onClick: () => {
+                setIsAppLibraryOpen(false);
+                selectTab("home");
+              },
+            },
+            {
+              id: "search",
+              icon: <Search className="h-5 w-5 stroke-[2]" />,
+              label: "Search",
+              onClick: openCommandPalette,
+            },
+            {
+              id: "modules",
+              icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
+              label: "Modules",
+              isActive: isAppLibraryOpen,
+              onClick: () => {
+                setMobilePanel("primary");
+                setIsAppLibraryOpen(prev => !prev);
+              },
+            },
+          ]}
+        />
 
         <AppLibrary
           open={isAppLibraryOpen}
@@ -1243,7 +1231,7 @@ export default function NavigationTabs({
                 const isActive = group.id === "study"
                   ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
                   : group.id === "campus"
-                  ? ["payments", "libraries", "hostel", "dayscholar"].includes(activeTab)
+                  ? ["payments", "libraries", "hostel", "transport"].includes(activeTab)
                   : group.id === "tools"
                   ? activeTab === "more"
                   : activeTab === "profile";
