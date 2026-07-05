@@ -606,7 +606,16 @@ export default function LoginPage() {
   };
 
   // --- Event Handlers ---
-  const handleReloadRequest = async () => {
+  const handleReloadRequest = async (targetSemesterID?: string) => {
+    const activeSem = targetSemesterID || settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2];
+    if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
+      setSettings(prev => {
+        const next = { ...prev, currSemesterID: targetSemesterID };
+        localStorage.setItem("settings", JSON.stringify(next));
+        return next;
+      });
+    }
+
     if (demoMode) {
       setIsReloading(true);
       setProgressBar(10);
@@ -642,7 +651,7 @@ export default function LoginPage() {
 
     try {
       if ((settings as any).reloadAllData) {
-        await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
+        await handleLogin(activeSem);
         await fetchTransportData();
         
         try {
@@ -665,7 +674,7 @@ export default function LoginPage() {
           cookies,
           authorizedID,
           csrf,
-          semesterId: settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2],
+          semesterId: activeSem,
         }),
       }).then(async r => {
         const { attRes, marksRes } = await r.json();
@@ -1302,6 +1311,7 @@ export default function LoginPage() {
     );
 
     // ── Settings toggles ──
+    // ── Settings toggles ──
     const toggle = (label: string, key: keyof typeof settings, category: string, icon: string, invertDesc = false) => {
       const current = settings[key] as boolean;
       result.push({
@@ -1314,8 +1324,11 @@ export default function LoginPage() {
         rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${current ? "text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20" : "text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-800"}`}>{current ? "ON" : "OFF"}</span>,
         onSelect: () => {
           const newVal = !current as any;
-          setSettings(prev => ({ ...prev, [key]: newVal }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, [key]: newVal }));
+          setSettings(prev => {
+            const next = { ...prev, [key]: newVal };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     };
@@ -1355,8 +1368,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.attendancePercentageOrString === mode ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, attendancePercentageOrString: mode as "percentage" | "str" }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: mode }));
+          setSettings(prev => {
+            const next = { ...prev, attendancePercentageOrString: mode as "percentage" | "str" };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1371,8 +1387,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.residentialStatus === status ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, residentialStatus: status as "hosteller" | "dayscholar" }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: status }));
+          setSettings(prev => {
+            const next = { ...prev, residentialStatus: status as "hosteller" | "dayscholar" };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1388,8 +1407,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.calendarType === ct ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, calendarType: ct as any }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: ct }));
+          setSettings(prev => {
+            const next = { ...prev, calendarType: ct as any };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1406,8 +1428,7 @@ export default function LoginPage() {
           category: "Settings",
           rightSlot: settings.currSemesterID === sem ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
           onSelect: () => {
-            setSettings(prev => ({ ...prev, currSemesterID: sem }));
-            localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: sem }));
+            handleReloadRequest(sem);
           }
         });
       });
@@ -2588,9 +2609,12 @@ export default function LoginPage() {
                   });
                 }
               }}
-              onComplete={() => {
+              onComplete={async (finalSemesterID?: string) => {
                 localStorage.setItem("introDone", "true");
                 setShowIntro(false);
+                if (finalSemesterID && finalSemesterID !== settings.currSemesterID) {
+                  await handleReloadRequest(finalSemesterID);
+                }
               }}
             />
           ) : (

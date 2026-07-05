@@ -162,16 +162,20 @@ export default function ProfilePage({
   };
 
   const updateSetting = (key: string, value: any) => {
-    const updated = { ...settings, [key]: value };
-    setSettings((prev: any) => ({ ...prev, [key]: value }));
-    localStorage.setItem("settings", JSON.stringify(updated));
+    setSettings((prev: any) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
   };
 
   const updateCustomPalette = (key: "accent" | "background" | "surface", value: string) => {
     const nextPalette = { ...customPalette, [key]: value };
-    const updated = { ...settings, colorPalette: "custom", customPalette: nextPalette };
-    setSettings((prev: any) => ({ ...prev, colorPalette: "custom", customPalette: nextPalette }));
-    localStorage.setItem("settings", JSON.stringify(updated));
+    setSettings((prev: any) => {
+      const next = { ...prev, colorPalette: "custom", customPalette: nextPalette };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
   };
 
   const handleSaveSemester = async () => {
@@ -1153,60 +1157,42 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Arrears Data</p>
                             <p className="text-[10px] text-gray-450">Arrear schedule, details, and grades</p>
                           </div>
-                          <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncArrearData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncArrearData: val }));
-                          }} />
+                          <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => updateSetting("syncArrearData", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Course Option Change</p>
                             <p className="text-[10px] text-gray-450">Track optional elective changes</p>
                           </div>
-                          <Switch checked={settings?.syncCourseOptionChange ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncCourseOptionChange: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncCourseOptionChange: val }));
-                          }} />
+                          <Switch checked={settings?.syncCourseOptionChange ?? true} onCheckedChange={(val) => updateSetting("syncCourseOptionChange", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">EXC Registration</p>
                             <p className="text-[10px] text-gray-450">Extra-curricular registrations status</p>
                           </div>
-                          <Switch checked={settings?.syncExcRegistration ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncExcRegistration: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncExcRegistration: val }));
-                          }} />
+                          <Switch checked={settings?.syncExcRegistration ?? true} onCheckedChange={(val) => updateSetting("syncExcRegistration", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Minor / Honour Course</p>
                             <p className="text-[10px] text-gray-450">Minor and Honour program registration info</p>
                           </div>
-                          <Switch checked={settings?.syncMinorHonour ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncMinorHonour: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncMinorHonour: val }));
-                          }} />
+                          <Switch checked={settings?.syncMinorHonour ?? true} onCheckedChange={(val) => updateSetting("syncMinorHonour", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Course Completion</p>
                             <p className="text-[10px] text-gray-450">Academic credits check completion status</p>
                           </div>
-                          <Switch checked={settings?.syncCourseCompletion ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncCourseCompletion: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncCourseCompletion: val }));
-                          }} />
+                          <Switch checked={settings?.syncCourseCompletion ?? true} onCheckedChange={(val) => updateSetting("syncCourseCompletion", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Additional Learning</p>
                             <p className="text-[10px] text-gray-450">Extra certifications and non-graded learning</p>
                           </div>
-                          <Switch checked={settings?.syncAdditionalLearning ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncAdditionalLearning: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncAdditionalLearning: val }));
-                          }} />
+                          <Switch checked={settings?.syncAdditionalLearning ?? true} onCheckedChange={(val) => updateSetting("syncAdditionalLearning", val)} />
                         </div>
                       </div>
                     )}
@@ -1230,10 +1216,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Profile Data</p>
                             <p className="text-[10px] text-gray-450">Credentials, dayboarder info, and bank information</p>
                           </div>
-                          <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProfileData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProfileData: val }));
-                          }} />
+                          <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => updateSetting("syncProfileData", val)} />
                         </div>
                       </div>
                     )}
@@ -1257,10 +1240,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Exam Data</p>
                             <p className="text-[10px] text-gray-450">Makeup exams, compre schedules and status</p>
                           </div>
-                          <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncExamData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncExamData: val }));
-                          }} />
+                          <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => updateSetting("syncExamData", val)} />
                         </div>
                       </div>
                     )}
@@ -1302,10 +1282,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Wishlist Data</p>
                             <p className="text-[10px] text-gray-450">Fetch draft wishlist courses from VTOP</p>
                           </div>
-                          <Switch checked={settings?.syncWishlist ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncWishlist: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncWishlist: val }));
-                          }} />
+                          <Switch checked={settings?.syncWishlist ?? true} onCheckedChange={(val) => updateSetting("syncWishlist", val)} />
                         </div>
                       </div>
                     )}
@@ -1329,20 +1306,14 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Project Information</p>
                             <p className="text-[10px] text-gray-450">Fetch active project details</p>
                           </div>
-                          <Switch checked={settings?.syncProject ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProject: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProject: val }));
-                          }} />
+                          <Switch checked={settings?.syncProject ?? true} onCheckedChange={(val) => updateSetting("syncProject", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Project Course Sync</p>
                             <p className="text-[10px] text-gray-450">Fetch individual project course grades</p>
                           </div>
-                          <Switch checked={settings?.syncProjectCourse ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProjectCourse: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProjectCourse: val }));
-                          }} />
+                          <Switch checked={settings?.syncProjectCourse ?? true} onCheckedChange={(val) => updateSetting("syncProjectCourse", val)} />
                         </div>
                       </div>
                     )}

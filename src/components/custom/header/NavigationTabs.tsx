@@ -858,12 +858,7 @@ export default function NavigationTabs({
                   value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setSettings((prev: any) => {
-                      const next = { ...prev, currSemesterID: val };
-                      localStorage.setItem("settings", JSON.stringify(next));
-                      return next;
-                    });
-                    handleReloadRequest();
+                    handleReloadRequest(val);
                   }}
                   className="appearance-none border-none bg-transparent py-0 pr-3.5 text-xs font-black text-info hover:underline focus:outline-none"
                 >
@@ -1063,12 +1058,7 @@ export default function NavigationTabs({
                         value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
                         onChange={(e) => {
                           const val = e.target.value;
-                          setSettings((prev: any) => {
-                            const next = { ...prev, currSemesterID: val };
-                            localStorage.setItem("settings", JSON.stringify(next));
-                            return next;
-                          });
-                          handleReloadRequest();
+                          handleReloadRequest(val);
                         }}
                         className="appearance-none bg-transparent border-none text-[10px] font-black text-info hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none text-right"
                       >
