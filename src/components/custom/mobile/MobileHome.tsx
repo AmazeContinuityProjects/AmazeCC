@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { 
   CalendarCheck, 
   GraduationCap, 
@@ -25,6 +25,7 @@ import {
   FolderOpen
 } from "lucide-react";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
+import CabShareMatchCard from "../Hostel/CabShare/CabShareMatchCard";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { API_BASE } from "@/lib/fetch-utils";
@@ -199,11 +200,11 @@ export default function MobileHome({
       .slice(0, 2);
   }, [moodleData]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsSpinning(true);
     await handleReloadRequest();
-    setTimeout(() => setIsSpinning(false), 800);
-  };
+    window.setTimeout(() => setIsSpinning(false), 600);
+  }, [handleReloadRequest]);
 
   const getGreeting = () => {
     const hr = new Date().getHours();
@@ -261,7 +262,7 @@ export default function MobileHome({
       {(settings?.promoteCabShare || globalPromoteCab) && (
         <button
           onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md active:scale-[0.98] transition-all"
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md active:scale-[0.98] transition-all"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
             <Car className="w-6 h-6" />
@@ -275,6 +276,9 @@ export default function MobileHome({
           </div>
         </button>
       )}
+
+      {/* ── CAB SHARE PENDING / MATCH CARDS ── */}
+      <CabShareMatchCard />
 
       {/* ── QUICK SPOTLIGHT TRIGGER ── */}
       <button 

@@ -228,12 +228,7 @@ export default function DashboardContent({
   const [transportData, setTransportData] = useState<any>(null);
   const [transportLoading, setTransportLoading] = useState(true);
 
-  useEffect(() => {
-    const cachedBuses = localStorage.getItem("cache_buses");
-    if (cachedBuses) {
-      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
-    }
-
+  const loadTransportData = useCallback(() => {
     const cached = localStorage.getItem("transportData");
     if (cached) {
       try {
@@ -245,6 +240,14 @@ export default function DashboardContent({
     }
     setTransportLoading(false);
   }, []);
+
+  useEffect(() => {
+    const cachedBuses = localStorage.getItem("cache_buses");
+    if (cachedBuses) {
+      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
+    }
+    loadTransportData();
+  }, [loadTransportData]);
 
   const [transportBuses, setTransportBuses] = useState<any[]>([]);
   const [transportBusesLoading, setTransportBusesLoading] = useState(false);
@@ -272,6 +275,12 @@ export default function DashboardContent({
       setTransportBusesLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "transport") {
+      loadTransportData();
+    }
+  }, [activeTab, loadTransportData]);
 
   const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
 
