@@ -567,10 +567,12 @@ export default function DashboardContent({
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
         setCurrSemesterID={(val: string) => {
-          setSettings(prev => ({ ...prev, currSemesterID: val }))
-          localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
-        }
-        }
+          setSettings(prev => {
+            const next = { ...prev, currSemesterID: val };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
+        }}
         handleLogin={handleLogin}
         setIsReloading={setIsReloading}
         username={IDs.VtopUsername}
@@ -653,16 +655,20 @@ export default function DashboardContent({
           setGradesDisplayIsOpen={setGradesDisplayIsOpen}
           CGPAHidden={settings.CGPAHidden}
           setCGPAHidden={(val: boolean) => {
-            setSettings(prev => ({ ...prev, CGPAHidden: val }))
-            localStorage.setItem("settings", JSON.stringify({ ...settings, CGPAHidden: val }))
-          }
-          }
+            setSettings(prev => {
+              const next = { ...prev, CGPAHidden: val };
+              localStorage.setItem("settings", JSON.stringify(next));
+              return next;
+            });
+          }}
           attendancePercentageOrString={settings.attendancePercentageOrString}
           setAttendancePercentageOrString={(val: string) => {
-            setSettings(prev => ({ ...prev, attendancePercentageOrString: val }))
-            localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: val }))
-            }
-          }
+            setSettings(prev => {
+              const next = { ...prev, attendancePercentageOrString: val };
+              localStorage.setItem("settings", JSON.stringify(next));
+              return next;
+            });
+          }}
           onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
         />
         </div>
@@ -1044,8 +1050,11 @@ export default function DashboardContent({
                 loginToVTOP={loginToVTOP}
                 currSemesterID={settings.currSemesterID}
                 setCurrSemesterID={(val: string) => {
-                  setSettings(prev => ({ ...prev, currSemesterID: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, currSemesterID: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 handleLogin={handleLogin}
                 setIsReloading={setIsReloading}
@@ -1053,51 +1062,75 @@ export default function DashboardContent({
                 password={IDs.VtopPassword}
                 username={IDs.VtopUsername}
                 setPassword={(val: string[]) =>{
-                  setIDs(prev => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }))
-                  localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1]}))
+                  setIDs(prev => {
+                    const next = { ...prev, VtopUsername: val[0], VtopPassword: val[1] };
+                    localStorage.setItem("IDs", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 decimalValues={settings.decimalValues}
                 setDecimalValues={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, decimalValues: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, decimalValues: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, decimalValues: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 loadingScreen={settings.loadingScreen}
                 setLoadingScreen={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, loadingScreen: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, loadingScreen: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, loadingScreen: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 isDayscholarWithBus={settings.isDayscholarWithBus}
                 setIsDayscholarWithBus={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, isDayscholarWithBus: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, isDayscholarWithBus: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 residentialStatus={settings.residentialStatus || "hosteller"}
                 setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-                  setSettings(prev => ({ ...prev, residentialStatus: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, residentialStatus: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 friendlyName={settings.friendlyName}
                 setFriendlyName={(val: string) => {
-                  setSettings(prev => ({ ...prev, friendlyName: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, friendlyName: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, friendlyName: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 calendarType={settings.calendarType}
                 setCalendarType={(val: any) => {
-                    setSettings(prev => ({ ...prev, calendarType: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, calendarType: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 hideMobileHeader={settings.hideMobileHeader}
                 setHideMobileHeader={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, hideMobileHeader: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, hideMobileHeader: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, hideMobileHeader: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 reloadAllData={settings.reloadAllData}
                 setReloadAllData={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, reloadAllData: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, reloadAllData: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, reloadAllData: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 settings={settings}
                 setSettings={setSettings}
