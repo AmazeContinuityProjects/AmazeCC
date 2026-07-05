@@ -298,7 +298,7 @@ export default function DesktopCourseDetail({
             </div>
 
             {/* Premium Stat Boxes */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Attendance Status Card */}
                 <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs gap-3">
                     <div className="flex-1 min-w-0">
@@ -394,7 +394,7 @@ export default function DesktopCourseDetail({
                 </div>
 
                 {/* Info Card */}
-                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs md:col-span-2">
+                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs sm:col-span-2">
                     <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Next Class Impact</h4>
                     {total > 0 && (() => {
                         const percentage = simulatedPercentage;

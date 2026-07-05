@@ -1,19 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
-import CourseCard from "./courseCard";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
-import PopupCard from "./PopupCard";
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./overallAttendancePredictor";
-import { BadgeQuestionMark, Calendar, Users, ChevronDown, Clock, MapPin, User } from "lucide-react";
+import { BadgeQuestionMark, Calendar, Users } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
+import DailyPlanner from "./DailyPlanner";
 import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 import AttendanceSubpage from "./AttendanceSubpage";
-import ODTrackerSubpage from "./ODTrackerSubpage";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import Modal from "../shared/Modal";
-import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";
 import { useIsMobile } from "../shared";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
@@ -39,7 +36,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   const [showCommonFree, setShowCommonFree] = useState(false);
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
-  const [expandedScheduleIdx, setExpandedScheduleIdx] = useState<number | null>(null);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
 
   const getOngoingIndex = (dayClasses) => {
@@ -69,35 +65,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
     return idx !== -1 ? idx : 0;
   };
-
-  const getClassStatus = (timeStr: string) => {
-    if (!timeStr || !activeDay) return "upcoming";
-
-    const today = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    if (!today.startsWith(activeDay.slice(0, 3).toUpperCase())) return "upcoming";
-
-    const [startStr, endStr] = timeStr.split("-").map(t => t.trim());
-    if (!startStr || !endStr) return "upcoming";
-
-    const parseTime = (str) => {
-      const [hour, minute] = str.split(":").map(Number);
-      const d = new Date();
-      let h = hour;
-      let m = minute || 0;
-      if (h < 8) h += 12;
-      d.setHours(h, m, 0, 0);
-      return d;
-    };
-
-    const start = parseTime(startStr);
-    const end = parseTime(endStr);
-    const now = new Date();
-
-    if (now >= start && now <= end) return "ongoing";
-    if (now > end) return "completed";
-    return "upcoming";
-  };
-
 
   useEffect(() => {
     if (setIsSubpageOpen) {
@@ -220,7 +187,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   useEffect(() => {
     const dayClasses = dayCardsMap[activeDay] || [];
     setDesktopSelectedIdx(getOngoingIndex(dayClasses));
-    setExpandedScheduleIdx(null);
   }, [activeDay]);
 
   const findEventDate = (eventName) => {
@@ -292,7 +258,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   };
 
   const activeDayClasses = dayCardsMap[activeDay] || [];
-  const nextUpcomingIdx = activeDayClasses.findIndex((course) => getClassStatus(course.time) === "upcoming");
 
   if (!data || !data.attendance || data.attendance.length === 0) return <NoContentFound />;
 
@@ -440,237 +405,50 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         })()}
       </div>
 
-      {/* Mobile View: Grid of cards */}
-      <div className="grid grid-cols-1 md:hidden gap-6 px-1">
-        {dayCardsMap[activeDay]?.map((a, idx) => (
-          <div key={idx} className="stagger-enter">
-            <CourseCard
-              a={a}
-              onClick={() => setExpandedIdx(idx)}
-              activeDay={activeDay}
-              isHoliday={isHoliday}
-              decimalValues={decimalValues}
+      {/* Daily Planner Timeline — replaces old mobile cards + desktop timeline */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_400px] gap-8 p-0 items-start">
+        <div>
+          <DailyPlanner
+            attendance={data.attendance}
+            activeDay={activeDay}
+            simulatedSkips={simulatedSkips}
+            isDayscholarWithBus={isDayscholarWithBus}
+            onClassClick={(course) => {
+              const idx = activeDayClasses.findIndex(c => c.courseCode === course.courseCode);
+              if (idx !== -1) {
+                setDesktopSelectedIdx(idx);
+                setExpandedIdx(idx);
+              }
+            }}
+          />
+        </div>
+
+        {/* Right Column: Premium Desktop Course Details Preview */}
+        <div className="hidden md:block bg-white  dark:bg-[#080808] border border-gray-200  dark:border-gray-800/80 rounded-2xl p-6 shadow-sm sticky top-4">
+          {dayCardsMap[activeDay] && dayCardsMap[activeDay][desktopSelectedIdx] ? (
+            <DesktopCourseDetail
+              a={dayCardsMap[activeDay][desktopSelectedIdx]}
               isDayscholarWithBus={isDayscholarWithBus}
-              simulatedSkips={simulatedSkips[a.courseCode] || 0}
+              decimalValues={decimalValues}
+              results={results}
+              dayCardsMap={dayCardsMap}
+              impDates={impDates}
+              onViewFullPage={() => setExpandedIdx(desktopSelectedIdx)}
+              simulatedSkips={simulatedSkips[dayCardsMap[activeDay][desktopSelectedIdx].courseCode] || 0}
               onSimulateSkipsChange={(val) => {
                 setSimulatedSkips(prev => ({
                   ...prev,
-                  [a.courseCode]: Math.max(0, val)
+                  [dayCardsMap[activeDay][desktopSelectedIdx].courseCode]: Math.max(0, val)
                 }));
               }}
             />
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop and Mobile Timetable Timeline Layout */}
-      {dayCardsMap[activeDay] && dayCardsMap[activeDay].length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8 p-0 items-start">
-          {/* Left Column: Timeline Schedule */}
-          <div className="hidden md:block space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Today's Schedule</h3>
-            <div className="relative pl-8 space-y-4">
-              {/* Vertical timeline line */}
-              <div className="absolute left-[11px] top-3 bottom-3 w-[2px] bg-gray-200  dark:bg-gray-800/80" />
-
-              {activeDayClasses.map((a, idx) => {
-                const status = getClassStatus(a.time);
-                const isExpanded = idx === expandedScheduleIdx;
-                const isCurrent = status === "ongoing";
-                const isNext = status === "upcoming" && idx === nextUpcomingIdx;
-
-                // Color mapping for status dot
-                let dotColorClass = "bg-gray-300 border-gray-400 dark:bg-gray-700 dark:border-gray-600";
-                let pulseEffect = null;
-                if (isCurrent) {
-                  dotColorClass = "bg-amber-500 border-amber-300 dark:bg-amber-500 dark:border-amber-400";
-                  pulseEffect = <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping" />;
-                } else if (status === "completed") {
-                  dotColorClass = "bg-emerald-500 border-emerald-300 dark:bg-emerald-500 dark:border-emerald-400";
-                } else if (isNext) {
-                  dotColorClass = "bg-blue-500 border-blue-300 dark:bg-blue-500 dark:border-blue-400";
-                }
-
-                const courseSkips = simulatedSkips[a.courseCode] || 0;
-                const originalPercentage = parseFloat(a.attendancePercentage);
-                const attendedClassesCount = parseInt(a.attendedClasses);
-                const totalClassesCount = parseInt(a.totalClasses) + courseSkips;
-                const simulatedPercentage = totalClassesCount > 0
-                  ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
-                  : originalPercentage;
-
-                const thresholdPct = isDayscholarWithBus ? 85 : 75;
-                const isBelowThreshold = simulatedPercentage < thresholdPct;
-
-                let cardStyle = "bg-white  dark:bg-[#0a0a0a] border-gray-200  dark:border-gray-800/60";
-                if (isCurrent) {
-                  cardStyle = "bg-amber-50/40  dark:bg-amber-950/10 border-amber-500/60 ring-1 ring-amber-500/20";
-                } else if (isNext) {
-                  cardStyle = "bg-blue-50/35  dark:bg-blue-950/10 border-blue-500/45";
-                } else if (isExpanded) {
-                  cardStyle = "bg-gray-50/70  dark:bg-gray-950 border-gray-300  dark:border-gray-700";
-                } else if (courseSkips > 0 && isBelowThreshold) {
-                  cardStyle = "bg-red-50/5  dark:bg-red-950/5 border-red-500 dark:border-red-500/80";
-                }
-
-                // Muted state for completed classes
-                let textOpacity = "opacity-100";
-                if (status === "completed" && !isExpanded) {
-                  textOpacity = "opacity-70";
-                }
-
-                const attendanceVariant = simulatedPercentage < thresholdPct
-                  ? "danger"
-                  : simulatedPercentage < (isDayscholarWithBus ? 90 : 85)
-                    ? "warning"
-                    : "success";
-
-                return (
-                  <div
-                    key={idx}
-                    className="relative group cursor-pointer"
-                    onClick={() => {
-                      setDesktopSelectedIdx(idx);
-                      setExpandedScheduleIdx((current) => current === idx ? null : idx);
-                    }}
-                  >
-                    {/* Timeline Dot */}
-                    <div className="absolute left-[-29px] top-4 z-10 flex h-6 w-6 items-center justify-center">
-                      <div className="relative flex h-3 w-3 items-center justify-center">
-                        {pulseEffect}
-                        <span className={`relative inline-flex h-3 w-3 rounded-full border-2 ${dotColorClass}`} />
-                      </div>
-                    </div>
-
-                    {/* Timeline Card */}
-                    <div className={`stagger-enter rounded-2xl border transition-[background-color,border-color,box-shadow,opacity] duration-150 hover:shadow-sm ${cardStyle} ${textOpacity}`}>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-blue-600  dark:text-blue-400 uppercase tracking-wider">
-                                {a.courseCode}
-                              </span>
-                              {isCurrent && (
-                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase">
-                                  Current
-                                </span>
-                              )}
-                              {isNext && !isCurrent && (
-                                <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">
-                                  Next
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="mt-1 text-sm font-bold text-gray-900  dark:text-gray-100 leading-snug truncate">
-                              {a.courseTitle}
-                            </h4>
-                            <div className="mt-2 flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 font-semibold">
-                              <span className="flex items-center gap-2 min-w-0">
-                                <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
-                                <span>{a.time}</span>
-                              </span>
-                              <span className="flex items-center gap-2 min-w-0">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
-                                <span className="truncate">{a.slotVenue}</span>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end gap-2 shrink-0">
-                            <Badge variant={attendanceVariant} className="font-extrabold text-xs">
-                              {simulatedPercentage}%
-                            </Badge>
-                            <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                          </div>
-                        </div>
-
-                        <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-linear ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                          <div className="overflow-hidden">
-                            <div className="mt-4 border-t border-gray-200  dark:border-gray-800 pt-4 space-y-3">
-                              {a.faculty && (
-                                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600  dark:text-gray-300">
-                                  <User className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                                  <span className="truncate">{a.faculty}</span>
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center rounded-xl border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                  {a.slotName}
-                                </span>
-                                <span className="inline-flex items-center rounded-xl border border-gray-200 dark:border-gray-800 px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                  {a.courseType || (a.courseCode.endsWith("(L)") ? "Lab" : "Theory")}
-                                </span>
-                                {courseSkips > 0 && (
-                                  <span className="inline-flex items-center rounded-xl border border-red-200 dark:border-red-900/40 px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
-                                    Simulated {originalPercentage}%
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 py-20">
+              <p>Select a class on the timeline to view details.</p>
             </div>
-          </div>
-
-          {/* Right Column: Premium Desktop Course Details Preview */}
-          <div className="hidden md:block bg-white  dark:bg-[#080808] border border-gray-200  dark:border-gray-800/80 rounded-2xl p-6 shadow-sm">
-            {dayCardsMap[activeDay][desktopSelectedIdx] ? (
-              <DesktopCourseDetail
-                a={dayCardsMap[activeDay][desktopSelectedIdx]}
-                isDayscholarWithBus={isDayscholarWithBus}
-                decimalValues={decimalValues}
-                results={results}
-                dayCardsMap={dayCardsMap}
-                impDates={impDates}
-                onViewFullPage={() => setExpandedIdx(desktopSelectedIdx)}
-                simulatedSkips={simulatedSkips[dayCardsMap[activeDay][desktopSelectedIdx].courseCode] || 0}
-                onSimulateSkipsChange={(val) => {
-                  setSimulatedSkips(prev => ({
-                    ...prev,
-                    [dayCardsMap[activeDay][desktopSelectedIdx].courseCode]: Math.max(0, val)
-                  }));
-                }}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 py-20">
-                <p>Select a class on the timeline to view details.</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      ) : (
-        /* Empty / Holiday / Weekend state */
-        (() => {
-          const details = getDayDetails(activeDate, activeDay);
-          let title = "No Classes Scheduled";
-          let desc = "Enjoy your day off! Take some rest or work on your personal projects.";
-          let icon = "🎉";
-
-          if (details.isHoliday) {
-            title = details.eventName || "Academic Holiday";
-            desc = "The university is closed today for academic holidays. Enjoy the break!";
-            icon = "🌴";
-          } else if (details.isWeekend) {
-            title = "Weekend Mode";
-            desc = "It's the weekend! Time to relax, recharge, and get ready for the coming week.";
-            icon = "🏖️";
-          }
-
-          return (
-            <div className="flex flex-col items-center justify-center p-8 text-center bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl shadow-sm max-w-md mx-auto py-12 animate-in fade-in zoom-in-95 duration-200">
-              <span className="text-5xl mb-4 select-none" role="img" aria-label="day icon">{icon}</span>
-              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 mb-2">{title}</h3>
-              <p className="text-sm text-gray-500  dark:text-gray-400 max-w-xs">{desc}</p>
-            </div>
-          );
-        })()
-      )}
+      </div>
 
       {showPredictor && (
         <Modal onClose={() => setShowPredictor(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">

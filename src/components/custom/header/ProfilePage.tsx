@@ -1007,6 +1007,54 @@ export default function ProfilePage({
                     </div>
                     <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
                   </div>
+
+                  {/* Pinned Nav Tabs */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-850 dark:text-gray-200 mb-1">Pinned Nav Tabs</p>
+                    <p className="text-xs text-gray-550 dark:text-gray-450 mb-2">Choose tabs to show in the mobile bottom bar (max 4). Home & Modules are always on the bar.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: "attendance", label: "Attendance", icon: "CalendarCheck" },
+                        { id: "academics", label: "Academics", icon: "GraduationCap" },
+                        { id: "payments", label: "Payments", icon: "CreditCard" },
+                        { id: "libraries", label: "Libraries", icon: "Library" },
+                        { id: "cabshare", label: "Cab Share", icon: "CarTaxiFront" },
+                        { id: "transport", label: "Transport", icon: "Bus" },
+                        { id: "more", label: "More", icon: "MoreHorizontal" },
+                        { id: "profile", label: "Profile", icon: "User" },
+                      ].map(tab => {
+                        const pinned = settings?.pinnedNavTabs ?? [];
+                        const isPinned = pinned.includes(tab.id);
+                        const atLimit = !isPinned && pinned.length >= 4;
+                        return (
+                          <button
+                            key={tab.id}
+                            disabled={atLimit}
+                            onClick={() => {
+                              const current = settings?.pinnedNavTabs ?? [];
+                              const next = isPinned
+                                ? current.filter((id: string) => id !== tab.id)
+                                : [...current, tab.id];
+                              setSettings((prev: any) => {
+                                const updated = { ...prev, pinnedNavTabs: next };
+                                localStorage.setItem("settings", JSON.stringify(updated));
+                                return updated;
+                              });
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                              isPinned
+                                ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                                : atLimit
+                                  ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+                                  : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400"
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="h-px bg-gray-150 dark:bg-gray-800/80" />

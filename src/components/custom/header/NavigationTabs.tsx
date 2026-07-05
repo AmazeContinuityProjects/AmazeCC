@@ -43,6 +43,7 @@ import {
   ChevronDown,
   Car,
   CarTaxiFront,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -772,38 +773,72 @@ export default function NavigationTabs({
       ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
       : [];
 
+    const pinnedTabs = settings?.pinnedNavTabs ?? [];
+    const tabIcons: Record<string, { icon: React.ReactNode; label: string }> = {
+      attendance: { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
+      academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
+      payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
+      libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
+      cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
+      transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
+      more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
+      profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+    };
+
+    const rawNavItems: any[] = [
+      {
+        id: "home",
+        icon: <Home className="h-5 w-5 stroke-[2]" />,
+        label: "Home",
+        isActive: activeTab === "home" && !isAppLibraryOpen,
+        onClick: () => {
+          setIsAppLibraryOpen(false);
+          selectTab("home");
+        },
+      },
+    ];
+
+    if (pinnedTabs.length === 0) {
+      rawNavItems.push({
+        id: "search",
+        icon: <Search className="h-5 w-5 stroke-[2]" />,
+        label: "Search",
+        onClick: openCommandPalette,
+      });
+    } else {
+      pinnedTabs.forEach((tabId: string) => {
+        const t = tabIcons[tabId];
+        if (t) {
+          rawNavItems.push({
+            id: tabId,
+            icon: t.icon,
+            label: t.label,
+            isActive: activeTab === tabId && !isAppLibraryOpen,
+            onClick: () => {
+              setIsAppLibraryOpen(false);
+              selectTab(tabId);
+            },
+          });
+        }
+      });
+    }
+
+    rawNavItems.push({
+      id: "modules",
+      icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
+      label: "Modules",
+      isActive: isAppLibraryOpen,
+      onClick: () => {
+        setMobilePanel("primary");
+        setIsAppLibraryOpen(prev => !prev);
+      },
+    });
+
+    const isCompact = rawNavItems.length > 5 || pinnedTabs.length >= 2;
+
     return (
       <>
-        <MobileBottomNav
-          items={[
-            {
-              id: "home",
-              icon: <Home className="h-5 w-5 stroke-[2]" />,
-              label: "Home",
-              isActive: activeTab === "home" && !isAppLibraryOpen,
-              onClick: () => {
-                setIsAppLibraryOpen(false);
-                selectTab("home");
-              },
-            },
-            {
-              id: "search",
-              icon: <Search className="h-5 w-5 stroke-[2]" />,
-              label: "Search",
-              onClick: openCommandPalette,
-            },
-            {
-              id: "modules",
-              icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
-              label: "Modules",
-              isActive: isAppLibraryOpen,
-              onClick: () => {
-                setMobilePanel("primary");
-                setIsAppLibraryOpen(prev => !prev);
-              },
-            },
-          ]}
-        />
+        <MobileBottomNav items={rawNavItems} compact={isCompact} />
 
         <AppLibrary
           open={isAppLibraryOpen}
