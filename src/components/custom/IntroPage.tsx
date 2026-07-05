@@ -1,9 +1,10 @@
 "use client";
 import { useState, useMemo } from "react";
 import {
-  GraduationCap, Bus, Check, ChevronRight, ChevronLeft, Sparkles, ChevronDown
+  GraduationCap, Bus, Check, ChevronRight, ChevronLeft, Sparkles, ChevronDown, Bell
 } from "lucide-react";
 import config from "../../../config.json";
+import { API_BASE } from "./Main";
 
 const COLOR_PALETTES = [
   { id: "default", label: "Default", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
@@ -23,6 +24,7 @@ const steps = [
 
 interface IntroPageProps {
   settings: any;
+  username?: string;
   setSettings: (fn: any) => void;
   onComplete: (semesterId?: string) => void;
 }
@@ -40,14 +42,31 @@ function formatSemesterName(semId: string): string {
   return `${termName} ${year1}-${year2}`;
 }
 
-export default function IntroPage({ settings, setSettings, onComplete }: IntroPageProps) {
+function urlBase64ToUint8Array(base64String: string) {
+  if (!base64String) return new Uint8Array(0);
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+export default function IntroPage({ settings, username, setSettings, onComplete }: IntroPageProps) {
   const [step, setStep] = useState(0);
   const [temp, setTemp] = useState({ ...settings });
+  
+  // Notification loading & status
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    return typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+  });
 
   const accentVal = useMemo(() => {
+    if (temp.colorPalette === "custom" && temp.customPalette?.accent) {
+      return temp.customPalette.accent;
+    }
     const palette = COLOR_PALETTES.find(x => x.id === temp.colorPalette);
     return palette?.swatches[0] ?? COLOR_PALETTES[0].swatches[0];
-  }, [temp.colorPalette]);
+  }, [temp.colorPalette, temp.customPalette?.accent]);
 
   const update = (key: string, val: any) => {
     setTemp((prev: any) => ({ ...prev, [key]: val }));
@@ -68,6 +87,51 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
       return merged;
     });
     onComplete(temp.currSemesterID);
+  };
+
+  const enableNotifications = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    setNotifLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setNotifEnabled(true);
+        localStorage.setItem('hasSeenPushPrompt', 'true');
+
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (vapidPublicKey && username && "serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+          const sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+          
+          await fetch(`${API_BASE}/api/notifications/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              UserID: username,
+              subscription: JSON.parse(JSON.stringify(sub)),
+              vitol_enabled: false,
+              vitol_reminder_day: 1,
+              vitol_reminder_time: "10:00"
+            }),
+          });
+          
+          new Notification("Welcome to AmazeCC Alerts!", {
+            body: "Push notifications are now enabled.",
+            icon: "/favicon.ico"
+          });
+        }
+      } else {
+        setNotifEnabled(false);
+      }
+    } catch (err) {
+      console.error("Failed to enable push notifications", err);
+    } finally {
+      setNotifLoading(false);
+    }
   };
 
   return (
@@ -159,7 +223,7 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
                         <opt.icon className="w-5 h-5" style={{ color: selected ? accentVal : "#9ca3af" }} />
                         <div>
                           <p className="font-extrabold text-xs text-gray-900 dark:text-white">{opt.label}</p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</p>
+                          <p className="text-[10px] text-gray-550 dark:text-gray-400 mt-0.5">{opt.desc}</p>
                         </div>
                       </button>
                     );
@@ -207,7 +271,7 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-black text-gray-900 dark:text-white">Personalize</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Tailor the layout and style to your liking.</p>
+                <p className="text-xs text-gray-550 dark:text-gray-400">Tailor the layout and style to your liking.</p>
               </div>
 
               {/* Accent Color Selection */}
@@ -222,11 +286,14 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
                         type="button"
                         onClick={() => {
                           update("colorPalette", palette.id);
-                          const c = palette.swatches[0];
-                          update("customPalette", {
-                            ...(temp.customPalette || {}),
-                            accent: c,
-                          });
+                          if (palette.id !== "custom") {
+                            const c = palette.swatches[0];
+                            update("customPalette", {
+                              accent: c,
+                              background: palette.swatches[1],
+                              surface: palette.swatches[2]
+                            });
+                          }
                         }}
                         className="flex flex-col items-center gap-1.5 rounded-xl border p-2 text-center transition-all cursor-pointer hover:bg-gray-50/50 dark:hover:bg-neutral-900/10"
                         style={{
@@ -250,10 +317,66 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
                 </div>
               </div>
 
-              {/* Display toggles */}
+              {/* Custom Color Pickers (Conditional) */}
+              {temp.colorPalette === "custom" && (
+                <div className="grid grid-cols-3 gap-2.5 p-3.5 rounded-2xl border border-gray-150 dark:border-neutral-900 bg-gray-50/20 dark:bg-neutral-950/10 animate-fadeIn">
+                  {[
+                    { key: "accent", label: "Accent", default: "#0ea5e9" },
+                    { key: "background", label: "Page Bg", default: "#ffffff" },
+                    { key: "surface", label: "Container", default: "#f8fafc" },
+                  ].map(opt => (
+                    <div key={opt.key} className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-extrabold text-gray-700 dark:text-gray-300">{opt.label}</span>
+                      <div className="relative w-12 h-7 rounded-lg overflow-hidden border border-gray-250 dark:border-gray-800 shadow-2xs">
+                        <input
+                          type="color"
+                          value={temp.customPalette?.[opt.key] || opt.default}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            update("customPalette", {
+                              ...(temp.customPalette || {}),
+                              [opt.key]: val,
+                            });
+                          }}
+                          className="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Privacy & Notifications */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-750 dark:text-gray-300 uppercase tracking-wider">Privacy Settings</label>
+                <label className="text-xs font-bold text-gray-750 dark:text-gray-300 uppercase tracking-wider">Privacy & Alerts</label>
                 <div className="space-y-2">
+                  {/* Push Notifications permission */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 dark:border-neutral-900 bg-gray-50/10 dark:bg-neutral-950/10">
+                    <div>
+                      <p className="text-xs font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <span>Push Notifications</span>
+                        {notifLoading && <span className="w-2.5 h-2.5 border-2 border-t-transparent border-info rounded-full animate-spin inline-block" />}
+                      </p>
+                      <p className="text-[9px] text-gray-550 dark:text-gray-400 mt-0.5">
+                        Never miss a class! Get weekly alerts on this device.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={notifLoading || notifEnabled}
+                      onClick={enableNotifications}
+                      className="w-8 h-4.5 rounded-full transition-all relative flex items-center shrink-0 cursor-pointer disabled:opacity-85"
+                      style={{ backgroundColor: notifEnabled ? accentVal : "#d1d5db" }}
+                    >
+                      <div
+                        className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow transition-all ${
+                          notifEnabled ? "left-[13px]" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Standard toggles */}
                   {[
                     { key: "CGPAHidden", label: "Hide CGPA from Profile Card", desc: "Blurs your CGPA score on dashboard" },
                     { key: "hideProfileImageOutsideInfo", label: "Hide Profile Photo", desc: "Only visible under Info tab" },
@@ -359,7 +482,7 @@ export default function IntroPage({ settings, setSettings, onComplete }: IntroPa
             type="button"
             onClick={prev}
             disabled={step === 0}
-            className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-black text-gray-550 dark:text-gray-400 disabled:opacity-30 transition-all hover:bg-gray-100/50 dark:hover:bg-neutral-900/20"
+            className="flex items-center gap-1 px-4 py-2 rounded-xl text-xs font-black text-gray-550 dark:text-gray-400 disabled:opacity-30 transition-all hover:bg-gray-100/50 dark:hover:bg-neutral-900/20 animate-fadeIn"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> Back
           </button>

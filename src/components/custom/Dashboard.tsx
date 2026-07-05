@@ -151,7 +151,35 @@ export default function DashboardContent({
       setShowFresherWelcome(true);
       return;
     }
-  }, []);
+
+    try {
+      const ept = localStorage.getItem("cache_ept_schedule");
+      const ack = localStorage.getItem("cache_acknowledgement");
+      const dismissed = localStorage.getItem("fresherWelcomeDismissed");
+      
+      let hasFresherData = false;
+      if (ept) {
+        const parsedEpt = JSON.parse(ept);
+        setFresherEptData(parsedEpt);
+        if (parsedEpt.tables?.[0]?.rows?.length > 0) {
+          hasFresherData = true;
+        }
+      }
+      if (ack) {
+        const parsedAck = JSON.parse(ack);
+        setFresherAckData(parsedAck);
+        if (parsedAck.tables?.[1]?.rows?.length > 0) {
+          hasFresherData = true;
+        }
+      }
+
+      if (hasFresherData && dismissed !== "true") {
+        setShowFresherWelcome(true);
+      }
+    } catch (e) {
+      console.error("Failed to load fresher data from localStorage", e);
+    }
+  }, [demoMode]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/fresher-resources`)
@@ -541,7 +569,10 @@ export default function DashboardContent({
   if (showFresherWelcome) {
     return (
       <FresherWelcomePage
-        onDismiss={() => setShowFresherWelcome(false)}
+        onDismiss={() => {
+          localStorage.setItem("fresherWelcomeDismissed", "true");
+          setShowFresherWelcome(false);
+        }}
         username={IDs?.VtopUsername || ""}
         friendlyName={settings?.friendlyName || ""}
         eptData={fresherEptData}
