@@ -2600,6 +2600,7 @@ export default function LoginPage() {
           {showIntro === true ? (
             <IntroPage
               settings={settings}
+              username={IDs.VtopUsername}
               setSettings={(fn: any) => {
                 if (typeof fn === "function") {
                   setSettings((prev: settings) => {
