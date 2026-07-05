@@ -99,7 +99,7 @@ export default function CabShareMatchCard() {
     <div className="mb-6 space-y-3">
       {/* Pending - My requests waiting for host approval */}
       {pendingJoins.length > 0 && pendingJoins.map(trip => (
-        <div key={trip.trip_id} className="animate-fadeIn rounded-3xl bg-amber-500 p-4 text-white shadow-sm">
+        <div key={trip.trip_id} className="animate-fadeIn rounded-3xl bg-amber-600 p-4 text-white shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="rounded-2xl bg-white/20 p-2">
               <Clock3 className="w-5 h-5 text-white" />
@@ -124,7 +124,7 @@ export default function CabShareMatchCard() {
 
       {/* Pending - Incoming requests (host side) */}
       {pendingRequests.length > 0 && (
-        <div className="animate-fadeIn rounded-3xl bg-violet-500 p-4 text-white shadow-sm">
+        <div className="animate-fadeIn rounded-3xl bg-violet-600 p-4 text-white shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="rounded-2xl bg-white/20 p-2">
               <Users className="w-5 h-5 text-white" />
@@ -150,7 +150,7 @@ export default function CabShareMatchCard() {
 
       {/* Accepted match (confirmed ride) */}
       {acceptedMatch && (
-        <div className="animate-fadeIn rounded-3xl bg-blue-600 p-4 text-white shadow-sm">
+        <div className="animate-fadeIn rounded-3xl bg-blue-700 p-4 text-white shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <div className="rounded-2xl bg-white/20 p-2">
               <Car className="w-5 h-5 text-white" />

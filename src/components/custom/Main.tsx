@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
+import IntroPage from "./IntroPage";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
@@ -61,6 +62,7 @@ type settings = {
   syncProject?: boolean;
   syncProjectCourse?: boolean;
   promoteCabShare?: boolean;
+  pinnedNavTabs?: string[];
 }
 
 type IDs = {
@@ -104,7 +106,8 @@ const defaultSettings: settings = {
   syncAdditionalLearning: true,
   syncProject: true,
   syncProjectCourse: true,
-  promoteCabShare: false
+  promoteCabShare: false,
+  pinnedNavTabs: []
 };
 
 const defaultIDs: IDs = {
@@ -161,6 +164,7 @@ export default function LoginPage() {
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
   const [demoMode, setDemoMode] = useState<boolean>(false);
   const [settings, setSettings] = useState<settings>(defaultSettings);
+  const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
   const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
@@ -435,6 +439,8 @@ export default function LoginPage() {
         ...settingsRaw
       });
     }
+    const introDone = localStorage.getItem("introDone");
+    setShowIntro(!introDone);
     const isDemoStored = storage.demoMode.get();
     if (isDemoStored) {
       setDemoMode(true);
@@ -2570,13 +2576,32 @@ export default function LoginPage() {
 
       {(isLoggedIn || demoMode) && (
         <>
-          {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-            ⚠️ You’re currently offline. Some features may not work.
-          </div>}
-          {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
-            ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
-          </div>}
-          <DashboardContent
+          {showIntro === true ? (
+            <IntroPage
+              settings={settings}
+              setSettings={(fn: any) => {
+                if (typeof fn === "function") {
+                  setSettings((prev: settings) => {
+                    const newSettings = fn(prev);
+                    localStorage.setItem("settings", JSON.stringify(newSettings));
+                    return newSettings;
+                  });
+                }
+              }}
+              onComplete={() => {
+                localStorage.setItem("introDone", "true");
+                setShowIntro(false);
+              }}
+            />
+          ) : (
+            <>
+              {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
+                ⚠️ You're currently offline. Some features may not work.
+              </div>}
+              {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
+                ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
+              </div>}
+              <DashboardContent
             demoMode={demoMode}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -2634,6 +2659,8 @@ export default function LoginPage() {
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
             onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
           />
+            </>
+          )}
         </>
       )}
       {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
