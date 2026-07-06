@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FileText, UploadCloud, BookOpen, ArrowLeft, ChevronRight, GraduationCap, AlertCircle, RefreshCcw } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { FileText, UploadCloud, BookOpen, ArrowLeft, ChevronRight, GraduationCap } from "lucide-react";
 import EmptyState from "../shared/EmptyState";
 import SearchInput from "../shared/SearchInput";
 import { LoadingSpinner } from "../shared";
@@ -7,47 +7,93 @@ import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
 import SubpageLayout from "../shared/SubpageLayout";
-import { useQBankCourses } from "./useQBankCourses";
-import { QBankCourse, QBankPaper, QBankQuestion } from "@/types/qbank.types";
 
 type ViewState = "courses" | "course-detail";
 
 export default function PapersArchiveTab({ allGradesData, marksData, username, setActiveSubTab }: { allGradesData: any; marksData: any; username: string; setActiveSubTab?: (tab: string) => void }) {
-  const { courses, globalCourses, globalCoursesLoading } = useQBankCourses(allGradesData, marksData);
-  const [selectedCourse, setSelectedCourse] = useState<QBankCourse | null>(null);
-  const [papers, setPapers] = useState<QBankPaper[]>([]);
-  const [questions, setQuestions] = useState<QBankQuestion[]>([]);
+  const [courses, setCourses] = useState<{ code: string; title: string }[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<{ code: string; title: string } | null>(null);
+  const [papers, setPapers] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>("courses");
   const [detailTab, setDetailTab] = useState<"papers" | "questions">("papers");
   const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState<"all" | "current" | "completed" | "global">("all");
 
-  const handleSelectCourse = async (course: QBankCourse) => {
+  const [globalCourses, setGlobalCourses] = useState<{ code: string; title: string }[]>([]);
+
+  // Fetch global approved courses
+  useEffect(() => {
+    fetch(`${API_BASE}/api/qbank/courses`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setGlobalCourses(d.data);
+      })
+      .catch(err => console.error("Failed to fetch global courses:", err));
+  }, []);
+
+  // Extract courses from grades data and marks data
+  useEffect(() => {
+    const uniqueCourses = new Map();
+    
+    // Add past courses from allGradesData
+    if (allGradesData && allGradesData.grades) {
+      const gradesArr = Array.isArray(allGradesData.grades)
+        ? allGradesData.grades
+        : Object.values(allGradesData.grades);
+
+      gradesArr.forEach((sem: any) => {
+        const courseList = sem?.grades ?? sem?.courseGrades ?? sem?.courses ?? [];
+        const items = Array.isArray(courseList) ? courseList : Object.values(courseList);
+        items.forEach((course: any) => {
+          const code = course.courseCode ?? course.code;
+          const title = course.courseTitle ?? course.title ?? code;
+          if (code) uniqueCourses.set(code, title);
+        });
+      });
+    }
+
+    // Add current semester courses from marksData
+    if (marksData && marksData.courses && Array.isArray(marksData.courses)) {
+      marksData.courses.forEach((course: any) => {
+        const code = course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code;
+        const title = course?.courseTitle ?? course?.title ?? code;
+        if (code && !uniqueCourses.has(code)) {
+          uniqueCourses.set(code, title);
+        }
+      });
+    }
+
+    if (uniqueCourses.size > 0) {
+      setCourses(Array.from(uniqueCourses).map(([code, title]) => ({ code, title: title as string })));
+    }
+  }, [allGradesData, marksData]);
+
+  const handleSelectCourse = async (course: { code: string; title: string }) => {
     setSelectedCourse(course);
     setView("course-detail");
     setDetailTab("papers");
     setLoading(true);
-    setError(null);
 
     try {
       // Fetch papers via API route
       const papersRes = await fetch(`${API_BASE}/api/qbank/papers?course=` + encodeURIComponent(course.code));
-      if (!papersRes.ok) throw new Error("Failed to fetch papers");
       const papersJson = await papersRes.json();
       const papersData = papersJson.success ? papersJson.data : [];
       setPapers(papersData);
 
-      // Fetch questions independently via API route
-      const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
-      if (!questionsRes.ok) throw new Error("Failed to fetch questions");
-      const questionsJson = await questionsRes.json();
-      setQuestions(questionsJson.success ? questionsJson.data : []);
-    } catch (err: any) {
+      // Fetch questions via API route
+      if (papersData && papersData.length > 0) {
+        const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
+        const questionsJson = await questionsRes.json();
+        setQuestions(questionsJson.success ? questionsJson.data : []);
+      } else {
+        setQuestions([]);
+      }
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to load QBank data");
       setPapers([]);
       setQuestions([]);
     }
@@ -60,7 +106,6 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
     setSelectedCourse(null);
     setPapers([]);
     setQuestions([]);
-    setError(null);
   };
 
   const myFilteredCourses = courses.filter(
@@ -117,12 +162,6 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
             <UploadCloud className="w-4 h-4" /> Upload Paper
           </button>
         </div>
-
-        {globalCoursesLoading && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 px-4">
-            <LoadingSpinner size="sm" /> Loading community courses...
-          </div>
-        )}
 
         <div className="mb-5 space-y-3">
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -236,22 +275,6 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
         </button>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-sm">Failed to load QBank data</h3>
-            <p className="text-sm mt-1">{error}</p>
-            <button 
-              onClick={() => selectedCourse && handleSelectCourse(selectedCourse)} 
-              className="mt-3 text-xs font-bold flex items-center gap-1 hover:underline"
-            >
-              <RefreshCcw className="w-3 h-3" /> Retry
-            </button>
-          </div>
-        </div>
-      )}
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <LoadingSpinner size="lg" />
@@ -317,12 +340,7 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
       {isUploadModalOpen && (
         <UploadPaperModal
           isOpen={isUploadModalOpen}
-          onClose={() => {
-            setIsUploadModalOpen(false);
-            if (selectedCourse) {
-              handleSelectCourse(selectedCourse); // Refresh papers on close
-            }
-          }}
+          onClose={() => setIsUploadModalOpen(false)}
           courses={courses}
           username={username}
         />
