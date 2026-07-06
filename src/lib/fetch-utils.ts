@@ -1,5 +1,5 @@
 export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
-export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://api-backup.amazecc.com";
+export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://amaze-api.onrender.com";
 
 let activeApiUrl = PRIMARY_API_URL;
 
