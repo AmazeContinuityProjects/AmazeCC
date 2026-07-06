@@ -27,10 +27,9 @@ const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
     </div>
   )
 });
-export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
+export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen, setActiveTab, setActiveSubTab }: any) {
   const isMobile = useIsMobile();
   const days = [...ATTENDANCE_DAYS];
-  const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
@@ -68,9 +67,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   useEffect(() => {
     if (setIsSubpageOpen) {
-      setIsSubpageOpen(expandedIdx !== null || showPredictor || showTimetable || showCommonFree || ODhoursIsOpen);
+      setIsSubpageOpen(showPredictor || showTimetable || showCommonFree || ODhoursIsOpen);
     }
-  }, [expandedIdx, showPredictor, showTimetable, showCommonFree, ODhoursIsOpen, setIsSubpageOpen]);
+  }, [showPredictor, showTimetable, showCommonFree, ODhoursIsOpen, setIsSubpageOpen]);
 
   useEffect(() => {
     // Load friends meant for dashboard
@@ -261,22 +260,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   if (!data || !data.attendance || data.attendance.length === 0) return <NoContentFound />;
 
-  if (expandedIdx !== null && dayCardsMap[activeDay]?.[expandedIdx]) {
-    return (
-      <AttendanceSubpage
-        a={dayCardsMap[activeDay][expandedIdx]}
-        onBack={() => setExpandedIdx(null)}
-        dayCardsMap={dayCardsMap}
-        analyzeCalendars={results}
-        impDates={impDates}
-        decimalValues={decimalValues}
-        isDayscholarWithBus={isDayscholarWithBus}
-      />
-    );
-  }
-
-
-
   return (
     <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
@@ -420,8 +403,12 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
               );
               if (idx !== -1) {
                 setDesktopSelectedIdx(idx);
-                if (typeof window !== "undefined" && window.innerWidth < 768) {
-                  setExpandedIdx(idx);
+                if (isMobile) {
+                  localStorage.setItem("course_dashboard_target", item.course.courseCode);
+                  localStorage.setItem("course_dashboard_tab", "attendance");
+                  if (setActiveTab) setActiveTab("Academics");
+                  if (setActiveSubTab) setActiveSubTab("course-dashboard");
+                  if (setIsSubpageOpen) setIsSubpageOpen(true);
                 }
               }
             }}
@@ -438,7 +425,14 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
               results={results}
               dayCardsMap={dayCardsMap}
               impDates={impDates}
-              onViewFullPage={() => setExpandedIdx(desktopSelectedIdx)}
+              onViewFullPage={() => {
+                const courseCode = dayCardsMap[activeDay][desktopSelectedIdx].courseCode;
+                localStorage.setItem("course_dashboard_target", courseCode);
+                localStorage.setItem("course_dashboard_tab", "attendance");
+                if (setActiveTab) setActiveTab("Academics");
+                if (setActiveSubTab) setActiveSubTab("course-dashboard");
+                if (setIsSubpageOpen) setIsSubpageOpen(true);
+              }}
               simulatedSkips={simulatedSkips[dayCardsMap[activeDay][desktopSelectedIdx].courseCode] || 0}
               onSimulateSkipsChange={(val) => {
                 setSimulatedSkips(prev => ({

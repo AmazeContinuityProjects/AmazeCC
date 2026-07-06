@@ -844,6 +844,8 @@ export default function DashboardContent({
                     ODhoursData={ODhoursData}
                     ODhoursIsOpen={ODhoursIsOpen}
                     setODhoursIsOpen={setODhoursIsOpen}
+                    setActiveTab={setActiveTab}
+                    setActiveSubTab={setActiveSubTab}
                   />
                 </>
               )}
