@@ -413,11 +413,16 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             activeDay={activeDay}
             simulatedSkips={simulatedSkips}
             isDayscholarWithBus={isDayscholarWithBus}
-            onClassClick={(course) => {
-              const idx = activeDayClasses.findIndex(c => c.courseCode === course.courseCode);
+            onClassClick={(item) => {
+              const idx = activeDayClasses.findIndex(c => 
+                c.courseCode === item.course.courseCode &&
+                c.slotName.split("+").some(slot => item.slots.includes(slot))
+              );
               if (idx !== -1) {
                 setDesktopSelectedIdx(idx);
-                setExpandedIdx(idx);
+                if (typeof window !== "undefined" && window.innerWidth < 768) {
+                  setExpandedIdx(idx);
+                }
               }
             }}
           />
