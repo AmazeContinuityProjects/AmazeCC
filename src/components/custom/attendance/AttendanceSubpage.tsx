@@ -125,7 +125,7 @@ export function countRemainingClasses(courseCode, slotTime, dayCardsMap, calenda
     return remainingWorkingDays;
 }
 
-function getEffectiveState(
+export function getEffectiveState(
     time: number,
     dateStates: Record<number, number>,
     attendanceLockDates?: Set<number>
@@ -135,7 +135,7 @@ function getEffectiveState(
     return 0; // default attending
 }
 
-function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, isLab = false, impDates, isDayscholarWithBus }) {
+export function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, isLab = false, impDates, isDayscholarWithBus }: any) {
     const [dayStates, setDayStates] = useState<Record<number, number>>({});
     const CLASS_WEIGHT = isLab ? 2 : 1;
 
