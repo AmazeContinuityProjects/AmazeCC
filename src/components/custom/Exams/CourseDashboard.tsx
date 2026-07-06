@@ -13,7 +13,7 @@ import {
   FileText as FileTextIcon, Search, ChevronDown
 } from "lucide-react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
-import { countRemainingClasses } from "../attendance/AttendanceSubpage";
+import { countRemainingClasses, UpcomingClassesList } from "../attendance/AttendanceSubpage";
 import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
@@ -2309,48 +2309,32 @@ export default function CourseDashboard({
                     <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">Interactive Predictor</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
                   </div>
-                  <div className="divide-y divide-gray-100  dark:divide-gray-800">
+                  <div className="p-5 space-y-6 divide-y divide-gray-100  dark:divide-gray-800/80">
                     {[
                       { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
                       { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
                       { key: "MIDSEM", label: "Classes before Mid Term Test", data: classesTillMidSem },
                       { key: "LID", label: "Classes before FAT", data: classesTillLID },
-                    ].map(({ key, label, data }) => (
+                    ].map(({ key, label, data }, idx) => (
                       Array.isArray(data) && data.length > 0 ? (
-                        <div key={key}>
-                          <ExpandableSection
-                            title={label}
-                            icon={<CalendarIcon size={18} className="text-blue-500" />}
-                            badge={<span className="text-sm font-medium bg-gray-100  dark:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
-                          >
-                            <div className="p-4 space-y-2">
-                              {data.map((cls: any, ci: number) => {
-                                const clsDate = new Date(cls.date);
-                                const isSkipped = cls.status === "skipping";
-                                const isAttending = cls.status === "attending" || cls.status === "default";
-                                const isPast = clsDate < new Date(new Date().toDateString());
-                                return (
-                                  <div key={ci} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                                    isPast ? 'bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700/50 opacity-60' :
-                                    isSkipped ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' :
-                                    'bg-gray-50  dark:bg-slate-800/50 border-gray-100 dark:border-gray-700'
-                                  }`}>
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        isPast ? 'bg-gray-400' : isSkipped ? 'bg-red-500' : 'bg-emerald-500'
-                                      }`} />
-                                      <span className={`text-sm ${isPast ? 'text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                                        {cls.date} {cls.day}
-                                      </span>
-                                    </div>
-                                    <span className={`text-xs font-semibold ${isPast ? 'text-gray-400' : isSkipped ? 'text-red-500' : 'text-emerald-600'}`}>
-                                      {isPast ? 'Past' : isSkipped ? 'Skipping' : 'Attending'}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </ExpandableSection>
+                        <div key={key} className={`space-y-3 ${idx > 0 ? 'pt-5' : ''}`}>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                              <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
+                              <span>{label}</span>
+                            </h3>
+                            <span className="text-[11px] font-extrabold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
+                              {data.length} Left
+                            </span>
+                          </div>
+                          <UpcomingClassesList
+                            classes={data}
+                            attendedClasses={attendanceItem.attendedClasses}
+                            totalClasses={attendanceItem.totalClasses}
+                            isLab={attendanceItem.courseCode?.endsWith("(L)") || false}
+                            impDates={impDates}
+                            isDayscholarWithBus={isDayscholarWithBus}
+                          />
                         </div>
                       ) : null
                     ))}
