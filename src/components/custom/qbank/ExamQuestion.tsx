@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import 'katex/dist/katex.min.css';
 import Latex from "react-latex-next";
 import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { QBankQuestion } from "@/types/qbank.types";
 
-export default function ExamQuestion({ question, index }) {
+export default function ExamQuestion({ question, index }: { question: QBankQuestion; index: number }) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const isWrong = (opt: string) => selectedOption === opt && opt !== question.correct_answer;
@@ -65,7 +66,7 @@ export default function ExamQuestion({ question, index }) {
             const wrong = isWrong(key);
 
             let btnClass =
-              "border-gray-200  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-700 dark:hover:bg-slate-800";
+              "border-gray-200  dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800";
             if (selectedOption) {
               if (key === question.correct_answer)
                 btnClass = "border-green-500 bg-green-50  dark:bg-green-900/20";
@@ -105,7 +106,7 @@ export default function ExamQuestion({ question, index }) {
           {!selectedOption ? (
             <button 
               onClick={() => setSelectedOption('SHOW_ANSWER')}
-              className="text-sm px-4 py-2 bg-gray-100  dark:bg-black text-gray-700  dark:text-gray-300 border border-gray-200  dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 dark:hover:bg-gray-900 transition-colors font-medium"
+              className="text-sm px-4 py-2 bg-gray-100  dark:bg-black text-gray-700  dark:text-gray-300 border border-gray-200  dark:border-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
             >
               Show Answer / Hints
             </button>
