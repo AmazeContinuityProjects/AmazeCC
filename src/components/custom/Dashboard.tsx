@@ -941,13 +941,7 @@ export default function DashboardContent({
               {activeSubTab === "qbank" && (
                 marksData ? (
                   <div className="animate-fadeIn">
-                    <QBankSubTabs activeSubTab={activeQBankSubTab} setActiveSubTab={setActiveQBankSubTab} />
-                    {activeQBankSubTab === "archive" && (
-                      <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
-                    )}
-                    {activeQBankSubTab === "pure" && (
-                      <PureQBankTab allGradesData={allGradesData} marksData={marksData} setActiveSubTab={setActiveSubTab} />
-                    )}
+                    <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
                   </div>
                 ) : (
                   <div className="space-y-4 p-4">

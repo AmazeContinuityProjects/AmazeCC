@@ -1,44 +1,88 @@
-import React, { useState } from "react";
-import { BookOpen, GraduationCap, ChevronRight, ArrowLeft, AlertCircle, RefreshCcw } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { BookOpen, GraduationCap, ChevronRight, ArrowLeft } from "lucide-react";
 import EmptyState from "../shared/EmptyState";
 import SearchInput from "../shared/SearchInput";
 import { LoadingSpinner } from "../shared";
 import ExamQuestion from "./ExamQuestion";
 import { API_BASE } from "@/components/custom/Main";
 import SubpageLayout from "../shared/SubpageLayout";
-import { useQBankCourses } from "./useQBankCourses";
-import { QBankCourse, QBankQuestion } from "@/types/qbank.types";
 
 type ViewState = "courses" | "questions";
 
 export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab }: { allGradesData: any; marksData: any; setActiveSubTab?: (tab: string) => void }) {
-  const { courses, globalCourses, globalCoursesLoading } = useQBankCourses(allGradesData, marksData);
-  const [selectedCourse, setSelectedCourse] = useState<QBankCourse | null>(null);
-  const [questions, setQuestions] = useState<QBankQuestion[]>([]);
+  const [courses, setCourses] = useState<{ code: string; title: string }[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<{ code: string; title: string } | null>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>("courses");
   const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState<"all" | "current" | "completed" | "global">("all");
 
-  const handleSelectCourse = async (course: QBankCourse) => {
+  const [globalCourses, setGlobalCourses] = useState<{ code: string; title: string }[]>([]);
+
+  // Fetch global approved courses
+  useEffect(() => {
+    fetch(`${API_BASE}/api/qbank/courses`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setGlobalCourses(d.data);
+      })
+      .catch(err => console.error("Failed to fetch global courses:", err));
+  }, []);
+
+  useEffect(() => {
+    const uniqueCourses = new Map();
+    
+    // Add past courses from allGradesData
+    if (allGradesData && allGradesData.grades) {
+      const gradesArr = Array.isArray(allGradesData.grades)
+        ? allGradesData.grades
+        : Object.values(allGradesData.grades);
+
+      gradesArr.forEach((sem: any) => {
+        const courseList = sem?.grades ?? sem?.courseGrades ?? sem?.courses ?? [];
+        const items = Array.isArray(courseList) ? courseList : Object.values(courseList);
+        items.forEach((course: any) => {
+          const code = course.courseCode ?? course.code;
+          const title = course.courseTitle ?? course.title ?? code;
+          if (code) uniqueCourses.set(code, title);
+        });
+      });
+    }
+
+    // Add current semester courses from marksData
+    if (marksData && marksData.courses && Array.isArray(marksData.courses)) {
+      marksData.courses.forEach((course: any) => {
+        const code = course?.classId?.split('_')[0] ?? course?.courseCode ?? course?.code;
+        const title = course?.courseTitle ?? course?.title ?? code;
+        if (code && !uniqueCourses.has(code)) {
+          uniqueCourses.set(code, title);
+        }
+      });
+    }
+
+    if (uniqueCourses.size > 0) {
+      setCourses(
+        Array.from(uniqueCourses).map(([code, title]) => ({ code, title: title as string }))
+      );
+    }
+  }, [allGradesData, marksData]);
+
+  const handleSelectCourse = async (course: { code: string; title: string }) => {
     setSelectedCourse(course);
     setView("questions");
     setLoading(true);
-    setError(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
-      if (!res.ok) throw new Error("Failed to fetch questions");
       const json = await res.json();
       if (json.success && json.data) {
         setQuestions(json.data);
       } else {
         setQuestions([]);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to load questions");
       setQuestions([]);
     }
 
@@ -49,7 +93,6 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
     setView("courses");
     setSelectedCourse(null);
     setQuestions([]);
-    setError(null);
   };
 
   const myFilteredCourses = courses.filter(
@@ -116,14 +159,7 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
               </button>
             ))}
           </div>
-          <div className="mb-5 space-y-3 px-4 md:px-0">
-          <SearchInput value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search courses by code or title..." />
-
-          {globalCoursesLoading && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 my-2">
-              <LoadingSpinner size="sm" /> Loading community courses...
-            </div>
-          )}  </div>
+          <SearchInput placeholder="Search by course code or title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
 
         {filteredCourses.length === 0 ? (
@@ -171,22 +207,6 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
       subtitle={selectedCourse?.title ? `${selectedCourse.title} — ${questions.length} questions` : undefined}
       onBack={handleGoBack}
     >
-
-      {error && (
-        <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-sm">Failed to load Questions</h3>
-            <p className="text-sm mt-1">{error}</p>
-            <button 
-              onClick={() => selectedCourse && handleSelectCourse(selectedCourse)} 
-              className="mt-3 text-xs font-bold flex items-center gap-1 hover:underline"
-            >
-              <RefreshCcw className="w-3 h-3" /> Retry
-            </button>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
