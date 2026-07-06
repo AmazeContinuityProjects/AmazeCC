@@ -88,8 +88,17 @@ export async function fetchWithFailover(
     urlStr = input.url;
   }
 
-  const isPrimary = urlStr.startsWith(PRIMARY_API_URL);
-  const isBackup = urlStr.startsWith(BACKUP_API_URL);
+  let isPrimary = false;
+  let isBackup = false;
+  try {
+    const parsedUrl = new URL(urlStr);
+    const primaryOrigin = new URL(PRIMARY_API_URL).origin;
+    const backupOrigin = new URL(BACKUP_API_URL).origin;
+    isPrimary = parsedUrl.origin === primaryOrigin;
+    isBackup = parsedUrl.origin === backupOrigin;
+  } catch (e) {
+    // Non-absolute or malformed URL: treat as non-target and pass through.
+  }
 
   if (!isPrimary && !isBackup) {
     return originalFetch(input, init);
