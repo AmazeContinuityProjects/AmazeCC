@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Skeleton, SubTabStrip } from "@amazecontinuityprojects/amazeui";
 import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
   ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -124,12 +124,7 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
   </div>
 );
 
-const TabButton = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500  dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-800"}`}>
-    {label}
-  </button>
-);
+// TabButton replaced with SubTabStrip from AmazeUI
 
 const TypeBadge = ({ label }: { label: string }) => {
   const colors: Record<string, string> = {
@@ -357,6 +352,19 @@ export default function CourseDashboard({
       const saved = localStorage.getItem("uniCC_notes_tracker");
       if (saved) setNotesTracker(JSON.parse(saved));
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    const targetCode = localStorage.getItem("course_dashboard_target");
+    const targetTab = localStorage.getItem("course_dashboard_tab");
+    if (targetCode) {
+      setSelectedCode(targetCode);
+      if (targetTab) {
+        setInnerTab(targetTab);
+      }
+      localStorage.removeItem("course_dashboard_target");
+      localStorage.removeItem("course_dashboard_tab");
+    }
   }, []);
 
   const uniqueCourses = useMemo(() => {
@@ -982,7 +990,6 @@ export default function CourseDashboard({
       setCoursePlan(null); 
       setViewDetail(null); 
       setQcmError(""); 
-      setInnerTab("overview"); 
       fetchCoursePlan(); 
 
       const cached = localStorage.getItem("qcmData");
@@ -1055,7 +1062,10 @@ export default function CourseDashboard({
     }
   };
 
-  const handleSelectCourse = (code: string) => setSelectedCode(code);
+  const handleSelectCourse = (code: string) => {
+    setSelectedCode(code);
+    setInnerTab("overview");
+  };
   const handleSelectCourseTab = (code: string, tab: string) => {
     setSelectedCode(code);
     setInnerTab(tab);
@@ -1475,7 +1485,7 @@ export default function CourseDashboard({
                             <div 
                               key={group.courseCode} 
                               onClick={() => handleSelectCourse(group.courseCode)}
-                              className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-950/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] cursor-pointer"
+                              className="group relative flex flex-col justify-between rounded-3xl border border-gray-200/60 bg-white/60 backdrop-blur-xl p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:bg-white/90 hover:-translate-y-1 hover:border-blue-500/30 dark:border-gray-800/50 dark:bg-black/40 dark:hover:bg-gray-900/80 cursor-pointer overflow-hidden"
                             >
                               <div>
                                 {/* Course Code */}
@@ -1681,7 +1691,7 @@ export default function CourseDashboard({
                             <div 
                               key={group.courseCode} 
                               onClick={() => handleSelectCourse(group.courseCode)}
-                              className="group relative grid grid-cols-1 sm:grid-cols-12 gap-4 items-start sm:items-center rounded-xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-all duration-200 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-955/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 cursor-pointer"
+                              className="group relative grid grid-cols-1 sm:grid-cols-12 gap-4 items-start sm:items-center rounded-2xl border border-gray-200/60 bg-white/60 backdrop-blur-xl px-5 py-4 shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-md hover:bg-white/90 hover:border-blue-500/30 dark:border-gray-800/50 dark:bg-black/40 dark:hover:bg-gray-900/80 cursor-pointer"
                             >
                               {/* Title & Metadata & Badges */}
                               <div className="min-w-0 flex-1 sm:col-span-6">
@@ -1769,14 +1779,21 @@ export default function CourseDashboard({
 
   return (
     <SubpageLayout title={selectedCode || ""} subtitle={selectedGroup?.courseTitle || ""} onBack={handleBack}>
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        <TabButton active={innerTab === "overview"} label="Overview" onClick={() => setInnerTab("overview")} />
-        <TabButton active={innerTab === "grades"} label="Grade History" onClick={() => setInnerTab("grades")} />
-        <TabButton active={innerTab === "marks"} label="Marks" onClick={() => setInnerTab("marks")} />
-        <TabButton active={innerTab === "attendance"} label="Attendance" onClick={() => setInnerTab("attendance")} />
-        <TabButton active={innerTab === "plan"} label="Course Plan" onClick={() => { setInnerTab("plan"); if (!coursePlan && !planLoading) fetchCoursePlan(); }} />
-        <TabButton active={innerTab === "qbank"} label="QBank" onClick={() => setInnerTab("qbank")} />
-      </div>
+      <SubTabStrip
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "grades", label: "Grade History" },
+          { id: "marks", label: "Marks" },
+          { id: "attendance", label: "Attendance" },
+          { id: "plan", label: "Course Plan" },
+          { id: "qbank", label: "QBank" },
+        ]}
+        activeTab={innerTab}
+        onChange={(id) => {
+          setInnerTab(id);
+          if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+        }}
+      />
 
       {error && (
         <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
