@@ -406,7 +406,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                 if (isMobile) {
                   localStorage.setItem("course_dashboard_target", item.course.courseCode);
                   localStorage.setItem("course_dashboard_tab", "attendance");
-                  if (setActiveTab) setActiveTab("Academics");
+                  if (setActiveTab) setActiveTab("academics");
                   if (setActiveSubTab) setActiveSubTab("course-dashboard");
                   if (setIsSubpageOpen) setIsSubpageOpen(true);
                 }
@@ -429,7 +429,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
                 const courseCode = dayCardsMap[activeDay][desktopSelectedIdx].courseCode;
                 localStorage.setItem("course_dashboard_target", courseCode);
                 localStorage.setItem("course_dashboard_tab", "attendance");
-                if (setActiveTab) setActiveTab("Academics");
+                if (setActiveTab) setActiveTab("academics");
                 if (setActiveSubTab) setActiveSubTab("course-dashboard");
                 if (setIsSubpageOpen) setIsSubpageOpen(true);
               }}
