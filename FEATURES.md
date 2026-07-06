@@ -1,3 +1,4 @@
+
 # AmazeCC — Complete Feature Documentation
 
 > **Version:** 2.1.0  

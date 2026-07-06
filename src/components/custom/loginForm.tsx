@@ -1,7 +1,8 @@
 "use client";
 
 import { Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, Home, Search, BookOpen, ChevronLeft, Plus, RotateCcw, Minus, Sun, Moon, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { animate, motion, useInView, useMotionValue, useTransform } from "framer-motion";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
@@ -17,6 +18,278 @@ interface LoginFormProps {
   setResidentialStatus: any;
   isDayscholarWithBus: any;
   setIsDayscholarWithBus: any;
+}
+
+function InteractiveCursor() {
+  const cursorRef = useRef<HTMLDivElement | null>(null);
+  const target = useRef({ x: -100, y: -100 });
+  const current = useRef({ x: -100, y: -100 });
+  const pressed = useRef(false);
+
+  useEffect(() => {
+    let frame = 0;
+    const handleMove = (event: MouseEvent) => {
+      target.current.x = event.clientX;
+      target.current.y = event.clientY;
+    };
+    const handleDown = () => {
+      pressed.current = true;
+    };
+    const handleUp = () => {
+      pressed.current = false;
+    };
+
+    const render = () => {
+      current.current.x += (target.current.x - current.current.x) * 0.35;
+      current.current.y += (target.current.y - current.current.y) * 0.35;
+      if (cursorRef.current) {
+        const scale = pressed.current ? 0.72 : 1;
+        cursorRef.current.style.transform = `translate3d(${current.current.x - 14}px, ${current.current.y - 14}px, 0) scale(${scale})`;
+      }
+      frame = requestAnimationFrame(render);
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mousedown", handleDown);
+    window.addEventListener("mouseup", handleUp);
+    render();
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={cursorRef}
+      className="pointer-events-none fixed left-0 top-0 z-[80] hidden h-7 w-7 rounded-full border border-indigo-400/55 bg-indigo-400/10 shadow-[0_0_24px_rgba(99,102,241,0.25)] will-change-transform md:block"
+    />
+  );
+}
+
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let frame = 0;
+    let width = 0;
+    let height = 0;
+    const pointer = { x: -9999, y: -9999 };
+    const particles = Array.from({ length: 46 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
+      size: 1 + Math.random() * 1.8
+    }));
+
+    const resize = () => {
+      const ratio = window.devicePixelRatio || 1;
+      width = canvas.offsetWidth;
+      height = canvas.offsetHeight;
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    };
+
+    const move = (event: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = event.clientX - rect.left;
+      pointer.y = event.clientY - rect.top;
+    };
+
+    const leave = () => {
+      pointer.x = -9999;
+      pointer.y = -9999;
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(99, 102, 241, 0.5)";
+      ctx.strokeStyle = "rgba(168, 85, 247, 0.12)";
+
+      particles.forEach((particle, index) => {
+        let px = particle.x * width;
+        let py = particle.y * height;
+        const dx = px - pointer.x;
+        const dy = py - pointer.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 120) {
+          const force = (120 - dist) / 120;
+          particle.vx += (dx / Math.max(dist, 1)) * force * 0.08;
+          particle.vy += (dy / Math.max(dist, 1)) * force * 0.08;
+        }
+
+      particle.vx *= 0.978;
+      particle.vy *= 0.978;
+        particle.x += particle.vx / width;
+        particle.y += particle.vy / height;
+
+        if (particle.x < 0 || particle.x > 1) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > 1) particle.vy *= -1;
+        particle.x = Math.min(1, Math.max(0, particle.x));
+        particle.y = Math.min(1, Math.max(0, particle.y));
+
+        px = particle.x * width;
+        py = particle.y * height;
+        ctx.beginPath();
+        ctx.arc(px, py, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (let next = index + 1; next < particles.length; next += 1) {
+          const other = particles[next];
+          const ox = other.x * width;
+          const oy = other.y * height;
+          const gap = Math.hypot(px - ox, py - oy);
+          if (gap < 95) {
+            ctx.globalAlpha = 1 - gap / 95;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(ox, oy);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+        }
+      });
+
+      frame = requestAnimationFrame(draw);
+    };
+
+    resize();
+    draw();
+    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseleave", leave);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseleave", leave);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full opacity-70" aria-hidden="true" />;
+}
+
+function AnimatedStat({ value, suffix, label, accent = false }: { value: number; suffix: string; label: string; accent?: boolean }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const motionValue = useMotionValue(0);
+  const rounded = useTransform(motionValue, latest => Math.round(latest));
+  const [display, setDisplay] = useState(0);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+
+  useEffect(() => rounded.on("change", latest => setDisplay(latest)), [rounded]);
+
+  useEffect(() => {
+    if (!inView) return;
+    const controls = animate(motionValue, value, { duration: 1.4, ease: "easeOut" });
+    return () => controls.stop();
+  }, [inView, motionValue, value]);
+
+  return (
+    <motion.div ref={ref} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45 }}>
+      <h4 className={`text-xl font-black ${accent ? "text-indigo-600 dark:text-indigo-400" : "text-slate-900 dark:text-white"}`}>{display}{suffix}</h4>
+      <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">{label}</p>
+    </motion.div>
+  );
+}
+
+function TiltCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-0.5, 0.5], [7, -7]);
+  const rotateY = useTransform(x, [-0.5, 0.5], [-7, 7]);
+
+  const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    x.set((event.clientX - rect.left) / rect.width - 0.5);
+    y.set((event.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  const handleLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      style={{ rotateX, rotateY, transformPerspective: 900 }}
+      whileHover={{ y: -6 }}
+      transition={{ type: "spring", stiffness: 220, damping: 22 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function MouseReactiveHeroScene() {
+  return (
+    <motion.div
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--mx", `${((event.clientX - rect.left) / rect.width - 0.5) * 14}deg`);
+        event.currentTarget.style.setProperty("--my", `${((event.clientY - rect.top) / rect.height - 0.5) * -14}deg`);
+        event.currentTarget.style.setProperty("--px", `${((event.clientX - rect.left) / rect.width) * 100}%`);
+        event.currentTarget.style.setProperty("--py", `${((event.clientY - rect.top) / rect.height) * 100}%`);
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.setProperty("--mx", "0deg");
+        event.currentTarget.style.setProperty("--my", "0deg");
+        event.currentTarget.style.setProperty("--px", "50%");
+        event.currentTarget.style.setProperty("--py", "50%");
+      }}
+      className="relative w-full max-w-[540px] aspect-[4/3] rounded-3xl overflow-hidden border border-white/40 bg-white/20 shadow-2xl shadow-indigo-500/10 backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] [transform:perspective(1000px)_rotateY(var(--mx,0deg))_rotateX(var(--my,0deg))] transition-transform duration-200"
+    >
+      <img src="/hero-artwork.png" alt="AmazeCC campus dashboard preview" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--px,50%)_var(--py,50%),rgba(255,255,255,0.42),transparent_24%),linear-gradient(135deg,rgba(99,102,241,0.42),rgba(14,165,233,0.12)_42%,rgba(236,72,153,0.28))]" />
+      <motion.div
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-8 top-8 w-52 rounded-2xl border border-white/40 bg-white/70 p-4 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#050814]/70"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300">Live Portal</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-2 rounded-full bg-indigo-500/70" />
+          <div className="h-2 w-3/4 rounded-full bg-sky-400/60" />
+          <div className="h-2 w-1/2 rounded-full bg-fuchsia-400/60" />
+        </div>
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, 12, 0] }}
+        transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-8 right-7 w-56 rounded-2xl border border-white/40 bg-slate-950/75 p-4 text-white shadow-2xl backdrop-blur-xl"
+      >
+        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-slate-300">
+          <span>Attendance</span>
+          <span className="text-emerald-300">Safe</span>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
+          <div className="h-full w-[86%] rounded-full bg-gradient-to-r from-emerald-400 to-sky-400" />
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[9px] font-bold text-slate-300">
+          <span>Marks</span>
+          <span>Mess</span>
+          <span>FFCS</span>
+        </div>
+      </motion.div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/70 to-transparent dark:from-[#03060F]/80" />
+    </motion.div>
+  );
 }
 
 export default function LoginForm({
@@ -150,6 +423,7 @@ export default function LoginForm({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-[#03060F] dark:text-gray-150 flex flex-col justify-between selection:bg-indigo-500/30 overflow-x-hidden relative font-sans transition-colors duration-300">
+      <InteractiveCursor />
       
       {/* Inline Floating Animation CSS */}
       <style>{`
@@ -161,13 +435,22 @@ export default function LoginForm({
         .animate-float {
           animation: float 6s ease-in-out infinite;
         }
+        .glass-nav {
+          background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.34));
+          box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+        }
+        .dark .glass-nav {
+          background: linear-gradient(135deg, rgba(3,6,15,0.74), rgba(30,41,59,0.28));
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+        }
       `}</style>
 
       {/* Grid Pattern Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
+      <ParticleField />
 
       {/* Navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${isScrolled ? "bg-white/90 border-slate-200/80 dark:bg-[#03060Fd0] dark:border-neutral-900 backdrop-blur-md" : "bg-transparent border-transparent"}`}>
+      <nav className={`fixed left-1/2 top-3 z-50 w-[calc(100%-1.5rem)] max-w-7xl -translate-x-1/2 rounded-2xl border transition-all duration-500 ${isScrolled ? "glass-nav border-white/50 backdrop-blur-2xl dark:border-white/10" : "border-white/30 bg-white/25 backdrop-blur-sm dark:border-white/5 dark:bg-white/[0.03]"}`}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setShowLoginCard(false)}>
@@ -222,7 +505,7 @@ export default function LoginForm({
           <div className="w-full">
             
             {/* Hero Section */}
-            <section className="max-w-7xl mx-auto px-6 pt-32 pb-24 lg:pt-44 lg:pb-36">
+            <section className="relative max-w-7xl mx-auto px-6 pt-32 pb-24 lg:pt-44 lg:pb-36">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
                 
                 {/* Hero Content Left */}
@@ -259,35 +542,20 @@ export default function LoginForm({
 
                   {/* Quick Stats Grid */}
                   <div className="grid grid-cols-3 gap-6 pt-8 border-t border-slate-200 dark:border-neutral-900">
-                    <div>
-                      <h4 className="text-xl font-black text-slate-900 dark:text-white">30+</h4>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Student Tools</p>
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-black text-slate-900 dark:text-white">10+</h4>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Modules</p>
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-black text-indigo-600 dark:text-indigo-400">100%</h4>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Free & Local</p>
-                    </div>
+                    <AnimatedStat value={30} suffix="+" label="Student Tools" />
+                    <AnimatedStat value={10} suffix="+" label="Modules" />
+                    <AnimatedStat value={100} suffix="%" label="Free & Local" accent />
                   </div>
                 </div>
 
                 {/* Hero Centerpiece Artwork Right */}
                 <div className="lg:col-span-6 relative flex justify-center">
                   <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 blur-[120px] rounded-full -z-10 animate-pulse duration-4000" />
-                  <div className="relative w-full max-w-[500px] aspect-4/3 rounded-3xl overflow-hidden border border-slate-200 dark:border-neutral-850 shadow-2xl animate-float">
-                    <img
-                      src="/hero-artwork.png"
-                      alt="VIT Chennai Twilight Illustration"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white/10 dark:from-[#03060Fd0] via-transparent to-transparent pointer-events-none" />
-                  </div>
+                  <MouseReactiveHeroScene />
                 </div>
 
               </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 translate-y-1/2 bg-gradient-to-b from-transparent via-indigo-500/10 to-slate-100/70 blur-2xl dark:via-fuchsia-500/10 dark:to-[#02040a]" />
             </section>
 
             {/* Section 2: The Problem */}
@@ -344,13 +612,13 @@ export default function LoginForm({
               {/* Grid Layout of feature cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
                 {features.map((feat, idx) => (
-                  <div key={idx} className="bg-white border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/60 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-all shadow-xs dark:shadow-none group">
+                  <TiltCard key={idx} className="bg-white/80 border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/70 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-colors shadow-xs dark:shadow-none group backdrop-blur-xl">
                     <div className="space-y-3">
                       <span className="text-3xl block shrink-0">{feat.emoji}</span>
                       <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">{feat.title}</h3>
                       <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">{feat.desc}</p>
                     </div>
-                  </div>
+                  </TiltCard>
                 ))}
               </div>
             </section>
@@ -523,10 +791,10 @@ export default function LoginForm({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                   {benefits.map((benefit, idx) => (
-                    <div key={idx} className="bg-white border border-slate-200 dark:bg-neutral-950/40 dark:border-neutral-900 p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none">
+                    <TiltCard key={idx} className="bg-white/80 border border-slate-200 dark:bg-neutral-950/50 dark:border-neutral-900 p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none backdrop-blur-xl">
                       <h3 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">{benefit.title}</h3>
                       <p className="text-xs text-slate-600 dark:text-gray-455 leading-relaxed font-medium">{benefit.desc}</p>
-                    </div>
+                    </TiltCard>
                   ))}
                 </div>
               </div>
