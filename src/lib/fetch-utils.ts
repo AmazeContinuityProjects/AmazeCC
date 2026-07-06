@@ -92,7 +92,22 @@ export async function fetchWithFailover(
       try {
         return new Request(newUrl, input);
       } catch (e) {
-        return newUrl;
+        // Fallback: Copy key request properties to avoid losing headers, auth, or method
+        try {
+          const initOpts: RequestInit = {};
+          if (input.headers) {
+            const headers: Record<string, string> = {};
+            input.headers.forEach((v, k) => { headers[k] = v; });
+            initOpts.headers = headers;
+          }
+          initOpts.method = input.method;
+          initOpts.credentials = input.credentials;
+          initOpts.mode = input.mode;
+          initOpts.signal = input.signal;
+          return new Request(newUrl, initOpts);
+        } catch (innerErr) {
+          return newUrl;
+        }
       }
     }
   };
