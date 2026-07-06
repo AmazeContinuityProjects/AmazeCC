@@ -1342,7 +1342,6 @@ export default function LoginPage() {
       });
     };
     toggle("Decimal Values in Attendance", "decimalValues", "Settings", "🔢");
-    toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
     toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
     toggle("Hide Profile Image Outside My Info", "hideProfileImageOutsideInfo", "Settings", "👤");
