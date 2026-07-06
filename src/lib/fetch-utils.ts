@@ -49,14 +49,28 @@ export function setOriginalFetchForTest(f: typeof fetch) {
 }
 
 export function rewriteUrlIfNeeded(url: string): string {
-  if (activeApiUrl === BACKUP_API_URL) {
-    if (url.startsWith(PRIMARY_API_URL)) {
-      return url.replace(PRIMARY_API_URL, BACKUP_API_URL);
+  try {
+    const inputUrl = new URL(url);
+    const primaryUrl = new URL(PRIMARY_API_URL);
+    const backupUrl = new URL(BACKUP_API_URL);
+
+    if (activeApiUrl === BACKUP_API_URL) {
+      if (inputUrl.origin === primaryUrl.origin) {
+        inputUrl.protocol = backupUrl.protocol;
+        inputUrl.hostname = backupUrl.hostname;
+        inputUrl.port = backupUrl.port;
+        return inputUrl.toString();
+      }
+    } else {
+      if (inputUrl.origin === backupUrl.origin) {
+        inputUrl.protocol = primaryUrl.protocol;
+        inputUrl.hostname = primaryUrl.hostname;
+        inputUrl.port = primaryUrl.port;
+        return inputUrl.toString();
+      }
     }
-  } else {
-    if (url.startsWith(BACKUP_API_URL)) {
-      return url.replace(BACKUP_API_URL, PRIMARY_API_URL);
-    }
+  } catch (e) {
+    // If url is not an absolute URL, leave it unchanged.
   }
   return url;
 }
