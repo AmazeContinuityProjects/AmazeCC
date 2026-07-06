@@ -539,18 +539,7 @@ export default function LoginPage() {
       sethostelData(coreData.hostelRes);
       setCalender(coreData.calendarRes);
 
-      onProgress("Event data fetched", 10);
-      const eventData = await fetchEventData(IDs, demoMode);
-      setRegisteredEvents(eventData.registeredEvents);
-      setEventHubEvents(eventData.eventHubEvents);
-
-      onProgress("Past attendance fetched", 2);
-      await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
-      await fetchFresherData(creds);
-      await fetchBusRoutes();
-      await fetchBulkEndpoints(creds, settings);
-
-      setMessage(prev => prev + "\n✅ All data loaded successfully!");
+      setMessage(prev => prev + "\n✅ Core data loaded successfully! Redirecting...");
       setProgressBar(100);
       setIsLoggedIn(true);
       setIsReloading(false);
@@ -558,6 +547,26 @@ export default function LoginPage() {
       const tree = loadActivityTree();
       tree.increment();
       saveActivityTree(tree);
+
+      // Defer non-critical/secondary data fetches to the background
+      (async () => {
+        try {
+          console.log("Starting background sync for non-critical data...");
+          
+          const eventData = await fetchEventData(IDs, demoMode);
+          setRegisteredEvents(eventData.registeredEvents);
+          setEventHubEvents(eventData.eventHubEvents);
+
+          await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
+          await fetchFresherData(creds);
+          await fetchBusRoutes();
+          await fetchBulkEndpoints(creds, settings);
+          
+          console.log("Background sync completed successfully!");
+        } catch (bgErr) {
+          console.warn("Background sync failed:", bgErr);
+        }
+      })();
 
       return true;
     } catch (err) {
