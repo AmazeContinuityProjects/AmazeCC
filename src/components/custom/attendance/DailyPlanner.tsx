@@ -329,7 +329,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
                 </div>
 
                 <div
-                  onClick={() => onClassClick?.(c)}
+                  onClick={() => onClassClick?.(item)}
                   className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 hover:shadow-md cursor-pointer relative ${borderStyle} ${cardStyle}`}
                 >
                   <div className="flex-1 min-w-0 space-y-1 pr-14">

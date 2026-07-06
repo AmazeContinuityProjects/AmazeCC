@@ -265,53 +265,59 @@ export default function DesktopCourseDetail({
     return (
         <div className="space-y-6">
             {/* Header info */}
-            <div className="flex items-start justify-between gap-4 border-b border-gray-150  dark:border-gray-800/80 pb-3">
-                <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-black font-[family-name:var(--font-outfit)] text-gray-900  dark:text-gray-100 leading-tight">
+            <div className="flex flex-col gap-3.5 border-b border-gray-150 dark:border-gray-800/80 pb-4">
+                <div className="space-y-1">
+                    <h2 className="text-lg font-black font-[family-name:var(--font-outfit)] text-gray-900 dark:text-gray-100 leading-tight">
                         {a.courseTitle}
                     </h2>
-                    <p className="text-xs font-semibold text-gray-500  dark:text-gray-400 mt-1">
-                        {a.courseCode.slice(0, -3)} <span className="mx-1">•</span> {lab ? "Lab" : "Theory"} <span className="mx-1">•</span> {a.credits} Credits
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                        {a.courseCode.slice(0, -3)} • {lab ? "Lab" : "Theory"} • {a.credits} Credits
                     </p>
-                    {/* Tags row integrated right below details */}
-                    <div className="flex flex-wrap gap-1.5 mt-2.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-455 bg-blue-50/50 dark:bg-blue-950/20 px-1.5 py-0.5 rounded border border-blue-100/40 dark:border-blue-900/30">
-                            <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400" /> {a.slotName} ({a.time})
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-650 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20 px-1.5 py-0.5 rounded border border-purple-100/40 dark:border-purple-900/30">
-                            <Building2 className="w-3 h-3 text-purple-500 dark:text-purple-400" /> {a.slotVenue}
-                        </span>
-                        {a.faculty && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-650 dark:text-emerald-450 bg-emerald-50/50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-100/40 dark:border-emerald-900/30">
-                                <User className="w-3 h-3 text-emerald-500 dark:text-emerald-400" /> {a.faculty}
-                            </span>
-                        )}
-                    </div>
                 </div>
-
-                <button
-                    onClick={onViewFullPage}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/45 bg-blue-50/60 hover:bg-blue-100/70 text-blue-700  dark:text-blue-300 dark:border-blue-500/35 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 font-bold text-[10px] uppercase tracking-wider transition-colors shadow-xs shrink-0 self-start cursor-pointer"
-                >
-                    Full History & Heatmap →
-                </button>
+                
+                {/* Metadata vertical/grid layout (replaces mashed badges) */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 p-2 rounded-xl border border-gray-150/40 dark:border-gray-800/60">
+                        <Clock className="w-3.5 h-3.5 text-blue-550 dark:text-blue-400 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-555 font-bold leading-none mb-0.5">Slot & Time</p>
+                            <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{a.slotName} ({a.time})</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 p-2 rounded-xl border border-gray-150/40 dark:border-gray-800/60">
+                        <Building2 className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-555 font-bold leading-none mb-0.5">Venue</p>
+                            <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{a.slotVenue}</p>
+                        </div>
+                    </div>
+                    {a.faculty && (
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 p-2 rounded-xl border border-gray-150/40 dark:border-gray-800/60 col-span-2">
+                            <User className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-450 shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-555 font-bold leading-none mb-0.5">Faculty</p>
+                                <p className="font-extrabold text-gray-800 dark:text-gray-200 truncate">{a.faculty}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Premium Stat Boxes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-4">
                 {/* Attendance Status Card */}
-                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs gap-3">
+                <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs gap-3">
                     <div className="flex-1 min-w-0">
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Attendance</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-450 dark:text-gray-500 mb-1">Attendance</h4>
                         <div className="flex items-baseline gap-2">
-                            <p className="text-2xl font-black text-gray-900  dark:text-gray-100">{simulatedPercentage}%</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{simulatedPercentage}%</p>
                             {simulatedSkips > 0 && (
                                 <span className="text-xs text-gray-400 dark:text-gray-555 line-through font-bold">
                                     {originalPercentage}%
                                 </span>
                             )}
-                            <span className="text-xs text-gray-550 dark:text-gray-400 font-semibold">
-                              ({attended} / {total})
+                            <span className="text-xs text-gray-555 dark:text-gray-400 font-semibold">
+                               ({attended} / {total})
                             </span>
                         </div>
 
@@ -330,9 +336,9 @@ export default function DesktopCourseDetail({
                         </div>
 
                         {/* Status & Buffer metrics */}
-                        <div className="mt-4 pt-3.5 border-t border-gray-200/60  dark:border-gray-800/60 flex flex-col gap-2 text-xs">
+                        <div className="mt-4 pt-3.5 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col gap-2 text-xs">
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-400 dark:text-gray-550 font-bold uppercase tracking-wider text-[9px]">Status</span>
+                                <span className="text-gray-450 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">Status</span>
                                 <span className={`font-black uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded ${
                                     isSafe
                                         ? "bg-emerald-550/10 text-emerald-600 dark:bg-emerald-500/5 dark:text-emerald-400"
@@ -342,7 +348,7 @@ export default function DesktopCourseDetail({
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-400 dark:text-gray-555 font-bold uppercase tracking-wider text-[9px]">
+                                <span className="text-gray-450 dark:text-gray-500 font-bold uppercase tracking-wider text-[9px]">
                                     {isSafe ? "Safe Buffer" : "Shortage"}
                                 </span>
                                                 <span className={`font-extrabold ${isSafe ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
@@ -350,18 +356,18 @@ export default function DesktopCourseDetail({
                                         ? (canMissClasses === 0 ? "No buffer" : `Can skip ${canMissClasses} class${canMissClasses !== 1 ? 'es' : ''}`)
                                         : `Need +${neededClasses} class${neededClasses !== 1 ? 'es' : ''}`}
                                 </span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                                       {/* Inline Skip Predictor Widget for Desktop */}
+                    {/* Inline Skip Predictor Widget for Desktop */}
                     {onSimulateSkipsChange && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white  dark:bg-black border border-gray-200/60  dark:border-gray-800/80 mt-1">
-                            <span className="text-[10px] font-black text-gray-400 dark:text-gray-555 uppercase tracking-wider">Simulate Skips</span>
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-black border border-gray-200/60 dark:border-gray-800/80 mt-1">
+                            <span className="text-[10px] font-black text-gray-450 dark:text-gray-550 uppercase tracking-wider pl-1">Simulate Skips</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips - 1)}
-                                    className="p-1 rounded bg-gray-55  border border-gray-200  hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
+                                    className="p-1 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
                                     title="Decrease simulated skips"
                                 >
                                     <Minus className="w-3 h-3 text-gray-655 dark:text-gray-300" />
@@ -383,7 +389,7 @@ export default function DesktopCourseDetail({
                                 </span>
                                 <button
                                     onClick={() => onSimulateSkipsChange(simulatedSkips + 1)}
-                                    className="p-1 rounded bg-gray-55  border border-gray-200  hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
+                                    className="p-1 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700/80 dark:bg-gray-900 dark:border-gray-800 cursor-pointer"
                                     title="Increase simulated skips"
                                 >
                                     <Plus className="w-3 h-3 text-gray-655 dark:text-gray-300" />
@@ -394,8 +400,8 @@ export default function DesktopCourseDetail({
                 </div>
 
                 {/* Info Card */}
-                <div className="bg-gray-50/50  dark:bg-gray-950 border border-gray-200  dark:border-gray-800/80 rounded-xl p-5 flex flex-col justify-between shadow-xs sm:col-span-2">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Next Class Impact</h4>
+                <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-450 dark:text-gray-550 mb-3">Next Class Impact</h4>
                     {total > 0 && (() => {
                         const percentage = simulatedPercentage;
                         const CLASS_WEIGHT = lab ? 2 : 1;
@@ -410,7 +416,7 @@ export default function DesktopCourseDetail({
 
                         return (
                             <div className="flex flex-col h-full justify-between gap-4">
-                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                <p className="text-xs text-gray-500 dark:text-gray-450 leading-relaxed">
                                     Simulate the outcome of your next scheduled class. Attending will improve your average, while skipping will reduce it.
                                 </p>
                                 <div className="grid grid-cols-2 gap-4 w-full">
@@ -424,8 +430,8 @@ export default function DesktopCourseDetail({
                                             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{nextAttendPct}%</span>
                                             <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded w-fit">{attendDiffStr}</span>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
-                                            Increases threshold buffer.
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-550 mt-1.5">
+                                            Increases buffer.
                                         </p>
                                     </div>
 
@@ -439,8 +445,8 @@ export default function DesktopCourseDetail({
                                             <span className="text-2xl font-black text-red-600 dark:text-red-400">{nextSkipPct}%</span>
                                             <span className="text-[10px] font-extrabold text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 px-1.5 py-0.5 rounded w-fit">{skipDiffStr}</span>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
-                                            Reduces threshold buffer.
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-550 mt-1.5">
+                                            Reduces buffer.
                                         </p>
                                     </div>
                                 </div>
@@ -451,15 +457,15 @@ export default function DesktopCourseDetail({
             </div>
 
             {/* Quick History Log */}
-            <div className="bg-transparent border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden">
-                <div className="p-4 bg-gray-50/50  dark:bg-gray-950 border-b border-gray-200  dark:border-gray-800 flex justify-between items-center">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Recent Attendance History</h3>
+            <div className="bg-transparent border border-gray-200 dark:border-gray-800/80 rounded-2xl overflow-hidden">
+                <div className="p-4 bg-gray-50/50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-455 dark:text-gray-550">Recent Attendance History</h3>
                     <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">{historyList.length} total records</span>
                 </div>
                 {recentHistory.length === 0 ? (
                     <EmptyState title="No attendance history records found" className="p-6" />
                 ) : (
-                    <div className="divide-y divide-gray-100  dark:divide-gray-800/60">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800/60">
                         {recentHistory.map((d: any, idx: number) => {
                             const status = d.status.toLowerCase();
                             const isPresent = status === "present";
@@ -471,8 +477,8 @@ export default function DesktopCourseDetail({
                                     <div className="flex items-center gap-3">
                                         <div className={`w-1.5 h-7 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
                                         <div>
-                                            <p className="font-bold text-xs text-gray-900  dark:text-gray-100">{d.date}</p>
-                                            <p className={`text-[9px] font-extrabold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
+                                            <p className="font-bold text-xs text-gray-900 dark:text-gray-100">{d.date}</p>
+                                            <p className={`text-[9px] font-extrabold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400" : "text-yellow-600 dark:text-yellow-400"}`}>
                                                 {d.status}
                                             </p>
                                         </div>
@@ -483,8 +489,8 @@ export default function DesktopCourseDetail({
                                             onClick={() => toggleNotes(d.date)}
                                             className={`flex items-center justify-center gap-1 px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all ${
                                                 hasNotes
-                                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-400"
-                                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-black dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-900"
+                                                    ? "bg-emerald-55/15 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-400"
+                                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-black dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-900"
                                             }`}
                                         >
                                             {hasNotes ? <CheckCircle2 size={11} /> : <FileText size={11} />}
@@ -497,6 +503,14 @@ export default function DesktopCourseDetail({
                     </div>
                 )}
             </div>
+
+            {/* View Full History Button placed prominently at the bottom of the card preview (prevents mashed headers) */}
+            <button
+                onClick={onViewFullPage}
+                className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all duration-150 cursor-pointer shadow-xs active:scale-[0.985]"
+            >
+                View Full History & Heatmap
+            </button>
         </div>
     );
 }
