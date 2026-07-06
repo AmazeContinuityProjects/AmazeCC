@@ -59,6 +59,17 @@ export async function downloadTimetableImage(
   }
 }
 
+function escapeHtml(str: string): string {
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+  };
+  return str.replace(/[&<>"']/g, (ch) => map[ch]);
+}
+
 export function openTimetablePrintablePage(
   htmlContent: string,
   timetableName: string,
@@ -82,9 +93,9 @@ export function openTimetablePrintablePage(
 
   const fullHtml = `
     <!DOCTYPE html>
-    <html class="${themeHtmlClass}">
+        <html class="${escapeHtml(themeHtmlClass)}">
       <head>
-        <title>${timetableName} - Timetable</title>
+        <title>${escapeHtml(timetableName)} - Timetable</title>
         ${styles}
         <style>
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -153,7 +164,7 @@ export function openTimetablePrintablePage(
       <body>
         <div class="print-toolbar">
           <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-weight:700;font-size:16px;background:${accentGrad};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${timetableName}</span>
+            <span style="font-weight:700;font-size:16px;background:${accentGrad};-webkit-background-clip:text;-webkit-text-fill-color:transparent">${escapeHtml(timetableName)}</span>
             <span class="hint">— Timetable</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px">

@@ -1,5 +1,7 @@
 // @ts-check
 import withSerwistInit from "@serwist/next";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: false,
@@ -21,6 +23,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
   },
+  transpilePackages: ['@amazecontinuityprojects/amazeui'],
   reactStrictMode: true,
   devIndicators: false,
   images: {
@@ -43,6 +46,10 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push("@napi-rs/canvas");
+    }
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'react-native$': require.resolve('react-native-web'),
     }
     return config;
   },

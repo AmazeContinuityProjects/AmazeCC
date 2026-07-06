@@ -29,10 +29,10 @@ import {
   Keyboard
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button } from "../../ui/button";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@amazecontinuityprojects/amazeui";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
@@ -162,16 +162,20 @@ export default function ProfilePage({
   };
 
   const updateSetting = (key: string, value: any) => {
-    const updated = { ...settings, [key]: value };
-    setSettings((prev: any) => ({ ...prev, [key]: value }));
-    localStorage.setItem("settings", JSON.stringify(updated));
+    setSettings((prev: any) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
   };
 
   const updateCustomPalette = (key: "accent" | "background" | "surface", value: string) => {
     const nextPalette = { ...customPalette, [key]: value };
-    const updated = { ...settings, colorPalette: "custom", customPalette: nextPalette };
-    setSettings((prev: any) => ({ ...prev, colorPalette: "custom", customPalette: nextPalette }));
-    localStorage.setItem("settings", JSON.stringify(updated));
+    setSettings((prev: any) => {
+      const next = { ...prev, colorPalette: "custom", customPalette: nextPalette };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
   };
 
   const handleSaveSemester = async () => {
@@ -791,6 +795,39 @@ export default function ProfilePage({
                     />
                   </div>
 
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showGpa ?? false}
+                      onCheckedChange={(val) => updateSetting("showGpa", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display your profile photo in the dashboard and sidebar</p>
+                    </div>
+                    <Switch
+                      checked={settings?.showProfilePhoto ?? false}
+                      onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Promote Cab Share</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Show a Cab Share promo card at the top of the mobile home screen</p>
+                    </div>
+                    <Switch
+                      checked={settings?.promoteCabShare ?? false}
+                      onCheckedChange={(val) => updateSetting("promoteCabShare", val)}
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>
@@ -974,6 +1011,54 @@ export default function ProfilePage({
                     </div>
                     <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
                   </div>
+
+                  {/* Pinned Nav Tabs */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-850 dark:text-gray-200 mb-1">Pinned Nav Tabs</p>
+                    <p className="text-xs text-gray-550 dark:text-gray-450 mb-2">Choose tabs to show in the mobile bottom bar (max 4). Home & Modules are always on the bar.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { id: "attendance", label: "Attendance", icon: "CalendarCheck" },
+                        { id: "academics", label: "Academics", icon: "GraduationCap" },
+                        { id: "payments", label: "Payments", icon: "CreditCard" },
+                        { id: "libraries", label: "Libraries", icon: "Library" },
+                        { id: "cabshare", label: "Cab Share", icon: "CarTaxiFront" },
+                        { id: "transport", label: "Transport", icon: "Bus" },
+                        { id: "more", label: "More", icon: "MoreHorizontal" },
+                        { id: "profile", label: "Profile", icon: "User" },
+                      ].map(tab => {
+                        const pinned = settings?.pinnedNavTabs ?? [];
+                        const isPinned = pinned.includes(tab.id);
+                        const atLimit = !isPinned && pinned.length >= 4;
+                        return (
+                          <button
+                            key={tab.id}
+                            disabled={atLimit}
+                            onClick={() => {
+                              const current = settings?.pinnedNavTabs ?? [];
+                              const next = isPinned
+                                ? current.filter((id: string) => id !== tab.id)
+                                : [...current, tab.id];
+                              setSettings((prev: any) => {
+                                const updated = { ...prev, pinnedNavTabs: next };
+                                localStorage.setItem("settings", JSON.stringify(updated));
+                                return updated;
+                              });
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                              isPinned
+                                ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                                : atLimit
+                                  ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+                                  : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400"
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
@@ -1072,60 +1157,42 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Arrears Data</p>
                             <p className="text-[10px] text-gray-450">Arrear schedule, details, and grades</p>
                           </div>
-                          <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncArrearData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncArrearData: val }));
-                          }} />
+                          <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => updateSetting("syncArrearData", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Course Option Change</p>
                             <p className="text-[10px] text-gray-450">Track optional elective changes</p>
                           </div>
-                          <Switch checked={settings?.syncCourseOptionChange ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncCourseOptionChange: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncCourseOptionChange: val }));
-                          }} />
+                          <Switch checked={settings?.syncCourseOptionChange ?? true} onCheckedChange={(val) => updateSetting("syncCourseOptionChange", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">EXC Registration</p>
                             <p className="text-[10px] text-gray-450">Extra-curricular registrations status</p>
                           </div>
-                          <Switch checked={settings?.syncExcRegistration ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncExcRegistration: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncExcRegistration: val }));
-                          }} />
+                          <Switch checked={settings?.syncExcRegistration ?? true} onCheckedChange={(val) => updateSetting("syncExcRegistration", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Minor / Honour Course</p>
                             <p className="text-[10px] text-gray-450">Minor and Honour program registration info</p>
                           </div>
-                          <Switch checked={settings?.syncMinorHonour ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncMinorHonour: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncMinorHonour: val }));
-                          }} />
+                          <Switch checked={settings?.syncMinorHonour ?? true} onCheckedChange={(val) => updateSetting("syncMinorHonour", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Course Completion</p>
                             <p className="text-[10px] text-gray-450">Academic credits check completion status</p>
                           </div>
-                          <Switch checked={settings?.syncCourseCompletion ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncCourseCompletion: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncCourseCompletion: val }));
-                          }} />
+                          <Switch checked={settings?.syncCourseCompletion ?? true} onCheckedChange={(val) => updateSetting("syncCourseCompletion", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Additional Learning</p>
                             <p className="text-[10px] text-gray-450">Extra certifications and non-graded learning</p>
                           </div>
-                          <Switch checked={settings?.syncAdditionalLearning ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncAdditionalLearning: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncAdditionalLearning: val }));
-                          }} />
+                          <Switch checked={settings?.syncAdditionalLearning ?? true} onCheckedChange={(val) => updateSetting("syncAdditionalLearning", val)} />
                         </div>
                       </div>
                     )}
@@ -1149,10 +1216,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Profile Data</p>
                             <p className="text-[10px] text-gray-450">Credentials, dayboarder info, and bank information</p>
                           </div>
-                          <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProfileData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProfileData: val }));
-                          }} />
+                          <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => updateSetting("syncProfileData", val)} />
                         </div>
                       </div>
                     )}
@@ -1176,10 +1240,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Exam Data</p>
                             <p className="text-[10px] text-gray-450">Makeup exams, compre schedules and status</p>
                           </div>
-                          <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncExamData: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncExamData: val }));
-                          }} />
+                          <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => updateSetting("syncExamData", val)} />
                         </div>
                       </div>
                     )}
@@ -1221,10 +1282,7 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Wishlist Data</p>
                             <p className="text-[10px] text-gray-450">Fetch draft wishlist courses from VTOP</p>
                           </div>
-                          <Switch checked={settings?.syncWishlist ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncWishlist: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncWishlist: val }));
-                          }} />
+                          <Switch checked={settings?.syncWishlist ?? true} onCheckedChange={(val) => updateSetting("syncWishlist", val)} />
                         </div>
                       </div>
                     )}
@@ -1248,20 +1306,14 @@ export default function ProfilePage({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Project Information</p>
                             <p className="text-[10px] text-gray-450">Fetch active project details</p>
                           </div>
-                          <Switch checked={settings?.syncProject ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProject: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProject: val }));
-                          }} />
+                          <Switch checked={settings?.syncProject ?? true} onCheckedChange={(val) => updateSetting("syncProject", val)} />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <p className="font-semibold text-gray-800 dark:text-gray-200">Project Course Sync</p>
                             <p className="text-[10px] text-gray-450">Fetch individual project course grades</p>
                           </div>
-                          <Switch checked={settings?.syncProjectCourse ?? true} onCheckedChange={(val) => {
-                            setSettings((prev: any) => ({ ...prev, syncProjectCourse: val }));
-                            localStorage.setItem("settings", JSON.stringify({ ...settings, syncProjectCourse: val }));
-                          }} />
+                          <Switch checked={settings?.syncProjectCourse ?? true} onCheckedChange={(val) => updateSetting("syncProjectCourse", val)} />
                         </div>
                       </div>
                     )}
@@ -1400,15 +1452,15 @@ export default function ProfilePage({
                 <div className="w-full max-w-xs grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-left pt-2 border-t border-gray-150 dark:border-gray-800/60 mt-2">
                   <div>
                     <span className="text-gray-400 font-medium block">Version</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">v2.0.4</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">v3.1.0</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Build Number</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0627</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0703</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Last Updated</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">June 2026</span>
+                    <span className="font-bold text-gray-850 dark:text-gray-200">July 2026</span>
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium block">Platform</span>

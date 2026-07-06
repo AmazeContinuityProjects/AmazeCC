@@ -7,32 +7,67 @@ export default function IconUpdater() {
   useEffect(() => {
     const updateIcon = () => {
       const savedIcon = localStorage.getItem("app-icon") || "default";
-      const iconUrl = getAssetPath(savedIcon === "fire" ? "/images/icons/fire.png" : "/logo.png");
       
       // Update ALL link[rel~="icon"] tags
       const iconLinks = document.querySelectorAll("link[rel~='icon']");
-      if (iconLinks.length > 0) {
-        iconLinks.forEach((link) => {
-          (link as HTMLLinkElement).href = iconUrl;
-        });
-      } else {
-        const newIconLink = document.createElement("link");
-        newIconLink.rel = "icon";
-        newIconLink.href = iconUrl;
-        document.head.appendChild(newIconLink);
-      }
-
-      // Update ALL link[rel="apple-touch-icon"]
       const appleIconLinks = document.querySelectorAll("link[rel='apple-touch-icon']");
-      if (appleIconLinks.length > 0) {
-        appleIconLinks.forEach((link) => {
-          (link as HTMLLinkElement).href = iconUrl;
-        });
+
+      if (savedIcon === "fire") {
+        const fireIconUrl = getAssetPath("/images/icons/fire.png");
+        if (iconLinks.length > 0) {
+          iconLinks.forEach((link) => {
+            (link as HTMLLinkElement).href = fireIconUrl;
+          });
+        } else {
+          const newIconLink = document.createElement("link");
+          newIconLink.rel = "icon";
+          newIconLink.href = fireIconUrl;
+          document.head.appendChild(newIconLink);
+        }
+
+        if (appleIconLinks.length > 0) {
+          appleIconLinks.forEach((link) => {
+            (link as HTMLLinkElement).href = fireIconUrl;
+          });
+        } else {
+          const newAppleIconLink = document.createElement("link");
+          newAppleIconLink.rel = "apple-touch-icon";
+          newAppleIconLink.href = fireIconUrl;
+          document.head.appendChild(newAppleIconLink);
+        }
       } else {
-        const newAppleIconLink = document.createElement("link");
-        newAppleIconLink.rel = "apple-touch-icon";
-        newAppleIconLink.href = iconUrl;
-        document.head.appendChild(newAppleIconLink);
+        const defaultIconUrl = getAssetPath("/favicon/favicon.ico");
+        const defaultAppleIconUrl = getAssetPath("/favicon/apple-touch-icon.png");
+
+        if (iconLinks.length > 0) {
+          iconLinks.forEach((link) => {
+            const sizes = (link as HTMLLinkElement).getAttribute("sizes");
+            const type = (link as HTMLLinkElement).getAttribute("type");
+            if (type === "image/svg+xml") {
+              (link as HTMLLinkElement).href = getAssetPath("/favicon/favicon.svg");
+            } else if (sizes === "96x96") {
+              (link as HTMLLinkElement).href = getAssetPath("/favicon/favicon-96x96.png");
+            } else {
+              (link as HTMLLinkElement).href = defaultIconUrl;
+            }
+          });
+        } else {
+          const newIconLink = document.createElement("link");
+          newIconLink.rel = "icon";
+          newIconLink.href = defaultIconUrl;
+          document.head.appendChild(newIconLink);
+        }
+
+        if (appleIconLinks.length > 0) {
+          appleIconLinks.forEach((link) => {
+            (link as HTMLLinkElement).href = defaultAppleIconUrl;
+          });
+        } else {
+          const newAppleIconLink = document.createElement("link");
+          newAppleIconLink.rel = "apple-touch-icon";
+          newAppleIconLink.href = defaultAppleIconUrl;
+          document.head.appendChild(newAppleIconLink);
+        }
       }
 
       // Dynamically update the manifest to a real static file

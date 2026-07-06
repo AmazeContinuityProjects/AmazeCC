@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { API_BASE } from "../Main";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { API_BASE, loginToEventHub } from "../Main";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,8 +10,8 @@ import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
+import { Button } from "@amazecontinuityprojects/amazeui";
 
 export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: { 
   IDs: any, 
@@ -153,17 +153,22 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     }
 
     try {
+      const jsessionid = await loginToEventHub(IDs, IDs?.VtopUsername === "demo");
+      if (!jsessionid) {
+        setPreviewError("Please save your VTOP credentials in the settings first.");
+        setPreviewLoading(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
+          jsessionid,
           eid: event.eid,
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to load event preview");
+      if (!res.ok) throw new Error(`Failed to load event preview (status: ${res.status})`);
       const data = await res.json();
       setPreviewData(data);
     } catch (err: any) {
@@ -189,10 +194,9 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       setViewMode("registered");
       return;
     }
-    
+
     if (registeredEvents && registeredEvents.length > 0) {
       setViewMode("registered");
-      // Don't return, continue to fetch silently in the background for updates
     } else {
       setLoadingRegistered(true);
       setViewMode("registered");
@@ -225,16 +229,23 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
 
     setRegisteredError("");
     try {
+      const jsessionid = await loginToEventHub(IDs, false);
+      if (!jsessionid) {
+        setRegisteredError("Failed to authenticate with Event Hub.");
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
-        })
+        body: JSON.stringify({ jsessionid })
       });
+      if (!res.ok) {
+        const errText = await res.text();
+        let errMsg = "Failed to fetch registered events";
+        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch registered events");
       if (setRegisteredEvents) {
         setRegisteredEvents(data.events || []);
         localStorage.setItem("registeredEvents", JSON.stringify(data.events || []));
