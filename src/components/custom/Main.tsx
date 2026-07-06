@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import LoginForm from "./loginForm";
 import DashboardContent from "./Dashboard";
+import IntroPage from "./IntroPage";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
@@ -10,30 +11,21 @@ import demoData from '../../data/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
-import { CommandPalette } from "@/components/custom/shared";
+import { CommandPalette, LoadingScreen } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard } from "lucide-react";
+import { getAssetPath } from "@/lib/utils";
+import { loginToVTOP as vtopLogin } from "@/lib/auth";
+import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
+import { storage } from "@/lib/storage";
+import { fetchWithTimeout, API_BASE } from "@/lib/fetch-utils";
+import { reportError } from "@/lib/error-utils";
+import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
-
-const FETCH_TIMEOUT = 90000;
-
-let globalLoginPromise: Promise<any> | null = null;
-let cachedVTOPCredentials: { cookies: string[], authorizedID: string, csrf: string } | null = null;
-
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(timer);
-  }
-}
+export { API_BASE, loginToEventHub };
 
 type settings = {
   decimalValues: boolean;
@@ -44,6 +36,8 @@ type settings = {
   loadingScreen: boolean;
   isDayscholarWithBus: boolean;
   hideProfileImageOutsideInfo?: boolean;
+  showGpa?: boolean;
+  showProfilePhoto?: boolean;
   colorPalette?: string;
   customPalette?: {
     accent: string;
@@ -67,6 +61,8 @@ type settings = {
   syncAdditionalLearning?: boolean;
   syncProject?: boolean;
   syncProjectCourse?: boolean;
+  promoteCabShare?: boolean;
+  pinnedNavTabs?: string[];
 }
 
 type IDs = {
@@ -85,6 +81,8 @@ const defaultSettings: settings = {
   loadingScreen: false,
   isDayscholarWithBus: false,
   hideProfileImageOutsideInfo: false,
+  showGpa: false,
+  showProfilePhoto: false,
   colorPalette: "default",
   customPalette: {
     accent: "#0ea5e9",
@@ -107,7 +105,9 @@ const defaultSettings: settings = {
   syncWishlist: true,
   syncAdditionalLearning: true,
   syncProject: true,
-  syncProjectCourse: true
+  syncProjectCourse: true,
+  promoteCabShare: false,
+  pinnedNavTabs: []
 };
 
 const defaultIDs: IDs = {
@@ -164,6 +164,7 @@ export default function LoginPage() {
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
   const [demoMode, setDemoMode] = useState<boolean>(false);
   const [settings, setSettings] = useState<settings>(defaultSettings);
+  const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
   const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
@@ -395,36 +396,35 @@ export default function LoginPage() {
 
   // --- Effects ---
   useEffect(() => {
-    const storedAttendance = localStorage.getItem("attendance");
-    const storedMarks = localStorage.getItem("marks");
-    const storedGrades = localStorage.getItem("grades");
-    const storedAllGrades = localStorage.getItem("allGrades");
-    const storedUsername = localStorage.getItem("username");
-    const storedPassword = localStorage.getItem("password");
-    const storedMoodleUsername = localStorage.getItem("moodle_username");
-    const storedMoodlePassword = localStorage.getItem("moodle_password");
-    const storedSchedule = localStorage.getItem("schedule");
-    const storedHoste = localStorage.getItem("hostel");
-    const calendar = localStorage.getItem("calender");
-    const MoodleData = localStorage.getItem("moodleData");
-    const VitolData = localStorage.getItem("vitolData");
-    const settings = localStorage.getItem("settings");
-    const IDs = localStorage.getItem("IDs");
-    const storedRegisteredEvents = localStorage.getItem("registeredEvents");
+    const storedAttendance = storage.attendance.get();
+    const storedMarks = storage.marks.get();
+    const storedGrades = storage.grades.get();
+    const storedAllGrades = storage.allGrades.get();
+    const storedUsername = storage.username.get();
+    const storedPassword = storage.password.get();
+    const storedMoodleUsername = storage.moodleUsername.get();
+    const storedMoodlePassword = storage.moodlePassword.get();
+    const storedSchedule = storage.schedule.get();
+    const storedHoste = storage.hostel.get();
+    const calendar = storage.calendar.get();
+    const MoodleData = storage.moodleData.get();
+    const VitolData = storage.vitolData.get();
+    const settingsRaw = storage.settings.get();
+    const IDsRaw = storage.ids.get();
+    const storedRegisteredEvents = storage.registeredEvents.get();
 
-    const parsedStoredAttendance: attendanceRes | null = storedAttendance ? JSON.parse(storedAttendance) : null;
-    if (parsedStoredAttendance && parsedStoredAttendance.attendance) {
-      setAttendanceAndOD(parsedStoredAttendance);
+    if (storedAttendance?.attendance) {
+      setAttendanceAndOD(storedAttendance);
     }
-    if (storedMarks) setMarksData(JSON.parse(storedMarks));
-    if (storedSchedule) setScheduleData(JSON.parse(storedSchedule));
-    if (storedGrades) setGradesData(JSON.parse(storedGrades));
-    if (storedAllGrades) setAllGradesData(JSON.parse(storedAllGrades));
-    if (storedHoste) sethostelData(JSON.parse(storedHoste));
-    if (calendar) setCalender(JSON.parse(calendar));
-    if (MoodleData) setMoodleData(JSON.parse(MoodleData));
-    if (VitolData) setVitolData(JSON.parse(VitolData));
-    if (storedRegisteredEvents) setRegisteredEvents(JSON.parse(storedRegisteredEvents));
+    if (storedMarks) setMarksData(storedMarks as object);
+    if (storedSchedule) setScheduleData(storedSchedule as object);
+    if (storedGrades) setGradesData(storedGrades as object);
+    if (storedAllGrades) setAllGradesData(storedAllGrades);
+    if (storedHoste) sethostelData(storedHoste as object);
+    if (calendar) setCalender(calendar as object);
+    if (MoodleData) setMoodleData(MoodleData as never[]);
+    if (VitolData) setVitolData(VitolData as never[]);
+    if (storedRegisteredEvents) setRegisteredEvents(storedRegisteredEvents);
     
     setIDs({
       VtopUsername: storedUsername || "",
@@ -432,23 +432,23 @@ export default function LoginPage() {
       MoodleUsername: storedMoodleUsername || "",
       MoodlePassword: storedMoodlePassword || ""
     })
-    if (IDs) setIDs(JSON.parse(IDs));
-    if (settings) {
-      const parsedSettings = JSON.parse(settings);
+    if (IDsRaw) setIDs(IDsRaw);
+    if (settingsRaw) {
       setSettings({
         ...defaultSettings,
-        ...parsedSettings
+        ...settingsRaw
       });
     }
-    const isDemoStored = localStorage.getItem("demoMode") === "true";
+    const introDone = localStorage.getItem("introDone");
+    setShowIntro(!introDone);
+    const isDemoStored = storage.demoMode.get();
     if (isDemoStored) {
       setDemoMode(true);
       setIsLoggedIn(true);
     } else {
       let hasVtop = false;
       try {
-        const parsedIDs = IDs ? JSON.parse(IDs) : null;
-        if (parsedIDs?.VtopUsername && parsedIDs?.VtopPassword) {
+        if (IDsRaw?.VtopUsername && IDsRaw?.VtopPassword) {
           hasVtop = true;
         }
       } catch (e) {}
@@ -461,52 +461,16 @@ export default function LoginPage() {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
-    if (cachedVTOPCredentials && !forceNew && !retry) return cachedVTOPCredentials;
-    if (globalLoginPromise) return globalLoginPromise;
-    globalLoginPromise = (async () => {
-      try {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setProgressBar(10);
-        setMessage("Logging in and fetching data...");
-        const loginRes = await fetchWithTimeout(`${API_BASE}/api/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: IDs.VtopUsername,
-            password: IDs.VtopPassword
-          }),
-        }, 60000);
-
-        const data = await loginRes.json();
-
-        if (data.message?.includes("Invalid Captcha") && !retry) {
-          globalLoginPromise = null;
-          return await loginToVTOP(true, forceNew);
-        }
-
-        if (!data.success || !data.authorizedID || !data.cookies)
-          throw new Error(data.message || "Login failed.");
-
-        setMessage((prev) => prev + "\n✅ Login successful");
-        setProgressBar((prev) => prev + 30);
-
-        cachedVTOPCredentials = {
-          cookies: data.cookies,
-          authorizedID: data.authorizedID,
-          csrf: data.csrf,
-        };
-        return cachedVTOPCredentials;
-      } finally {
-        globalLoginPromise = null;
-      }
-    })();
-    return globalLoginPromise;
+    return vtopLogin(IDs, demoMode, retry, forceNew, (msg, progress) => {
+      if (msg) setMessage(prev => prev + "\n" + msg);
+      if (progress) setProgressBar(prev => prev + progress);
+    });
   };
 
   const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
     if (demoMode || IDs.VtopUsername === "demo") {
       setDemoMode(true);
-      localStorage.setItem("demoMode", "true");
+      storage.demoMode.set(true);
       setIsReloading(true);
       setProgressBar(10);
       setMessage("Initializing Demo environment...");
@@ -536,264 +500,55 @@ export default function LoginPage() {
       return;
     }
 
+    const onProgress = (msg: string, delta: number) => {
+      if (msg) setMessage(prev => prev + "\n✅ " + msg);
+      if (delta) setProgressBar(prev => prev + delta);
+    };
+
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      localStorage.setItem("IDs", JSON.stringify(IDs));
+      const creds = await loginToVTOP();
+      storage.ids.set(IDs);
 
-      const verifyRes = await fetchWithTimeout(`${API_BASE}/api/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: currSemesterID }),
-      });
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.attRes || !verifyData.attRes.attendance) {
-        throw new Error("Session verification failed. Please try again.");
-      }
-
-      if (verifyData.marksRes && typeof verifyData.marksRes === 'string') {
-        throw new Error(`Marks fetch failed: ${verifyData.marksRes}`);
-      }
-
-      const attRes = verifyData.attRes;
-      const marksRes = verifyData.marksRes;
-      setMessage(prev => prev + "\n✅ Attendance/Marks fetched");
-      setProgressBar(prev => prev + 10);
-
-      let profileRes = JSON.parse(localStorage.getItem("profile") || "null");
-      try {
-        const studentFetch = await fetchWithTimeout(`${API_BASE}/api/student`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf }),
-        });
-        const studentData = await studentFetch.json();
-        if (studentData && studentData.profile) {
-          profileRes = studentData.profile;
-          localStorage.setItem("profile", JSON.stringify(profileRes));
-          setMessage(prev => prev + "\n✅ Profile details fetched");
-          setProgressBar(prev => prev + 5);
-        }
-      } catch (e) {
-        console.error("Failed to fetch profile", e);
-      }
-
-      const [gradesRes, ScheduleRes, HostelRes, calenderRes, allGradesRes, eventsRes, eventHubRes, profileImagesRes] = await Promise.all([
-
-        fetchWithTimeout(`${API_BASE}/api/grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Grades fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        fetchWithTimeout(`${API_BASE}/api/schedule`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: currSemesterID }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Exam schedule fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-
-        (profileRes?.isHosteller) ? fetchWithTimeout(`${API_BASE}/api/hostel`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Hostel details fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }) : Promise.resolve({}),
-
-        fetchWithTimeout(`${API_BASE}/api/calendar`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cookies: cookies,
-            authorizedID, csrf,
-            type: settings.calendarType || "ALL",
-            semesterId: currSemesterID
-          }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Calendar fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-        fetchWithTimeout(`${API_BASE}/api/all-grades`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-        }).then(async r => {
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ All grades fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }),
-        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-        }).then(async r => {
-          if (!r.ok) return { events: [] };
-          const j = await r.json();
-          setMessage(prev => prev + "\n✅ Event Hub data fetched");
-          setProgressBar(prev => prev + 5);
-          return j;
-        }).catch(() => ({ events: [] })),
-        fetch(`${API_BASE}/api/events`).then(async r => {
-          if (!r.ok) return [];
-          const events = await r.json();
-          if (Array.isArray(events)) {
-            setEventHubEvents(events);
-            setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
-          }
-          return events;
-        }).catch(() => []),
-        fetchWithTimeout(`${API_BASE}/api/profile-images`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf }),
-        }).then(async r => {
-          if (!r.ok) return null;
-          const j = await r.json();
-          if (j?.success) {
-            setMessage(prev => prev + "\n✅ Profile images cached");
-            setProgressBar(prev => prev + 3);
-            return j;
-          }
-          return null;
-        }).catch(() => null),
-      ]);
-
-      setMessage(prev => prev + "\nFinalizing and saving data...");
+      onProgress("Attendance/Marks fetched", 10);
+      const { attRes, marksRes } = await fetchAttendanceAndMarks(creds, currSemesterID);
 
       setAttendanceAndOD(attRes);
-      setMarksData(marksRes);
-      setGradesData(gradesRes);
-      setAllGradesData(allGradesRes);
-      setScheduleData(ScheduleRes);
-      sethostelData(HostelRes);
-      setCalender(calenderRes);
-      if (eventsRes?.events) setRegisteredEvents(eventsRes.events);
-      if (profileImagesRes?.success) localStorage.setItem("profileImages", JSON.stringify(profileImagesRes));
+      setMarksData(marksRes as object);
 
-      const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+      storage.attendance.set(attRes);
+      storage.marks.set(marksRes);
+
+      const oldMarks = storage.marks.get() || {};
       syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
 
-      localStorage.setItem("attendance", JSON.stringify(attRes));
-      localStorage.setItem("marks", JSON.stringify(marksRes));
-      localStorage.setItem("grades", JSON.stringify(gradesRes));
-      localStorage.setItem("allGrades", JSON.stringify(allGradesRes));
-      localStorage.setItem("schedule", JSON.stringify(ScheduleRes));
-      localStorage.setItem("hostel", JSON.stringify(HostelRes));
-      localStorage.setItem("calender", JSON.stringify(calenderRes));
-      if (eventsRes?.events) localStorage.setItem("registeredEvents", JSON.stringify(eventsRes.events));
-      // Past Semester Attendance Fetch
-      try {
-        const pastSemesters = Object.keys(allGradesRes?.grades || {}).filter(sem => sem !== currSemesterID);
-        if (pastSemesters.length > 0) {
-          setMessage(prev => prev + `\nFetching past attendance for ${pastSemesters.length} semesters...`);
-          await Promise.allSettled(
-            pastSemesters.map(sem =>
-              fetch(`${API_BASE}/api/attendance`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: sem }),
-              })
-                .then(r => r.json())
-                .then(data => {
-                  if (data && data.attendance) {
-                    localStorage.setItem(`frozen_att_${sem}`, JSON.stringify(data));
-                  }
-                  setProgressBar(prev => Math.min(prev + 2, 95));
-                })
-                .catch(() => {})
-            )
-          );
-        }
-      } catch (e) {
-        console.error("Failed past attendance", e);
+      let profileRes = storage.profile.get();
+      const fetchedProfile = await fetchStudentProfile(creds);
+      if (fetchedProfile) {
+        profileRes = fetchedProfile;
+        onProgress("Profile details fetched", 5);
       }
 
-      // Fresher / EPT data
-      try {
-        const [eptRes, ackRes] = await Promise.all([
-          fetch(`${API_BASE}/api/ept-schedule`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-          fetch(`${API_BASE}/api/acknowledgement`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-        ]);
-        if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
-        if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
-        setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
-      } catch {}
+      const isHosteller = (profileRes as any)?.isHosteller ?? false;
 
-      // Bus routes
-      try {
-        const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
-        if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-        setMessage(prev => prev + "\n✅ Bus routes fetched");
-      } catch {}
+      onProgress("Core data fetched", 23);
+      const coreData = await fetchCoreData(creds, currSemesterID, settings.calendarType, isHosteller);
 
-      // All other VTOP-scoped endpoints (cached for GenericApiView)
-      const bulkEndpoints: string[] = [];
-      if (settings.syncArrearData !== false) {
-        bulkEndpoints.push("arrear-schedule", "arrear-details", "arrear-grade");
-      }
-      // We still check syncAdditionalData as a master toggle for this section,
-      // but also respect the individual toggles. If syncAdditionalData is false, it skips all of them.
-      if (settings.syncAdditionalData !== false) {
-        if (settings.syncCourseOptionChange !== false) bulkEndpoints.push("course-option-change");
-        if (settings.syncExcRegistration !== false) bulkEndpoints.push("exc-registration");
-        if (settings.syncMinorHonour !== false) bulkEndpoints.push("minor-honour");
-        if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
-        if (settings.syncWishlist !== false) bulkEndpoints.push("wishlist");
-        if (settings.syncAdditionalLearning !== false) bulkEndpoints.push("additional-learning");
-        if (settings.syncProject !== false) bulkEndpoints.push("project");
-        if (settings.syncProjectCourse !== false) bulkEndpoints.push("project-course");
-      }
-      if (settings.syncExamData !== false) {
-        bulkEndpoints.push("makeup-exam", "makeup-schedule", "compre-info");
-      }
-      if (settings.syncProfileData !== false) {
-        bulkEndpoints.push(
-          "credentials", "registration-schedule", "dayboarder", "bank-info", 
-          "library-due", "hostel-counselling"
-        );
-      }
-      
-      await Promise.allSettled(
-        bulkEndpoints.map(path =>
-          fetch(`${API_BASE}/api/${path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          })
-            .then(r => r.json())
-            .then(data => {
-              if (data.success !== false) {
-                localStorage.setItem("cache_" + path, JSON.stringify(data));
-              }
-              setMessage(prev => prev + `\n✅ ${path} fetched`);
-              setProgressBar(prev => Math.min(prev + 1, 95));
-            })
-            .catch(() => {})
-        )
-      );
-      setMessage(prev => prev + "\n✅ All tab data cached");
+      setGradesData(coreData.gradesRes);
+      setAllGradesData(coreData.allGradesRes);
+      setScheduleData(coreData.scheduleRes);
+      sethostelData(coreData.hostelRes);
+      setCalender(coreData.calendarRes);
+
+      onProgress("Event data fetched", 10);
+      const eventData = await fetchEventData(IDs, demoMode);
+      setRegisteredEvents(eventData.registeredEvents);
+      setEventHubEvents(eventData.eventHubEvents);
+
+      onProgress("Past attendance fetched", 2);
+      await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
+      await fetchFresherData(creds);
+      await fetchBusRoutes();
+      await fetchBulkEndpoints(creds, settings);
 
       setMessage(prev => prev + "\n✅ All data loaded successfully!");
       setProgressBar(100);
@@ -806,7 +561,7 @@ export default function LoginPage() {
 
       return true;
     } catch (err) {
-      console.error(err);
+      reportError(err, { context: "handleLogin" });
       setMessage(
         "❌ " + (err instanceof Error ? err.message : "Login failed")
       );
@@ -851,7 +606,16 @@ export default function LoginPage() {
   };
 
   // --- Event Handlers ---
-  const handleReloadRequest = async () => {
+  const handleReloadRequest = async (targetSemesterID?: string) => {
+    const activeSem = targetSemesterID || settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2];
+    if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
+      setSettings(prev => {
+        const next = { ...prev, currSemesterID: targetSemesterID };
+        localStorage.setItem("settings", JSON.stringify(next));
+        return next;
+      });
+    }
+
     if (demoMode) {
       setIsReloading(true);
       setProgressBar(10);
@@ -887,7 +651,7 @@ export default function LoginPage() {
 
     try {
       if ((settings as any).reloadAllData) {
-        await handleLogin(settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]);
+        await handleLogin(activeSem);
         await fetchTransportData();
         
         try {
@@ -910,12 +674,12 @@ export default function LoginPage() {
           cookies,
           authorizedID,
           csrf,
-          semesterId: settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2],
+          semesterId: activeSem,
         }),
       }).then(async r => {
         const { attRes, marksRes } = await r.json();
         setAttendanceAndOD(attRes);
-        setMarksData(marksRes);
+      setMarksData(marksRes as object);
         const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
         syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
         localStorage.setItem("attendance", JSON.stringify(attRes));
@@ -927,16 +691,18 @@ export default function LoginPage() {
       const tasks: Promise<void>[] = [coreTask];
       
       tasks.push(
-        fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: IDs.VtopUsername, password: IDs.VtopPassword }),
-        }).then(async r => {
+        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
+          if (!jsessionid) return;
+          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsessionid }),
+          });
           if (!r.ok) return;
           const { events } = await r.json();
           if (events) {
             setRegisteredEvents(events);
-            localStorage.setItem("registeredEvents", JSON.stringify(events));
+            storage.registeredEvents.set(events);
             setMessage(prev => prev + "\n✅ Registered events fetched");
           }
         }).catch(() => {})
@@ -1104,6 +870,7 @@ export default function LoginPage() {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
+    clearEventHubSession();
 
     const keysToKeep = ["activityTree", "theme"];
 
@@ -1463,9 +1230,10 @@ export default function LoginPage() {
       { id: "nav-attendance", label: "Attendance", description: "Track your attendance records", icon: "📋", category: "Navigation" },
       { id: "nav-academics", label: "Academics Hub", description: "Marks, curriculum, timetable & more", icon: "📚", category: "Navigation" },
       { id: "nav-payments", label: "Payments", description: "Dues, receipts & wallet", icon: "💳", category: "Navigation" },
+      { id: "nav-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Navigation" },
       { id: "nav-libraries", label: "Libraries", description: "Search books & library account", icon: "📖", category: "Navigation" },
       { id: "nav-hostel", label: "Hostel", description: "Mess, laundry & leave", icon: "🏠", category: "Navigation" },
-      { id: "nav-dayscholar", label: "Day Scholar", description: "Bus finder & transport", icon: "🚌", category: "Navigation" },
+      { id: "nav-transport", label: "Transport", description: "Bus routes, stops & placements", icon: "🚏", category: "Navigation" },
       { id: "nav-more", label: "More", description: "Events, social & schedules", icon: "➕", category: "Navigation" },
     ];
     nav.forEach(c => result.push({ ...c, onSelect: () => setActiveTab(c.id.replace("nav-", "")) }));
@@ -1499,8 +1267,10 @@ export default function LoginPage() {
       { id: "hostel-laundry", label: "Laundry", description: "Laundry service status", icon: "👕", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); } },
       { id: "hostel-leave", label: "Leave", description: "Leave applications & history", icon: "✈️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); } },
       { id: "hostel-counselling", label: "Hostel Counselling", description: "Hostel counselling sessions", icon: "🤝", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("counselling"); } },
-      { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); } },
-      { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Day Scholar", onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("registration"); } },
+      { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },
+      { id: "tr-placements", label: "Vehicle Placements", description: "5 PM & 6 PM vehicle placement info", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("archive"); } },
       { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("pure"); } },
       { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
@@ -1541,6 +1311,7 @@ export default function LoginPage() {
     );
 
     // ── Settings toggles ──
+    // ── Settings toggles ──
     const toggle = (label: string, key: keyof typeof settings, category: string, icon: string, invertDesc = false) => {
       const current = settings[key] as boolean;
       result.push({
@@ -1553,8 +1324,11 @@ export default function LoginPage() {
         rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${current ? "text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20" : "text-gray-500  dark:text-gray-400 bg-gray-100  dark:bg-gray-800"}`}>{current ? "ON" : "OFF"}</span>,
         onSelect: () => {
           const newVal = !current as any;
-          setSettings(prev => ({ ...prev, [key]: newVal }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, [key]: newVal }));
+          setSettings(prev => {
+            const next = { ...prev, [key]: newVal };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     };
@@ -1594,8 +1368,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.attendancePercentageOrString === mode ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, attendancePercentageOrString: mode as "percentage" | "str" }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: mode }));
+          setSettings(prev => {
+            const next = { ...prev, attendancePercentageOrString: mode as "percentage" | "str" };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1610,8 +1387,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.residentialStatus === status ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, residentialStatus: status as "hosteller" | "dayscholar" }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: status }));
+          setSettings(prev => {
+            const next = { ...prev, residentialStatus: status as "hosteller" | "dayscholar" };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1627,8 +1407,11 @@ export default function LoginPage() {
         category: "Settings",
         rightSlot: settings.calendarType === ct ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
         onSelect: () => {
-          setSettings(prev => ({ ...prev, calendarType: ct as any }));
-          localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: ct }));
+          setSettings(prev => {
+            const next = { ...prev, calendarType: ct as any };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
         }
       });
     });
@@ -1645,8 +1428,7 @@ export default function LoginPage() {
           category: "Settings",
           rightSlot: settings.currSemesterID === sem ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600  dark:text-green-300 bg-green-50  dark:bg-green-900/20">Active</span> : undefined,
           onSelect: () => {
-            setSettings(prev => ({ ...prev, currSemesterID: sem }));
-            localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: sem }));
+            handleReloadRequest(sem);
           }
         });
       });
@@ -2384,7 +2166,7 @@ export default function LoginPage() {
                   )}
                 </div>
               ),
-              onSelect: () => { setActiveTab("dayscholar"); setActiveDayscholarSubTab("finder"); }
+              onSelect: () => setActiveTab("transport")
             });
           });
         }
@@ -2757,41 +2539,12 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#03060F] transition-colors relative overflow-hidden">
-        {/* Style block for linear loading bar animation */}
-        <style>{`
-          @keyframes loaderBar {
-            0% { left: -35%; }
-            100% { left: 100%; }
-          }
-          .animate-loaderBar {
-            animation: loaderBar 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          }
-        `}</style>
-        
-        {/* Abstract background glow */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-purple-500/5 blur-[120px] rounded-full -z-10" />
-
-        <div className="flex flex-col items-center space-y-6 max-w-xs text-center z-10">
-          {/* Logo container */}
-          <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-white dark:bg-neutral-900 border border-slate-200/80 dark:border-neutral-800 shadow-2xl animate-pulse">
-            <img src="/logo.png" alt="AmazeCC Logo" className="w-14 h-14 object-contain" onError={(e) => {
-              (e.target as HTMLImageElement).src = "/images/icons/AmazeCC.png";
-            }} />
-            <div className="absolute -inset-1.5 rounded-[28px] border border-blue-500/20 animate-ping duration-3000 pointer-events-none" />
-          </div>
-          
-          <div className="space-y-2 pt-2">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</h2>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500">Student Operating System</p>
-          </div>
-
-          {/* Sleek Progress Bar */}
-          <div className="w-40 h-1 bg-slate-200 dark:bg-neutral-800 rounded-full overflow-hidden relative shadow-inner">
-            <div className="absolute top-0 bottom-0 left-0 w-[35%] bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full animate-loaderBar" />
-          </div>
-        </div>
-      </div>
+      <LoadingScreen
+        logoSrc="/logo.png"
+        wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
+        wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
+        title="Student Operating System"
+      />
     );
   }
 
@@ -2844,13 +2597,35 @@ export default function LoginPage() {
 
       {(isLoggedIn || demoMode) && (
         <>
-          {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-            ⚠️ You’re currently offline. Some features may not work.
-          </div>}
-          {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
-            ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
-          </div>}
-          <DashboardContent
+          {showIntro === true ? (
+            <IntroPage
+              settings={settings}
+              setSettings={(fn: any) => {
+                if (typeof fn === "function") {
+                  setSettings((prev: settings) => {
+                    const newSettings = fn(prev);
+                    localStorage.setItem("settings", JSON.stringify(newSettings));
+                    return newSettings;
+                  });
+                }
+              }}
+              onComplete={async (finalSemesterID?: string) => {
+                localStorage.setItem("introDone", "true");
+                setShowIntro(false);
+                if (finalSemesterID && finalSemesterID !== settings.currSemesterID) {
+                  await handleReloadRequest(finalSemesterID);
+                }
+              }}
+            />
+          ) : (
+            <>
+              {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
+                ⚠️ You're currently offline. Some features may not work.
+              </div>}
+              {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
+                ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
+              </div>}
+              <DashboardContent
             demoMode={demoMode}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -2908,6 +2683,8 @@ export default function LoginPage() {
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
             onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
           />
+            </>
+          )}
         </>
       )}
       {/* <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
@@ -3004,22 +2781,25 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EventPreviewCard({ eid, username, password }: { eid: string; username: string; password: string }) {
+function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoMode: boolean }) {
   const [data, setData] = useState<{ imageSrc: string; description: string; metaDetails: Record<string, string> } | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/events/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, eid }),
-      signal: controller.signal
-    }).then(async r => { if (!r.ok) return null; return r.json(); }).then(j => {
+    loginToEventHub(IDs, demoMode).then(jsessionid => {
+      if (!jsessionid || cancelled) { if (!cancelled) setLoading(false); return; }
+      return fetch(`${API_BASE}/api/events/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsessionid, eid }),
+        signal: controller.signal
+      });
+    }).then(async r => { if (!r || !r.ok) return null; return r.json(); }).then(j => {
       if (!cancelled) { setData(j); setLoading(false); }
     }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; controller.abort(); };
-  }, [eid, username, password]);
+  }, [eid, IDs, demoMode]);
   if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100  dark:bg-gray-900 animate-pulse" />;
   if (!data?.imageSrc) return null;
   return (

@@ -15,7 +15,7 @@ import MessDisplay from "./Hostel/messDisplay";
 import LaundryDisplay from "./Hostel/LaundryDisplay";
 import AttendanceSubTabs from "./attendance/AttendanceSubsTabs";
 import CalendarView from "./attendance/CalendarView";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
 import HostelOverview from "./Hostel/HostelOverview";
 import HostelCounsellingView from "./Hostel/HostelCounsellingView";
@@ -32,7 +32,7 @@ import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 
 const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
   loading: () => (
@@ -228,12 +228,7 @@ export default function DashboardContent({
   const [transportData, setTransportData] = useState<any>(null);
   const [transportLoading, setTransportLoading] = useState(true);
 
-  useEffect(() => {
-    const cachedBuses = localStorage.getItem("cache_buses");
-    if (cachedBuses) {
-      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
-    }
-
+  const loadTransportData = useCallback(() => {
     const cached = localStorage.getItem("transportData");
     if (cached) {
       try {
@@ -245,6 +240,47 @@ export default function DashboardContent({
     }
     setTransportLoading(false);
   }, []);
+
+  useEffect(() => {
+    const cachedBuses = localStorage.getItem("cache_buses");
+    if (cachedBuses) {
+      try { setDayscholarBuses(JSON.parse(cachedBuses)); } catch {}
+    }
+    loadTransportData();
+  }, [loadTransportData]);
+
+  const [transportBuses, setTransportBuses] = useState<any[]>([]);
+  const [transportBusesLoading, setTransportBusesLoading] = useState(false);
+
+  useEffect(() => {
+    const cached = localStorage.getItem("cache_buses");
+    if (cached) {
+      try { setTransportBuses(JSON.parse(cached)); } catch {}
+    }
+  }, []);
+
+  const refreshTransportBuses = useCallback(async () => {
+    setTransportBusesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/buses`);
+      const data = await res.json();
+      if (data.success) {
+        setTransportBuses(data.buses);
+        setDayscholarBuses(data.buses);
+        localStorage.setItem("cache_buses", JSON.stringify(data.buses));
+      }
+    } catch (e) {
+      console.error("Failed to fetch transport buses:", e);
+    } finally {
+      setTransportBusesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "transport") {
+      loadTransportData();
+    }
+  }, [activeTab, loadTransportData]);
 
   const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
 
@@ -259,10 +295,12 @@ export default function DashboardContent({
   const isHosteller = profileData?.isHosteller;
   const residentialStatus = settings?.residentialStatus;
 
-  if (isHosteller === true) tabsOrder.push("hostel");
-  else if (isHosteller === false) tabsOrder.push("dayscholar");
-  else if (residentialStatus === "dayscholar") tabsOrder.push("dayscholar");
-  else if (residentialStatus === "hosteller") tabsOrder.push("hostel");
+  if (isHosteller === true || residentialStatus === "hosteller") tabsOrder.push("hostel");
+  else if (isHosteller === false || residentialStatus === "dayscholar") {
+    /* no separate dayscholar tab — transport covers it */
+  }
+
+  tabsOrder.push("cabshare", "transport");
 
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
@@ -515,7 +553,7 @@ export default function DashboardContent({
 
   return (
     <div
-      className="w-full max-w-md md:max-w-full mx-auto overflow-hidden"
+      className="w-full max-w-md md:max-w-full mx-auto overflow-visible"
     >
       <NavigationTabs
         activeTab={activeTab}
@@ -529,10 +567,12 @@ export default function DashboardContent({
         handleReloadRequest={handleReloadRequest}
         currSemesterID={settings.currSemesterID}
         setCurrSemesterID={(val: string) => {
-          setSettings(prev => ({ ...prev, currSemesterID: val }))
-          localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
-        }
-        }
+          setSettings(prev => {
+            const next = { ...prev, currSemesterID: val };
+            localStorage.setItem("settings", JSON.stringify(next));
+            return next;
+          });
+        }}
         handleLogin={handleLogin}
         setIsReloading={setIsReloading}
         username={IDs.VtopUsername}
@@ -615,16 +655,20 @@ export default function DashboardContent({
           setGradesDisplayIsOpen={setGradesDisplayIsOpen}
           CGPAHidden={settings.CGPAHidden}
           setCGPAHidden={(val: boolean) => {
-            setSettings(prev => ({ ...prev, CGPAHidden: val }))
-            localStorage.setItem("settings", JSON.stringify({ ...settings, CGPAHidden: val }))
-          }
-          }
+            setSettings(prev => {
+              const next = { ...prev, CGPAHidden: val };
+              localStorage.setItem("settings", JSON.stringify(next));
+              return next;
+            });
+          }}
           attendancePercentageOrString={settings.attendancePercentageOrString}
           setAttendancePercentageOrString={(val: string) => {
-            setSettings(prev => ({ ...prev, attendancePercentageOrString: val }))
-            localStorage.setItem("settings", JSON.stringify({ ...settings, attendancePercentageOrString: val }))
-            }
-          }
+            setSettings(prev => {
+              const next = { ...prev, attendancePercentageOrString: val };
+              localStorage.setItem("settings", JSON.stringify(next));
+              return next;
+            });
+          }}
           onOpenFeedbackStatus={() => setShowFeedbackStatus(true)}
         />
         </div>
@@ -946,6 +990,26 @@ export default function DashboardContent({
             </div>
           )}
 
+          {activeTab === "transport" && (
+            <div className="animate-fadeIn space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transport</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bus routes, boarding points, vehicle placements & contact info</p>
+                </div>
+                <button
+                  onClick={refreshTransportBuses}
+                  disabled={transportBusesLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/25"
+                >
+                  <RefreshCcw className={`w-4 h-4 ${transportBusesLoading ? "animate-spin" : ""}`} />
+                  {transportBusesLoading ? "Refreshing..." : "Refresh Bus Data"}
+                </button>
+              </div>
+              <BusFinder buses={transportBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
+            </div>
+          )}
+
           {activeTab === "payments" && (
             <div className="animate-fadeIn">
               <PaymentsTab loginToVTOP={loginToVTOP} />
@@ -986,8 +1050,11 @@ export default function DashboardContent({
                 loginToVTOP={loginToVTOP}
                 currSemesterID={settings.currSemesterID}
                 setCurrSemesterID={(val: string) => {
-                  setSettings(prev => ({ ...prev, currSemesterID: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, currSemesterID: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, currSemesterID: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 handleLogin={handleLogin}
                 setIsReloading={setIsReloading}
@@ -995,51 +1062,75 @@ export default function DashboardContent({
                 password={IDs.VtopPassword}
                 username={IDs.VtopUsername}
                 setPassword={(val: string[]) =>{
-                  setIDs(prev => ({ ...prev, VtopUsername: val[0], VtopPassword: val[1] }))
-                  localStorage.setItem("IDs", JSON.stringify({ ...IDs, VtopUsername: val[0], VtopPassword: val[1]}))
+                  setIDs(prev => {
+                    const next = { ...prev, VtopUsername: val[0], VtopPassword: val[1] };
+                    localStorage.setItem("IDs", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 decimalValues={settings.decimalValues}
                 setDecimalValues={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, decimalValues: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, decimalValues: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, decimalValues: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 loadingScreen={settings.loadingScreen}
                 setLoadingScreen={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, loadingScreen: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, loadingScreen: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, loadingScreen: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 isDayscholarWithBus={settings.isDayscholarWithBus}
                 setIsDayscholarWithBus={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, isDayscholarWithBus: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }))
-                  }
-                }
+                  setSettings(prev => {
+                    const next = { ...prev, isDayscholarWithBus: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
+                }}
                 residentialStatus={settings.residentialStatus || "hosteller"}
                 setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-                  setSettings(prev => ({ ...prev, residentialStatus: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, residentialStatus: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, residentialStatus: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 friendlyName={settings.friendlyName}
                 setFriendlyName={(val: string) => {
-                  setSettings(prev => ({ ...prev, friendlyName: val }))
-                  localStorage.setItem("settings", JSON.stringify({ ...settings, friendlyName: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, friendlyName: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 calendarType={settings.calendarType}
                 setCalendarType={(val: any) => {
-                    setSettings(prev => ({ ...prev, calendarType: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, calendarType: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 hideMobileHeader={settings.hideMobileHeader}
                 setHideMobileHeader={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, hideMobileHeader: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, hideMobileHeader: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, hideMobileHeader: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 reloadAllData={settings.reloadAllData}
                 setReloadAllData={(val: boolean) => {
-                    setSettings(prev => ({ ...prev, reloadAllData: val }))
-                    localStorage.setItem("settings", JSON.stringify({ ...settings, reloadAllData: val }))
+                  setSettings(prev => {
+                    const next = { ...prev, reloadAllData: val };
+                    localStorage.setItem("settings", JSON.stringify(next));
+                    return next;
+                  });
                 }}
                 settings={settings}
                 setSettings={setSettings}

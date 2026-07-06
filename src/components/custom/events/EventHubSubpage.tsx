@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import InfoRow from "../shared/InfoRow";
 import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
-import { API_BASE } from "../Main";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { API_BASE, loginToEventHub } from "../Main";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
+import { Button } from "@amazecontinuityprojects/amazeui";
 import SubpageLayout from "../shared/SubpageLayout";
 import ClubDetailsModal from "../more/ClubDetailsModal";
 import { getSimilarity } from "@/lib/string-similarity";
@@ -43,7 +43,10 @@ export default function EventHubSubpage({
 
   useEffect(() => {
     fetch(`${API_BASE}/api/clubs/details`)
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.success && data.clubs) {
           setClubsList(data.clubs);
@@ -88,12 +91,18 @@ export default function EventHubSubpage({
     }
 
     try {
+      const jsessionid = await loginToEventHub(IDs, IDs?.VtopUsername === "demo");
+      if (!jsessionid) {
+        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
+        setModalOpen(true);
+        setIsRegistering(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/download`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
+          jsessionid,
           url: url
         })
       });
@@ -197,23 +206,32 @@ export default function EventHubSubpage({
     }
 
     try {
+      const jsessionid = await loginToEventHub(IDs, false);
+      if (!jsessionid) {
+        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
+        setModalOpen(true);
+        setIsRegistering(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/events/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: IDs.VtopUsername,
-          password: IDs.VtopPassword,
+          jsessionid,
           eid: selectedEvent.eid
         })
       });
-
-      const data = await res.json();
       
       if (!res.ok) {
-        setModalContent({ title: "Registration Failed", message: data.error || "Failed to register for event." });
+        const errText = await res.text();
+        let errMsg = "Failed to register for event.";
+        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
+        setModalContent({ title: "Registration Failed", message: errMsg });
         setModalOpen(true);
         return;
       }
+
+      const data = await res.json();
 
       if (data.status === "success") {
         setModalContent({ title: "Registration Successful", message: data.message });
@@ -289,11 +307,14 @@ export default function EventHubSubpage({
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
-                                      username: IDs?.VtopUsername,
-                                      password: IDs?.VtopPassword,
+                                      username: IDs.VtopUsername,
+                                      password: IDs.VtopPassword,
                                       url: linkToPay
                                     })
                                   });
+                                  if (!res.ok) {
+                                    throw new Error(`Payment API failed with status ${res.status}`);
+                                  }
                                   const data = await res.json();
                                   if (data.status === "payment_required" || data.status === "redirect") {
                                     window.open(data.url, "_blank");

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import GenericApiView, { clearApiCache } from "./GenericApiView";
 import SubpageLayout from "../shared/SubpageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw } from "lucide-react";
 
 export default function WishlistTab({ loginToVTOP, setActiveSubTab }: { loginToVTOP: any; setActiveSubTab: any }) {

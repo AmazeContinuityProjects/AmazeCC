@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
 import SubpageLayout from "../shared/SubpageLayout";
 import { LoadingSpinner } from "../shared";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw, BookOpen, Search, ChevronLeft, ChevronRight, User, LogOut, Library } from "lucide-react";
 import { API_BASE } from "../Main";
 

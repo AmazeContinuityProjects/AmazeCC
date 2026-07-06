@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { XCircle } from "lucide-react";
 
 interface Creds {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { 
   CalendarCheck, 
   GraduationCap, 
@@ -20,11 +20,15 @@ import {
   ChevronRight,
   Plane,
   Bus,
+  Car,
   Bookmark,
   FolderOpen
 } from "lucide-react";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
+import CabShareMatchCard from "../Hostel/CabShare/CabShareMatchCard";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
+import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { API_BASE } from "@/lib/fetch-utils";
 
 interface MobileHomeProps {
   attendanceData: any;
@@ -65,6 +69,18 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
+  const [globalPromoteCab, setGlobalPromoteCab] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/settings/global`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.success && data.config?.promoteCabShare?.enabled === true) {
+          setGlobalPromoteCab(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (profileDataProp) {
@@ -184,11 +200,11 @@ export default function MobileHome({
       .slice(0, 2);
   }, [moodleData]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsSpinning(true);
     await handleReloadRequest();
-    setTimeout(() => setIsSpinning(false), 800);
-  };
+    window.setTimeout(() => setIsSpinning(false), 600);
+  }, [handleReloadRequest]);
 
   const getGreeting = () => {
     const hr = new Date().getHours();
@@ -199,7 +215,8 @@ export default function MobileHome({
 
   const profileName = settings?.friendlyName || cachedProfile?.name || IDs?.VtopUsername || "Student";
   const profileImage = cachedProfile?.image || cachedProfile?.photo || cachedProfile?.photoBase64;
-  const showProfileImage = !settings?.hideProfileImageOutsideInfo;
+  const shouldDisplayGpa = shouldShowGpa(settings);
+  const shouldDisplayProfilePhoto = shouldShowProfilePhoto(settings);
   const initials = String(profileName)
     .split(" ")
     .map((part) => part[0])
@@ -212,7 +229,7 @@ export default function MobileHome({
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
         <div className="flex items-center gap-3.5 min-w-0">
-          {showProfileImage && profileImage ? (
+          {shouldDisplayProfilePhoto && profileImage ? (
             <img
               src={profileImage}
               alt=""
@@ -241,6 +258,28 @@ export default function MobileHome({
         </button>
       </div>
 
+      {/* ── CAB SHARE PROMO ── */}
+      {(settings?.promoteCabShare || globalPromoteCab) && (
+        <button
+          onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md active:scale-[0.98] transition-all"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+            <Car className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-black uppercase tracking-wider">Use CAB !!</p>
+            <p className="text-xs font-semibold text-white/80">Share a cab with students heading the same way</p>
+          </div>
+          <div className="ml-auto shrink-0 rounded-xl bg-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
+            Open
+          </div>
+        </button>
+      )}
+
+      {/* ── CAB SHARE PENDING / MATCH CARDS ── */}
+      <CabShareMatchCard />
+
       {/* ── QUICK SPOTLIGHT TRIGGER ── */}
       <button 
         onClick={onOpenCommandPalette}
@@ -255,23 +294,25 @@ export default function MobileHome({
       {/* ── QUICK INSIGHTS DOCK ── */}
       <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-none px-1" data-prevent-swipe="true">
         {/* CGPA Card */}
-        <button
-          onClick={() => {
-            setSettings((prev: any) => {
-              const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
-              localStorage.setItem("settings", JSON.stringify(next));
-              return next;
-            });
-          }}
-          className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
-          <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">Cumulative GPA</span>
-          <p className={`text-lg font-black text-gray-950 dark:text-white leading-none mt-1 transition-all duration-300 ${settings.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
-            {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
-          </p>
-          <span className="text-[8px] text-gray-400 dark:text-gray-500 font-semibold leading-none">VTOP Verified</span>
-        </button>
+        {shouldDisplayGpa ? (
+          <button
+            onClick={() => {
+              setSettings((prev: any) => {
+                const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
+                localStorage.setItem("settings", JSON.stringify(next));
+                return next;
+              });
+            }}
+            className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
+            <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">Cumulative GPA</span>
+            <p className={`text-lg font-black text-gray-950 dark:text-white leading-none mt-1 transition-all duration-300 ${settings.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
+              {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
+            </p>
+            <span className="text-[8px] text-gray-400 dark:text-gray-500 font-semibold leading-none">VTOP Verified</span>
+          </button>
+        ) : null}
 
         {/* Credits Card */}
         <div className="min-w-[125px] flex-1 snap-center p-3.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-xs flex flex-col justify-between h-20 text-left relative overflow-hidden">

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "./Main";
 import { Wallet, Receipt, AlertCircle, RefreshCcw, IndianRupee, DollarSign, FileText, Calendar, Hash, ArrowUpRight, ArrowDownRight, CheckCircle2, XCircle, Ban, ArrowLeft } from "lucide-react";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 
 const SUB_TABS = ["dues", "receipts", "wallet"] as const;
 type SubTab = (typeof SUB_TABS)[number];
