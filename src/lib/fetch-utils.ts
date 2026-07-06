@@ -1,6 +1,129 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
+export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
+export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://api-backup.amazecc.com";
+
+let activeApiUrl = PRIMARY_API_URL;
+
+if (typeof window !== "undefined" && window.localStorage) {
+  try {
+    const stored = window.localStorage.getItem("amazecc_active_api_url");
+    if (stored === PRIMARY_API_URL || stored === BACKUP_API_URL) {
+      activeApiUrl = stored;
+    }
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
+export function getActiveApiUrl(): string {
+  return activeApiUrl;
+}
+
+export function setActiveApiUrl(url: string) {
+  if (url === PRIMARY_API_URL || url === BACKUP_API_URL) {
+    activeApiUrl = url;
+    if (typeof window !== "undefined" && window.localStorage) {
+      try {
+        window.localStorage.setItem("amazecc_active_api_url", url);
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+  }
+}
+
+export const API_BASE = PRIMARY_API_URL;
 
 const FETCH_TIMEOUT = 90000;
+
+// Store a reference to original fetch
+let originalFetch: typeof fetch;
+if (typeof window !== "undefined") {
+  originalFetch = window.fetch;
+} else {
+  originalFetch = () => Promise.reject(new Error("Fetch not available"));
+}
+
+// Allow overriding the underlying fetch in tests
+export function setOriginalFetchForTest(f: typeof fetch) {
+  originalFetch = f;
+}
+
+export function rewriteUrlIfNeeded(url: string): string {
+  if (activeApiUrl === BACKUP_API_URL) {
+    if (url.startsWith(PRIMARY_API_URL)) {
+      return url.replace(PRIMARY_API_URL, BACKUP_API_URL);
+    }
+  } else {
+    if (url.startsWith(BACKUP_API_URL)) {
+      return url.replace(BACKUP_API_URL, PRIMARY_API_URL);
+    }
+  }
+  return url;
+}
+
+export async function fetchWithFailover(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  let urlStr = "";
+  if (typeof input === "string") {
+    urlStr = input;
+  } else if (input instanceof URL) {
+    urlStr = input.toString();
+  } else if (input && typeof input === "object" && "url" in input) {
+    urlStr = input.url;
+  }
+
+  const isPrimary = urlStr.startsWith(PRIMARY_API_URL);
+  const isBackup = urlStr.startsWith(BACKUP_API_URL);
+
+  if (!isPrimary && !isBackup) {
+    return originalFetch(input, init);
+  }
+
+  let targetUrl = rewriteUrlIfNeeded(urlStr);
+
+  const prepareInput = (newUrl: string): RequestInfo | URL => {
+    if (typeof input === "string") {
+      return newUrl;
+    } else if (input instanceof URL) {
+      return new URL(newUrl);
+    } else {
+      try {
+        return new Request(newUrl, input);
+      } catch (e) {
+        return newUrl;
+      }
+    }
+  };
+
+  try {
+    const res = await originalFetch(prepareInput(targetUrl), init);
+    if (activeApiUrl === PRIMARY_API_URL && (res.status === 502 || res.status === 503 || res.status === 504)) {
+      throw new Error(`Server error ${res.status}`);
+    }
+    return res;
+  } catch (error: any) {
+    if (activeApiUrl === PRIMARY_API_URL) {
+      if (error.name === "AbortError" && init?.signal?.aborted) {
+        throw error;
+      }
+
+      console.warn(`Primary API call failed (${urlStr}). Failing over to backup. Error:`, error);
+      setActiveApiUrl(BACKUP_API_URL);
+      const backupUrl = urlStr.replace(PRIMARY_API_URL, BACKUP_API_URL);
+
+      try {
+        console.log(`Retrying request with backup URL: ${backupUrl}`);
+        return await originalFetch(prepareInput(backupUrl), init);
+      } catch (backupError) {
+        console.error(`Backup API call also failed:`, backupError);
+        throw backupError;
+      }
+    }
+    throw error;
+  }
+}
 
 export async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
   const controller = new AbortController();
@@ -10,5 +133,43 @@ export async function fetchWithTimeout(url: string, options: RequestInit, timeou
     return res;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// Override global window.fetch if in browser
+if (typeof window !== "undefined") {
+  window.fetch = fetchWithFailover;
+
+  // Run a quick check after page load to see if primary API is available again
+  if (process.env.NODE_ENV !== "test") {
+    setTimeout(async () => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+
+        const res = await originalFetch(`${PRIMARY_API_URL}/api/health`, {
+          signal: controller.signal,
+          headers: { "Accept": "application/json" }
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          if (activeApiUrl !== PRIMARY_API_URL) {
+            console.log("Primary API is back online. Switching back from backup.");
+            setActiveApiUrl(PRIMARY_API_URL);
+          }
+        } else {
+          if (activeApiUrl === PRIMARY_API_URL) {
+            console.warn("Primary API health check returned non-200. Failing over to backup.");
+            setActiveApiUrl(BACKUP_API_URL);
+          }
+        }
+      } catch (e) {
+        if (activeApiUrl === PRIMARY_API_URL) {
+          console.warn("Primary API is unreachable/blocked. Failing over to backup.");
+          setActiveApiUrl(BACKUP_API_URL);
+        }
+      }
+    }, 1500);
   }
 }
