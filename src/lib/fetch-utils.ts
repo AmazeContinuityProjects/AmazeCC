@@ -3,16 +3,6 @@ export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https:/
 
 let activeApiUrl = PRIMARY_API_URL;
 
-if (typeof window !== "undefined" && window.localStorage) {
-  try {
-    const stored = window.localStorage.getItem("amazecc_active_api_url");
-    if (stored === PRIMARY_API_URL || stored === BACKUP_API_URL) {
-      activeApiUrl = stored;
-    }
-  } catch (e) {
-    // Ignore storage errors
-  }
-}
 
 export function getActiveApiUrl(): string {
   return activeApiUrl;
