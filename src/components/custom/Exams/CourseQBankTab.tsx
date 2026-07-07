@@ -11,6 +11,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
   const [papers, setPapers] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Upload Form State
@@ -26,21 +27,25 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
 
     const fetchData = async () => {
       try {
+        setError(null);
         const papersRes = await fetch(`${API_BASE}/api/qbank/papers?course=${encodeURIComponent(courseCode)}`);
+        if (!papersRes.ok) throw new Error("Failed to fetch papers");
         const papersJson = await papersRes.json();
         const papersData = papersJson.success ? papersJson.data : [];
         if (!isMounted) return;
         setPapers(papersData);
 
-        if (papersData.length > 0) {
-          const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=${encodeURIComponent(courseCode)}`);
-          const questionsJson = await questionsRes.json();
-          if (isMounted) setQuestions(questionsJson.success ? questionsJson.data : []);
-        } else {
-          if (isMounted) setQuestions([]);
-        }
-      } catch (err) {
+        const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=${encodeURIComponent(courseCode)}`);
+        if (!questionsRes.ok) throw new Error("Failed to fetch questions");
+        const questionsJson = await questionsRes.json();
+        if (isMounted) setQuestions(questionsJson.success ? questionsJson.data : []);
+      } catch (err: any) {
         console.error("Failed to fetch QBank data:", err);
+        if (isMounted) {
+          setError(err.message || "Failed to load QBank data");
+          setPapers([]);
+          setQuestions([]);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -50,11 +55,14 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
     return () => { isMounted = false; };
   }, [courseCode]);
 
+  const [uploadError, setUploadError] = useState("");
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fileUrl || !title || !courseCode) return;
 
     setIsUploading(true);
+    setUploadError("");
     try {
       const payload = {
         courseCode: courseCode.toUpperCase(),
@@ -86,7 +94,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
         setShowUploadForm(false);
       }, 3000);
     } catch (err: any) {
-      alert("Failed to upload paper. " + (err.message || ""));
+      setUploadError("Failed to upload paper. " + (err.message || ""));
     } finally {
       setIsUploading(false);
     }
@@ -128,6 +136,16 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
           </button>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-start gap-3 w-full">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-sm">Failed to load QBank data</h3>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+
         {!showUploadForm && detailTab === "papers" && (
           <button
             onClick={() => setShowUploadForm(true)}
@@ -160,14 +178,29 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                 <button type="button" onClick={() => setShowUploadForm(false)} className="text-xs text-gray-400 hover:text-gray-600 font-semibold">Cancel</button>
               </div>
 
+              {uploadError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 space-y-3">
                   <input
                     type="url"
                     required
                     value={fileUrl}
                     onChange={(e) => setFileUrl(e.target.value)}
                     placeholder="Link to PDF (GDrive, Dropbox, etc)"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Winter Semester 2023 Paper"
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
