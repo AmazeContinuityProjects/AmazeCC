@@ -16,7 +16,7 @@ import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
-import { X, Keyboard } from "lucide-react";
+import { X, Keyboard, WifiOff } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
 import { loginToVTOP as vtopLogin } from "@/lib/auth";
 import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
@@ -2561,11 +2561,37 @@ export default function LoginPage() {
     <motion.div
       className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
     >
-      {isAPIworking && !isOffline && (
-        <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-          ⚠️ Unable to connect to API services. Please check back later. ⚠️
-        </div>
-      )}
+      <AnimatePresence>
+        {isAPIworking && !isOffline && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[320px] px-4"
+          >
+            <div className="flex items-center justify-between gap-3 p-3.5 bg-red-50/90 dark:bg-zinc-950/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-2xl shadow-xl">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 dark:bg-red-950/40 text-red-650 dark:text-red-400 flex items-center justify-center shrink-0">
+                  <WifiOff size={16} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-red-900 dark:text-red-400 leading-none">Connection Offline</h4>
+                  <p className="text-[10px] text-red-700/80 dark:text-red-400/70 font-semibold mt-1 truncate">
+                    Unable to connect to VTOP API services.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAPIworking(false)}
+                className="p-1 rounded-lg text-red-500 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {showReloadBanner && (
         <SyncNotification
           message={message}
