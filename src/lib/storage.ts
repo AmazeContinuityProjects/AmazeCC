@@ -7,6 +7,7 @@ export const KEYS = {
   MARKS: "marks",
   GRADES: "grades",
   ALL_GRADES: "allGrades",
+  CURRICULUM: "curriculum",
   SCHEDULE: "schedule",
   HOSTEL: "hostel",
   CALENDAR: "calender",
@@ -118,6 +119,11 @@ export const storage = {
     get: () => getItem<AllGradesRes>(KEYS.ALL_GRADES),
     set: (data: AllGradesRes) => setItem(KEYS.ALL_GRADES, data),
     remove: () => removeItem(KEYS.ALL_GRADES),
+  },
+  curriculum: {
+    get: () => getItem<unknown>(KEYS.CURRICULUM),
+    set: (data: unknown) => setItem(KEYS.CURRICULUM, data),
+    remove: () => removeItem(KEYS.CURRICULUM),
   },
   schedule: {
     get: () => getItem<unknown>(KEYS.SCHEDULE),

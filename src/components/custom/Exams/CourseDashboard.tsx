@@ -1090,10 +1090,16 @@ export default function CourseDashboard({
   const isLabAtt = attendanceItem?.courseCode?.endsWith("(L)");
   const isTheoryAtt = attendanceItem?.courseCode?.endsWith("(T)");
 
-  const countTillDate = useCallback((endDate: any) => {
+  let classesTillCAT1: any[] | null = null;
+  let classesTillCAT2: any[] | null = null;
+  let classesTillMidSem: any[] | null = null;
+  let classesTillLID: any[] | null = null;
+
+  const countTillDate = (endDate: any) => {
     if (!endDate) return null;
     const endMid = new Date(endDate);
     endMid.setHours(23, 59, 59, 999);
+
     const filteredMonths = analyzeCalendars.map((monthObj: any) => ({
       ...monthObj,
       days: monthObj.days?.filter((d: any) => {
@@ -1108,6 +1114,7 @@ export default function CourseDashboard({
         return dFull <= endMid;
       }) || [],
     }));
+
     return countRemainingClasses(
       attendanceItem?.courseCode || "",
       attendanceItem?.time || "",
@@ -1115,14 +1122,24 @@ export default function CourseDashboard({
       filteredMonths,
       new Date()
     );
-  }, [attendanceItem, dayCardsMap, analyzeCalendars]);
+  };
 
-  const classesTillCAT1 = useMemo(() => countTillDate(impDates.cat1Date), [countTillDate, impDates.cat1Date]);
-  const classesTillCAT2 = useMemo(() => countTillDate(impDates.cat2Date), [countTillDate, impDates.cat2Date]);
-  const classesTillMidSem = useMemo(() => countTillDate(impDates.midsemStart), [countTillDate, impDates.midsemStart]);
-  const classesTillLID = useMemo(() =>
-    countTillDate(isLabAtt ? impDates.lidLabDate : impDates.lidTheoryDate),
-  [countTillDate, isLabAtt, impDates.lidLabDate, impDates.lidTheoryDate]);
+  if (Array.isArray(analyzeCalendars) && analyzeCalendars.length > 0) {
+      const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
+      if (!allMonthsAreHolidays) {
+          if (isLabAtt) {
+              classesTillCAT1 = countTillDate(impDates.cat1Date);
+              classesTillCAT2 = countTillDate(impDates.cat2Date);
+              classesTillMidSem = countTillDate(impDates.midsemStart);
+              classesTillLID = countTillDate(impDates.lidLabDate);
+          } else if (isTheoryAtt) {
+              classesTillCAT1 = countTillDate(impDates.cat1Date);
+              classesTillCAT2 = countTillDate(impDates.cat2Date);
+              classesTillMidSem = countTillDate(impDates.midsemStart);
+              classesTillLID = countTillDate(impDates.lidTheoryDate);
+          }
+      }
+  }
 
   const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
     .some(data => Array.isArray(data) && data.length > 0);
