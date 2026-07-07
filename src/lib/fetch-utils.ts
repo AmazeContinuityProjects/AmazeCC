@@ -75,6 +75,13 @@ export function rewriteUrlIfNeeded(url: string): string {
   return url;
 }
 
+export function getRewrittenUrl(url: string): string {
+  if (url.startsWith("/")) {
+    return getActiveApiUrl() + url;
+  }
+  return rewriteUrlIfNeeded(url);
+}
+
 export async function fetchWithFailover(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -198,14 +205,12 @@ if (typeof window !== "undefined") {
           }
         } else {
           if (activeApiUrl === PRIMARY_API_URL) {
-            console.warn("Primary API health check returned non-200. Failing over to backup.");
-            setActiveApiUrl(BACKUP_API_URL);
+            console.warn("Primary API health check returned non-200. Keeping primary URL to avoid unnecessary failovers.");
           }
         }
       } catch (e) {
         if (activeApiUrl === PRIMARY_API_URL) {
-          console.warn("Primary API is unreachable/blocked. Failing over to backup.");
-          setActiveApiUrl(BACKUP_API_URL);
+          console.warn("Primary API is unreachable/blocked in health check. Keeping primary URL to avoid unnecessary failovers on slow connections.");
         }
       }
     }, 1500);
