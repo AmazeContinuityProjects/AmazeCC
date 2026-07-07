@@ -3,16 +3,6 @@ export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https:/
 
 let activeApiUrl = PRIMARY_API_URL;
 
-if (typeof window !== "undefined" && window.localStorage) {
-  try {
-    const stored = window.localStorage.getItem("amazecc_active_api_url");
-    if (stored === PRIMARY_API_URL || stored === BACKUP_API_URL) {
-      activeApiUrl = stored;
-    }
-  } catch (e) {
-    // Ignore storage errors
-  }
-}
 
 export function getActiveApiUrl(): string {
   return activeApiUrl;
@@ -209,6 +199,8 @@ if (typeof window !== "undefined") {
           }
         }
       } catch (e) {
+        // Do not proactively switch to backup on startup.
+        // Let the actual fetch failover handle it during requests.
         if (activeApiUrl === PRIMARY_API_URL) {
           console.warn("Primary API is unreachable/blocked in health check. Keeping primary URL to avoid unnecessary failovers on slow connections.");
         }

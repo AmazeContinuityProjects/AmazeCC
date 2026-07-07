@@ -3,8 +3,9 @@ import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { API_BASE } from "@/components/custom/Main";
 import Modal from "../shared/Modal";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";
+import { QBankCourse } from "@/types/qbank.types";
 
-export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }) {
+export default function UploadPaperModal({ isOpen, onClose, courses, username, isAdmin = false }: { isOpen: boolean, onClose: () => void, courses: QBankCourse[], username: string, isAdmin?: boolean }) {
   const [courseCode, setCourseCode] = useState("");
   const [customCourseCode, setCustomCourseCode] = useState("");
   const [useCustomCode, setUseCustomCode] = useState(false);
@@ -15,6 +16,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
   const [fileUrl, setFileUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
@@ -25,6 +27,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
     if (!fileUrl || !effectiveCourseCode || !title) return;
 
     setUploading(true);
+    setError("");
     try {
       const payload = {
         courseCode: effectiveCourseCode,
@@ -55,7 +58,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      alert("Failed to upload paper. " + (err.message || ""));
+      setError("Failed to upload paper. " + (err.message || ""));
     } finally {
       setUploading(false);
     }
@@ -83,6 +86,13 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         </div>
       ) : (
         <form onSubmit={handleUpload} className="p-5 space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
             {/* Course Code */}
             <div>
               <div className="flex justify-between items-center mb-1">
