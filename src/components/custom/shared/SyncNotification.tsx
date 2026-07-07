@@ -70,13 +70,13 @@ export default function SyncNotification({
   return (
     <AnimatePresence mode="wait">
       {!isMinimized ? (
-        /* Full Modal Overlay View */
+        /* Full Modal Overlay View (Centered on desktop, bottom-sheet on mobile) */
         <motion.div
           key="expanded-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/75 backdrop-blur-[3px]"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-950/40 dark:bg-black/75 backdrop-blur-[3px]"
         >
           <motion.div
             layoutId="sync-notification-card"
@@ -111,25 +111,25 @@ export default function SyncNotification({
                       <Terminal className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                       <h3 className="font-extrabold text-slate-900 dark:text-gray-100 text-sm">VTOP Sync</h3>
                     </div>
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-50 dark:bg-zinc-900 border border-slate-155 dark:border-zinc-800/60 text-slate-500 dark:text-gray-400">
-                      <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-50 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/60 text-slate-500 dark:text-gray-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       {currentActiveApi.replace("https://", "").split("/")[0]}
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-555 font-semibold tracking-wide">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold tracking-wide">
                     Securing credentials and pulling records
                   </p>
                 </div>
 
                 {/* Custom styled progress indicator */}
-                <div className="w-full space-y-1.5 bg-slate-50/50 dark:bg-zinc-900/30 p-3.5 rounded-xl border border-slate-150/40 dark:border-zinc-900/40 shadow-2xs">
-                  <div className="flex justify-between items-baseline text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-550">
+                <div className="w-full space-y-1.5 bg-slate-50/50 dark:bg-zinc-900/30 p-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-900/40 shadow-2xs">
+                  <div className="flex justify-between items-baseline text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
                     <span>Transfer Rate</span>
                     <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.round(progress)}%</span>
                   </div>
                   <div className="w-full bg-slate-200/60 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden relative">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-blue-650 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full shadow-[0_0_6px_rgba(59,130,246,0.25)]"
+                      className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full shadow-[0_0_6px_rgba(59,130,246,0.25)]"
                       animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                       transition={{ type: "spring", damping: 20, stiffness: 120 }}
                     />
@@ -137,15 +137,15 @@ export default function SyncNotification({
                 </div>
 
                 {/* Status Message Log Container */}
-                <div className="bg-slate-50/50 dark:bg-zinc-900/40 border border-slate-150/40 dark:border-zinc-900/60 rounded-xl p-3 max-h-[105px] overflow-y-auto text-[10.5px] space-y-2 text-slate-700 dark:text-gray-300 font-medium scrollbar-none">
+                <div className="bg-slate-50/50 dark:bg-zinc-900/40 border border-slate-200/50 dark:border-zinc-900/60 rounded-xl p-3 max-h-[105px] overflow-y-auto text-[10.5px] space-y-2 text-slate-700 dark:text-gray-300 font-medium scrollbar-none">
                   <AnimatePresence initial={false}>
                     {logLines.map((line, idx) => {
                       const isLast = idx === logLines.length - 1;
                       const isSuccess = line.toLowerCase().includes("done") || 
-                                        line.toLowerCase().includes("success") || 
-                                        line.toLowerCase().includes("fetched") || 
-                                        line.toLowerCase().includes("complete") || 
-                                        line.toLowerCase().includes("initializing");
+                                      line.toLowerCase().includes("success") || 
+                                      line.toLowerCase().includes("fetched") || 
+                                      line.toLowerCase().includes("complete") || 
+                                      line.toLowerCase().includes("initializing");
                       return (
                         <motion.div 
                           key={idx} 
@@ -155,9 +155,9 @@ export default function SyncNotification({
                           className="flex items-start gap-2"
                         >
                           {isLast ? (
-                            <Loader2 className="w-3 h-3 text-blue-605 dark:text-blue-400 animate-spin mt-0.5 shrink-0" />
+                            <Loader2 className="w-3 h-3 text-blue-600 dark:text-blue-400 animate-spin mt-0.5 shrink-0" />
                           ) : isSuccess ? (
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-455 mt-0.5 shrink-0" />
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400 mt-0.5 shrink-0" />
                           ) : (
                             <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-zinc-700 mt-1.5 ml-1 shrink-0" />
                           )}
@@ -199,26 +199,26 @@ export default function SyncNotification({
                 transition={{ duration: 0.2 }}
                 className="flex flex-col items-center text-center p-1 gap-3.5"
               >
-                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-655 dark:text-emerald-450 flex items-center justify-center border border-emerald-100/50 dark:border-emerald-900/30">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100/50 dark:border-emerald-900/30">
                   <CheckCircle2 size={20} className="animate-bounce" style={{ animationDuration: '2s' }} />
                 </div>
                 
                 <div className="space-y-0.5">
                   <h3 className="font-extrabold text-slate-900 dark:text-gray-100 text-sm">Backup Server Active</h3>
-                  <p className="text-[10px] text-gray-455 dark:text-gray-500 leading-relaxed font-semibold">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed font-semibold">
                     API connection updated to bypass local hostel firewall filters.
                   </p>
                 </div>
 
                 {/* Copyable URL box */}
-                <div className="flex items-center gap-1.5 w-full bg-slate-50/50 dark:bg-zinc-900/50 border border-slate-200/50 dark:border-zinc-805/60 rounded-xl p-2.5 pr-1.5 select-none">
+                <div className="flex items-center gap-1.5 w-full bg-slate-50/50 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/80 rounded-xl p-2.5 pr-1.5 select-none">
                   <Globe size={12} className="text-slate-400 dark:text-gray-500 shrink-0" />
                   <span className="text-[9px] text-slate-600 dark:text-gray-400 font-mono truncate text-left flex-1 font-bold">
                     {BACKUP_API_URL}
                   </span>
                   <button
                     onClick={handleCopy}
-                    className="p-1 rounded-lg text-slate-455 hover:text-slate-655 dark:hover:text-gray-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                   >
                     {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
                   </button>
@@ -235,17 +235,17 @@ export default function SyncNotification({
           </motion.div>
         </motion.div>
       ) : (
-        /* Floating Compact Side Badge View */
+        /* Floating Compact Side Badge View (Shifted up on mobile to not overlap bottom nav tabs) */
         <motion.div
           key="minimized-badge"
           layoutId="sync-notification-card"
-          className="fixed bottom-4 right-4 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border border-slate-200/80 dark:border-zinc-900/80 shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none max-w-[285px] font-sans border-l-[3.5px] border-l-blue-600 dark:border-l-blue-500 animate-in slide-in-from-bottom-5 duration-200"
+          className="fixed bottom-20 right-4 sm:bottom-4 z-50 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border border-slate-200/80 dark:border-zinc-900/80 shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none max-w-[285px] font-sans border-l-[3.5px] border-l-blue-600 dark:border-l-blue-500 animate-in slide-in-from-bottom-5 duration-200"
           onClick={() => setIsMinimized(false)}
           whileHover={{ y: -2 }}
         >
           {/* Circular Loader with active percentage progress */}
           <div className="relative flex items-center justify-center shrink-0 w-8 h-8">
-            <Loader2 className="w-8 h-8 text-blue-605 dark:text-blue-400 animate-spin shrink-0 absolute" />
+            <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin shrink-0 absolute" />
             <span className="text-[9px] font-black text-blue-700 dark:text-blue-300 relative">
               {Math.round(progress)}%
             </span>
@@ -270,7 +270,7 @@ export default function SyncNotification({
             </button>
             <button
               onClick={onDismiss}
-              className="p-1 rounded-md text-slate-400 hover:text-red-505 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-955/20 transition-colors cursor-pointer"
+              className="p-1 rounded-md text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
               title="Cancel sync"
             >
               <X size={12} />
