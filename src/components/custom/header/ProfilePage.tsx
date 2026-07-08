@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE } from "../Main";
+import { setCustomApiUrl } from "@/lib/fetch-utils";
 import {
   X,
   Save,
@@ -113,6 +114,26 @@ export default function ProfilePage({
   const [appIcon, setAppIcon] = useState<string>("default");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
+  const [customApiInput, setCustomApiInput] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("amazecc_custom_api_url") || "";
+    }
+    return "";
+  });
+
+  const saveCustomApiUrl = () => {
+    if (customApiInput) {
+      setCustomApiUrl(customApiInput);
+      alert("Custom API endpoint saved! Please refresh the application to apply changes.");
+    }
+  };
+
+  const clearCustomApiUrl = () => {
+    setCustomApiInput("");
+    setCustomApiUrl("");
+    alert("API endpoint reset to default. Please refresh the application.");
+  };
+
   const [profileData, setProfileData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<any>(null);
   const [hostelInfo, setHostelInfo] = useState<any>(null);
@@ -796,11 +817,22 @@ export default function ProfilePage({
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display your profile photo in the dashboard and sidebar</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Display your profile photo in the dashboard and sidebar</p>
                     </div>
                     <Switch
                       checked={settings?.showProfilePhoto ?? false}
                       onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Grades Anonymizer Mode</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Blur all CGPA, credits, and course grades to protect privacy (hover to reveal)</p>
+                    </div>
+                    <Switch
+                      checked={settings?.blurGrades ?? false}
+                      onCheckedChange={(val) => updateSetting("blurGrades", val)}
                     />
                   </div>
 
@@ -1458,6 +1490,42 @@ export default function ProfilePage({
                     </div>
                   </div>
                   <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+                {/* Custom API URL Configuration */}
+                <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-slate-950/20 text-left">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <Link2 size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Custom API Endpoint URL</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block mt-0.5">Override VTOP and student API data endpoint routes</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://api.mycustomdomain.com"
+                      value={customApiInput}
+                      onChange={(e) => setCustomApiInput(e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-info text-gray-800 dark:text-white"
+                    />
+                    <button
+                      onClick={saveCustomApiUrl}
+                      className="px-3.5 py-1.5 text-[10px] font-black text-white bg-indigo-650 hover:bg-indigo-750 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
+                    >
+                      Save
+                    </button>
+                    {customApiInput && (
+                      <button
+                        onClick={clearCustomApiUrl}
+                        className="px-3.5 py-1.5 text-[10px] font-black text-red-505 border border-red-200 dark:border-red-900/50 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Export Settings */}
