@@ -256,30 +256,36 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
             }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {papers.map((p) => (
               <a
                 key={p.source_id}
                 href={p.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-xl hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all"
+                className="group relative flex flex-col p-5 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                    <FileText className="w-5 h-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-2xl rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
+                <div className="flex items-start gap-4 mb-4 relative z-10">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <FileText className="w-6 h-6" />
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                  <div className="min-w-0 flex-1 pt-1">
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {p.title}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {p.source_type} • {p.exam_semester} {p.exam_year}
+                    <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-1">
+                      {p.source_type}
                     </p>
                   </div>
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-400 group-hover:underline text-right font-medium">
-                  View PDF →
+                <div className="mt-auto flex items-center justify-between border-t border-gray-100/50 dark:border-gray-800/50 pt-4 relative z-10">
+                  <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    {p.exam_semester} {p.exam_year}
+                  </span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
+                    View PDF →
+                  </span>
                 </div>
               </a>
             ))}
