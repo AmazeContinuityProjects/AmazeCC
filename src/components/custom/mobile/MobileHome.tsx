@@ -364,7 +364,6 @@ export default function MobileHome({
   // ── WIDGETS RENDER METHODS ──
 
   const renderCabSharePromo = () => {
-    if (!(settings?.promoteCabShare || globalPromoteCab)) return null;
     return (
       <button
         onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
