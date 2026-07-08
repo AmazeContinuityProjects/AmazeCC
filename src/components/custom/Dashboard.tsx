@@ -747,6 +747,7 @@ export default function DashboardContent({
                 setHostelActiveSubTab={setHostelActiveSubTab}
                 setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                 setActiveMoreSubTab={setActiveMoreSubTab}
+                setActiveProfileSubTab={setActiveProfileSubTab}
                 handleReloadRequest={handleReloadRequest}
                 onOpenCommandPalette={onOpenCommandPalette}
                 profileData={profileData}
