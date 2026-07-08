@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Skeleton, SubTabStrip } from "@amazecontinuityprojects/amazeui";
 import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
   ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -13,7 +13,7 @@ import {
   FileText as FileTextIcon, Search, ChevronDown
 } from "lucide-react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
-import { countRemainingClasses } from "../attendance/AttendanceSubpage";
+import { countRemainingClasses, UpcomingClassesList } from "../attendance/AttendanceSubpage";
 import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
@@ -124,12 +124,7 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
   </div>
 );
 
-const TabButton = ({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) => (
-  <button onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? "bg-blue-600 text-white shadow-sm" : "text-gray-500  dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-800"}`}>
-    {label}
-  </button>
-);
+// TabButton replaced with SubTabStrip from AmazeUI
 
 const TypeBadge = ({ label }: { label: string }) => {
   const colors: Record<string, string> = {
@@ -204,22 +199,29 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
   }
 
   return (
-    <ExpandableSection
-      title={shortenedTitle}
-      badge={
-        <div className="text-right">
-          <p className="text-xl font-black text-gray-800  dark:text-gray-100">
-            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400  dark:text-gray-500 font-semibold">/ {formatNumber(detail.maxMark)}</span>
-          </p>
-          <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600  dark:text-blue-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
-            Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
-          </p>
-        </div>
-      }
-      className="bg-gray-50  dark:bg-slate-800/50 rounded-xl border border-gray-100  dark:border-gray-800 overflow-hidden"
-      headerClassName="text-xs text-gray-500  dark:text-gray-400 font-bold uppercase tracking-wider"
-      contentClassName="border-t border-gray-200  dark:border-gray-800 bg-white  dark:bg-black"
-    >
+    <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all hover:shadow-md">
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${typeLabel === 'Theory' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
+      <ExpandableSection
+        title={shortenedTitle}
+        badge={
+          <div className="text-right">
+            <p className="text-xl font-black text-gray-900 dark:text-gray-100">
+              {formatNumber(detail.scoredMark)} <span className="text-xs text-gray-400 dark:text-gray-500 font-bold">/ {formatNumber(detail.maxMark)}</span>
+            </p>
+            <div className="flex items-center justify-end gap-2 mt-1">
+              <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${typeLabel === 'Theory' ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, Math.max(0, asmPct))}%` }} />
+              </div>
+              <p className={`text-[10px] font-black uppercase tracking-widest ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
+              </p>
+            </div>
+          </div>
+        }
+        className="bg-transparent border-none overflow-hidden"
+        headerClassName="text-[11px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest pl-3"
+        contentClassName="border-t border-gray-200/50 dark:border-gray-800/50 bg-white/40 dark:bg-black/20 backdrop-blur-md p-4"
+      >
       {(isRelative && (!aStat || aStat.count === 0)) ? (
         <p className="text-sm text-gray-500  dark:text-gray-400 italic text-center py-2">
           Not enough data to calculate class statistics for this assessment yet.
@@ -259,7 +261,8 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
           </div>
         </div>
       )}
-    </ExpandableSection>
+      </ExpandableSection>
+    </div>
   );
 }
 
@@ -357,6 +360,19 @@ export default function CourseDashboard({
       const saved = localStorage.getItem("uniCC_notes_tracker");
       if (saved) setNotesTracker(JSON.parse(saved));
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    const targetCode = localStorage.getItem("course_dashboard_target");
+    const targetTab = localStorage.getItem("course_dashboard_tab");
+    if (targetCode) {
+      setSelectedCode(targetCode);
+      if (targetTab) {
+        setInnerTab(targetTab);
+      }
+      localStorage.removeItem("course_dashboard_target");
+      localStorage.removeItem("course_dashboard_tab");
+    }
   }, []);
 
   const uniqueCourses = useMemo(() => {
@@ -982,7 +998,6 @@ export default function CourseDashboard({
       setCoursePlan(null); 
       setViewDetail(null); 
       setQcmError(""); 
-      setInnerTab("overview"); 
       fetchCoursePlan(); 
 
       const cached = localStorage.getItem("qcmData");
@@ -1055,7 +1070,10 @@ export default function CourseDashboard({
     }
   };
 
-  const handleSelectCourse = (code: string) => setSelectedCode(code);
+  const handleSelectCourse = (code: string) => {
+    setSelectedCode(code);
+    setInnerTab("overview");
+  };
   const handleSelectCourseTab = (code: string, tab: string) => {
     setSelectedCode(code);
     setInnerTab(tab);
@@ -1080,10 +1098,16 @@ export default function CourseDashboard({
   const isLabAtt = attendanceItem?.courseCode?.endsWith("(L)");
   const isTheoryAtt = attendanceItem?.courseCode?.endsWith("(T)");
 
-  const countTillDate = useCallback((endDate: any) => {
+  let classesTillCAT1: any[] | null = null;
+  let classesTillCAT2: any[] | null = null;
+  let classesTillMidSem: any[] | null = null;
+  let classesTillLID: any[] | null = null;
+
+  const countTillDate = (endDate: any) => {
     if (!endDate) return null;
     const endMid = new Date(endDate);
     endMid.setHours(23, 59, 59, 999);
+
     const filteredMonths = analyzeCalendars.map((monthObj: any) => ({
       ...monthObj,
       days: monthObj.days?.filter((d: any) => {
@@ -1098,6 +1122,7 @@ export default function CourseDashboard({
         return dFull <= endMid;
       }) || [],
     }));
+
     return countRemainingClasses(
       attendanceItem?.courseCode || "",
       attendanceItem?.time || "",
@@ -1105,14 +1130,24 @@ export default function CourseDashboard({
       filteredMonths,
       new Date()
     );
-  }, [attendanceItem, dayCardsMap, analyzeCalendars]);
+  };
 
-  const classesTillCAT1 = useMemo(() => countTillDate(impDates.cat1Date), [countTillDate, impDates.cat1Date]);
-  const classesTillCAT2 = useMemo(() => countTillDate(impDates.cat2Date), [countTillDate, impDates.cat2Date]);
-  const classesTillMidSem = useMemo(() => countTillDate(impDates.midsemStart), [countTillDate, impDates.midsemStart]);
-  const classesTillLID = useMemo(() =>
-    countTillDate(isLabAtt ? impDates.lidLabDate : impDates.lidTheoryDate),
-  [countTillDate, isLabAtt, impDates.lidLabDate, impDates.lidTheoryDate]);
+  if (Array.isArray(analyzeCalendars) && analyzeCalendars.length > 0) {
+      const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
+      if (!allMonthsAreHolidays) {
+          if (isLabAtt) {
+              classesTillCAT1 = countTillDate(impDates.cat1Date);
+              classesTillCAT2 = countTillDate(impDates.cat2Date);
+              classesTillMidSem = countTillDate(impDates.midsemStart);
+              classesTillLID = countTillDate(impDates.lidLabDate);
+          } else if (isTheoryAtt) {
+              classesTillCAT1 = countTillDate(impDates.cat1Date);
+              classesTillCAT2 = countTillDate(impDates.cat2Date);
+              classesTillMidSem = countTillDate(impDates.midsemStart);
+              classesTillLID = countTillDate(impDates.lidTheoryDate);
+          }
+      }
+  }
 
   const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
     .some(data => Array.isArray(data) && data.length > 0);
@@ -1208,15 +1243,15 @@ export default function CourseDashboard({
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
     return (
-      <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-5 shadow-sm mt-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-          <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
-            <Activity className="w-5 h-5" /> {typeLabel} Assessments
+      <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm mt-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
+          <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            <Activity className="w-4 h-4" /> {typeLabel} Assessments
           </h3>
           <div className="flex items-center gap-3">
-            <Badge variant={typeLabel === 'Theory' ? 'info' : 'success'} className="font-bold border rounded-full">
-              {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
-            </Badge>
+            <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest ${typeLabel === 'Theory' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+              Total: {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
+            </span>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1225,9 +1260,9 @@ export default function CourseDashboard({
             return <AssessmentCard key={idx} detail={detail} typeLabel={typeLabel} aStat={aStat} isRelative={isRelative} />;
           })}
         </div>
-        <div className="mt-4 pt-3 border-t border-gray-100  dark:border-gray-800 flex justify-end">
-          <p className="text-sm font-semibold text-gray-700  dark:text-gray-300">
-            Max Possible Score: <span className="font-bold text-gray-900  dark:text-gray-100">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
+        <div className="mt-5 pt-4 border-t border-gray-200/50 dark:border-gray-800/50 flex justify-end">
+          <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+            Max Score Left: <span className="font-black text-gray-900 dark:text-white">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
           </p>
         </div>
       </div>
@@ -1475,7 +1510,7 @@ export default function CourseDashboard({
                             <div 
                               key={group.courseCode} 
                               onClick={() => handleSelectCourse(group.courseCode)}
-                              className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-950/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] cursor-pointer"
+                              className="group relative flex flex-col justify-between rounded-3xl border border-gray-200/60 bg-white/60 backdrop-blur-xl p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:bg-white/90 hover:-translate-y-1 hover:border-blue-500/30 dark:border-gray-800/50 dark:bg-black/40 dark:hover:bg-gray-900/80 cursor-pointer overflow-hidden"
                             >
                               <div>
                                 {/* Course Code */}
@@ -1681,7 +1716,7 @@ export default function CourseDashboard({
                             <div 
                               key={group.courseCode} 
                               onClick={() => handleSelectCourse(group.courseCode)}
-                              className="group relative grid grid-cols-1 sm:grid-cols-12 gap-4 items-start sm:items-center rounded-xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.01)] transition-all duration-200 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-slate-200/80 dark:border-neutral-900 dark:bg-neutral-955/60 dark:hover:bg-neutral-950 dark:hover:border-neutral-850 cursor-pointer"
+                              className="group relative grid grid-cols-1 sm:grid-cols-12 gap-4 items-start sm:items-center rounded-2xl border border-gray-200/60 bg-white/60 backdrop-blur-xl px-5 py-4 shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-md hover:bg-white/90 hover:border-blue-500/30 dark:border-gray-800/50 dark:bg-black/40 dark:hover:bg-gray-900/80 cursor-pointer"
                             >
                               {/* Title & Metadata & Badges */}
                               <div className="min-w-0 flex-1 sm:col-span-6">
@@ -1769,14 +1804,21 @@ export default function CourseDashboard({
 
   return (
     <SubpageLayout title={selectedCode || ""} subtitle={selectedGroup?.courseTitle || ""} onBack={handleBack}>
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        <TabButton active={innerTab === "overview"} label="Overview" onClick={() => setInnerTab("overview")} />
-        <TabButton active={innerTab === "grades"} label="Grade History" onClick={() => setInnerTab("grades")} />
-        <TabButton active={innerTab === "marks"} label="Marks" onClick={() => setInnerTab("marks")} />
-        <TabButton active={innerTab === "attendance"} label="Attendance" onClick={() => setInnerTab("attendance")} />
-        <TabButton active={innerTab === "plan"} label="Course Plan" onClick={() => { setInnerTab("plan"); if (!coursePlan && !planLoading) fetchCoursePlan(); }} />
-        <TabButton active={innerTab === "qbank"} label="QBank" onClick={() => setInnerTab("qbank")} />
-      </div>
+      <SubTabStrip
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "grades", label: "Grade History" },
+          { id: "marks", label: "Marks" },
+          { id: "attendance", label: "Attendance" },
+          { id: "plan", label: "Course Plan" },
+          { id: "qbank", label: "QBank" },
+        ]}
+        activeTab={innerTab}
+        onChange={(id) => {
+          setInnerTab(id);
+          if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+        }}
+      />
 
       {error && (
         <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
@@ -1786,87 +1828,112 @@ export default function CourseDashboard({
 
       {/* OVERVIEW */}
       {innerTab === "overview" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Card>
-            <div className="p-5">
-              <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Attendance</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 blur-3xl rounded-full -mr-24 -mt-24 pointer-events-none" />
+            <div className="relative z-10">
+              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> Attendance Overview</h4>
               {isEmbedded ? (
                 <div className="flex flex-col gap-6">
                   {theoryAttItem && (
-                    <div className="flex items-center gap-5 border-b border-gray-100 dark:border-gray-800 pb-4">
-                      <CircularProgress value={Number(theoryAttItem.attendancePercentage) || 0} size={70} />
+                    <div className="flex items-center gap-5 border-b border-gray-100/50 dark:border-gray-800/50 pb-5">
+                      <div className="relative">
+                        <CircularProgress value={Number(theoryAttItem.attendancePercentage) || 0} size={70} />
+                        <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 blur-xl rounded-full -z-10 animate-pulse" />
+                      </div>
                       <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Theory</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full w-fit">Theory</p>
                         <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{theoryAttItem.attendedClasses}</strong> / {theoryAttItem.totalClasses} classes</p>
-                        {theoryAttItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {theoryAttItem.slotVenue}</p>}
-                        {theoryAttItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {theoryAttItem.faculty}</p>}
+                        {theoryAttItem.slotVenue && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Venue: {theoryAttItem.slotVenue}</p>}
                       </div>
                     </div>
                   )}
                   {labAttItem && (
                     <div className="flex items-center gap-5">
-                      <CircularProgress value={Number(labAttItem.attendancePercentage) || 0} size={70} />
+                      <div className="relative">
+                        <CircularProgress value={Number(labAttItem.attendancePercentage) || 0} size={70} />
+                        <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/20 blur-xl rounded-full -z-10 animate-pulse" />
+                      </div>
                       <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Lab</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full w-fit">Lab</p>
                         <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{labAttItem.attendedClasses}</strong> / {labAttItem.totalClasses} classes</p>
-                        {labAttItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {labAttItem.slotVenue}</p>}
-                        {labAttItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {labAttItem.faculty}</p>}
+                        {labAttItem.slotVenue && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Venue: {labAttItem.slotVenue}</p>}
                       </div>
                     </div>
                   )}
                 </div>
               ) : attendanceItem ? (
-                <div className="flex items-center gap-5">
-                  <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={80} />
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{attendanceItem.attendancePercentage || "0"}% attendance</p>
-                    {attendanceItem.slotVenue && <p className="text-xs text-gray-400 dark:text-gray-500">Venue: {attendanceItem.slotVenue}</p>}
-                    {attendanceItem.faculty && <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> {attendanceItem.faculty}</p>}
+                <div className="flex flex-col items-center justify-center text-center py-4">
+                  <div className="relative mb-4">
+                    <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={120} />
+                    <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 blur-2xl rounded-full -z-10 animate-pulse" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-base text-gray-800 dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes attended</p>
+                    {attendanceItem.slotVenue && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Venue: {attendanceItem.slotVenue}</p>}
+                    {attendanceItem.faculty && <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-2 flex items-center justify-center gap-1.5"><User className="w-3.5 h-3.5" /> {attendanceItem.faculty}</p>}
                   </div>
                 </div>
-              ) : <p className="text-sm text-gray-400 dark:text-gray-500">No attendance data</p>}
+              ) : <p className="text-sm font-medium text-gray-400 dark:text-gray-500 text-center py-10">No attendance data</p>}
             </div>
-          </Card>
-          <Card>
-            <div className="p-5">
-              <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Course Info</h4>
+          </div>
+          
+          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 blur-3xl rounded-full -ml-24 -mt-24 pointer-events-none" />
+            <div className="relative z-10 flex-1">
+              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Target className="w-4 h-4 text-purple-500" /> Course Details</h4>
               {mainCourse ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Course Type</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Slot</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{mainCourse.slot}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Faculty</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200 truncate max-w-[200px]">{mainCourse.faculty}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">System</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{mainCourse.courseSystem}</span></div>
-                  {attendanceItem?.credits && <div className="flex items-center justify-between"><span className="text-sm text-gray-600  dark:text-gray-400">Credits</span><span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{attendanceItem.credits}</span></div>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Type</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span>
+                  </div>
+                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Slot</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{mainCourse.slot}</span>
+                  </div>
+                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center col-span-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Faculty</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{mainCourse.faculty}</span>
+                  </div>
+                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">System</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{mainCourse.courseSystem}</span>
+                  </div>
+                  {attendanceItem?.credits && (
+                    <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Credits</span>
+                      <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{attendanceItem.credits}</span>
+                    </div>
+                  )}
                   {isEmbedded && (
-                    <div className="mt-3 pt-3 border-t border-gray-100  dark:border-gray-800">
-                      <p className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2">Components</p>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600  dark:text-gray-400">{selectedGroup.theory?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
+                    <div className="col-span-2 mt-2 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-900/20 p-3.5 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-3">Components</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{selectedGroup.theory?.courseType}</span>
+                          <span className="text-xs font-bold text-gray-800 dark:text-gray-200 bg-white/60 dark:bg-black/40 px-2 py-0.5 rounded shadow-sm">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600  dark:text-gray-400">{selectedGroup.lab?.courseType}</span>
-                          <span className="font-medium text-gray-800 dark:text-gray-200 dark:text-gray-200">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{selectedGroup.lab?.courseType}</span>
+                          <span className="text-xs font-bold text-gray-800 dark:text-gray-200 bg-white/60 dark:bg-black/40 px-2 py-0.5 rounded shadow-sm">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-              ) : <p className="text-sm text-gray-400  dark:text-gray-500">No marks data</p>}
+              ) : <p className="text-sm font-medium text-gray-400 dark:text-gray-500 text-center py-10">No course data</p>}
             </div>
-          </Card>
-          <Card className="md:col-span-2">
-             <div className="p-5">
-               <div className="flex items-center justify-between mb-4">
-                 <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Quality Circle Meeting (QCM)</h4>
-                 {!qcmData && (
-                   <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
-                     {qcmLoading ? "Loading..." : "Load QCM Data"}
-                   </button>
-                 )}
-               </div>
+          </div>
+          <div className="md:col-span-2 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"><MessageSquare className="w-4 h-4 text-emerald-500" /> Quality Circle Meeting (QCM)</h4>
+              {!qcmData && (
+                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-200/50 dark:border-emerald-500/20 shadow-sm active:scale-95">
+                  {qcmLoading ? "Loading..." : "Load QCM Data"}
+                </button>
+              )}
+            </div>
                
                {qcmError && <p className="text-sm text-red-500">{qcmError}</p>}
                
@@ -1924,8 +1991,7 @@ export default function CourseDashboard({
                    ))}
                  </div>
                )}
-             </div>
-          </Card>
+              </div>
           <Card className="md:col-span-2">
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
@@ -1978,42 +2044,35 @@ export default function CourseDashboard({
       {innerTab === "marks" && (
         <div>
           {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Course Type</p>
-              <p className="text-sm font-semibold text-gray-900  dark:text-gray-100 line-clamp-1">{courseTypeLabel}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Course Type</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1">{courseTypeLabel}</p>
             </div>
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Total Score</p>
-              <p className="text-sm font-bold text-blue-600  dark:text-blue-400">{courseTotalString}</p>
-            </div>
+            
             {isSelectedPastSemester && selectedPastGrade ? (
-              <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm text-center col-span-2">
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider mb-1">Final Grade</p>
-                <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">{selectedPastGrade}</p>
+              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 backdrop-blur-md border border-emerald-200/50 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-emerald-400/10 blur-xl rounded-full" />
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-widest mb-1 relative z-10">Final Grade</p>
+                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 relative z-10">{selectedPastGrade}</p>
               </div>
             ) : (
               <>
-                <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Projected %</p>
-                  <p className="text-sm font-bold text-indigo-600  dark:text-indigo-400">{courseStats.projected}%</p>
+                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-indigo-500/5 blur-xl rounded-full" />
+                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 relative z-10">Total Score</p>
+                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 relative z-10">{courseTotalString}</p>
                 </div>
-                <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Max Grade Achievable</p>
-                  <p className="text-sm font-bold text-orange-600  dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
+                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
+                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Projected %</p>
+                  <p className="text-xl font-black text-blue-600 dark:text-blue-400">{courseStats.projected}%</p>
+                </div>
+                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
+                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Max Potential</p>
+                  <p className="text-xl font-black text-orange-600 dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
                 </div>
               </>
             )}
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Grading Mode</p>
-              <p className={`text-sm font-bold ${isRelative ? 'text-indigo-600  dark:text-indigo-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
-                {isRelative ? "Relative" : "Absolute"}
-              </p>
-            </div>
-            <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Slot</p>
-              <p className="text-sm font-medium text-gray-900  dark:text-gray-100">{mainCourse?.slot}</p>
-            </div>
           </div>
 
           {renderAssessmentTable(selectedGroup?.theory?.assessments, "Theory")}
@@ -2286,54 +2345,43 @@ export default function CourseDashboard({
           {/* Layout Split */}
           <div className={`grid grid-cols-1 gap-6 ${hasPredictor ? 'xl:grid-cols-3' : ''}`}>
             {hasPredictor && (
-              <div className="xl:col-span-2">
-                <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
-                  <div className="p-5 border-b border-gray-100  dark:border-gray-800">
-                    <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100">Interactive Predictor</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+              <div className="xl:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm h-full relative">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
+                  <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                    <div>
+                      <h2 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2 mb-1">
+                        <Activity className="w-4 h-4" /> Interactive Predictor
+                      </h2>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
+                    </div>
                   </div>
-                  <div className="divide-y divide-gray-100  dark:divide-gray-800">
+                  <div className="p-6 space-y-6 divide-y divide-gray-200/50 dark:divide-gray-800/50 relative z-10">
                     {[
                       { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
                       { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
                       { key: "MIDSEM", label: "Classes before Mid Term Test", data: classesTillMidSem },
                       { key: "LID", label: "Classes before FAT", data: classesTillLID },
-                    ].map(({ key, label, data }) => (
+                    ].map(({ key, label, data }, idx) => (
                       Array.isArray(data) && data.length > 0 ? (
-                        <div key={key}>
-                          <ExpandableSection
-                            title={label}
-                            icon={<CalendarIcon size={18} className="text-blue-500" />}
-                            badge={<span className="text-sm font-medium bg-gray-100  dark:bg-gray-800 px-2 py-0.5 rounded-md">{data.length} Left</span>}
-                          >
-                            <div className="p-4 space-y-2">
-                              {data.map((cls: any, ci: number) => {
-                                const clsDate = new Date(cls.date);
-                                const isSkipped = cls.status === "skipping";
-                                const isAttending = cls.status === "attending" || cls.status === "default";
-                                const isPast = clsDate < new Date(new Date().toDateString());
-                                return (
-                                  <div key={ci} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                                    isPast ? 'bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700/50 opacity-60' :
-                                    isSkipped ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' :
-                                    'bg-gray-50  dark:bg-slate-800/50 border-gray-100 dark:border-gray-700'
-                                  }`}>
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        isPast ? 'bg-gray-400' : isSkipped ? 'bg-red-500' : 'bg-emerald-500'
-                                      }`} />
-                                      <span className={`text-sm ${isPast ? 'text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                                        {cls.date} {cls.day}
-                                      </span>
-                                    </div>
-                                    <span className={`text-xs font-semibold ${isPast ? 'text-gray-400' : isSkipped ? 'text-red-500' : 'text-emerald-600'}`}>
-                                      {isPast ? 'Past' : isSkipped ? 'Skipping' : 'Attending'}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </ExpandableSection>
+                        <div key={key} className={`space-y-4 ${idx > 0 ? 'pt-6' : ''}`}>
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                              <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
+                              <span>{label}</span>
+                            </h3>
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full shadow-inner">
+                              {data.length} Left
+                            </span>
+                          </div>
+                          <UpcomingClassesList
+                            classes={data}
+                            attendedClasses={attendanceItem.attendedClasses}
+                            totalClasses={attendanceItem.totalClasses}
+                            isLab={attendanceItem.courseCode?.endsWith("(L)") || false}
+                            impDates={impDates}
+                            isDayscholarWithBus={isDayscholarWithBus}
+                          />
                         </div>
                       ) : null
                     ))}
@@ -2342,31 +2390,31 @@ export default function CourseDashboard({
               </div>
             )}
 
-            <div className={`${hasPredictor ? "xl:col-span-1" : ""} min-w-0 w-full`}>
-              <div className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-                <div className="p-5 border-b border-gray-100  dark:border-gray-800 flex flex-col gap-4">
+            <div className={`${hasPredictor ? "xl:col-span-1" : ""} min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200`}>
+              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm h-full flex flex-col relative">
+                <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50 flex flex-col gap-5 relative z-10">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
+                      <h2 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         Attendance Log
                         {missingNotesCount > 0 && (
-                          <Badge variant="danger" className="bg-red-100 text-red-600   dark:bg-red-900/30 dark:text-red-400 font-bold">
+                          <Badge variant="danger" className="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-black shadow-inner border border-red-100 dark:border-red-900/50">
                             {missingNotesCount} Missing Notes
                           </Badge>
                         )}
                       </h2>
-                      {!hasPredictor && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your past classes and secure notes for days you missed.</p>}
+                      {!hasPredictor && <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mt-1">Track past classes and secure notes.</p>}
                     </div>
-                    <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg">
+                    <div className="flex bg-white/50 dark:bg-black/50 p-1 rounded-xl shadow-inner border border-gray-200/50 dark:border-gray-800/50">
                       {[
-                        { key: "calendar" as const, icon: <CalendarIcon size={18} /> },
-                        { key: "heatmap" as const, icon: <Grid3x3 size={18} /> },
-                        { key: "list" as const, icon: <List size={18} /> },
+                        { key: "calendar" as const, icon: <CalendarIcon size={16} /> },
+                        { key: "heatmap" as const, icon: <Grid3x3 size={16} /> },
+                        { key: "list" as const, icon: <List size={16} /> },
                       ].map(opt => (
                         <button
                           key={opt.key}
                           onClick={() => setViewMode(opt.key)}
-                          className={`p-1.5 rounded-md transition-colors ${viewMode === opt.key ? 'bg-white  dark:bg-black text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
+                          className={`p-2 rounded-lg transition-all duration-200 ${viewMode === opt.key ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-gray-200 dark:ring-gray-700' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                         >
                           {opt.icon}
                         </button>
@@ -2375,12 +2423,12 @@ export default function CourseDashboard({
                   </div>
 
                   {viewMode === "list" && (
-                    <div className="flex bg-gray-100  dark:bg-gray-900 p-1 rounded-lg overflow-x-auto hide-scrollbar w-max">
+                    <div className="flex bg-white/50 dark:bg-black/50 p-1 rounded-xl shadow-inner border border-gray-200/50 dark:border-gray-800/50 overflow-x-auto hide-scrollbar w-max mx-auto sm:mx-0">
                       {["All", "Present", "Absent", "On Duty"].map(f => (
                         <button
                           key={f}
                           onClick={() => setAttFilter(f)}
-                          className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${attFilter === f ? "bg-white  dark:bg-black text-gray-900  dark:text-gray-100 shadow-sm" : "text-gray-500  dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 dark:hover:text-gray-300"}`}
+                          className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${attFilter === f ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-gray-200 dark:ring-gray-700" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}
                         >
                           {f}
                         </button>
@@ -2480,72 +2528,113 @@ export default function CourseDashboard({
 
       {/* COURSE PLAN - Full tables without truncation */}
       {innerTab === "plan" && (
-        <div>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
+          <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-blue-500" /> Course Syllabus & Plan
+          </h4>
+          
           {planLoading ? (
-            <div className="space-y-3"><Skeleton className="h-8 w-48 rounded-lg" /><Skeleton className="h-48 w-full rounded-2xl" /><Skeleton className="h-32 w-full rounded-2xl" /></div>
-          ) : coursePlan ? (
-            coursePlan.map((cp: any, ci: number) => (
-              <div key={ci} className={ci > 0 ? "mt-8" : ""}>
-                {coursePlan.length > 1 && (
-                  <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4" /> {cp.type === "Embedded Theory" || cp.type === "Theory Only" ? "Theory" : "Lab"} Component
-                  </h4>
-                )}
-                {cp.data.tables?.map((t: any, ti: number) => (
-                  <Card key={ti}>
-                    <div className="p-5">
-                      {t.caption && <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead><tr className="border-b border-gray-200 dark:border-gray-700">
-                            {t.headers?.map((h: string, hi: number) => (<th key={hi} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>))}
-                          </tr></thead>
-                          <tbody>{t.rows?.map((row: any, ri: number) => (
-                            <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                              {t.headers.map((h: string, ci: number) => (<td key={ci} className="py-2.5 px-2 text-sm text-gray-800 dark:text-gray-200">{row[h] || "—"}</td>))}
-                            </tr>
-                          ))}</tbody>
-                        </table>
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-1/3 rounded-2xl" />
+              <Skeleton className="h-64 w-full rounded-3xl" />
+              <Skeleton className="h-48 w-full rounded-3xl" />
+            </div>
+          ) : coursePlan && coursePlan.length > 0 ? (
+            <div className="space-y-8">
+              {coursePlan.map((cp: any, ci: number) => (
+                <div key={ci} className="space-y-4">
+                  {coursePlan.length > 1 && (
+                    <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2 px-2">
+                      <FileText className="w-4 h-4" /> {cp.type === "Embedded Theory" || cp.type === "Theory Only" ? "Theory" : "Lab"} Component
+                    </h4>
+                  )}
+                  {cp.data.tables?.map((t: any, ti: number) => (
+                    <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
+                      <div className="p-6 relative z-10">
+                        {t.caption && <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
+                        <div className="overflow-x-auto hide-scrollbar">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
+                                {t.headers?.map((h: string, hi: number) => (
+                                  <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {t.rows?.map((row: any, ri: number) => (
+                                <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                                  {t.headers.map((h: string, hi: number) => (
+                                    <td key={hi} className="py-3 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                      {row[h] || "—"}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ))
-          ) : <Card><div className="p-5 text-sm text-gray-400">Loading course plan...</div></Card>}
-
-          {/* Schedule toggle */}
-          <Card>
-            <div className="p-5">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Weekly Schedule</h4>
-                <button onClick={() => { if (viewDetail) setViewDetail(null); else fetchViewDetail(); }} disabled={viewLoading}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
-                  {viewLoading ? "Loading..." : viewDetail ? "Hide" : "Load Schedule"}
-                </button>
-              </div>
-              {viewDetail && viewDetail.map((vd: any, ci: number) => (
-                <div key={ci} className="mt-4">
-                  {viewDetail.length > 1 && <p className="text-xs font-semibold text-gray-400 uppercase mb-2">{vd.type} Schedule</p>}
-                  {vd.data.tables?.slice(1).map((t: any, ti: number) => (
-                    <div key={ti} className="mb-4 last:mb-0 overflow-x-auto">
-                      {t.caption && <h5 className="text-xs font-semibold text-gray-400 uppercase mb-2">{t.caption}</h5>}
-                      <table className="w-full text-sm">
-                        <thead><tr className="border-b border-gray-200 dark:border-gray-700">
-                          {t.headers?.map((h: string, hi: number) => (<th key={hi} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>))}
-                        </tr></thead>
-                        <tbody>{t.rows?.map((row: any, ri: number) => (
-                          <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                            {t.headers.map((h: string, ci: number) => (<td key={ci} className="py-2 px-2 text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>))}
-                          </tr>
-                        ))}</tbody>
-                      </table>
                     </div>
                   ))}
                 </div>
               ))}
             </div>
-          </Card>
+          ) : (
+            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
+              <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Course plan is unavailable or loading.</p>
+            </div>
+          )}
+
+          {/* Schedule toggle */}
+          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative mt-8">
+            <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 border-b border-gray-200/50 dark:border-gray-800/50">
+              <h4 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-500" /> Weekly Schedule
+              </h4>
+              <button 
+                onClick={() => { if (viewDetail) setViewDetail(null); else fetchViewDetail(); }} 
+                disabled={viewLoading}
+                className="text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 transition-colors shadow-inner"
+              >
+                {viewLoading ? "Loading..." : viewDetail ? "Hide Schedule" : "Load Schedule"}
+              </button>
+            </div>
+            
+            {viewDetail && (
+              <div className="p-6 relative z-10 space-y-6">
+                {viewDetail.map((vd: any, ci: number) => (
+                  <div key={ci} className="space-y-4">
+                    {viewDetail.length > 1 && <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest">{vd.type} Schedule</p>}
+                    {vd.data.tables?.slice(1).map((t: any, ti: number) => (
+                      <div key={ti} className="overflow-x-auto hide-scrollbar">
+                        {t.caption && <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.caption}</h5>}
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
+                              {t.headers?.map((h: string, hi: number) => (
+                                <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {t.rows?.map((row: any, ri: number) => (
+                              <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                                {t.headers.map((h: string, ci: number) => (
+                                  <td key={ci} className="py-2.5 px-2 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{row[h] || "—"}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2556,30 +2645,41 @@ export default function CourseDashboard({
 
       {/* GRADES HISTORY */}
       {innerTab === "grades" && (
-        <div className="mt-6">
-          <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5" /> Grade History
+        <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-blue-500" /> Grade History Timeline
           </h4>
-              {courseGradeHistory.length === 0 ? (
-                <p className="text-sm text-gray-400 dark:text-gray-500">No past grade history found for this course.</p>
-              ) : (
-                <div className="space-y-4">
-                  {courseGradeHistory.map((gh: any, idx: number) => {
-                    return (
-                    <div key={idx} className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800 flex flex-col">
-                      <div className="flex justify-between items-center">
+          {courseGradeHistory.length === 0 ? (
+            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
+              <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No past grade history found for this course.</p>
+            </div>
+          ) : (
+            <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 dark:before:via-gray-800 before:to-transparent">
+              {courseGradeHistory.map((gh: any, idx: number) => {
+                const isCurrent = gh.semester === "Current";
+                return (
+                  <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 dark:border-black bg-white dark:bg-gray-900 text-blue-500 shadow-sm shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform duration-300 group-hover:scale-110">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    </div>
+                    
+                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl p-5 border border-gray-200/50 dark:border-gray-800/50 shadow-sm hover:shadow-md transition-all duration-300">
+                      <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{gh.semester === "Current" ? "Current Semester" : formatSemesterName(gh.semester || "") || "Unknown Semester"}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{gh.courseTitle || selectedGroup?.courseTitle}</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">
+                            {isCurrent ? "Current Semester" : formatSemesterName(gh.semester || "") || "Unknown Semester"}
+                          </p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{gh.courseTitle || selectedGroup?.courseTitle}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Grade Earned</p>
-                          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{gh.grade || gh.courseGrade || "N/A"}</p>
+                          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-black text-xl shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                            {gh.grade || gh.courseGrade || "N/A"}
+                          </div>
                         </div>
                       </div>
 
                       {gh.details && gh.details.length > 0 && (
-                        <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                        <div className="mt-4 pt-4 border-t border-gray-100/50 dark:border-gray-800/50">
                           <div className="space-y-4">
                             {(() => {
                                const types = Array.from(new Set(gh.details.map((d: any) => d.type || 'Theory')));
@@ -2588,12 +2688,12 @@ export default function CourseDashboard({
                                  const typeDetails = gh.details.filter((d: any) => (d.type || 'Theory') === typeLabel);
                                  return (
                                    <div key={typeLabel}>
-                                     {showLabels && <h5 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-500">{typeLabel}</h5>}
-                                     <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                     {showLabels && <h5 className="mb-2 text-[10px] font-black uppercase tracking-widest text-indigo-500/80">{typeLabel}</h5>}
+                                     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                                        {typeDetails.map((detail: any, dIdx: number) => (
-                                         <div key={dIdx} className="rounded-xl border border-gray-200 bg-gray-50/70 p-2 text-center dark:border-gray-800  dark:bg-slate-800">
-                                           <p className="mb-1 line-clamp-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500  dark:text-gray-400" title={detail.component}>{detail.component}</p>
-                                           <p className="text-sm font-bold text-gray-800  dark:text-gray-100">{detail.scoredMark} <span className="text-xs font-normal text-gray-400">/ {detail.maxMark}</span></p>
+                                         <div key={dIdx} className="rounded-xl border border-gray-100/80 bg-gray-50/50 p-3 text-center shadow-sm dark:border-gray-800/80 dark:bg-gray-900/30 transition-colors hover:bg-white dark:hover:bg-gray-800">
+                                           <p className="mb-1 line-clamp-1 text-[9px] font-black uppercase tracking-widest text-gray-400" title={detail.component}>{detail.component}</p>
+                                           <p className="text-base font-black text-gray-900 dark:text-white">{detail.scoredMark} <span className="text-[10px] font-bold text-gray-300">/ {detail.maxMark}</span></p>
                                          </div>
                                        ))}
                                      </div>
@@ -2604,25 +2704,24 @@ export default function CourseDashboard({
                           </div>
                         </div>
                       )}
-                  
                       {gh.range && (
-                        <div className="mt-4 border-t border-gray-100 pt-4  dark:border-gray-800">
-                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500  dark:text-gray-400">Grade Ranges</p>
+                        <div className="mt-4 border-t border-gray-100/50 pt-4 dark:border-gray-800/50">
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Grade Ranges</p>
                           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
                             {Object.entries(gh.range).map(([grade, rangeStr]: any, idx) => {
-                              let colorClass = 'bg-gray-50 text-gray-700 border-gray-200   dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400';
-                              if (grade === 'S') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200   dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400';
-                              else if (grade === 'A') colorClass = 'bg-green-50 text-green-700 border-green-200   dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-400';
-                              else if (grade === 'B') colorClass = 'bg-blue-50 text-blue-700 border-blue-200   dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-400';
-                              else if (grade === 'C') colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-200   dark:border-indigo-800/50 dark:bg-indigo-900/20 dark:text-indigo-400';
-                              else if (grade === 'D') colorClass = 'bg-purple-50 text-purple-700 border-purple-200   dark:border-purple-800/50 dark:bg-purple-900/20 dark:text-purple-400';
-                              else if (grade === 'E') colorClass = 'bg-orange-50 text-orange-700 border-orange-200   dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-400';
-                              else if (grade === 'F' || grade === 'N') colorClass = 'bg-red-50 text-red-700 border-red-200   dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400';
+                              let colorClass = 'bg-gray-50 text-gray-700 border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400';
+                              if (grade === 'S') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400';
+                              else if (grade === 'A') colorClass = 'bg-green-50 text-green-700 border-green-200 dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-400';
+                              else if (grade === 'B') colorClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-400';
+                              else if (grade === 'C') colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:border-indigo-800/50 dark:bg-indigo-900/20 dark:text-indigo-400';
+                              else if (grade === 'D') colorClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:border-purple-800/50 dark:bg-purple-900/20 dark:text-purple-400';
+                              else if (grade === 'E') colorClass = 'bg-orange-50 text-orange-700 border-orange-200 dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-400';
+                              else if (grade === 'F' || grade === 'N') colorClass = 'bg-red-50 text-red-700 border-red-200 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400';
 
                               return (
                                 <div key={idx} className={`flex flex-col items-center justify-center rounded-xl border p-2 ${colorClass}`}>
                                   <span className="mb-1 text-lg font-black">{grade}</span>
-                                  <span className="text-center text-[10px] font-bold tracking-wider">{rangeStr}</span>
+                                  <span className="text-center text-[10px] font-bold tracking-wider">{rangeStr as string}</span>
                                 </div>
                               );
                             })}
@@ -2630,7 +2729,9 @@ export default function CourseDashboard({
                         </div>
                       )}
                     </div>
-                  )})}
+                  </div>
+                );
+              })}
                 </div>
               )}
         </div>

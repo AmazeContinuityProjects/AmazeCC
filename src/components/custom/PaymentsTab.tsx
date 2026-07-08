@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "./Main";
 import { Wallet, Receipt, AlertCircle, RefreshCcw, IndianRupee, DollarSign, FileText, Calendar, Hash, ArrowUpRight, ArrowDownRight, CheckCircle2, XCircle, Ban, ArrowLeft } from "lucide-react";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Card, Skeleton, EmptyState } from "@amazecontinuityprojects/amazeui";
 
 const SUB_TABS = ["dues", "receipts", "wallet"] as const;
 type SubTab = (typeof SUB_TABS)[number];
@@ -33,30 +33,19 @@ const fmtAmt = (val: string | undefined | null, symbol: string = "₹") => {
 };
 
 const CardShell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`solid-card mb-5 ${className}`}>
+  <Card className={`mb-5 ${className}`}>
     {children}
-  </div>
+  </Card>
 );
 
 const Field = ({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) => (
   <div className="flex items-start gap-2.5">
-    {icon && <div className="mt-0.5 text-gray-400  dark:text-gray-500 shrink-0">{icon}</div>}
+    {icon && <div className="mt-0.5 text-muted-foreground shrink-0">{icon}</div>}
     <div className="min-w-0">
-      <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
-      <p className="text-sm font-medium text-gray-800  dark:text-gray-200 break-words">{value || "—"}</p>
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-medium text-foreground break-words">{value || "—"}</p>
     </div>
   </div>
-);
-
-const EmptyState = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
-  <CardShell>
-    <div className="flex flex-col items-center justify-center py-12 px-6">
-      <div className="p-4 rounded-full bg-gray-100  dark:bg-gray-800 text-gray-400 dark:text-gray-500 mb-4">
-        {icon}
-      </div>
-      <p className="text-sm font-medium text-gray-500  dark:text-gray-400">{text}</p>
-    </div>
-  </CardShell>
 );
 
 export default function PaymentsTab({ loginToVTOP }: PaymentsTabProps) {
@@ -307,7 +296,11 @@ export default function PaymentsTab({ loginToVTOP }: PaymentsTabProps) {
       );
     }
 
-    return <EmptyState icon={<Receipt className="w-8 h-8" />} text="No receipts found" />;
+    return (
+      <div className="mb-5">
+        <EmptyState icon={<Receipt className="w-8 h-8" />} title="No receipts found" description="You have no receipts to display." />
+      </div>
+    );
   };
 
   const renderWallet = () => {
@@ -445,7 +438,11 @@ export default function PaymentsTab({ loginToVTOP }: PaymentsTabProps) {
         )}
         {walletData.ledgerINR && renderLedgerCards("INR Wallet", walletData.ledgerINR, "₹", <IndianRupee className="w-4 h-4" />, "bg-green-50  dark:bg-green-900/20 text-green-600 dark:text-green-400")}
         {walletData.ledgerUSD && renderLedgerCards("USD Wallet", walletData.ledgerUSD, "$", <DollarSign className="w-4 h-4" />, "bg-blue-50  dark:bg-blue-900/20 text-blue-600 dark:text-blue-400")}
-        {!hasAnyLedger && <EmptyState icon={<Wallet className="w-8 h-8" />} text="No wallet transactions found" />}
+        {!hasAnyLedger && (
+          <div className="mb-5">
+            <EmptyState icon={<Wallet className="w-8 h-8" />} title="No transactions" description="No wallet transactions found." />
+          </div>
+        )}
       </div>
     );
   };

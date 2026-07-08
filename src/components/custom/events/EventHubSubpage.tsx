@@ -5,6 +5,8 @@ import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
 import { API_BASE, loginToEventHub } from "../Main";
+import { clearEventHubSession } from "@/lib/event-hub";
+import { getRewrittenUrl } from "@/lib/fetch-utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
 import SubpageLayout from "../shared/SubpageLayout";
@@ -123,6 +125,7 @@ export default function EventHubSubpage({
       window.URL.revokeObjectURL(objectUrl);
     } catch (err: any) {
       setModalContent({ title: "Download Error", message: err.message });
+      clearEventHubSession();
       setModalOpen(true);
     } finally {
       setIsRegistering(false);
@@ -255,6 +258,7 @@ export default function EventHubSubpage({
       }
     } catch (err: any) {
       setModalContent({ title: "Error", message: "An error occurred: " + err.message });
+      clearEventHubSession();
       setModalOpen(true);
     } finally {
       setIsRegistering(false);
@@ -348,6 +352,7 @@ export default function EventHubSubpage({
                                   }
                                 } catch (err: any) {
                                   setModalContent({ title: "Error", message: err.message });
+                                  clearEventHubSession();
                                   setModalOpen(true);
                                 } finally {
                                   setIsRegistering(false);
@@ -452,7 +457,7 @@ export default function EventHubSubpage({
               <div className="md:w-5/12 lg:w-1/3 shrink-0">
                 <div className="rounded-2xl overflow-hidden bg-gray-50  dark:bg-gray-900 flex justify-center border border-gray-100  dark:border-gray-800 md:sticky md:top-8">
                   <img 
-                    src={previewData.imageSrc} 
+                    src={getRewrittenUrl(previewData.imageSrc)} 
                     alt={selectedEvent.title}
                     className="w-full h-auto object-contain"
                   />

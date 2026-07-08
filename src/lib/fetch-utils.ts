@@ -65,6 +65,13 @@ export function rewriteUrlIfNeeded(url: string): string {
   return url;
 }
 
+export function getRewrittenUrl(url: string): string {
+  if (url.startsWith("/")) {
+    return getActiveApiUrl() + url;
+  }
+  return rewriteUrlIfNeeded(url);
+}
+
 export async function fetchWithFailover(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -186,10 +193,17 @@ if (typeof window !== "undefined") {
             console.log("Primary API is back online. Switching back from backup.");
             setActiveApiUrl(PRIMARY_API_URL);
           }
+        } else {
+          if (activeApiUrl === PRIMARY_API_URL) {
+            console.warn("Primary API health check returned non-200. Keeping primary URL to avoid unnecessary failovers.");
+          }
         }
       } catch (e) {
         // Do not proactively switch to backup on startup.
         // Let the actual fetch failover handle it during requests.
+        if (activeApiUrl === PRIMARY_API_URL) {
+          console.warn("Primary API is unreachable/blocked in health check. Keeping primary URL to avoid unnecessary failovers on slow connections.");
+        }
       }
     }, 1500);
   }

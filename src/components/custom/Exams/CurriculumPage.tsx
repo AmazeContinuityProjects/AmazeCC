@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
-import { Search, X, RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap, Layers, Download } from "lucide-react";
+import { Search, X, RefreshCcw, ChevronDown, ChevronRight, BookOpen, Award, GraduationCap, Layers, Download, Loader2 } from "lucide-react";
 import { API_BASE } from "../Main";
 import FetchButton from "../shared/FetchButton";
 import SubpageLayout from "../shared/SubpageLayout";
+import { storage } from "@/lib/storage";
 
 // ── helpers ──────────────────────────────────────────────────────────
 const normalizeDistributionType = (raw?: string) => {
@@ -100,8 +101,23 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [creds, setCreds] = useState<Creds | null>(null);
+  const [isDownloadingCurriculum, setIsDownloadingCurriculum] = useState(false);
+  const [downloadingSyllabus, setDownloadingSyllabus] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchCurriculumData = (force = false) => {
+    if (!force) {
+      const cached = storage.curriculum.get() as any;
+      if (cached) {
+        try {
+          setCurricDetails(cached.details || []);
+          setCurricCategories(cached.categories || []);
+          setCurricTotal(cached.totalCredits || 0);
+          if (cached.pageCsrf) setPageCsrf(cached.pageCsrf);
+          return;
+        } catch(e) {}
+      }
+    }
+    
     if (!loginToVTOP) return;
     loginToVTOP().then(c => {
       setCreds(c);
@@ -116,14 +132,31 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
         setCurricCategories(result.categories || []);
         setCurricTotal(result.totalCredits || 0);
         if (result.pageCsrf) setPageCsrf(result.pageCsrf);
+        storage.curriculum.set({
+            details: result.details,
+            categories: result.categories,
+            totalCredits: result.totalCredits,
+            pageCsrf: result.pageCsrf
+        });
       }
     }).catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchCurriculumData();
   }, []);
 
   const downloadSyllabus = async (courseCode: string) => {
+    setDownloadingSyllabus(courseCode);
     if (!creds) {
-      if (!loginToVTOP) return;
-      try { const c = await loginToVTOP(); setCreds(c); } catch { return; }
+      if (!loginToVTOP) {
+        setDownloadingSyllabus(null);
+        return;
+      }
+      try { const c = await loginToVTOP(); setCreds(c); } catch { 
+        setDownloadingSyllabus(null);
+        return;
+      }
     }
     const c = creds || await loginToVTOP!();
     try {
@@ -147,16 +180,29 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error("Syllabus download error:", err.message);
+    } finally {
+      setDownloadingSyllabus(null);
     }
   };
 
   const downloadCurriculum = async () => {
-    if (!creds) return;
+    setIsDownloadingCurriculum(true);
+    if (!creds) {
+      if (!loginToVTOP) {
+        setIsDownloadingCurriculum(false);
+        return;
+      }
+      try { const c = await loginToVTOP(); setCreds(c); } catch { 
+        setIsDownloadingCurriculum(false);
+        return; 
+      }
+    }
+    const c = creds || await loginToVTOP!();
     try {
       const res = await fetch(`${API_BASE}/api/curriculum/download`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: pageCsrf || creds.csrf }),
+        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf }),
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: res.statusText }));
@@ -173,6 +219,8 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error("Curriculum download error:", err.message);
+    } finally {
+      setIsDownloadingCurriculum(false);
     }
   };
 
@@ -313,10 +361,10 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       onBack={() => setActiveSubTab("overview")}
       action={
         <div className="flex items-center gap-2">
-          <button onClick={downloadCurriculum} className="p-2.5 rounded-full bg-green-50  dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors" title="Download Curriculum">
-            <Download className="w-5 h-5" />
+          <button onClick={downloadCurriculum} disabled={isDownloadingCurriculum} className={`p-2.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors ${isDownloadingCurriculum ? "opacity-50 cursor-not-allowed" : "hover:bg-green-100 dark:hover:bg-green-900/50"}`} title="Download Curriculum">
+            {isDownloadingCurriculum ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
           </button>
-          <FetchButton onClick={handleFetchGrades} icon={<RefreshCcw className="w-4 h-4" />} className="rounded-xl">
+          <FetchButton onClick={() => { handleFetchGrades(); fetchCurriculumData(true); }} icon={<RefreshCcw className="w-4 h-4" />} className="rounded-xl">
             <span className="text-sm">Reload</span>
           </FetchButton>
         </div>
@@ -551,8 +599,8 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
                                         <span className="text-gray-800  dark:text-gray-200 truncate">{item.name}</span>
                                       </div>
                                       <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button onClick={(e) => { e.stopPropagation(); downloadSyllabus(item.code); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-colors" title="Download syllabus">
-                                          <Download className="w-3.5 h-3.5" />
+                                        <button onClick={(e) => { e.stopPropagation(); downloadSyllabus(item.code); }} disabled={downloadingSyllabus === item.code} className={`p-1 rounded transition-colors ${downloadingSyllabus === item.code ? "text-blue-500 opacity-50 cursor-not-allowed" : "hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500"}`} title="Download syllabus">
+                                          {downloadingSyllabus === item.code ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                         </button>
                                         {item.type && (
                                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50  dark:bg-purple-900/20 text-purple-600  dark:text-purple-400 font-medium uppercase">{item.type}</span>

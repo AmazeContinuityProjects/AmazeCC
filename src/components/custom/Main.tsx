@@ -21,7 +21,7 @@ import { getAssetPath } from "@/lib/utils";
 import { loginToVTOP as vtopLogin } from "@/lib/auth";
 import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
 import { storage } from "@/lib/storage";
-import { fetchWithTimeout, API_BASE } from "@/lib/fetch-utils";
+import { fetchWithTimeout, API_BASE, getRewrittenUrl } from "@/lib/fetch-utils";
 import { reportError } from "@/lib/error-utils";
 import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
 
@@ -2840,7 +2840,7 @@ function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoM
   if (!data?.imageSrc) return null;
   return (
     <div className="space-y-2">
-      <img src={data.imageSrc} alt="" className="w-full h-28 object-cover rounded-xl" />
+      <img src={getRewrittenUrl(data.imageSrc)} alt="" className="w-full h-28 object-cover rounded-xl" />
       {data.description && <p className="text-xs font-medium text-gray-900  dark:text-gray-100">{data.description}</p>}
       {data.metaDetails && Object.entries(data.metaDetails).map(([k, v]) => (
         <p key={k} className="text-xs text-gray-600  dark:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
