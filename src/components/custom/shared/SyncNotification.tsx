@@ -158,11 +158,11 @@ export default function SyncNotification({
       {/* Unified animated card */}
       <motion.div
         layout
-        transition={{ type: "spring", stiffness: 220, damping: 26 }}
+        transition={{ type: "spring", stiffness: 450, damping: 35 }}
         className={
           isMinimized
             ? "fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-[16px] p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
-            : "fixed bottom-4 left-4 right-4 sm:bottom-auto sm:right-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-50 w-[calc(100%-32px)] sm:w-[380px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] rounded-[24px] shadow-2xl overflow-hidden flex flex-col p-6 gap-4 font-sans select-none"
+            : "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-32px)] sm:w-[380px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] rounded-[24px] shadow-2xl overflow-hidden flex flex-col p-6 gap-4 font-sans select-none"
         }
         onClick={isMinimized ? () => setIsMinimized(false) : undefined}
       >
@@ -174,7 +174,7 @@ export default function SyncNotification({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.1 }}
               className="flex items-center gap-3 w-full"
             >
               {/* Circular progress SVG */}
@@ -242,7 +242,7 @@ export default function SyncNotification({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.1 }}
               className="flex flex-col gap-4 w-full relative"
             >
               {/* Header controls */}
