@@ -379,7 +379,7 @@ export default function IntroPage({ settings, username, setSettings, onComplete 
                   {/* Standard toggles */}
                   {[
                     { key: "CGPAHidden", label: "Hide CGPA from Profile Card", desc: "Blurs your CGPA score on dashboard" },
-                    { key: "hideProfileImageOutsideInfo", label: "Hide Profile Photo", desc: "Only visible under Info tab" },
+                    { key: "showProfilePhoto", label: "Show Profile Photo", desc: "Display your avatar on the dashboard" },
                   ].map(opt => {
                     const isOn = temp[opt.key] === true;
                     return (
