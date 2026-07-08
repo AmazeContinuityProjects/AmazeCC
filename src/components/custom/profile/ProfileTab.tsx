@@ -24,8 +24,6 @@ interface ProfileTabProps {
   setPassword: (val: string[]) => void;
   decimalValues: boolean;
   setDecimalValues: (val: boolean) => void;
-  loadingScreen: boolean;
-  setLoadingScreen: (val: boolean) => void;
   isDayscholarWithBus: boolean;
   setIsDayscholarWithBus: (val: boolean) => void;
   residentialStatus: string;

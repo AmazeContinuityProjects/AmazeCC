@@ -83,8 +83,6 @@ export default function ProfilePage({
   setPassword,
   decimalValues,
   setDecimalValues,
-  loadingScreen,
-  setLoadingScreen,
   isDayscholarWithBus,
   setIsDayscholarWithBus,
   residentialStatus,
@@ -145,7 +143,7 @@ export default function ProfilePage({
     background: "#f8fafc",
     surface: "#ffffff",
   };
-  const displayProfileImage = !(settings?.hideProfileImageOutsideInfo && mode !== "info");
+  const displayProfileImage = settings?.showProfilePhoto || mode === "info";
 
   // Collapsible Sync states
   const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
@@ -786,17 +784,6 @@ export default function ProfilePage({
 
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Profile Image Privacy</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Only show your profile image in My Info</p>
-                    </div>
-                    <Switch
-                      checked={settings?.hideProfileImageOutsideInfo ?? false}
-                      onCheckedChange={(val) => updateSetting("hideProfileImageOutsideInfo", val)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
                       <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
                     </div>
@@ -814,17 +801,6 @@ export default function ProfilePage({
                     <Switch
                       checked={settings?.showProfilePhoto ?? false}
                       onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Promote Cab Share</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Show a Cab Share promo card at the top of the mobile home screen</p>
-                    </div>
-                    <Switch
-                      checked={settings?.promoteCabShare ?? false}
-                      onCheckedChange={(val) => updateSetting("promoteCabShare", val)}
                     />
                   </div>
 
@@ -985,14 +961,6 @@ export default function ProfilePage({
                     <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
                   </div>
 
-                  {/* Loading screen toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Legacy Loading Screen</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display classic layout loader during fetches</p>
-                    </div>
-                    <Switch checked={loadingScreen} onCheckedChange={setLoadingScreen} />
-                  </div>
 
                   {/* Compact Mobile view toggle */}
                   <div className="flex items-center justify-between">
