@@ -36,6 +36,7 @@ type settings = {
   isDayscholarWithBus: boolean;
   showGpa?: boolean;
   showProfilePhoto?: boolean;
+  blurGrades?: boolean;
   colorPalette?: string;
   customPalette?: {
     accent: string;
@@ -78,6 +79,7 @@ const defaultSettings: settings = {
   isDayscholarWithBus: false,
   showGpa: false,
   showProfilePhoto: true,
+  blurGrades: false,
   colorPalette: "default",
   customPalette: {
     accent: "#0ea5e9",
@@ -1339,6 +1341,7 @@ export default function LoginPage() {
     toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
     toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
+    toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
 
     [
       { id: "light", label: "Light", icon: "☀️" },

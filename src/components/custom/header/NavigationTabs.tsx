@@ -524,6 +524,63 @@ export default function NavigationTabs({
     { id: "account", label: "Account", icon: Settings, items: accountItems },
   ], [studyItems, campusItems, toolsItems, accountItems]);
 
+  const pinnedItems = useMemo(() => {
+    const pinnedTabs = settings?.pinnedNavTabs ?? [];
+    const tabData: Record<string, { label: string; icon: any; onSelect: () => void; isActive: boolean }> = {
+      attendance: {
+        label: "Attendance",
+        icon: CalendarCheck,
+        isActive: activeTab === "attendance",
+        onSelect: () => { selectTab("attendance"); }
+      },
+      academics: {
+        label: "Academics",
+        icon: GraduationCap,
+        isActive: activeTab === "academics",
+        onSelect: () => { selectTab("academics"); }
+      },
+      payments: {
+        label: "Payments",
+        icon: CreditCard,
+        isActive: activeTab === "payments",
+        onSelect: () => { selectTab("payments"); }
+      },
+      libraries: {
+        label: "Libraries",
+        icon: Library,
+        isActive: activeTab === "libraries",
+        onSelect: () => { selectTab("libraries"); }
+      },
+      cabshare: {
+        label: "Cab Share",
+        icon: CarTaxiFront,
+        isActive: activeTab === "cabshare",
+        onSelect: () => { selectTab("cabshare"); }
+      },
+      transport: {
+        label: "Transport",
+        icon: Bus,
+        isActive: activeTab === "transport",
+        onSelect: () => { selectTab("transport"); }
+      },
+      more: {
+        label: "More",
+        icon: MoreHorizontal,
+        isActive: activeTab === "more",
+        onSelect: () => { selectTab("more"); }
+      },
+      profile: {
+        label: "Profile",
+        icon: User,
+        isActive: activeTab === "profile",
+        onSelect: () => { selectTab("profile"); }
+      }
+    };
+    return pinnedTabs
+      .map((id: string) => ({ id, ...tabData[id] }))
+      .filter((item: any) => item.label !== undefined);
+  }, [settings?.pinnedNavTabs, activeTab, selectTab]);
+
   const academicsItems = useMemo(() => [
     {
       id: "overview",
@@ -1167,6 +1224,24 @@ export default function NavigationTabs({
           <SidebarContent>
             {!showAcademicsPanel && !showHostelPanel ? (
               <div className="space-y-4">
+                {pinnedItems.length > 0 && (
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Pinned Shortcuts</SidebarGroupLabel>
+                    <div className="space-y-0.5 pt-0.5 pb-1">
+                      {pinnedItems.map((item) => (
+                        <SidebarItem
+                          key={item.id}
+                          icon={<item.icon className="h-5 w-5" />}
+                          label={item.label}
+                          isActive={item.isActive}
+                          onClick={item.onSelect}
+                          onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                        />
+                      ))}
+                    </div>
+                  </SidebarGroup>
+                )}
+
                 {groups.map((group) => (
                   <SidebarGroup key={group.id}>
                     <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -1248,6 +1323,34 @@ export default function NavigationTabs({
             <div className="flex flex-1 min-h-0 flex-col items-center justify-start w-full mt-3">
             {/* Divider */}
             <div className="w-8 border-t border-sidebar-border mb-3" />
+
+            {pinnedItems.length > 0 && (
+              <>
+                <nav className="flex flex-col items-center gap-2.5 w-full mb-3" aria-label="Pinned rail shortcuts">
+                  {pinnedItems.map(item => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <div key={item.id} className="relative flex justify-center group/rail">
+                        <button
+                          onClick={item.onSelect}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
+                            item.isActive
+                              ? railActiveStyles
+                              : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
+                          } ${navButtonBase}`}
+                          title={item.label}
+                          aria-label={`Open ${item.label}`}
+                        >
+                          <ItemIcon className={`h-5 w-5 transition-transform duration-300 ${item.isActive ? 'scale-110 text-info' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </nav>
+                {/* Secondary Divider */}
+                <div className="w-8 border-t border-sidebar-border mb-3" />
+              </>
+            )}
 
             {/* Navigation Rail Buttons */}
             <nav className="flex flex-col items-center gap-2.5 w-full" aria-label="Navigation rail">

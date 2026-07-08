@@ -1,27 +1,47 @@
 export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://proper-canary-4596.amazecc.deno.net";
 
-let activeApiUrl = PRIMARY_API_URL;
+let customUrlFromStorage = "";
+if (typeof window !== "undefined") {
+  try {
+    customUrlFromStorage = localStorage.getItem("amazecc_custom_api_url") || "";
+  } catch (e) {}
+}
 
+export let activeApiUrl = customUrlFromStorage || PRIMARY_API_URL;
 
 export function getActiveApiUrl(): string {
   return activeApiUrl;
 }
 
 export function setActiveApiUrl(url: string) {
-  if (url === PRIMARY_API_URL || url === BACKUP_API_URL) {
-    activeApiUrl = url;
-    if (typeof window !== "undefined" && window.localStorage) {
-      try {
-        window.localStorage.setItem("amazecc_active_api_url", url);
-      } catch (e) {
-        // Ignore storage errors
-      }
+  activeApiUrl = url;
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      window.localStorage.setItem("amazecc_active_api_url", url);
+    } catch (e) {
+      // Ignore storage errors
     }
   }
 }
 
-export const API_BASE = PRIMARY_API_URL;
+export function setCustomApiUrl(url: string) {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      if (url) {
+        window.localStorage.setItem("amazecc_custom_api_url", url);
+        activeApiUrl = url;
+        API_BASE = url;
+      } else {
+        window.localStorage.removeItem("amazecc_custom_api_url");
+        activeApiUrl = PRIMARY_API_URL;
+        API_BASE = PRIMARY_API_URL;
+      }
+    } catch (e) {}
+  }
+}
+
+export let API_BASE = activeApiUrl;
 
 const FETCH_TIMEOUT = 90000;
 
