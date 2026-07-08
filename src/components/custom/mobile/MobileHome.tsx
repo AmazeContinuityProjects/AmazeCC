@@ -364,7 +364,6 @@ export default function MobileHome({
   // ── WIDGETS RENDER METHODS ──
 
   const renderCabSharePromo = () => {
-    if (!(settings?.promoteCabShare || globalPromoteCab)) return null;
     return (
       <button
         onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
@@ -436,7 +435,7 @@ export default function MobileHome({
           >
             <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
             <span className="text-[9px] font-black text-emerald-655 dark:text-emerald-400 uppercase tracking-widest font-outfit font-black">Cumulative GPA</span>
-            <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden ? "blur-[5px] select-none" : ""}`}>
+            <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden || settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
               {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
             </p>
             <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold leading-none">VTOP Verified</span>
@@ -447,7 +446,7 @@ export default function MobileHome({
         <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
           <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-blue-655 dark:text-blue-400 uppercase tracking-widest font-outfit font-black">Credits Earned</span>
-          <p className="text-xl font-black text-zinc-900 dark:text-white leading-none mt-1">
+          <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
             {marksData?.cgpa?.creditsEarned ? Number(marksData.cgpa.creditsEarned) : "—"}
           </p>
           <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none">Total Degree</span>

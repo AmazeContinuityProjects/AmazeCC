@@ -33,11 +33,10 @@ type settings = {
   attendancePercentageOrString: "percentage" | "str";
   currSemesterID: string;
   calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
-  loadingScreen: boolean;
   isDayscholarWithBus: boolean;
-  hideProfileImageOutsideInfo?: boolean;
   showGpa?: boolean;
   showProfilePhoto?: boolean;
+  blurGrades?: boolean;
   colorPalette?: string;
   customPalette?: {
     accent: string;
@@ -61,7 +60,6 @@ type settings = {
   syncAdditionalLearning?: boolean;
   syncProject?: boolean;
   syncProjectCourse?: boolean;
-  promoteCabShare?: boolean;
   pinnedNavTabs?: string[];
 }
 
@@ -78,11 +76,10 @@ const defaultSettings: settings = {
   attendancePercentageOrString: "percentage",
   currSemesterID: config.semesterIDs[config.semesterIDs.length - 2],
   calendarType: "ALL",
-  loadingScreen: false,
   isDayscholarWithBus: false,
-  hideProfileImageOutsideInfo: false,
   showGpa: false,
-  showProfilePhoto: false,
+  showProfilePhoto: true,
+  blurGrades: false,
   colorPalette: "default",
   customPalette: {
     accent: "#0ea5e9",
@@ -106,7 +103,6 @@ const defaultSettings: settings = {
   syncAdditionalLearning: true,
   syncProject: true,
   syncProjectCourse: true,
-  promoteCabShare: false,
   pinnedNavTabs: []
 };
 
@@ -1343,9 +1339,9 @@ export default function LoginPage() {
     };
     toggle("Decimal Values in Attendance", "decimalValues", "Settings", "🔢");
     toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
-    toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
-    toggle("Hide Profile Image Outside My Info", "hideProfileImageOutsideInfo", "Settings", "👤");
+    toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
+    toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
 
     [
       { id: "light", label: "Light", icon: "☀️" },

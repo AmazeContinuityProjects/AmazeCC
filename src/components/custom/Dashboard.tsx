@@ -1116,14 +1116,7 @@ export default function DashboardContent({
                     return next;
                   });
                 }}
-                loadingScreen={settings.loadingScreen}
-                setLoadingScreen={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, loadingScreen: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
+
                 isDayscholarWithBus={settings.isDayscholarWithBus}
                 setIsDayscholarWithBus={(val: boolean) => {
                   setSettings(prev => {
