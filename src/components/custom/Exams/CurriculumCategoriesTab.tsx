@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { RefreshCcw, BookOpen, Award, ChevronDown, ChevronRight, GraduationCap, Layers, Download, Loader2 } from "lucide-react";
+import { RefreshCcw, BookOpen, Award, ChevronDown, ChevronRight, Layers, Download, Loader2 } from "lucide-react";
 import { storage } from "@/lib/storage";
 
 interface Creds {
