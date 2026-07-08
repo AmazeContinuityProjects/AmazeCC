@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { API_BASE, loginToEventHub } from "../Main";
+import { clearEventHubSession } from "@/lib/event-hub";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
@@ -96,6 +97,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       setEvents(Array.from(uniqueEventsMap.values()));
     } catch (err: any) {
       setError(err.message || "An error occurred");
+      clearEventHubSession();
     } finally {
       setLoading(false);
     }
@@ -173,6 +175,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       setPreviewData(data);
     } catch (err: any) {
       setPreviewError(err.message || "Failed to load preview");
+      clearEventHubSession();
     } finally {
       setPreviewLoading(false);
     }
@@ -252,6 +255,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       }
     } catch (err: any) {
       setRegisteredError(err.message || "An error occurred");
+      clearEventHubSession();
     } finally {
       setLoadingRegistered(false);
     }
