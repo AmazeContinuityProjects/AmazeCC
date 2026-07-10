@@ -91,7 +91,9 @@ export default function StatsCards({
     {
       key: "credits",
       label: "Credits Earned",
-      value: Number(marksData?.cgpa?.creditsEarned) + Number(marksData?.cgpa?.nonGradedRequirement || 0),
+      value: isNaN(Number(marksData?.cgpa?.creditsEarned))
+        ? "0"
+        : (Number(marksData?.cgpa?.creditsEarned) + Number(marksData?.cgpa?.nonGradedRequirement || 0)),
       onClick: () => setGradesDisplayIsOpen(true),
       show: true,
     },
@@ -111,7 +113,7 @@ export default function StatsCards({
             </h2>
             {card.customContent || (
               <p className="text-3xl font-bold text-gray-900  dark:text-gray-100 mt-2 select-none">
-                {card.value}
+                {Number.isNaN(card.value) ? "0" : card.value}
               </p>
             )}
           </div>

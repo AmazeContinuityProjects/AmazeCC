@@ -44,6 +44,7 @@ import {
   Car,
   CarTaxiFront,
   MoreHorizontal,
+  Pin,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -820,9 +821,7 @@ export default function NavigationTabs({
           { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
         ]
       }
-    ];
-
-    const academicsItemsMobile = allSearchableItems.filter(item => item.group === "Academics");
+    ];    const academicsItemsMobile = allSearchableItems.filter(item => item.group === "Academics");
     const hostelItemsMobile = allSearchableItems.filter(item => item.group === "Hostel");
 
     // Filter items based on search query
@@ -840,6 +839,32 @@ export default function NavigationTabs({
       transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
       more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
       profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+    };
+
+    const getTabIdFromLabel = (label: string) => {
+      const lower = label.toLowerCase();
+      if (lower === "attendance") return "attendance";
+      if (lower === "academics overview" || lower === "course dashboard" || lower === "academics") return "academics";
+      if (lower === "hostel payments" || lower === "payments") return "payments";
+      if (lower === "libraries" || lower === "question bank") return "libraries";
+      if (lower === "cab share") return "cabshare";
+      if (lower === "transport") return "transport";
+      return null;
+    };
+
+    const togglePin = (tabId: string) => {
+      const current = settings?.pinnedNavTabs ?? [];
+      const isPinned = current.includes(tabId);
+      const atLimit = !isPinned && current.length >= 4;
+      if (atLimit) return;
+      const next = isPinned
+        ? current.filter((id: string) => id !== tabId)
+        : [...current, tabId];
+      setSettings((prev: any) => {
+        const updated = { ...prev, pinnedNavTabs: next };
+        localStorage.setItem("settings", JSON.stringify(updated));
+        return updated;
+      });
     };
 
     const rawNavItems: any[] = [
@@ -860,6 +885,7 @@ export default function NavigationTabs({
         id: "search",
         icon: <Search className="h-5 w-5 stroke-[2]" />,
         label: "Search",
+        isActive: false,
         onClick: openCommandPalette,
       });
     } else {
@@ -891,11 +917,56 @@ export default function NavigationTabs({
       },
     });
 
-    const isCompact = rawNavItems.length > 5 || pinnedTabs.length >= 2;
-
     return (
       <>
-        <MobileBottomNav items={rawNavItems} compact={isCompact} />
+        {/* Sleek Floating Pill Bottom Navigation Bar */}
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around">
+          {rawNavItems.map((item) => {
+            const isActive = item.isActive;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={item.onClick}
+                whileTap={{ scale: 0.92 }}
+                className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
+              >
+                {/* Floating pill background highlight that slides smoothly */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeMobileTabPill"
+                    className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
+                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                  />
+                )}
+
+                {/* Relative container to raise icon and text above active highlight */}
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  {/* Icon with bounce & scale effect on active */}
+                  <motion.div 
+                    animate={isActive ? { scale: 1.15, y: -2 } : { scale: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    className={`p-1 transition-colors duration-300 ${
+                      isActive 
+                        ? "text-info" 
+                        : "text-zinc-400 dark:text-zinc-550 hover:text-zinc-650 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    {item.icon}
+                  </motion.div>
+
+                  {/* Tab Title */}
+                  <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${
+                    isActive 
+                      ? "text-info font-black" 
+                      : "text-zinc-400 dark:text-zinc-555"
+                  }`}>
+                    {item.label}
+                  </span>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
 
         <AppLibrary
           open={isAppLibraryOpen}
@@ -909,7 +980,7 @@ export default function NavigationTabs({
         >
           {mobilePanel === "primary" && (
             <div className="flex items-center gap-1.5 px-1 pb-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Active Sem:</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">Active Sem:</span>
               <div className="relative flex items-center">
                 <select
                   value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
@@ -937,21 +1008,53 @@ export default function NavigationTabs({
               </div>
             ) : (
               <div className="space-y-2">
-                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Search Results</h3>
+                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550">Search Results</h3>
                 <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                   {filteredSearchItems.map(item => {
                     const Icon = item.icon;
+                    const tabId = getTabIdFromLabel(item.label);
+                    const pinned = settings?.pinnedNavTabs ?? [];
+                    const isPinned = tabId ? pinned.includes(tabId) : false;
+                    const atLimit = !isPinned && pinned.length >= 4;
+
                     return (
-                      <button
+                      <div
                         key={item.label}
-                        onClick={() => { item.action(); setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
-                        className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                        className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                       >
-                        <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
-                          <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                        </div>
-                        <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
-                      </button>
+                        <button
+                          onClick={() => { item.action(); setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
+                          className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                        >
+                          <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
+                            <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                            <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">{item.group} category</span>
+                          </div>
+                        </button>
+
+                        {tabId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(tabId);
+                            }}
+                            disabled={atLimit}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              isPinned
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                                : atLimit
+                                  ? "opacity-20 cursor-not-allowed"
+                                  : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-550 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                            }`}
+                            title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                          >
+                            <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -960,25 +1063,64 @@ export default function NavigationTabs({
           ) : mobilePanel === "primary" ? (
             primaryGroups.map(group => (
               <div key={group.name} className="space-y-2">
-                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{group.name}</h3>
+                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550">{group.name}</h3>
                 <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                   {group.items.map(item => {
                     const Icon = item.icon;
                     const isPanelTrigger = item.type === "panel";
+                    const tabId = getTabIdFromLabel(item.label);
+                    const pinned = settings?.pinnedNavTabs ?? [];
+                    const isPinned = tabId ? pinned.includes(tabId) : false;
+                    const atLimit = !isPinned && pinned.length >= 4;
+
                     return (
-                      <button
+                      <div
                         key={item.label}
-                        onClick={() => { item.action(); if (!isPanelTrigger) setIsAppLibraryOpen(false); }}
-                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                        className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                       >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
-                            <Icon className="h-4.5 w-4.5 stroke-[2]" />
+                        <button
+                          onClick={() => { item.action(); if (!isPanelTrigger) setIsAppLibraryOpen(false); }}
+                          className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                        >
+                          <div className={`rounded-xl p-2 shrink-0 transition-all ${
+                            group.name === "Study"
+                              ? "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400"
+                              : group.name === "Campus"
+                                ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                          }`}>
+                            <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
                           </div>
-                          <span className="truncate text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
-                        </div>
-                        {isPanelTrigger && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />}
-                      </button>
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                            <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
+                              {group.name === "Study" ? "Academic trackers & schedule" : group.name === "Campus" ? "Campus services" : "Social & utilities"}
+                            </span>
+                          </div>
+                        </button>
+
+                        {tabId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(tabId);
+                            }}
+                            disabled={atLimit}
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              isPinned
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-655 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                                : atLimit
+                                  ? "opacity-20 cursor-not-allowed"
+                                  : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                            }`}
+                            title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                          >
+                            <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                          </button>
+                        )}
+                        
+                        {isPanelTrigger && !tabId && <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />}
+                      </div>
                     );
                   })}
                 </div>
@@ -989,17 +1131,50 @@ export default function NavigationTabs({
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                 {academicsItemsMobile.map(item => {
                   const Icon = item.icon;
+                  const cleanLabel = item.label.replace("Academics ", "");
+                  const tabId = getTabIdFromLabel(item.label);
+                  const pinned = settings?.pinnedNavTabs ?? [];
+                  const isPinned = tabId ? pinned.includes(tabId) : false;
+                  const atLimit = !isPinned && pinned.length >= 4;
+
                   return (
-                    <button
+                    <div
                       key={item.label}
-                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
-                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                      className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                     >
-                      <div className="rounded-xl bg-purple-50 p-2 text-purple-600 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
-                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                      </div>
-                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Academics ", "")}</span>
-                    </button>
+                      <button
+                        onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                      >
+                        <div className="rounded-xl bg-purple-50 p-2 text-purple-655 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
+                          <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
+                          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Academics Tracker</span>
+                        </div>
+                      </button>
+
+                      {tabId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePin(tabId);
+                          }}
+                          disabled={atLimit}
+                          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isPinned
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                              : atLimit
+                                ? "opacity-20 cursor-not-allowed"
+                                : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-650 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                          }`}
+                          title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -1009,34 +1184,110 @@ export default function NavigationTabs({
               <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                 {hostelItemsMobile.map(item => {
                   const Icon = item.icon;
+                  const cleanLabel = item.label.replace("Hostel ", "");
+                  const tabId = getTabIdFromLabel(item.label);
+                  const pinned = settings?.pinnedNavTabs ?? [];
+                  const isPinned = tabId ? pinned.includes(tabId) : false;
+                  const atLimit = !isPinned && pinned.length >= 4;
+
                   return (
-                    <button
+                    <div
                       key={item.label}
-                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
-                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
+                      className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                     >
-                      <div className="rounded-xl bg-amber-50 p-2 text-amber-600 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
-                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                      </div>
-                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Hostel ", "")}</span>
-                    </button>
+                      <button
+                        onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
+                        className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                      >
+                        <div className="rounded-xl bg-amber-50 p-2 text-amber-600 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
+                          <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
+                          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Hostel Hub</span>
+                        </div>
+                      </button>
+
+                      {tabId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePin(tabId);
+                          }}
+                          disabled={atLimit}
+                          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isPinned
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                              : atLimit
+                                ? "opacity-20 cursor-not-allowed"
+                                : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-655 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                          }`}
+                          title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </div>
           )}
 
+          {/* Quick Customize Pinned Tabs Block */}
+          <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
+            <div className="flex items-center justify-between">
+              <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Quick Pin tabs (Max 4)</h4>
+              <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
+                {(settings?.pinnedNavTabs ?? []).length}/4 selected
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: "attendance", label: "Attendance" },
+                { id: "academics", label: "Academics" },
+                { id: "payments", label: "Payments" },
+                { id: "libraries", label: "Libraries" },
+                { id: "cabshare", label: "Cab Share" },
+                { id: "transport", label: "Transport" },
+                { id: "more", label: "More" },
+                { id: "profile", label: "Profile" },
+              ].map(tab => {
+                const pinned = settings?.pinnedNavTabs ?? [];
+                const isPinned = pinned.includes(tab.id);
+                const atLimit = !isPinned && pinned.length >= 4;
+                return (
+                  <button
+                    key={tab.id}
+                    disabled={atLimit}
+                    onClick={() => togglePin(tab.id)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10.5px] font-black border transition-all cursor-pointer select-none ${
+                      isPinned
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                        : atLimit
+                          ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-650 cursor-not-allowed opacity-40"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+                    }`}
+                  >
+                    {isPinned ? "✓ " : "+ "}
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
-            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Interface Theme</h4>
+            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 font-outfit">Interface Theme</h4>
             <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
               {["light", "dark", "system"].map(t => (
                 <button
                   key={t}
                   onClick={() => handleThemeChange(t)}
-                  className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all ${
+                  className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
                     theme === t
                       ? "bg-white text-info shadow-xs dark:bg-black"
-                      : "text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white"
+                      : "text-gray-500 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   {t === "light" && <Sun className="h-3.5 w-3.5" />}
