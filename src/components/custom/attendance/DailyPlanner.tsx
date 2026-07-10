@@ -207,7 +207,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
                 className={`flex flex-col items-center min-w-[68px] p-2 rounded-xl border transition-all ${
                   isActive
                     ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                    : "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-855 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
+                    : "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
                 }`}
               >
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-blue-100" : "text-gray-400 dark:text-gray-500"}`}>
@@ -227,7 +227,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
       {/* Timeline */}
       {!dayHasClasses ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-855 rounded-2xl py-12">
+        <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-800 rounded-2xl py-12">
           <span className="text-4xl mb-3" role="img" aria-label="party">🎉</span>
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Classes Scheduled</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mt-1">
@@ -235,13 +235,13 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
           </p>
         </div>
       ) : (
-        <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100 dark:border-gray-855 py-2">
+        <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100 dark:border-gray-800 py-2">
           {scheduleData.map((item: any, index: number) => {
             if (item.type === "free") {
               return (
                 <div key={index} className="relative">
                   <div className="absolute left-[-21px] sm:left-[-29px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-750" />
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-855 bg-gray-55/35 dark:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20">
+                  <div className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-55/35 dark:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20">
                     <div className="p-2.5 rounded-lg bg-gray-100 dark:bg-slate-850 text-gray-500 dark:text-gray-400">
                       <Coffee size={16} />
                     </div>
@@ -296,7 +296,9 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
             const thresholdPct = isDayscholarWithBus ? 85 : 75;
 
-            let borderStyle = isLab ? "border-l-4 border-l-purple-500" : "border-l-4 border-l-blue-500";
+            let borderStyle = isLab 
+              ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 
+              : "border-l-4 border-l-blue-500 dark:border-l-blue-500";
             let cardStyle = "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800";
             let dotColor = isLab ? "bg-purple-500" : "bg-blue-500";
 
@@ -304,7 +306,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               cardStyle = "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
               dotColor = "bg-amber-500 ring-4 ring-amber-400/35";
             } else if (isCompleted) {
-              cardStyle = "bg-white dark:bg-[#060606] border-gray-100 dark:border-gray-855 opacity-60";
+              cardStyle = "bg-white dark:bg-[#060606] border-gray-100 dark:border-gray-800 opacity-60";
               dotColor = "bg-emerald-500";
             }
 

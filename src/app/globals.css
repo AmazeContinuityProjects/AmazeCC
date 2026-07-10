@@ -236,9 +236,9 @@ input, textarea, [contenteditable] {
 }
 
 /* ── Dark Theme Distinguished Cards Override ── */
-.dark div.rounded-2xl.border,
-.dark div.rounded-xl.border,
-.dark div.rounded-lg.border,
+.dark div.rounded-2xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
+.dark div.rounded-xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
+.dark div.rounded-lg.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
 .dark .solid-card,
 .dark .solid-card {
   background-color: var(--surface) !important;
