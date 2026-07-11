@@ -22,6 +22,10 @@ export default function PushNotificationManager() {
     const [isSaving, setIsSaving] = useState(false)
     const [userID, setUserID] = useState<string | null>(null)
 
+    // Class Reminders State
+    const [classRemindersEnabled, setClassRemindersEnabled] = useState(false)
+    const [classReminderOffset, setClassReminderOffset] = useState(15)
+
     useEffect(() => {
         try {
             const raw = localStorage.getItem("IDs");
@@ -32,6 +36,12 @@ export default function PushNotificationManager() {
         } catch {
             setUserID(null);
         }
+        
+        // Load class reminder settings
+        const enabled = localStorage.getItem("classRemindersEnabled") === "true";
+        const offset = parseInt(localStorage.getItem("classReminderOffset") || "15", 10);
+        setClassRemindersEnabled(enabled);
+        setClassReminderOffset(offset);
     }, [])
 
     useEffect(() => {
@@ -188,6 +198,43 @@ export default function PushNotificationManager() {
         }
     }, [subscription, userID, vitolReminderDay, vitolReminderTime])
 
+    const updateClassReminders = async (enabled: boolean, offset: number) => {
+        try {
+            const { LocalNotifications } = await import("@capacitor/local-notifications");
+            if (!enabled) {
+                const pending = await LocalNotifications.getPending();
+                if (pending.notifications.length > 0) {
+                    await LocalNotifications.cancel({ notifications: pending.notifications });
+                }
+                return;
+            }
+            
+            const attRaw = localStorage.getItem("attendance");
+            if (attRaw) {
+                const attendance = JSON.parse(attRaw);
+                const { scheduleClassNotifications } = await import("@/lib/notifications");
+                await scheduleClassNotifications(attendance, offset);
+            }
+        } catch (e) {
+            console.error("Failed to update class reminders", e);
+        }
+    };
+
+    const handleClassReminderToggle = (checked: boolean) => {
+        setClassRemindersEnabled(checked);
+        localStorage.setItem("classRemindersEnabled", String(checked));
+        updateClassReminders(checked, classReminderOffset);
+    };
+
+    const handleOffsetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = Number(e.target.value);
+        setClassReminderOffset(val);
+        localStorage.setItem("classReminderOffset", String(val));
+        if (classRemindersEnabled) {
+            updateClassReminders(true, val);
+        }
+    };
+
     if (!isSupported) {
         return <p>Push notifications are not supported in this browser.</p>
     }
@@ -270,6 +317,43 @@ export default function PushNotificationManager() {
                     </div>
                 </div>
             )}
+
+            {/* Class Reminders (Local Device Only) */}
+            <div className="mt-3 flex flex-col gap-4 p-4 border border-gray-200  dark:border-gray-800 rounded-xl bg-gray-50  dark:bg-black/40">
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-800  dark:text-gray-100">
+                                Class Reminders
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Get local alerts on this device before your class starts.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={classRemindersEnabled}
+                            onCheckedChange={handleClassReminderToggle}
+                        />
+                    </div>
+
+                    {classRemindersEnabled && (
+                        <div className="flex flex-col gap-2 p-3 bg-white  dark:bg-black/50 rounded-lg border border-gray-100  dark:border-gray-800 mt-2">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alert me</label>
+                            <select 
+                                className="text-sm p-2 rounded-md border border-gray-300  dark:border-gray-700 bg-transparent dark:text-gray-200"
+                                value={classReminderOffset}
+                                onChange={handleOffsetChange}
+                            >
+                                <option value={5}>5 minutes before</option>
+                                <option value={10}>10 minutes before</option>
+                                <option value={15}>15 minutes before</option>
+                                <option value={30}>30 minutes before</option>
+                                <option value={60}>1 hour before</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

@@ -388,6 +388,11 @@ export default function LoginPage() {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     setODhoursData(formattedList);
+
+    if (typeof localStorage !== 'undefined' && localStorage.getItem("classRemindersEnabled") === "true") {
+      const offset = parseInt(localStorage.getItem("classReminderOffset") || "15", 10);
+      import("@/lib/notifications").then(m => m.scheduleClassNotifications(attendance.attendance || [], offset));
+    }
   }
 
   // --- Effects ---
