@@ -856,7 +856,7 @@ export default function MobileHome({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/25 text-emerald-605 dark:text-emerald-450 rounded-md">
                     Active Today
                   </span>
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-105 mt-1 font-outfit">
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
                     Laundry slot is active for your room range today!
                   </p>
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-medium">
@@ -868,7 +868,7 @@ export default function MobileHome({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-500/25 text-sky-605 dark:text-sky-400 rounded-md">
                     Upcoming Slot
                   </span>
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-105 mt-1 font-outfit">
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
                     Next slot: Day {laundryStatus.nextSlot.Date}
                   </p>
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-medium">
@@ -877,13 +877,13 @@ export default function MobileHome({
                 </div>
               ) : (
                 <div>
-                  <p className="text-xs font-bold text-zinc-505">No scheduled slots found.</p>
-                  <p className="text-[10px] text-zinc-450 dark:text-zinc-550 mt-0.5">Check for block updates in VTOP.</p>
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">No scheduled slots found.</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Check for block updates in VTOP.</p>
                 </div>
               )
             ) : (
               <div>
-                <p className="text-xs font-bold text-zinc-505">Loading laundry schedule...</p>
+                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Loading laundry schedule...</p>
               </div>
             )}
           </div>
