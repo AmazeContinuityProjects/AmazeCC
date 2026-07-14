@@ -397,7 +397,9 @@ export default function NavigationTabs({
   );
 
   const tabIcons = useMemo<Record<string, { icon: React.ReactNode; label: string }>>(() => ({
-    attendance: { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
+    attendance: activeAttendanceSubTab === "calendar"
+      ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Calendar" }
+      : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
     academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
     payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
     libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
@@ -405,7 +407,7 @@ export default function NavigationTabs({
     transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
     more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
     profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
-  }), []);
+  }), [activeAttendanceSubTab]);
 
   const togglePin = useCallback((tabId: string) => {
     const current = settings?.pinnedNavTabs ?? [];
