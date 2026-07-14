@@ -841,7 +841,7 @@ export default function NavigationTabs({
     return (
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around">
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
@@ -851,12 +851,14 @@ export default function NavigationTabs({
                 whileTap={{ scale: 0.95 }}
                 className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
               >
-                {/* Floating pill background highlight that slides smoothly */}
+                {/* Floating pill background highlight that fades and scales in on active */}
                 {isActive && (
                   <motion.div
-                    layoutId="activeMobileTabPill"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
                     className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                    transition={{ type: "tween", ease: "easeInOut", duration: 0.2 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                   />
                 )}
 
