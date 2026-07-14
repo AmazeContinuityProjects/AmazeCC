@@ -94,6 +94,17 @@ function formatSemesterName(semId: string): string {
   return `${termName} ${year1}-${year2}`;
 }
 
+function getTabIdFromLabel(label: string): string | null {
+  const lower = label.toLowerCase();
+  if (lower === "attendance") return "attendance";
+  if (lower === "academics overview" || lower === "course dashboard" || lower === "academics") return "academics";
+  if (lower === "hostel payments" || lower === "payments") return "payments";
+  if (lower === "libraries" || lower === "question bank") return "libraries";
+  if (lower === "cab share") return "cabshare";
+  if (lower === "transport") return "transport";
+  return null;
+}
+
 const navButtonBase =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40";
 
@@ -293,6 +304,188 @@ export default function NavigationTabs({
   const toggleRailPopover = useCallback((groupId: string) => {
     setActiveRailGroup(current => (current === groupId ? null : groupId));
   }, []);
+
+  // Memoized variables for mobile navigation to improve performance
+  const allSearchableItems = useMemo(() => [
+    { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+    { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+    
+    { label: "Academics Overview", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
+    { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
+    { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
+    { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
+    { label: "CGPA Predictor", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("predictor"); } },
+    { label: "Faculty Explorer", group: "Academics", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } },
+    { label: "Question Bank", group: "Academics", icon: Library, action: () => { selectTab("academics"); setActiveSubTab("qbank"); } },
+    { label: "Arrear Management", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("arrear"); } },
+    { label: "Makeup & Compre", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("makeup-compre"); } },
+    { label: "Course Options", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-mgmt"); } },
+    { label: "Projects", group: "Academics", icon: LayoutGrid, action: () => { selectTab("academics"); setActiveSubTab("projects"); } },
+    { label: "Wishlist", group: "Academics", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } },
+    
+    { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
+    { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
+    { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
+    { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
+    { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
+    { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
+    
+    { label: "Cab Share", group: "Campus", icon: CarTaxiFront, action: () => { selectTab("cabshare"); } },
+    { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
+    { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
+    { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
+    
+    { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+    { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+    { label: "Club Hub", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
+    { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+    
+    { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+    { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+    { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
+    { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
+  ], [selectTab, setActiveAttendanceSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+
+  const primaryGroups = useMemo(() => [
+    {
+      name: "Study",
+      items: [
+        { label: "Attendance", icon: CalendarCheck, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+        { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+        { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
+      ]
+    },
+    {
+      name: "Campus",
+      items: [
+        { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => selectTab("cabshare") },
+        { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
+        { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
+        ...(isHosteller === true || residentialStatus === "hosteller" 
+          ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
+          : [{ label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") }])
+      ]
+    },
+    {
+      name: "Tools",
+      items: [
+        { label: "Social", icon: User, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+        { label: "FFCS Planner", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+        { label: "Event Hub", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+        { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } }
+      ]
+    },
+    {
+      name: "Account",
+      items: [
+        { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+        { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+        { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
+        { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
+      ]
+    }
+  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+
+  const academicsItemsMobile = useMemo(() => 
+    allSearchableItems.filter(item => item.group === "Academics"),
+    [allSearchableItems]
+  );
+
+  const hostelItemsMobile = useMemo(() => 
+    allSearchableItems.filter(item => item.group === "Hostel"),
+    [allSearchableItems]
+  );
+
+  const tabIcons = useMemo<Record<string, { icon: React.ReactNode; label: string }>>(() => ({
+    attendance: { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
+    academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
+    payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
+    libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
+    cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
+    transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
+    more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
+    profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+  }), []);
+
+  const togglePin = useCallback((tabId: string) => {
+    const current = settings?.pinnedNavTabs ?? [];
+    const isPinned = current.includes(tabId);
+    const atLimit = !isPinned && current.length >= 4;
+    if (atLimit) return;
+    const next = isPinned
+      ? current.filter((id: string) => id !== tabId)
+      : [...current, tabId];
+    setSettings((prev: any) => {
+      const updated = { ...prev, pinnedNavTabs: next };
+      localStorage.setItem("settings", JSON.stringify(updated));
+      return updated;
+    });
+  }, [settings, setSettings]);
+
+  const filteredSearchItems = useMemo(() => 
+    librarySearchQuery
+      ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
+      : [],
+    [librarySearchQuery, allSearchableItems]
+  );
+
+  const rawNavItems = useMemo(() => {
+    const pinnedTabs = settings?.pinnedNavTabs ?? [];
+    const rawItems: any[] = [
+      {
+        id: "home",
+        icon: <Home className="h-5 w-5 stroke-[2]" />,
+        label: "Home",
+        isActive: activeTab === "home" && !isAppLibraryOpen,
+        onClick: () => {
+          setIsAppLibraryOpen(false);
+          selectTab("home");
+        },
+      },
+    ];
+
+    if (pinnedTabs.length === 0) {
+      rawItems.push({
+        id: "search",
+        icon: <Search className="h-5 w-5 stroke-[2]" />,
+        label: "Search",
+        isActive: false,
+        onClick: openCommandPalette,
+      });
+    } else {
+      pinnedTabs.forEach((tabId: string) => {
+        const t = tabIcons[tabId];
+        if (t) {
+          rawItems.push({
+            id: tabId,
+            icon: t.icon,
+            label: t.label,
+            isActive: activeTab === tabId && !isAppLibraryOpen,
+            onClick: () => {
+              setIsAppLibraryOpen(false);
+              selectTab(tabId);
+              if (tabId === "attendance") {
+                setActiveAttendanceSubTab("attendance");
+              }
+            },
+          });
+        }
+      });
+    }
+
+    rawItems.push({
+      id: "modules",
+      icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
+      label: "Modules",
+      isActive: isAppLibraryOpen,
+      onClick: () => {
+        setMobilePanel("primary");
+        setIsAppLibraryOpen(prev => !prev);
+      },
+    });
+
+    return rawItems;
+  }, [settings?.pinnedNavTabs, activeTab, isAppLibraryOpen, selectTab, openCommandPalette, tabIcons, setMobilePanel, setIsAppLibraryOpen, setActiveAttendanceSubTab]);
 
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
   const sidebarActiveIconStyles = "text-info font-semibold";
@@ -742,7 +935,7 @@ export default function NavigationTabs({
   ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
   const renderMobileNav = () => {
-    const allSearchableItems = [
+    const allSearchableItems = useMemo(() => [
       { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
       { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
       
@@ -780,10 +973,9 @@ export default function NavigationTabs({
       { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
       { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
       { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
-    ];
+    ], [selectTab, setActiveAttendanceSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
 
-    // Primary mobile structure mirroring desktop groups
-    const primaryGroups = [
+    const primaryGroups = useMemo(() => [
       {
         name: "Study",
         items: [
@@ -821,8 +1013,10 @@ export default function NavigationTabs({
           { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
         ]
       }
-    ];    const academicsItemsMobile = allSearchableItems.filter(item => item.group === "Academics");
-    const hostelItemsMobile = allSearchableItems.filter(item => item.group === "Hostel");
+    ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+
+    const academicsItemsMobile = useMemo(() => allSearchableItems.filter(item => item.group === "Academics"), [allSearchableItems]);
+    const hostelItemsMobile = useMemo(() => allSearchableItems.filter(item => item.group === "Hostel"), [allSearchableItems]);
 
     // Filter items based on search query
     const filteredSearchItems = librarySearchQuery
@@ -920,14 +1114,14 @@ export default function NavigationTabs({
     return (
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around">
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
               <motion.button
                 key={item.id}
                 onClick={item.onClick}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.95 }}
                 className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
               >
                 {/* Floating pill background highlight that slides smoothly */}
@@ -935,20 +1129,20 @@ export default function NavigationTabs({
                   <motion.div
                     layoutId="activeMobileTabPill"
                     className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                    transition={{ type: "tween", ease: "easeInOut", duration: 0.2 }}
                   />
                 )}
 
                 {/* Relative container to raise icon and text above active highlight */}
                 <div className="relative z-10 flex flex-col items-center justify-center">
-                  {/* Icon with bounce & scale effect on active */}
+                  {/* Icon with scale effect on active */}
                   <motion.div 
-                    animate={isActive ? { scale: 1.15, y: -2 } : { scale: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    animate={isActive ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
+                    transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
                     className={`p-1 transition-colors duration-300 ${
                       isActive 
                         ? "text-info" 
-                        : "text-zinc-400 dark:text-zinc-550 hover:text-zinc-650 dark:hover:text-zinc-300"
+                        : "text-zinc-400 dark:text-zinc-550 hover:text-zinc-655 dark:hover:text-zinc-300"
                     }`}
                   >
                     {item.icon}
@@ -977,6 +1171,7 @@ export default function NavigationTabs({
           onBack={() => setMobilePanel("primary")}
           searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
           onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
+          className="!backdrop-blur-none"
         >
           {mobilePanel === "primary" && (
             <div className="flex items-center gap-1.5 px-1 pb-3">
@@ -1004,7 +1199,7 @@ export default function NavigationTabs({
           {librarySearchQuery ? (
             filteredSearchItems.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
+                <p className="text-sm font-semibold text-gray-400 dark:text-gray-550">No modules found matching "{librarySearchQuery}"</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1047,7 +1242,7 @@ export default function NavigationTabs({
                                 ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
                                 : atLimit
                                   ? "opacity-20 cursor-not-allowed"
-                                  : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-550 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                                  : "border-transparent text-zinc-300 dark:text-zinc-550 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
                             }`}
                             title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
                           >
@@ -1237,7 +1432,7 @@ export default function NavigationTabs({
           {/* Quick Customize Pinned Tabs Block */}
           <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
             <div className="flex items-center justify-between">
-              <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Quick Pin tabs (Max 4)</h4>
+              <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550 font-outfit">Quick Pin tabs (Max 4)</h4>
               <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
                 {(settings?.pinnedNavTabs ?? []).length}/4 selected
               </span>
@@ -1278,7 +1473,7 @@ export default function NavigationTabs({
           </div>
 
           <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
-            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 font-outfit">Interface Theme</h4>
+            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">Interface Theme</h4>
             <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
               {["light", "dark", "system"].map(t => (
                 <button
