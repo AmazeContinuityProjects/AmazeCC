@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, CheckCircle2 } from 'lucide-react';
-import changelogData from '../../data/changelog.json';
+import buildInfo from '../../data/buildInfo.json';
 
 export default function ChangelogModal() {
     const [isOpen, setIsOpen] = useState(false);
-    const latestVersion = changelogData[0];
 
     useEffect(() => {
         // Wait a bit so we don't spam the user immediately on load
         const timer = setTimeout(() => {
-            const lastSeenVersion = localStorage.getItem('lastSeenChangelogVersion');
-            if (lastSeenVersion !== latestVersion.version) {
+            const lastSeenHash = localStorage.getItem('lastSeenCommitHash');
+            if (lastSeenHash !== buildInfo.commitHash) {
                 setIsOpen(true);
-                localStorage.setItem('lastSeenChangelogVersion', latestVersion.version);
+                localStorage.setItem('lastSeenCommitHash', buildInfo.commitHash);
             }
         }, 1500);
 
         return () => clearTimeout(timer);
-    }, [latestVersion.version]);
+    }, []);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -53,15 +52,15 @@ export default function ChangelogModal() {
                             <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">
                                 What's New!
                             </h3>
-                            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                                Version {latestVersion.version}
+                            <p className="text-[10px] font-bold text-blue-650 dark:text-blue-400">
+                                Build #{buildInfo.buildNumber} • {buildInfo.commitHash}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-850 max-h-[30vh] md:max-h-[250px]">
                         <div className="space-y-2">
-                            {latestVersion.changes.map((change, idx) => (
+                            {buildInfo.changes.map((change, idx) => (
                                 <motion.div 
                                     key={idx}
                                     initial={{ opacity: 0, x: -8 }}

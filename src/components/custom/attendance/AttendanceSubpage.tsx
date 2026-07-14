@@ -327,7 +327,7 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
     const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
 
     // Process History
-    const historyList = a.viewLink || [];
+    const historyList = Array.isArray(a.viewLink) ? a.viewLink : [];
     const filteredHistory = historyList.filter(d => {
         if (filter === "All") return true;
         return d.status.toLowerCase() === filter.toLowerCase();

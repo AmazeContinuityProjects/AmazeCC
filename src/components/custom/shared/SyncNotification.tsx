@@ -204,7 +204,7 @@ export default function SyncNotification({
                   <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 absolute" strokeWidth={3} />
                 ) : (
                   <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 absolute">
-                    {Math.round(progress)}%
+                    {Math.min(100, Math.round(progress))}%
                   </span>
                 )}
               </div>
@@ -297,7 +297,7 @@ export default function SyncNotification({
                   <div className="w-full space-y-2 bg-slate-50 dark:bg-[var(--surface-secondary)] p-4 rounded-[16px] border border-slate-200/50 dark:border-[var(--border-muted)] shadow-sm">
                     <div className="flex justify-between items-baseline text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">
                       <span>Transfer Rate</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.round(progress)}%</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.min(100, Math.round(progress))}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
                       <motion.div
