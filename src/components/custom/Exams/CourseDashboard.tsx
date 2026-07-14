@@ -366,7 +366,10 @@ export default function CourseDashboard({
     const targetCode = localStorage.getItem("course_dashboard_target");
     const targetTab = localStorage.getItem("course_dashboard_tab");
     if (targetCode) {
-      setSelectedCode(targetCode);
+      const isLab = targetCode.endsWith("(L)") || targetCode.endsWith("(P)");
+      const cleanCode = targetCode.replace(/\([LPT]\)$/i, "").trim();
+      setSelectedCode(cleanCode);
+      setEmbeddedScope(isLab ? "lab" : "theory");
       if (targetTab) {
         setInnerTab(targetTab);
       }
