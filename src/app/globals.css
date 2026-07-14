@@ -322,7 +322,6 @@ input, textarea, [contenteditable] {
   /* GPU Hardware accelerate the mobile floating bottom navigation bar */
   .mobile-bottom-nav-bar {
     will-change: transform;
-    transform: translate3d(-50%, 0, 0) !important;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
