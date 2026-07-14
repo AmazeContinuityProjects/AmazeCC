@@ -366,7 +366,10 @@ export default function CourseDashboard({
     const targetCode = localStorage.getItem("course_dashboard_target");
     const targetTab = localStorage.getItem("course_dashboard_tab");
     if (targetCode) {
-      setSelectedCode(targetCode);
+      const isLab = targetCode.endsWith("(L)") || targetCode.endsWith("(P)");
+      const cleanCode = targetCode.replace(/\([LPT]\)$/i, "").trim();
+      setSelectedCode(cleanCode);
+      setEmbeddedScope(isLab ? "lab" : "theory");
       if (targetTab) {
         setInnerTab(targetTab);
       }
@@ -1085,7 +1088,7 @@ export default function CourseDashboard({
   /* ---- ATTENDANCE TAB HELPERS ---- */
   const thresholdPct = isDayscholarWithBus ? 85 : 75;
   const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
-  const historyList = attendanceItem?.viewLink || [];
+  const historyList = Array.isArray(attendanceItem?.viewLink) ? attendanceItem.viewLink : [];
   const filteredHistory = historyList.filter((d: any) => {
     if (attFilter === "All") return true;
     return d.status.toLowerCase() === attFilter.toLowerCase();

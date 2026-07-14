@@ -5,7 +5,9 @@
   "license": "GPL-3.0-only",
   "scripts": {
     "test": "vitest run",
+    "predev": "node scripts/generate-build-info.js",
     "dev": "next dev --webpack --experimental-https -p 3001",
+    "prebuild": "node scripts/generate-build-info.js",
     "build": "next build --webpack",
     "start": "next start -p 3001",
     "lint": "eslint",

@@ -327,7 +327,7 @@ export default function TimetableVtop({ attendance }) {
     return (
         <div className="flex flex-col gap-4 w-full">
             {/* Top Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 dark:border-gray-855 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 dark:border-gray-800 pb-3">
                 <div>
                     <h2 className="text-lg font-black text-gray-900 dark:text-gray-100 font-outfit">
                         Class Schedule
@@ -409,7 +409,7 @@ export default function TimetableVtop({ attendance }) {
                                             <td className="py-2.5 px-4">
                                                 <div className="flex flex-wrap gap-1">
                                                     {(c.slotName || "").split("+").map((s, si) => (
-                                                        <span key={si} className="bg-gray-100 dark:bg-[#0d1f2e] border border-gray-250/60 dark:border-gray-855 text-[9px] px-1 py-0.5 rounded font-semibold">{s.trim()}</span>
+                                                        <span key={si} className="bg-gray-100 dark:bg-[#0d1f2e] border border-gray-250/60 dark:border-gray-800 text-[9px] px-1 py-0.5 rounded font-semibold">{s.trim()}</span>
                                                     ))}
                                                 </div>
                                             </td>

@@ -52,19 +52,21 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
         }> = {};
 
         attendanceData.forEach(a => {
-            a.viewLink?.forEach(h => {
-                if (!dateMap[h.date]) {
-                    dateMap[h.date] = {
-                        dateObj: new Date(h.date),
-                        allClasses: []
-                    };
-                }
-                dateMap[h.date].allClasses.push({
-                    courseCode: a.courseCode,
-                    courseTitle: a.courseTitle,
-                    status: h.status.toLowerCase()
+            if (Array.isArray(a.viewLink)) {
+                a.viewLink.forEach(h => {
+                    if (!dateMap[h.date]) {
+                        dateMap[h.date] = {
+                            dateObj: new Date(h.date),
+                            allClasses: []
+                        };
+                    }
+                    dateMap[h.date].allClasses.push({
+                        courseCode: a.courseCode,
+                        courseTitle: a.courseTitle,
+                        status: h.status.toLowerCase()
+                    });
                 });
-            });
+            }
         });
 
         const dates = Object.keys(dateMap).sort((a, b) => dateMap[b].dateObj.getTime() - dateMap[a].dateObj.getTime());

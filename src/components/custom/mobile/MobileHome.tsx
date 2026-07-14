@@ -336,13 +336,25 @@ export default function MobileHome({
     return "Good Evening";
   };
 
-  const moveWidget = (index: number, direction: "up" | "down") => {
-    const nextIndex = direction === "up" ? index - 1 : index + 1;
-    if (nextIndex < 0 || nextIndex >= widgets.length) return;
+  const moveWidget = (id: string, direction: "up" | "down") => {
+    const enabledWidgets = widgets.filter(w => w.enabled);
+    const indexInEnabled = enabledWidgets.findIndex(w => w.id === id);
+    if (indexInEnabled === -1) return;
+
+    const nextIndexInEnabled = direction === "up" ? indexInEnabled - 1 : indexInEnabled + 1;
+    if (nextIndexInEnabled < 0 || nextIndexInEnabled >= enabledWidgets.length) return;
+
+    const targetWidget = enabledWidgets[nextIndexInEnabled];
+
+    const absIndex1 = widgets.findIndex(w => w.id === id);
+    const absIndex2 = widgets.findIndex(w => w.id === targetWidget.id);
+
+    if (absIndex1 === -1 || absIndex2 === -1) return;
+
     const updated = [...widgets];
-    const temp = updated[index];
-    updated[index] = updated[nextIndex];
-    updated[nextIndex] = temp;
+    const temp = updated[absIndex1];
+    updated[absIndex1] = updated[absIndex2];
+    updated[absIndex2] = temp;
     setWidgets(updated);
   };
 
@@ -536,12 +548,12 @@ export default function MobileHome({
         </div>
         <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden text-left">
           <div className="divide-y divide-zinc-150/40 dark:divide-zinc-800/40">
-            {attendanceData.attendance.map((c: any) => {
+            {attendanceData.attendance.map((c: any, index: number) => {
               const pct = parseFloat(c.attendancePercentage);
               const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
               return (
                 <div 
-                  key={c.courseCode}
+                  key={`${c.courseCode}-${c.slotName || ''}-${index}`}
                   onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
                   className="px-4 py-3 flex items-center justify-between hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
                 >
@@ -581,9 +593,9 @@ export default function MobileHome({
         </div>
         <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden text-left">
           <div className="divide-y divide-zinc-150/40 dark:divide-zinc-800/40">
-            {coursesList.map((c: any) => (
+            {coursesList.map((c: any, index: number) => (
               <div 
-                key={c.courseCode}
+                key={`${c.courseCode}-${c.slotName || ''}-${index}`}
                 onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
                 className="px-4 py-3 flex items-center justify-between hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
               >
@@ -844,7 +856,7 @@ export default function MobileHome({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/25 text-emerald-605 dark:text-emerald-450 rounded-md">
                     Active Today
                   </span>
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-105 mt-1 font-outfit">
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
                     Laundry slot is active for your room range today!
                   </p>
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-medium">
@@ -856,7 +868,7 @@ export default function MobileHome({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-sky-500/10 border border-sky-500/25 text-sky-605 dark:text-sky-400 rounded-md">
                     Upcoming Slot
                   </span>
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-105 mt-1 font-outfit">
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 font-outfit">
                     Next slot: Day {laundryStatus.nextSlot.Date}
                   </p>
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-medium">
@@ -865,13 +877,13 @@ export default function MobileHome({
                 </div>
               ) : (
                 <div>
-                  <p className="text-xs font-bold text-zinc-505">No scheduled slots found.</p>
-                  <p className="text-[10px] text-zinc-450 dark:text-zinc-550 mt-0.5">Check for block updates in VTOP.</p>
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">No scheduled slots found.</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Check for block updates in VTOP.</p>
                 </div>
               )
             ) : (
               <div>
-                <p className="text-xs font-bold text-zinc-505">Loading laundry schedule...</p>
+                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Loading laundry schedule...</p>
               </div>
             )}
           </div>
@@ -1229,9 +1241,9 @@ export default function MobileHome({
       {/* ── DYNAMIC DASHBOARD WIDGETS ── */}
       <div className="space-y-6">
         <AnimatePresence mode="popLayout">
-          {widgets
-            .filter(w => w.enabled)
-            .map((w, index) => {
+          {(() => {
+            const enabledWidgets = widgets.filter(w => w.enabled);
+            return enabledWidgets.map((w, index) => {
               const element = renderWidget(w.id);
               if (!element) return null;
 
@@ -1247,14 +1259,14 @@ export default function MobileHome({
                 >
                   {/* Reorder Headers in Edit Mode */}
                   {showCustomizer && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-zinc-55 dark:bg-zinc-800/80 rounded-t-[16px] border border-zinc-200 dark:border-zinc-700 border-b-0 text-[10px] font-bold text-gray-450 dark:text-zinc-400">
+                    <div className="flex items-center justify-between px-4 py-2 bg-zinc-55 dark:bg-zinc-800/80 rounded-t-[16px] border border-zinc-200/70 dark:border-zinc-700 border-b-0 text-[10px] font-bold text-gray-450 dark:text-zinc-400">
                       <span className="flex items-center gap-1.5 font-outfit uppercase tracking-wider">
                         <Sliders className="w-3.5 h-3.5 text-indigo-505" />
                         {w.title}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveWidget(index, "up"); }}
+                          onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
                           disabled={index === 0}
                           className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
                           title="Move Up"
@@ -1262,8 +1274,8 @@ export default function MobileHome({
                           <ArrowUp className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); moveWidget(index, "down"); }}
-                          disabled={index === widgets.length - 1}
+                          onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
+                          disabled={index === enabledWidgets.length - 1}
                           className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
                           title="Move Down"
                         >
@@ -1284,7 +1296,8 @@ export default function MobileHome({
                   </div>
                 </motion.div>
               );
-            })}
+            });
+          })()}
         </AnimatePresence>
       </div>
 

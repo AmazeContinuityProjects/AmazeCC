@@ -54,3 +54,6 @@ certificates
 
 
 implementation_plan.md
+
+# build info
+src/data/buildInfo.json
