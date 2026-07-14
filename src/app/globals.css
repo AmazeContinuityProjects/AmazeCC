@@ -307,3 +307,15 @@ input, textarea, [contenteditable] {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+/* Optimize AppLibrary sheet overlay performance on mobile by disabling heavy backdrop-blur */
+@media (max-width: 768px) {
+  .fixed.bottom-0.left-0.right-0.z-\[60\] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .fixed.inset-0.z-\[55\] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
