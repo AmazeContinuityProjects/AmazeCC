@@ -234,7 +234,7 @@ export default function DesktopCourseDetail({
     const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID].some(data => Array.isArray(data) && data.length > 0);
 
     // Process History (Last 5 records)
-    const historyList = a.viewLink || [];
+    const historyList = Array.isArray(a.viewLink) ? a.viewLink : [];
     const recentHistory = historyList.slice(0, 5);
 
     const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});

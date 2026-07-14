@@ -169,16 +169,18 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
         if (!arr.length) return [];
 
         arr.forEach((a: any) => {
-            a.viewLink?.forEach((h: any) => {
-                if (!dateMap[h.date]) {
-                    dateMap[h.date] = { dateObj: new Date(h.date), allClasses: [] };
-                }
-                dateMap[h.date].allClasses.push({
-                    courseCode: a.courseCode,
-                    courseTitle: a.courseTitle,
-                    status: h.status.toLowerCase()
+            if (Array.isArray(a.viewLink)) {
+                a.viewLink.forEach((h: any) => {
+                    if (!dateMap[h.date]) {
+                        dateMap[h.date] = { dateObj: new Date(h.date), allClasses: [] };
+                    }
+                    dateMap[h.date].allClasses.push({
+                        courseCode: a.courseCode,
+                        courseTitle: a.courseTitle,
+                        status: h.status.toLowerCase()
+                    });
                 });
-            });
+            }
         });
 
         const dates = Object.keys(dateMap).sort((a, b) => dateMap[b].dateObj.getTime() - dateMap[a].dateObj.getTime());
@@ -336,7 +338,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
                 if (attendanceData && attendanceData.attendance) {
                     attendanceData.attendance.forEach(course => {
-                        if(course.viewLink) {
+                        if (Array.isArray(course.viewLink)) {
                             course.viewLink.forEach(vl => {
                                 const vlDate = new Date(vl.date);
                                 if(vlDate.getFullYear() === cYear && vlDate.getMonth() === cMonth && vlDate.getDate() === Number(d.date)) {
