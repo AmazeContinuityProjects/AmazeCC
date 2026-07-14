@@ -240,7 +240,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
 
                 <div className="flex-1 pr-1 mt-2">
                     <ul className="list-disc list-inside text-xs space-y-1">
-                        {a.viewLink?.map((d, i) => (
+                        {Array.isArray(a.viewLink) && a.viewLink.map((d, i) => (
                             <li
                                 key={i}
                                                 className={
