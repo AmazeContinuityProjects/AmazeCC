@@ -1,7 +1,19 @@
 // @ts-check
 import withSerwistInit from "@serwist/next";
 import { createRequire } from "module";
+import { execSync } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+
 const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Auto-generate build info if it doesn't exist or during build time
+try {
+  execSync("node scripts/generate-build-info.js", { cwd: __dirname, stdio: "inherit" });
+} catch (e) {
+  console.warn("Failed to generate build info:", e);
+}
 
 const withSerwist = withSerwistInit({
   cacheOnNavigation: false,
