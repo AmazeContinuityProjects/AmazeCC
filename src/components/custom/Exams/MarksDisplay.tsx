@@ -1,10 +1,13 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { Info, Activity } from "lucide-react";
+import { Info, Activity, GraduationCap, Trophy, ChevronRight, AlertTriangle } from "lucide-react";
 import CircularProgress from "../shared/CircularProgress";
 import Image from "next/image";
 import { API_BASE } from "../Main";
 import { motion } from "framer-motion";
 import SubpageLayout from "../shared/SubpageLayout";
+import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
 
@@ -100,12 +103,12 @@ const getCourseStats = (group) => {
 };
 
 const checkIsRelative = (courseSystem, courseType) => {
-    const isACE = courseSystem === "ACE";
-    if (isACE) {
-        return (courseType === "Embedded Theory" || courseType === "Embedded Lab" || courseType === "Embedded" || courseType === "Theory Only");
-    } else {
-        return courseType === "Theory Only";
-    }
+  const isACE = courseSystem === "ACE";
+  if (isACE) {
+    return (courseType === "Embedded Theory" || courseType === "Embedded Lab" || courseType === "Embedded" || courseType === "Theory Only");
+  } else {
+    return courseType === "Theory Only";
+  }
 };
 
 const formatTitle = (title) => {
@@ -117,14 +120,34 @@ const formatTitle = (title) => {
   return shortened;
 };
 
+const PREDICTED_BADGE_CLASSES: Record<string, string> = {
+  S: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-emerald-500/10',
+  A: 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 border-green-500/10',
+  B: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-500/10',
+  C: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 border-indigo-500/10',
+  D: 'bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border-purple-500/10',
+  E: 'bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400 border-orange-500/10',
+  F: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-500/10'
+};
+
+const HOVER_BORDER_CLASSES: Record<string, string> = {
+  S: 'hover:border-emerald-500/35 dark:hover:border-emerald-500/40',
+  A: 'hover:border-green-500/35 dark:hover:border-green-500/40',
+  B: 'hover:border-blue-500/35 dark:hover:border-blue-500/40',
+  C: 'hover:border-indigo-500/35 dark:hover:border-indigo-500/40',
+  D: 'hover:border-purple-500/35 dark:hover:border-purple-500/40',
+  E: 'hover:border-orange-500/35 dark:hover:border-orange-500/40',
+  F: 'hover:border-red-500/35 dark:hover:border-red-500/40'
+};
+
 export default function MarksDisplay({ data }) {
-  const [openCourseId, setOpenCourseId] = useState(null);
+  const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const [allStats, setAllStats] = useState({});
 
   useEffect(() => {
     if (!data || !data.courses || data.courses.length === 0) return;
 
-    const uniqueCourses = [];
+    const uniqueCourses: any[] = [];
     const codeMap = new Map();
     data.courses.forEach(c => {
       const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
@@ -165,16 +188,22 @@ export default function MarksDisplay({ data }) {
 
   if (!data || !data.courses || data.courses.length === 0) {
     return (
-      <div className="p-2">
-        <h1 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-left text-gray-900  dark:text-gray-100">
-          Academic Marks
-        </h1>
-        <Image src="/images/chepu/chepu_says_sup.png" alt="No Data" width={300} height={300} className="mx-auto" />
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <PageHeader
+          icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
+          title="Academic Marks"
+          meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300">Marks OS</Badge>}
+        />
+        <div className="mt-8 flex flex-col items-center justify-center text-center">
+          <Image src="/images/chepu/chepu_says_sup.png" alt="No Data Available" width={220} height={220} className="mb-4 opacity-80" />
+          <h3 className="text-sm font-black text-zinc-700 dark:text-zinc-300">No marks record found</h3>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 max-w-xs">Reload grades from the home tab to synchronize your marks data.</p>
+        </div>
       </div>
     );
   }
 
-  const uniqueCourses = [];
+  const uniqueCourses: any[] = [];
   const codeMap = new Map();
   data.courses.forEach(c => {
     const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
@@ -200,14 +229,16 @@ export default function MarksDisplay({ data }) {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="p-2"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6"
     >
-      <h1 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-left text-gray-900  dark:text-gray-100">
-        Academic Marks
-      </h1>
+      <PageHeader
+        icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
+        title="Academic Marks"
+        meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300">Marks OS</Badge>}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {uniqueCourses.map((group, idx) => {
@@ -259,37 +290,39 @@ export default function MarksDisplay({ data }) {
 
           return (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
+              transition={{ delay: idx * 0.04 }}
               key={group.courseCode}
-              className="p-4 rounded-2xl shadow-sm bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+              className={`p-5 rounded-3xl shadow-2xs border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 cursor-pointer transition-all duration-300 hover:shadow-xs active:scale-[0.99] group ${HOVER_BORDER_CLASSES[predictedGrade] || 'hover:border-zinc-350 dark:hover:border-zinc-700'}`}
               onClick={() => setOpenCourseId(group.courseCode)}
             >
               <div className="flex justify-between items-start gap-4">
                 <div className="flex flex-col items-start min-w-0 flex-1">
-                  <span className="font-bold text-gray-900  dark:text-gray-100 text-sm sm:text-base break-words line-clamp-2 leading-tight">
-                    {group.courseCode} <br className="hidden md:block" />
-                    <span className="font-medium text-gray-600  dark:text-gray-400">{group.courseTitle}</span>
+                  <span className="font-black text-zinc-800 dark:text-zinc-100 text-xs sm:text-sm tracking-wide leading-tight group-hover:text-indigo-500 transition-colors">
+                    {group.courseCode}
+                  </span>
+                  <span className="font-bold text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 mt-1 line-clamp-2 pr-1 leading-normal">
+                    {group.courseTitle}
                   </span>
 
-                  <div className="flex gap-2 items-center mt-3">
-                    <Badge variant="default" className="rounded-md uppercase font-bold tracking-wider">
+                  <div className="flex gap-2 items-center mt-4">
+                    <Badge variant="default" className="rounded-lg uppercase font-bold tracking-wider text-[9px] bg-zinc-100 text-zinc-700 dark:bg-zinc-850 dark:text-zinc-300 border-zinc-200/30">
                       {courseType}
                     </Badge>
                     {predictedGrade !== "?" && (
-                      <Badge variant="default" className="rounded-md font-bold bg-indigo-50  dark:bg-indigo-900/30 text-indigo-700  dark:text-indigo-300 uppercase tracking-wider">
+                      <Badge variant="default" className={`rounded-lg font-bold uppercase tracking-wider text-[9px] border ${PREDICTED_BADGE_CLASSES[predictedGrade] || 'bg-indigo-50 text-indigo-700'}`}>
                         Pred: {predictedGrade}
                       </Badge>
                     )}
                   </div>
                 </div>
 
-                <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 flex-shrink-0 flex flex-col items-center justify-center">
                   <CircularProgress
                     value={percent}
                     text={text}
-                    size={80}
+                    size={72}
                     threshold={25}
                     midThreshold={75}
                   />
@@ -308,48 +341,48 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
   const asmPct = detail.maxMark > 0 ? (getNumericValue(detail.scoredMark) / getNumericValue(detail.maxMark)) * 100 : 0;
   
   let gradePlacement = "?";
-  let gradeBounds = [];
+  let gradeBounds: any[] = [];
 
   if (isRelative) {
-      if (aStat && aStat.count > 0) {
-          const sB = Math.min(Math.max(aStat.mean + 1.5 * aStat.sd, 80), 100);
-          const aB = aStat.mean + 0.5 * aStat.sd;
-          const bB = aStat.mean - 0.5 * aStat.sd;
-          const cB = aStat.mean - 1.0 * aStat.sd;
-          const dB = aStat.mean - 1.5 * aStat.sd;
-          const eB = Math.min(aStat.mean - 2.0 * aStat.sd, 50);
+    if (aStat && aStat.count > 0) {
+      const sB = Math.min(Math.max(aStat.mean + 1.5 * aStat.sd, 80), 100);
+      const aB = aStat.mean + 0.5 * aStat.sd;
+      const bB = aStat.mean - 0.5 * aStat.sd;
+      const cB = aStat.mean - 1.0 * aStat.sd;
+      const dB = aStat.mean - 1.5 * aStat.sd;
+      const eB = Math.min(aStat.mean - 2.0 * aStat.sd, 50);
 
-          if (asmPct >= sB) gradePlacement = "S";
-          else if (asmPct >= aB) gradePlacement = "A";
-          else if (asmPct >= bB) gradePlacement = "B";
-          else if (asmPct >= cB) gradePlacement = "C";
-          else if (asmPct >= dB) gradePlacement = "D";
-          else if (asmPct >= eB) gradePlacement = "E";
-          else gradePlacement = "F";
-
-          gradeBounds = [
-            { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
-            { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
-            { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
-            { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
-          ];
-      }
-  } else {
-      // Absolute
-      if (asmPct >= 90) gradePlacement = "S";
-      else if (asmPct >= 80) gradePlacement = "A";
-      else if (asmPct >= 70) gradePlacement = "B";
-      else if (asmPct >= 60) gradePlacement = "C";
-      else if (asmPct >= 50) gradePlacement = "D";
-      else if (asmPct >= 40) gradePlacement = "E";
+      if (asmPct >= sB) gradePlacement = "S";
+      else if (asmPct >= aB) gradePlacement = "A";
+      else if (asmPct >= bB) gradePlacement = "B";
+      else if (asmPct >= cB) gradePlacement = "C";
+      else if (asmPct >= dB) gradePlacement = "D";
+      else if (asmPct >= eB) gradePlacement = "E";
       else gradePlacement = "F";
 
       gradeBounds = [
-        { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
-        { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
-        { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
-        { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
+        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}`, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-500/10' },
+        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}`, color: 'text-green-600 dark:text-green-400 bg-green-50/70 dark:bg-green-950/20 border-green-500/10' },
+        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}`, color: 'text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-950/20 border-blue-500/10' },
+        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}`, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-500/10' },
       ];
+    }
+  } else {
+    // Absolute
+    if (asmPct >= 90) gradePlacement = "S";
+    else if (asmPct >= 80) gradePlacement = "A";
+    else if (asmPct >= 70) gradePlacement = "B";
+    else if (asmPct >= 60) gradePlacement = "C";
+    else if (asmPct >= 50) gradePlacement = "D";
+    else if (asmPct >= 40) gradePlacement = "E";
+    else gradePlacement = "F";
+
+    gradeBounds = [
+      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}`, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-500/10' },
+      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}`, color: 'text-green-600 dark:text-green-400 bg-green-50/70 dark:bg-green-950/20 border-green-500/10' },
+      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}`, color: 'text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-950/20 border-blue-500/10' },
+      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}`, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-500/10' },
+    ];
   }
 
   function sBoundaryCalc(boundPct, maxMark) {
@@ -361,58 +394,58 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
     <ExpandableSection
       title={shortenedTitle}
       badge={
-        <div className="text-right">
-          <p className="text-xl font-black text-gray-800  dark:text-gray-100">
-            {formatNumber(detail.scoredMark)} <span className="text-sm text-gray-400 font-semibold">/ {formatNumber(detail.maxMark)}</span>
+        <div className="text-right flex flex-col justify-center">
+          <p className="text-base font-black text-zinc-800 dark:text-zinc-100">
+            {formatNumber(detail.scoredMark)} <span className="text-xs text-zinc-400 font-bold">/ {formatNumber(detail.maxMark)}</span>
           </p>
-          <p className={`text-xs mt-1 font-semibold ${typeLabel === 'Theory' ? 'text-blue-600  dark:text-blue-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
+          <p className={`text-[10px] mt-1 font-bold ${typeLabel === 'Theory' ? 'text-indigo-500' : 'text-emerald-500'}`}>
             Wtg: {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
           </p>
         </div>
       }
-      className="bg-gray-50  dark:bg-slate-800/50 rounded-xl border border-gray-100  dark:border-gray-800 overflow-hidden"
-      headerClassName="text-xs text-gray-500  dark:text-gray-400 font-bold uppercase tracking-wider"
-      contentClassName="border-t border-gray-200  dark:border-gray-800 bg-white  dark:bg-black"
+      className="bg-zinc-55/30 dark:bg-zinc-950/10 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden shadow-3xs"
+      headerClassName="text-[10px] text-zinc-400 dark:text-zinc-500 font-black uppercase tracking-wider p-4"
+      contentClassName="border-t border-zinc-150 dark:border-zinc-850 bg-white dark:bg-black/20 p-4.5"
     >
-            {(isRelative && (!aStat || aStat.count === 0)) ? (
-              <p className="text-sm text-gray-500  dark:text-gray-400 italic text-center py-2">
-                Not enough data to calculate class statistics for this assessment yet.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {isRelative && aStat && (
-                    <div className="flex justify-between items-center text-sm">
-                      <div>
-                        <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Class Avg</p>
-                        <p className="font-bold text-gray-900  dark:text-gray-100">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-xs font-normal text-gray-500">({formatNumber(aStat.mean)}%)</span></p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Std Dev</p>
-                        <p className="font-bold text-gray-900  dark:text-gray-100">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
-                      </div>
-                    </div>
-                )}
-
-                <div>
-                  <p className="text-gray-500  dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">
-                    {isRelative ? "Grade Placement Preview" : "Absolute Grade Range Preview"}
-                  </p>
-                  <div className="flex gap-2">
-                    {gradeBounds.map(b => (
-                      <div key={b.grade} className={`flex-1 rounded-md p-1.5 flex flex-col items-center justify-center border border-transparent ${b.grade === gradePlacement ? 'ring-2 ring-indigo-500' : ''} ${b.color}`}>
-                        <span className="font-black text-sm">{b.grade}</span>
-                        <span className="text-[10px] font-bold">{b.range}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {gradePlacement !== "?" && (
-                    <p className="text-center text-xs mt-3 text-indigo-600  dark:text-indigo-400 font-bold">
-                      Hypothetical Placement: Grade {gradePlacement}
-                    </p>
-                  )}
-                </div>
+      {(isRelative && (!aStat || aStat.count === 0)) ? (
+        <p className="text-xs text-zinc-400 dark:text-zinc-500 italic text-center py-2">
+          Not enough class sync data to preview statistics yet.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {isRelative && aStat && (
+            <div className="flex justify-between items-center text-xs">
+              <div>
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Class Avg</p>
+                <p className="font-extrabold text-zinc-800 dark:text-zinc-250">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-[10px] font-normal text-zinc-400">({formatNumber(aStat.mean)}%)</span></p>
               </div>
+              <div className="text-right">
+                <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Std Dev</p>
+                <p className="font-extrabold text-zinc-800 dark:text-zinc-250">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-zinc-150/80 dark:border-zinc-900 pt-3">
+            <p className="text-zinc-400 dark:text-zinc-500 text-[9px] uppercase font-black tracking-widest mb-2 leading-none">
+              {isRelative ? "Grade Placement Preview" : "Absolute Grade Range Preview"}
+            </p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {gradeBounds.map(b => (
+                <div key={b.grade} className={`rounded-xl p-2 flex flex-col items-center justify-center border border-transparent transition-all ${b.grade === gradePlacement ? 'ring-2 ring-indigo-500 shadow-2xs font-extrabold' : 'opacity-85'} ${b.color}`}>
+                  <span className="font-black text-xs">{b.grade}</span>
+                  <span className="text-[9px] font-extrabold mt-0.5">{b.range}</span>
+                </div>
+              ))}
+            </div>
+            {gradePlacement !== "?" && (
+              <p className="text-center text-[10px] mt-3.5 text-indigo-500 dark:text-indigo-400 font-extrabold leading-none">
+                Hypothetical Component Placement: Grade {gradePlacement}
+              </p>
             )}
+          </div>
+        </div>
+      )}
     </ExpandableSection>
   );
 }
@@ -440,16 +473,16 @@ function MarksSubpage({ group, allStats, onBack }) {
     const totals = getAssessmentTotals(assessments);
 
     return (
-      <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-5 shadow-sm mt-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-          <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-3xl p-5 shadow-2xs mt-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2.5">
+          <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-150 flex items-center gap-2">
             {icon} {typeLabel} Assessments
           </h3>
           <div className="flex items-center justify-between md:justify-end gap-3">
-            <Badge variant={typeLabel === 'Theory' ? 'info' : 'success'} className="font-bold border rounded-full">
+            <Badge variant={typeLabel === 'Theory' ? 'info' : 'success'} className="font-black border rounded-full px-2.5 py-0.5 text-[10px]">
               {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
             </Badge>
-            <div className={`md:hidden font-bold text-sm ${typeLabel === 'Theory' ? 'text-blue-600  dark:text-blue-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
+            <div className={`md:hidden font-black text-xs ${typeLabel === 'Theory' ? 'text-indigo-500' : 'text-emerald-500'}`}>
               {totals.weightPercent > 0 ? Math.round((totals.weighted / totals.weightPercent) * 100) : 0}%
             </div>
           </div>
@@ -461,9 +494,9 @@ function MarksSubpage({ group, allStats, onBack }) {
             return <AssessmentCard key={idx} detail={detail} typeLabel={typeLabel} aStat={aStat} isRelative={isRelative} />;
           })}
         </div>
-        <div className="mt-4 pt-3 border-t border-gray-100  dark:border-gray-800 flex justify-end">
-          <p className="text-sm font-semibold text-gray-700  dark:text-gray-300">
-            Max Possible Score: <span className="font-bold text-gray-900  dark:text-gray-100">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
+        <div className="mt-4 pt-3.5 border-t border-zinc-150 dark:border-zinc-850 flex justify-end">
+          <p className="text-xs font-black text-zinc-500 dark:text-zinc-400">
+            Total Points Lost: <span className="font-extrabold text-red-500">{(totals.weightPercent - totals.weighted).toFixed(2)}</span> · Max Possible Score: <span className="font-black text-zinc-800 dark:text-zinc-150">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
           </p>
         </div>
       </div>
@@ -472,204 +505,195 @@ function MarksSubpage({ group, allStats, onBack }) {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className="p-2 space-y-6 max-w-5xl mx-auto"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto"
     >
       <SubpageLayout title={group.courseCode} subtitle={group.courseTitle} onBack={onBack}>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Course Type</p>
-          <p className="text-sm font-semibold text-gray-900  dark:text-gray-100 line-clamp-1">{courseType}</p>
-        </div>
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Total Score</p>
-          <p className="text-sm font-bold text-blue-600  dark:text-blue-400">{courseTotalString}</p>
-        </div>
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Projected %</p>
-          <p className="text-sm font-bold text-indigo-600  dark:text-indigo-400">{courseStats.projected}%</p>
-        </div>
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Max Grade Achievable</p>
-          <p className="text-sm font-bold text-orange-600  dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
-        </div>
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Grading Mode</p>
-          <p className={`text-sm font-bold ${isRelative ? 'text-indigo-600  dark:text-indigo-400' : 'text-emerald-600  dark:text-emerald-400'}`}>
-              {isRelative ? "Relative" : "Absolute"}
-          </p>
-        </div>
-        <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl p-4 shadow-sm text-center">
-          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Slot</p>
-          <p className="text-sm font-medium text-gray-900  dark:text-gray-100">{mainCourse.slot}</p>
-        </div>
-      </div>
-
-      {renderAssessmentTable(group.theory?.assessments, "Theory", <Activity className="w-5 h-5 text-blue-500" />)}
-      {renderAssessmentTable(group.lab?.assessments, "Lab", <Activity className="w-5 h-5 text-emerald-500" />)}
-
-      <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm mt-6">
-        <div className="p-5 border-b border-gray-100  dark:border-gray-800">
-          <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
-            Grade Insights <Badge variant="info" className="bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-400 font-bold">BETA</Badge>
-          </h3>
-          
-          <details className="text-xs text-gray-500  dark:text-gray-400 mt-2 leading-relaxed cursor-pointer group">
-            <summary className="font-semibold text-indigo-600  dark:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
-              <Info size={14} /> How this works & why it is safe
-            </summary>
-            <div className="mt-3 p-4 bg-gray-50  dark:bg-slate-800 rounded-lg border border-gray-200  dark:border-gray-700 space-y-2">
-              <p>
-                <strong>Proof of Concept:</strong> To calculate an accurate class curve, we need to know the class average and standard deviation. 
-                This requires aggregating the marks of all students in the class. It is mathematically impossible to do this securely strictly on your local device, 
-                because your device needs access to the rest of the class's performance to determine your relative rank.
-              </p>
-              <p>
-                <strong>Privacy First:</strong> When you download fresh marks from VTOP, your client securely transmits only the changes (using a scrambled, anonymous hash of your ID to prevent duplicate updates). The server strictly processes the numbers in-memory using Welford's Algorithm, updates the class-wide statistics, and then
-                <strong> immediately discards</strong> your individual marks. We do not store your exact marks in any database.
-              </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
+          {[
+            ["Course Type", courseType, "text-zinc-800 dark:text-zinc-100"],
+            ["Total Score", courseTotalString, "text-indigo-500 dark:text-indigo-400 font-extrabold"],
+            ["Projected %", `${courseStats.projected}%`, "text-indigo-500 dark:text-indigo-400 font-extrabold"],
+            ["Max Achievable", `${formatNumber(courseStats.maxPossible)}%`, "text-orange-500 dark:text-orange-400 font-extrabold"],
+            ["Grading Mode", isRelative ? "Relative" : "Absolute", isRelative ? 'text-indigo-500 dark:text-indigo-400' : 'text-emerald-500 dark:text-emerald-400'],
+            ["Slot", mainCourse.slot, "text-zinc-800 dark:text-zinc-100"],
+          ].map(([label, value, valueClass]: any) => (
+            <div key={label} className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-2xl p-4 shadow-3xs text-center flex flex-col justify-center min-w-0">
+              <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest mb-1.5 truncate">{label}</p>
+              <p className={`text-xs truncate ${valueClass}`}>{value}</p>
             </div>
-          </details>
-          
-          {(isRelative && dataPoints > 0 && dataPoints < 30) && (
-            <p className="text-xs text-red-500 font-medium mt-2">
-              Warning: Low data samples ({dataPoints}). Relative predictions may not be fully accurate until more peers sync their marks.
-            </p>
-          )}
+          ))}
         </div>
-        
-        <div className="p-5 bg-gray-50/50  dark:bg-black/50">
-          {isRelative ? (
-              <div className="flex flex-wrap gap-4 mb-6 text-sm">
-                <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Samples</p>
-                  <p className="font-bold text-gray-900  dark:text-gray-100">{dataPoints}</p>
+
+        {renderAssessmentTable(group.theory?.assessments, "Theory", <Activity className="w-4 h-4 text-indigo-500" />)}
+        {renderAssessmentTable(group.lab?.assessments, "Lab", <Activity className="w-4 h-4 text-emerald-500" />)}
+
+        {/* Grade Insights and Boundaries */}
+        <div className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-3xl overflow-hidden shadow-2xs mt-6">
+          <div className="p-5 border-b border-zinc-150 dark:border-zinc-850 bg-white/40 dark:bg-zinc-900/30">
+            <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
+              Grade Distribution Curves <Badge variant="info" className="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400 font-black text-[9px] rounded-md px-1.5 py-0.5">BETA</Badge>
+            </h3>
+            
+            <details className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 leading-relaxed cursor-pointer group">
+              <summary className="font-extrabold text-indigo-500 dark:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
+                <Info size={13} /> How class curves are compiled
+              </summary>
+              <div className="mt-3.5 p-4 bg-zinc-50 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200/50 dark:border-zinc-850 space-y-2.5">
+                <p>
+                  <strong>Proof of Concept:</strong> To calculate an accurate class curve, we need to know the class average and standard deviation. 
+                  This requires aggregating the marks of all students in the class. It is mathematically impossible to do this securely strictly on your local device, 
+                  because your device needs access to the rest of the class's performance to determine your relative rank.
+                </p>
+                <p>
+                  <strong>Privacy First:</strong> When you download fresh marks from VTOP, your client securely transmits only the changes (using a scrambled, anonymous hash of your ID to prevent duplicate updates). The server strictly processes the numbers in-memory using Welford's Algorithm, updates the class-wide statistics, and then
+                  <strong> immediately discards</strong> your individual marks. We do not store your exact marks in any database.
+                </p>
+              </div>
+            </details>
+            
+            {(isRelative && dataPoints > 0 && dataPoints < 30) && (
+              <p className="text-[10px] text-red-500 font-bold mt-2.5 flex items-center gap-1 animate-pulse">
+                <AlertTriangle size={12} /> Low data samples ({dataPoints}). Relative predictions may not be fully accurate until more peers sync.
+              </p>
+            )}
+          </div>
+          
+          <div className="p-5 bg-zinc-55/20 dark:bg-black/30 space-y-5">
+            {isRelative ? (
+              <div className="flex flex-wrap gap-3 text-xs">
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Samples</p>
+                  <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">{dataPoints}</p>
                 </div>
-                <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Mean</p>
-                  <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.mean) : "N/A"}</p>
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Class Mean</p>
+                  <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">{stats ? formatNumber(stats.mean) : "N/A"}</p>
                 </div>
-                <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Std Dev</p>
-                  <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.sd) : "N/A"}</p>
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Std Dev (SD)</p>
+                  <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">±{stats ? formatNumber(stats.sd) : "N/A"}</p>
                 </div>
               </div>
-          ) : (
-              <div className="mb-6 p-4 rounded-xl bg-emerald-50  dark:bg-emerald-900/20 border border-emerald-200  dark:border-emerald-800/50 flex flex-col md:flex-row items-center gap-4 text-emerald-800  dark:text-emerald-400">
-                  <div className="p-3 bg-white  dark:bg-emerald-950 rounded-full shadow-sm">
-                      <Activity size={24} className="text-emerald-500" />
-                  </div>
-                  <div>
-                      <h4 className="font-bold">Absolute Grading Enforced</h4>
-                      <p className="text-sm mt-1 opacity-90">This course uses an absolute grading system. Your grade is based purely on predefined percentage boundaries, irrespective of class performance.</p>
-                  </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col sm:flex-row items-center gap-3.5 text-emerald-800 dark:text-emerald-400">
+                <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl shadow-3xs shrink-0">
+                  <Activity size={20} className="text-emerald-500" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-black text-xs">Absolute Grading System</h4>
+                  <p className="text-[10px] mt-1 font-medium text-emerald-600/90 dark:text-emerald-400/80 leading-relaxed">
+                    This course utilizes fixed grade boundaries. Grades are assigned based purely on absolute percentage benchmarks, independent of classmate statistics.
+                  </p>
+                </div>
               </div>
-          )}
+            )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-            {(() => {
-              const mean = isRelative ? (stats?.mean || 0) : 0;
-              const sd = isRelative ? (stats?.sd || 0) : 0;
+            <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+              {(() => {
+                const mean = isRelative ? (stats?.mean || 0) : 0;
+                const sd = isRelative ? (stats?.sd || 0) : 0;
 
-              let sBoundary, aLower, bLower, cLower, dLower, eLower;
+                let sBoundary, aLower, bLower, cLower, dLower, eLower;
 
-              if (isRelative && stats) {
+                if (isRelative && stats) {
                   sBoundary = Math.min(Math.max(Math.round(mean + 1.5 * sd), 80), 100);
                   aLower = Math.round(mean + 0.5 * sd);
                   bLower = Math.round(mean - 0.5 * sd);
                   cLower = Math.round(mean - 1.0 * sd);
                   dLower = Math.round(mean - 1.5 * sd);
                   eLower = Math.min(Math.round(mean - 2.0 * sd), 50);
-              } else {
+                } else {
                   sBoundary = 90;
                   aLower = 80;
                   bLower = 70;
                   cLower = 60;
                   dLower = 50;
                   eLower = 40;
-              }
+                }
 
-              const boundaries = [
-                { grade: 'S', limit: sBoundary, color: 'bg-emerald-50 text-emerald-700 border-emerald-200    dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50', range: `>= ${sBoundary.toFixed(0)}` },
-                { grade: 'A', limit: aLower, color: 'bg-green-50 text-green-700 border-green-200    dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50', range: `>= ${aLower.toFixed(0)}` },
-                { grade: 'B', limit: bLower, color: 'bg-blue-50 text-blue-700 border-blue-200    dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50', range: `>= ${bLower.toFixed(0)}` },
-                { grade: 'C', limit: cLower, color: 'bg-indigo-50 text-indigo-700 border-indigo-200    dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50', range: `>= ${cLower.toFixed(0)}` },
-                { grade: 'D', limit: dLower, color: 'bg-purple-50 text-purple-700 border-purple-200    dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50', range: `>= ${dLower.toFixed(0)}` },
-                { grade: 'E', limit: eLower, color: 'bg-orange-50 text-orange-700 border-orange-200    dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50', range: `>= ${eLower.toFixed(0)}` },
-                { grade: 'F', limit: 0, color: 'bg-red-50 text-red-700 border-red-200    dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50', range: `< ${eLower.toFixed(0)}` },
-              ];
-              
-              const targetBoundary = boundaries.find(b => b.grade === targetGrade)?.limit || 0;
-              
-              let theoryScored = 0, theoryPercent = 0;
-              let labScored = 0, labPercent = 0;
-              
-              if (group.theory) {
+                const boundaries = [
+                  { grade: 'S', limit: sBoundary, color: 'bg-emerald-50/70 text-emerald-700 border-emerald-500/10 dark:bg-emerald-950/20 dark:text-emerald-400', range: `>= ${sBoundary.toFixed(0)}` },
+                  { grade: 'A', limit: aLower, color: 'bg-green-50/70 text-green-700 border-green-500/10 dark:bg-green-950/20 dark:text-green-400', range: `>= ${aLower.toFixed(0)}` },
+                  { grade: 'B', limit: bLower, color: 'bg-blue-50/70 text-blue-700 border-blue-500/10 dark:bg-blue-950/20 dark:text-blue-400', range: `>= ${bLower.toFixed(0)}` },
+                  { grade: 'C', limit: cLower, color: 'bg-indigo-50/70 text-indigo-700 border-indigo-500/10 dark:bg-indigo-950/20 dark:text-indigo-400', range: `>= ${cLower.toFixed(0)}` },
+                  { grade: 'D', limit: dLower, color: 'bg-purple-50/70 text-purple-700 border-purple-500/10 dark:bg-purple-950/20 dark:text-purple-400', range: `>= ${dLower.toFixed(0)}` },
+                  { grade: 'E', limit: eLower, color: 'bg-orange-50/70 text-orange-700 border-orange-500/10 dark:bg-orange-950/20 dark:text-orange-400', range: `>= ${eLower.toFixed(0)}` },
+                  { grade: 'F', limit: 0, color: 'bg-red-50/70 text-red-700 border-red-500/10 dark:bg-red-950/20 dark:text-red-400', range: `< ${eLower.toFixed(0)}` },
+                ];
+                
+                const targetBoundary = boundaries.find(b => b.grade === targetGrade)?.limit || 0;
+                
+                let theoryScored = 0, theoryPercent = 0;
+                let labScored = 0, labPercent = 0;
+                
+                if (group.theory) {
                   const t = getAssessmentTotals(group.theory.assessments || []);
                   theoryScored = t.weighted;
                   theoryPercent = t.weightPercent;
-              }
-              if (group.lab) {
+                }
+                if (group.lab) {
                   const t = getAssessmentTotals(group.lab.assessments || []);
                   labScored = t.weighted;
                   labPercent = t.weightPercent;
-              }
-              
-              const theoryCredits = group.theory ? getCourseCredits(group.theory) : 0;
-              const labCredits = group.lab ? getCourseCredits(group.lab) : 0;
-              const totalCredits = theoryCredits + labCredits;
-              
-              const currentWeightedScore = totalCredits > 0 ? ((theoryCredits * theoryScored) + (labCredits * labScored)) / totalCredits : theoryScored;
-              const currentWeightPercent = totalCredits > 0 ? ((theoryCredits * theoryPercent) + (labCredits * labPercent)) / totalCredits : theoryPercent;
+                }
+                
+                const theoryCredits = group.theory ? getCourseCredits(group.theory) : 0;
+                const labCredits = group.lab ? getCourseCredits(group.lab) : 0;
+                const totalCredits = theoryCredits + labCredits;
+                
+                const currentWeightedScore = totalCredits > 0 ? ((theoryCredits * theoryScored) + (labCredits * labScored)) / totalCredits : theoryScored;
+                const currentWeightPercent = totalCredits > 0 ? ((theoryCredits * theoryPercent) + (labCredits * labPercent)) / totalCredits : theoryPercent;
 
-              const remainingWeightagePoints = targetBoundary - currentWeightedScore;
+                const remainingWeightagePoints = targetBoundary - currentWeightedScore;
 
-              return (
-                <>
-                  {boundaries.map((b, i) => (
-                    <div key={i} className={`rounded-xl border p-3 flex flex-col items-center justify-center ${b.color} ${(isRelative && !stats) ? 'opacity-50 grayscale' : ''}`}>
-                      <span className="text-xl font-black mb-1">{b.grade}</span>
-                      <span className="text-[10px] font-bold tracking-wider">{b.range}</span>
-                    </div>
-                  ))}
-                  <div className="col-span-full mt-4 bg-white  dark:bg-slate-800 border border-gray-200  dark:border-gray-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                return (
+                  <>
+                    {boundaries.map((b, i) => (
+                      <div key={i} className={`rounded-xl border p-3 flex flex-col items-center justify-center transition-all ${b.color} ${(isRelative && !stats) ? 'opacity-40 grayscale' : ''}`}>
+                        <span className="text-base font-black mb-1">{b.grade}</span>
+                        <span className="text-[9px] font-bold tracking-wider">{b.range}</span>
+                      </div>
+                    ))}
+                    
+                    <div className="col-span-full mt-4 bg-white/70 dark:bg-zinc-950/30 border border-zinc-200/50 dark:border-zinc-850 rounded-2xl p-4.5 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-3xs">
                       <div>
-                          <h4 className="font-bold text-gray-900  dark:text-gray-100">Target Grade Calculator</h4>
-                          <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">See how many weightage points you need for your goal.</p>
+                        <h4 className="font-black text-xs text-zinc-800 dark:text-zinc-150">Target Grade Calculator</h4>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Calculate the required weightage points left to secure your target grade.</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                          <select 
-                              value={targetGrade} 
-                              onChange={(e) => setTargetGrade(e.target.value)}
-                              className="px-3 py-1.5 rounded-lg border border-gray-300  dark:border-gray-600 bg-gray-50  dark:bg-black text-gray-900  dark:text-gray-100 font-bold"
-                          >
-                              {['S', 'A', 'B', 'C', 'D', 'E'].map(g => <option key={g} value={g}>Grade {g}</option>)}
-                          </select>
-                          
-                          {remainingWeightagePoints <= 0 ? (
-                              <div className="px-4 py-2 bg-emerald-100 text-emerald-800   dark:bg-emerald-900/50 dark:text-emerald-300 font-bold rounded-lg text-sm">
-                                  Target Achieved! 🎉
-                              </div>
-                          ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
-                              <div className="px-4 py-2 bg-red-100 text-red-800   dark:bg-red-900/50 dark:text-red-300 font-bold rounded-lg text-sm">
-                                  Impossible to achieve
-                              </div>
-                          ) : (
-                              <div className="px-4 py-2 bg-indigo-100 text-indigo-800   dark:bg-indigo-900/50 dark:text-indigo-300 font-bold rounded-lg text-sm">
-                                  Need <span className="text-lg">{remainingWeightagePoints.toFixed(1)}</span> more weightage pts
-                              </div>
-                          )}
+                      <div className="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-end">
+                        <select 
+                          value={targetGrade} 
+                          onChange={(e) => setTargetGrade(e.target.value)}
+                          className="px-3 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-bold text-xs cursor-pointer shadow-3xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          {['S', 'A', 'B', 'C', 'D', 'E'].map(g => <option key={g} value={g}>Grade {g}</option>)}
+                        </select>
+                        
+                        {remainingWeightagePoints <= 0 ? (
+                          <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl text-xs shadow-3xs">
+                            Target Secured! 🎉
+                          </div>
+                        ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
+                          <div className="px-3.5 py-1.5 bg-red-500/10 border border-red-500/10 text-red-500 font-bold rounded-xl text-xs shadow-3xs">
+                            Mathematically Impossible
+                          </div>
+                        ) : (
+                          <div className="px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-bold rounded-xl text-xs shadow-3xs">
+                            Need <span className="text-sm font-black">{remainingWeightagePoints.toFixed(1)}</span> more wtg pts
+                          </div>
+                        )}
                       </div>
-                  </div>
-                </>
-              );
-            })()}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
-      </div>
-    </SubpageLayout>
+      </SubpageLayout>
     </motion.div>
   );
 }
