@@ -26,7 +26,7 @@ export default function ShareScheduleModal({
   };
 
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} maxWidth="max-w-xs">
       <div className="flex items-center gap-2 mb-3">
         <Share2 className="w-5 h-5 text-indigo-500 animate-pulse" />
         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -67,9 +67,9 @@ export default function ShareScheduleModal({
       </div>
 
       {activeTab === "qr" ? (
-        <div className="flex flex-col items-center justify-center p-6 border border-zinc-200/50 dark:border-zinc-800/80 bg-gradient-to-br from-white to-zinc-50/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl shadow-2xs">
-          <div className="bg-white p-3 rounded-2xl shadow-xs mb-3.5 border border-zinc-100">
-            <QRCodeSVG value={code} size={150} />
+        <div className="flex flex-col items-center justify-center p-4 border border-zinc-200/50 dark:border-zinc-800/80 bg-gradient-to-br from-white to-zinc-55/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl shadow-2xs">
+          <div className="bg-white p-2.5 rounded-2xl shadow-xs mb-3 border border-zinc-100">
+            <QRCodeSVG value={code} size={120} />
           </div>
           <p className="text-[10px] text-zinc-400 dark:text-zinc-500 text-center font-medium max-w-[210px] leading-relaxed">
             Have your friend scan this code using their <strong>Add Friend</strong> camera scanner.
@@ -77,11 +77,11 @@ export default function ShareScheduleModal({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl p-3.5">
+          <div className="bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl p-3">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550 block mb-1.5">
               Copy-Paste Code
             </label>
-            <div className="max-h-[90px] overflow-y-auto text-xs font-mono text-zinc-600 dark:text-zinc-450 break-all select-all pr-1" style={{ scrollbarWidth: "none" }}>
+            <div className="max-h-[80px] overflow-y-auto text-xs font-mono text-zinc-650 dark:text-zinc-350 break-all select-all pr-1" style={{ scrollbarWidth: "none" }}>
               {code}
             </div>
           </div>
