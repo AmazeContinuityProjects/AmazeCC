@@ -878,7 +878,7 @@ export default function NavigationTabs({
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar */}
         {settings?.arcNavigationMode ? (
-          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
             {/* Tab 1: Home */}
             <motion.button
               onClick={() => {
@@ -901,7 +901,7 @@ export default function NavigationTabs({
               <div className="relative z-10 flex flex-col items-center justify-center">
                 <motion.div 
                   animate={(activeTab === "home" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "home" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-550"}`}
+                  className={`p-1 transition-colors duration-300 ${(activeTab === "home" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
                 >
                   <Home className="h-5 w-5 stroke-[2]" />
                 </motion.div>
@@ -934,7 +934,7 @@ export default function NavigationTabs({
               <div className="relative z-10 flex flex-col items-center justify-center">
                 <motion.div 
                   animate={(activeTab === "attendance" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "attendance" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-550"}`}
+                  className={`p-1 transition-colors duration-300 ${(activeTab === "attendance" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
                 >
                   <CalendarCheck className="h-5 w-5 stroke-[2]" />
                 </motion.div>
@@ -986,7 +986,7 @@ export default function NavigationTabs({
               <div className="relative z-10 flex flex-col items-center justify-center">
                 <motion.div 
                   animate={(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-550"}`}
+                  className={`p-1 transition-colors duration-300 ${(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
                 >
                   <Compass className="h-5 w-5 stroke-[2]" />
                 </motion.div>
@@ -1018,7 +1018,7 @@ export default function NavigationTabs({
               <div className="relative z-10 flex flex-col items-center justify-center">
                 <motion.div 
                   animate={(activeTab === "profile" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "profile" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-550"}`}
+                  className={`p-1 transition-colors duration-300 ${(activeTab === "profile" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
                 >
                   <User className="h-5 w-5 stroke-[2]" />
                 </motion.div>
@@ -1029,7 +1029,7 @@ export default function NavigationTabs({
             </motion.button>
           </div>
         ) : (
-          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
             {rawNavItems.map((item) => {
               const isActive = item.isActive;
               return (
@@ -1099,24 +1099,44 @@ export default function NavigationTabs({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 40 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 right-0 h-32 z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end justify-center snap-x"
+                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[210px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end justify-center snap-x"
                 ref={arcContainerRef}
                 onScroll={handleArcScroll}
               >
                 {/* Inner scrolling track */}
-                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-4">
+                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[42px]">
                   {arcItems.map((item, idx) => {
-                    const distance = idx * 96 - arcScrollX;
-                    const normalizedDist = Math.max(Math.min(distance / 160, 2), -2);
-                    const xSq = normalizedDist * normalizedDist;
+                    const R = 136; // Orbit Radius in pixels
+                    const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
+                    const angularStepRad = 20 * (Math.PI / 180); // 20 degrees between items
 
-                    // Compute curved positioning and scale-rotation offsets
-                    const translateY = -12 - Math.max(0, 1 - xSq) * 55; // Floating height curve
-                    const scale = Math.max(0.85, 1.22 - 0.35 * xSq); // Scale magnification in center
-                    const rotate = normalizedDist * 28; // Rotate icon on scroll sides
-                    const opacity = Math.max(0.4, 1 - 0.5 * xSq); // Fade out at boundaries
+                    // S is arcScrollX. We map S = 96px to one angular step (20 degrees)
+                    const theta = centerAngleRad - (idx * angularStepRad) + (arcScrollX / 96) * angularStepRad;
 
-                    const isItemActive = Math.abs(normalizedDist) < 0.35;
+                    // Calculate circular coordinates relative to the bottom center origin
+                    const x = R * Math.cos(theta);
+                    const y = -R * Math.sin(theta);
+
+                    // Natural X coordinate in the scrollable content track relative to center
+                    const d = idx * 96 - arcScrollX;
+
+                    // translateX shifts the item horizontally so its final position relative to screen center is x
+                    const translateX = x - d;
+                    // translateY shifts the item vertically to its circular y position (-R * sin(theta))
+                    // Subtracting 36px offsets the entire arc to hover beautifully above the bottom bar
+                    const translateY = y - 36;
+
+                    const diffFromCenter = Math.abs(theta - centerAngleRad);
+                    const scale = Math.max(0.82, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
+                    const rotate = (theta - centerAngleRad) * (180 / Math.PI); // Revolve rotation angle in degrees
+                    
+                    const isItemActive = Math.abs(theta - centerAngleRad) < (10 * Math.PI / 180); // Within 10 degrees is active
+
+                    const angleDeg = theta * (180 / Math.PI);
+                    let opacity = 0;
+                    if (angleDeg >= 12 && angleDeg <= 168) {
+                      opacity = Math.min(1, Math.min(angleDeg - 12, 168 - angleDeg) / 24);
+                    }
 
                     return (
                       <div
@@ -1127,13 +1147,13 @@ export default function NavigationTabs({
                         }}
                         className="snap-center flex-shrink-0 w-18 flex flex-col items-center cursor-pointer select-none focus:outline-none"
                         style={{
-                          transform: `translateY(${translateY}px) scale(${scale})`,
+                          transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
                           opacity,
                           transformOrigin: "bottom center",
                           transition: "transform 0.05s ease-out, opacity 0.05s ease-out"
                         }}
                       >
-                        {/* Circle Icon - rotated based on scroll distance */}
+                        {/* Circle Icon - rotated based on circular orbit projection angle */}
                         <div 
                           className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
                             isItemActive
@@ -1152,7 +1172,7 @@ export default function NavigationTabs({
                           className={`text-center font-outfit truncate max-w-full px-1 mt-2.5 transition-all duration-300 tracking-wider whitespace-nowrap leading-none ${
                             isItemActive
                               ? "text-indigo-400 dark:text-indigo-300 text-[10.5px] font-black drop-shadow-sm"
-                              : "text-zinc-400 dark:text-zinc-500 text-[9px] font-bold"
+                              : "text-zinc-400 dark:text-zinc-550 text-[9px] font-bold"
                           }`}
                         >
                           {item.label}
