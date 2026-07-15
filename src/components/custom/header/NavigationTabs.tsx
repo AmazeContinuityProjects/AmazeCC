@@ -1099,14 +1099,14 @@ export default function NavigationTabs({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 40 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[210px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end justify-center snap-x"
+                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[210px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end snap-x"
                 ref={arcContainerRef}
                 onScroll={handleArcScroll}
               >
                 {/* Inner scrolling track */}
-                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[42px]">
+                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[48px]">
                   {arcItems.map((item, idx) => {
-                    const R = 136; // Orbit Radius in pixels
+                    const R = 80; // Orbit Radius in pixels (scaled down to avoid vertical clipping)
                     const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
                     const angularStepRad = 20 * (Math.PI / 180); // 20 degrees between items
 
@@ -1123,8 +1123,7 @@ export default function NavigationTabs({
                     // translateX shifts the item horizontally so its final position relative to screen center is x
                     const translateX = x - d;
                     // translateY shifts the item vertically to its circular y position (-R * sin(theta))
-                    // Subtracting 36px offsets the entire arc to hover beautifully above the bottom bar
-                    const translateY = y - 36;
+                    const translateY = y;
 
                     const diffFromCenter = Math.abs(theta - centerAngleRad);
                     const scale = Math.max(0.82, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
