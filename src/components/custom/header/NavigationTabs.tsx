@@ -1097,7 +1097,7 @@ export default function NavigationTabs({
               <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[360px] h-[210px] z-30 pointer-events-none md:hidden overflow-hidden">
                 <svg className="w-full h-full" viewBox="0 0 360 210">
                   <path 
-                    d="M 24 180 A 156 156 0 0 1 336 180" 
+                    d="M 24 186 A 156 156 0 0 1 336 186" 
                     fill="none" 
                     stroke="url(#orbitGradient)" 
                     strokeWidth="1.5" 
@@ -1122,12 +1122,12 @@ export default function NavigationTabs({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 40 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[210px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end snap-x"
+                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[260px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end snap-x"
                 ref={arcContainerRef}
                 onScroll={handleArcScroll}
               >
                 {/* Inner scrolling track */}
-                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[48px]">
+                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[24px]">
                   {arcItems.map((item, idx) => {
                     const R = 156; // Orbit Radius in pixels (wider radius to match SVG guide path)
                     const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
