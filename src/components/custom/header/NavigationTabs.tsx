@@ -1106,11 +1106,11 @@ export default function NavigationTabs({
                 {/* Inner scrolling track */}
                 <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[48px]">
                   {arcItems.map((item, idx) => {
-                    const R = 80; // Orbit Radius in pixels (scaled down to avoid vertical clipping)
+                    const R = 144; // Orbit Radius in pixels (larger radius to spread items)
                     const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
-                    const angularStepRad = 20 * (Math.PI / 180); // 20 degrees between items
+                    const angularStepRad = 26 * (Math.PI / 180); // 26 degrees spacing to prevent overlaps
 
-                    // S is arcScrollX. We map S = 96px to one angular step (20 degrees)
+                    // S is arcScrollX. We map S = 96px to one angular step (26 degrees)
                     const theta = centerAngleRad - (idx * angularStepRad) + (arcScrollX / 96) * angularStepRad;
 
                     // Calculate circular coordinates relative to the bottom center origin
@@ -1129,12 +1129,12 @@ export default function NavigationTabs({
                     const scale = Math.max(0.82, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
                     const rotate = (theta - centerAngleRad) * (180 / Math.PI); // Revolve rotation angle in degrees
                     
-                    const isItemActive = Math.abs(theta - centerAngleRad) < (10 * Math.PI / 180); // Within 10 degrees is active
+                    const isItemActive = Math.abs(theta - centerAngleRad) < (13 * Math.PI / 180); // Within 13 degrees is active
 
                     const angleDeg = theta * (180 / Math.PI);
                     let opacity = 0;
-                    if (angleDeg >= 12 && angleDeg <= 168) {
-                      opacity = Math.min(1, Math.min(angleDeg - 12, 168 - angleDeg) / 24);
+                    if (angleDeg >= 15 && angleDeg <= 165) {
+                      opacity = Math.min(1, Math.min(angleDeg - 15, 165 - angleDeg) / 18);
                     }
 
                     return (
