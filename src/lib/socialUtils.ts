@@ -46,18 +46,14 @@ export function exportScheduleCode(
   if (!Array.isArray(attendance) || attendance.length === 0) return "";
   const slotMap = config.slotMap as any;
 
-  // 1. Extract unique courses and map each course to an index
-  const uniqueCourses: { code: string; title: string; venue: string }[] = [];
+  // 1. Extract unique course titles (only titles are needed for UI grid)
+  const uniqueTitles: string[] = [];
   const getCourseIndex = (course: any) => {
-    const code = course.courseCode || "";
     const title = course.courseTitle || "";
-    const venue = course.slotVenue || "";
-    const idx = uniqueCourses.findIndex(
-      (c) => c.code === code && c.title === title && c.venue === venue
-    );
+    const idx = uniqueTitles.indexOf(title);
     if (idx >= 0) return idx;
-    uniqueCourses.push({ code, title, venue });
-    return uniqueCourses.length - 1;
+    uniqueTitles.push(title);
+    return uniqueTitles.length - 1;
   };
 
   // 2. Map attendance to shortDay, slotId, and courseIdx
@@ -82,17 +78,15 @@ export function exportScheduleCode(
     });
   });
 
-  // 3. Serialize courses (delimited by ~ and ;)
-  const coursesString = uniqueCourses
-    .map((c) => `${c.code}~${c.title}~${c.venue}`)
-    .join(";");
+  // 3. Serialize titles (delimited by ;)
+  const coursesString = uniqueTitles.join(";");
 
   // 4. Serialize assignments (delimited by , and ;)
   const assignmentsString = assignments
     .map((a) => `${a.day},${a.slotId},${a.courseIdx}`)
     .join(";");
 
-  return `v2|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
+  return `v3|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
 export function importScheduleCode(qrData: string, nickname?: string): Friend {
@@ -105,7 +99,44 @@ export function importScheduleCode(qrData: string, nickname?: string): Friend {
     let regNumber = "";
     const classSlots: FriendClassSlot[] = [];
 
-    if (qrData.startsWith("v2|")) {
+    if (qrData.startsWith("v3|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 5) {
+        throw new Error("Invalid v3 format");
+      }
+      name = parts[1];
+      regNumber = parts[2];
+      const coursesData = parts[3];
+      const assignmentsData = parts[4];
+
+      // Parse unique course titles
+      const titles = coursesData.length > 0 ? coursesData.split(";") : [];
+
+      // Parse assignments and resolve full slot details
+      const slotMap = config.slotMap as any;
+      if (assignmentsData.length > 0) {
+        assignmentsData.split(";").forEach((aStr) => {
+          const aParts = aStr.split(",");
+          if (aParts.length === 3) {
+            const shortDay = aParts[0];
+            const slotId = aParts[1];
+            const courseIdx = parseInt(aParts[2], 10);
+            const title = titles[courseIdx];
+
+            if (title !== undefined && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else if (qrData.startsWith("v2|")) {
       const parts = qrData.split("|");
       if (parts.length < 5) {
         throw new Error("Invalid v2 format");
