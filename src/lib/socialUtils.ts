@@ -38,6 +38,20 @@ export type FriendGroup = {
   createdAt: string;
 };
 
+const encodeBase64 = (str: string) => {
+  if (typeof window !== "undefined") {
+    return btoa(str);
+  }
+  return Buffer.from(str).toString("base64");
+};
+
+const decodeBase64 = (str: string) => {
+  if (typeof window !== "undefined") {
+    return atob(str);
+  }
+  return Buffer.from(str, "base64").toString("utf-8");
+};
+
 export function exportScheduleCode(
   attendance: any[],
   name: string,
@@ -50,14 +64,16 @@ export function exportScheduleCode(
   const uniqueTitles: string[] = [];
   const getCourseIndex = (course: any) => {
     const title = course.courseTitle || "";
-    const idx = uniqueTitles.indexOf(title);
+    // Truncate course titles to 22 characters to keep base64 payload footprint small
+    const cleanTitle = title.length > 22 ? title.substring(0, 22).trim() + "..." : title;
+    const idx = uniqueTitles.indexOf(cleanTitle);
     if (idx >= 0) return idx;
-    uniqueTitles.push(title);
+    uniqueTitles.push(cleanTitle);
     return uniqueTitles.length - 1;
   };
 
   // 2. Map attendance to shortDay, slotId, and courseIdx
-  const assignments: { day: string; slotId: string; courseIdx: number }[] = [];
+  const assignments: [string, string, number][] = [];
   attendance.forEach((course) => {
     const courseIdx = getCourseIndex(course);
     const slots = String(course.slotName || "")
@@ -68,25 +84,28 @@ export function exportScheduleCode(
     slots.forEach((slot) => {
       Object.keys(slotMap).forEach((shortDay) => {
         if (slotMap[shortDay]?.[slot]) {
-          assignments.push({
-            day: shortDay,
-            slotId: slot,
-            courseIdx,
-          });
+          assignments.push([shortDay, slot, courseIdx]);
         }
       });
     });
   });
 
-  // 3. Serialize titles (delimited by ;)
-  const coursesString = uniqueTitles.join(";");
+  // Create a structured, minimized payload array
+  const payload = [
+    name,
+    regNumber,
+    uniqueTitles,
+    assignments
+  ];
 
-  // 4. Serialize assignments (delimited by , and ;)
-  const assignmentsString = assignments
-    .map((a) => `${a.day},${a.slotId},${a.courseIdx}`)
-    .join(";");
-
-  return `v3|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
+  try {
+    const jsonStr = JSON.stringify(payload);
+    const base64 = encodeBase64(encodeURIComponent(jsonStr));
+    return `amz-profile-${base64}`;
+  } catch (e) {
+    // Fallback to legacy structure in case encoding errors out
+    return `${name}|${regNumber}|v1-error`;
+  }
 }
 
 export function importScheduleCode(qrData: string, nickname?: string): Friend {
@@ -99,7 +118,43 @@ export function importScheduleCode(qrData: string, nickname?: string): Friend {
     let regNumber = "";
     const classSlots: FriendClassSlot[] = [];
 
-    if (qrData.startsWith("v3|")) {
+    if (qrData.startsWith("amz-profile-")) {
+      const base64 = qrData.replace("amz-profile-", "").trim();
+      const jsonStr = decodeURIComponent(decodeBase64(base64));
+      const payload = JSON.parse(jsonStr);
+
+      if (!Array.isArray(payload) || payload.length < 4) {
+        throw new Error("Invalid profile payload");
+      }
+
+      name = payload[0];
+      regNumber = payload[1];
+      const titles = payload[2];
+      const assignments = payload[3];
+
+      const slotMap = config.slotMap as any;
+      if (Array.isArray(assignments)) {
+        assignments.forEach((assignment) => {
+          if (Array.isArray(assignment) && assignment.length === 3) {
+            const shortDay = assignment[0];
+            const slotId = assignment[1];
+            const courseIdx = assignment[2];
+            const title = titles[courseIdx];
+
+            if (title !== undefined && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else if (qrData.startsWith("v3|")) {
       const parts = qrData.split("|");
       if (parts.length < 5) {
         throw new Error("Invalid v3 format");
