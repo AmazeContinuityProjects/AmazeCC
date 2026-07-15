@@ -323,7 +323,7 @@ export default function NavigationTabs({
     if (isArcMenuOpen) {
       setTimeout(() => {
         if (arcContainerRef.current) {
-          arcContainerRef.current.scrollLeft = 3 * 96;
+          arcContainerRef.current.scrollLeft = 3 * 100;
         }
       }, 80);
     } else {
@@ -1093,6 +1093,29 @@ export default function NavigationTabs({
                 className="fixed inset-0 bg-zinc-950/60 dark:bg-black/85 backdrop-blur-xs z-30 md:hidden animate-fadeIn"
               />
 
+              {/* Semicircular orbit path background */}
+              <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[360px] h-[210px] z-30 pointer-events-none md:hidden overflow-hidden">
+                <svg className="w-full h-full" viewBox="0 0 360 210">
+                  <path 
+                    d="M 24 180 A 156 156 0 0 1 336 180" 
+                    fill="none" 
+                    stroke="url(#orbitGradient)" 
+                    strokeWidth="1.5" 
+                    strokeDasharray="6 4"
+                    className="opacity-35"
+                  />
+                  <defs>
+                    <linearGradient id="orbitGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="rgba(99, 102, 241, 0)" />
+                      <stop offset="25%" stopColor="rgba(99, 102, 241, 0.35)" />
+                      <stop offset="50%" stopColor="rgba(168, 85, 247, 0.55)" />
+                      <stop offset="75%" stopColor="rgba(99, 102, 241, 0.35)" />
+                      <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
               {/* Scrollable Arc Menu Container */}
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
@@ -1106,30 +1129,30 @@ export default function NavigationTabs({
                 {/* Inner scrolling track */}
                 <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[48px]">
                   {arcItems.map((item, idx) => {
-                    const R = 144; // Orbit Radius in pixels (larger radius to spread items)
+                    const R = 156; // Orbit Radius in pixels (wider radius to match SVG guide path)
                     const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
-                    const angularStepRad = 26 * (Math.PI / 180); // 26 degrees spacing to prevent overlaps
+                    const angularStepRad = 30 * (Math.PI / 180); // 30 degrees spacing to completely prevent overlap
 
-                    // S is arcScrollX. We map S = 96px to one angular step (26 degrees)
-                    const theta = centerAngleRad - (idx * angularStepRad) + (arcScrollX / 96) * angularStepRad;
+                    // S is arcScrollX. We map S = 100px to one angular step (30 degrees)
+                    const theta = centerAngleRad - (idx * angularStepRad) + (arcScrollX / 100) * angularStepRad;
 
                     // Calculate circular coordinates relative to the bottom center origin
                     const x = R * Math.cos(theta);
                     const y = -R * Math.sin(theta);
 
                     // Natural X coordinate in the scrollable content track relative to center
-                    const d = idx * 96 - arcScrollX;
+                    const d = idx * 100 - arcScrollX;
 
                     // translateX shifts the item horizontally so its final position relative to screen center is x
                     const translateX = x - d;
-                    // translateY shifts the item vertically to its circular y position (-R * sin(theta))
+                    // translateY shifts the item vertically to its circular y position
                     const translateY = y;
 
                     const diffFromCenter = Math.abs(theta - centerAngleRad);
-                    const scale = Math.max(0.82, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
+                    const scale = Math.max(0.85, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
                     const rotate = (theta - centerAngleRad) * (180 / Math.PI); // Revolve rotation angle in degrees
                     
-                    const isItemActive = Math.abs(theta - centerAngleRad) < (13 * Math.PI / 180); // Within 13 degrees is active
+                    const isItemActive = Math.abs(theta - centerAngleRad) < (12 * Math.PI / 180); // Within 12 degrees is active
 
                     const angleDeg = theta * (180 / Math.PI);
                     let opacity = 0;
@@ -1156,8 +1179,8 @@ export default function NavigationTabs({
                         <div 
                           className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
                             isItemActive
-                              ? "bg-gradient-to-br from-indigo-500 via-indigo-650 to-purple-650 text-white shadow-[0_0_20px_rgba(99,102,241,0.65)] ring-4 ring-indigo-500/20 scale-110"
-                              : "bg-zinc-800/90 border border-zinc-700/30 text-zinc-400 dark:bg-zinc-900/90 dark:border-zinc-850"
+                              ? "bg-gradient-to-br from-indigo-500 via-indigo-650 to-purple-650 text-white shadow-[0_0_24px_rgba(99,102,241,0.75)] border-2 border-indigo-400/30 scale-112 ring-4 ring-indigo-500/15"
+                              : "bg-white/10 dark:bg-zinc-900/40 border border-white/10 dark:border-zinc-800/60 text-zinc-200 dark:text-zinc-350 backdrop-blur-xs shadow-xs hover:bg-white/15"
                           }`}
                           style={{
                             transform: `rotate(${rotate}deg)`,
@@ -1170,7 +1193,7 @@ export default function NavigationTabs({
                         <span 
                           className={`text-center font-outfit truncate max-w-full px-1 mt-2.5 transition-all duration-300 tracking-wider whitespace-nowrap leading-none ${
                             isItemActive
-                              ? "text-indigo-400 dark:text-indigo-300 text-[10.5px] font-black drop-shadow-sm"
+                              ? "text-indigo-400 dark:text-indigo-300 text-[10.5px] font-black drop-shadow-sm scale-105"
                               : "text-zinc-400 dark:text-zinc-550 text-[9px] font-bold"
                           }`}
                         >
