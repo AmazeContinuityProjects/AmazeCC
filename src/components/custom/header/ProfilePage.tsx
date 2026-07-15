@@ -838,8 +838,8 @@ export default function ProfilePage({
 
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Arc Navigation Menu</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-455">Enable a floating center blue menu button and an arc of tabs on mobile navigation</p>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Arc Navigation Menu (Super Demo)</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Enable an experimental floating center blue menu button and a revolving arc of tabs on mobile</p>
                     </div>
                     <Switch
                       checked={settings?.arcNavigationMode ?? false}
