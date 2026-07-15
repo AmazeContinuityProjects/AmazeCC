@@ -45,9 +45,25 @@ export function exportScheduleCode(
 ): string {
   if (!Array.isArray(attendance) || attendance.length === 0) return "";
   const slotMap = config.slotMap as any;
-  const friendSlots: FriendClassSlot[] = [];
 
+  // 1. Extract unique courses and map each course to an index
+  const uniqueCourses: { code: string; title: string; venue: string }[] = [];
+  const getCourseIndex = (course: any) => {
+    const code = course.courseCode || "";
+    const title = course.courseTitle || "";
+    const venue = course.slotVenue || "";
+    const idx = uniqueCourses.findIndex(
+      (c) => c.code === code && c.title === title && c.venue === venue
+    );
+    if (idx >= 0) return idx;
+    uniqueCourses.push({ code, title, venue });
+    return uniqueCourses.length - 1;
+  };
+
+  // 2. Map attendance to shortDay, slotId, and courseIdx
+  const assignments: { day: string; slotId: string; courseIdx: number }[] = [];
   attendance.forEach((course) => {
+    const courseIdx = getCourseIndex(course);
     const slots = String(course.slotName || "")
       .split("+")
       .map((s) => s.trim())
@@ -56,55 +72,112 @@ export function exportScheduleCode(
     slots.forEach((slot) => {
       Object.keys(slotMap).forEach((shortDay) => {
         if (slotMap[shortDay]?.[slot]) {
-          friendSlots.push({
-            day: DAYS_MAP[shortDay] || shortDay,
-            timeSlot: slotMap[shortDay][slot].time,
-            courseCode: course.courseCode || "",
-            courseTitle: course.courseTitle || "",
-            venue: course.slotVenue || "",
+          assignments.push({
+            day: shortDay,
             slotId: slot,
+            courseIdx,
           });
         }
       });
     });
   });
 
-  const slotsString = friendSlots
-    .map(
-      (s) =>
-        `${s.day}|${s.timeSlot}|${s.courseCode}|${s.courseTitle}|${s.venue}|${s.slotId}`
-    )
-    .join("||");
+  // 3. Serialize courses (delimited by ~ and ;)
+  const coursesString = uniqueCourses
+    .map((c) => `${c.code}~${c.title}~${c.venue}`)
+    .join(";");
 
-  return `${name}|${regNumber}|${slotsString}`;
+  // 4. Serialize assignments (delimited by , and ;)
+  const assignmentsString = assignments
+    .map((a) => `${a.day},${a.slotId},${a.courseIdx}`)
+    .join(";");
+
+  return `v2|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
 export function importScheduleCode(qrData: string, nickname?: string): Friend {
   try {
-    const parts = qrData.split("|");
-    if (parts.length < 2) {
-      throw new Error("Invalid QR data format");
+    if (!qrData) {
+      throw new Error("Empty QR data");
     }
 
-    const name = parts[0];
-    const regNumber = parts[1];
-    const slotsData = parts.length > 2 ? parts.slice(2).join("|") : "";
-
+    let name = "";
+    let regNumber = "";
     const classSlots: FriendClassSlot[] = [];
-    if (slotsData.length > 0) {
-      const slotStrings = slotsData.split("||");
-      for (const slotStr of slotStrings) {
-        if (slotStr.length > 0) {
-          const sParts = slotStr.split("|");
-          if (sParts.length === 6) {
-            classSlots.push({
-              day: sParts[0],
-              timeSlot: sParts[1],
-              courseCode: sParts[2],
-              courseTitle: sParts[3],
-              venue: sParts[4],
-              slotId: sParts[5],
-            });
+
+    if (qrData.startsWith("v2|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 5) {
+        throw new Error("Invalid v2 format");
+      }
+      name = parts[1];
+      regNumber = parts[2];
+      const coursesData = parts[3];
+      const assignmentsData = parts[4];
+
+      // Parse unique courses
+      const courses: { code: string; title: string; venue: string }[] = [];
+      if (coursesData.length > 0) {
+        coursesData.split(";").forEach((cStr) => {
+          const cParts = cStr.split("~");
+          courses.push({
+            code: cParts[0] || "",
+            title: cParts[1] || "",
+            venue: cParts[2] || "",
+          });
+        });
+      }
+
+      // Parse assignments and resolve full slot details
+      const slotMap = config.slotMap as any;
+      if (assignmentsData.length > 0) {
+        assignmentsData.split(";").forEach((aStr) => {
+          const aParts = aStr.split(",");
+          if (aParts.length === 3) {
+            const shortDay = aParts[0];
+            const slotId = aParts[1];
+            const courseIdx = parseInt(aParts[2], 10);
+            const course = courses[courseIdx];
+
+            if (course && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: course.code,
+                courseTitle: course.title,
+                venue: course.venue,
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else {
+      // Legacy parsing (v1 format)
+      const parts = qrData.split("|");
+      if (parts.length < 2) {
+        throw new Error("Invalid legacy format");
+      }
+
+      name = parts[0];
+      regNumber = parts[1];
+      const slotsData = parts.length > 2 ? parts.slice(2).join("|") : "";
+
+      if (slotsData.length > 0) {
+        const slotStrings = slotsData.split("||");
+        for (const slotStr of slotStrings) {
+          if (slotStr.length > 0) {
+            const sParts = slotStr.split("|");
+            if (sParts.length === 6) {
+              classSlots.push({
+                day: sParts[0],
+                timeSlot: sParts[1],
+                courseCode: sParts[2],
+                courseTitle: sParts[3],
+                venue: sParts[4],
+                slotId: sParts[5],
+              });
+            }
           }
         }
       }
