@@ -323,7 +323,7 @@ export default function NavigationTabs({
     if (isArcMenuOpen) {
       setTimeout(() => {
         if (arcContainerRef.current) {
-          arcContainerRef.current.scrollLeft = 3 * 84;
+          arcContainerRef.current.scrollLeft = 3 * 96;
         }
       }, 80);
     } else {
@@ -1099,22 +1099,24 @@ export default function NavigationTabs({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 40 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+82px)] left-0 right-0 h-32 z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end justify-center snap-x"
+                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] left-0 right-0 h-32 z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end justify-center snap-x"
                 ref={arcContainerRef}
                 onScroll={handleArcScroll}
               >
                 {/* Inner scrolling track */}
-                <div className="flex gap-4 px-[calc(50vw-42px)] h-full items-end pb-4">
+                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-4">
                   {arcItems.map((item, idx) => {
-                    const distance = idx * 84 - arcScrollX;
-                    const normalizedDist = Math.max(Math.min(distance / 140, 2), -2);
+                    const distance = idx * 96 - arcScrollX;
+                    const normalizedDist = Math.max(Math.min(distance / 160, 2), -2);
                     const xSq = normalizedDist * normalizedDist;
 
                     // Compute curved positioning and scale-rotation offsets
-                    const translateY = -Math.max(0, 1 - xSq) * 52; // Curve height up to 52px
-                    const scale = Math.max(0.75, 1.25 - 0.35 * xSq); // Scale magnification in center
-                    const rotate = normalizedDist * 28; // Rotate out on scroll sides
+                    const translateY = -12 - Math.max(0, 1 - xSq) * 55; // Floating height curve
+                    const scale = Math.max(0.85, 1.22 - 0.35 * xSq); // Scale magnification in center
+                    const rotate = normalizedDist * 28; // Rotate icon on scroll sides
                     const opacity = Math.max(0.4, 1 - 0.5 * xSq); // Fade out at boundaries
+
+                    const isItemActive = Math.abs(normalizedDist) < 0.35;
 
                     return (
                       <div
@@ -1123,18 +1125,36 @@ export default function NavigationTabs({
                           item.action();
                           setIsArcMenuOpen(false);
                         }}
-                        className="snap-center flex-shrink-0 w-21 flex flex-col items-center cursor-pointer select-none focus:outline-none"
+                        className="snap-center flex-shrink-0 w-18 flex flex-col items-center cursor-pointer select-none focus:outline-none"
                         style={{
-                          transform: `translateY(${translateY}px) scale(${scale}) rotate(${rotate}deg)`,
+                          transform: `translateY(${translateY}px) scale(${scale})`,
                           opacity,
                           transformOrigin: "bottom center",
                           transition: "transform 0.05s ease-out, opacity 0.05s ease-out"
                         }}
                       >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-650 text-white shadow-md border border-indigo-400/20 active:scale-95 transition-transform">
+                        {/* Circle Icon - rotated based on scroll distance */}
+                        <div 
+                          className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
+                            isItemActive
+                              ? "bg-gradient-to-br from-indigo-500 via-indigo-650 to-purple-650 text-white shadow-[0_0_20px_rgba(99,102,241,0.65)] ring-4 ring-indigo-500/20 scale-110"
+                              : "bg-zinc-800/90 border border-zinc-700/30 text-zinc-400 dark:bg-zinc-900/90 dark:border-zinc-850"
+                          }`}
+                          style={{
+                            transform: `rotate(${rotate}deg)`,
+                            transition: "transform 0.05s ease-out"
+                          }}
+                        >
                           {item.icon}
                         </div>
-                        <span className="text-[9.5px] font-black mt-2 text-zinc-100 uppercase tracking-widest text-center filter drop-shadow-sm font-outfit truncate max-w-full px-1">
+                        {/* Text Label - kept perfectly horizontal and readable */}
+                        <span 
+                          className={`text-center font-outfit truncate max-w-full px-1 mt-2.5 transition-all duration-300 tracking-wider whitespace-nowrap leading-none ${
+                            isItemActive
+                              ? "text-indigo-400 dark:text-indigo-300 text-[10.5px] font-black drop-shadow-sm"
+                              : "text-zinc-400 dark:text-zinc-500 text-[9px] font-bold"
+                          }`}
+                        >
                           {item.label}
                         </span>
                       </div>
