@@ -836,6 +836,17 @@ export default function ProfilePage({
                     />
                   </div>
 
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Arc Navigation Menu</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Enable a floating center blue menu button and an arc of tabs on mobile navigation</p>
+                    </div>
+                    <Switch
+                      checked={settings?.arcNavigationMode ?? false}
+                      onCheckedChange={(val) => updateSetting("arcNavigationMode", val)}
+                    />
+                  </div>
+
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>
