@@ -1951,7 +1951,7 @@ const AppLibraryPortal = memo(({
       <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
         <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">Interface Theme</h4>
         <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
-          {["light", "dark", "system"].map(t => (
+          {["light", "dark"].map(t => (
             <button
               key={t}
               onClick={() => handleThemeChange(t)}
@@ -1963,7 +1963,6 @@ const AppLibraryPortal = memo(({
             >
               {t === "light" && <Sun className="h-3.5 w-3.5" />}
               {t === "dark" && <Moon className="h-3.5 w-3.5" />}
-              {t === "system" && <Settings className="h-3.5 w-3.5" />}
               <span>{t}</span>
             </button>
           ))}

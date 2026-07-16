@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 };
 
 const APP_NAME = "AmazeCC";
-const APP_DESCRIPTION = "Showing data from VTOP in a clean and simple way.";
+const APP_DESCRIPTION = "Elevate your university life with seamless timetable syncing, attendance tracking, and smart grade calculations.";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -62,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          enableSystem
+          enableSystem={false}
           disableTransitionOnChange
           value={{ light: "light", dark: "dark" }}
         >
