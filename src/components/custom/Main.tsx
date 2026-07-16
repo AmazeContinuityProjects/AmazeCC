@@ -1346,7 +1346,6 @@ export default function LoginPage() {
     [
       { id: "light", label: "Light", icon: "☀️" },
       { id: "dark", label: "Dark", icon: "🌙" },
-      { id: "system", label: "System", icon: "💻" },
     ].forEach(option => {
       result.push({
         id: `theme-${option.id}`,
