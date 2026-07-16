@@ -31,6 +31,7 @@ import {
   Shirt
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import CabShareMatchCard from "../Hostel/CabShare/CabShareMatchCard";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
@@ -546,29 +547,36 @@ export default function MobileHome({
             Predict Attendance
           </button>
         </div>
-        <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden text-left">
-          <div className="divide-y divide-zinc-150/40 dark:divide-zinc-800/40">
-            {attendanceData.attendance.map((c: any, index: number) => {
-              const pct = parseFloat(c.attendancePercentage);
-              const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
-              return (
-                <div 
-                  key={`${c.courseCode}-${c.slotName || ''}-${index}`}
-                  onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-                  className="px-4 py-3 flex items-center justify-between hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
-                >
-                  <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-xs font-bold text-zinc-855 dark:text-zinc-205 truncate">{c.courseTitle}</p>
-                    <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">{c.courseCode} • Slot {c.slotName}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
+          {attendanceData.attendance.map((c: any, index: number) => {
+            const pct = parseFloat(c.attendancePercentage);
+            const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
+            const bgProgress = pct >= 85 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-red-500";
+            return (
+              <div 
+                key={`${c.courseCode}-${c.slotName || ''}-${index}`}
+                onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
+                className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[116px] relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-16 h-16 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-bl-full pointer-events-none" />
+                <div className="min-w-0 pr-1">
+                  <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
+                  <p className="text-[9.5px] text-zinc-405 dark:text-zinc-500 font-bold mt-0.5">{c.courseCode} • Slot {c.slotName}</p>
+                </div>
+                
+                <div className="mt-3">
+                  <div className="flex items-end justify-between">
+                    <span className="text-[9.5px] text-zinc-500 dark:text-zinc-400 font-bold">{c.attendedClasses}/{c.totalClasses} classes</span>
+                    <span className={`text-sm font-black ${color}`}>{pct.toFixed(0)}%</span>
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className={`text-xs font-black ${color}`}>{pct.toFixed(0)}%</span>
-                    <p className="text-[8px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">{c.attendedClasses}/{c.totalClasses} classes</p>
+                  {/* Progress bar */}
+                  <div className="w-full bg-zinc-150 dark:bg-zinc-850 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                    <div className={`h-full ${bgProgress} rounded-full`} style={{ width: `${Math.min(100, pct)}%` }} />
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -591,25 +599,25 @@ export default function MobileHome({
             Course Dashboard
           </button>
         </div>
-        <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden text-left">
-          <div className="divide-y divide-zinc-150/40 dark:divide-zinc-800/40">
-            {coursesList.map((c: any, index: number) => (
-              <div 
-                key={`${c.courseCode}-${c.slotName || ''}-${index}`}
-                onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
-                className="px-4 py-3 flex items-center justify-between hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
-              >
-                <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs font-bold text-zinc-855 dark:text-zinc-205 truncate">{c.courseTitle}</p>
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">{c.courseCode} • {c.courseType || "Theory/Lab"}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-[9px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">Credits: {c.credits || "4"}</span>
-                  <p className="text-[9px] text-zinc-450 dark:text-zinc-500 mt-1 font-semibold">{c.slotName || "N/A"}</p>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
+          {coursesList.map((c: any, index: number) => (
+            <div 
+              key={`${c.courseCode}-${c.slotName || ''}-${index}`}
+              onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
+              className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[105px] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-16 h-16 bg-violet-500/5 dark:bg-violet-500/10 rounded-bl-full pointer-events-none" />
+              <div className="min-w-0 pr-1">
+                <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
+                <p className="text-[9.5px] text-zinc-400 dark:text-zinc-500 font-bold mt-0.5">{c.courseCode} • {c.courseType || "Theory/Lab"}</p>
               </div>
-            ))}
-          </div>
+              
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-[9.5px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">Credits: {c.credits || "4"}</span>
+                <span className="text-[9.5px] font-bold text-zinc-450 dark:text-zinc-555">{c.slotName || "N/A"}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -653,7 +661,7 @@ export default function MobileHome({
             <Clock className="w-4 h-4" />
             <span>Today's Classes</span>
           </h2>
-          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-550">{todayClasses.length} Scheduled</span>
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-555">{todayClasses.length} Scheduled</span>
         </div>
 
         {todayClasses.length === 0 ? (
@@ -664,7 +672,6 @@ export default function MobileHome({
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Current Ongoing Class */}
             {classStatus.current && (
               <div className="p-4.5 rounded-[24px] bg-indigo-650 text-white shadow-sm border border-indigo-700/30 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full pointer-events-none" />
@@ -682,7 +689,6 @@ export default function MobileHome({
               </div>
             )}
 
-            {/* Next Scheduled Class */}
             {classStatus.next ? (
               <div 
                 onClick={() => { setActiveTab("attendance"); }}
@@ -709,12 +715,12 @@ export default function MobileHome({
               </div>
             ) : null}
 
-            <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden">
-              <div className="px-4 py-3 border-b border-zinc-250/30 dark:border-zinc-800/50 flex items-center justify-between">
+            <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 p-4 text-left">
+              <div className="pb-3 border-b border-zinc-250/30 dark:border-zinc-800/50 flex items-center justify-between mb-3.5">
                 <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-555 font-outfit">Full Schedule</span>
                 <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} sessions</span>
               </div>
-              <div className="divide-y divide-zinc-150/40 dark:divide-zinc-800/40">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {todayClasses.map((cls: any) => {
                   const isCurrent = classStatus.current === cls;
                   const isNext = classStatus.next === cls;
@@ -722,7 +728,7 @@ export default function MobileHome({
                     <button
                       key={`${cls.courseCode}-${cls.slotName}-${cls.time}`}
                       onClick={() => { setActiveTab("attendance"); }}
-                      className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
+                      className="px-4 py-3 flex items-center gap-3 text-left rounded-[20px] bg-zinc-50/20 dark:bg-zinc-950/10 border border-zinc-250/30 dark:border-zinc-850 hover:bg-zinc-100/50 dark:hover:bg-zinc-850 transition-colors cursor-pointer"
                     >
                       <div className={`w-1 h-8 rounded-full shrink-0 ${
                         isCurrent ? "bg-emerald-500 animate-pulse" : isNext ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-800"
@@ -733,13 +739,13 @@ export default function MobileHome({
                           {isCurrent && <span className="shrink-0 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">Now</span>}
                           {isNext && <span className="shrink-0 text-[8px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">Next</span>}
                         </div>
-                        <p className="mt-0.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 truncate">
+                        <p className="mt-0.5 text-[9px] font-bold text-zinc-450 dark:text-zinc-500 truncate">
                           {cls.courseCode} • Slot {cls.slotName}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">{cls.time}</p>
-                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-550">{cls.slotVenue || "N/A"}</p>
+                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-555">{cls.slotVenue || "N/A"}</p>
                       </div>
                     </button>
                   );
@@ -1019,47 +1025,35 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-500">Blur GPA display on dashboard</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur GPA display on dashboard</p>
             </div>
-            <button
-              onClick={() => {
+            <Switch
+              checked={settings?.CGPAHidden ?? false}
+              onCheckedChange={(val) => {
                 setSettings((prev: any) => {
-                  const next = { ...prev, CGPAHidden: !prev.CGPAHidden };
+                  const next = { ...prev, CGPAHidden: val };
                   localStorage.setItem("settings", JSON.stringify(next));
                   return next;
                 });
               }}
-              className={`w-10 h-6 rounded-full transition-all relative ${
-                settings?.CGPAHidden ? "bg-indigo-600" : "bg-zinc-200 dark:bg-zinc-800"
-              }`}
-            >
-              <span className={`w-4.5 h-4.5 rounded-full bg-white absolute top-0.75 transition-all shadow-xs ${
-                settings?.CGPAHidden ? "right-0.75" : "left-0.75"
-              }`} />
-            </button>
+            />
           </div>
 
           <div className="flex items-center justify-between text-xs">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-500">Display your avatar in greeting</p>
+              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in greeting</p>
             </div>
-            <button
-              onClick={() => {
+            <Switch
+              checked={settings?.showProfilePhoto ?? false}
+              onCheckedChange={(val) => {
                 setSettings((prev: any) => {
-                  const next = { ...prev, showProfilePhoto: !prev.showProfilePhoto };
+                  const next = { ...prev, showProfilePhoto: val };
                   localStorage.setItem("settings", JSON.stringify(next));
                   return next;
                 });
               }}
-              className={`w-10 h-6 rounded-full transition-all relative ${
-                settings?.showProfilePhoto ? "bg-indigo-650" : "bg-zinc-200 dark:bg-zinc-800"
-              }`}
-            >
-              <span className={`w-4.5 h-4.5 rounded-full bg-white absolute top-0.75 transition-all shadow-xs ${
-                settings?.showProfilePhoto ? "right-0.75" : "left-0.75"
-              }`} />
-            </button>
+            />
           </div>
 
           <div className="flex items-center justify-between text-xs">
@@ -1067,24 +1061,17 @@ export default function MobileHome({
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide Mobile Header</p>
               <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Compact header view on smaller screens</p>
             </div>
-            <button
-              onClick={() => {
+            <Switch
+              checked={settings?.hideMobileHeader ?? false}
+              onCheckedChange={(val) => {
                 setSettings((prev: any) => {
-                  const next = { ...prev, hideMobileHeader: !prev.hideMobileHeader };
+                  const next = { ...prev, hideMobileHeader: val };
                   localStorage.setItem("settings", JSON.stringify(next));
                   return next;
                 });
               }}
-              className={`w-10 h-6 rounded-full transition-all relative ${
-                settings?.hideMobileHeader ? "bg-indigo-650" : "bg-zinc-200 dark:bg-zinc-800"
-              }`}
-            >
-              <span className={`w-4.5 h-4.5 rounded-full bg-white absolute top-0.75 transition-all shadow-xs ${
-                settings?.hideMobileHeader ? "right-0.75" : "left-0.75"
-              }`} />
-            </button>
+            />
           </div>
-
         </div>
       </div>
     );
