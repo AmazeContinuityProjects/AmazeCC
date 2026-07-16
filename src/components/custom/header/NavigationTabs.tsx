@@ -172,13 +172,6 @@ export default function NavigationTabs({
   const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
   const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
-  const [isArcMenuOpen, setIsArcMenuOpen] = useState(false);
-  const [arcScrollX, setArcScrollX] = useState(0);
-  const arcContainerRef = useRef<HTMLDivElement>(null);
-
-  const handleArcScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setArcScrollX(e.currentTarget.scrollLeft);
-  }, []);
 
 
 
@@ -305,31 +298,7 @@ export default function NavigationTabs({
     window.scrollTo(0, 0);
   }, [setActiveTab]);
 
-  const arcItems = useMemo(() => [
-    { id: "academics", label: "Academics", icon: <GraduationCap className="h-5 w-5" />, action: () => { selectTab("academics"); } },
-    { id: "grades", label: "Grades", icon: <History className="h-5 w-5" />, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
-    { id: "predictor", label: "Predictor", icon: <TrendingUp className="h-5 w-5" />, action: () => { selectTab("academics"); setActiveSubTab("predictor"); } },
-    { id: "qbank", label: "QBank", icon: <Database className="h-5 w-5" />, action: () => { selectTab("academics"); setActiveSubTab("qbank"); } },
-    { id: "faculty", label: "Faculty", icon: <UserCheck className="h-5 w-5" />, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } },
-    { id: "payments", label: "Payments", icon: <CreditCard className="h-5 w-5" />, action: () => { selectTab("payments"); } },
-    { id: "libraries", label: "Libraries", icon: <Library className="h-5 w-5" />, action: () => { selectTab("libraries"); } },
-    { id: "cabshare", label: "Cab Share", icon: <CarTaxiFront className="h-5 w-5" />, action: () => { selectTab("cabshare"); } },
-    { id: "transport", label: "Transport", icon: <Bus className="h-5 w-5" />, action: () => { selectTab("transport"); } },
-    { id: "search", label: "Search", icon: <Search className="h-5 w-5" />, action: () => { openCommandPalette(); } },
-    { id: "more", label: "More Hub", icon: <MoreHorizontal className="h-5 w-5" />, action: () => { selectTab("more"); } },
-  ], [selectTab, setActiveSubTab, openCommandPalette]);
 
-  useEffect(() => {
-    if (isArcMenuOpen) {
-      setTimeout(() => {
-        if (arcContainerRef.current) {
-          arcContainerRef.current.scrollLeft = 3 * 100;
-        }
-      }, 80);
-    } else {
-      setArcScrollX(0);
-    }
-  }, [isArcMenuOpen]);
 
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroup(current => (current === groupId ? "" : groupId));
@@ -877,335 +846,55 @@ export default function NavigationTabs({
     return (
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar */}
-        {settings?.arcNavigationMode ? (
-          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
-            {/* Tab 1: Home */}
-            <motion.button
-              onClick={() => {
-                setIsArcMenuOpen(false);
-                setIsAppLibraryOpen(false);
-                selectTab("home");
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
-            >
-              {(activeTab === "home" && !isArcMenuOpen) && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                  transition={{ duration: 0.15 }}
-                />
-              )}
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                <motion.div 
-                  animate={(activeTab === "home" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "home" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
-                >
-                  <Home className="h-5 w-5 stroke-[2]" />
-                </motion.div>
-                <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${(activeTab === "home" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}>
-                  Home
-                </span>
-              </div>
-            </motion.button>
-
-            {/* Tab 2: Attendance */}
-            <motion.button
-              onClick={() => {
-                setIsArcMenuOpen(false);
-                setIsAppLibraryOpen(false);
-                selectTab("attendance");
-                setActiveAttendanceSubTab("attendance");
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
-            >
-              {(activeTab === "attendance" && !isArcMenuOpen) && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                  transition={{ duration: 0.15 }}
-                />
-              )}
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                <motion.div 
-                  animate={(activeTab === "attendance" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "attendance" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
-                >
-                  <CalendarCheck className="h-5 w-5 stroke-[2]" />
-                </motion.div>
-                <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${(activeTab === "attendance" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}>
-                  Attendance
-                </span>
-              </div>
-            </motion.button>
-
-            {/* Center Blue Menu Action Button */}
-            <div className="flex-1 flex items-center justify-center relative select-none">
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+          {rawNavItems.map((item) => {
+            const isActive = item.isActive;
+            return (
               <motion.button
-                onClick={() => {
-                  setIsArcMenuOpen(prev => !prev);
-                  setIsAppLibraryOpen(false);
-                }}
-                whileTap={{ scale: 0.9 }}
-                className="flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-md cursor-pointer relative z-50 focus:outline-none border border-indigo-400/25 active:shadow-inner"
+                key={item.id}
+                onClick={item.onClick}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
               >
-                <motion.div 
-                  animate={isArcMenuOpen ? { rotate: 135 } : { rotate: 0 }} 
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                >
-                  {isArcMenuOpen ? <X className="h-4.5 w-4.5" /> : <LayoutGrid className="h-4.5 w-4.5" />}
-                </motion.div>
-              </motion.button>
-            </div>
-
-            {/* Tab 3: Social */}
-            <motion.button
-              onClick={() => {
-                setIsArcMenuOpen(false);
-                setIsAppLibraryOpen(false);
-                selectTab("more");
-                setActiveMoreSubTab("social");
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
-            >
-              {(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                  transition={{ duration: 0.15 }}
-                />
-              )}
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                <motion.div 
-                  animate={(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
-                >
-                  <Compass className="h-5 w-5 stroke-[2]" />
-                </motion.div>
-                <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${(activeTab === "more" && activeMoreSubTab === "social" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}>
-                  Social
-                </span>
-              </div>
-            </motion.button>
-
-            {/* Tab 4: Profile */}
-            <motion.button
-              onClick={() => {
-                setIsArcMenuOpen(false);
-                setIsAppLibraryOpen(false);
-                selectTab("profile");
-              }}
-              whileTap={{ scale: 0.95 }}
-              className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
-            >
-              {(activeTab === "profile" && !isArcMenuOpen) && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                  transition={{ duration: 0.15 }}
-                />
-              )}
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                <motion.div 
-                  animate={(activeTab === "profile" && !isArcMenuOpen) ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                  className={`p-1 transition-colors duration-300 ${(activeTab === "profile" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}
-                >
-                  <User className="h-5 w-5 stroke-[2]" />
-                </motion.div>
-                <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${(activeTab === "profile" && !isArcMenuOpen) ? "text-info" : "text-zinc-400 dark:text-zinc-555"}`}>
-                  Profile
-                </span>
-              </div>
-            </motion.button>
-          </div>
-        ) : (
-          <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
-            {rawNavItems.map((item) => {
-              const isActive = item.isActive;
-              return (
-                <motion.button
-                  key={item.id}
-                  onClick={item.onClick}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
-                >
-                  {/* Floating pill background highlight that fades and scales in on active */}
-                  {isActive && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
-                      transition={{ duration: 0.15, ease: "easeOut" }}
-                    />
-                  )}
-
-                  {/* Relative container to raise icon and text above active highlight */}
-                  <div className="relative z-10 flex flex-col items-center justify-center">
-                    {/* Icon with scale effect on active */}
-                    <motion.div 
-                      animate={isActive ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
-                      transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
-                      className={`p-1 transition-colors duration-300 ${
-                        isActive 
-                          ? "text-info" 
-                          : "text-zinc-400 dark:text-zinc-550 hover:text-zinc-655 dark:hover:text-zinc-300"
-                      }`}
-                    >
-                      {item.icon}
-                    </motion.div>
-
-                    {/* Tab Title */}
-                    <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${
-                      isActive 
-                        ? "text-info font-black" 
-                        : "text-zinc-400 dark:text-zinc-555"
-                    }`}>
-                      {item.label}
-                    </span>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Scrollable Arc Menu Overlay */}
-        <AnimatePresence>
-          {isArcMenuOpen && (
-            <>
-              {/* Dimmed backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsArcMenuOpen(false)}
-                className="fixed inset-0 bg-zinc-950/60 dark:bg-black/85 backdrop-blur-xs z-30 md:hidden animate-fadeIn"
-              />
-
-              {/* Semicircular orbit path background */}
-              <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[360px] h-[210px] z-30 pointer-events-none md:hidden overflow-hidden">
-                <svg className="w-full h-full" viewBox="0 0 360 210">
-                  <path 
-                    d="M 24 186 A 156 156 0 0 1 336 186" 
-                    fill="none" 
-                    stroke="url(#orbitGradient)" 
-                    strokeWidth="1.5" 
-                    strokeDasharray="6 4"
-                    className="opacity-35"
+                {/* Floating pill background highlight that fades and scales in on active */}
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                   />
-                  <defs>
-                    <linearGradient id="orbitGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="rgba(99, 102, 241, 0)" />
-                      <stop offset="25%" stopColor="rgba(99, 102, 241, 0.35)" />
-                      <stop offset="50%" stopColor="rgba(168, 85, 247, 0.55)" />
-                      <stop offset="75%" stopColor="rgba(99, 102, 241, 0.35)" />
-                      <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
+                )}
 
-              {/* Scrollable Arc Menu Container */}
-              <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 40 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[260px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end snap-x"
-                ref={arcContainerRef}
-                onScroll={handleArcScroll}
-                onClick={() => setIsArcMenuOpen(false)}
-              >
-                {/* Inner scrolling track */}
-                <div 
-                  className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[24px]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {arcItems.map((item, idx) => {
-                    const R = 156; // Orbit Radius in pixels
-                    const d = idx * 100 - arcScrollX; // Horizontal distance from center
+                {/* Relative container to raise icon and text above active highlight */}
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  {/* Icon with scale effect on active */}
+                  <motion.div 
+                    animate={isActive ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
+                    transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
+                    className={`p-1 transition-colors duration-300 ${
+                      isActive 
+                        ? "text-info" 
+                        : "text-zinc-400 dark:text-zinc-555 hover:text-zinc-655 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    {item.icon}
+                  </motion.div>
 
-                    // Compute vertical position: y on a physical circle of radius 156px
-                    let translateY = 0;
-                    if (Math.abs(d) < R) {
-                      // Circle equation: x^2 + y^2 = R^2 => y = -sqrt(R^2 - x^2)
-                      translateY = -Math.sqrt(R * R - d * d);
-                    }
-
-                    // Let items slide naturally with native scroll for buttery-smooth horizontal panning
-                    const translateX = 0;
-
-                    // Dynamic scale: larger at center (1.25x), smaller at sides (0.85x)
-                    const scale = Math.max(0.85, 1.25 - 0.4 * (Math.abs(d) / R));
-
-                    // Revolve rotation angle in degrees
-                    const rotate = (d / R) * 45;
-                    
-                    // Within 15px of center is active (lights up)
-                    const isItemActive = Math.abs(d) < 15;
-
-                    // Fade out smoothly before hitting boundary edges
-                    const opacity = Math.max(0, 1 - 1.25 * (Math.abs(d) / R));
-
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          item.action();
-                          setIsArcMenuOpen(false);
-                        }}
-                        className="snap-center flex-shrink-0 w-18 flex flex-col items-center cursor-pointer select-none focus:outline-none"
-                        style={{
-                          transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
-                          opacity,
-                          transformOrigin: "bottom center",
-                          transition: "transform 0.05s ease-out, opacity 0.05s ease-out"
-                        }}
-                      >
-                        {/* Circle Icon - rotated based on circular orbit projection angle */}
-                        <div 
-                          className={`flex h-12 w-12 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
-                            isItemActive
-                              ? "bg-gradient-to-br from-indigo-500 via-indigo-650 to-purple-650 text-white shadow-[0_0_24px_rgba(99,102,241,0.75)] border-2 border-indigo-400/30 scale-112 ring-4 ring-indigo-500/15"
-                              : "bg-white/10 dark:bg-zinc-900/40 border border-white/10 dark:border-zinc-800/60 text-zinc-200 dark:text-zinc-350 backdrop-blur-xs shadow-xs hover:bg-white/15"
-                          }`}
-                          style={{
-                            transform: `rotate(${rotate}deg)`,
-                            transition: "transform 0.05s ease-out"
-                          }}
-                        >
-                          {item.icon}
-                        </div>
-                        {/* Text Label - kept perfectly horizontal and readable */}
-                        <span 
-                          className={`text-center font-outfit truncate max-w-full px-1 mt-2.5 transition-all duration-300 tracking-wider whitespace-nowrap leading-none ${
-                            isItemActive
-                              ? "text-indigo-400 dark:text-indigo-300 text-[10.5px] font-black drop-shadow-sm scale-105"
-                              : "text-zinc-400 dark:text-zinc-550 text-[9px] font-bold"
-                          }`}
-                        >
-                          {item.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {/* Tab Title */}
+                  <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${
+                    isActive 
+                      ? "text-info font-black" 
+                      : "text-zinc-400 dark:text-zinc-555"
+                  }`}>
+                    {item.label}
+                  </span>
                 </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+              </motion.button>
+            );
+          })}
+        </div>
 
         <AppLibraryPortal
           open={isAppLibraryOpen}
