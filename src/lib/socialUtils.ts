@@ -38,6 +38,14 @@ export type FriendGroup = {
   createdAt: string;
 };
 
+
+const decodeBase64 = (str: string) => {
+  if (typeof window !== "undefined") {
+    return atob(str);
+  }
+  return Buffer.from(str, "base64").toString("utf-8");
+};
+
 export function exportScheduleCode(
   attendance: any[],
   name: string,
@@ -45,66 +53,272 @@ export function exportScheduleCode(
 ): string {
   if (!Array.isArray(attendance) || attendance.length === 0) return "";
   const slotMap = config.slotMap as any;
-  const friendSlots: FriendClassSlot[] = [];
 
+  // Generate deterministic slots list from slotMap
+  const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  const staticSlotsList: string[] = [];
+  days.forEach((day) => {
+    if (slotMap[day]) {
+      Object.keys(slotMap[day])
+        .sort()
+        .forEach((slotId) => {
+          staticSlotsList.push(`${day}:${slotId}`);
+        });
+    }
+  });
+
+  // 1. Extract unique course titles
+  const uniqueTitles: string[] = [];
+  const getCourseIndex = (course: any) => {
+    const title = course.courseTitle || "";
+    // Keep course titles short to fit nicely on grid cells
+    const cleanTitle = title.length > 20 ? title.substring(0, 20).trim() + "..." : title;
+    const idx = uniqueTitles.indexOf(cleanTitle);
+    if (idx >= 0) return idx;
+    uniqueTitles.push(cleanTitle);
+    return uniqueTitles.length - 1;
+  };
+
+  // 2. Map assignments to slot index and course index
+  const assignments: string[] = [];
   attendance.forEach((course) => {
+    const courseIdx = getCourseIndex(course);
     const slots = String(course.slotName || "")
       .split("+")
       .map((s) => s.trim())
       .filter(Boolean);
 
     slots.forEach((slot) => {
-      Object.keys(slotMap).forEach((shortDay) => {
-        if (slotMap[shortDay]?.[slot]) {
-          friendSlots.push({
-            day: DAYS_MAP[shortDay] || shortDay,
-            timeSlot: slotMap[shortDay][slot].time,
-            courseCode: course.courseCode || "",
-            courseTitle: course.courseTitle || "",
-            venue: course.slotVenue || "",
-            slotId: slot,
-          });
+      days.forEach((day) => {
+        if (slotMap[day]?.[slot]) {
+          const key = `${day}:${slot}`;
+          const slotIdx = staticSlotsList.indexOf(key);
+          if (slotIdx >= 0) {
+            // Encode slot index in base36 (2 chars) and course index in base36 (1 char)
+            const slotHex = slotIdx.toString(36).padStart(2, "0");
+            const courseHex = courseIdx.toString(36).substring(0, 1);
+            assignments.push(`${slotHex}${courseHex}`);
+          }
         }
       });
     });
   });
 
-  const slotsString = friendSlots
-    .map(
-      (s) =>
-        `${s.day}|${s.timeSlot}|${s.courseCode}|${s.courseTitle}|${s.venue}|${s.slotId}`
-    )
-    .join("||");
+  const coursesString = uniqueTitles.join(";");
+  const assignmentsString = assignments.join("");
 
-  return `${name}|${regNumber}|${slotsString}`;
+  return `v5|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
 export function importScheduleCode(qrData: string, nickname?: string): Friend {
   try {
-    const parts = qrData.split("|");
-    if (parts.length < 2) {
-      throw new Error("Invalid QR data format");
+    if (!qrData) {
+      throw new Error("Empty QR data");
     }
 
-    const name = parts[0];
-    const regNumber = parts[1];
-    const slotsData = parts.length > 2 ? parts.slice(2).join("|") : "";
-
+    let name = "";
+    let regNumber = "";
     const classSlots: FriendClassSlot[] = [];
-    if (slotsData.length > 0) {
-      const slotStrings = slotsData.split("||");
-      for (const slotStr of slotStrings) {
-        if (slotStr.length > 0) {
-          const sParts = slotStr.split("|");
-          if (sParts.length === 6) {
-            classSlots.push({
-              day: sParts[0],
-              timeSlot: sParts[1],
-              courseCode: sParts[2],
-              courseTitle: sParts[3],
-              venue: sParts[4],
-              slotId: sParts[5],
+
+    if (qrData.startsWith("v5|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 5) {
+        throw new Error("Invalid v5 format");
+      }
+      name = parts[1];
+      regNumber = parts[2];
+      const coursesData = parts[3];
+      const assignmentsData = parts[4];
+
+      const titles = coursesData.length > 0 ? coursesData.split(";") : [];
+
+      // Re-generate the deterministic slots list
+      const slotMap = config.slotMap as any;
+      const staticSlotsList: string[] = [];
+      const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+      days.forEach((day) => {
+        if (slotMap[day]) {
+          Object.keys(slotMap[day])
+            .sort()
+            .forEach((slotId) => {
+              staticSlotsList.push(`${day}:${slotId}`);
             });
+        }
+      });
+
+      // Parse assignments string in chunks of 3 characters
+      for (let i = 0; i < assignmentsData.length; i += 3) {
+        const chunk = assignmentsData.substring(i, i + 3);
+        if (chunk.length === 3) {
+          const slotHex = chunk.substring(0, 2);
+          const courseHex = chunk.substring(2, 3);
+          const slotIdx = parseInt(slotHex, 36);
+          const courseIdx = parseInt(courseHex, 36);
+
+          const slotKey = staticSlotsList[slotIdx];
+          const title = titles[courseIdx];
+
+          if (slotKey && title !== undefined) {
+            const [dayKey, slotId] = slotKey.split(":");
+            if (slotMap[dayKey]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[dayKey] || dayKey,
+                timeSlot: slotMap[dayKey][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        }
+      }
+    } else if (qrData.startsWith("amz-profile-")) {
+      const base64 = qrData.replace("amz-profile-", "").trim();
+      const jsonStr = decodeURIComponent(decodeBase64(base64));
+      const payload = JSON.parse(jsonStr);
+
+      if (!Array.isArray(payload) || payload.length < 4) {
+        throw new Error("Invalid profile payload");
+      }
+
+      name = payload[0];
+      regNumber = payload[1];
+      const titles = payload[2];
+      const assignments = payload[3];
+
+      const slotMap = config.slotMap as any;
+      if (Array.isArray(assignments)) {
+        assignments.forEach((assignment) => {
+          if (Array.isArray(assignment) && assignment.length === 3) {
+            const shortDay = assignment[0];
+            const slotId = assignment[1];
+            const courseIdx = assignment[2];
+            const title = titles[courseIdx];
+
+            if (title !== undefined && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else if (qrData.startsWith("v3|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 5) {
+        throw new Error("Invalid v3 format");
+      }
+      name = parts[1];
+      regNumber = parts[2];
+      const coursesData = parts[3];
+      const assignmentsData = parts[4];
+
+      // Parse unique course titles
+      const titles = coursesData.length > 0 ? coursesData.split(";") : [];
+
+      // Parse assignments and resolve full slot details
+      const slotMap = config.slotMap as any;
+      if (assignmentsData.length > 0) {
+        assignmentsData.split(";").forEach((aStr) => {
+          const aParts = aStr.split(",");
+          if (aParts.length === 3) {
+            const shortDay = aParts[0];
+            const slotId = aParts[1];
+            const courseIdx = parseInt(aParts[2], 10);
+            const title = titles[courseIdx];
+
+            if (title !== undefined && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else if (qrData.startsWith("v2|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 5) {
+        throw new Error("Invalid v2 format");
+      }
+      name = parts[1];
+      regNumber = parts[2];
+      const coursesData = parts[3];
+      const assignmentsData = parts[4];
+
+      // Parse unique courses
+      const courses: { code: string; title: string; venue: string }[] = [];
+      if (coursesData.length > 0) {
+        coursesData.split(";").forEach((cStr) => {
+          const cParts = cStr.split("~");
+          courses.push({
+            code: cParts[0] || "",
+            title: cParts[1] || "",
+            venue: cParts[2] || "",
+          });
+        });
+      }
+
+      // Parse assignments and resolve full slot details
+      const slotMap = config.slotMap as any;
+      if (assignmentsData.length > 0) {
+        assignmentsData.split(";").forEach((aStr) => {
+          const aParts = aStr.split(",");
+          if (aParts.length === 3) {
+            const shortDay = aParts[0];
+            const slotId = aParts[1];
+            const courseIdx = parseInt(aParts[2], 10);
+            const course = courses[courseIdx];
+
+            if (course && slotMap[shortDay]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[shortDay] || shortDay,
+                timeSlot: slotMap[shortDay][slotId].time,
+                courseCode: course.code,
+                courseTitle: course.title,
+                venue: course.venue,
+                slotId,
+              });
+            }
+          }
+        });
+      }
+    } else {
+      // Legacy parsing (v1 format)
+      const parts = qrData.split("|");
+      if (parts.length < 2) {
+        throw new Error("Invalid legacy format");
+      }
+
+      name = parts[0];
+      regNumber = parts[1];
+      const slotsData = parts.length > 2 ? parts.slice(2).join("|") : "";
+
+      if (slotsData.length > 0) {
+        const slotStrings = slotsData.split("||");
+        for (const slotStr of slotStrings) {
+          if (slotStr.length > 0) {
+            const sParts = slotStr.split("|");
+            if (sParts.length === 6) {
+              classSlots.push({
+                day: sParts[0],
+                timeSlot: sParts[1],
+                courseCode: sParts[2],
+                courseTitle: sParts[3],
+                venue: sParts[4],
+                slotId: sParts[5],
+              });
+            }
           }
         }
       }

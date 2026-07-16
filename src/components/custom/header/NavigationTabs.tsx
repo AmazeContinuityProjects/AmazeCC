@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
+
 import { getAssetPath } from "@/lib/utils";
 import {
   BookOpen,
@@ -172,6 +173,8 @@ export default function NavigationTabs({
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
   const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
 
+
+
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
   const [isThemeExpanded, setIsThemeExpanded] = useState(false);
@@ -294,6 +297,8 @@ export default function NavigationTabs({
     setActiveTab(tab);
     window.scrollTo(0, 0);
   }, [setActiveTab]);
+
+
 
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroup(current => (current === groupId ? "" : groupId));
@@ -841,7 +846,7 @@ export default function NavigationTabs({
     return (
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-40 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
@@ -871,7 +876,7 @@ export default function NavigationTabs({
                     className={`p-1 transition-colors duration-300 ${
                       isActive 
                         ? "text-info" 
-                        : "text-zinc-400 dark:text-zinc-550 hover:text-zinc-655 dark:hover:text-zinc-300"
+                        : "text-zinc-400 dark:text-zinc-555 hover:text-zinc-655 dark:hover:text-zinc-300"
                     }`}
                   >
                     {item.icon}
