@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2, QrCode, Clipboard } from "lucide-react";
 import Modal from "../shared/Modal";

@@ -38,12 +38,6 @@ export type FriendGroup = {
   createdAt: string;
 };
 
-const encodeBase64 = (str: string) => {
-  if (typeof window !== "undefined") {
-    return btoa(str);
-  }
-  return Buffer.from(str).toString("base64");
-};
 
 const decodeBase64 = (str: string) => {
   if (typeof window !== "undefined") {

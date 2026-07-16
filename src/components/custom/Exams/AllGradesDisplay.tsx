@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCcw, GraduationCap, ChevronRight, Award, Calculator, Info, AlertCircle } from "lucide-react";
+import { RefreshCcw, GraduationCap, Award, Calculator, Info } from "lucide-react";
 import NoContentFound from "../NoContentFound";
 import Modal from "../shared/Modal";
 import FetchButton from "../shared/FetchButton";
-import { useIsMobile } from "../shared";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 
@@ -31,7 +30,6 @@ const HOVER_BORDER_CLASSES: Record<string, string> = {
 };
 
 export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, attendance }) {
-  const isMobile = useIsMobile();
   
   if (!data || !data.grades) {
     return (
