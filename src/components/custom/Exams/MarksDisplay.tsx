@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Info, Activity, GraduationCap, Trophy, ChevronRight, AlertTriangle } from "lucide-react";
+import { Info, Activity, GraduationCap, AlertTriangle } from "lucide-react";
 import CircularProgress from "../shared/CircularProgress";
 import Image from "next/image";
 import { API_BASE } from "../Main";

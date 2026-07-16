@@ -10,7 +10,7 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
-import { History, TrendingUp, Database, UserCheck } from "lucide-react";
+
 import { getAssetPath } from "@/lib/utils";
 import {
   BookOpen,
