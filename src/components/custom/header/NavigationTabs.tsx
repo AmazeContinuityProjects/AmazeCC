@@ -1125,45 +1125,44 @@ export default function NavigationTabs({
                 className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 h-[260px] z-40 md:hidden overflow-x-auto hide-scrollbar scroll-smooth flex items-end snap-x"
                 ref={arcContainerRef}
                 onScroll={handleArcScroll}
+                onClick={() => setIsArcMenuOpen(false)}
               >
                 {/* Inner scrolling track */}
-                <div className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[24px]">
+                <div 
+                  className="flex gap-6 px-[calc(50vw-36px)] h-full items-end pb-[24px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {arcItems.map((item, idx) => {
-                    const R = 156; // Orbit Radius in pixels (wider radius to match SVG guide path)
-                    const centerAngleRad = 90 * (Math.PI / 180); // 90 degrees at the top
-                    const angularStepRad = 30 * (Math.PI / 180); // 30 degrees spacing to completely prevent overlap
+                    const R = 156; // Orbit Radius in pixels
+                    const d = idx * 100 - arcScrollX; // Horizontal distance from center
 
-                    // S is arcScrollX. We map S = 100px to one angular step (30 degrees)
-                    const theta = centerAngleRad - (idx * angularStepRad) + (arcScrollX / 100) * angularStepRad;
-
-                    // Calculate circular coordinates relative to the bottom center origin
-                    const x = R * Math.cos(theta);
-                    const y = -R * Math.sin(theta);
-
-                    // Natural X coordinate in the scrollable content track relative to center
-                    const d = idx * 100 - arcScrollX;
-
-                    // translateX shifts the item horizontally so its final position relative to screen center is x
-                    const translateX = x - d;
-                    // translateY shifts the item vertically to its circular y position
-                    const translateY = y;
-
-                    const diffFromCenter = Math.abs(theta - centerAngleRad);
-                    const scale = Math.max(0.85, 1.25 - 0.35 * (diffFromCenter * diffFromCenter));
-                    const rotate = (theta - centerAngleRad) * (180 / Math.PI); // Revolve rotation angle in degrees
-                    
-                    const isItemActive = Math.abs(theta - centerAngleRad) < (12 * Math.PI / 180); // Within 12 degrees is active
-
-                    const angleDeg = theta * (180 / Math.PI);
-                    let opacity = 0;
-                    if (angleDeg >= 15 && angleDeg <= 165) {
-                      opacity = Math.min(1, Math.min(angleDeg - 15, 165 - angleDeg) / 18);
+                    // Compute vertical position: y on a physical circle of radius 156px
+                    let translateY = 0;
+                    if (Math.abs(d) < R) {
+                      // Circle equation: x^2 + y^2 = R^2 => y = -sqrt(R^2 - x^2)
+                      translateY = -Math.sqrt(R * R - d * d);
                     }
+
+                    // Let items slide naturally with native scroll for buttery-smooth horizontal panning
+                    const translateX = 0;
+
+                    // Dynamic scale: larger at center (1.25x), smaller at sides (0.85x)
+                    const scale = Math.max(0.85, 1.25 - 0.4 * (Math.abs(d) / R));
+
+                    // Revolve rotation angle in degrees
+                    const rotate = (d / R) * 45;
+                    
+                    // Within 15px of center is active (lights up)
+                    const isItemActive = Math.abs(d) < 15;
+
+                    // Fade out smoothly before hitting boundary edges
+                    const opacity = Math.max(0, 1 - 1.25 * (Math.abs(d) / R));
 
                     return (
                       <div
                         key={item.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           item.action();
                           setIsArcMenuOpen(false);
                         }}
