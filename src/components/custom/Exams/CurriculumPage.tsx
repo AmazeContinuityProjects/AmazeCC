@@ -371,7 +371,7 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
       }
     >
       {/* ── Total Credits Summary ── */}
-      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm   dark:border-gray-800 dark:bg-black">
+      <Card className="overflow-hidden rounded-3xl border border-zinc-200/50 dark:border-zinc-800/80 bg-gradient-to-br from-white to-zinc-55/20 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 shadow-2xs">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:items-center">
             <div className="relative mx-auto h-40 w-40 flex-shrink-0 lg:mx-0">
@@ -380,50 +380,42 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
                   <Pie data={donutData} cx="50%" cy="50%" innerRadius={48} outerRadius={68} startAngle={90} endAngle={-270} dataKey="value" strokeWidth={0}>
                     <Cell fill="#6366f1" />
                     <Cell fill="#facc15" />
-                    <Cell fill="#e5e7eb" />
+                    <Cell fill="#e2e8f0" />
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900  dark:text-white">{earnedPct.toFixed(0)}%</span>
-                <span className="text-[10px] uppercase tracking-wider text-gray-500  dark:text-gray-400 font-medium">Complete</span>
+                <span className="text-2xl font-black text-zinc-800 dark:text-zinc-150">{earnedPct.toFixed(0)}%</span>
+                <span className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-550 font-black leading-none mt-0.5">Complete</span>
               </div>
             </div>
             <div className="min-w-0">
               <div className="mb-5">
-                <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Degree Progress</p>
-                <h2 className="mt-1 font-[family-name:var(--font-outfit)] text-2xl font-black text-gray-900  dark:text-white">Credit plan overview</h2>
-                <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">Earned, ongoing and remaining credits across curriculum baskets.</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Degree Progress</p>
+                <h2 className="mt-1 font-outfit text-2xl font-black text-zinc-850 dark:text-zinc-100">Credit plan overview</h2>
+                <p className="mt-1 text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-normal">Earned, ongoing and remaining credits across curriculum baskets.</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Earned</span>
-                  <span className="text-xl font-black text-indigo-600  dark:text-indigo-400">{totalEarned.toFixed(1)}</span>
-                </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">In Progress</span>
-                  <span className="text-xl font-black text-yellow-600  dark:text-yellow-400">{totalOngoing.toFixed(1)}</span>
-                </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Remaining</span>
-                  <span className="text-xl font-black text-gray-900 dark:text-gray-100">{remainingCredits.toFixed(1)}</span>
-                </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Required</span>
-                  <span className="text-xl font-black text-gray-900 dark:text-gray-100">{totalRequired.toFixed(1)}</span>
-                </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-950/30">
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-500">Graduation</span>
-                  <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{expectedGraduation}</span>
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {[
+                  ["Earned", totalEarned.toFixed(1), "text-indigo-500"],
+                  ["In Progress", totalOngoing.toFixed(1), "text-yellow-600 dark:text-yellow-400"],
+                  ["Remaining", remainingCredits.toFixed(1), "text-zinc-850 dark:text-zinc-255"],
+                  ["Required", totalRequired.toFixed(1), "text-zinc-850 dark:text-zinc-255"],
+                  ["Graduation", expectedGraduation, "text-emerald-500"],
+                ].map(([label, val, valColor]) => (
+                  <div key={label} className="rounded-2xl border border-zinc-200/50 bg-white/70 p-3.5 dark:border-zinc-800/60 dark:bg-zinc-950/30 shadow-3xs min-w-0">
+                    <span className="mb-1 block text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-550 truncate">{label}</span>
+                    <span className={`text-xl font-black leading-none ${valColor}`}>{val}</span>
+                  </div>
+                ))}
               </div>
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.min(earnedPct, 100)}%` }} />
+              <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(earnedPct, 100)}%` }} />
               </div>
-              <div className="mt-3 flex items-center gap-4 text-xs text-gray-500  dark:text-gray-400">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>Earned</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>In Progress</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-gray-300  dark:bg-gray-600 inline-block"></span>Remaining</span>
+              <div className="mt-3.5 flex items-center gap-4 text-[10px] font-bold text-zinc-400 dark:text-zinc-550">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span>Earned</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block"></span>In Progress</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-650 inline-block"></span>Remaining</span>
               </div>
             </div>
           </div>
@@ -432,10 +424,10 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
 
       {/* ── Main Category Progress Cards ── */}
       <div className="mt-8">
-        <h2 className="text-lg font-bold text-gray-900  dark:text-white mb-3 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-blue-500" /> Credit Baskets
+        <h2 className="text-base font-black text-zinc-800 dark:text-zinc-100 mb-3.5 flex items-center gap-2">
+          <BookOpen className="w-4.5 h-4.5 text-indigo-500" /> Credit Baskets
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {mainCategories.map((c, idx) => {
             const earned = parseFloat(c.creditsEarned) || 0;
             const required = parseFloat(c.creditsRequired) || 1;
@@ -489,18 +481,18 @@ export default function CurriculumPage({ allGradesData, gradesData, marksData, a
           </h2>
 
           {/* ── Search Bar ── */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="relative mb-4.5">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by course code, name, basket or category..."
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/60  dark:bg-gray-900/50 border border-white/40  dark:border-white/10 text-sm text-gray-800  dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 "
+              className="w-full pl-11 pr-10 py-3 rounded-2xl bg-white/60 dark:bg-zinc-950 border border-zinc-200/50 dark:border-zinc-850 text-sm text-zinc-800 dark:text-zinc-150 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-3xs focus:border-indigo-500 transition-all"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors">
-                <X className="w-4 h-4 text-gray-400" />
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-colors">
+                <X className="w-3.5 h-3.5 text-zinc-400" />
               </button>
             )}
           </div>
@@ -686,39 +678,39 @@ function ProgressCard({ title, earned, inProgress, required, compact = false, en
   const totalDetailCredits = allItems.reduce((s, i) => s + i.credits, 0);
 
   return (
-    <Card className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+    <Card className="bg-gradient-to-br from-white to-zinc-55/20 dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs hover:shadow-xs transition-all duration-300 hover:border-indigo-500/20 dark:hover:border-indigo-500/30">
       <CardContent className={compact ? "p-4" : "p-5"}>
         <div className="flex justify-between items-start mb-3">
           <div className="min-w-0 flex-1">
-            <h3 className={`${compact ? "text-sm" : "text-sm"} font-semibold text-gray-800  dark:text-gray-200 leading-tight pr-2 truncate`}>
+            <h3 className={`${compact ? "text-xs" : "text-sm"} font-black text-zinc-800 dark:text-zinc-200 leading-tight pr-2 truncate`}>
               {title}
             </h3>
             {hasDetail && (
-              <p className="text-[10px] text-gray-400  dark:text-gray-500 mt-0.5">{allItems.length} courses · {totalDetailCredits.toFixed(1)} cr</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-555 font-bold mt-0.5">{allItems.length} courses · {totalDetailCredits.toFixed(1)} cr</p>
             )}
           </div>
-          <span className={`flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
+          <span className={`flex-shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full border ${
             isComplete
-              ? "bg-green-100 text-green-700   dark:bg-green-900/30 dark:text-green-400"
-              : "bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-400"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-500/10 dark:bg-emerald-950/20 dark:text-emerald-400"
+              : "bg-indigo-50 text-indigo-600 border-indigo-500/10 dark:bg-indigo-950/20 dark:text-indigo-400"
           }`}>
             {progressEarned.toFixed(0)}%
           </span>
         </div>
 
-        <div className="relative h-2 rounded-full overflow-hidden bg-gray-200  dark:bg-gray-800">
+        <div className="relative h-2 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
           {!isComplete && (
-            <div className="absolute left-0 top-0 h-full bg-yellow-400/60 transition-all duration-500" style={{ width: `${progressWithOngoing}%` }} />
+            <div className="absolute left-0 top-0 h-full bg-yellow-400/55 transition-all duration-500" style={{ width: `${progressWithOngoing}%` }} />
           )}
-          <div className={`absolute left-0 top-0 h-full transition-all duration-500 ${isComplete ? "bg-green-500" : "bg-blue-600  dark:bg-blue-500"}`} style={{ width: `${progressEarned}%` }} />
+          <div className={`absolute left-0 top-0 h-full transition-all duration-500 ${isComplete ? "bg-emerald-500" : "bg-indigo-500"}`} style={{ width: `${progressEarned}%` }} />
         </div>
 
-        <div className="flex justify-between items-center mt-2 text-[11px] text-gray-500">
-          <span><span className="font-semibold text-gray-700  dark:text-gray-300">{earned.toFixed(1)}</span> earned</span>
+        <div className="flex justify-between items-center mt-2.5 text-[10px] font-semibold text-zinc-450 dark:text-zinc-550 leading-none">
+          <span><span className="font-bold text-zinc-700 dark:text-zinc-300">{earned.toFixed(1)}</span> earned</span>
           {inProgress > 0 && (
-            <span><span className="font-semibold text-yellow-600  dark:text-yellow-400">{inProgress.toFixed(1)}</span> ongoing</span>
+            <span><span className="font-bold text-yellow-600 dark:text-yellow-400">{inProgress.toFixed(1)}</span> ongoing</span>
           )}
-          <span><span className="font-semibold text-gray-700  dark:text-gray-300">{required.toFixed(1)}</span> req.</span>
+          <span><span className="font-bold text-zinc-700 dark:text-zinc-300">{required.toFixed(1)}</span> req.</span>
         </div>
 
         {hasDetail && enrichedBaskets!.length > 0 && (
@@ -772,34 +764,34 @@ function CourseAccordion({ type, courses }: { type: string; courses: EffectiveGr
   const totalCredits = courses.reduce((s, c) => s + (parseFloat(c.creditsEarned) || 0), 0);
 
   return (
-    <Card className="bg-white  dark:bg-black border border-gray-200  dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <Card className="bg-gradient-to-br from-white to-zinc-55/20 dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl shadow-2xs overflow-hidden transition-all duration-300">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-slate-800 dark:hover:bg-gray-900 transition-colors"
+        className="w-full flex items-center justify-between p-4.5 text-left hover:bg-zinc-55/50 dark:hover:bg-zinc-900/40 transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-800  dark:text-gray-200">{type}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100  dark:bg-gray-800 text-gray-600  dark:text-gray-400 font-medium">
+          <span className="text-xs font-black text-zinc-800 dark:text-zinc-200">{type}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400 font-bold border border-zinc-200/10">
             {courses.length} {courses.length === 1 ? "course" : "courses"} · {totalCredits.toFixed(1)} cr.
           </span>
         </div>
-        {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+        {open ? <ChevronDown className="w-4 h-4 text-zinc-450" /> : <ChevronRight className="w-4 h-4 text-zinc-450" />}
       </button>
 
       {open && (
-        <div className="border-t border-gray-100  dark:border-gray-800">
+        <div className="border-t border-zinc-150 dark:border-zinc-850 bg-white/40 dark:bg-zinc-950/10">
           {courses.map((course, idx) => (
             <div
               key={idx}
-              className={`flex items-center justify-between px-4 py-3 ${
-                idx !== courses.length - 1 ? "border-b border-gray-100  dark:border-gray-800" : ""
+              className={`flex items-center justify-between px-4.5 py-3.5 ${
+                idx !== courses.length - 1 ? "border-b border-zinc-150 dark:border-zinc-850" : ""
               }`}
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800  dark:text-gray-200 truncate">{course.basketTitle}</p>
-                <p className="text-xs text-gray-500  dark:text-gray-400 mt-0.5">{course.creditsEarned} credits</p>
+                <p className="text-xs font-black text-zinc-800 dark:text-zinc-200 truncate">{course.basketTitle}</p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-555 mt-1 font-bold">{course.creditsEarned} credits</p>
               </div>
-              <div className={`flex-shrink-0 ml-3 px-2.5 py-1 rounded-lg text-sm font-bold ${GRADE_COLORS[course.grade] || "text-gray-500"} ${GRADE_BG[course.grade] || "bg-gray-100  dark:bg-gray-800"}`}>
+              <div className={`flex-shrink-0 ml-3 px-2.5 py-1 rounded-lg text-xs font-black border border-transparent ${GRADE_COLORS[course.grade] || "text-zinc-500"} ${GRADE_BG[course.grade] || "bg-zinc-100 dark:bg-zinc-850"}`}>
                 {course.grade}
               </div>
             </div>
