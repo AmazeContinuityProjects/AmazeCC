@@ -996,6 +996,24 @@ export default function ProfilePage({
                       <option value="WEI">Weekend Intra Semester</option>
                     </select>
                   </div>
+
+                  {/* Target Attendance Threshold */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Target Attendance Threshold</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-450">Required attendance percentage for shortage calculations</p>
+                    </div>
+                    <select
+                      value={settings?.targetAttendance ?? 75}
+                      onChange={(e) => updateSetting("targetAttendance", parseInt(e.target.value))}
+                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-semibold"
+                    >
+                      <option value={75}>75% (Standard Requirement)</option>
+                      <option value={80}>80% (Safety Margin)</option>
+                      <option value={85}>85% (Bus Registration / High Goal)</option>
+                      <option value={90}>90% (Honor Target)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
