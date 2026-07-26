@@ -8,7 +8,7 @@ import {
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
   MessageSquareWarning, Lock, BookOpen, CreditCard, Activity, 
   GraduationCap, TrendingUp, UserCheck, Home, FileText, Heart, 
-  Calendar, CheckCircle2, Bus, Check, ChevronDown
+  Calendar, CheckCircle2, Bus, Check, ChevronDown, AlertCircle
 } from "lucide-react";
 import { Input, Button } from "@amazecontinuityprojects/amazeui";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL } from "@/lib/fetch-utils";
@@ -904,9 +904,15 @@ export default function LoginForm({
                   </div>
 
                   {/* Feedback Message */}
-                  {message && (message.toLowerCase().includes("failed") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("incorrect") || message.toLowerCase().includes("captcha") || message.toLowerCase().includes("error")) && (
-                    <div className="p-3.5 rounded-xl border text-xs text-center font-bold bg-rose-500/10 border-rose-500/20 text-rose-650 dark:text-rose-400">
-                      {message}
+                  {message && (message.toLowerCase().includes("failed") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("incorrect") || message.toLowerCase().includes("captcha") || message.toLowerCase().includes("error") || message.toLowerCase().includes("reason")) && (
+                    <div className="p-3.5 rounded-xl border text-xs text-left font-semibold bg-rose-500/10 border-rose-500/20 text-rose-650 dark:text-rose-400 space-y-2">
+                      <div className="font-bold flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+                        <span>{message}</span>
+                      </div>
+                      <div className="text-[11px] leading-relaxed text-slate-700 dark:text-gray-300 font-normal bg-white/70 dark:bg-black/50 p-2.5 rounded-lg border border-rose-500/20">
+                        💡 <strong>VTOP Password Tip:</strong> If login fails repeatedly, VTOP may be requiring a mandatory password reset due to multiple consecutive automated login attempts. Please sign into <a href="https://vtop.vit.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400">vtop.vit.ac.in</a> directly to verify your account or reset your password.
+                      </div>
                     </div>
                   )}
 

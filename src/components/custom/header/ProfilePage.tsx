@@ -188,6 +188,27 @@ export default function ProfilePage({
     });
   };
 
+  const handleToggleAllSync = (enable: boolean) => {
+    setSettings((prev: any) => {
+      const next = {
+        ...prev,
+        syncArrearData: enable,
+        syncCourseOptionChange: enable,
+        syncExcRegistration: enable,
+        syncMinorHonour: enable,
+        syncCourseCompletion: enable,
+        syncAdditionalLearning: enable,
+        syncProfileData: enable,
+        syncExamData: enable,
+        syncWishlist: enable,
+        syncProject: enable,
+        syncProjectCourse: enable,
+      };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const updateCustomPalette = (key: "accent" | "background" | "surface", value: string) => {
     const nextPalette = { ...customPalette, [key]: value };
     setSettings((prev: any) => {
@@ -390,7 +411,6 @@ export default function ProfilePage({
     } else {
       setTheme(val);
     }
-    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Advanced section helpers
@@ -993,7 +1013,6 @@ export default function ProfilePage({
                     <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
                   </div>
 
-
                   {/* Compact Mobile view toggle */}
                   <div className="flex items-center justify-between">
                     <div>
@@ -1010,6 +1029,62 @@ export default function ProfilePage({
                       <p className="text-xs text-gray-550 dark:text-gray-450">Refresh button fetches all categories instead of just attendance</p>
                     </div>
                     <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
+                  </div>
+
+                  {/* Default Academics Tab */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Default Academics View</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Initial view when opening Academics Hub</p>
+                    </div>
+                    <select
+                      value={settings?.defaultAcademicsTab || "overview"}
+                      onChange={(e) => updateSetting("defaultAcademicsTab", e.target.value)}
+                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
+                    >
+                      <option value="overview">Academics Hub (Overview)</option>
+                      <option value="course-dashboard">Course Hub (Current Courses)</option>
+                      <option value="curriculum">Degree Curriculum</option>
+                      <option value="grades">Grade History</option>
+                      <option value="predictor">CGPA Predictor</option>
+                      <option value="qbank">Question Bank</option>
+                    </select>
+                  </div>
+
+                  {/* Auto Background Refresh Interval */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Background Auto-Sync Interval</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Automatic periodic data refresh frequency</p>
+                    </div>
+                    <select
+                      value={settings?.autoSyncInterval || "off"}
+                      onChange={(e) => updateSetting("autoSyncInterval", e.target.value)}
+                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
+                    >
+                      <option value="off">Off (Manual Refresh Only)</option>
+                      <option value="15m">Every 15 Minutes</option>
+                      <option value="30m">Every 30 Minutes</option>
+                      <option value="1h">Every 1 Hour</option>
+                    </select>
+                  </div>
+
+                  {/* Low Data Saver Mode */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Low Data Saver Mode</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Disable prefetching heavy assets to save mobile data</p>
+                    </div>
+                    <Switch checked={settings?.lowDataMode ?? false} onCheckedChange={(val) => updateSetting("lowDataMode", val)} />
+                  </div>
+
+                  {/* Sound Effects */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Sound & Action Feedback</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Play subtle audio cues for buttons and task completion</p>
+                    </div>
+                    <Switch checked={settings?.soundEnabled ?? true} onCheckedChange={(val) => updateSetting("soundEnabled", val)} />
                   </div>
 
                   {/* Pinned Nav Tabs */}
@@ -1134,7 +1209,23 @@ export default function ProfilePage({
               )}
 
               <div className={`bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
-                  <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 dark:border-gray-800 pb-3">
+                    <p className="text-xs text-gray-550 dark:text-gray-400 font-medium">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleToggleAllSync(true)}
+                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        Enable All
+                      </button>
+                      <button
+                        onClick={() => handleToggleAllSync(false)}
+                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      >
+                        Disable All
+                      </button>
+                    </div>
+                  </div>
 
                 {/* Collapsible Sync Toggles */}
                 <div className="space-y-2">
@@ -1506,7 +1597,7 @@ export default function ProfilePage({
                   <div className="flex gap-2">
                     <input
                       type="url"
-                      placeholder="https://api.mycustomdomain.com"
+                      placeholder="https://api.amazecc.com"
                       value={customApiInput}
                       onChange={(e) => setCustomApiInput(e.target.value)}
                       className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-info text-gray-800 dark:text-white"
