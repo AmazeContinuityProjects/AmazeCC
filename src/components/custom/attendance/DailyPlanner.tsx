@@ -196,10 +196,10 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
   const scheduleData = buildDailySchedule(activeDay);
 
-  // Count classes for empty-state check
+  const activeTargetDay = getTargetDay(activeDay);
   const dayHasClasses = (attendance || []).some((course: any) => {
     const slots = String(course.slotName || "").split("+").map(s => s.trim()).filter(Boolean);
-    return slots.some(slot => (slotMap as any)[activeDay]?.[slot]);
+    return slots.some(slot => (slotMap as any)[activeTargetDay]?.[slot]);
   });
 
   return (
