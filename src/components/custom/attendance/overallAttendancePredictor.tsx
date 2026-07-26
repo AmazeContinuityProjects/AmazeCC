@@ -21,6 +21,19 @@ export default function OverallAttendancePredictor({
   const [dateStates, setDateStates] = useState({});
   const [mode, setMode] = useState("LID"); // CAT1, CAT2, LID
 
+  const targetThreshold = useMemo(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("settings");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetAttendance) return Number(parsed.targetAttendance);
+        }
+      } catch (e) {}
+    }
+    return 75;
+  }, []);
+
   const allWorkingDays = useMemo(() => {
     if (!Array.isArray(analyzeCalendars)) return [];
 
@@ -339,9 +352,9 @@ export default function OverallAttendancePredictor({
               </span>
             </span>
             <span
-              className={`font-semibold ${p.predictedPercent < (isDayscholarWithBus ? 85 : 75)
+              className={`font-semibold ${p.predictedPercent < targetThreshold
                 ? "text-red-500 dark:text-red-400"
-                : p.predictedPercent < (isDayscholarWithBus ? 90 : 85)
+                : p.predictedPercent < targetThreshold + 10
                   ? "text-yellow-400 dark:text-yellow-300"
                   : "text-green-400 dark:text-green-300"
                 }`}
