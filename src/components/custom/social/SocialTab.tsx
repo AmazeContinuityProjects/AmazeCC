@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Users, UserPlus, Share2, Trash2, Calendar, Eye, EyeOff, UsersRound, Plus } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
-import { getFriends, removeFriend, saveFriend, getFriendGroups, removeFriendGroup, Friend, FriendGroup } from "../../../lib/socialUtils";
+import { getFriends, removeFriend, saveFriend, getFriendGroups, removeFriendGroup, exportShareableLink, importScheduleCode, Friend, FriendGroup } from "../../../lib/socialUtils";
 import ShareScheduleModal from "./ShareScheduleModal";
 import AddFriendModal from "./AddFriendModal";
 import FriendTimetableModal from "./FriendTimetableModal";
 import CommonFreeSlotsModal from "./CommonFreeSlotsModal";
 import AddGroupModal from "./AddGroupModal";
+
+import { Link as LinkIcon, Copy, Check } from "lucide-react";
 
 export default function SocialTab({ attendanceData, isDemo }: { attendanceData: any; isDemo?: boolean }) {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -15,9 +17,25 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ group: FriendGroup | null, friends: Friend[], name?: string } | null>(null);
+
+  const studentName = attendanceData?.studentInfo?.name || "Student";
+  const studentReg = attendanceData?.studentInfo?.regNumber || "VIT Student";
+  const studentInitials = studentName.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase() || "AM";
+
+  const handleCopyLink = () => {
+    if (isDemo) {
+      alert("Sharing link is disabled in Demo Mode.");
+      return;
+    }
+    const link = exportShareableLink(attendanceData?.attendance || [], studentName, studentReg);
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
  
   const loadData = () => {
     if (isDemo) {
@@ -73,6 +91,21 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
     loadData();
   }, [isDemo]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || isDemo) return;
+    const hash = window.location.hash;
+    if (hash && hash.includes("share=")) {
+      try {
+        const friend = importScheduleCode(hash);
+        if (confirm(`Add ${friend.name} (${friend.regNumber}) to your friends list?`)) {
+          saveFriend(friend);
+          loadData();
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      } catch (e) {}
+    }
+  }, [isDemo]);
+
   const handleDeleteFriend = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (isDemo) {
@@ -120,42 +153,58 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
 
   return (
     <div className="w-full space-y-6 pb-8 animate-fadeIn">
-      {/* Header */}
-      <div className="solid-card p-6">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Users className="text-info w-6 h-6" /> Social & Schedules
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Compare schedules, find common free time, and plan group study sessions!
-            </p>
+      {/* My Social Profile Banner */}
+      <div className="p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/10 dark:from-zinc-900/90 dark:via-zinc-900/60 dark:to-zinc-950 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-md ring-4 ring-white dark:ring-zinc-900">
+              {studentInitials}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-black text-foreground font-outfit">{studentName}</h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
+                  {studentReg}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Share your schedule link to compare timetables & find common free hours!
+              </p>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <FetchButton
-              onClick={handleOpenAllFreeSlots}
-              variant="success"
-              icon={<Calendar className="w-4 h-4" />}
-              className="flex-1 md:flex-none px-4 py-2.5 rounded-xl"
+
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <button
+              onClick={handleCopyLink}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs active:scale-[0.98] cursor-pointer"
             >
-              Compare All
-            </FetchButton>
-             <button
+              {copiedLink ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
+              {copiedLink ? "Link Copied!" : "Copy Share Link"}
+            </button>
+            <button
               onClick={() => { if (isDemo) { alert("Sharing schedule code is disabled in Demo Mode."); } else { setIsShareModalOpen(true); } }}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-sm whitespace-nowrap"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-700 text-foreground text-xs font-bold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all shadow-2xs cursor-pointer"
             >
-              <Share2 className="w-4 h-4" /> 
-              <span className="hidden sm:inline">Share My Code</span>
-              <span className="sm:hidden">Share</span>
+              <Share2 className="w-4 h-4 text-indigo-500" />
+              QR & Code
             </button>
             <FetchButton
               onClick={() => { if (isDemo) { alert("Adding new friends is disabled in Demo Mode."); } else { setIsAddModalOpen(true); } }}
               variant="gradient"
               icon={<UserPlus className="w-4 h-4" />}
-              className="flex-1 md:flex-none px-4 py-2.5 rounded-xl shadow-lg"
+              className="flex-1 md:flex-none px-4 py-2.5 rounded-xl shadow-md text-xs font-bold"
             >
               Add Friend
             </FetchButton>
+            {friends.length > 0 && (
+              <button
+                onClick={handleOpenAllFreeSlots}
+                className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 text-xs font-bold hover:bg-emerald-100/60 transition-all cursor-pointer"
+              >
+                <Calendar className="w-4 h-4" />
+                Compare All
+              </button>
+            )}
           </div>
         </div>
       </div>

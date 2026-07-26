@@ -110,10 +110,32 @@ export function exportScheduleCode(
   return `v5|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
-export function importScheduleCode(qrData: string, nickname?: string): Friend {
+export function exportShareableLink(
+  attendance: any[],
+  name: string,
+  regNumber: string
+): string {
+  const code = exportScheduleCode(attendance, name, regNumber);
+  if (!code) return "";
+  const encoded = encodeURIComponent(code);
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin + window.location.pathname;
+    return `${origin}#share=${encoded}`;
+  }
+  return `https://amazecc.app/#share=${encoded}`;
+}
+
+export function importScheduleCode(rawData: string, nickname?: string): Friend {
   try {
-    if (!qrData) {
+    if (!rawData) {
       throw new Error("Empty QR data");
+    }
+
+    let qrData = rawData.trim();
+    if (qrData.includes("#share=")) {
+      qrData = decodeURIComponent(qrData.split("#share=")[1].split("&")[0]);
+    } else if (qrData.includes("share=")) {
+      qrData = decodeURIComponent(qrData.split("share=")[1].split("&")[0]);
     }
 
     let name = "";
