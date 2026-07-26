@@ -1,4 +1,4 @@
-import { TimetableState, AddedCourse } from "@/components/custom/Exams/FFCS/types";
+import { TimetableState } from "@/components/custom/Exams/FFCS/types";
 
 // Helper to convert time like "8:00 AM" to "080000"
 function formatIcalTime(timeStr: string): string {

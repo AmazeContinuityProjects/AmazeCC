@@ -1,5 +1,5 @@
 import { AnalyzeAllCalendarsReturn, AnalyzeCalendarReturn, AnalyzedDay, CalendarEvent, CalendarInput, CalendarResult, ImportantEvent } from "@/types/data/semTT";
-import { eachDayOfInterval, endOfMonth, getDay } from "date-fns";
+import { eachDayOfInterval, endOfMonth } from "date-fns";
 
 const HOLIDAY_KEYWORDS = [
     "holiday", "pooja", "puja", "ayudha", "diwali", "pongal", "eid", "christmas", "good friday",

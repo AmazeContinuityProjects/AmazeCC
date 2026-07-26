@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
-import { Button as BaseButton, type ButtonProps as BaseButtonProps } from "@amazecontinuityprojects/amazeui";
+import { Button as BaseButton } from "@amazecontinuityprojects/amazeui";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger" | "success" | "default" | "destructive" | "outline" | "link";
