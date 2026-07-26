@@ -645,6 +645,8 @@ export default function CurriculumPage({
                     onToggleBasket={toggleBasket}
                     downloadSyllabus={downloadSyllabus}
                     downloadingSyllabus={downloadingSyllabus}
+                    completedCourseCodes={completedCourseCodes}
+                    ongoingCourseCodes={ongoingCourseCodes}
                   />
                 );
               })}
@@ -1004,6 +1006,8 @@ function ProgressCard({
   onToggleBasket,
   downloadSyllabus,
   downloadingSyllabus,
+  completedCourseCodes,
+  ongoingCourseCodes,
 }: {
   title: string;
   earned: number;
@@ -1015,6 +1019,8 @@ function ProgressCard({
   onToggleBasket?: (key: string) => void;
   downloadSyllabus?: (code: string) => void;
   downloadingSyllabus?: string | null;
+  completedCourseCodes?: Set<string>;
+  ongoingCourseCodes?: Set<string>;
 }) {
   const isComplete = earned >= required;
   const effectiveTotal = isComplete ? earned : earned + inProgress;
@@ -1094,27 +1100,39 @@ function ProgressCard({
 
                   {isOpen && (
                     <div className="p-2 space-y-1 bg-white/60 dark:bg-zinc-950/40 divide-y divide-zinc-100 dark:divide-zinc-850">
-                      {b.items.map((item, ii) => (
-                        <div key={ii} className="flex items-center justify-between text-xs py-1.5 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg">
-                          <div className="flex items-center gap-2 min-w-0 pr-2">
-                            <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold flex-shrink-0">{item.code}</span>
-                            <span className="text-zinc-600 dark:text-zinc-300 truncate font-medium">{item.name}</span>
+                      {b.items.map((item, ii) => {
+                        const codeUpper = item.code.toUpperCase();
+                        const isDone = completedCourseCodes?.has(codeUpper);
+                        const isOng = ongoingCourseCodes?.has(codeUpper);
+                        return (
+                          <div key={ii} className="flex items-center justify-between text-xs py-1.5 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-extrabold flex-shrink-0">{item.code}</span>
+                              <span className="text-zinc-600 dark:text-zinc-300 truncate font-medium">{item.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {isDone ? (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-500/20">Completed</span>
+                              ) : isOng ? (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-500/20">In Progress</span>
+                              ) : (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200/50">Remaining</span>
+                              )}
+                              <span className="text-[10px] font-bold text-zinc-400">{item.credits} cr</span>
+                              {downloadSyllabus && (
+                                <button
+                                  onClick={() => downloadSyllabus(item.code)}
+                                  disabled={downloadingSyllabus === item.code}
+                                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-500 cursor-pointer"
+                                  title={`Download syllabus for ${item.code}`}
+                                >
+                                  {downloadingSyllabus === item.code ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-[10px] font-bold text-zinc-400">{item.credits} cr</span>
-                            {downloadSyllabus && (
-                              <button
-                                onClick={() => downloadSyllabus(item.code)}
-                                disabled={downloadingSyllabus === item.code}
-                                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-500"
-                                title={`Download syllabus for ${item.code}`}
-                              >
-                                {downloadingSyllabus === item.code ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
