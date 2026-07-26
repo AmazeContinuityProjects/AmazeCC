@@ -444,6 +444,7 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             activeDay={activeDay}
             simulatedSkips={simulatedSkips}
             isDayscholarWithBus={isDayscholarWithBus}
+            saturdayOverride={saturdayOverride}
             onClassClick={(item) => {
               const idx = activeDayClasses.findIndex(c => 
                 c.courseCode === item.course.courseCode &&
