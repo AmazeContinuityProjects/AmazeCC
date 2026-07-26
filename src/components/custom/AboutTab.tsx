@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { AboutSection } from "./header/AboutSection";
 import ResourcesSection from "./ResourcesSection";
 import HallOfFameModal from "./header/HallOfFameModal";

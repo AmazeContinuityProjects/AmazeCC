@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { X, UploadCloud, AlertCircle, Plus } from "lucide-react";
+import { useState } from "react";
+import { UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { API_BASE } from "@/components/custom/Main";
 import Modal from "../shared/Modal";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";

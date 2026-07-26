@@ -169,7 +169,6 @@ export default function LoginPage() {
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
-  const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -254,7 +253,6 @@ export default function LoginPage() {
 
     const isDarkMode = root.classList.contains("dark");
     const accent = palette.accent || "#0ea5e9";
-    const background = palette.background || "#f8fafc";
     const surface = palette.surface || "#ffffff";
     root.dataset.colorPalette = selectedPalette || "custom";
     root.style.setProperty("--theme-accent", accent);
@@ -2233,7 +2231,6 @@ export default function LoginPage() {
         : [];
 
       // Today's calendar events
-      const todayStr = `${today.getDate()} ${today.toLocaleDateString("en-US", { month: "short" })}`;
       const calData = Calender as any;
       let todayEvents: any[] = [];
       if (calData?.results) {
@@ -2818,34 +2815,4 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoMode: boolean }) {
-  const [data, setData] = useState<{ imageSrc: string; description: string; metaDetails: Record<string, string> } | null>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    loginToEventHub(IDs, demoMode).then(jsessionid => {
-      if (!jsessionid || cancelled) { if (!cancelled) setLoading(false); return; }
-      return fetch(`${API_BASE}/api/events/preview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsessionid, eid }),
-        signal: controller.signal
-      });
-    }).then(async r => { if (!r || !r.ok) return null; return r.json(); }).then(j => {
-      if (!cancelled) { setData(j); setLoading(false); }
-    }).catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; controller.abort(); };
-  }, [eid, IDs, demoMode]);
-  if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100  dark:bg-gray-900 animate-pulse" />;
-  if (!data?.imageSrc) return null;
-  return (
-    <div className="space-y-2">
-      <img src={getRewrittenUrl(data.imageSrc)} alt="" className="w-full h-28 object-cover rounded-xl" />
-      {data.description && <p className="text-xs font-medium text-gray-900  dark:text-gray-100">{data.description}</p>}
-      {data.metaDetails && Object.entries(data.metaDetails).map(([k, v]) => (
-        <p key={k} className="text-xs text-gray-600  dark:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
-      ))}
-    </div>
-  );
-}
+

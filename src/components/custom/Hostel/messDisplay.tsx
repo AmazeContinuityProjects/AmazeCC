@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCcw, ExternalLink, Clock, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCcw, Clock, Sparkles } from "lucide-react";
 import { useIsMobile } from "../shared";
 
 const messLinks: Record<string, Record<string, string>> = {

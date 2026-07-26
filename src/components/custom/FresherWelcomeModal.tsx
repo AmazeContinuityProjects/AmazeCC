@@ -1,7 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, CalendarDays } from "lucide-react";
-import { API_BASE } from "./Main";
+
 
 const iconMap: Record<string, React.ReactNode> = {
   Bus: <Bus className="w-5 h-5" />,
