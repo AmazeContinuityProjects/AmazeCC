@@ -26,7 +26,8 @@ export function getTodayAttendanceDay(date = new Date()): AttendanceDay {
 
 export function buildAttendanceDayCardsMap(
   attendance: any[] = [],
-  slotMap: any = (config as any).slotMap
+  slotMap: any = (config as any).slotMap,
+  saturdayOverride?: string
 ): AttendanceDayCardsMap {
   const map = ATTENDANCE_DAYS.reduce((acc, day) => {
     acc[day] = [];
@@ -94,6 +95,17 @@ export function buildAttendanceDayCardsMap(
     merged.sort((a, b) => parseAttendanceTime(a.time.split("-")[0]) - parseAttendanceTime(b.time.split("-")[0]));
     map[day] = merged;
   });
+
+  // Apply Saturday timetable override if specified or stored
+  let satDay = saturdayOverride;
+  if (!satDay && typeof window !== "undefined") {
+    try {
+      satDay = localStorage.getItem("saturday_timetable_override") || undefined;
+    } catch {}
+  }
+  if (satDay && satDay !== "SAT" && map[satDay as AttendanceDay]) {
+    map["SAT"] = map[satDay as AttendanceDay].map((c) => ({ ...c }));
+  }
 
   return map;
 }
