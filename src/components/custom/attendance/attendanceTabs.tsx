@@ -254,7 +254,16 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   const dayHasCriticalCourse = (dayName: string) => {
     const courses = dayCardsMap[dayName] || [];
-    const threshold = isDayscholarWithBus ? 85 : 75;
+    let threshold = 75;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("settings");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetAttendance) threshold = Number(parsed.targetAttendance);
+        }
+      } catch (e) {}
+    }
     return courses.some(c => {
       const skips = simulatedSkips[c.courseCode] || 0;
       const attended = parseInt(c.attendedClasses);
