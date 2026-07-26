@@ -42,16 +42,16 @@ export async function loginToVTOP(
       }
 
       if (!data.success || !data.authorizedID || !data.cookies) {
-        let msg = data.message || "Login failed.";
-        const msgLower = msg.toLowerCase();
+        let rawMsg = (data.message || "Login failed").trim().replace(/\.+$/, "");
+        let msg = `${rawMsg}.`;
+        const msgLower = rawMsg.toLowerCase();
         if (
           msgLower.includes("unknown reason") ||
           msgLower.includes("reset") ||
           msgLower.includes("too many") ||
-          msgLower.includes("lock") ||
-          msgLower.includes("invalid")
+          msgLower.includes("lock")
         ) {
-          msg = `${data.message || "Login failed"}. VTOP may be requiring a password reset due to frequent logins. Try signing into vtop.vit.ac.in directly to check or reset your password.`;
+          msg = `${rawMsg}. VTOP may require a password reset due to frequent logins. Try signing into vtop.vit.ac.in directly.`;
         }
         throw new Error(msg);
       }
