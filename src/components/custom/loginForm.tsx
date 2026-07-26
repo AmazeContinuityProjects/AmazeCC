@@ -905,13 +905,13 @@ export default function LoginForm({
 
                   {/* Feedback Message */}
                   {message && (message.toLowerCase().includes("failed") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("wrong") || message.toLowerCase().includes("incorrect") || message.toLowerCase().includes("captcha") || message.toLowerCase().includes("error") || message.toLowerCase().includes("reason")) && (
-                    <div className="p-3.5 rounded-xl border text-xs text-left font-semibold bg-rose-500/10 border-rose-500/20 text-rose-650 dark:text-rose-400 space-y-2">
-                      <div className="font-bold flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+                    <div className="p-2.5 rounded-xl border text-[11px] font-medium bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 flex flex-col gap-1 text-left">
+                      <div className="font-semibold flex items-center gap-1.5 text-xs">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
                         <span>{message}</span>
                       </div>
-                      <div className="text-[11px] leading-relaxed text-slate-700 dark:text-gray-300 font-normal bg-white/70 dark:bg-black/50 p-2.5 rounded-lg border border-rose-500/20">
-                        💡 <strong>VTOP Password Tip:</strong> If login fails repeatedly, VTOP may be requiring a mandatory password reset due to multiple consecutive automated login attempts. Please sign into <a href="https://vtop.vit.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400">vtop.vit.ac.in</a> directly to verify your account or reset your password.
+                      <div className="text-[10px] text-slate-500 dark:text-gray-400 pl-5">
+                        Frequent logins? <a href="https://vtop.vit.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Reset on VTOP Portal ↗</a>
                       </div>
                     </div>
                   )}
