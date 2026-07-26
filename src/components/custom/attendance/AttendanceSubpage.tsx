@@ -31,6 +31,19 @@ const normalize = (d: Date) => {
     return x.getTime();
 };
 
+function getTargetAttendancePct(): number {
+    if (typeof window !== "undefined") {
+        try {
+            const saved = localStorage.getItem("settings");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.targetAttendance) return Number(parsed.targetAttendance);
+            }
+        } catch (e) {}
+    }
+    return 75;
+}
+
 export function countRemainingClasses(courseCode, slotTime, dayCardsMap, calendarMonths, fromDate = new Date()): RemainingClassDay[] | null {
     if (!courseCode || !dayCardsMap || !calendarMonths) return null;
 
@@ -192,7 +205,7 @@ export function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses
     const predictedTotal = totalClasses + upcomingCount;
     const predictedPercent: number = predictedTotal > 0 ? parseFloat(((predictedAttended / predictedTotal) * 100).toFixed(1)) : 0;
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
+    const thresholdPct = getTargetAttendancePct();
 
     return (
         <div className="space-y-4">
@@ -323,8 +336,9 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
         }
     }
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
-    const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
+
+    const thresholdPct = getTargetAttendancePct();
+    const thresholdDec = thresholdPct / 100;
 
     // Process History
     const historyList = Array.isArray(a.viewLink) ? a.viewLink : [];

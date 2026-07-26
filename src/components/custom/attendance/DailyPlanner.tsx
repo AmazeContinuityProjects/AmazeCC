@@ -294,7 +294,16 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
               : originalPercentage;
 
-            const thresholdPct = isDayscholarWithBus ? 85 : 75;
+            let thresholdPct = 75;
+            if (typeof window !== "undefined") {
+              try {
+                const saved = localStorage.getItem("settings");
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
+                }
+              } catch (e) {}
+            }
 
             let borderStyle = isLab 
               ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 

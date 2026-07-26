@@ -51,8 +51,21 @@ export default function CourseCard({ a, onClick, activeDay, isHoliday, decimalVa
     const total = parseInt(a.totalClasses) + simulatedSkips;
     const simulatedPercentage = total > 0 ? parseFloat(((attended / total) * 100).toFixed(1)) : originalPercentage;
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
-    const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
+    const getTargetAttendancePct = (): number => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("settings");
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.targetAttendance) return Number(parsed.targetAttendance);
+                }
+            } catch (e) {}
+        }
+        return 75;
+    };
+
+    const thresholdPct = getTargetAttendancePct();
+    const thresholdDec = thresholdPct / 100;
     const isBelowThreshold = simulatedPercentage < thresholdPct;
 
     let cardBg = "bg-white  dark:bg-black";

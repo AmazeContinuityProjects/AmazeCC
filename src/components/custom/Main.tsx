@@ -34,6 +34,7 @@ type settings = {
   currSemesterID: string;
   calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
   isDayscholarWithBus: boolean;
+  targetAttendance?: number;
   showGpa?: boolean;
   showProfilePhoto?: boolean;
   blurGrades?: boolean;
@@ -61,6 +62,10 @@ type settings = {
   syncProject?: boolean;
   syncProjectCourse?: boolean;
   pinnedNavTabs?: string[];
+  defaultAcademicsTab?: string;
+  autoSyncInterval?: string;
+  lowDataMode?: boolean;
+  soundEnabled?: boolean;
 }
 
 type IDs = {
@@ -77,6 +82,7 @@ const defaultSettings: settings = {
   currSemesterID: config.semesterIDs[config.semesterIDs.length - 2],
   calendarType: "ALL",
   isDayscholarWithBus: false,
+  targetAttendance: 75,
   showGpa: false,
   showProfilePhoto: true,
   blurGrades: false,
