@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
+import type { ParsedCourse } from "../Exams/FFCS/types";
 
 
 // Import schemas

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
-import { Search, Users, Layers } from "lucide-react";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Search, Users, Hash, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
