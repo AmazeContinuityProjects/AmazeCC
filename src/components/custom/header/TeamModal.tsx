@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Github, Linkedin, ChevronLeft } from 'lucide-react';
 import teamData from '../../../data/team.json';
 
