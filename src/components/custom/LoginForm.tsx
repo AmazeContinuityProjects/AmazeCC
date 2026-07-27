@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { 
   Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, ChevronLeft, Plus, 
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
@@ -29,36 +29,32 @@ interface LoginFormProps {
 }
 
 function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [6, -6]), { stiffness: 180, damping: 22 });
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 180, damping: 22 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (typeof window === "undefined" || window.innerWidth < 1024 || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rY = ((x - centerX) / centerX) * 8;
-    const rX = ((centerY - y) / centerY) * 8;
-    setRotateX(rX);
-    setRotateY(rY);
+    const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
+    const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
+    mx.set(x);
+    my.set(y);
   };
 
   const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
+    mx.set(0);
+    my.set(0);
   };
 
   return (
     <motion.div
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      animate={{ rotateX, rotateY }}
-      transition={{ type: "spring", stiffness: 260, damping: 22 }}
-      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d", perspective: 1000 }}
       className={className}
     >
       {children}
@@ -93,7 +89,21 @@ export default function LoginForm({
   const floatBadge4Y = useTransform(scrollY, [0, 600], [0, -130]);
   
   const [isDesktop, setIsDesktop] = useState(false);
-  const [heroMouse, setHeroMouse] = useState({ px: 0, py: 0, rx: 0, ry: 0 });
+  const rawMouseX = useMotionValue(0);
+  const rawMouseY = useMotionValue(0);
+
+  const heroRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [4, -4]), { stiffness: 140, damping: 20 });
+  const heroRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-4, 4]), { stiffness: 140, damping: 20 });
+
+  const orbX1 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
+  const orbY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
+  const orbX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
+  const orbY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
+
+  const badgeX1 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
+  const badgeY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
+  const badgeX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [16, -16]), { stiffness: 120, damping: 20 });
+  const badgeY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
 
   useEffect(() => {
     const checkDesktop = () => {
@@ -107,15 +117,14 @@ export default function LoginForm({
   useEffect(() => {
     if (!isDesktop) return;
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      const px = e.clientX;
-      const py = e.clientY;
-      const rx = ((px - window.innerWidth / 2) / (window.innerWidth / 2)) * 8;
-      const ry = ((py - window.innerHeight / 2) / (window.innerHeight / 2)) * 8;
-      setHeroMouse({ px, py, rx, ry });
+      const normX = (e.clientX - window.innerWidth / 2) / window.innerWidth;
+      const normY = (e.clientY - window.innerHeight / 2) / window.innerHeight;
+      rawMouseX.set(normX);
+      rawMouseY.set(normY);
     };
     window.addEventListener("mousemove", handleGlobalMouseMove);
     return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
-  }, [isDesktop]);
+  }, [isDesktop, rawMouseX, rawMouseY]);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -349,45 +358,23 @@ export default function LoginForm({
             <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default">
               {/* Creative 3D Interactive Aurora Orbs */}
               <motion.div 
-                animate={{ 
-                  x: heroMouse.rx * 4, 
-                  y: heroMouse.ry * 4
-                }}
-                transition={{ type: "spring", stiffness: 120, damping: 25 }}
+                style={{ x: orbX1, y: orbY1 }}
                 className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
               />
               <motion.div 
-                animate={{ 
-                  x: -heroMouse.rx * 3, 
-                  y: -heroMouse.ry * 3
-                }}
-                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                style={{ x: orbX2, y: orbY2 }}
                 className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
               />
 
-              {/* Dynamic Interactive Mouse Spotlight Glow (PC Only) */}
-              {isDesktop && heroMouse.px > 0 && (
-                <div 
-                  className="absolute -inset-16 pointer-events-none transition-opacity duration-300 z-1 font-sans"
-                  style={{
-                    background: `radial-gradient(700px circle at ${heroMouse.px + 64}px ${heroMouse.py + 64}px, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.12), transparent 70%)`
-                  }}
-                />
-              )}
-
               {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
               <motion.div 
-                animate={{ rotateX: -heroMouse.ry * 0.4, rotateY: heroMouse.rx * 0.4 }}
-                transition={{ type: "spring", stiffness: 180, damping: 24 }}
-                style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+                style={{ rotateX: heroRotateX, rotateY: heroRotateY, transformStyle: "preserve-3d", perspective: 1000 }}
                 className="absolute -inset-16 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none [mask-image:radial-gradient(ellipse_90%_90%_at_50%_50%,black_40%,transparent_100%)]"
               />
 
               {/* Oversized Parallax Background Image (No Hard Edges) */}
               <motion.div 
-                style={{ y: backgroundY, scale: backgroundScale, backgroundImage: "url('/campus-twilight.png')" }}
-                animate={{ x: -heroMouse.rx * 1.5, y: -heroMouse.ry * 1.5 }}
-                transition={{ type: "spring", stiffness: 140, damping: 20 }}
+                style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.png')" }}
                 className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
               />
               
@@ -399,9 +386,7 @@ export default function LoginForm({
               <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none hidden lg:block z-20">
                 {/* 3D Badge 1: Top Left - Attendance */}
                 <motion.div
-                  style={{ y: floatBadge1Y }}
-                  animate={{ x: -heroMouse.rx * 2, y: -heroMouse.ry * 2 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                  style={{ y: floatBadge1Y, x: badgeX1 }}
                   className="absolute top-28 left-4 xl:left-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-indigo-500/20"
                 >
                   <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 shrink-0">
@@ -415,9 +400,7 @@ export default function LoginForm({
 
                 {/* 3D Badge 2: Top Right - Academic CGPA */}
                 <motion.div
-                  style={{ y: floatBadge2Y }}
-                  animate={{ x: heroMouse.rx * 2, y: -heroMouse.ry * 2 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                  style={{ y: floatBadge2Y, x: badgeX2 }}
                   className="absolute top-24 right-4 xl:right-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-purple-500/20"
                 >
                   <div className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-500 shrink-0">
@@ -431,9 +414,7 @@ export default function LoginForm({
 
                 {/* 3D Badge 3: Bottom Left - Mess Menu */}
                 <motion.div
-                  style={{ y: floatBadge3Y }}
-                  animate={{ x: -heroMouse.rx * 1.5, y: heroMouse.ry * 1.5 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                  style={{ y: floatBadge3Y, x: badgeX1 }}
                   className="absolute bottom-16 left-6 xl:left-12 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
                 >
                   <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 shrink-0">
@@ -447,9 +428,7 @@ export default function LoginForm({
 
                 {/* 3D Badge 4: Bottom Right - Cab Share Match */}
                 <motion.div
-                  style={{ y: floatBadge4Y }}
-                  animate={{ x: heroMouse.rx * 1.5, y: heroMouse.ry * 1.5 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                  style={{ y: floatBadge4Y, x: badgeX2 }}
                   className="absolute bottom-20 right-8 xl:right-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
                 >
                   <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500 shrink-0">
@@ -462,11 +441,9 @@ export default function LoginForm({
                 </motion.div>
               </div>
 
-              {/* Centered Hero Content with 3D Mouse Tilt */}
+              {/* Centered Hero Content with Hardware 3D Mouse Tilt */}
               <motion.div 
-                style={{ y: textY }}
-                animate={{ rotateX: -heroMouse.ry * 0.6, rotateY: heroMouse.rx * 0.6 }}
-                transition={{ type: "spring", stiffness: 220, damping: 22 }}
+                style={{ y: textY, rotateX: heroRotateX, rotateY: heroRotateY }}
                 className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
               >
                 <div>
