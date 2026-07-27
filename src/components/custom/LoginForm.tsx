@@ -331,30 +331,49 @@ export default function LoginForm({
               onMouseLeave={handleHeroMouseLeave}
               className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default"
             >
+              {/* Creative 3D Interactive Aurora Orbs */}
+              <motion.div 
+                animate={{ 
+                  x: heroMouse.rx * 4, 
+                  y: heroMouse.ry * 4,
+                  scale: [1, 1.05, 1]
+                }}
+                transition={{ type: "spring", stiffness: 120, damping: 25 }}
+                className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
+              />
+              <motion.div 
+                animate={{ 
+                  x: -heroMouse.rx * 3, 
+                  y: -heroMouse.ry * 3
+                }}
+                transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
+              />
+
               {/* Dynamic Interactive Mouse Spotlight Glow */}
               {heroMouse.px > 0 && (
                 <div 
-                  className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-1 font-sans"
+                  className="absolute -inset-16 pointer-events-none transition-opacity duration-300 z-1 font-sans"
                   style={{
-                    background: `radial-gradient(650px circle at ${heroMouse.px}px ${heroMouse.py}px, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.1), transparent 70%)`
+                    background: `radial-gradient(700px circle at ${heroMouse.px + 64}px ${heroMouse.py + 64}px, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.12), transparent 70%)`
                   }}
                 />
               )}
 
-              {/* Interactive 3D Mesh Grid */}
+              {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
               <motion.div 
                 animate={{ rotateX: -heroMouse.ry * 0.4, rotateY: heroMouse.rx * 0.4 }}
                 transition={{ type: "spring", stiffness: 180, damping: 24 }}
                 style={{ transformStyle: "preserve-3d", perspective: 1000 }}
-                className="absolute inset-0 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none"
+                className="absolute -inset-16 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none [mask-image:radial-gradient(ellipse_90%_90%_at_50%_50%,black_40%,transparent_100%)]"
               />
 
-              {/* Parallax Background Image */}
+              {/* Oversized Parallax Background Image (No Hard Edges) */}
               <motion.div 
                 style={{ y: backgroundY, scale: backgroundScale, backgroundImage: "url('/campus-twilight.png')" }}
                 animate={{ x: -heroMouse.rx * 1.5, y: -heroMouse.ry * 1.5 }}
                 transition={{ type: "spring", stiffness: 140, damping: 20 }}
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.22] pointer-events-none"
+                className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
               />
               
               {/* Overlay Gradients */}
