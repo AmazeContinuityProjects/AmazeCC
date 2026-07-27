@@ -28,6 +28,41 @@ interface LoginFormProps {
   setIsDayscholarWithBus: any;
 }
 
+function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rY = ((x - centerX) / centerX) * 8;
+    const rX = ((centerY - y) / centerY) * 8;
+    setRotateX(rX);
+    setRotateY(rY);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+  };
+
+  return (
+    <motion.div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ rotateX, rotateY }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function LoginForm({
   username,
   setUsername,
@@ -46,9 +81,13 @@ export default function LoginForm({
   const isLoading = message && typeof message === "string" && message.startsWith("Logging");
   
   const { scrollY } = useScroll();
-  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
-  const backgroundScale = useTransform(scrollY, [0, 500], [1, 1.05]);
-  const textY = useTransform(scrollY, [0, 500], [0, -50]);
+  const backgroundY = useTransform(scrollY, [0, 600], [0, 180]);
+  const backgroundScale = useTransform(scrollY, [0, 600], [1, 1.1]);
+  const textY = useTransform(scrollY, [0, 600], [0, -40]);
+  const floatBadge1Y = useTransform(scrollY, [0, 600], [0, -110]);
+  const floatBadge2Y = useTransform(scrollY, [0, 600], [0, -150]);
+  const floatBadge3Y = useTransform(scrollY, [0, 600], [0, -85]);
+  const floatBadge4Y = useTransform(scrollY, [0, 600], [0, -130]);
   
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -284,6 +323,65 @@ export default function LoginForm({
               <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent dark:from-[#03060F] dark:via-[#03060F]/30 dark:to-transparent pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
 
+              {/* Floating 3D Parallax Glass Badges */}
+              <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none hidden lg:block z-20">
+                {/* 3D Badge 1: Top Left - Attendance */}
+                <motion.div
+                  style={{ y: floatBadge1Y }}
+                  className="absolute top-28 left-4 xl:left-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-indigo-500/20"
+                >
+                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 shrink-0">
+                    <Activity size={20} className="stroke-[2.2]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Attendance 84.2%</p>
+                    <p className="text-[10px] font-semibold text-emerald-500 mt-0.5">Safe to skip 3 classes</p>
+                  </div>
+                </motion.div>
+
+                {/* 3D Badge 2: Top Right - Academic CGPA */}
+                <motion.div
+                  style={{ y: floatBadge2Y }}
+                  className="absolute top-24 right-4 xl:right-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-purple-500/20"
+                >
+                  <div className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-500 shrink-0">
+                    <GraduationCap size={20} className="stroke-[2.2]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">CGPA 9.24</p>
+                    <p className="text-[10px] font-semibold text-purple-400 mt-0.5">Fall Semester 2025-26</p>
+                  </div>
+                </motion.div>
+
+                {/* 3D Badge 3: Bottom Left - Mess Menu */}
+                <motion.div
+                  style={{ y: floatBadge3Y }}
+                  className="absolute bottom-16 left-6 xl:left-12 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
+                >
+                  <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 shrink-0">
+                    <CheckCircle2 size={18} className="stroke-[2.2]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Today's Mess</p>
+                    <p className="text-[10px] font-semibold text-amber-500 mt-0.5">Lunch: Paneer Butter Masala</p>
+                  </div>
+                </motion.div>
+
+                {/* 3D Badge 4: Bottom Right - Cab Share Match */}
+                <motion.div
+                  style={{ y: floatBadge4Y }}
+                  className="absolute bottom-20 right-8 xl:right-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
+                >
+                  <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500 shrink-0">
+                    <Bus size={18} className="stroke-[2.2]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Cab Share Match</p>
+                    <p className="text-[10px] font-semibold text-indigo-400 mt-0.5">2 peers for Chennai Airport</p>
+                  </div>
+                </motion.div>
+              </div>
+
               {/* Centered Hero Content */}
               <motion.div 
                 style={{ y: textY }}
@@ -314,6 +412,13 @@ export default function LoginForm({
                   >
                     <span>Get Started</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={handleDemoClick}
+                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                  >
+                    <Zap size={14} />
+                    <span>Try Instant Demo</span>
                   </button>
                   <a
                     href="#features"
@@ -440,26 +545,27 @@ export default function LoginForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
                 {features.map((feat, idx) => (
-                  <motion.div 
-                    key={idx} 
-                    initial={{ opacity: 0, y: 25 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.5, delay: (idx % 3) * 0.08, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/60 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-all shadow-xs dark:shadow-none group"
-                  >
-                    <div className="space-y-3">
-                      <div className={`p-2 w-fit rounded-xl bg-slate-550/5 ${feat.iconColor} bg-slate-100 dark:bg-neutral-900`}>
-                        <feat.icon className="h-6 w-6 stroke-[1.8]" />
+                  <Tilt3DCard key={idx} className="h-full">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      viewport={{ once: true, margin: "-40px" }}
+                      transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
+                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-neutral-850 p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
+                    >
+                      <div className="space-y-3">
+                        <div className={`p-2.5 w-fit rounded-2xl ${feat.iconColor} bg-slate-100 dark:bg-neutral-900 group-hover:scale-110 transition-transform duration-300`}>
+                          <feat.icon className="h-6 w-6 stroke-[1.8]" />
+                        </div>
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
+                          {feat.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">
+                          {feat.desc}
+                        </p>
                       </div>
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
-                        {feat.title}
-                      </h3>
-                      <p className="text-xs text-slate-650 dark:text-gray-400 leading-relaxed font-medium">
-                        {feat.desc}
-                      </p>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </Tilt3DCard>
                 ))}
               </div>
             </section>
