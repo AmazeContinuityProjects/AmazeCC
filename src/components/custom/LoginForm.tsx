@@ -83,10 +83,6 @@ export default function LoginForm({
   const backgroundY = useTransform(scrollY, [0, 600], [0, 180]);
   const backgroundScale = useTransform(scrollY, [0, 600], [1, 1.1]);
   const textY = useTransform(scrollY, [0, 600], [0, -40]);
-  const floatBadge1Y = useTransform(scrollY, [0, 600], [0, -110]);
-  const floatBadge2Y = useTransform(scrollY, [0, 600], [0, -150]);
-  const floatBadge3Y = useTransform(scrollY, [0, 600], [0, -85]);
-  const floatBadge4Y = useTransform(scrollY, [0, 600], [0, -130]);
   
   const [isDesktop, setIsDesktop] = useState(false);
   const rawMouseX = useMotionValue(0);
@@ -109,11 +105,6 @@ export default function LoginForm({
   const orbY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
   const orbX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
   const orbY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
-
-  const badgeX1 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
-  const badgeY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
-  const badgeX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [16, -16]), { stiffness: 120, damping: 20 });
-  const badgeY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-16, 16]), { stiffness: 120, damping: 20 });
 
   useEffect(() => {
     const checkDesktop = () => {
@@ -342,7 +333,7 @@ export default function LoginForm({
             )}
           </div>
           <div className="flex items-center gap-3">
-            {mounted && <ThemeToggle />}
+            <ThemeToggle />
             <button
               onClick={handleDemoClick}
               className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
