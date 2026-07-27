@@ -156,7 +156,7 @@ export default function ProfileTab(props: ProfileTabProps) {
                 <RefreshCcw className="w-5 h-5" />
               </button>
             </div>
-            {creds && <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />}
+            <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />
           </div>
         )}
       </div>
