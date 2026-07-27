@@ -291,7 +291,7 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
               <div>
                 <p className="text-[10px] font-bold text-gray-450 uppercase mb-2">Useful Links</p>
                 <div className="space-y-1 text-[11px] text-gray-700 dark:text-gray-350">
-                  <a href="https://vtop.vit.ac.in/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between hover:text-sky-400 transition-colors">
+                  <a href="https://vtopcc.ac.in/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between hover:text-sky-400 transition-colors">
                     <span>VTOP Portal</span>
                     <ExternalLink size={11} className="text-gray-400" />
                   </a>

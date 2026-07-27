@@ -415,6 +415,13 @@ export default function LoginPage() {
       setScheduleData(demoData.schedule);
       sethostelData(demoData.hostel);
       setCalender(demoData.calender);
+      if ((demoData as any).registeredEvents) {
+        setRegisteredEvents((demoData as any).registeredEvents);
+        localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+      }
+      if ((demoData as any).profile) {
+        localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+      }
       setIsLoggedIn(true);
       setIsReloading(false);
       return;
@@ -569,6 +576,13 @@ export default function LoginPage() {
       setScheduleData(demoData.schedule);
       sethostelData(demoData.hostel);
       setCalender(demoData.calender);
+      if ((demoData as any).registeredEvents) {
+        setRegisteredEvents((demoData as any).registeredEvents);
+        localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+      }
+      if ((demoData as any).profile) {
+        localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+      }
       setIsReloading(false);
       return;
     }
@@ -871,6 +885,13 @@ export default function LoginPage() {
     setScheduleData(demoData.schedule);
     sethostelData(demoData.hostel);
     setCalender(demoData.calender);
+    if ((demoData as any).registeredEvents) {
+      setRegisteredEvents((demoData as any).registeredEvents);
+      localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+    }
+    if ((demoData as any).profile) {
+      localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+    }
     setIsLoggedIn(true);
   }
 

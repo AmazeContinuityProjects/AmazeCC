@@ -293,8 +293,19 @@ export default function MobileHome({
 
   // Critical attendance warnings (< 75%)
   const criticalCourses = useMemo(() => {
-    if (!attendanceData?.attendance) return [];
+    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) return [];
     return attendanceData.attendance.filter((c: any) => {
+      if (!c) return false;
+      const slot = String(c.slotName || "").trim().toUpperCase();
+      const code = String(c.courseCode || "").trim().toUpperCase();
+      const title = String(c.courseTitle || "").trim().toUpperCase();
+      const total = parseInt(c.totalClasses, 10) || 0;
+
+      if (slot.includes("NULL") || slot === "NIL" || slot === "N/A") return false;
+      if (code === "NIL" || code === "NULL" || !code) return false;
+      if (title === "NIL" || title === "NULL" || !title) return false;
+      if (total === 0) return false;
+
       const pct = parseFloat(c.attendancePercentage);
       return !isNaN(pct) && pct < 75;
     });
@@ -533,7 +544,75 @@ export default function MobileHome({
   };
 
   const renderAttendanceCoursesWidget = () => {
-    if (!attendanceData?.attendance || attendanceData.attendance.length === 0) return null;
+    if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance) || attendanceData.attendance.length === 0) return null;
+
+    // Filter out invalid/NULL slots and empty/NIL course codes
+    const validItems = attendanceData.attendance.filter((c: any) => {
+      if (!c) return false;
+      const slot = String(c.slotName || "").trim().toUpperCase();
+      const code = String(c.courseCode || "").trim().toUpperCase();
+      const title = String(c.courseTitle || "").trim().toUpperCase();
+
+      if (slot.includes("NULL") || slot === "NIL" || slot === "N/A") return false;
+      if (code === "NIL" || code === "NULL" || !code) return false;
+      if (title === "NIL" || title === "NULL" || !title) return false;
+
+      return true;
+    });
+
+    if (validItems.length === 0) return null;
+
+    // Group items by course code (combining Theory & Lab)
+    const groupedMap: Record<string, {
+      courseCode: string;
+      courseTitle: string;
+      slots: string[];
+      attendedClasses: number;
+      totalClasses: number;
+      itemCount: number;
+    }> = {};
+
+    validItems.forEach((c: any) => {
+      const key = String(c.courseCode || "").trim();
+      const attended = parseInt(c.attendedClasses, 10) || 0;
+      const total = parseInt(c.totalClasses, 10) || 0;
+      const slot = String(c.slotName || "").trim();
+
+      // Clean course title by stripping trailing (ETH), (ELA), (EPJ), etc. if present
+      let cleanTitle = String(c.courseTitle || "").trim();
+      cleanTitle = cleanTitle.replace(/\s*\((ETH|ELA|EPJ|TH|LAB|SS)\)\s*$/i, "").trim();
+
+      if (!groupedMap[key]) {
+        groupedMap[key] = {
+          courseCode: key,
+          courseTitle: cleanTitle,
+          slots: slot ? [slot] : [],
+          attendedClasses: attended,
+          totalClasses: total,
+          itemCount: 1,
+        };
+      } else {
+        groupedMap[key].attendedClasses += attended;
+        groupedMap[key].totalClasses += total;
+        if (slot && !groupedMap[key].slots.includes(slot)) {
+          groupedMap[key].slots.push(slot);
+        }
+        groupedMap[key].itemCount += 1;
+      }
+    });
+
+    const clubbedCourses = Object.values(groupedMap).map((group) => {
+      const pct = group.totalClasses > 0 ? (group.attendedClasses / group.totalClasses) * 100 : 0;
+      const combinedSlots = group.slots.join(" + ");
+      const isClubbed = group.itemCount > 1;
+      return {
+        ...group,
+        pct,
+        combinedSlots,
+        isClubbed,
+      };
+    });
+
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
@@ -549,20 +628,29 @@ export default function MobileHome({
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
-          {attendanceData.attendance.map((c: any, index: number) => {
-            const pct = parseFloat(c.attendancePercentage);
+          {clubbedCourses.map((c, index) => {
+            const pct = c.pct;
             const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
             const bgProgress = pct >= 85 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-red-500";
             return (
               <div 
-                key={`${c.courseCode}-${c.slotName || ''}-${index}`}
+                key={`${c.courseCode}-${index}`}
                 onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
                 className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[116px] relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-bl-full pointer-events-none" />
                 <div className="min-w-0 pr-1">
-                  <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
-                  <p className="text-[9.5px] text-zinc-405 dark:text-zinc-500 font-bold mt-0.5">{c.courseCode} • Slot {c.slotName}</p>
+                  <div className="flex items-center justify-between gap-1">
+                    <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
+                    {c.isClubbed && (
+                      <span className="text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-500/20">
+                        Theory + Lab
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[9.5px] text-zinc-405 dark:text-zinc-500 font-bold mt-0.5 truncate">
+                    {c.courseCode} • Slot {c.combinedSlots || "N/A"}
+                  </p>
                 </div>
                 
                 <div className="mt-3">
@@ -584,7 +672,15 @@ export default function MobileHome({
   };
 
   const renderCurrentCoursesWidget = () => {
-    const coursesList = marksData?.courses || attendanceData?.attendance || [];
+    const rawList = marksData?.courses || attendanceData?.attendance || [];
+    const coursesList = rawList.filter((c: any) => {
+      if (!c) return false;
+      const slot = String(c.slotName || "").trim().toUpperCase();
+      const code = String(c.courseCode || "").trim().toUpperCase();
+      if (slot.includes("NULL") || slot === "NIL") return false;
+      if (code === "NIL" || code === "NULL" || !code) return false;
+      return true;
+    });
     if (coursesList.length === 0) return null;
     return (
       <div className="space-y-3">
@@ -615,7 +711,7 @@ export default function MobileHome({
               
               <div className="flex items-center justify-between mt-3">
                 <span className="text-[9.5px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">Credits: {c.credits || "4"}</span>
-                <span className="text-[9.5px] font-bold text-zinc-450 dark:text-zinc-555">{c.slotName || "N/A"}</span>
+                <span className="text-[9.5px] font-bold text-zinc-455 dark:text-zinc-555">{c.slotName || "N/A"}</span>
               </div>
             </div>
           ))}
