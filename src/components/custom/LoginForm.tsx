@@ -11,6 +11,7 @@ import {
   Calendar, CheckCircle2, Bus, Check, ChevronDown, AlertCircle
 } from "lucide-react";
 import { Input, Button } from "@amazecontinuityprojects/amazeui";
+import ThemeToggle from "./ThemeToggle";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL } from "@/lib/fetch-utils";
 
 interface LoginFormProps {
@@ -245,16 +246,8 @@ export default function LoginForm({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            {mounted && (
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-xl bg-slate-100/80 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 text-slate-700 dark:text-gray-300 transition-colors cursor-pointer"
-                title="Toggle theme"
-              >
-                {isDark ? <Sun size={14} /> : <Moon size={14} />}
-              </button>
-            )}
+          <div className="flex items-center gap-3">
+            {mounted && <ThemeToggle variant="lightbulb" />}
             <button
               onClick={handleDemoClick}
               className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"

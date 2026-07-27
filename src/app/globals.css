@@ -344,3 +344,28 @@ input, textarea, [contenteditable] {
   position: absolute;
   animation: laser-scan 2.5s linear infinite;
 }
+
+/* ── Smooth Global View Transition for Light/Dark Mode Toggle ── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(root) {
+  animation: theme-fade-out 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+::view-transition-new(root) {
+  animation: theme-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes theme-fade-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.2; transform: scale(0.995); }
+}
+
+@keyframes theme-fade-in {
+  from { opacity: 0; transform: scale(1.005); }
+  to { opacity: 1; transform: scale(1); }
+}
