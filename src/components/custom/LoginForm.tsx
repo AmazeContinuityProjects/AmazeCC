@@ -104,18 +104,24 @@ export default function LoginForm({
     return () => window.removeEventListener("resize", checkDesktop);
   }, []);
 
-  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+  useEffect(() => {
     if (!isDesktop) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-    const rx = ((px - rect.width / 2) / (rect.width / 2)) * 8;
-    const ry = ((py - rect.height / 2) / (rect.height / 2)) * 8;
-    setHeroMouse({ px, py, rx, ry });
-  };
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const px = e.clientX;
+      const py = e.clientY;
+      const rx = ((px - window.innerWidth / 2) / (window.innerWidth / 2)) * 8;
+      const ry = ((py - window.innerHeight / 2) / (window.innerHeight / 2)) * 8;
+      setHeroMouse({ px, py, rx, ry });
+    };
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
+  }, [isDesktop]);
 
-  const handleHeroMouseLeave = () => {
-    setHeroMouse({ px: 0, py: 0, rx: 0, ry: 0 });
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   const [activeApi, setActiveApi] = useState("");
@@ -306,11 +312,11 @@ export default function LoginForm({
             </div>
             {!showLoginCard && (
               <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-500 dark:text-gray-400">
-                <a href="#problem" className="hover:text-slate-900 dark:hover:text-white transition-colors">The Challenge</a>
-                <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Modules</a>
-                <a href="#timeline" className="hover:text-slate-900 dark:hover:text-white transition-colors">Timeline</a>
-                <a href="#roadmap" className="hover:text-slate-900 dark:hover:text-white transition-colors">Roadmap</a>
-                <a href="#faq" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQ</a>
+                <button onClick={() => scrollToSection("sec-problem")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">The Challenge</button>
+                <button onClick={() => scrollToSection("sec-features")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer font-bold text-slate-800 dark:text-gray-200">Modules</button>
+                <button onClick={() => scrollToSection("sec-timeline")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Timeline</button>
+                <button onClick={() => scrollToSection("sec-roadmap")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Roadmap</button>
+                <button onClick={() => scrollToSection("sec-faq")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">FAQ</button>
               </div>
             )}
           </div>
@@ -340,11 +346,7 @@ export default function LoginForm({
           /* Landing Page View */
           <div className="w-full">
             {/* Hero Section */}
-            <section 
-              onMouseMove={handleHeroMouseMove}
-              onMouseLeave={handleHeroMouseLeave}
-              className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default"
-            >
+            <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default">
               {/* Creative 3D Interactive Aurora Orbs */}
               <motion.div 
                 animate={{ 
@@ -500,12 +502,12 @@ export default function LoginForm({
                     <Zap size={14} />
                     <span>Try Instant Demo</span>
                   </button>
-                  <a
-                    href="#features"
+                  <button
+                    onClick={() => scrollToSection("sec-features")}
                     className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
                   >
                     Explore Features
-                  </a>
+                  </button>
                 </div>
                 
                 {/* Stats counters */}
@@ -527,7 +529,7 @@ export default function LoginForm({
             </section>
 
             {/* Problem Section (Emojis Replaced with Lucide Icons) */}
-            <section id="problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
+            <section id="sec-problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
               <motion.div 
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -608,7 +610,7 @@ export default function LoginForm({
             </section>
 
             {/* Features Module Grid Section (Emojis Replaced with elegant Lucide icons) */}
-            <section id="features" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-features" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -888,7 +890,7 @@ export default function LoginForm({
             </section>
 
             {/* Timeline walkthrough */}
-            <section id="timeline" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-timeline" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -925,7 +927,7 @@ export default function LoginForm({
             </section>
 
             {/* Roadmap */}
-            <section id="roadmap" className="bg-slate-100/50 border-t border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
+            <section id="sec-roadmap" className="bg-slate-100/50 border-t border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
               <div className="max-w-7xl mx-auto space-y-16">
                 <motion.div 
                   initial={{ opacity: 0, y: 25 }}
@@ -965,7 +967,7 @@ export default function LoginForm({
             </section>
 
             {/* FAQ Accordion */}
-            <section id="faq" className="max-w-4xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-faq" className="max-w-4xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
