@@ -562,7 +562,22 @@ export default function MobileHome({
 
     if (validItems.length === 0) return null;
 
-    // Group items by course code (combining Theory & Lab)
+    // Group items by base course code (combining Theory & Lab like BACSE106(T) and BACSE106(L))
+    const getBaseCourseCode = (rawCode: string): string => {
+      if (!rawCode) return "";
+      let clean = String(rawCode).trim().toUpperCase();
+      // Strip trailing (T), (L), (P), (ETH), (ELA), (EPJ), (TH), (LAB), (SS)
+      clean = clean.replace(/\s*\((T|L|P|ETH|ELA|EPJ|TH|LAB|SS)\)\s*$/i, "").trim();
+      // Strip trailing -T, -L, -P
+      clean = clean.replace(/\s*-(T|L|P)\s*$/i, "").trim();
+      // Standard VTOP course codes like BCSE202L and BCSE202P, BMAT201L, BSTS202P
+      const vtopMatch = clean.match(/^([A-Z]{3,4}\d{3,4})[LPT]$/i);
+      if (vtopMatch) {
+        return vtopMatch[1].toUpperCase();
+      }
+      return clean;
+    };
+
     const groupedMap: Record<string, {
       courseCode: string;
       courseTitle: string;
@@ -573,18 +588,20 @@ export default function MobileHome({
     }> = {};
 
     validItems.forEach((c: any) => {
-      const key = String(c.courseCode || "").trim();
+      const rawCode = String(c.courseCode || "").trim();
+      const baseKey = getBaseCourseCode(rawCode);
       const attended = parseInt(c.attendedClasses, 10) || 0;
       const total = parseInt(c.totalClasses, 10) || 0;
       const slot = String(c.slotName || "").trim();
 
-      // Clean course title by stripping trailing (ETH), (ELA), (EPJ), etc. if present
+      // Clean course title by stripping trailing (ETH), (ELA), (EPJ), (T), (L), etc. if present
       let cleanTitle = String(c.courseTitle || "").trim();
-      cleanTitle = cleanTitle.replace(/\s*\((ETH|ELA|EPJ|TH|LAB|SS)\)\s*$/i, "").trim();
+      cleanTitle = cleanTitle.replace(/\s*\((ETH|ELA|EPJ|TH|LAB|SS|T|L|P)\)\s*$/i, "").trim();
+      cleanTitle = cleanTitle.replace(/\s*-\s*(Theory|Lab|Practical|Embedded Lab|Embedded Theory)\s*$/i, "").trim();
 
-      if (!groupedMap[key]) {
-        groupedMap[key] = {
-          courseCode: key,
+      if (!groupedMap[baseKey]) {
+        groupedMap[baseKey] = {
+          courseCode: baseKey,
           courseTitle: cleanTitle,
           slots: slot ? [slot] : [],
           attendedClasses: attended,
@@ -592,12 +609,12 @@ export default function MobileHome({
           itemCount: 1,
         };
       } else {
-        groupedMap[key].attendedClasses += attended;
-        groupedMap[key].totalClasses += total;
-        if (slot && !groupedMap[key].slots.includes(slot)) {
-          groupedMap[key].slots.push(slot);
+        groupedMap[baseKey].attendedClasses += attended;
+        groupedMap[baseKey].totalClasses += total;
+        if (slot && !groupedMap[baseKey].slots.includes(slot)) {
+          groupedMap[baseKey].slots.push(slot);
         }
-        groupedMap[key].itemCount += 1;
+        groupedMap[baseKey].itemCount += 1;
       }
     });
 
