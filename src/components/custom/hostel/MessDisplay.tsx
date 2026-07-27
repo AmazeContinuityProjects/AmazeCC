@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { 
-  RefreshCcw, Clock, Sparkles, Utensils, Search, ChevronRight, Sun, Coffee, Moon
+  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon
 } from "lucide-react";
 import { useIsMobile } from "../shared";
 
@@ -76,7 +76,6 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   );
   const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
-  const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
 
   const getInitialMeal = () => {
@@ -177,34 +176,6 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
     }
   ];
 
-  const parseItems = (raw: string) => {
-    if (!raw || raw.trim() === "") return [];
-    return raw
-      .split(/[,;\n]+/)
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-  };
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim() || !menu || menu.length === 0) return [];
-    const query = searchQuery.toLowerCase().trim();
-    const matches: Array<{ day: string; meal: string; item: string }> = [];
-
-    menu.forEach(dayObj => {
-      mealsList.forEach(m => {
-        const text = dayObj[m.key] || "";
-        const items = parseItems(text);
-        items.forEach(it => {
-          if (it.toLowerCase().includes(query)) {
-            matches.push({ day: dayObj.Day, meal: m.name, item: it });
-          }
-        });
-      });
-    });
-
-    return matches;
-  }, [searchQuery, menu]);
-
   return (
     <div className="space-y-6 relative">
       {/* Header Bar */}
@@ -265,59 +236,6 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Search Input Bar */}
-      <div className="relative">
-        <div className="relative flex items-center">
-          <Search size={15} className="absolute left-3.5 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search dishes (e.g. Biryani, Paneer, Coffee)..."
-            className="w-full pl-10 pr-4 py-2 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 rounded-xl text-xs font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-xs"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3.5 text-xs font-bold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Search Results Dropdown */}
-        {searchQuery.trim().length > 0 && (
-          <div className="mt-2 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl space-y-2 max-h-60 overflow-y-auto z-20">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Found {searchResults.length} match(es) for &quot;{searchQuery}&quot;
-            </p>
-            {searchResults.length === 0 ? (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium py-2">No matching dishes found in this week&apos;s menu.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {searchResults.map((res, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      setActiveDay(res.day);
-                      setSearchQuery("");
-                    }}
-                    className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-700/50 hover:border-indigo-500/30 transition-all cursor-pointer flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-zinc-900 dark:text-white">{res.item}</p>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">{res.day} • {res.meal}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-zinc-400 shrink-0" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Days Selector Pills */}
@@ -390,8 +308,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
               {(() => {
                 const meal = mealsList.find(m => m.name === activeMealMobile);
                 if (!meal) return null;
-                const itemsText = todayMenu[meal.key] || "";
-                const itemsList = parseItems(itemsText);
+                const itemsText = todayMenu[meal.key] || "No items listed.";
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
@@ -418,23 +335,11 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       </div>
                     </div>
 
-                    {/* Food Items Chips */}
-                    <div className="space-y-2">
-                      {itemsList.length === 0 ? (
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium py-3 text-center">No items listed for this meal.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {itemsList.map((item, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2.5 py-1 rounded-lg bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/50 text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5"
-                            >
-                              <span className="w-1 h-1 rounded-full bg-indigo-500/60" />
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                    {/* Food Items Block */}
+                    <div className="p-3.5 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl">
+                      <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
+                        {itemsText}
+                      </p>
                     </div>
                   </div>
                 );
@@ -444,8 +349,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             /* Desktop 4-Grid Card View */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {mealsList.map((meal) => {
-                const itemsText = todayMenu[meal.key] || "";
-                const itemsList = parseItems(itemsText);
+                const itemsText = todayMenu[meal.key] || "No items listed.";
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
@@ -478,23 +382,11 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                         )}
                       </div>
 
-                      {/* Items Chip List */}
-                      <div className="min-h-[130px] space-y-1.5">
-                        {itemsList.length === 0 ? (
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium py-6 text-center">No items listed.</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5">
-                            {itemsList.map((item, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2.5 py-1 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/50 dark:border-zinc-700/50 text-[11px] font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5"
-                              >
-                                <span className="w-1 h-1 rounded-full bg-indigo-500/60" />
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                      {/* Food Items Block */}
+                      <div className="p-3 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl min-h-[120px]">
+                        <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
+                          {itemsText}
+                        </p>
                       </div>
                     </div>
                   </div>
