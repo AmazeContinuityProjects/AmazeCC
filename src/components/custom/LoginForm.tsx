@@ -517,7 +517,7 @@ export default function LoginForm({
               <motion.div 
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
+                viewport={{ once: true, amount: 0.05 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
                 className="max-w-4xl mx-auto text-center space-y-8"
               >
@@ -615,7 +615,7 @@ export default function LoginForm({
                     <motion.div 
                       initial={{ opacity: 0, y: 30, scale: 0.95 }}
                       whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                      viewport={{ once: true, margin: "-40px" }}
+                      viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
                       className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-neutral-850 p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
                     >
@@ -644,7 +644,7 @@ export default function LoginForm({
                 <motion.div 
                   initial={{ opacity: 0, x: -30 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
+                  viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                   className="lg:col-span-7 space-y-4 text-left"
                 >
@@ -669,7 +669,7 @@ export default function LoginForm({
                 <motion.div 
                   initial={{ opacity: 0, x: 30 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
+                  viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                   className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-neutral-850 p-6 rounded-3xl space-y-4 shadow-xl"
                 >
@@ -895,7 +895,7 @@ export default function LoginForm({
                     key={idx} 
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: "-45px" }}
+                    viewport={{ once: true, amount: 0.05 }}
                     transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
                     className="flex gap-6 relative pl-8 text-left"
                   >
@@ -974,7 +974,7 @@ export default function LoginForm({
                       key={idx} 
                       initial={{ opacity: 0, y: 15 }}
                       whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-30px" }}
+                      viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.4, delay: idx * 0.06, ease: "easeOut" }}
                       className="border border-slate-200 bg-white dark:border-neutral-900 dark:bg-neutral-950/40 rounded-2xl overflow-hidden shadow-xs dark:shadow-none"
                     >
