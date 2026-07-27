@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { 
   Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, ChevronLeft, Plus, 
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
@@ -11,6 +11,7 @@ import {
   Calendar, CheckCircle2, Bus, Check, ChevronDown, AlertCircle
 } from "lucide-react";
 import { Input, Button } from "@amazecontinuityprojects/amazeui";
+import ThemeToggle from "./ThemeToggle";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL } from "@/lib/fetch-utils";
 
 interface LoginFormProps {
@@ -25,6 +26,40 @@ interface LoginFormProps {
   setResidentialStatus: any;
   isDayscholarWithBus: any;
   setIsDayscholarWithBus: any;
+}
+
+function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [6, -6]), { stiffness: 180, damping: 22 });
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-6, 6]), { stiffness: 180, damping: 22 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (typeof window === "undefined" || window.innerWidth < 1024 || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
+    const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
+    mx.set(x);
+    my.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mx.set(0);
+    my.set(0);
+  };
+
+  return (
+    <motion.div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ rotateX, rotateY, transformStyle: "preserve-3d", perspective: 1000 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export default function LoginForm({
@@ -45,10 +80,62 @@ export default function LoginForm({
   const isLoading = message && typeof message === "string" && message.startsWith("Logging");
   
   const { scrollY } = useScroll();
-  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
-  const backgroundScale = useTransform(scrollY, [0, 500], [1, 1.05]);
-  const textY = useTransform(scrollY, [0, 500], [0, -50]);
+  const backgroundY = useTransform(scrollY, [0, 600], [0, 180]);
+  const backgroundScale = useTransform(scrollY, [0, 600], [1, 1.1]);
+  const textY = useTransform(scrollY, [0, 600], [0, -40]);
   
+  const [isDesktop, setIsDesktop] = useState(false);
+  const rawMouseX = useMotionValue(0);
+  const rawMouseY = useMotionValue(0);
+  const spotlightX = useMotionValue(-1000);
+  const spotlightY = useMotionValue(-1000);
+
+  const smoothSpotlightX = useSpring(spotlightX, { stiffness: 250, damping: 25 });
+  const smoothSpotlightY = useSpring(spotlightY, { stiffness: 250, damping: 25 });
+
+  const spotlightBg = useTransform(
+    [smoothSpotlightX, smoothSpotlightY],
+    ([x, y]) => `radial-gradient(650px circle at ${x}px ${y}px, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15), transparent 70%)`
+  );
+
+  const heroRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [4, -4]), { stiffness: 140, damping: 20 });
+  const heroRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-4, 4]), { stiffness: 140, damping: 20 });
+
+  const orbX1 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
+  const orbY1 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [-30, 30]), { stiffness: 100, damping: 22 });
+  const orbX2 = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
+  const orbY2 = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [25, -25]), { stiffness: 100, damping: 22 });
+
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024 && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+    };
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const normX = (e.clientX - window.innerWidth / 2) / window.innerWidth;
+      const normY = (e.clientY - window.innerHeight / 2) / window.innerHeight;
+      rawMouseX.set(normX);
+      rawMouseY.set(normY);
+      spotlightX.set(e.clientX);
+      spotlightY.set(e.clientY);
+    };
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
+  }, [isDesktop, rawMouseX, rawMouseY, spotlightX, spotlightY]);
+
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showLoginCard, setShowLoginCard] = useState(false);
@@ -237,34 +324,26 @@ export default function LoginForm({
             </div>
             {!showLoginCard && (
               <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-500 dark:text-gray-400">
-                <a href="#problem" className="hover:text-slate-900 dark:hover:text-white transition-colors">The Challenge</a>
-                <a href="#features" className="hover:text-slate-900 dark:hover:text-white transition-colors">Modules</a>
-                <a href="#timeline" className="hover:text-slate-900 dark:hover:text-white transition-colors">Timeline</a>
-                <a href="#roadmap" className="hover:text-slate-900 dark:hover:text-white transition-colors">Roadmap</a>
-                <a href="#faq" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQ</a>
+                <button onClick={() => scrollToSection("sec-problem")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">The Challenge</button>
+                <button onClick={() => scrollToSection("sec-features")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer font-bold text-slate-800 dark:text-gray-200">Modules</button>
+                <button onClick={() => scrollToSection("sec-timeline")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Timeline</button>
+                <button onClick={() => scrollToSection("sec-roadmap")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Roadmap</button>
+                <button onClick={() => scrollToSection("sec-faq")} className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">FAQ</button>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            {mounted && (
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-xl bg-slate-100/80 hover:bg-slate-200 dark:bg-neutral-900 dark:hover:bg-neutral-850 text-slate-700 dark:text-gray-300 transition-colors cursor-pointer"
-                title="Toggle theme"
-              >
-                {isDark ? <Sun size={14} /> : <Moon size={14} />}
-              </button>
-            )}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button
               onClick={handleDemoClick}
-              className="text-xs font-semibold text-slate-650 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
             >
               Try Demo
             </button>
             {!showLoginCard && (
               <button
                 onClick={() => setShowLoginCard(true)}
-                className="bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/10"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/20"
               >
                 Get Started
               </button>
@@ -279,21 +358,44 @@ export default function LoginForm({
           /* Landing Page View */
           <div className="w-full">
             {/* Hero Section */}
-            <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28">
-              
-              {/* Parallax Background Image */}
+            <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default">
+              {/* Creative 3D Interactive Aurora Orbs */}
               <motion.div 
-                style={{ y: backgroundY, scale: backgroundScale, backgroundImage: "url('/campus-twilight.png')" }}
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.22] pointer-events-none"
+                style={{ x: orbX1, y: orbY1 }}
+                className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
+              />
+              <motion.div 
+                style={{ x: orbX2, y: orbY2 }}
+                className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
+              />
+
+              {/* Dynamic Hardware-Accelerated Spotlight Glow (PC Only) */}
+              {isDesktop && (
+                <motion.div 
+                  className="absolute inset-0 pointer-events-none z-1"
+                  style={{ background: spotlightBg }}
+                />
+              )}
+
+              {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
+              <motion.div 
+                style={{ rotateX: heroRotateX, rotateY: heroRotateY, transformStyle: "preserve-3d", perspective: 1000 }}
+                className="absolute -inset-16 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none [mask-image:radial-gradient(ellipse_90%_90%_at_50%_50%,black_40%,transparent_100%)]"
+              />
+
+              {/* Oversized Parallax Background Image (No Hard Edges) */}
+              <motion.div 
+                style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.png')" }}
+                className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
               />
               
               {/* Overlay Gradients */}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent dark:from-[#03060F] dark:via-[#03060F]/30 dark:to-transparent pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
 
-              {/* Centered Hero Content */}
+              {/* Centered Hero Content with Hardware 3D Mouse Tilt */}
               <motion.div 
-                style={{ y: textY }}
+                style={{ y: textY, rotateX: heroRotateX, rotateY: heroRotateY }}
                 className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
               >
                 <div>
@@ -305,29 +407,36 @@ export default function LoginForm({
                 <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.05] text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">
                   Your Entire VIT Life.
                   <br />
-                  <span className="bg-gradient-to-r from-indigo-550 via-purple-550 to-pink-550 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                     One Dashboard.
                   </span>
                 </h1>
                 
-                <p className="text-sm md:text-base text-slate-650 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto font-medium">
+                <p className="text-sm md:text-base text-slate-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto font-medium">
                   AmazeCC brings everything a VIT student needs into one beautifully designed platform. Stop opening ten different portals. Track attendance, marks, room counselling, and mess menus instantly.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                   <button
                     onClick={() => setShowLoginCard(true)}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-555 text-white font-black text-xs px-6 py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/15 flex items-center justify-center gap-2 cursor-pointer group"
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer group"
                   >
                     <span>Get Started</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
-                  <a
-                    href="#features"
-                    className="w-full sm:w-auto bg-slate-100/80 hover:bg-slate-200 border border-slate-250/60 hover:border-slate-350 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                  <button
+                    onClick={handleDemoClick}
+                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                  >
+                    <Zap size={14} />
+                    <span>Try Instant Demo</span>
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("sec-features")}
+                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
                   >
                     Explore Features
-                  </a>
+                  </button>
                 </div>
                 
                 {/* Stats counters */}
@@ -349,11 +458,11 @@ export default function LoginForm({
             </section>
 
             {/* Problem Section (Emojis Replaced with Lucide Icons) */}
-            <section id="problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
+            <section id="sec-problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
               <motion.div 
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
+                viewport={{ once: true, amount: 0.05 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
                 className="max-w-4xl mx-auto text-center space-y-8"
               >
@@ -372,7 +481,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-rose-600 dark:text-rose-400/90 rotate-[-2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-rose-600 dark:text-rose-400/90 rotate-[-2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <ShieldAlert size={14} className="text-rose-500 shrink-0" />
                     VTOP Session Expired (Re-login)
@@ -382,7 +491,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-amber-600 dark:text-amber-400/90 rotate-[1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-amber-600 dark:text-amber-400/90 rotate-[1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <MessageSquareWarning size={14} className="text-amber-500 shrink-0" />
                     Outing Pass OTP Pending
@@ -392,7 +501,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-purple-600 dark:text-purple-400/90 rotate-[-1deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-purple-600 dark:text-purple-400/90 rotate-[-1deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <Lock size={14} className="text-purple-500 shrink-0" />
                     Laundry Booking Slot Locked
@@ -402,7 +511,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-sky-600 dark:text-sky-400/90 rotate-[2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-sky-600 dark:text-sky-400/90 rotate-[2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <BookOpen size={14} className="text-sky-500 shrink-0" />
                     Mess Menu PDF (Page 4)
@@ -412,7 +521,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.32, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400/90 rotate-[-1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400/90 rotate-[-1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <CreditCard size={14} className="text-emerald-500 shrink-0" />
                     Koha Book Catalog Error
@@ -421,7 +530,7 @@ export default function LoginForm({
 
                 <div className="flex flex-col items-center justify-center space-y-2">
                   <div className="h-10 w-[1px] bg-gradient-to-b from-indigo-500 to-transparent" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-605 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full select-none">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full select-none">
                     AmazeCC Unifies Everything
                   </span>
                   <div className="h-10 w-[1px] bg-gradient-to-t from-indigo-500 to-transparent" />
@@ -430,7 +539,7 @@ export default function LoginForm({
             </section>
 
             {/* Features Module Grid Section (Emojis Replaced with elegant Lucide icons) */}
-            <section id="features" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-features" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -447,26 +556,27 @@ export default function LoginForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
                 {features.map((feat, idx) => (
-                  <motion.div 
-                    key={idx} 
-                    initial={{ opacity: 0, y: 25 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.5, delay: (idx % 3) * 0.08, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/60 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-all shadow-xs dark:shadow-none group"
-                  >
-                    <div className="space-y-3">
-                      <div className={`p-2 w-fit rounded-xl bg-slate-550/5 ${feat.iconColor} bg-slate-100 dark:bg-neutral-900`}>
-                        <feat.icon className="h-6 w-6 stroke-[1.8]" />
+                  <Tilt3DCard key={idx} className="h-full">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                      viewport={{ once: true, amount: 0.05 }}
+                      transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
+                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-white/[0.08] p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
+                    >
+                      <div className="space-y-3">
+                        <div className={`p-2.5 w-fit rounded-2xl ${feat.iconColor} bg-slate-100 dark:bg-neutral-900 group-hover:scale-110 transition-transform duration-300`}>
+                          <feat.icon className="h-6 w-6 stroke-[1.8]" />
+                        </div>
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
+                          {feat.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">
+                          {feat.desc}
+                        </p>
                       </div>
-                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
-                        {feat.title}
-                      </h3>
-                      <p className="text-xs text-slate-650 dark:text-gray-400 leading-relaxed font-medium">
-                        {feat.desc}
-                      </p>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </Tilt3DCard>
                 ))}
               </div>
             </section>
@@ -479,7 +589,7 @@ export default function LoginForm({
                 <motion.div 
                   initial={{ opacity: 0, x: -30 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
+                  viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                   className="lg:col-span-7 space-y-4 text-left"
                 >
@@ -504,9 +614,9 @@ export default function LoginForm({
                 <motion.div 
                   initial={{ opacity: 0, x: 30 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
+                  viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-neutral-850 p-6 rounded-3xl space-y-4 shadow-xl"
+                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-white/[0.08] p-6 rounded-3xl space-y-4 shadow-xl"
                 >
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-900 pb-3">
                     <div>
@@ -694,7 +804,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: (idx % 4) * 0.08, ease: "easeOut" }}
-                      className="bg-white border border-slate-200 dark:bg-neutral-950/40 dark:border-neutral-900 p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none"
+                      className="bg-white border border-slate-200 dark:bg-neutral-950/40 dark:border-white/[0.08] p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none"
                     >
                       <h3 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
                         {benefit.title}
@@ -709,7 +819,7 @@ export default function LoginForm({
             </section>
 
             {/* Timeline walkthrough */}
-            <section id="timeline" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-timeline" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -730,7 +840,7 @@ export default function LoginForm({
                     key={idx} 
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: "-45px" }}
+                    viewport={{ once: true, amount: 0.05 }}
                     transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
                     className="flex gap-6 relative pl-8 text-left"
                   >
@@ -746,7 +856,7 @@ export default function LoginForm({
             </section>
 
             {/* Roadmap */}
-            <section id="roadmap" className="bg-slate-100/50 border-t border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
+            <section id="sec-roadmap" className="bg-slate-100/50 border-t border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
               <div className="max-w-7xl mx-auto space-y-16">
                 <motion.div 
                   initial={{ opacity: 0, y: 25 }}
@@ -770,7 +880,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: (idx % 4) * 0.08, ease: "easeOut" }}
-                      className="bg-white border border-slate-200 dark:bg-neutral-950/60 dark:border-neutral-900 p-6 rounded-2xl flex flex-col justify-between space-y-4 shadow-xs dark:shadow-none"
+                      className="bg-white border border-slate-200 dark:bg-neutral-950/60 dark:border-white/[0.08] p-6 rounded-2xl flex flex-col justify-between space-y-4 shadow-xs dark:shadow-none"
                     >
                       <div className="space-y-2">
                         <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full w-fit block">
@@ -786,7 +896,7 @@ export default function LoginForm({
             </section>
 
             {/* FAQ Accordion */}
-            <section id="faq" className="max-w-4xl mx-auto px-6 py-24 space-y-16">
+            <section id="sec-faq" className="max-w-4xl mx-auto px-6 py-24 space-y-16">
               <motion.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -809,9 +919,9 @@ export default function LoginForm({
                       key={idx} 
                       initial={{ opacity: 0, y: 15 }}
                       whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-30px" }}
+                      viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.4, delay: idx * 0.06, ease: "easeOut" }}
-                      className="border border-slate-200 bg-white dark:border-neutral-900 dark:bg-neutral-950/40 rounded-2xl overflow-hidden shadow-xs dark:shadow-none"
+                      className="border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-neutral-950/40 rounded-2xl overflow-hidden shadow-xs dark:shadow-none"
                     >
                       <button
                         onClick={() => setOpenFaq(isOpen ? null : idx)}

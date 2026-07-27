@@ -1,44 +1,81 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, ShieldCheck, FileText } from "lucide-react";
 import Link from "next/link";
+import ThemeToggle from "@/components/custom/ThemeToggle";
 
 export default function TermsOfServicePage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-12 bg-gray-50/50  dark:bg-black transition-colors duration-300 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full px-4 py-24 bg-slate-50/60 dark:bg-[#03060F] transition-colors duration-300 relative overflow-hidden text-slate-800 dark:text-gray-200 font-sans">
       {/* Ambient Background Glows */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10  dark:bg-blue-500/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/10  dark:bg-emerald-500/5 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 dark:bg-purple-500/5 blur-[120px]" />
       </div>
 
-      <div className="w-full max-w-2xl space-y-6 relative z-10">
-        {/* Back Link */}
-        <Link 
-          href="/" 
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600  dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 dark:hover:text-blue-400 transition-colors"
-        >
-          <ArrowLeft size={16} /> Back to Login
-        </Link>
+      {/* Sticky Header Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#03060F]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-neutral-900/60 border border-slate-200/60 dark:border-white/[0.06]"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Login</span>
+            </Link>
+          </div>
 
+          {/* Switcher Tab between Privacy & Terms */}
+          <div className="flex items-center gap-1 p-1 bg-slate-200/60 dark:bg-neutral-900/80 rounded-2xl border border-slate-200/60 dark:border-white/[0.06]">
+            <Link 
+              href="/privacy" 
+              className="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-all"
+            >
+              <ShieldCheck size={13} />
+              <span>Privacy Policy</span>
+            </Link>
+            <Link 
+              href="/terms" 
+              className="px-3 py-1 rounded-xl text-xs font-extrabold bg-white dark:bg-neutral-800 text-indigo-600 dark:text-white shadow-xs flex items-center gap-1.5 transition-all"
+            >
+              <FileText size={13} />
+              <span>Terms of Service</span>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {mounted && <ThemeToggle />}
+          </div>
+        </div>
+      </nav>
+
+      <div className="w-full max-w-2xl space-y-6 relative z-10 pt-10">
         {/* Content Card */}
-        <div className="bg-white dark:bg-gray-900  border border-gray-200/50  dark:border-white/10 rounded-2xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.06)]  dark:shadow-[0_8px_30px_rgba(255,255,255,0.02)] space-y-6 text-gray-700  dark:text-gray-300">
-          <div className="border-b border-gray-100  dark:border-white/10 pb-4">
-            <h1 className="text-3xl font-black text-gray-900  dark:text-white leading-tight">
+        <div className="bg-white/80 dark:bg-[#050814]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-3xl p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
+          <div className="border-b border-slate-100 dark:border-white/[0.08] pb-4">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight font-[family-name:var(--font-outfit)]">
               Terms of Service
             </h1>
-            <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">
               Last updated: June 23, 2026
             </p>
           </div>
 
-          <div className="space-y-5 text-sm leading-relaxed">
+          <div className="space-y-5 text-sm leading-relaxed font-medium">
             <p>
               Welcome to <strong>AmazeCC</strong>. By using this application, you agree to the following Terms of Service. Please read them carefully before using the app.
             </p>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Purpose
               </h2>
               <p>
@@ -47,7 +84,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Data Handling
               </h2>
               <p>
@@ -59,7 +96,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 No Monetization or Commercial Use
               </h2>
               <p>
@@ -68,7 +105,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Disclaimer of Liability
               </h2>
               <p>
@@ -80,7 +117,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Affiliation
               </h2>
               <p>
@@ -89,7 +126,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Changes to Terms
               </h2>
               <p>
@@ -98,7 +135,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-gray-900  dark:text-white">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Contact
               </h2>
               <p>

@@ -291,22 +291,7 @@ input, textarea, [contenteditable] {
 }
 
 
-/* Custom View Transition Animation for Theme Switch */
-::view-transition-old(root) {
-  animation: 350ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
-}
-::view-transition-new(root) {
-  animation: 350ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
-}
 
-@keyframes fade-in {
-  from { opacity: 0; transform: scale(0.995); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
 
 /* Optimize AppLibrary sheet overlay performance on mobile by disabling heavy backdrop-blur */
 @media (max-width: 768px) {
@@ -343,4 +328,19 @@ input, textarea, [contenteditable] {
 .scanner-laser {
   position: absolute;
   animation: laser-scan 2.5s linear infinite;
+}
+
+/* ── Circular Wave View Transition for Theme Switch ── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
 }
