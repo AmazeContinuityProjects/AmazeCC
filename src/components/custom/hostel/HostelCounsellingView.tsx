@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import GenericApiView from "../Exams/GenericApiView";
+import GenericApiView from "../exams/GenericApiView";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Users, Info, ShieldAlert, Sparkles } from "lucide-react";
 
