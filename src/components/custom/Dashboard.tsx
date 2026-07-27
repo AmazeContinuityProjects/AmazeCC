@@ -763,7 +763,6 @@ export default function DashboardContent({
                     setMoodleData={setMoodleData}
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
-                    registeredEvents={registeredEvents}
                     setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                   />
                 </div>

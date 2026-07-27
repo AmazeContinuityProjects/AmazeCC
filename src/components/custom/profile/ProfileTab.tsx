@@ -434,7 +434,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             account: "VTOP Student Portal",
             username: "22BCE1234",
             defaultCredentials: "demo-password-vtop",
-            url: "https://vtop.vit.ac.in",
+            url: "https://vtopcc.ac.in",
             venueDate: "Active Session",
             seatLocation: "N/A"
           },
@@ -483,7 +483,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             account: "VTOP Student Portal",
             username: "22BCE1234",
             defaultCredentials: "demo-password-vtop",
-            url: "https://vtop.vit.ac.in",
+            url: "https://vtopcc.ac.in",
             venueDate: "Active Session",
             seatLocation: "N/A"
           },
