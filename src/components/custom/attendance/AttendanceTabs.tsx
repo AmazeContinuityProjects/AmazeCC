@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import NoContentFound from "../NoContentFound";
-import OverallAttendancePredictor from "./overallAttendancePredictor";
+import OverallAttendancePredictor from "./OverallAttendancePredictor";
 import { BadgeQuestionMark, Calendar, Users } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import DailyPlanner from "./DailyPlanner";

@@ -38,7 +38,7 @@ import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
-import { IconToggle } from "../toggle";
+import { IconToggle } from "../Toggle";
 import { AboutSection } from "./AboutSection";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
@@ -1119,6 +1119,7 @@ export default function ProfilePage({
                         { id: "transport", label: "Transport", icon: "Bus" },
                         { id: "more", label: "More", icon: "MoreHorizontal" },
                         { id: "profile", label: "Profile", icon: "User" },
+                        { id: "credentials", label: "Credentials", icon: "Key" },
                       ].map(tab => {
                         const pinned = settings?.pinnedNavTabs ?? [];
                         const isPinned = pinned.includes(tab.id);

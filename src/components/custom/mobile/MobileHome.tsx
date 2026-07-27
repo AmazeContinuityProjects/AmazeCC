@@ -33,7 +33,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
-import CabShareMatchCard from "../Hostel/CabShare/CabShareMatchCard";
+import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { API_BASE } from "@/lib/fetch-utils";
@@ -65,15 +65,12 @@ interface WidgetItem {
 }
 
 const DEFAULT_WIDGETS: WidgetItem[] = [
-  { id: "cabshare", title: "Cab Share Promo", enabled: false },
-  { id: "cabshare_match", title: "Cab Share Matches", enabled: false },
-  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false },
   { id: "insights", title: "Quick Insights Dock", enabled: true },
   { id: "attendance", title: "Attendance Summary Card", enabled: true },
+  { id: "classes", title: "Today's Classes", enabled: true },
   { id: "attendance_courses", title: "Course Attendance Detail", enabled: true },
   { id: "academic_courses", title: "Current Semester Courses", enabled: true },
   { id: "critical", title: "Critical Attendance Alert", enabled: true },
-  { id: "classes", title: "Today's Classes", enabled: true },
   { id: "actions", title: "Quick Actions Grid", enabled: true },
   { id: "laundry", title: "Laundry Slot Status", enabled: true },
   { id: "mess", title: "Today's Mess Menu", enabled: true },
@@ -81,6 +78,9 @@ const DEFAULT_WIDGETS: WidgetItem[] = [
   { id: "classrooms", title: "Free Classrooms Finder", enabled: true },
   { id: "events", title: "Registered Events", enabled: true },
   { id: "quick_settings", title: "Quick Settings Panel", enabled: true },
+  { id: "cabshare", title: "Cab Share Promo", enabled: false },
+  { id: "cabshare_match", title: "Cab Share Matches", enabled: false },
+  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false },
 ];
 
 export default function MobileHome({

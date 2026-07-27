@@ -103,6 +103,7 @@ function getTabIdFromLabel(label: string): string | null {
   if (lower === "libraries" || lower === "question bank") return "libraries";
   if (lower === "cab share") return "cabshare";
   if (lower === "transport") return "transport";
+  if (lower === "credentials") return "credentials";
   return null;
 }
 
@@ -321,6 +322,7 @@ export default function NavigationTabs({
     transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
     more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
     profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+    credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
   }), [activeAttendanceSubTab]);
 
   const togglePin = useCallback((tabId: string) => {
@@ -369,12 +371,19 @@ export default function NavigationTabs({
             id: tabId,
             icon: t.icon,
             label: t.label,
-            isActive: activeTab === tabId && !isAppLibraryOpen,
+            isActive: tabId === "credentials"
+              ? (activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen)
+              : (activeTab === tabId && !isAppLibraryOpen),
             onClick: () => {
               setIsAppLibraryOpen(false);
-              selectTab(tabId);
-              if (tabId === "attendance") {
-                setActiveAttendanceSubTab("attendance");
+              if (tabId === "credentials") {
+                selectTab("profile");
+                setActiveProfileSubTab("credentials");
+              } else {
+                selectTab(tabId);
+                if (tabId === "attendance") {
+                  setActiveAttendanceSubTab("attendance");
+                }
               }
             },
           });
@@ -393,7 +402,7 @@ export default function NavigationTabs({
     });
 
     return rawItems;
-  }, [settings?.pinnedNavTabs, activeTab, isAppLibraryOpen, selectTab, openCommandPalette, tabIcons, setIsAppLibraryOpen, setActiveAttendanceSubTab]);
+  }, [settings?.pinnedNavTabs, activeTab, activeProfileSubTab, isAppLibraryOpen, selectTab, openCommandPalette, tabIcons, setIsAppLibraryOpen, setActiveAttendanceSubTab, setActiveProfileSubTab]);
 
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
   const sidebarActiveIconStyles = "text-info font-semibold";
@@ -1575,6 +1584,7 @@ const AppLibraryPortal = memo(({
     { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
     
     { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+    { label: "Credentials", group: "Account", icon: Key, action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
     { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
     { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
     { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
@@ -1613,6 +1623,7 @@ const AppLibraryPortal = memo(({
       name: "Account",
       items: [
         { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+        { label: "Credentials", icon: Key, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
         { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
         { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
         { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
@@ -1923,6 +1934,7 @@ const AppLibraryPortal = memo(({
             { id: "transport", label: "Transport" },
             { id: "more", label: "More" },
             { id: "profile", label: "Profile" },
+            { id: "credentials", label: "Credentials" },
           ].map(tab => {
             const pinned = settings?.pinnedNavTabs ?? [];
             const isPinned = pinned.includes(tab.id);

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import ProfilePage from "../header/ProfilePage";
-import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
+import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import ProfileSubTabs from "./ProfileSubTabs";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Card, Badge, Modal } from "../shared";
@@ -131,7 +131,8 @@ export default function ProfileTab(props: ProfileTabProps) {
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto">
+    <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4">
+      <ProfileSubTabs activeTab={activeProfileSubTab} onChange={setActiveProfileSubTab} />
 
       <div className="mt-4">
         {activeProfileSubTab === "info" && (
@@ -155,7 +156,7 @@ export default function ProfileTab(props: ProfileTabProps) {
                 <RefreshCcw className="w-5 h-5" />
               </button>
             </div>
-            {creds && <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />}
+            <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />
           </div>
         )}
       </div>

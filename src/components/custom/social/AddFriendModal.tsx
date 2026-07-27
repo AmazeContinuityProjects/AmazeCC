@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { UserPlus, Camera, QrCode, CameraOff, Link as LinkIcon, Clipboard, Focus } from "lucide-react";
+import { UserPlus, Camera, QrCode, CameraOff, Link as LinkIcon, Clipboard, Focus, Check } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import Modal from "../shared/Modal";
 import FetchButton from "../shared/FetchButton";
@@ -19,6 +19,7 @@ export default function AddFriendModal({
   const [code, setCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
+  const [pasted, setPasted] = useState(false);
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const SCANNER_ID = "qr-scanner-container";
@@ -56,7 +57,7 @@ export default function AddFriendModal({
         );
       } catch {
         if (!cancelled) {
-          setError("Camera access denied or not available.");
+          setError("Camera access denied or not available on this device.");
           setScanning(false);
         }
       }
@@ -83,37 +84,41 @@ export default function AddFriendModal({
   const handlePasteClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text) setCode(text.trim());
+      if (text) {
+        setCode(text.trim());
+        setPasted(true);
+        setTimeout(() => setPasted(false), 2000);
+      }
     } catch {
-      setError("Unable to read clipboard. Please paste manually.");
+      setError("Unable to read clipboard automatically. Please paste into the text area manually.");
     }
   };
 
   return (
-    <Modal onClose={() => { stopScanner(); onClose(); }} maxWidth="max-w-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+    <Modal onClose={() => { stopScanner(); onClose(); }} maxWidth="max-w-md">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
           <UserPlus className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
+          <h2 className="text-base font-extrabold text-foreground font-outfit">
             Add Friend Schedule
           </h2>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-            Import schedule via shared link, code, or camera QR
+          <p className="text-[11px] text-muted-foreground">
+            Import schedule via shared link, raw code, or camera QR
           </p>
         </div>
       </div>
 
       {/* Tab Selector */}
-      <div className="flex w-full gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-950 p-1 mb-4">
+      <div className="flex w-full gap-1 rounded-2xl bg-zinc-100 dark:bg-zinc-950 p-1 mb-4 border border-zinc-200/50 dark:border-zinc-800/60">
         <button
           type="button"
           onClick={() => { stopScanner(); setActiveTab("text"); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all cursor-pointer border border-transparent ${
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer border border-transparent ${
             activeTab === "text"
               ? "bg-white text-indigo-600 border-zinc-200/50 shadow-2xs dark:bg-zinc-900 dark:text-indigo-400 dark:border-zinc-800/50"
-              : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-white"
+              : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           }`}
         >
           <LinkIcon className="w-3.5 h-3.5" />
@@ -122,14 +127,14 @@ export default function AddFriendModal({
         <button
           type="button"
           onClick={() => setActiveTab("scan")}
-          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all cursor-pointer border border-transparent ${
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all cursor-pointer border border-transparent ${
             activeTab === "scan"
               ? "bg-white text-indigo-600 border-zinc-200/50 shadow-2xs dark:bg-zinc-900 dark:text-indigo-400 dark:border-zinc-800/50"
-              : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-white"
+              : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
           }`}
         >
           <Camera className="w-3.5 h-3.5" />
-          Scan QR
+          Scan QR Card
         </button>
       </div>
 
@@ -142,51 +147,51 @@ export default function AddFriendModal({
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="Paste share link (https://amazecc.app/#share=...) or raw profile code..."
+                placeholder="Paste share link (e.g. https://amazecc.app/#share=...) or raw code (v5|...)"
                 rows={3}
               />
               <button
                 type="button"
                 onClick={handlePasteClipboard}
-                className="absolute top-0 right-0 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer pt-0.5 pr-1"
+                className="absolute top-0 right-0 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer pt-0.5 pr-1"
               >
-                <Clipboard className="w-3 h-3" />
-                Paste from Clipboard
+                {pasted ? <Check className="w-3 h-3 text-emerald-500" /> : <Clipboard className="w-3 h-3" />}
+                {pasted ? "Pasted!" : "Paste Clipboard"}
               </button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {!scanning ? (
-              <div className="flex flex-col items-center justify-center p-6 border border-zinc-200/50 dark:border-zinc-800/80 bg-gradient-to-br from-white to-zinc-50/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl text-center">
-                <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-full text-indigo-500 mb-2">
+              <div className="flex flex-col items-center justify-center p-6 border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-br from-white to-zinc-50/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl text-center">
+                <div className="bg-indigo-50 dark:bg-indigo-950/40 p-3.5 rounded-2xl text-indigo-500 mb-2.5 shadow-2xs">
                   <QrCode className="w-6 h-6 stroke-[1.8]" />
                 </div>
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-[200px] mb-3">
-                  Scan a friend&apos;s schedule QR card directly
+                <p className="text-xs text-muted-foreground max-w-[220px] mb-3.5 font-medium">
+                  Scan a friend&apos;s schedule QR card using your camera
                 </p>
                 <button
                   type="button"
                   onClick={() => setScanning(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                 >
                   Start Camera Scanner
                 </button>
               </div>
             ) : (
               <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-black relative shadow-lg">
-                <div id={SCANNER_ID} className="w-full min-h-[200px]" />
-                <div className="p-2.5 bg-zinc-950 border-t border-zinc-900 flex items-center justify-between z-10 relative">
-                  <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium">
-                    <Focus size={12} className="text-emerald-500 animate-spin" />
-                    Point at QR code
+                <div id={SCANNER_ID} className="w-full min-h-[220px]" />
+                <div className="p-3 bg-zinc-950 border-t border-zinc-900 flex items-center justify-between z-10 relative">
+                  <span className="text-[11px] text-zinc-300 flex items-center gap-1.5 font-medium">
+                    <Focus size={14} className="text-emerald-500 animate-spin" />
+                    Center QR in frame
                   </span>
                   <button
                     type="button"
                     onClick={stopScanner}
-                    className="text-[10px] font-bold text-red-400 hover:text-red-300 flex items-center gap-1"
+                    className="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
                   >
-                    <CameraOff size={12} />
+                    <CameraOff size={13} />
                     Stop Camera
                   </button>
                 </div>
@@ -199,16 +204,16 @@ export default function AddFriendModal({
           label="Nickname (Optional)"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          placeholder="e.g. Aarav, Rahul"
+          placeholder="e.g. Aarav, Neha, Bestie"
         />
 
         {error && (
-          <p className="text-xs text-red-500 font-medium leading-tight">
+          <p className="text-xs text-red-500 font-bold leading-tight bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl border border-red-200 dark:border-red-900/40">
             {error}
           </p>
         )}
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2 pt-2">
           <button
             type="button"
             onClick={() => { stopScanner(); onClose(); }}
@@ -216,7 +221,7 @@ export default function AddFriendModal({
           >
             Cancel
           </button>
-          <FetchButton type="submit" className="flex-1 justify-center py-2.5">
+          <FetchButton type="submit" className="flex-1 justify-center py-2.5 font-bold" variant="gradient">
             Add Friend
           </FetchButton>
         </div>
@@ -224,3 +229,4 @@ export default function AddFriendModal({
     </Modal>
   );
 }
+
