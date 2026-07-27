@@ -3629,5 +3629,59 @@
                 ]
             }
         ]
+    },
+    "registeredEvents": [
+        {
+            "name": "HackNation 2026 - AI & Web3 National Hackathon",
+            "date": "29-Jul-2026",
+            "time": "09:00 AM - 06:00 PM",
+            "venue": "Netaji Auditorium (AB3)",
+            "paymentStatus": "Paid",
+            "registeredDetails": {
+                "eventCategory": "Technical",
+                "teamName": "CodeCrafters",
+                "registrationId": "REG-2026-8842",
+                "ticketType": "Delegate Pass"
+            }
+        },
+        {
+            "name": "TechnoVIT 2026 - AlgoSprint Challenge",
+            "date": "02-Aug-2026",
+            "time": "02:00 PM - 05:00 PM",
+            "venue": "AB1-302 Computer Lab",
+            "paymentStatus": "Free",
+            "registeredDetails": {
+                "eventCategory": "Coding",
+                "teamName": "Solo",
+                "registrationId": "REG-2026-5120",
+                "ticketType": "Student Participant"
+            }
+        },
+        {
+            "name": "Riviera Cultural Night Showcase",
+            "date": "10-Aug-2026",
+            "time": "06:00 PM - 09:30 PM",
+            "venue": "Open Air Theatre (OAT)",
+            "paymentStatus": "Registered",
+            "registeredDetails": {
+                "eventCategory": "Cultural",
+                "teamName": "Music Club",
+                "registrationId": "REG-2026-9901",
+                "ticketType": "General Admission"
+            }
+        }
+    ],
+    "profile": {
+        "studentName": "Demo Student",
+        "registerNumber": "22BCE1234",
+        "program": "B.Tech. Computer Science and Engineering",
+        "school": "School of Computer Science and Engineering (SCOPE)",
+        "mobileNumber": "9876543210",
+        "email": "demo.student2022@vitstudent.ac.in",
+        "gender": "Male",
+        "bloodGroup": "O+",
+        "residentialStatus": "hosteller",
+        "hostelBlock": "D-Block",
+        "roomNo": "D-412"
     }
 }
