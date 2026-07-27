@@ -30,6 +30,12 @@ export function animateThemeCircularExpansion(
   );
 
   const transition = (document as any).startViewTransition(() => {
+    // Synchronously mutate DOM root class before screenshot capture to prevent 1ms flash
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
     setTheme(newTheme);
   });
 
@@ -40,8 +46,8 @@ export function animateThemeCircularExpansion(
         { clipPath: `circle(${endRadius}px at ${x}px ${y}px)` },
       ],
       {
-        duration: 500,
-        easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+        duration: 420,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
         pseudoElement: "::view-transition-new(root)",
       }
     );
