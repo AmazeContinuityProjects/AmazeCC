@@ -256,10 +256,21 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
       return <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium py-3 text-center">No items listed.</p>;
     }
 
+    // Clean leading line numbers like "1. ", "2) ", etc. from every line
+    const cleanedLines = rawText
+      .split("\n")
+      .map(line => line.trim().replace(/^(\d+)[\.\)]\s*/, ""))
+      .filter(Boolean);
+
     return (
-      <p className="whitespace-pre-line text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
-        {rawText}
-      </p>
+      <ul className="space-y-2">
+        {cleanedLines.map((line, idx) => (
+          <li key={idx} className="flex items-start gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
+            <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500/60 mt-1.5" />
+            <span className="flex-1">{line}</span>
+          </li>
+        ))}
+      </ul>
     );
   };
 
