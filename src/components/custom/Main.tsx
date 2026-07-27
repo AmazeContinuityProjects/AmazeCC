@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
-import LoginForm from "./loginForm";
+import LoginForm from "./LoginForm";
 import DashboardContent from "./Dashboard";
 import IntroPage from "./IntroPage";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
-import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
+import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import demoData from '../../data/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
