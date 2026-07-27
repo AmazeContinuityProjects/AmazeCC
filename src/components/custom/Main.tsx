@@ -1,5 +1,17 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
+import { useAtom } from "jotai";
+import {
+  credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
+  allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
+  isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
+  isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
+  activeAttendanceSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
+  activeMoreSubTabAtom, activeProfileSubTabAtom, isLoadingAtom, progressBarAtom,
+  moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
+  registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
+  defaultSettings, defaultIDs, IDs, settings
+} from "@/store";
 import LoginForm from "./LoginForm";
 import DashboardContent from "./Dashboard";
 import IntroPage from "./IntroPage";
@@ -27,98 +39,6 @@ import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
 
 export { API_BASE, loginToEventHub };
 
-type settings = {
-  decimalValues: boolean;
-  CGPAHidden: boolean;
-  attendancePercentageOrString: "percentage" | "str";
-  currSemesterID: string;
-  calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
-  isDayscholarWithBus: boolean;
-  targetAttendance?: number;
-  showGpa?: boolean;
-  showProfilePhoto?: boolean;
-  blurGrades?: boolean;
-  colorPalette?: string;
-  customPalette?: {
-    accent: string;
-    background: string;
-    surface: string;
-  };
-  hideMobileHeader?: boolean;
-  reloadAllData?: boolean;
-  isSidebarCollapsed?: boolean;
-  residentialStatus?: "hosteller" | "dayscholar";
-  friendlyName?: string;
-  syncProfileData?: boolean;
-  syncArrearData?: boolean;
-  syncExamData?: boolean;
-  syncAdditionalData?: boolean;
-  syncCourseOptionChange?: boolean;
-  syncExcRegistration?: boolean;
-  syncMinorHonour?: boolean;
-  syncCourseCompletion?: boolean;
-  syncWishlist?: boolean;
-  syncAdditionalLearning?: boolean;
-  syncProject?: boolean;
-  syncProjectCourse?: boolean;
-  pinnedNavTabs?: string[];
-  defaultAcademicsTab?: string;
-  autoSyncInterval?: string;
-  lowDataMode?: boolean;
-  soundEnabled?: boolean;
-}
-
-type IDs = {
-  VtopUsername: string;
-  VtopPassword: string;
-  MoodleUsername: string;
-  MoodlePassword: string;
-}
-
-const defaultSettings: settings = {
-  decimalValues: false,
-  CGPAHidden: false,
-  attendancePercentageOrString: "percentage",
-  currSemesterID: config.semesterIDs[config.semesterIDs.length - 2],
-  calendarType: "ALL",
-  isDayscholarWithBus: false,
-  targetAttendance: 75,
-  showGpa: false,
-  showProfilePhoto: true,
-  blurGrades: false,
-  colorPalette: "default",
-  customPalette: {
-    accent: "#0ea5e9",
-    background: "#f8fafc",
-    surface: "#ffffff",
-  },
-  hideMobileHeader: false,
-  reloadAllData: false,
-  isSidebarCollapsed: false,
-  residentialStatus: "hosteller",
-  friendlyName: "",
-  syncProfileData: true,
-  syncArrearData: true,
-  syncExamData: true,
-  syncAdditionalData: true,
-  syncCourseOptionChange: true,
-  syncExcRegistration: true,
-  syncMinorHonour: true,
-  syncCourseCompletion: true,
-  syncWishlist: true,
-  syncAdditionalLearning: true,
-  syncProject: true,
-  syncProjectCourse: true,
-  pinnedNavTabs: []
-};
-
-const defaultIDs: IDs = {
-  VtopUsername: "",
-  VtopPassword: "",
-  MoodleUsername: "",
-  MoodlePassword: "",
-}
-
 const COLOR_PALETTES: Record<string, { accent: string; background?: string; surface?: string }> = {
   default: { accent: "" },
   neonPink: { accent: "#ff2bd6", background: "#fff7fd", surface: "#ffffff" },
@@ -134,43 +54,43 @@ const reloadAfterThemeChange = () => {
 
 export default function LoginPage() {
   const { theme, setTheme } = useTheme();
-  // --- State Management ---
-  const [IDs, setIDs] = useState<IDs>(defaultIDs);
-  const [message, setMessage] = useState<string>("");
-  const [attendanceData, setAttendanceData] = useState<attendanceRes | null>({});
-  const [marksData, setMarksData] = useState<object>({});
-  const [GradesData, setGradesData] = useState<object>({});
-  const [AllGradesData, setAllGradesData] = useState<AllGradesRes>({});
-  const [ScheduleData, setScheduleData] = useState<object>({});
-  const [hostelData, sethostelData] = useState<object>({});
-  const [Calender, setCalender] = useState<object>({});
-  const [activeDay, setActiveDay] = useState<string>("");
-  const [isReloading, setIsReloading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("home");
-  const [attendancePercentage, setattendancePercentage] = useState<object>({});
-  const [ODhoursData, setODhoursData] = useState<object>({});
-  const [ODhoursIsOpen, setODhoursIsOpen] = useState<boolean>(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<string>("overview");
-  const [HostelActiveSubTab, setHostelActiveSubTab] = useState<string>("mess");
-  const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useState<string>("attendance");
-  const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
-  const [activeQBankSubTab, setActiveQBankSubTab] = useState<string>("archive");
-  const [activeMoreSubTab, setActiveMoreSubTab] = useState<string>("social");
-  const [activeProfileSubTab, setActiveProfileSubTab] = useState<string>("info");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [progressBar, setProgressBar] = useState<number>(0);
-  const [moodleData, setMoodleData] = useState([]);
-  const [vitolData, setVitolData] = useState([]);
+  // --- State Management via Jotai Atoms ---
+  const [IDs, setIDs] = useAtom(credentialsAtom);
+  const [message, setMessage] = useAtom(messageAtom);
+  const [attendanceData, setAttendanceData] = useAtom(attendanceDataAtom);
+  const [marksData, setMarksData] = useAtom(marksDataAtom);
+  const [GradesData, setGradesData] = useAtom(gradesDataAtom);
+  const [AllGradesData, setAllGradesData] = useAtom(allGradesDataAtom);
+  const [ScheduleData, setScheduleData] = useAtom(scheduleDataAtom);
+  const [hostelData, sethostelData] = useAtom(hostelDataAtom);
+  const [Calender, setCalender] = useAtom(calendarDataAtom);
+  const [activeDay, setActiveDay] = useAtom(activeDayAtom);
+  const [isReloading, setIsReloading] = useAtom(isReloadingAtom);
+  const [activeTab, setActiveTab] = useAtom(activeTabAtom);
+  const [attendancePercentage, setattendancePercentage] = useAtom(attendancePercentageAtom);
+  const [ODhoursData, setODhoursData] = useAtom(odHoursDataAtom);
+  const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
+  const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
+  const [activeSubTab, setActiveSubTab] = useAtom(activeSubTabAtom);
+  const [HostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
+  const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useAtom(activeAttendanceSubTabAtom);
+  const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useAtom(activeDayscholarSubTabAtom);
+  const [activeQBankSubTab, setActiveQBankSubTab] = useAtom(activeQBankSubTabAtom);
+  const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
+  const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
+  const [isLoading, setIsLoading] = useAtom(isLoadingAtom);
+  const [progressBar, setProgressBar] = useAtom(progressBarAtom);
+  const [moodleData, setMoodleData] = useAtom(moodleDataAtom);
+  const [vitolData, setVitolData] = useAtom(vitolDataAtom);
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
-  const [demoMode, setDemoMode] = useState<boolean>(false);
-  const [settings, setSettings] = useState<settings>(defaultSettings);
-  const [showIntro, setShowIntro] = useState<boolean | null>(null);
-  const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
-  const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
+  const [demoMode, setDemoMode] = useAtom(demoModeAtom);
+  const [settings, setSettings] = useAtom(settingsAtom);
+  const [showIntro, setShowIntro] = useAtom(showIntroAtom);
+  const [registeredEvents, setRegisteredEvents] = useAtom(registeredEventsAtom);
+  const [eventHubEvents, setEventHubEvents] = useAtom(eventHubEventsAtom);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [kohaBooks, setKohaBooks] = useState<any[]>([]);
   const [kohaLoading, setKohaLoading] = useState(false);
