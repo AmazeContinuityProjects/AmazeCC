@@ -490,7 +490,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-rose-600 dark:text-rose-400/90 rotate-[-2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-rose-600 dark:text-rose-400/90 rotate-[-2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <ShieldAlert size={14} className="text-rose-500 shrink-0" />
                     VTOP Session Expired (Re-login)
@@ -500,7 +500,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-amber-600 dark:text-amber-400/90 rotate-[1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-amber-600 dark:text-amber-400/90 rotate-[1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <MessageSquareWarning size={14} className="text-amber-500 shrink-0" />
                     Outing Pass OTP Pending
@@ -510,7 +510,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-purple-600 dark:text-purple-400/90 rotate-[-1deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-purple-600 dark:text-purple-400/90 rotate-[-1deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <Lock size={14} className="text-purple-500 shrink-0" />
                     Laundry Booking Slot Locked
@@ -520,7 +520,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-sky-600 dark:text-sky-400/90 rotate-[2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-sky-600 dark:text-sky-400/90 rotate-[2deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <BookOpen size={14} className="text-sky-500 shrink-0" />
                     Mess Menu PDF (Page 4)
@@ -530,7 +530,7 @@ export default function LoginForm({
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.32, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-neutral-800 rounded-2xl px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400/90 rotate-[-1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
+                    className="bg-white border border-slate-200/80 dark:bg-neutral-900/60 dark:border-white/[0.08] rounded-2xl px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400/90 rotate-[-1.5deg] shadow-sm select-none flex items-center gap-2 font-semibold"
                   >
                     <CreditCard size={14} className="text-emerald-500 shrink-0" />
                     Koha Book Catalog Error
@@ -571,7 +571,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0, scale: 1 }}
                       viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
-                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-neutral-850 p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
+                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-white/[0.08] p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
                     >
                       <div className="space-y-3">
                         <div className={`p-2.5 w-fit rounded-2xl ${feat.iconColor} bg-slate-100 dark:bg-neutral-900 group-hover:scale-110 transition-transform duration-300`}>
@@ -625,7 +625,7 @@ export default function LoginForm({
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-neutral-850 p-6 rounded-3xl space-y-4 shadow-xl"
+                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-white/[0.08] p-6 rounded-3xl space-y-4 shadow-xl"
                 >
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-900 pb-3">
                     <div>
@@ -813,7 +813,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: (idx % 4) * 0.08, ease: "easeOut" }}
-                      className="bg-white border border-slate-200 dark:bg-neutral-950/40 dark:border-neutral-900 p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none"
+                      className="bg-white border border-slate-200 dark:bg-neutral-950/40 dark:border-white/[0.08] p-6 rounded-2xl space-y-2 shadow-xs dark:shadow-none"
                     >
                       <h3 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">
                         {benefit.title}
@@ -889,7 +889,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: (idx % 4) * 0.08, ease: "easeOut" }}
-                      className="bg-white border border-slate-200 dark:bg-neutral-950/60 dark:border-neutral-900 p-6 rounded-2xl flex flex-col justify-between space-y-4 shadow-xs dark:shadow-none"
+                      className="bg-white border border-slate-200 dark:bg-neutral-950/60 dark:border-white/[0.08] p-6 rounded-2xl flex flex-col justify-between space-y-4 shadow-xs dark:shadow-none"
                     >
                       <div className="space-y-2">
                         <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full w-fit block">
@@ -930,7 +930,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.4, delay: idx * 0.06, ease: "easeOut" }}
-                      className="border border-slate-200 bg-white dark:border-neutral-900 dark:bg-neutral-950/40 rounded-2xl overflow-hidden shadow-xs dark:shadow-none"
+                      className="border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-neutral-950/40 rounded-2xl overflow-hidden shadow-xs dark:shadow-none"
                     >
                       <button
                         onClick={() => setOpenFaq(isOpen ? null : idx)}
