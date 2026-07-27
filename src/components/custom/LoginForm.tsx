@@ -91,6 +91,16 @@ export default function LoginForm({
   const [isDesktop, setIsDesktop] = useState(false);
   const rawMouseX = useMotionValue(0);
   const rawMouseY = useMotionValue(0);
+  const spotlightX = useMotionValue(-1000);
+  const spotlightY = useMotionValue(-1000);
+
+  const smoothSpotlightX = useSpring(spotlightX, { stiffness: 250, damping: 25 });
+  const smoothSpotlightY = useSpring(spotlightY, { stiffness: 250, damping: 25 });
+
+  const spotlightBg = useTransform(
+    [smoothSpotlightX, smoothSpotlightY],
+    ([x, y]) => `radial-gradient(650px circle at ${x}px ${y}px, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15), transparent 70%)`
+  );
 
   const heroRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [4, -4]), { stiffness: 140, damping: 20 });
   const heroRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-4, 4]), { stiffness: 140, damping: 20 });
@@ -121,10 +131,12 @@ export default function LoginForm({
       const normY = (e.clientY - window.innerHeight / 2) / window.innerHeight;
       rawMouseX.set(normX);
       rawMouseY.set(normY);
+      spotlightX.set(e.clientX);
+      spotlightY.set(e.clientY);
     };
     window.addEventListener("mousemove", handleGlobalMouseMove);
     return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
-  }, [isDesktop, rawMouseX, rawMouseY]);
+  }, [isDesktop, rawMouseX, rawMouseY, spotlightX, spotlightY]);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -365,6 +377,14 @@ export default function LoginForm({
                 style={{ x: orbX2, y: orbY2 }}
                 className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
               />
+
+              {/* Dynamic Hardware-Accelerated Spotlight Glow (PC Only) */}
+              {isDesktop && (
+                <motion.div 
+                  className="absolute inset-0 pointer-events-none z-1"
+                  style={{ background: spotlightBg }}
+                />
+              )}
 
               {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
               <motion.div 
