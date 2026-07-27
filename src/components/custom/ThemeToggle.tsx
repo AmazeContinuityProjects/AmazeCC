@@ -21,8 +21,8 @@ export function animateThemeCircularExpansion(
   }
 
   // Calculate click coordinates or default to screen center
-  const x = event && "clientX" in event ? event.clientX : window.innerWidth / 2;
-  const y = event && "clientY" in event ? event.clientY : window.innerHeight / 2;
+  const x = event && "clientX" in event && event.clientX > 0 ? event.clientX : window.innerWidth / 2;
+  const y = event && "clientY" in event && event.clientY > 0 ? event.clientY : window.innerHeight / 2;
 
   const endRadius = Math.hypot(
     Math.max(x, window.innerWidth - x),
@@ -34,21 +34,15 @@ export function animateThemeCircularExpansion(
   });
 
   transition.ready.then(() => {
-    const clipPath = [
-      `circle(0px at ${x}px ${y}px)`,
-      `circle(${endRadius}px at ${x}px ${y}px)`,
-    ];
-
     document.documentElement.animate(
+      [
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
+        { clipPath: `circle(${endRadius}px at ${x}px ${y}px)` },
+      ],
       {
-        clipPath: newTheme === "dark" ? clipPath : [...clipPath].reverse(),
-      },
-      {
-        duration: 650,
+        duration: 500,
         easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-        pseudoElement: newTheme === "dark" 
-          ? "::view-transition-new(root)" 
-          : "::view-transition-old(root)",
+        pseudoElement: "::view-transition-new(root)",
       }
     );
   });
