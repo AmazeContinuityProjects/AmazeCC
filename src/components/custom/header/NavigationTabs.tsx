@@ -103,6 +103,7 @@ function getTabIdFromLabel(label: string): string | null {
   if (lower === "libraries" || lower === "question bank") return "libraries";
   if (lower === "cab share") return "cabshare";
   if (lower === "transport") return "transport";
+  if (lower === "credentials") return "credentials";
   return null;
 }
 
