@@ -562,15 +562,12 @@ export default function MobileHome({
 
     if (validItems.length === 0) return null;
 
-    // Group items by base course code (combining Theory & Lab like BACSE106(T) and BACSE106(L))
+    // Group items by base course code (combining Theory & Lab under 1 card with distinct bars)
     const getBaseCourseCode = (rawCode: string): string => {
       if (!rawCode) return "";
       let clean = String(rawCode).trim().toUpperCase();
-      // Strip trailing (T), (L), (P), (ETH), (ELA), (EPJ), (TH), (LAB), (SS)
       clean = clean.replace(/\s*\((T|L|P|ETH|ELA|EPJ|TH|LAB|SS)\)\s*$/i, "").trim();
-      // Strip trailing -T, -L, -P
       clean = clean.replace(/\s*-(T|L|P)\s*$/i, "").trim();
-      // Standard VTOP course codes like BCSE202L and BCSE202P, BMAT201L, BSTS202P
       const vtopMatch = clean.match(/^([A-Z]{3,4}\d{3,4})[LPT]$/i);
       if (vtopMatch) {
         return vtopMatch[1].toUpperCase();
@@ -578,13 +575,27 @@ export default function MobileHome({
       return clean;
     };
 
+    const getComponentType = (c: any): "Theory" | "Lab" | "Practical" => {
+      const code = String(c.courseCode || "").trim().toUpperCase();
+      const type = String(c.courseType || "").trim().toUpperCase();
+      const slot = String(c.slotName || "").trim().toUpperCase();
+
+      if (code.endsWith("(L)") || code.endsWith("(P)") || type.includes("LAB") || type.includes("PRACTICAL") || type === "ELA" || type === "EPJ" || slot.startsWith("L")) {
+        return type.includes("PRACTICAL") ? "Practical" : "Lab";
+      }
+      return "Theory";
+    };
+
     const groupedMap: Record<string, {
       courseCode: string;
       courseTitle: string;
-      slots: string[];
-      attendedClasses: number;
-      totalClasses: number;
-      itemCount: number;
+      components: Array<{
+        type: string;
+        slotName: string;
+        attendedClasses: number;
+        totalClasses: number;
+        pct: number;
+      }>;
     }> = {};
 
     validItems.forEach((c: any) => {
@@ -593,8 +604,9 @@ export default function MobileHome({
       const attended = parseInt(c.attendedClasses, 10) || 0;
       const total = parseInt(c.totalClasses, 10) || 0;
       const slot = String(c.slotName || "").trim();
+      const pct = total > 0 ? (attended / total) * 100 : parseFloat(c.attendancePercentage) || 0;
+      const compType = getComponentType(c);
 
-      // Clean course title by stripping trailing (ETH), (ELA), (EPJ), (T), (L), etc. if present
       let cleanTitle = String(c.courseTitle || "").trim();
       cleanTitle = cleanTitle.replace(/\s*\((ETH|ELA|EPJ|TH|LAB|SS|T|L|P)\)\s*$/i, "").trim();
       cleanTitle = cleanTitle.replace(/\s*-\s*(Theory|Lab|Practical|Embedded Lab|Embedded Theory)\s*$/i, "").trim();
@@ -603,32 +615,20 @@ export default function MobileHome({
         groupedMap[baseKey] = {
           courseCode: baseKey,
           courseTitle: cleanTitle,
-          slots: slot ? [slot] : [],
-          attendedClasses: attended,
-          totalClasses: total,
-          itemCount: 1,
+          components: [],
         };
-      } else {
-        groupedMap[baseKey].attendedClasses += attended;
-        groupedMap[baseKey].totalClasses += total;
-        if (slot && !groupedMap[baseKey].slots.includes(slot)) {
-          groupedMap[baseKey].slots.push(slot);
-        }
-        groupedMap[baseKey].itemCount += 1;
       }
+
+      groupedMap[baseKey].components.push({
+        type: compType,
+        slotName: slot,
+        attendedClasses: attended,
+        totalClasses: total,
+        pct,
+      });
     });
 
-    const clubbedCourses = Object.values(groupedMap).map((group) => {
-      const pct = group.totalClasses > 0 ? (group.attendedClasses / group.totalClasses) * 100 : 0;
-      const combinedSlots = group.slots.join(" + ");
-      const isClubbed = group.itemCount > 1;
-      return {
-        ...group,
-        pct,
-        combinedSlots,
-        isClubbed,
-      };
-    });
+    const clubbedCourses = Object.values(groupedMap);
 
     return (
       <div className="space-y-3">
@@ -646,39 +646,50 @@ export default function MobileHome({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-left">
           {clubbedCourses.map((c, index) => {
-            const pct = c.pct;
-            const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
-            const bgProgress = pct >= 85 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-red-500";
+            const isGrouped = c.components.length > 1;
             return (
               <div 
                 key={`${c.courseCode}-${index}`}
                 onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-                className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[116px] relative overflow-hidden"
+                className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-bl-full pointer-events-none" />
-                <div className="min-w-0 pr-1">
+                <div className="min-w-0 pr-1 mb-2.5">
                   <div className="flex items-center justify-between gap-1">
                     <h4 className="text-xs font-black text-zinc-900 dark:text-white truncate font-outfit" title={c.courseTitle}>{c.courseTitle}</h4>
-                    {c.isClubbed && (
+                    {isGrouped && (
                       <span className="text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-500/20">
                         Theory + Lab
                       </span>
                     )}
                   </div>
                   <p className="text-[9.5px] text-zinc-405 dark:text-zinc-500 font-bold mt-0.5 truncate">
-                    {c.courseCode} • Slot {c.combinedSlots || "N/A"}
+                    {c.courseCode}
                   </p>
                 </div>
                 
-                <div className="mt-3">
-                  <div className="flex items-end justify-between">
-                    <span className="text-[9.5px] text-zinc-500 dark:text-zinc-400 font-bold">{c.attendedClasses}/{c.totalClasses} classes</span>
-                    <span className={`text-sm font-black ${color}`}>{pct.toFixed(0)}%</span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full bg-zinc-150 dark:bg-zinc-850 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                    <div className={`h-full ${bgProgress} rounded-full`} style={{ width: `${Math.min(100, pct)}%` }} />
-                  </div>
+                <div className="space-y-2.5">
+                  {c.components.map((comp, compIdx) => {
+                    const pct = comp.pct;
+                    const color = pct >= 85 ? "text-emerald-500" : pct >= 75 ? "text-amber-500" : "text-red-500";
+                    const bgProgress = pct >= 85 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-red-500";
+                    return (
+                      <div key={compIdx} className="space-y-1">
+                        <div className="flex items-center justify-between text-[9.5px]">
+                          <span className="font-bold text-zinc-700 dark:text-zinc-300 truncate">
+                            {isGrouped ? comp.type : "Attendance"} <span className="text-zinc-400 font-medium">• Slot {comp.slotName || "N/A"}</span>
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                            <span className="text-zinc-500 dark:text-zinc-400 font-medium text-[9px]">{comp.attendedClasses}/{comp.totalClasses}</span>
+                            <span className={`font-black text-xs ${color}`}>{pct.toFixed(0)}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-zinc-150 dark:bg-zinc-850 h-1.5 rounded-full overflow-hidden">
+                          <div className={`h-full ${bgProgress} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
