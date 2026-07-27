@@ -89,6 +89,21 @@ export default function LoginForm({
   const floatBadge3Y = useTransform(scrollY, [0, 600], [0, -85]);
   const floatBadge4Y = useTransform(scrollY, [0, 600], [0, -130]);
   
+  const [heroMouse, setHeroMouse] = useState({ px: 0, py: 0, rx: 0, ry: 0 });
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const rx = ((px - rect.width / 2) / (rect.width / 2)) * 8;
+    const ry = ((py - rect.height / 2) / (rect.height / 2)) * 8;
+    setHeroMouse({ px, py, rx, ry });
+  };
+
+  const handleHeroMouseLeave = () => {
+    setHeroMouse({ px: 0, py: 0, rx: 0, ry: 0 });
+  };
+
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showLoginCard, setShowLoginCard] = useState(false);
@@ -311,11 +326,34 @@ export default function LoginForm({
           /* Landing Page View */
           <div className="w-full">
             {/* Hero Section */}
-            <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28">
-              
+            <section 
+              onMouseMove={handleHeroMouseMove}
+              onMouseLeave={handleHeroMouseLeave}
+              className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default"
+            >
+              {/* Dynamic Interactive Mouse Spotlight Glow */}
+              {heroMouse.px > 0 && (
+                <div 
+                  className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-1 font-sans"
+                  style={{
+                    background: `radial-gradient(650px circle at ${heroMouse.px}px ${heroMouse.py}px, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.1), transparent 70%)`
+                  }}
+                />
+              )}
+
+              {/* Interactive 3D Mesh Grid */}
+              <motion.div 
+                animate={{ rotateX: -heroMouse.ry * 0.4, rotateY: heroMouse.rx * 0.4 }}
+                transition={{ type: "spring", stiffness: 180, damping: 24 }}
+                style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+                className="absolute inset-0 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none"
+              />
+
               {/* Parallax Background Image */}
               <motion.div 
                 style={{ y: backgroundY, scale: backgroundScale, backgroundImage: "url('/campus-twilight.png')" }}
+                animate={{ x: -heroMouse.rx * 1.5, y: -heroMouse.ry * 1.5 }}
+                transition={{ type: "spring", stiffness: 140, damping: 20 }}
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.22] pointer-events-none"
               />
               
@@ -328,6 +366,8 @@ export default function LoginForm({
                 {/* 3D Badge 1: Top Left - Attendance */}
                 <motion.div
                   style={{ y: floatBadge1Y }}
+                  animate={{ x: -heroMouse.rx * 2, y: -heroMouse.ry * 2 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
                   className="absolute top-28 left-4 xl:left-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-indigo-500/20"
                 >
                   <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 shrink-0">
@@ -342,6 +382,8 @@ export default function LoginForm({
                 {/* 3D Badge 2: Top Right - Academic CGPA */}
                 <motion.div
                   style={{ y: floatBadge2Y }}
+                  animate={{ x: heroMouse.rx * 2, y: -heroMouse.ry * 2 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
                   className="absolute top-24 right-4 xl:right-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-purple-500/20"
                 >
                   <div className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-500 shrink-0">
@@ -356,6 +398,8 @@ export default function LoginForm({
                 {/* 3D Badge 3: Bottom Left - Mess Menu */}
                 <motion.div
                   style={{ y: floatBadge3Y }}
+                  animate={{ x: -heroMouse.rx * 1.5, y: heroMouse.ry * 1.5 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
                   className="absolute bottom-16 left-6 xl:left-12 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
                 >
                   <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 shrink-0">
@@ -370,6 +414,8 @@ export default function LoginForm({
                 {/* 3D Badge 4: Bottom Right - Cab Share Match */}
                 <motion.div
                   style={{ y: floatBadge4Y }}
+                  animate={{ x: heroMouse.rx * 1.5, y: heroMouse.ry * 1.5 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 22 }}
                   className="absolute bottom-20 right-8 xl:right-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
                 >
                   <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500 shrink-0">
@@ -382,9 +428,11 @@ export default function LoginForm({
                 </motion.div>
               </div>
 
-              {/* Centered Hero Content */}
+              {/* Centered Hero Content with 3D Mouse Tilt */}
               <motion.div 
                 style={{ y: textY }}
+                animate={{ rotateX: -heroMouse.ry * 0.6, rotateY: heroMouse.rx * 0.6 }}
+                transition={{ type: "spring", stiffness: 220, damping: 22 }}
                 className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
               >
                 <div>
