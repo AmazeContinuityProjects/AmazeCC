@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { 
-  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck
+  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck, SlidersHorizontal
 } from "lucide-react";
 import { useIsMobile } from "../shared";
 
@@ -33,7 +33,7 @@ const shortToFullDay: Record<string, string> = Object.fromEntries(
   Object.entries(fullToShortDay).map(([full, short]) => [short, full])
 );
 
-// Helper to determine the current week of the month (Week 1: days 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22+)
+// Helper to determine current week of month (Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22+)
 const getCurrentWeekOfMonth = (d: Date = new Date()): number => {
   const day = d.getDate();
   if (day <= 7) return 1;
@@ -42,7 +42,7 @@ const getCurrentWeekOfMonth = (d: Date = new Date()): number => {
   return 4;
 };
 
-// Smart menu parser: automatically filters items served in the current week & removes week qualifiers/numerals
+// Smart menu parser: filters items for current week & removes week qualifiers
 const getSmartMenuText = (rawText: string, weekNum: number): string => {
   if (!rawText || typeof rawText !== "string" || rawText.trim() === "" || rawText === "No items listed.") {
     return "No items listed.";
@@ -55,7 +55,6 @@ const getSmartMenuText = (rawText: string, weekNum: number): string => {
     const l = line.trim();
     if (!l) return;
 
-    // Handle slash-separated options with week qualifiers (e.g. Sweet Corn (Weeks 1 & 3) / Veg Samosa (Weeks 2 & 4))
     if (l.includes("/") && /\bweek/i.test(l)) {
       const candidates = l.split("/");
       let activeCandidate = "";
@@ -85,12 +84,11 @@ const getSmartMenuText = (rawText: string, weekNum: number): string => {
         if (cleanCand) resultLines.push(cleanCand);
       }
     } else {
-      // Line without slash alternatives: check if it has a week qualifier
       const weekMatch = l.match(/\b(?:weeks?)\s*[:\(\[]?\s*([\d\s&,and]+)[\)\]]?/i);
       if (weekMatch) {
         const numbers = weekMatch[1].match(/\d+/g)?.map(Number) || [];
         if (numbers.length > 0 && !numbers.includes(weekNum)) {
-          return; // Skip items meant for a different week
+          return;
         }
       }
 
@@ -150,6 +148,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   const [type, setType] = useState(
     normalizeType(hostelData.hostelInfo?.messInfo) || "Veg"
   );
+  const [smartMode, setSmartMode] = useState(false); // Default: OFF (Normal default menu)
   const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
   const isMobile = useIsMobile();
@@ -227,30 +226,70 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
       Icon: Sun, 
       time: "7:30 AM - 9:00 AM", 
       key: "Breakfast", 
-      accentColor: "text-amber-500 dark:text-amber-400"
+      accentColor: "text-amber-500 dark:text-amber-400",
+      topBorder: "border-t-2 border-t-amber-500/50"
     },
     { 
       name: "Lunch", 
       Icon: Utensils, 
       time: "12:30 PM - 2:00 PM", 
       key: "Lunch", 
-      accentColor: "text-indigo-500 dark:text-indigo-400"
+      accentColor: "text-indigo-500 dark:text-indigo-400",
+      topBorder: "border-t-2 border-t-indigo-500/50"
     },
     { 
       name: "Snacks", 
       Icon: Coffee, 
       time: "4:30 PM - 5:30 PM", 
       key: "Snacks", 
-      accentColor: "text-emerald-500 dark:text-emerald-400"
+      accentColor: "text-emerald-500 dark:text-emerald-400",
+      topBorder: "border-t-2 border-t-emerald-500/50"
     },
     { 
       name: "Dinner", 
       Icon: Moon, 
       time: "7:30 PM - 9:00 PM", 
       key: "Dinner", 
-      accentColor: "text-purple-500 dark:text-purple-400"
+      accentColor: "text-purple-500 dark:text-purple-400",
+      topBorder: "border-t-2 border-t-purple-500/50"
     }
   ];
+
+  // Helper to format menu lines with clean numbered pills instead of harsh raw string numbers
+  const renderFormattedMenuLines = (rawText: string) => {
+    if (!rawText || rawText.trim() === "" || rawText === "No items listed.") {
+      return <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium py-3 text-center">No items listed.</p>;
+    }
+
+    const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+
+    return (
+      <ul className="space-y-2">
+        {lines.map((line, idx) => {
+          const numMatch = line.match(/^(\d+)[\.\)]\s*(.*)/);
+          if (numMatch) {
+            const num = numMatch[1];
+            const content = numMatch[2];
+            return (
+              <li key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-snug">
+                <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black flex items-center justify-center border border-indigo-500/20 mt-0.5">
+                  {num}
+                </span>
+                <span className="flex-1">{content}</span>
+              </li>
+            );
+          }
+
+          return (
+            <li key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-snug">
+              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500/60 mt-1.5" />
+              <span className="flex-1">{line}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   return (
     <div className="space-y-6 relative">
@@ -266,14 +305,37 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium flex items-center gap-1.5">
             <span>{currentMonth} Schedule</span>
             <span>•</span>
-            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-              <CalendarCheck size={11} /> Week {currentWeekNum} Menu Active
-            </span>
+            {smartMode ? (
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                <CalendarCheck size={11} /> Smart Week {currentWeekNum} Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-zinc-600 dark:text-zinc-300 font-bold">
+                <Sparkles size={11} className="text-indigo-500" /> Standard Menu View
+              </span>
+            )}
           </p>
         </div>
 
         {/* Controls Bar */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          {/* Smart Week Filter Toggle */}
+          <button
+            onClick={() => setSmartMode(!smartMode)}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
+              smartMode
+                ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
+                : "bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
+            }`}
+            title="Toggle Smart Week Filtering (filters menu for current week of the month)"
+          >
+            <Sparkles size={13} className={smartMode ? "text-amber-300" : "text-zinc-400"} />
+            <span>Smart Filter</span>
+            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded ${smartMode ? "bg-white/20 text-white" : "bg-zinc-200 dark:bg-zinc-750 text-zinc-500"}`}>
+              {smartMode ? "ON" : "OFF"}
+            </span>
+          </button>
+
           {/* Gender Segmented Control */}
           <div className="flex p-1 bg-zinc-100 dark:bg-zinc-850 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
             {["Male", "Female"].map(g => (
@@ -385,12 +447,12 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                 const meal = mealsList.find(m => m.name === activeMealMobile);
                 if (!meal) return null;
                 const rawText = todayMenu[meal.key] || "";
-                const smartItemsText = getSmartMenuText(rawText, currentWeekNum);
+                const displayText = smartMode ? getSmartMenuText(rawText, currentWeekNum) : rawText;
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
                 return (
-                  <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
+                  <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4 ${meal.topBorder}`}>
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -412,11 +474,9 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       </div>
                     </div>
 
-                    {/* Food Items Block */}
+                    {/* Food Items Block with Formatted Number Pills */}
                     <div className="p-3.5 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl">
-                      <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                        {smartItemsText}
-                      </p>
+                      {renderFormattedMenuLines(displayText)}
                     </div>
                   </div>
                 );
@@ -427,7 +487,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {mealsList.map((meal) => {
                 const rawText = todayMenu[meal.key] || "";
-                const smartItemsText = getSmartMenuText(rawText, currentWeekNum);
+                const displayText = smartMode ? getSmartMenuText(rawText, currentWeekNum) : rawText;
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
@@ -438,7 +498,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       isCurrentNow 
                         ? "border-indigo-500/50 dark:border-indigo-500/40 ring-1 ring-indigo-500/20" 
                         : "border-zinc-200/50 dark:border-zinc-800/80"
-                    } rounded-2xl p-4.5 shadow-xs hover:border-indigo-500/30 transition-all flex flex-col justify-between text-left`}
+                    } ${meal.topBorder} rounded-2xl p-4.5 shadow-xs hover:border-indigo-500/30 transition-all flex flex-col justify-between text-left`}
                   >
                     <div className="space-y-3.5">
                       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
@@ -460,11 +520,9 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                         )}
                       </div>
 
-                      {/* Food Items Block */}
-                      <div className="p-3 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl min-h-[120px]">
-                        <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                          {smartItemsText}
-                        </p>
+                      {/* Food Items Block with Formatted Number Pills */}
+                      <div className="p-3 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl min-h-[140px]">
+                        {renderFormattedMenuLines(displayText)}
                       </div>
                     </div>
                   </div>
