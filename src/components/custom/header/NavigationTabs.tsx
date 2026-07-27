@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { getAssetPath } from "@/lib/utils";
+import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
   BookOpen,
   Building,
@@ -36,6 +37,7 @@ import {
   Bus,
   Sun,
   Moon,
+  Lightbulb,
   Search,
   X,
   Coffee,
@@ -408,16 +410,9 @@ export default function NavigationTabs({
   const sidebarActiveIconStyles = "text-info font-semibold";
   const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
 
-  const handleThemeChange = (selectedTheme: string) => {
+  const handleThemeChange = (selectedTheme: string, e?: React.MouseEvent<HTMLElement>) => {
     if (theme === selectedTheme) return;
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-      (document as any).startViewTransition(() => {
-        setTheme(selectedTheme);
-      });
-    } else {
-      setTheme(selectedTheme);
-    }
-    
+    animateThemeCircularExpansion(e || null, selectedTheme, setTheme);
   };
 
   // Keyboard navigation
@@ -1962,19 +1957,19 @@ const AppLibraryPortal = memo(({
 
       <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
         <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">Interface Theme</h4>
-        <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
+        <div className="flex w-full gap-1.5 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
           {["light", "dark"].map(t => (
             <button
               key={t}
-              onClick={() => handleThemeChange(t)}
+              onClick={(e) => handleThemeChange(t, e)}
               className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
                 theme === t
-                  ? "bg-white text-info shadow-xs dark:bg-black"
+                  ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
                   : "text-gray-550 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
               }`}
             >
-              {t === "light" && <Sun className="h-3.5 w-3.5" />}
-              {t === "dark" && <Moon className="h-3.5 w-3.5" />}
+              {t === "light" && <Sun className="h-3.5 w-3.5 text-indigo-600" />}
+              {t === "dark" && <Lightbulb className="h-3.5 w-3.5 text-amber-300 fill-amber-300/20 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />}
               <span>{t}</span>
             </button>
           ))}
