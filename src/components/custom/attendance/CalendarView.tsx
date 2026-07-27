@@ -58,7 +58,7 @@ function isInstructionalEvent(e) {
     return false;
 }
 
-export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, registeredEvents, setActiveAttendanceSubTab }) {
+export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, setActiveAttendanceSubTab }) {
     
     const [homeworkTracker, setHomeworkTracker] = useState(() => {
         if (typeof window !== "undefined") {
@@ -381,29 +381,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     });
                 }
 
-                if (registeredEvents && Array.isArray(registeredEvents)) {
-                    registeredEvents.forEach(ev => {
-                        if (!ev.date) return;
-                        const evDateParts = ev.date.split('-');
-                        if (evDateParts.length !== 3) return;
-                        // Assuming format DD-MMM-YYYY or YYYY-MM-DD - the scraper outputs things like '20-Oct-2023'
-                        const evDate = new Date(ev.date);
-                        if (evDate.getFullYear() === cYear && evDate.getMonth() === cMonth && evDate.getDate() === Number(d.date)) {
-                            extraEvents.push({
-                                type: "event",
-                                text: `[Event] ${ev.name}`,
-                                category: `${ev.time} | ${ev.venue}`
-                            });
-                        }
-                    });
-                }
-
                 return { ...d, events: [...d.events, ...extraEvents], fullDate: dayDate };
             });
 
             return { ...cal, days: newDays };
         });
-    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker, registeredEvents]);
+    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker]);
 
     const { wastedODsCount, validODsCount, recoveredODsCount, totalODHours } = useMemo(() => {
         let wastedCount = 0;
