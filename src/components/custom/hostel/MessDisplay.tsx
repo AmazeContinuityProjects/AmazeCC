@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { 
-  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon
+  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck
 } from "lucide-react";
 import { useIsMobile } from "../shared";
 
@@ -32,6 +32,81 @@ const fullToShortDay: Record<string, string> = {
 const shortToFullDay: Record<string, string> = Object.fromEntries(
   Object.entries(fullToShortDay).map(([full, short]) => [short, full])
 );
+
+// Helper to determine the current week of the month (Week 1: days 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22+)
+const getCurrentWeekOfMonth = (d: Date = new Date()): number => {
+  const day = d.getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+};
+
+// Smart menu parser: automatically filters items served in the current week & removes week qualifiers/numerals
+const getSmartMenuText = (rawText: string, weekNum: number): string => {
+  if (!rawText || typeof rawText !== "string" || rawText.trim() === "" || rawText === "No items listed.") {
+    return "No items listed.";
+  }
+
+  const lines = rawText.split("\n");
+  const resultLines: string[] = [];
+
+  lines.forEach((line) => {
+    const l = line.trim();
+    if (!l) return;
+
+    // Handle slash-separated options with week qualifiers (e.g. Sweet Corn (Weeks 1 & 3) / Veg Samosa (Weeks 2 & 4))
+    if (l.includes("/") && /\bweek/i.test(l)) {
+      const candidates = l.split("/");
+      let activeCandidate = "";
+
+      for (const cand of candidates) {
+        const c = cand.trim();
+        const weekMatch = c.match(/\b(?:weeks?|w)\s*[:\(\[]?\s*([\d\s&,and]+)[\)\]]?/i);
+        if (weekMatch) {
+          const numbers = weekMatch[1].match(/\d+/g)?.map(Number) || [];
+          if (numbers.includes(weekNum)) {
+            activeCandidate = c
+              .replace(/\s*\([^)]*week[^)]*\)/gi, "")
+              .replace(/\s*\[[^\]]*week[^\]]*\]/gi, "")
+              .replace(/\s*weeks?\s*[\d\s&,and]+/gi, "")
+              .trim();
+            break;
+          }
+        } else {
+          if (!activeCandidate) {
+            activeCandidate = c;
+          }
+        }
+      }
+
+      if (activeCandidate) {
+        const cleanCand = activeCandidate.replace(/\/+$/, "").trim();
+        if (cleanCand) resultLines.push(cleanCand);
+      }
+    } else {
+      // Line without slash alternatives: check if it has a week qualifier
+      const weekMatch = l.match(/\b(?:weeks?)\s*[:\(\[]?\s*([\d\s&,and]+)[\)\]]?/i);
+      if (weekMatch) {
+        const numbers = weekMatch[1].match(/\d+/g)?.map(Number) || [];
+        if (numbers.length > 0 && !numbers.includes(weekNum)) {
+          return; // Skip items meant for a different week
+        }
+      }
+
+      const clean = l
+        .replace(/\s*\([^)]*week[^)]*\)/gi, "")
+        .replace(/\s*\[[^\]]*week[^\]]*\]/gi, "")
+        .replace(/\/+$/, "")
+        .trim();
+      if (clean) resultLines.push(clean);
+    }
+  });
+
+  return resultLines.length > 0
+    ? resultLines.join("\n")
+    : rawText.replace(/\s*\([^)]*week[^)]*\)/gi, "").trim();
+};
 
 export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: any) {
   if (!hostelData?.hostelInfo?.isHosteller) {
@@ -67,6 +142,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const currentMonth = new Date().toLocaleString("default", { month: "long" });
+  const currentWeekNum = getCurrentWeekOfMonth();
 
   const [gender, setGender] = useState(
     normalizeGender(hostelData.hostelInfo?.gender) || "Male"
@@ -190,8 +266,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium flex items-center gap-1.5">
             <span>{currentMonth} Schedule</span>
             <span>•</span>
-            <span className="inline-flex items-center gap-1 text-zinc-600 dark:text-zinc-300 font-bold">
-              <Sparkles size={11} className="text-indigo-500" /> Powered by unmessify
+            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+              <CalendarCheck size={11} /> Week {currentWeekNum} Menu Active
             </span>
           </p>
         </div>
@@ -308,7 +384,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
               {(() => {
                 const meal = mealsList.find(m => m.name === activeMealMobile);
                 if (!meal) return null;
-                const itemsText = todayMenu[meal.key] || "No items listed.";
+                const rawText = todayMenu[meal.key] || "";
+                const smartItemsText = getSmartMenuText(rawText, currentWeekNum);
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
@@ -338,7 +415,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                     {/* Food Items Block */}
                     <div className="p-3.5 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl">
                       <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                        {itemsText}
+                        {smartItemsText}
                       </p>
                     </div>
                   </div>
@@ -349,7 +426,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
             /* Desktop 4-Grid Card View */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {mealsList.map((meal) => {
-                const itemsText = todayMenu[meal.key] || "No items listed.";
+                const rawText = todayMenu[meal.key] || "";
+                const smartItemsText = getSmartMenuText(rawText, currentWeekNum);
                 const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
                 const MealIcon = meal.Icon;
 
@@ -385,7 +463,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       {/* Food Items Block */}
                       <div className="p-3 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl min-h-[120px]">
                         <p className="whitespace-pre-line text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                          {itemsText}
+                          {smartItemsText}
                         </p>
                       </div>
                     </div>
