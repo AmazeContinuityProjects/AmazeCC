@@ -392,7 +392,11 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     }
     setPasswordChangeLoading(true);
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
+      const vtopCreds = await loginToVTOP();
+      if (!vtopCreds || !vtopCreds.cookies) {
+        throw new Error("Failed to authenticate session with VTOP");
+      }
+      const { cookies, authorizedID, csrf } = vtopCreds;
       const res = await fetch(`${API_BASE}/api/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -417,6 +421,10 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
   const handleRefresh = async () => {
     setRefreshing(true);
     clearApiCache();
+    if (!creds || !creds.cookies) {
+      setRefreshing(false);
+      return;
+    }
     const { cookies, authorizedID, csrf } = creds;
     if (authorizedID === "DEMO123") {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -461,6 +469,11 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     setLoading(true);
     setChangedUsername(username);
     setChangedPassword(Array.isArray(password) ? password[0] : password);
+
+    if (!creds || !creds.cookies) {
+      setLoading(false);
+      return;
+    }
 
     const { cookies, authorizedID, csrf } = creds;
     if (authorizedID === "DEMO123") {
