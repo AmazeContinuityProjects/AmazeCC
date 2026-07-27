@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { 
-  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck, SlidersHorizontal
+  RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck
 } from "lucide-react";
 import { useIsMobile } from "../shared";
 
@@ -148,7 +148,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   const [type, setType] = useState(
     normalizeType(hostelData.hostelInfo?.messInfo) || "Veg"
   );
-  const [smartMode, setSmartMode] = useState(false); // Default: OFF (Normal default menu)
+  const [smartMode, setSmartMode] = useState(false);
   const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
   const isMobile = useIsMobile();
@@ -226,68 +226,40 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
       Icon: Sun, 
       time: "7:30 AM - 9:00 AM", 
       key: "Breakfast", 
-      accentColor: "text-amber-500 dark:text-amber-400",
-      topBorder: "border-t-2 border-t-amber-500/50"
+      accentColor: "text-amber-500 dark:text-amber-400"
     },
     { 
       name: "Lunch", 
       Icon: Utensils, 
       time: "12:30 PM - 2:00 PM", 
       key: "Lunch", 
-      accentColor: "text-indigo-500 dark:text-indigo-400",
-      topBorder: "border-t-2 border-t-indigo-500/50"
+      accentColor: "text-indigo-500 dark:text-indigo-400"
     },
     { 
       name: "Snacks", 
       Icon: Coffee, 
       time: "4:30 PM - 5:30 PM", 
       key: "Snacks", 
-      accentColor: "text-emerald-500 dark:text-emerald-400",
-      topBorder: "border-t-2 border-t-emerald-500/50"
+      accentColor: "text-emerald-500 dark:text-emerald-400"
     },
     { 
       name: "Dinner", 
       Icon: Moon, 
       time: "7:30 PM - 9:00 PM", 
       key: "Dinner", 
-      accentColor: "text-purple-500 dark:text-purple-400",
-      topBorder: "border-t-2 border-t-purple-500/50"
+      accentColor: "text-purple-500 dark:text-purple-400"
     }
   ];
 
-  // Helper to format menu lines with clean numbered pills instead of harsh raw string numbers
-  const renderFormattedMenuLines = (rawText: string) => {
+  const renderMenuContent = (rawText: string) => {
     if (!rawText || rawText.trim() === "" || rawText === "No items listed.") {
       return <p className="text-xs text-zinc-400 dark:text-zinc-500 font-medium py-3 text-center">No items listed.</p>;
     }
 
-    const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
-
     return (
-      <ul className="space-y-2">
-        {lines.map((line, idx) => {
-          const numMatch = line.match(/^(\d+)[\.\)]\s*(.*)/);
-          if (numMatch) {
-            const num = numMatch[1];
-            const content = numMatch[2];
-            return (
-              <li key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-snug">
-                <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black flex items-center justify-center border border-indigo-500/20 mt-0.5">
-                  {num}
-                </span>
-                <span className="flex-1">{content}</span>
-              </li>
-            );
-          }
-
-          return (
-            <li key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-snug">
-              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500/60 mt-1.5" />
-              <span className="flex-1">{line}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <p className="whitespace-pre-line text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
+        {rawText}
+      </p>
     );
   };
 
@@ -317,19 +289,18 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           </p>
         </div>
 
-        {/* Controls Bar */}
+        {/* Unified Controls Cluster */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          {/* Smart Week Filter Toggle */}
+          {/* Smart Filter Toggle Button */}
           <button
             onClick={() => setSmartMode(!smartMode)}
             className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
               smartMode
                 ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                : "bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 border-zinc-200/80 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
+                : "bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
             }`}
-            title="Toggle Smart Week Filtering (filters menu for current week of the month)"
           >
-            <Sparkles size={13} className={smartMode ? "text-amber-300" : "text-zinc-400"} />
+            <Sparkles size={12} className={smartMode ? "text-amber-300" : "text-zinc-400"} />
             <span>Smart Filter</span>
             <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded ${smartMode ? "bg-white/20 text-white" : "bg-zinc-200 dark:bg-zinc-750 text-zinc-500"}`}>
               {smartMode ? "ON" : "OFF"}
@@ -452,10 +423,10 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                 const MealIcon = meal.Icon;
 
                 return (
-                  <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4 ${meal.topBorder}`}>
-                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+                  <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
+                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center shrink-0">
                           <MealIcon size={18} className={meal.accentColor} />
                         </div>
                         <div>
@@ -474,9 +445,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       </div>
                     </div>
 
-                    {/* Food Items Block with Formatted Number Pills */}
-                    <div className="p-3.5 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl">
-                      {renderFormattedMenuLines(displayText)}
+                    <div className="pt-1">
+                      {renderMenuContent(displayText)}
                     </div>
                   </div>
                 );
@@ -498,12 +468,12 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                       isCurrentNow 
                         ? "border-indigo-500/50 dark:border-indigo-500/40 ring-1 ring-indigo-500/20" 
                         : "border-zinc-200/50 dark:border-zinc-800/80"
-                    } ${meal.topBorder} rounded-2xl p-4.5 shadow-xs hover:border-indigo-500/30 transition-all flex flex-col justify-between text-left`}
+                    } rounded-2xl p-4.5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between text-left`}
                   >
-                    <div className="space-y-3.5">
-                      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-2.5">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center shrink-0">
                             <MealIcon size={16} className={meal.accentColor} />
                           </div>
                           <div>
@@ -520,9 +490,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                         )}
                       </div>
 
-                      {/* Food Items Block with Formatted Number Pills */}
-                      <div className="p-3 bg-zinc-50/70 dark:bg-zinc-850/50 border border-zinc-200/40 dark:border-zinc-800/60 rounded-xl min-h-[140px]">
-                        {renderFormattedMenuLines(displayText)}
+                      <div className="pt-1 min-h-[140px]">
+                        {renderMenuContent(displayText)}
                       </div>
                     </div>
                   </div>
