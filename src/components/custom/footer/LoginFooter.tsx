@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconToggle } from "../toggle";
+import { IconToggle } from "../Toggle";
 
 export default function LoginFooter() {
   return (

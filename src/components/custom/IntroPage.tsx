@@ -427,6 +427,7 @@ export default function IntroPage({ settings, username, setSettings, onComplete 
                     { id: "transport", label: "Transport" },
                     { id: "more", label: "More" },
                     { id: "profile", label: "Profile" },
+                    { id: "credentials", label: "Credentials" },
                   ].map(tab => {
                     const pinned = temp.pinnedNavTabs ?? [];
                     const isPinned = pinned.includes(tab.id);

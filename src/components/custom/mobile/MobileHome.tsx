@@ -33,7 +33,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
-import CabShareMatchCard from "../Hostel/CabShare/CabShareMatchCard";
+import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { API_BASE } from "@/lib/fetch-utils";
