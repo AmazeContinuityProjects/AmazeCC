@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { getAssetPath } from "@/lib/utils";
+import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
   BookOpen,
   Building,
@@ -409,16 +410,9 @@ export default function NavigationTabs({
   const sidebarActiveIconStyles = "text-info font-semibold";
   const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
 
-  const handleThemeChange = (selectedTheme: string) => {
+  const handleThemeChange = (selectedTheme: string, e?: React.MouseEvent<HTMLElement>) => {
     if (theme === selectedTheme) return;
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-      (document as any).startViewTransition(() => {
-        setTheme(selectedTheme);
-      });
-    } else {
-      setTheme(selectedTheme);
-    }
-    
+    animateThemeCircularExpansion(e || null, selectedTheme, setTheme);
   };
 
   // Keyboard navigation
@@ -1967,7 +1961,7 @@ const AppLibraryPortal = memo(({
           {["light", "dark"].map(t => (
             <button
               key={t}
-              onClick={() => handleThemeChange(t)}
+              onClick={(e) => handleThemeChange(t, e)}
               className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
                 theme === t
                   ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
