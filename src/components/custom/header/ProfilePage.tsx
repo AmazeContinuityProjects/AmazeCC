@@ -283,7 +283,7 @@ export default function ProfilePage({
   }, [currSemesterID, username]);
 
   useEffect(() => {
-    if (!creds?.cookies) return;
+    if (!creds || !creds.cookies) return;
     try {
       const stored = localStorage.getItem("profile");
       if (stored) {

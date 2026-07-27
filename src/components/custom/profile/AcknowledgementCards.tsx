@@ -22,6 +22,10 @@ export default function AcknowledgementCards({ creds, refreshKey }: { creds: any
       }
     }
 
+    if (!creds || !creds.cookies) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
     fetch(`${API_BASE}/api/acknowledgement`, {
