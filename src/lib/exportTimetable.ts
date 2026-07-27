@@ -74,7 +74,7 @@ export function openTimetablePrintablePage(
   htmlContent: string,
   timetableName: string,
   themeHtmlClass: string,
-  themeBgColor: string,
+  _themeBgColor: string,
   themeTextColor: string
 ): Window | null {
   const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))

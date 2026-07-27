@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { Search, Users, Shield, Hash, Layers } from "lucide-react";
+import { Search, Users, Hash, Layers } from "lucide-react";
 import { motion } from "framer-motion";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";

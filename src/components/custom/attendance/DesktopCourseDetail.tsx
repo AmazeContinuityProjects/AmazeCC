@@ -104,7 +104,7 @@ function UpcomingClassesList({
         ? parseFloat(((predictedAttended / predictedTotal) * 100).toFixed(1))
         : 0;
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
+    const thresholdPct = getTargetAttendancePct(isDayscholarWithBus);
 
     return (
         <div className="space-y-4">
@@ -162,6 +162,19 @@ interface DesktopCourseDetailProps {
     onSimulateSkipsChange?: (val: number) => void;
 }
 
+function getTargetAttendancePct(isDayscholarWithBus?: boolean): number {
+    if (typeof window !== "undefined") {
+        try {
+            const saved = localStorage.getItem("settings");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.targetAttendance) return Number(parsed.targetAttendance);
+            }
+        } catch (e) {}
+    }
+    return 75;
+}
+
 export default function DesktopCourseDetail({
     a,
     isDayscholarWithBus,
@@ -175,8 +188,8 @@ export default function DesktopCourseDetail({
 }: DesktopCourseDetailProps) {
     const lab = a.courseCode.endsWith("(L)");
     const isTheory = a.courseCode.endsWith("(T)");
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
-    const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
+    const thresholdPct = getTargetAttendancePct(isDayscholarWithBus);
+    const thresholdDec = thresholdPct / 100;
 
     const originalPercentage = parseFloat(a.attendancePercentage);
     const attended = parseInt(a.attendedClasses);

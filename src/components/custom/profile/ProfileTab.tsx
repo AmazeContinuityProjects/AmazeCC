@@ -94,8 +94,7 @@ const SectionShell = ({ title, icon: Icon, children }: { title: string; icon?: a
 
 export default function ProfileTab(props: ProfileTabProps) {
   const { activeProfileSubTab, setActiveProfileSubTab, loginToVTOP, username, password, setPassword, ...profilePageProps } = props;
-  const { creds, refreshKey, setRefreshKey, reload } = useCredentialSection(loginToVTOP);
-  const [showPassword, setShowPassword] = useState(false);
+  const { creds, refreshKey, reload } = useCredentialSection(loginToVTOP);
   const [changedUsername, setChangedUsername] = useState("");
   const [changedPassword, setChangedPassword] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -127,11 +126,7 @@ export default function ProfileTab(props: ProfileTabProps) {
     } catch (e) {}
   }, [creds]);
 
-  const handleSaveAppLogins = () => {
-    if (changedUsername && changedPassword) {
-      setPassword([changedUsername, changedPassword]);
-    }
-  };
+
 
   const closeModal = () => setActiveModal(null);
 

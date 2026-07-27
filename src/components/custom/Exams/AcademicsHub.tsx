@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck } from "lucide-react";
+import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import GradesModal from "./GradesModal";
@@ -108,6 +108,33 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savedGoal, setSavedGoal] = useState<{ target: number, requiredSgpa: number } | null>(null);
+  const [isCgpaBlurred, setIsCgpaBlurred] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedSettings = localStorage.getItem("settings");
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          if (typeof parsed.CGPAHidden === "boolean") return parsed.CGPAHidden;
+          if (typeof parsed.blurGrades === "boolean") return parsed.blurGrades;
+        }
+      } catch (e) {}
+    }
+    return false;
+  });
+
+  const toggleCgpaBlur = () => {
+    setIsCgpaBlurred(prev => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        try {
+          const savedSettings = localStorage.getItem("settings");
+          const parsed = savedSettings ? JSON.parse(savedSettings) : {};
+          localStorage.setItem("settings", JSON.stringify({ ...parsed, CGPAHidden: next }));
+        } catch (e) {}
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("uni_cc_gpa_goal");
@@ -255,17 +282,22 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         {/* Dashboard Right-side Quick Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            ["CGPA", currentCgpa.toFixed(2), Award, "text-emerald-500 dark:text-emerald-400"],
-            ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-indigo-500"],
-            ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-500"],
-          ].map(([label, value, Icon, color]: any) => (
-            <div key={label} className="rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 p-4.5 shadow-2xs dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 flex flex-col justify-between min-w-0">
+            ["CGPA", currentCgpa.toFixed(2), Award, "text-emerald-500 dark:text-emerald-400", true],
+            ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-indigo-500", false],
+            ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-500", false],
+          ].map(([label, value, Icon, color, isCgpa]: any) => (
+            <div key={label} className="rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 p-4.5 shadow-2xs dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 flex flex-col justify-between min-w-0 relative">
               <div className="flex justify-between items-center">
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${color}`} />
+                {isCgpa && (
+                  <button onClick={toggleCgpaBlur} className="p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title={isCgpaBlurred ? "Unblur CGPA" : "Blur CGPA"}>
+                    {isCgpaBlurred ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                )}
               </div>
               <div className="mt-4">
-                <p className="text-lg xs:text-xl sm:text-2xl font-black truncate leading-none text-zinc-900 dark:text-zinc-100" title={value}>{value}</p>
-                <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550 truncate">{label}</p>
+                <p className={`text-lg xs:text-xl sm:text-2xl font-black truncate leading-none text-zinc-900 dark:text-zinc-100 transition-all duration-300 ${isCgpa && isCgpaBlurred ? "blur-[5px] select-none hover:blur-none" : ""}`} title={value}>{value}</p>
+                <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555 truncate">{label}</p>
               </div>
             </div>
           ))}
@@ -390,9 +422,16 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               </div>
               
               <div>
-                <div className="flex items-end gap-1.5">
-                  <span className="text-4xl font-black text-emerald-500 tracking-tight">{currentCgpa.toFixed(2)}</span>
-                  <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 mb-1">/ 10.00</span>
+                <div className="flex items-end justify-between">
+                  <div className="flex items-end gap-1.5">
+                    <span className={`text-4xl font-black text-emerald-500 tracking-tight transition-all duration-300 ${isCgpaBlurred ? "blur-[5px] select-none hover:blur-none" : ""}`}>
+                      {currentCgpa.toFixed(2)}
+                    </span>
+                    <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 mb-1">/ 10.00</span>
+                  </div>
+                  <button onClick={toggleCgpaBlur} className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors" title={isCgpaBlurred ? "Unblur CGPA" : "Blur CGPA"}>
+                    {isCgpaBlurred ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-1">Cumulative GPA</p>
               </div>

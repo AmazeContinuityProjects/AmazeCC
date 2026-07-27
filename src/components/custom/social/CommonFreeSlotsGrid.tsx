@@ -179,7 +179,7 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
         return { slotLabel: uniqueSlots.join(" / "), busyCount, freeCount, totalPeople, busyNames, freeNames };
     }
 
-    const handleCellClick = (day: string, slotLabel: string, freeNames: string[], busyNames: string[]) => {
+    const handleCellClick = (day: string, slotLabel: string, _freeNames: string[], _busyNames: string[]) => {
         if (activeCell === `${day}-${slotLabel}`) {
             setActiveCell(null);
         } else {
