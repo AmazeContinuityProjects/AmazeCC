@@ -402,65 +402,6 @@ export default function LoginForm({
               <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent dark:from-[#03060F] dark:via-[#03060F]/30 dark:to-transparent pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
 
-              {/* Floating 3D Parallax Glass Badges */}
-              <div className="absolute inset-0 max-w-7xl mx-auto pointer-events-none hidden lg:block z-20">
-                {/* 3D Badge 1: Top Left - Attendance */}
-                <motion.div
-                  style={{ y: floatBadge1Y, x: badgeX1 }}
-                  className="absolute top-28 left-4 xl:left-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-indigo-500/20"
-                >
-                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 shrink-0">
-                    <Activity size={20} className="stroke-[2.2]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Attendance 84.2%</p>
-                    <p className="text-[10px] font-semibold text-emerald-500 mt-0.5">Safe to skip 3 classes</p>
-                  </div>
-                </motion.div>
-
-                {/* 3D Badge 2: Top Right - Academic CGPA */}
-                <motion.div
-                  style={{ y: floatBadge2Y, x: badgeX2 }}
-                  className="absolute top-24 right-4 xl:right-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-4 rounded-3xl shadow-2xl flex items-center gap-3.5 transform-gpu transition-shadow hover:shadow-purple-500/20"
-                >
-                  <div className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-500 shrink-0">
-                    <GraduationCap size={20} className="stroke-[2.2]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">CGPA 9.24</p>
-                    <p className="text-[10px] font-semibold text-purple-400 mt-0.5">Fall Semester 2025-26</p>
-                  </div>
-                </motion.div>
-
-                {/* 3D Badge 3: Bottom Left - Mess Menu */}
-                <motion.div
-                  style={{ y: floatBadge3Y, x: badgeX1 }}
-                  className="absolute bottom-16 left-6 xl:left-12 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
-                >
-                  <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 shrink-0">
-                    <CheckCircle2 size={18} className="stroke-[2.2]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Today's Mess</p>
-                    <p className="text-[10px] font-semibold text-amber-500 mt-0.5">Lunch: Paneer Butter Masala</p>
-                  </div>
-                </motion.div>
-
-                {/* 3D Badge 4: Bottom Right - Cab Share Match */}
-                <motion.div
-                  style={{ y: floatBadge4Y, x: badgeX2 }}
-                  className="absolute bottom-20 right-8 xl:right-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-3xl shadow-2xl flex items-center gap-3 transform-gpu"
-                >
-                  <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500 shrink-0">
-                    <Bus size={18} className="stroke-[2.2]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight font-outfit">Cab Share Match</p>
-                    <p className="text-[10px] font-semibold text-indigo-400 mt-0.5">2 peers for Chennai Airport</p>
-                  </div>
-                </motion.div>
-              </div>
-
               {/* Centered Hero Content with Hardware 3D Mouse Tilt */}
               <motion.div 
                 style={{ y: textY, rotateX: heroRotateX, rotateY: heroRotateY }}
