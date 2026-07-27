@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, UserPlus, Share2, Trash2, Calendar, Eye, EyeOff, UsersRound, Plus, Search, Sparkles, ArrowRight, ShieldCheck, UserCheck } from "lucide-react";
+import { Users, UserPlus, Share2, Trash2, Calendar, Eye, EyeOff, UsersRound, Plus, Search, Sparkles, ArrowRight, UserCheck } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import { getFriends, removeFriend, saveFriend, getFriendGroups, removeFriendGroup, exportShareableLink, importScheduleCode, Friend, FriendGroup } from "../../../lib/socialUtils";
 import ShareScheduleModal from "./ShareScheduleModal";

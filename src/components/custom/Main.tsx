@@ -10,7 +10,7 @@ import {
   activeMoreSubTabAtom, activeProfileSubTabAtom, isLoadingAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
-  defaultSettings, defaultIDs, IDs, settings
+  defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
 import DashboardContent from "./Dashboard";
