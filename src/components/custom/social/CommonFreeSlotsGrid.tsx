@@ -384,7 +384,7 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
                                             );
                                         }
 
-                                        let colorClass = "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900/60";
+                                        let colorClass: string;
                                         if (freeCount === totalPeople) {
                                             colorClass = "bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/60";
                                         } else if (freeCount === 0) {
@@ -431,7 +431,7 @@ export default function CommonFreeSlotsGrid({ myAttendance, friends }: { myAtten
                                             );
                                         }
 
-                                        let colorClass = "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900/60";
+                                        let colorClass: string;
                                         if (freeCount === totalPeople) {
                                             colorClass = "bg-emerald-50/90 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/60 border-emerald-200/80 dark:border-emerald-800/60";
                                         } else if (freeCount === 0) {
