@@ -46,8 +46,13 @@ export default function LoginForm({
   
   const { scrollY } = useScroll();
   const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
-  const backgroundScale = useTransform(scrollY, [0, 500], [1, 1.05]);
-  const textY = useTransform(scrollY, [0, 500], [0, -50]);
+  const backgroundScale = useTransform(scrollY, [0, 500], [1, 1.08]);
+  const textY = useTransform(scrollY, [0, 500], [0, -40]);
+  const heroRotateX = useTransform(scrollY, [0, 400], [10, 0]);
+  const heroScale = useTransform(scrollY, [0, 400], [0.95, 1]);
+  const floatY1 = useTransform(scrollY, [0, 600], [0, -110]);
+  const floatY2 = useTransform(scrollY, [0, 600], [0, -150]);
+  const floatY3 = useTransform(scrollY, [0, 600], [0, -90]);
   
   const [activeApi, setActiveApi] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -291,9 +296,51 @@ export default function LoginForm({
               <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/20 to-transparent dark:from-[#03060F] dark:via-[#03060F]/30 dark:to-transparent pointer-events-none" />
               <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
 
-              {/* Centered Hero Content */}
+              {/* Floating Parallax Micro Badges */}
+              <div className="absolute inset-0 max-w-6xl mx-auto pointer-events-none hidden lg:block z-20">
+                <motion.div
+                  style={{ y: floatY1 }}
+                  className="absolute top-28 left-6 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-float"
+                >
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                    <Activity size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[11px] font-black text-slate-900 dark:text-white">Attendance 84.2%</p>
+                    <p className="text-[9px] font-semibold text-emerald-500">Safe to skip 3 classes</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  style={{ y: floatY2 }}
+                  className="absolute top-20 right-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-float"
+                >
+                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
+                    <GraduationCap size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[11px] font-black text-slate-900 dark:text-white">CGPA 9.24</p>
+                    <p className="text-[9px] font-semibold text-purple-400">Fall Semester 2025-26</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  style={{ y: floatY3 }}
+                  className="absolute bottom-16 right-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-slate-200/80 dark:border-neutral-800 p-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-float"
+                >
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <Bus size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[11px] font-black text-slate-900 dark:text-white">Cab Share Match</p>
+                    <p className="text-[9px] font-semibold text-indigo-400">2 peers traveling to Airport</p>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Centered Hero Content with 3D Perspective */}
               <motion.div 
-                style={{ y: textY }}
+                style={{ y: textY, rotateX: heroRotateX, scale: heroScale, transformPerspective: 1000 }}
                 className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
               >
                 <div>
@@ -321,6 +368,13 @@ export default function LoginForm({
                   >
                     <span>Get Started</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button
+                    onClick={handleDemoClick}
+                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                  >
+                    <Zap size={14} />
+                    <span>Try Instant Demo</span>
                   </button>
                   <a
                     href="#features"
@@ -449,11 +503,12 @@ export default function LoginForm({
                 {features.map((feat, idx) => (
                   <motion.div 
                     key={idx} 
-                    initial={{ opacity: 0, y: 25 }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 30, scale: 0.94 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
                     viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.5, delay: (idx % 3) * 0.08, ease: "easeOut" }}
-                    className="bg-white border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/60 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-all shadow-xs dark:shadow-none group"
+                    transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
+                    whileHover={{ y: -6, scale: 1.02 }}
+                    className="bg-white border border-slate-200/80 hover:border-indigo-500/30 dark:bg-[#050814]/60 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-[#070b1c]/80 transition-all shadow-xs dark:shadow-none group cursor-pointer"
                   >
                     <div className="space-y-3">
                       <div className={`p-2 w-fit rounded-xl bg-slate-550/5 ${feat.iconColor} bg-slate-100 dark:bg-neutral-900`}>
