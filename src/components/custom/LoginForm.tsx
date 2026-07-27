@@ -257,14 +257,14 @@ export default function LoginForm({
             )}
             <button
               onClick={handleDemoClick}
-              className="text-xs font-semibold text-slate-650 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
             >
               Try Demo
             </button>
             {!showLoginCard && (
               <button
                 onClick={() => setShowLoginCard(true)}
-                className="bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/10"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-600/20"
               >
                 Get Started
               </button>
@@ -305,26 +305,26 @@ export default function LoginForm({
                 <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.05] text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">
                   Your Entire VIT Life.
                   <br />
-                  <span className="bg-gradient-to-r from-indigo-550 via-purple-550 to-pink-550 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                     One Dashboard.
                   </span>
                 </h1>
                 
-                <p className="text-sm md:text-base text-slate-650 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto font-medium">
+                <p className="text-sm md:text-base text-slate-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto font-medium">
                   AmazeCC brings everything a VIT student needs into one beautifully designed platform. Stop opening ten different portals. Track attendance, marks, room counselling, and mess menus instantly.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                   <button
                     onClick={() => setShowLoginCard(true)}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-555 text-white font-black text-xs px-6 py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/15 flex items-center justify-center gap-2 cursor-pointer group"
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer group"
                   >
                     <span>Get Started</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <a
                     href="#features"
-                    className="w-full sm:w-auto bg-slate-100/80 hover:bg-slate-200 border border-slate-250/60 hover:border-slate-350 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
                   >
                     Explore Features
                   </a>
@@ -421,7 +421,7 @@ export default function LoginForm({
 
                 <div className="flex flex-col items-center justify-center space-y-2">
                   <div className="h-10 w-[1px] bg-gradient-to-b from-indigo-500 to-transparent" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-605 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full select-none">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full select-none">
                     AmazeCC Unifies Everything
                   </span>
                   <div className="h-10 w-[1px] bg-gradient-to-t from-indigo-500 to-transparent" />
