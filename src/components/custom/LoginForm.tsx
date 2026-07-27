@@ -33,6 +33,9 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
   const [rotateY, setRotateY] = useState(0);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (typeof window === "undefined" || window.innerWidth < 1024 || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -89,9 +92,20 @@ export default function LoginForm({
   const floatBadge3Y = useTransform(scrollY, [0, 600], [0, -85]);
   const floatBadge4Y = useTransform(scrollY, [0, 600], [0, -130]);
   
+  const [isDesktop, setIsDesktop] = useState(false);
   const [heroMouse, setHeroMouse] = useState({ px: 0, py: 0, rx: 0, ry: 0 });
 
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024 && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+    };
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
+
   const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isDesktop) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
@@ -349,8 +363,8 @@ export default function LoginForm({
                 className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
               />
 
-              {/* Dynamic Interactive Mouse Spotlight Glow */}
-              {heroMouse.px > 0 && (
+              {/* Dynamic Interactive Mouse Spotlight Glow (PC Only) */}
+              {isDesktop && heroMouse.px > 0 && (
                 <div 
                   className="absolute -inset-16 pointer-events-none transition-opacity duration-300 z-1 font-sans"
                   style={{
