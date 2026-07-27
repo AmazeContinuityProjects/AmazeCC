@@ -78,7 +78,7 @@ export const defaultSettings: Settings = {
   syncAdditionalLearning: true,
   syncProject: true,
   syncProjectCourse: true,
-  pinnedNavTabs: ["home", "academics", "attendance"],
+  pinnedNavTabs: ["academics", "attendance", "credentials"],
   defaultAcademicsTab: "overview",
   autoSyncInterval: "manual",
   lowDataMode: false,
