@@ -247,7 +247,7 @@ export default function LoginForm({
             )}
           </div>
           <div className="flex items-center gap-3">
-            {mounted && <ThemeToggle variant="lightbulb" />}
+            {mounted && <ThemeToggle />}
             <button
               onClick={handleDemoClick}
               className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
