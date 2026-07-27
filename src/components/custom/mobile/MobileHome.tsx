@@ -65,9 +65,9 @@ interface WidgetItem {
 }
 
 const DEFAULT_WIDGETS: WidgetItem[] = [
-  { id: "cabshare", title: "Cab Share Promo", enabled: true },
-  { id: "cabshare_match", title: "Cab Share Matches", enabled: true },
-  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: true },
+  { id: "cabshare", title: "Cab Share Promo", enabled: false },
+  { id: "cabshare_match", title: "Cab Share Matches", enabled: false },
+  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false },
   { id: "insights", title: "Quick Insights Dock", enabled: true },
   { id: "attendance", title: "Attendance Summary Card", enabled: true },
   { id: "attendance_courses", title: "Course Attendance Detail", enabled: true },
@@ -399,7 +399,8 @@ export default function MobileHome({
   );
 
   const renderDayScholarWidget = () => {
-    if (hostelData?.hostelInfo?.isHosteller) return null;
+    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
+    if (!isDayscholar) return null;
 
     return (
       <div className="p-5 rounded-[24px] bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/10 dark:to-purple-950/5 border border-indigo-100/50 dark:border-indigo-900/30 text-left relative overflow-hidden">
@@ -830,6 +831,8 @@ export default function MobileHome({
   };
 
   const renderLaundryWidget = () => {
+    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
+    if (isDayscholar) return null;
     if (!hostelData?.hostelInfo?.isHosteller) return null;
 
     return (
@@ -900,6 +903,8 @@ export default function MobileHome({
   };
 
   const renderMessMenu = () => {
+    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
+    if (isDayscholar) return null;
     if (!todayMeal) return null;
     return (
       <div className="space-y-3">

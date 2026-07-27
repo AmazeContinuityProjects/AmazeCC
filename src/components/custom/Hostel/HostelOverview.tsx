@@ -2,20 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  Home,
-  Coffee,
-  Calendar,
-  Clock,
-  Heart,
-  Users,
-  Phone,
   ArrowRight,
-  ShieldAlert,
   Info,
   ExternalLink,
   ChevronRight,
-  CheckCircle2,
-  AlertCircle
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@amazecontinuityprojects/amazeui";
 

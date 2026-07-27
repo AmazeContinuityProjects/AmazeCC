@@ -5,15 +5,11 @@ import StatsCards from "./statCards";
 import GradesModal from "./Exams/GradesModal";
 import AttendanceTabs from "./attendance/attendanceTabs";
 import AcademicsHub from "./Exams/AcademicsHub";
-import MarksDisplay from "./Exams/MarksDisplay";
-import ExamsScheduleDisplay from "./Exams/SchduleDisplay";
 import TestGradesContainer from "./Exams/TestGradesContainer";
 import CurriculumPage from "./Exams/CurriculumPage";
 import GPAPredictorTab from "./Exams/GPAPredictorTab";
-import HostelSubTabs from "./Hostel/HostelSubsTab";
 import MessDisplay from "./Hostel/messDisplay";
 import LaundryDisplay from "./Hostel/LaundryDisplay";
-import AttendanceSubTabs from "./attendance/AttendanceSubsTabs";
 import CalendarView from "./attendance/CalendarView";
 import { useState, useEffect, useRef, useCallback } from "react";
 import LeaveDisplay from "./Hostel/LeaveDisplay";
@@ -21,7 +17,6 @@ import HostelOverview from "./Hostel/HostelOverview";
 import HostelCounsellingView from "./Hostel/HostelCounsellingView";
 import CabShareTab from "./Hostel/CabShare/CabShareTab";
 import CabShareMatchCard from "./Hostel/CabShare/CabShareMatchCard";
-import AllGradesDisplay from "./Exams/AllGradesDisplay";
 import BusFinder from "./dayscholar/BusFinder";
 import MobileHome from "./mobile/MobileHome";
 import AboutTab from "./AboutTab";
@@ -29,7 +24,6 @@ import AboutTab from "./AboutTab";
 import { API_BASE } from "./Main";
 import CourseDashboard from "./Exams/CourseDashboard";
 import { RefreshCcw, Calendar, MapPin } from "lucide-react";
-import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
@@ -70,9 +64,8 @@ import FacultyInfoTab from "./Exams/FacultyInfoTab";
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
-import FresherWelcomePage, { hasFutureExam } from "./FresherWelcomePage";
+import FresherWelcomePage from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
-import GenericApiView from "./Exams/GenericApiView";
 import Modal from "./shared/Modal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -129,8 +122,8 @@ export default function DashboardContent({
   setIDs,
   registeredEvents,
   setRegisteredEvents,
-  vitolData,
-  setVitolData,
+  vitolData: _vitolData,
+  setVitolData: _setVitolData,
   settings,
   setSettings,
   onOpenCommandPalette,
@@ -208,7 +201,7 @@ export default function DashboardContent({
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
-  const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
+
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
 
@@ -500,31 +493,7 @@ export default function DashboardContent({
     }
   };
 
-  const handleScheduleFetch = async () => {
-    setIsReloading(true);
-    try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const ScheduleRes = await fetch(`${API_BASE}/api/schedule`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
-      });
-      const ScheduleData = await ScheduleRes.json();
-      setProgressBar((prev) => prev + 40);
-      setScheduleData(ScheduleData);
-      localStorage.setItem("schedule", JSON.stringify(ScheduleData));
-      setMessage((prev) => prev + "\n✅ Schedule reloaded successfully!");
-      setProgressBar(100);
-      setIsReloading(false);
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Schedule fetch failed, check console.")
-      );
-      setProgressBar(0);
-    }
-  };
 
   const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
     window.scrollTo({ top: 0, behavior: "smooth" });

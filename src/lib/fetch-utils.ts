@@ -1,5 +1,5 @@
 export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
-export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://proper-canary-4596.amazecc.deno.net";
+export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://api.amazecc.com";
 
 let customUrlFromStorage = "";
 if (typeof window !== "undefined") {

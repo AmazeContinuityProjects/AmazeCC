@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { BookOpen, GraduationCap, ChevronRight, ArrowLeft, AlertCircle, RefreshCcw } from "lucide-react";
 import EmptyState from "../shared/EmptyState";
 import SearchInput from "../shared/SearchInput";

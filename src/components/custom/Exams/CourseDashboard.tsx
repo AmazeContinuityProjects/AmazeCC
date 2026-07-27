@@ -1085,9 +1085,17 @@ export default function CourseDashboard({
 
   const isEmbedded = selectedGroup?.theory && selectedGroup?.lab;
 
-  /* ---- ATTENDANCE TAB HELPERS ---- */
-  const thresholdPct = isDayscholarWithBus ? 85 : 75;
-  const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
+  let thresholdPct = 75;
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
+      }
+    } catch (e) {}
+  }
+  const thresholdDec = thresholdPct / 100;
   const historyList = Array.isArray(attendanceItem?.viewLink) ? attendanceItem.viewLink : [];
   const filteredHistory = historyList.filter((d: any) => {
     if (attFilter === "All") return true;

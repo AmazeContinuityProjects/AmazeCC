@@ -52,9 +52,10 @@ interface DailyPlannerProps {
   onClassClick?: (course: any) => void;
   simulatedSkips?: Record<string, number>;
   isDayscholarWithBus?: boolean;
+  saturdayOverride?: string;
 }
 
-export default function DailyPlanner({ attendance, activeDay: controlledDay, onActiveDayChange, onClassClick, simulatedSkips = {}, isDayscholarWithBus = false }: DailyPlannerProps) {
+export default function DailyPlanner({ attendance, activeDay: controlledDay, onActiveDayChange, onClassClick, simulatedSkips = {}, isDayscholarWithBus = false, saturdayOverride }: DailyPlannerProps) {
   const slotMap = (config as any).slotMap || {};
   const [internalDay, setInternalDay] = useState(getTodayDay());
   const [nowMins, setNowMins] = useState(0);
@@ -64,6 +65,8 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
     setInternalDay(day);
     onActiveDayChange?.(day);
   };
+
+  const effectiveSatOverride = saturdayOverride || (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") || "SAT" : "SAT");
 
   useEffect(() => {
     const updateTime = () => {
@@ -78,7 +81,15 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
   const todayDay = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
   const isToday = activeDay === (todayDay === "SUN" ? "SUN" : todayDay);
 
+  const getTargetDay = (day: string) => {
+    if (day === "SAT" && effectiveSatOverride && effectiveSatOverride !== "SAT") {
+      return effectiveSatOverride;
+    }
+    return day;
+  };
+
   const getClassCountForDay = (day: string) => {
+    const targetDay = getTargetDay(day);
     const uniqueCourses = new Set();
     (attendance || []).forEach((course: any) => {
       const slots = String(course.slotName || "")
@@ -86,7 +97,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
         .map((s) => s.trim())
         .filter(Boolean);
       slots.forEach((slot) => {
-        if ((slotMap as any)[day]?.[slot]) {
+        if ((slotMap as any)[targetDay]?.[slot]) {
           uniqueCourses.add(course.courseCode);
         }
       });
@@ -95,6 +106,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
   };
 
   const buildDailySchedule = (day: string) => {
+    const targetDay = getTargetDay(day);
     const dayClasses: any[] = [];
     (attendance || []).forEach((course: any) => {
       const slots = String(course.slotName || "")
@@ -102,7 +114,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
         .map((s) => s.trim())
         .filter(Boolean);
       slots.forEach((slot) => {
-        const slotInfo = (slotMap as any)[day]?.[slot];
+        const slotInfo = (slotMap as any)[targetDay]?.[slot];
         if (slotInfo?.time) {
           dayClasses.push({
             type: "class",
@@ -184,10 +196,10 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
   const scheduleData = buildDailySchedule(activeDay);
 
-  // Count classes for empty-state check
+  const activeTargetDay = getTargetDay(activeDay);
   const dayHasClasses = (attendance || []).some((course: any) => {
     const slots = String(course.slotName || "").split("+").map(s => s.trim()).filter(Boolean);
-    return slots.some(slot => (slotMap as any)[activeDay]?.[slot]);
+    return slots.some(slot => (slotMap as any)[activeTargetDay]?.[slot]);
   });
 
   return (
@@ -294,7 +306,16 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
               : originalPercentage;
 
-            const thresholdPct = isDayscholarWithBus ? 85 : 75;
+            let thresholdPct = 75;
+            if (typeof window !== "undefined") {
+              try {
+                const saved = localStorage.getItem("settings");
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
+                }
+              } catch (e) {}
+            }
 
             let borderStyle = isLab 
               ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 

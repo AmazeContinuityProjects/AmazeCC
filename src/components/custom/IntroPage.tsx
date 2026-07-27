@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import {
-  GraduationCap, Bus, Check, ChevronRight, ChevronLeft, Sparkles, ChevronDown, Bell
+  GraduationCap, Bus, Check, ChevronRight, ChevronLeft, Sparkles, ChevronDown
 } from "lucide-react";
 import config from "../../../config.json";
 import { API_BASE } from "./Main";
