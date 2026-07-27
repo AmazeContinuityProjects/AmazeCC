@@ -335,8 +335,7 @@ export default function LoginForm({
               <motion.div 
                 animate={{ 
                   x: heroMouse.rx * 4, 
-                  y: heroMouse.ry * 4,
-                  scale: [1, 1.05, 1]
+                  y: heroMouse.ry * 4
                 }}
                 transition={{ type: "spring", stiffness: 120, damping: 25 }}
                 className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
