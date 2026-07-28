@@ -1211,6 +1211,16 @@ export default function ProfilePage({
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
                     </label>
                   )}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Smart Mess Menu Filter</p>
+                      <p className="text-[11px] text-gray-550 dark:text-gray-400">Auto-filter mess menu items for the current week of the month</p>
+                    </div>
+                    <Switch
+                      checked={settings?.smartMessFilter ?? false}
+                      onCheckedChange={(val) => updateSetting("smartMessFilter", val)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

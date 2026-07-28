@@ -60,24 +60,42 @@ serwist.addEventListeners();
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-self.addEventListener('push', function (event) {
+self.addEventListener('push', function (event: any) {
   if (event.data) {
-    const data = event.data.json()
-    const options = {
-      body: data.body,
-      icon: data.icon || `${basePath}/logo.png`,
-      badge: `${basePath}/logo.png`,
-      vibrate: [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: '2',
-      },
+    try {
+      const data = event.data.json();
+      const options = {
+        body: data.body,
+        icon: data.icon || `${basePath}/logo.png`,
+        badge: `${basePath}/logo.png`,
+        vibrate: data.vibrate || [100, 50, 100],
+        tag: data.tag || "amazecc-push",
+        data: {
+          url: data.url || basePath || '/',
+          dateOfArrival: Date.now(),
+        },
+      };
+      event.waitUntil(self.registration.showNotification(data.title, options));
+    } catch (e) {
+      console.error("Error parsing push payload:", e);
     }
-    event.waitUntil(self.registration.showNotification(data.title, options))
   }
-})
+});
  
 self.addEventListener('notificationclick', function (event: any) {
-  event.notification.close()
-  event.waitUntil((self as any).clients.openWindow(basePath || '/'))
-})
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || basePath || '/';
+  
+  event.waitUntil(
+    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: any[]) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if ((self as any).clients.openWindow) {
+        return (self as any).clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
