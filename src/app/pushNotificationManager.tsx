@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAtom } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import { API_BASE } from "@/components/custom/Main";
 import { 
   Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
-  FileText, Shield, Sparkles, Send, CheckCircle, RefreshCcw
+  FileText, Sparkles, Send, CheckCircle
 } from "lucide-react";
 
 // Standard fallback VAPID Key to ensure push notifications work smoothly out of the box
