@@ -1286,10 +1286,11 @@ export default function MobileHome({
           </button>
           <button
             onClick={handleRefresh}
-            className="p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 shadow-xs active:scale-95 transition-all cursor-pointer"
-            title="Refresh Data"
+            className="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            title="Sync Data from VTOP"
           >
-            <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin" : ""}`} />
+            <RefreshCcw className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+            <span>Sync</span>
           </button>
         </div>
       </div>

@@ -34,7 +34,7 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
     };
 
 const DEFAULT_VAPID_PUBLIC_KEY = 
-  "BEl62iUYgUivxIkv69yViEuiBIa-m9GYV27m1E5yW5iW_v-k8J-J7Zq-54Xg41y-21jS1038n138-1n2938n19283n";
+  "BPWVsRBGW3upzaJFeMS2vd-U8YheUIu7_d1h4zQKqPv7KH-s27CnpGlZHKnjy0aVqTQmQUjCMIk3LITlQsBZuy8";
 
     const handleEnable = async () => {
         handleClose();
@@ -48,10 +48,18 @@ const DEFAULT_VAPID_PUBLIC_KEY =
             const registration = await navigator.serviceWorker.register('/sw.js');
             await navigator.serviceWorker.ready;
 
-            const sub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            });
+            let sub: PushSubscription | null = null;
+            try {
+                sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                });
+            } catch (vapidErr) {
+                sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: vapidPublicKey,
+                });
+            }
 
             await fetch(`${API_BASE}/api/notifications/subscribe`, {
                 method: 'POST',

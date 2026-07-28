@@ -950,11 +950,12 @@ export default function NavigationTabs({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleReloadClick}
-                  className={`relative group rounded-xl p-1.5 text-sidebar-foreground/ transition-all duration-300 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:scale-105 ${navButtonBase}`}
-                  title="Reload data"
-                  aria-label="Reload data"
+                  className={`relative group rounded-xl px-2.5 py-1.5 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase}`}
+                  title="Sync Data from VTOP"
+                  aria-label="Sync Data from VTOP"
                 >
-                  <RefreshCcw className={`h-4 w-4 transition-transform ${isSpinning ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
+                  <RefreshCcw className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`} />
+                  <span>Sync</span>
                 </button>
                 <button
                   onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
