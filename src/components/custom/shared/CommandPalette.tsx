@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Sparkles } from "lucide-react";
+import { Search, X, Sparkles, BookOpen } from "lucide-react";
 
 export interface CommandItem {
   id: string;
@@ -20,55 +20,132 @@ export interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   commands: CommandItem[];
-  onQueryChange?: (query: string) => void;
+  apiBase?: string;
+  demoMode?: boolean;
 }
 
-export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMode = false }: CommandPaletteProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeSubpage, setActiveSubpage] = useState<React.ReactNode | null>(null);
+  const [kohaBooks, setKohaBooks] = useState<any[]>([]);
+  const [kohaLoading, setKohaLoading] = useState(false);
   const deferredQuery = useDeferredValue(searchQuery);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Focus input when modal opens
+  // Focus input & reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("");
       setSelectedIndex(0);
       setActiveSubpage(null);
+      setKohaBooks([]);
+      setKohaLoading(false);
       setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [isOpen]);
 
-  // Notify parent of query changes for external dynamic searches (like Koha)
+  // Handle Koha search internally when "koha" is typed
   useEffect(() => {
-    onQueryChange?.(deferredQuery);
-  }, [deferredQuery, onQueryChange]);
+    if (!isOpen || !deferredQuery) {
+      setKohaBooks([]);
+      setKohaLoading(false);
+      return;
+    }
+
+    const lower = deferredQuery.toLowerCase();
+    const kohaIdx = lower.indexOf("koha");
+    if (kohaIdx === -1) {
+      setKohaBooks([]);
+      setKohaLoading(false);
+      return;
+    }
+
+    const searchTerm = deferredQuery.slice(kohaIdx + 4).trim().replace(/^[:;,\-\s]+/, "");
+    if (!searchTerm) {
+      setKohaBooks([]);
+      setKohaLoading(true);
+      return;
+    }
+
+    setKohaLoading(true);
+    if (demoMode) {
+      const timer = setTimeout(() => {
+        const mockResults = [
+          { title: "Introduction to Algorithms", author: "Cormen, Leiserson, Rivest, Stein", availability: "Available (4 copies)" },
+          { title: "Computer Networking: A Top-Down Approach", author: "Kurose, Ross", availability: "Reference Only (1 copy)" },
+          { title: "Design Patterns: Elements of Reusable Object-Oriented Software", author: "Gamma, Helm, Johnson, Vlissides", availability: "Checked Out (Due 2026-07-10)" }
+        ].filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()) || b.author.toLowerCase().includes(searchTerm.toLowerCase()));
+        setKohaBooks(mockResults);
+        setKohaLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+
+    const controller = new AbortController();
+    fetch(`${apiBase}/api/koha/search?q=${encodeURIComponent(searchTerm)}&count=10`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((data) => {
+        setKohaBooks(data?.success && Array.isArray(data?.books) ? data.books : []);
+        setKohaLoading(false);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setKohaBooks([]);
+          setKohaLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [deferredQuery, isOpen, apiBase, demoMode]);
+
+  // Dynamic Koha command items
+  const dynamicKohaCommands = useMemo<CommandItem[]>(() => {
+    return kohaBooks.map((b, i) => ({
+      id: `koha-dynamic-${i}`,
+      label: b.title || "Book Title",
+      description: `${b.author || "Author"} · ${b.availability || "Status"}`,
+      icon: "📖",
+      category: "Koha Library Catalog",
+      rightSlot: undefined,
+      detail: undefined,
+      subpage: undefined,
+      onSelect: () => window.open("http://opac.vit.ac.in", "_blank"),
+    }));
+  }, [kohaBooks]);
+
+  // Combined command list
+  const allCommands = useMemo(() => {
+    if (dynamicKohaCommands.length > 0) {
+      return [...dynamicKohaCommands, ...commands];
+    }
+    return commands;
+  }, [commands, dynamicKohaCommands]);
 
   // Filter commands efficiently using deferredQuery
   const filteredCommands = useMemo(() => {
     if (!deferredQuery.trim()) {
-      return commands.slice(0, 30);
+      return allCommands.slice(0, 30);
     }
 
     const q = deferredQuery.toLowerCase().trim();
     const queryWords = q.split(/\s+/);
 
-    return commands
+    return allCommands
       .filter((cmd) => {
         const text = `${cmd.label} ${cmd.description || ""} ${cmd.category || ""}`.toLowerCase();
         return queryWords.every((word) => text.includes(word));
       })
-      .slice(0, 40); // Cap at top 40 for max performance
-  }, [commands, deferredQuery]);
+      .slice(0, 40);
+  }, [allCommands, deferredQuery]);
 
-  // Reset selected index if filtered list length shrinks
+  // Reset selected index if filtered list length changes
   useEffect(() => {
     setSelectedIndex((prev) => (filteredCommands.length > 0 ? Math.min(prev, filteredCommands.length - 1) : 0));
   }, [filteredCommands.length]);
 
-  // Ensure active item is scrolled into view
+  // Scroll active item into view
   useEffect(() => {
     if (!listRef.current) return;
     const activeEl = listRef.current.children[selectedIndex] as HTMLElement;
@@ -77,7 +154,7 @@ export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: Com
     }
   }, [selectedIndex]);
 
-  // Keyboard navigation & shortcuts
+  // Keyboard shortcuts
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -120,7 +197,7 @@ export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: Com
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/60 backdrop-blur-md transition-opacity">
+      <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 px-4 bg-black/60 backdrop-blur-md transition-opacity">
         {/* Backdrop Click */}
         <div className="fixed inset-0" onClick={onClose} />
 
@@ -129,8 +206,8 @@ export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: Com
           initial={{ opacity: 0, scale: 0.96, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="relative w-full max-w-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]"
+          transition={{ duration: 0.12, ease: "easeOut" }}
+          className="relative w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]"
           onKeyDown={handleKeyDown}
         >
           {/* Subpage View */}
@@ -157,6 +234,11 @@ export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: Com
                   placeholder="Type a command or search (e.g. 'Attendance', 'Grades', 'Mess', 'Koha')..."
                   className="w-full bg-transparent text-sm font-medium text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
                 />
+                {kohaLoading && (
+                  <span className="text-[10px] font-bold text-amber-500 animate-pulse shrink-0">
+                    Searching Koha...
+                  </span>
+                )}
                 <button
                   onClick={onClose}
                   className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
@@ -235,7 +317,7 @@ export function CommandPalette({ isOpen, onClose, commands, onQueryChange }: Com
                   )}
                 </div>
 
-                {/* Right Detail Preview Pane (if selected command has detail) */}
+                {/* Right Detail Preview Pane */}
                 {selectedCommand?.detail && (
                   <div className="hidden md:block w-72 p-4 bg-zinc-50/50 dark:bg-zinc-950/40 overflow-y-auto shrink-0 border-l border-zinc-100 dark:border-zinc-800/60">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
