@@ -40,6 +40,7 @@ export type Settings = {
   autoSyncInterval?: string;
   lowDataMode?: boolean;
   soundEnabled?: boolean;
+  smartMessFilter?: boolean;
 };
 
 export type settings = Settings;
@@ -83,6 +84,7 @@ export const defaultSettings: Settings = {
   autoSyncInterval: "manual",
   lowDataMode: false,
   soundEnabled: true,
+  smartMessFilter: false,
 };
 
 export const settingsAtom = atom<Settings>(defaultSettings);
