@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Sparkles, BookOpen } from "lucide-react";
+import { Search, X, Sparkles } from "lucide-react";
 
 export interface CommandItem {
   id: string;
