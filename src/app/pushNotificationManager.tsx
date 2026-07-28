@@ -7,7 +7,7 @@ import { Switch } from "@amazecontinuityprojects/amazeui";
 import { API_BASE } from "@/components/custom/Main";
 import { 
   Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
-  FileText, Sparkles, Send, CheckCircle, Key
+  FileText, Sparkles, Send, CheckCircle, Key, Plane, Bus, BookMarked, Award, Clock
 } from "lucide-react";
 
 // Cryptographically valid uncompressed NIST P-256 ECDSA VAPID Public Key (65 bytes starting with 0x04)
@@ -283,14 +283,35 @@ export default function PushNotificationManager() {
 
           {/* Trigger Categories */}
           <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-gray-200/80 dark:border-gray-800 space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">Notification Triggers</h5>
+            <div className="flex items-center justify-between">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit">Notification Triggers</h5>
+              
+              {/* Class Reminder Lead Time Selector */}
+              <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-black/50 px-2.5 py-1 rounded-xl border border-gray-200/60 dark:border-gray-800">
+                <Clock size={12} className="text-indigo-500" />
+                <span className="text-[10px] font-bold text-gray-500">Class Alert:</span>
+                <select
+                  value={settings?.classReminderLeadMinutes || 15}
+                  onChange={(e) => updateSettingField("classReminderLeadMinutes", Number(e.target.value))}
+                  className="bg-transparent text-[11px] font-black text-indigo-600 dark:text-indigo-400 focus:outline-none cursor-pointer"
+                >
+                  <option value={10}>10m before</option>
+                  <option value={15}>15m before</option>
+                  <option value={30}>30m before</option>
+                </select>
+              </div>
+            </div>
 
             <div className="space-y-2.5">
               {[
                 { key: "notifyLowAttendance", label: "Low Attendance Alerts", desc: "Notify immediately when course attendance drops below target", icon: AlertTriangle, color: "text-red-500" },
-                { key: "notifyClassReminders", label: "Class Timetable Reminders", desc: "Remind 15 minutes before next scheduled lecture starts", icon: Calendar, color: "text-indigo-500" },
+                { key: "notifyClassReminders", label: "Class Timetable Reminders", desc: "Remind before next scheduled lecture starts", icon: Calendar, color: "text-indigo-500" },
                 { key: "notifyExamAlerts", label: "Exam Schedule & Admit Card Alerts", desc: "Alerts for upcoming CAT/FAT exam dates & venues", icon: FileText, color: "text-amber-500" },
-                { key: "notifyMessServing", label: "Hostel Mess Serving Alerts", desc: "Notifications when Breakfast, Lunch, Snacks or Dinner serving starts", icon: Utensils, color: "text-emerald-500" },
+                { key: "notifyMarksRelease", label: "Marks & Grade Release Alerts", desc: "Push notification when new CAT/FAT/Lab marks are published", icon: Award, color: "text-emerald-500" },
+                { key: "notifyMessServing", label: "Hostel Mess Serving Alerts", desc: "Notifications when Breakfast, Lunch, Snacks or Dinner serving starts", icon: Utensils, color: "text-teal-500" },
+                { key: "notifyHostelLeave", label: "Hostel Leave & Outpass Approvals", desc: "Instant alert when warden approves or updates leave status", icon: Plane, color: "text-rose-500" },
+                { key: "notifyBusUpdates", label: "Day Scholar Bus Schedule Alerts", desc: "Updates on bus routes, timings and delay alerts", icon: Bus, color: "text-amber-600" },
+                { key: "notifyLibraryBooks", label: "Library Due Date Reminders", desc: "Reminders before Koha library book return deadlines", icon: BookMarked, color: "text-sky-500" },
                 { key: "notifyAssignments", label: "LMS & Assignment Reminders", desc: "Remind about pending VITOL / Moodle assignment deadlines", icon: BookOpen, color: "text-purple-500" },
                 { key: "notifyCirculars", label: "Academic Circulars & Notices", desc: "Instant alert on new university circulars and announcements", icon: Bell, color: "text-blue-500" },
               ].map((item) => {

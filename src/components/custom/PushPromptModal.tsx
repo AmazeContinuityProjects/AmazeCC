@@ -16,11 +16,18 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
 
     useEffect(() => {
         if (!UserID) return;
+        if (typeof window === 'undefined' || !('Notification' in window)) return;
         
-        // Only show once
-        const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
-        if (!hasSeenPrompt && 'serviceWorker' in navigator && 'PushManager' in window) {
-            // Delay slightly so it doesn't interrupt immediate dashboard load
+        // Never show if permission is already granted
+        if (Notification.permission === 'granted') return;
+
+        // Periodic reminder logic: check when prompt was last shown
+        const lastPromptTime = localStorage.getItem('lastPushPromptTimestamp');
+        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+        
+        const shouldShow = !lastPromptTime || (Date.now() - Number(lastPromptTime)) > THREE_DAYS_MS;
+        
+        if (shouldShow && 'serviceWorker' in navigator && 'PushManager' in window) {
             const timer = setTimeout(() => {
                 setIsOpen(true);
             }, 3000);
@@ -29,7 +36,7 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
     }, [UserID]);
 
     const handleClose = () => {
-        localStorage.setItem('hasSeenPushPrompt', 'true');
+        localStorage.setItem('lastPushPromptTimestamp', String(Date.now()));
         setIsOpen(false);
     };
 
