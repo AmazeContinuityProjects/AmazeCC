@@ -1021,7 +1021,7 @@ export default function LoginForm({
                         <span>{message}</span>
                       </div>
                       <div className="text-[10px] text-slate-500 dark:text-gray-400 pl-5">
-                        Frequent logins? <a href="https://vtopcc.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Reset on VTOP Portal ↗</a>
+                        Frequent logins? <a href="https://vtopcc.vit.ac.in" target="_blank" rel="noreferrer" className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">Reset on VTOP Portal ↗</a>
                       </div>
                     </div>
                   )}
