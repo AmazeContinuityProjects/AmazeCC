@@ -50,6 +50,11 @@ export type Settings = {
   notifyMessServing?: boolean;
   notifyAssignments?: boolean;
   notifyCirculars?: boolean;
+  notifyHostelLeave?: boolean;
+  notifyBusUpdates?: boolean;
+  notifyLibraryBooks?: boolean;
+  notifyMarksRelease?: boolean;
+  classReminderLeadMinutes?: number;
   pushSoundEnabled?: boolean;
   pushVibrationEnabled?: boolean;
   pushQuietHoursEnabled?: boolean;
@@ -109,6 +114,11 @@ export const defaultSettings: Settings = {
   notifyMessServing: true,
   notifyAssignments: true,
   notifyCirculars: true,
+  notifyHostelLeave: true,
+  notifyBusUpdates: true,
+  notifyLibraryBooks: true,
+  notifyMarksRelease: true,
+  classReminderLeadMinutes: 15,
   pushSoundEnabled: true,
   pushVibrationEnabled: true,
   pushQuietHoursEnabled: false,
