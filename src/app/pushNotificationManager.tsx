@@ -124,11 +124,22 @@ export default function PushNotificationManager() {
       setSubscription(sub);
       updateSettingField("pushNotificationsEnabled", true);
 
-      // Trigger local welcome alert
-      new Notification("🔔 AmazeCC Push Notifications Active!", {
-        body: "Push alerts & VAPID keys are configured. You will receive real-time campus reminders.",
-        icon: "/favicon.ico",
-      });
+      // Trigger local welcome alert via ServiceWorker to ensure click event opens PWA
+      const notificationData = { url: window.location.origin };
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification("🔔 AmazeCC Push Notifications Active!", {
+          body: "Push alerts & VAPID keys are configured. Click to open AmazeCC.",
+          icon: "/favicon.ico",
+          data: notificationData,
+        });
+      } else {
+        new Notification("🔔 AmazeCC Push Notifications Active!", {
+          body: "Push alerts & VAPID keys are configured. Click to open AmazeCC.",
+          icon: "/favicon.ico",
+          data: notificationData,
+        });
+      }
 
       if (userID) {
         fetch(`${API_BASE}/api/notifications/subscribe`, {
@@ -189,11 +200,11 @@ export default function PushNotificationManager() {
       }
 
       const options = {
-        body: "Test Alert: VAPID Key & Service Worker push notifications are functioning at 100%!",
+        body: "Test Alert: VAPID Key & Service Worker push notifications are functioning! Click to focus AmazeCC.",
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         vibrate: settings?.pushVibrationEnabled !== false ? [100, 50, 100] : undefined,
-        data: { url: "/" },
+        data: { url: window.location.origin },
       };
 
       if ("serviceWorker" in navigator) {
