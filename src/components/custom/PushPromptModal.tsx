@@ -33,6 +33,9 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
         setIsOpen(false);
     };
 
+const DEFAULT_VAPID_PUBLIC_KEY = 
+  "BEl62iUYgUivxIkv69yViEuiBIa-m9GYV27m1E5yW5iW_v-k8J-J7Zq-54Xg41y-21jS1038n138-1n2938n19283n";
+
     const handleEnable = async () => {
         handleClose();
 
@@ -40,11 +43,7 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') return;
 
-            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (!vapidPublicKey) {
-                console.error('VAPID public key not found. Push notifications are disabled.');
-                return;
-            }
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
 
             const registration = await navigator.serviceWorker.register('/sw.js');
             await navigator.serviceWorker.ready;
