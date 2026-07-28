@@ -40,6 +40,22 @@ export type Settings = {
   autoSyncInterval?: string;
   lowDataMode?: boolean;
   soundEnabled?: boolean;
+  smartMessFilter?: boolean;
+
+  // Push Notifications Settings & Feature Options
+  pushNotificationsEnabled?: boolean;
+  notifyLowAttendance?: boolean;
+  notifyClassReminders?: boolean;
+  notifyExamAlerts?: boolean;
+  notifyMessServing?: boolean;
+  notifyAssignments?: boolean;
+  notifyCirculars?: boolean;
+  pushSoundEnabled?: boolean;
+  pushVibrationEnabled?: boolean;
+  pushQuietHoursEnabled?: boolean;
+  pushQuietHoursStart?: string;
+  pushQuietHoursEnd?: string;
+  customVapidKey?: string;
 };
 
 export type settings = Settings;
@@ -83,6 +99,22 @@ export const defaultSettings: Settings = {
   autoSyncInterval: "manual",
   lowDataMode: false,
   soundEnabled: true,
+  smartMessFilter: false,
+
+  // Default Push Notification Preferences
+  pushNotificationsEnabled: true,
+  notifyLowAttendance: true,
+  notifyClassReminders: true,
+  notifyExamAlerts: true,
+  notifyMessServing: true,
+  notifyAssignments: true,
+  notifyCirculars: true,
+  pushSoundEnabled: true,
+  pushVibrationEnabled: true,
+  pushQuietHoursEnabled: false,
+  pushQuietHoursStart: "22:00",
+  pushQuietHoursEnd: "07:00",
+  customVapidKey: "",
 };
 
 export const settingsAtom = atom<Settings>(defaultSettings);

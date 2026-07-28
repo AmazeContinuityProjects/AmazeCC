@@ -21,7 +21,7 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Input, Textarea, Select } from "@amazecontinuityprojects/amazeui";
 export { PageHeader } from "@amazecontinuityprojects/amazeui";
 export { EmptyState } from "@amazecontinuityprojects/amazeui";
-export { CommandPalette } from "@amazecontinuityprojects/amazeui";
+export { CommandPalette } from "./CommandPalette";
 export { ErrorDiagnosticCard } from "@amazecontinuityprojects/amazeui";
 export { LoadingScreen } from "@amazecontinuityprojects/amazeui";
 export { AboutSection } from "@amazecontinuityprojects/amazeui";
