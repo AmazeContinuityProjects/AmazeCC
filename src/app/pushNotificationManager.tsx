@@ -110,10 +110,15 @@ export default function PushNotificationManager() {
           applicationServerKey: keyArray,
         });
       } catch (vapidErr: any) {
-        console.warn("VAPID applicationServerKey subscribe error, falling back to standard push:", vapidErr);
-        sub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-        });
+        console.warn("Uint8Array applicationServerKey failed, trying raw string key:", vapidErr);
+        try {
+          sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: rawVapidKey,
+          });
+        } catch (stringErr) {
+          throw vapidErr;
+        }
       }
 
       setSubscription(sub);

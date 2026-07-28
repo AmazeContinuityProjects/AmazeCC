@@ -54,9 +54,10 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
                 });
-            } catch {
+            } catch (vapidErr) {
                 sub = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
+                    applicationServerKey: vapidPublicKey,
                 });
             }
 
