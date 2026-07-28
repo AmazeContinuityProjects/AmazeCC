@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useAtomValue } from "jotai";
+import { settingsAtom } from "@/store/settingsAtoms";
 import { 
   RefreshCcw, Clock, Sparkles, Utensils, Sun, Coffee, Moon, CalendarCheck
 } from "lucide-react";
@@ -148,7 +150,8 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
   const [type, setType] = useState(
     normalizeType(hostelData.hostelInfo?.messInfo) || "Veg"
   );
-  const [smartMode, setSmartMode] = useState(false);
+  const settings = useAtomValue(settingsAtom);
+  const smartMode = settings?.smartMessFilter ?? false;
   const [menu, setMenu] = useState<any[]>([]);
   const [activeDay, setActiveDay] = useState(today);
   const isMobile = useIsMobile();
@@ -302,22 +305,6 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
 
         {/* Unified Controls Cluster */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          {/* Smart Filter Toggle Button */}
-          <button
-            onClick={() => setSmartMode(!smartMode)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
-              smartMode
-                ? "bg-indigo-600 text-white border-indigo-500 shadow-xs"
-                : "bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
-            }`}
-          >
-            <Sparkles size={12} className={smartMode ? "text-amber-300" : "text-zinc-400"} />
-            <span>Smart Filter</span>
-            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded ${smartMode ? "bg-white/20 text-white" : "bg-zinc-200 dark:bg-zinc-750 text-zinc-500"}`}>
-              {smartMode ? "ON" : "OFF"}
-            </span>
-          </button>
-
           {/* Gender Segmented Control */}
           <div className="flex p-1 bg-zinc-100 dark:bg-zinc-850 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
             {["Male", "Female"].map(g => (
