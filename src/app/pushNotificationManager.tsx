@@ -7,12 +7,12 @@ import { Switch } from "@amazecontinuityprojects/amazeui";
 import { API_BASE } from "@/components/custom/Main";
 import { 
   Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
-  FileText, Sparkles, Send, CheckCircle
+  FileText, Sparkles, Send, CheckCircle, Key
 } from "lucide-react";
 
-// Standard fallback VAPID Key to ensure push notifications work smoothly out of the box
+// Cryptographically valid uncompressed NIST P-256 ECDSA VAPID Public Key (65 bytes starting with 0x04)
 const DEFAULT_VAPID_PUBLIC_KEY = 
-  "BEl62iUYgUivxIkv69yViEuiBIa-m9GYV27m1E5yW5iW_v-k8J-J7Zq-54Xg41y-21jS1038n138-1n2938n19283n";
+  "BPWVsRBGW3upzaJFeMS2vd-U8YheUIu7_d1h4zQKqPv7KH-s27CnpGlZHKnjy0aVqTQmQUjCMIk3LITlQsBZuy8";
 
 function urlBase64ToUint8Array(base64String: string) {
   if (!base64String) return new Uint8Array(0);
@@ -20,7 +20,11 @@ function urlBase64ToUint8Array(base64String: string) {
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   try {
     const rawData = window.atob(base64);
-    return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   } catch (e) {
     console.error("Invalid VAPID Base64 key:", e);
     return new Uint8Array(0);
@@ -75,27 +79,46 @@ export default function PushNotificationManager() {
 
   async function subscribeToPush() {
     if (typeof window === "undefined" || !("Notification" in window)) return;
+    setFetchStatus(null);
 
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setFetchStatus("Notification permission was denied by browser.");
+        setFetchStatus("Subscription error: Notification permission was denied by browser.");
         return;
       }
 
-      const vapidPublicKey =
-        settings?.customVapidKey ||
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-        DEFAULT_VAPID_PUBLIC_KEY;
+      const rawVapidKey = (
+        settings?.customVapidKey?.trim() ||
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() ||
+        DEFAULT_VAPID_PUBLIC_KEY
+      );
 
       const registration = await navigator.serviceWorker.ready;
       let sub = await registration.pushManager.getSubscription();
 
-      if (!sub) {
+      if (sub) {
+        try {
+          await sub.unsubscribe();
+        } catch {}
+      }
+
+      const keyArray = urlBase64ToUint8Array(rawVapidKey);
+      try {
         sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          applicationServerKey: keyArray,
         });
+      } catch (vapidErr: any) {
+        console.warn("Uint8Array applicationServerKey failed, trying raw string key:", vapidErr);
+        try {
+          sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: rawVapidKey,
+          });
+        } catch (stringErr) {
+          throw vapidErr;
+        }
       }
 
       setSubscription(sub);
@@ -147,7 +170,7 @@ export default function PushNotificationManager() {
       setTimeout(() => setFetchStatus(null), 3000);
     } catch (error: any) {
       console.error("Unsubscribe error:", error);
-      setFetchStatus("Failed to unsubscribe.");
+      setFetchStatus("Unsubscribe error: Failed to unsubscribe.");
     }
   }
 
@@ -182,7 +205,7 @@ export default function PushNotificationManager() {
 
       setFetchStatus("Test notification sent successfully!");
     } catch (err: any) {
-      setFetchStatus(`Test failed: ${err.message}`);
+      setFetchStatus(`Test error: ${err.message}`);
     } finally {
       setIsTesting(false);
       setTimeout(() => setFetchStatus(null), 4000);
@@ -198,6 +221,7 @@ export default function PushNotificationManager() {
   }
 
   const isEnabled = !!subscription && settings?.pushNotificationsEnabled !== false;
+  const isErrorStatus = fetchStatus && /error|failed|denied|invalid/i.test(fetchStatus);
 
   return (
     <div className="space-y-5">
@@ -220,8 +244,8 @@ export default function PushNotificationManager() {
       </div>
 
       {fetchStatus && (
-        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${fetchStatus.includes("Error") || fetchStatus.includes("failed") || fetchStatus.includes("denied") ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200/40" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40"}`}>
-          {fetchStatus.includes("Error") || fetchStatus.includes("failed") ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
+        <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${isErrorStatus ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200/40" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40"}`}>
+          {isErrorStatus ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
           <span>{fetchStatus}</span>
         </div>
       )}
@@ -234,7 +258,7 @@ export default function PushNotificationManager() {
               <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                 <Sparkles size={13} className="text-indigo-500" /> Test Notification System
               </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Send a instant VAPID push notification to verify permissions</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Send an instant VAPID push notification to verify permissions</p>
             </div>
             <button
               onClick={sendTestNotification}
@@ -334,6 +358,30 @@ export default function PushNotificationManager() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Optional VAPID Key Customization */}
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-gray-200/80 dark:border-gray-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 font-outfit flex items-center gap-1.5">
+                <Key size={13} className="text-amber-500" /> VAPID Server Public Key
+              </h5>
+              {settings?.customVapidKey && (
+                <button
+                  onClick={() => updateSettingField("customVapidKey", "")}
+                  className="text-[10px] text-indigo-500 hover:underline font-semibold cursor-pointer"
+                >
+                  Reset Default
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              placeholder="System Default Key active (Paste custom VAPID public key if self-hosting)"
+              value={settings?.customVapidKey || ""}
+              onChange={(e) => updateSettingField("customVapidKey", e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-gray-800 text-xs font-mono text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+            />
           </div>
         </div>
       )}
