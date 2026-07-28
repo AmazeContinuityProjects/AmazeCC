@@ -51,7 +51,7 @@ export async function loginToVTOP(
           msgLower.includes("too many") ||
           msgLower.includes("lock")
         ) {
-          msg = `${rawMsg}. VTOP may require a password reset due to frequent logins. Try signing into vtopcc.ac.in directly.`;
+          msg = `${rawMsg}. VTOP may require a password reset due to frequent logins. Try signing into vtopcc.vit.ac.in directly.`;
         }
         throw new Error(msg);
       }
