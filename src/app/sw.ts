@@ -84,17 +84,23 @@ self.addEventListener('push', function (event: any) {
  
 self.addEventListener('notificationclick', function (event: any) {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || basePath || '/';
-  
+  const rawUrl = event.notification.data?.url || basePath || '/';
+  const urlToOpen = new URL(rawUrl, self.location.origin).href;
+
   event.waitUntil(
-    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: any[]) => {
+    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList: any[]) => {
       for (const client of clientList) {
         if ('focus' in client) {
+          try {
+            if ('navigate' in client && client.url !== urlToOpen) {
+              await client.navigate(urlToOpen);
+            }
+          } catch (e) {}
           return client.focus();
         }
       }
-      if ((self as any).clients.openWindow) {
-        return (self as any).clients.openWindow(targetUrl);
+      if ((self as any).clients && (self as any).clients.openWindow) {
+        return (self as any).clients.openWindow(urlToOpen);
       }
     })
   );
