@@ -1,15 +1,21 @@
 "use client";
-import { ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, CalendarDays, ArrowRight, Sparkles, CheckCircle, FileText as FileTextIcon } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
+
+import React from "react";
+import { 
+  ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, 
+  CalendarDays, ArrowRight, Sparkles, CheckCircle, FileText as FileTextIcon, 
+  AlertCircle, X, ChevronRight, Check
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 const iconMap: Record<string, React.ReactNode> = {
-  Bus: <Bus className="w-5 h-5" />,
-  BookOpen: <BookOpen className="w-5 h-5" />,
-  FileText: <FileText className="w-5 h-5" />,
-  GraduationCap: <GraduationCap className="w-5 h-5" />,
-  MapPin: <MapPin className="w-5 h-5" />,
-  CalendarDays: <CalendarDays className="w-5 h-5" />,
-  ExternalLink: <ExternalLink className="w-5 h-5" />,
+  Bus: <Bus className="w-4 h-4" />,
+  BookOpen: <BookOpen className="w-4 h-4" />,
+  FileText: <FileText className="w-4 h-4" />,
+  GraduationCap: <GraduationCap className="w-4 h-4" />,
+  MapPin: <MapPin className="w-4 h-4" />,
+  CalendarDays: <CalendarDays className="w-4 h-4" />,
+  ExternalLink: <ExternalLink className="w-4 h-4" />,
 };
 
 interface Resource {
@@ -64,55 +70,133 @@ function hasFutureExam(tables: any[]): boolean {
   return false;
 }
 
-export default function FresherWelcomePage({ onDismiss, username, friendlyName, eptData, acknowledgementData, resources = [] }: FresherWelcomePageProps) {
+export default function FresherWelcomePage({
+  onDismiss,
+  username,
+  friendlyName,
+  eptData,
+  acknowledgementData,
+  resources = [],
+}: FresherWelcomePageProps) {
   const displayName = friendlyName || username || "Student";
 
-  return (
-    <div className="min-h-screen bg-gray-50  dark:bg-black flex flex-col">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 px-6 pt-16 pb-12 md:pt-20 md:pb-16 md:px-12 text-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-2xl bg-white/20 ">
-              <GraduationCap className="w-6 h-6 text-blue-200" />
-            </div>
-            <span className="text-sm font-semibold text-blue-200 uppercase tracking-widest">Welcome to VIT</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
-            Hello, {displayName}!
-          </h1>
-          <p className="text-lg text-blue-100 max-w-2xl leading-relaxed">
-            We&apos;re excited to have you here. Your EPT schedule is ready and we&apos;ve put together some helpful resources to get you started on your journey.
-          </p>
-        </div>
-      </div>
+  // Calculate Acknowledgement progress
+  const ackRows = acknowledgementData?.tables?.[1]?.rows || [];
+  const totalAckDocs = ackRows.length;
+  const submittedAckDocs = ackRows.filter((row: any) => {
+    const headers = acknowledgementData?.tables?.[1]?.headers || [];
+    const status = row[headers[2]] || "";
+    return /submitted/i.test(status);
+  }).length;
+  const ackProgressPct = totalAckDocs > 0 ? (submittedAckDocs / totalAckDocs) * 100 : 0;
 
-      {/* Content */}
-      <div className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 md:py-12 space-y-8">
-        {/* EPT Schedule Card */}
-        {eptData && (
-          <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-amber-100  dark:bg-amber-900/20">
-                <CalendarDays className="w-5 h-5 text-amber-700  dark:text-amber-400" />
+  // Check if there is an upcoming EPT exam
+  const upcomingEpt = eptData?.tables ? hasFutureExam(eptData.tables) : false;
+
+  return (
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+      {/* Top Fixed Navigation & Dismiss Bar */}
+      <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 px-4 sm:px-8 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <GraduationCap className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 tracking-wide font-outfit">
+            Fresher Onboarding Hub
+          </span>
+        </div>
+
+        <button
+          onClick={onDismiss}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+        >
+          <span>Launch Dashboard</span>
+          <ArrowRight size={13} />
+        </button>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 md:py-8 space-y-6">
+        {/* Subtle Welcome Hero Banner */}
+        <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 dark:border-indigo-500/15 overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[11px] font-bold">
+                <Sparkles size={12} />
+                <span>VIT Campus Onboarding</span>
               </div>
-              <h2 className="text-xl font-bold text-gray-900  dark:text-white">Your EPT Schedule</h2>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white font-outfit">
+                Welcome, {displayName}! 👋
+              </h1>
+              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
+                Here are your essential English Proficiency Test (EPT) schedules, onboarding document checklists, and quick VIT portal links.
+              </p>
             </div>
-            <div className="rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-red-50    dark:from-amber-900/10 dark:via-orange-900/5 dark:to-red-900/5 border border-amber-200/50  dark:border-amber-800/20 overflow-hidden">
+
+            {/* Quick Metrics Bar */}
+            <div className="flex sm:flex-col gap-2 shrink-0">
+              {totalAckDocs > 0 && (
+                <div className="px-3.5 py-2 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Documents</p>
+                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    {submittedAckDocs}/{totalAckDocs} Submitted
+                  </p>
+                </div>
+              )}
+              {eptData && (
+                <div className="px-3.5 py-2 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">EPT Test</p>
+                  <p className="text-xs font-black text-amber-600 dark:text-amber-400">
+                    {upcomingEpt ? "Upcoming" : "Scheduled"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* EPT Schedule Section */}
+        {eptData && (
+          <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <CalendarDays size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
+                    English Proficiency Test (EPT) Schedule
+                  </h2>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Official venue and timing for your EPT exam</p>
+                </div>
+              </div>
+              {upcomingEpt && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
+                  <AlertCircle size={12} /> Upcoming Exam
+                </span>
+              )}
+            </div>
+
+            {/* EPT Table */}
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-amber-200/20  dark:border-amber-800/5 bg-amber-100/30  dark:bg-amber-900/5">
+                    <tr className="border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50">
                       {(eptData.tables?.[0]?.headers || []).map((h: string, i: number) => (
-                        <th key={i} className="px-4 py-3 text-left font-semibold text-amber-800  dark:text-amber-400 text-xs uppercase tracking-wider">{h}</th>
+                        <th key={i} className="px-3.5 py-2.5 text-left font-bold text-zinc-500 uppercase tracking-wider text-[10px]">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
                     {(eptData.tables?.[0]?.rows || []).map((row: any, ri: number) => (
-                      <tr key={ri} className="border-b border-amber-200/10  dark:border-amber-800/5 last:border-0 hover:bg-amber-50/50 dark:hover:bg-amber-900/5 transition-colors">
+                      <tr key={ri} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                         {(eptData.tables?.[0]?.headers || []).map((h: string, ci: number) => (
-                          <td key={ci} className="px-4 py-3 text-amber-900  dark:text-amber-200 whitespace-nowrap">{row[h] || ""}</td>
+                          <td key={ci} className="px-3.5 py-2.5 font-medium text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
+                            {row[h] || "-"}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -121,13 +205,17 @@ export default function FresherWelcomePage({ onDismiss, username, friendlyName, 
               </div>
             </div>
 
-            {/* Key-Value Pairs */}
+            {/* EPT Details Grid */}
             {eptData?.keyValuePairs && Object.keys(eptData.keyValuePairs).length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                 {Object.entries(eptData.keyValuePairs).map(([key, val]) => (
-                  <div key={key} className="px-4 py-3 rounded-xl bg-white  dark:bg-white/5 border border-gray-200/50  dark:border-white/10">
-                    <p className="text-xs text-gray-500  dark:text-gray-400 capitalize mb-0.5">{key.replace(/([A-Z])/g, " $1")}</p>
-                    <p className="text-sm font-semibold text-gray-900  dark:text-white">{String(val)}</p>
+                  <div key={key} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">
+                      {key.replace(/([A-Z])/g, " $1")}
+                    </p>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                      {String(val)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -135,32 +223,58 @@ export default function FresherWelcomePage({ onDismiss, username, friendlyName, 
           </section>
         )}
 
-        {/* Acknowledgement Section */}
-        {acknowledgementData?.tables?.[1]?.rows?.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-emerald-100  dark:bg-emerald-900/20">
-                <CheckCircle className="w-5 h-5 text-emerald-700  dark:text-emerald-400" />
+        {/* Onboarding Documents Checklist */}
+        {totalAckDocs > 0 && (
+          <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
+                    Onboarding Documents Checklist
+                  </h2>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Track required document submissions</p>
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-gray-900  dark:text-white">Document Acknowledgement</h2>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                {Math.round(ackProgressPct)}% Completed
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {acknowledgementData.tables[1].rows.map((row: any, idx: number) => {
-                const headers = acknowledgementData.tables[1].headers || [];
+
+            {/* Progress Bar */}
+            <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${ackProgressPct}%` }}
+              />
+            </div>
+
+            {/* Document Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {ackRows.map((row: any, idx: number) => {
+                const headers = acknowledgementData?.tables?.[1]?.headers || [];
                 const docName = row[headers[1]] || "";
                 const status = row[headers[2]] || "";
                 const isSubmitted = /submitted/i.test(status);
                 return (
-                  <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-white  dark:bg-white/5 border border-gray-200/50  dark:border-white/10">
-                    <div className={`p-2.5 rounded-xl shrink-0 ${isSubmitted ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" : "bg-gray-100 dark:bg-gray-800 text-gray-400"}`}>
-                      <FileText className="w-5 h-5" />
+                  <div
+                    key={idx}
+                    className="flex items-start justify-between p-3 rounded-xl bg-zinc-50/80 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60"
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0 pr-2">
+                      <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${isSubmitted ? "bg-emerald-500/10 text-emerald-600" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400"}`}>
+                        <FileText size={14} />
+                      </div>
+                      <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2">
+                        {docName}
+                      </p>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900  dark:text-white break-words">{docName}</p>
-                      <span className={`inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isSubmitted ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"}`}>
-                        {status}
-                      </span>
-                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase shrink-0 ${isSubmitted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
+                      {isSubmitted && <Check size={11} />}
+                      {status}
+                    </span>
                   </div>
                 );
               })}
@@ -168,76 +282,106 @@ export default function FresherWelcomePage({ onDismiss, username, friendlyName, 
           </section>
         )}
 
-        {/* Resources */}
-        {resources.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2.5 rounded-xl bg-blue-100  dark:bg-blue-900/20">
-                <Sparkles className="w-5 h-5 text-blue-700  dark:text-blue-400" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900  dark:text-white">Helpful Resources</h2>
+        {/* Resources & Portals Grid */}
+        <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+              <Sparkles size={18} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {resources.map((r) => {
-                const resourceType = r.type || 'link';
-                if (resourceType === 'md') {
-                  return (
-                    <div key={r.id} className="p-5 rounded-2xl bg-white  dark:bg-white/5 border border-gray-200/50  dark:border-white/10 col-span-full">
-                      <h3 className="text-base font-semibold text-gray-900  dark:text-white mb-3">{r.title}</h3>
-                      <div className="text-sm text-gray-700  dark:text-gray-300 space-y-2 leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_code]:bg-gray-100 [&_code]:dark:bg-gray-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-800 [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_blockquote]:border-l-4 [&_blockquote]:border-blue-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-500 [&_blockquote]:dark:text-gray-400 [&_hr]:border-gray-300 [&_hr]:dark:border-gray-700">
-                        <ReactMarkdown>{r.content || ''}</ReactMarkdown>
-                      </div>
-                    </div>
-                  );
-                }
-                if (resourceType === 'text') {
-                  return (
-                    <div key={r.id} className="col-span-full p-5 rounded-2xl bg-white  dark:bg-white/5 border border-gray-200/50  dark:border-white/10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <FileTextIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        <h3 className="text-base font-semibold text-gray-900  dark:text-white">{r.title}</h3>
-                      </div>
-                      {r.description && <p className="text-sm text-gray-500  dark:text-gray-400 mb-1">{r.description}</p>}
-                      {r.content && <p className="text-sm text-gray-700  dark:text-gray-300 whitespace-pre-line">{r.content}</p>}
-                    </div>
-                  );
-                }
-                return (
-                  <a
-                    key={r.id}
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-start gap-4 p-5 rounded-2xl bg-white  dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:bg-blue-900/10 border border-gray-200/50  dark:border-white/10 hover:border-blue-200 dark:hover:border-blue-800/30 dark:hover:border-blue-800/20 transition-all"
-                  >
-                    <div className="p-3 rounded-xl bg-blue-100  dark:bg-blue-900/20 text-blue-600  dark:text-blue-400 shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
-                      {iconMap[r.icon] || <ExternalLink className="w-5 h-5" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-base font-semibold text-gray-900  dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{r.title}</p>
-                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </div>
-                      {r.description && <p className="text-sm text-gray-500  dark:text-gray-400 mt-1 leading-relaxed">{r.description}</p>}
-                    </div>
-                  </a>
-                );
-              })}
+            <div>
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-white font-outfit">
+                University Portals & Quick Links
+              </h2>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Direct shortcuts to official VIT portals</p>
             </div>
-          </section>
-        )}
+          </div>
 
-        {/* Dismiss */}
-        <div className="pt-4 pb-8 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* VTOP Portal Direct Card */}
+            <a
+              href="https://vtopcc.vit.ac.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col justify-between p-4 rounded-xl bg-gradient-to-br from-indigo-500/5 to-transparent border border-indigo-500/20 hover:border-indigo-500/40 transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+                  <GraduationCap size={16} />
+                </div>
+                <ExternalLink size={14} className="text-zinc-400 group-hover:text-indigo-500 transition-colors" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  VTOP Student Portal
+                </p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">vtopcc.vit.ac.in</p>
+              </div>
+            </a>
+
+            {/* Custom Resources */}
+            {resources.map((r) => {
+              const resourceType = r.type || "link";
+              if (resourceType === "md") {
+                return (
+                  <div key={r.id} className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60 col-span-full">
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white mb-2">{r.title}</h3>
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1 leading-relaxed">
+                      <ReactMarkdown>{r.content || ""}</ReactMarkdown>
+                    </div>
+                  </div>
+                );
+              }
+              if (resourceType === "text") {
+                return (
+                  <div key={r.id} className="col-span-full p-4 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60 space-y-1">
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-white">{r.title}</h3>
+                    {r.description && <p className="text-[11px] text-zinc-500">{r.description}</p>}
+                    {r.content && <p className="text-xs text-zinc-600 dark:text-zinc-400 whitespace-pre-line">{r.content}</p>}
+                  </div>
+                );
+              }
+
+              return (
+                <a
+                  key={r.id}
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col justify-between p-4 rounded-xl bg-zinc-50/80 dark:bg-zinc-950/60 border border-zinc-200/60 dark:border-zinc-800/60 hover:border-indigo-500/40 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 group-hover:scale-105 transition-transform">
+                      {iconMap[r.icon] || <ExternalLink size={16} />}
+                    </div>
+                    <ChevronRight size={14} className="text-zinc-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                      {r.title}
+                    </p>
+                    {r.description && (
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5">
+                        {r.description}
+                      </p>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Bottom Centered Launch Dashboard Action */}
+        <div className="py-4 text-center">
           <button
             onClick={onDismiss}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-base shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
           >
-            Got it, let&apos;s go!
-            <ArrowRight className="w-5 h-5" />
+            <span>Proceed to Dashboard</span>
+            <ArrowRight size={14} />
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

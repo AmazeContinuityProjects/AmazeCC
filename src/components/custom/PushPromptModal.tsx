@@ -16,11 +16,18 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
 
     useEffect(() => {
         if (!UserID) return;
+        if (typeof window === 'undefined' || !('Notification' in window)) return;
         
-        // Only show once
-        const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
-        if (!hasSeenPrompt && 'serviceWorker' in navigator && 'PushManager' in window) {
-            // Delay slightly so it doesn't interrupt immediate dashboard load
+        // Never show if permission is already granted
+        if (Notification.permission === 'granted') return;
+
+        // Periodic reminder logic: check when prompt was last shown
+        const lastPromptTime = localStorage.getItem('lastPushPromptTimestamp');
+        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+        
+        const shouldShow = !lastPromptTime || (Date.now() - Number(lastPromptTime)) > THREE_DAYS_MS;
+        
+        if (shouldShow && 'serviceWorker' in navigator && 'PushManager' in window) {
             const timer = setTimeout(() => {
                 setIsOpen(true);
             }, 3000);
@@ -29,9 +36,12 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
     }, [UserID]);
 
     const handleClose = () => {
-        localStorage.setItem('hasSeenPushPrompt', 'true');
+        localStorage.setItem('lastPushPromptTimestamp', String(Date.now()));
         setIsOpen(false);
     };
+
+const DEFAULT_VAPID_PUBLIC_KEY = 
+  "BPWVsRBGW3upzaJFeMS2vd-U8YheUIu7_d1h4zQKqPv7KH-s27CnpGlZHKnjy0aVqTQmQUjCMIk3LITlQsBZuy8";
 
     const handleEnable = async () => {
         handleClose();
@@ -40,19 +50,23 @@ export default function PushPromptModal({ UserID }: { UserID: string }) {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') return;
 
-            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (!vapidPublicKey) {
-                console.error('VAPID public key not found. Push notifications are disabled.');
-                return;
-            }
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
 
             const registration = await navigator.serviceWorker.register('/sw.js');
             await navigator.serviceWorker.ready;
 
-            const sub = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            });
+            let sub: PushSubscription | null = null;
+            try {
+                sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                });
+            } catch (vapidErr) {
+                sub = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: vapidPublicKey,
+                });
+            }
 
             await fetch(`${API_BASE}/api/notifications/subscribe`, {
                 method: 'POST',

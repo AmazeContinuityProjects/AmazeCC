@@ -1,12 +1,24 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
-import LoginForm from "./loginForm";
+import { useAtom } from "jotai";
+import {
+  credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
+  allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
+  isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
+  isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
+  activeAttendanceSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
+  activeMoreSubTabAtom, activeProfileSubTabAtom, isLoadingAtom, progressBarAtom,
+  moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
+  registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
+  defaultSettings, defaultIDs, settings
+} from "@/store";
+import LoginForm from "./LoginForm";
 import DashboardContent from "./Dashboard";
 import IntroPage from "./IntroPage";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
-import { loadActivityTree, saveActivityTree } from "@/lib/activit-tree";
+import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import demoData from '../../data/demoData.json';
 import { AnimatePresence, motion } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
@@ -16,106 +28,16 @@ import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
-import { X, Keyboard } from "lucide-react";
+import { X, Keyboard, WifiOff } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
 import { loginToVTOP as vtopLogin } from "@/lib/auth";
 import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
 import { storage } from "@/lib/storage";
-import { fetchWithTimeout, API_BASE } from "@/lib/fetch-utils";
+import { fetchWithTimeout, API_BASE, getRewrittenUrl } from "@/lib/fetch-utils";
 import { reportError } from "@/lib/error-utils";
 import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
 
 export { API_BASE, loginToEventHub };
-
-type settings = {
-  decimalValues: boolean;
-  CGPAHidden: boolean;
-  attendancePercentageOrString: "percentage" | "str";
-  currSemesterID: string;
-  calendarType: "ALL" | "ALL02" | "ALL03" | "ALL05" | "ALL06" | "ALL08" | "ALL11" | "WEI";
-  loadingScreen: boolean;
-  isDayscholarWithBus: boolean;
-  hideProfileImageOutsideInfo?: boolean;
-  showGpa?: boolean;
-  showProfilePhoto?: boolean;
-  colorPalette?: string;
-  customPalette?: {
-    accent: string;
-    background: string;
-    surface: string;
-  };
-  hideMobileHeader?: boolean;
-  reloadAllData?: boolean;
-  isSidebarCollapsed?: boolean;
-  residentialStatus?: "hosteller" | "dayscholar";
-  friendlyName?: string;
-  syncProfileData?: boolean;
-  syncArrearData?: boolean;
-  syncExamData?: boolean;
-  syncAdditionalData?: boolean;
-  syncCourseOptionChange?: boolean;
-  syncExcRegistration?: boolean;
-  syncMinorHonour?: boolean;
-  syncCourseCompletion?: boolean;
-  syncWishlist?: boolean;
-  syncAdditionalLearning?: boolean;
-  syncProject?: boolean;
-  syncProjectCourse?: boolean;
-  promoteCabShare?: boolean;
-  pinnedNavTabs?: string[];
-}
-
-type IDs = {
-  VtopUsername: string;
-  VtopPassword: string;
-  MoodleUsername: string;
-  MoodlePassword: string;
-}
-
-const defaultSettings: settings = {
-  decimalValues: false,
-  CGPAHidden: false,
-  attendancePercentageOrString: "percentage",
-  currSemesterID: config.semesterIDs[config.semesterIDs.length - 2],
-  calendarType: "ALL",
-  loadingScreen: false,
-  isDayscholarWithBus: false,
-  hideProfileImageOutsideInfo: false,
-  showGpa: false,
-  showProfilePhoto: false,
-  colorPalette: "default",
-  customPalette: {
-    accent: "#0ea5e9",
-    background: "#f8fafc",
-    surface: "#ffffff",
-  },
-  hideMobileHeader: false,
-  reloadAllData: false,
-  isSidebarCollapsed: false,
-  residentialStatus: "hosteller",
-  friendlyName: "",
-  syncProfileData: true,
-  syncArrearData: true,
-  syncExamData: true,
-  syncAdditionalData: true,
-  syncCourseOptionChange: true,
-  syncExcRegistration: true,
-  syncMinorHonour: true,
-  syncCourseCompletion: true,
-  syncWishlist: true,
-  syncAdditionalLearning: true,
-  syncProject: true,
-  syncProjectCourse: true,
-  promoteCabShare: false,
-  pinnedNavTabs: []
-};
-
-const defaultIDs: IDs = {
-  VtopUsername: "",
-  VtopPassword: "",
-  MoodleUsername: "",
-  MoodlePassword: "",
-}
 
 const COLOR_PALETTES: Record<string, { accent: string; background?: string; surface?: string }> = {
   default: { accent: "" },
@@ -132,47 +54,43 @@ const reloadAfterThemeChange = () => {
 
 export default function LoginPage() {
   const { theme, setTheme } = useTheme();
-  // --- State Management ---
-  const [IDs, setIDs] = useState<IDs>(defaultIDs);
-  const [message, setMessage] = useState<string>("");
-  const [attendanceData, setAttendanceData] = useState<attendanceRes | null>({});
-  const [marksData, setMarksData] = useState<object>({});
-  const [GradesData, setGradesData] = useState<object>({});
-  const [AllGradesData, setAllGradesData] = useState<AllGradesRes>({});
-  const [ScheduleData, setScheduleData] = useState<object>({});
-  const [hostelData, sethostelData] = useState<object>({});
-  const [Calender, setCalender] = useState<object>({});
-  const [activeDay, setActiveDay] = useState<string>("");
-  const [isReloading, setIsReloading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("home");
-  const [attendancePercentage, setattendancePercentage] = useState<object>({});
-  const [ODhoursData, setODhoursData] = useState<object>({});
-  const [ODhoursIsOpen, setODhoursIsOpen] = useState<boolean>(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<string>("overview");
-  const [HostelActiveSubTab, setHostelActiveSubTab] = useState<string>("mess");
-  const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useState<string>("attendance");
-  const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useState<string>("finder");
-  const [activeQBankSubTab, setActiveQBankSubTab] = useState<string>("archive");
-  const [activeMoreSubTab, setActiveMoreSubTab] = useState<string>("social");
-  const [activeProfileSubTab, setActiveProfileSubTab] = useState<string>("info");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [progressBar, setProgressBar] = useState<number>(0);
-  const [moodleData, setMoodleData] = useState([]);
-  const [vitolData, setVitolData] = useState([]);
+  // --- State Management via Jotai Atoms ---
+  const [IDs, setIDs] = useAtom(credentialsAtom);
+  const [message, setMessage] = useAtom(messageAtom);
+  const [attendanceData, setAttendanceData] = useAtom(attendanceDataAtom);
+  const [marksData, setMarksData] = useAtom(marksDataAtom);
+  const [GradesData, setGradesData] = useAtom(gradesDataAtom);
+  const [AllGradesData, setAllGradesData] = useAtom(allGradesDataAtom);
+  const [ScheduleData, setScheduleData] = useAtom(scheduleDataAtom);
+  const [hostelData, sethostelData] = useAtom(hostelDataAtom);
+  const [Calender, setCalender] = useAtom(calendarDataAtom);
+  const [activeDay, setActiveDay] = useAtom(activeDayAtom);
+  const [isReloading, setIsReloading] = useAtom(isReloadingAtom);
+  const [activeTab, setActiveTab] = useAtom(activeTabAtom);
+  const [attendancePercentage, setattendancePercentage] = useAtom(attendancePercentageAtom);
+  const [ODhoursData, setODhoursData] = useAtom(odHoursDataAtom);
+  const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
+  const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+  const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
+  const [activeSubTab, setActiveSubTab] = useAtom(activeSubTabAtom);
+  const [HostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
+  const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useAtom(activeAttendanceSubTabAtom);
+  const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useAtom(activeDayscholarSubTabAtom);
+  const [activeQBankSubTab, setActiveQBankSubTab] = useAtom(activeQBankSubTabAtom);
+  const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
+  const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
+  const [isLoading, setIsLoading] = useAtom(isLoadingAtom);
+  const [progressBar, setProgressBar] = useAtom(progressBarAtom);
+  const [moodleData, setMoodleData] = useAtom(moodleDataAtom);
+  const [vitolData, setVitolData] = useAtom(vitolDataAtom);
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
-  const [demoMode, setDemoMode] = useState<boolean>(false);
-  const [settings, setSettings] = useState<settings>(defaultSettings);
-  const [showIntro, setShowIntro] = useState<boolean | null>(null);
-  const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
-  const [eventHubEvents, setEventHubEvents] = useState<any[]>([]);
-  const [eventPreviewCache, setEventPreviewCache] = useState<Record<string, { imageSrc: string; description: string; metaDetails: Record<string, string> }>>({});
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState("");
-  const [kohaBooks, setKohaBooks] = useState<any[]>([]);
-  const [kohaLoading, setKohaLoading] = useState(false);
+  const [demoMode, setDemoMode] = useAtom(demoModeAtom);
+  const [settings, setSettings] = useAtom(settingsAtom);
+  const [showIntro, setShowIntro] = useAtom(showIntroAtom);
+  const [registeredEvents, setRegisteredEvents] = useAtom(registeredEventsAtom);
+  const [eventHubEvents, setEventHubEvents] = useAtom(eventHubEventsAtom);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -252,7 +170,6 @@ export default function LoginPage() {
 
     const isDarkMode = root.classList.contains("dark");
     const accent = palette.accent || "#0ea5e9";
-    const background = palette.background || "#f8fafc";
     const surface = palette.surface || "#ffffff";
     root.dataset.colorPalette = selectedPalette || "custom";
     root.style.setProperty("--theme-accent", accent);
@@ -495,6 +412,13 @@ export default function LoginPage() {
       setScheduleData(demoData.schedule);
       sethostelData(demoData.hostel);
       setCalender(demoData.calender);
+      if ((demoData as any).registeredEvents) {
+        setRegisteredEvents((demoData as any).registeredEvents);
+        localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+      }
+      if ((demoData as any).profile) {
+        localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+      }
       setIsLoggedIn(true);
       setIsReloading(false);
       return;
@@ -539,18 +463,7 @@ export default function LoginPage() {
       sethostelData(coreData.hostelRes);
       setCalender(coreData.calendarRes);
 
-      onProgress("Event data fetched", 10);
-      const eventData = await fetchEventData(IDs, demoMode);
-      setRegisteredEvents(eventData.registeredEvents);
-      setEventHubEvents(eventData.eventHubEvents);
-
-      onProgress("Past attendance fetched", 2);
-      await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
-      await fetchFresherData(creds);
-      await fetchBusRoutes();
-      await fetchBulkEndpoints(creds, settings);
-
-      setMessage(prev => prev + "\n✅ All data loaded successfully!");
+      setMessage(prev => prev + "\n✅ Core data loaded successfully! Redirecting...");
       setProgressBar(100);
       setIsLoggedIn(true);
       setIsReloading(false);
@@ -558,6 +471,26 @@ export default function LoginPage() {
       const tree = loadActivityTree();
       tree.increment();
       saveActivityTree(tree);
+
+      // Defer non-critical/secondary data fetches to the background
+      (async () => {
+        try {
+          console.log("Starting background sync for non-critical data...");
+          
+          const eventData = await fetchEventData(IDs, demoMode);
+          setRegisteredEvents(eventData.registeredEvents);
+          setEventHubEvents(eventData.eventHubEvents);
+
+          await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
+          await fetchFresherData(creds);
+          await fetchBusRoutes();
+          await fetchBulkEndpoints(creds, settings);
+          
+          console.log("Background sync completed successfully!");
+        } catch (bgErr) {
+          console.warn("Background sync failed:", bgErr);
+        }
+      })();
 
       return true;
     } catch (err) {
@@ -640,6 +573,13 @@ export default function LoginPage() {
       setScheduleData(demoData.schedule);
       sethostelData(demoData.hostel);
       setCalender(demoData.calender);
+      if ((demoData as any).registeredEvents) {
+        setRegisteredEvents((demoData as any).registeredEvents);
+        localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+      }
+      if ((demoData as any).profile) {
+        localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+      }
       setIsReloading(false);
       return;
     }
@@ -942,6 +882,13 @@ export default function LoginPage() {
     setScheduleData(demoData.schedule);
     sethostelData(demoData.hostel);
     setCalender(demoData.calender);
+    if ((demoData as any).registeredEvents) {
+      setRegisteredEvents((demoData as any).registeredEvents);
+      localStorage.setItem("registeredEvents", JSON.stringify((demoData as any).registeredEvents));
+    }
+    if ((demoData as any).profile) {
+      localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
+    }
     setIsLoggedIn(true);
   }
 
@@ -1037,35 +984,6 @@ export default function LoginPage() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [theme, setTheme, settings, setSettings, setActiveTab, setActiveMoreSubTab, setActiveSubTab, setActiveProfileSubTab, setODhoursIsOpen]);
-
-  // ── Dynamic palette search (KOHA catalog via "koha" prefix) ──
-  useEffect(() => {
-    if (!commandPaletteOpen) { setKohaBooks([]); setKohaLoading(false); return; }
-    const lower = paletteQuery.toLowerCase();
-    const kohaIdx = lower.indexOf("koha");
-    if (kohaIdx === -1) { setKohaBooks([]); setKohaLoading(false); return; }
-    const searchTerm = paletteQuery.slice(kohaIdx + 4).trim().replace(/^[:;,\-\s]+/, "");
-    if (!searchTerm) { setKohaBooks([]); setKohaLoading(true); return; }
-    setKohaLoading(true);
-    if (demoMode || IDs.VtopUsername === "demo") {
-      setTimeout(() => {
-        const mockResults = [
-          { title: "Introduction to Algorithms", author: "Cormen, Leiserson, Rivest, Stein", availability: "Available (4 copies)" },
-          { title: "Computer Networking: A Top-Down Approach", author: "Kurose, Ross", availability: "Reference Only (1 copy)" },
-          { title: "Design Patterns: Elements of Reusable Object-Oriented Software", author: "Gamma, Helm, Johnson, Vlissides", availability: "Checked Out (Due 2026-07-10)" }
-        ].filter(book => book.title.toLowerCase().includes(searchTerm.toLowerCase()) || book.author.toLowerCase().includes(searchTerm.toLowerCase()));
-        setKohaBooks(mockResults);
-        setKohaLoading(false);
-      }, 150);
-      return;
-    }
-    const controller = new AbortController();
-    fetch(`${API_BASE}/api/koha/search?q=${encodeURIComponent(searchTerm)}&count=10`, { signal: controller.signal })
-      .then(r => r.json())
-      .then(data => { setKohaBooks(data?.success && Array.isArray(data?.books) ? data.books : []); setKohaLoading(false); })
-      .catch(() => { if (!controller.signal.aborted) { setKohaBooks([]); setKohaLoading(false); } });
-    return () => controller.abort();
-  }, [paletteQuery, commandPaletteOpen]);
 
   const cmds = useMemo(() => {
     const result: any[] = [];
@@ -1334,14 +1252,13 @@ export default function LoginPage() {
     };
     toggle("Decimal Values in Attendance", "decimalValues", "Settings", "🔢");
     toggle("Hide CGPA", "CGPAHidden", "Settings", "🙈");
-    toggle("Loading Screen Animation", "loadingScreen", "Settings", "🎬");
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
-    toggle("Hide Profile Image Outside My Info", "hideProfileImageOutsideInfo", "Settings", "👤");
+    toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
+    toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
 
     [
       { id: "light", label: "Light", icon: "☀️" },
       { id: "dark", label: "Dark", icon: "🌙" },
-      { id: "system", label: "System", icon: "💻" },
     ].forEach(option => {
       result.push({
         id: `theme-${option.id}`,
@@ -2181,362 +2098,6 @@ export default function LoginPage() {
     ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
   ]);
 
-  const mergedCommands = useMemo(() => {
-    const result = [...cmds];
-    const lowerQ = paletteQuery.toLowerCase().trim();
-
-    // ── Smart contextual welcome (shown when empty) ──
-    if (!lowerQ) {
-      const today = new Date();
-      const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
-      const hour = today.getHours();
-      const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-      const friendlyName = (settings as any)?.friendlyName;
-      const displayName = friendlyName || IDs.VtopUsername || "there";
-
-      // Count upcoming exams in next 7 days
-      let upcomingExams: any[] = [];
-      if (ScheduleData && typeof ScheduleData === "object") {
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        Object.values(ScheduleData).forEach((exams: any) => {
-          if (Array.isArray(exams)) {
-            exams.forEach((exam: any) => {
-              if (exam.examDate) {
-                const examDate = new Date(exam.examDate);
-                if (examDate >= today && examDate <= nextWeek) {
-                  upcomingExams.push(exam);
-                }
-              }
-            });
-          }
-        });
-      }
-
-      // Count courses below 75%
-      const below75 = Array.isArray((attendanceData as any)?.attendance)
-        ? (attendanceData as any).attendance.filter((c: any) => {
-            const a = c.attendedClasses || 0;
-            const t = c.totalClasses || 0;
-            return t > 0 && (a / t) < 0.75;
-          })
-        : [];
-
-      // Today's calendar events
-      const todayStr = `${today.getDate()} ${today.toLocaleDateString("en-US", { month: "short" })}`;
-      const calData = Calender as any;
-      let todayEvents: any[] = [];
-      if (calData?.results) {
-        calData.results.forEach((month: any) => {
-          if (!month?.days) return;
-          month.days.forEach((day: any) => {
-            if (!day?.events || day.date !== today.getDate().toString()) return;
-            day.events.forEach((ev: any) => todayEvents.push(ev));
-          });
-        });
-      }
-
-      result.unshift({
-        id: "smart-welcome",
-        label: `${greeting}, ${displayName}!`,
-        description: `${dayName} · ${today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
-        icon: "👋",
-        category: "✨ Today",
-        detail: (
-          <div className="space-y-2.5">
-            {(below75.length > 0 || upcomingExams.length > 0 || todayEvents.length > 0) && (
-              <div className="flex flex-wrap gap-1.5">
-                {below75.length > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-50 dark:bg-red-900/15 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
-                    ⚠️ {below75.length} course{below75.length > 1 ? "s" : ""} below 75%
-                  </span>
-                )}
-                {upcomingExams.length > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/15 text-amber-700 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30">
-                    📝 {upcomingExams.length} exam{upcomingExams.length > 1 ? "s" : ""} this week
-                  </span>
-                )}
-                {todayEvents.length > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-50 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/30">
-                    📅 {todayEvents.length} event{todayEvents.length > 1 ? "s" : ""} today
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="space-y-1">
-              {below75.slice(0, 3).map((c: any, i: number) => {
-                const a = c.attendedClasses || 0;
-                const t = c.totalClasses || 0;
-                const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
-                return (
-                  <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    <span className="truncate">{c.courseTitle}</span>
-                    <span className="font-semibold text-red-600 dark:text-red-400 shrink-0">{p}%</span>
-                  </div>
-                );
-              })}
-              {upcomingExams.slice(0, 3).map((exam: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                  <span className="truncate">{exam.courseTitle || exam.courseCode}</span>
-                  <span className="shrink-0">{exam.examDate}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">Tip: Try @today, @exams, @help, or type a course code</p>
-          </div>
-        ),
-        onSelect: () => {},
-      });
-    }
-
-    // ── @-commands ──
-    if (lowerQ.startsWith("@")) {
-      if (lowerQ.includes("@today") || lowerQ.includes("@today's")) {
-        const today = new Date();
-        const calData = Calender as any;
-        let dayEvents: any[] = [];
-        if (calData?.results) {
-          calData.results.forEach((month: any) => {
-            if (!month?.days) return;
-            month.days.forEach((day: any) => {
-              if (!day?.events || day.date !== today.getDate().toString()) return;
-              day.events.forEach((ev: any) => dayEvents.push(ev));
-            });
-          });
-        }
-        result.push({
-          id: "smart-today",
-          label: "📅 Today's Schedule",
-          description: `${today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`,
-          icon: "📅",
-          category: "✨ Smart",
-          detail: dayEvents.length > 0 ? (
-            <div className="space-y-1.5">
-              {dayEvents.map((ev: any, i: number) => (
-                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${ev.type === "Holiday" ? "bg-emerald-500" : ev.type === "Instructional Day" ? "bg-blue-500" : "bg-purple-500"}`} />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{ev.text}</span>
-                  <span className="text-[11px] text-gray-400 ml-auto">{ev.type}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No events scheduled for today.</p>
-          ),
-          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); },
-        });
-      }
-
-      if (lowerQ.includes("@exam")) {
-        const today = new Date();
-        let exams: any[] = [];
-        if (ScheduleData && typeof ScheduleData === "object") {
-          const next30 = new Date();
-          next30.setDate(next30.getDate() + 30);
-          Object.values(ScheduleData).forEach((examList: any) => {
-            if (Array.isArray(examList)) {
-              examList.forEach((exam: any) => {
-                if (exam.examDate) {
-                  const d = new Date(exam.examDate);
-                  if (d >= today && d <= next30) exams.push(exam);
-                }
-              });
-            }
-          });
-          exams.sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime());
-        }
-        result.push({
-          id: "smart-exams",
-          label: "📝 Upcoming Exams (Next 30 Days)",
-          description: exams.length > 0 ? `${exams.length} exam${exams.length > 1 ? "s" : ""} scheduled` : "No upcoming exams",
-          icon: "📝",
-          category: "✨ Smart",
-          detail: exams.length > 0 ? (
-            <div className="space-y-1.5">
-              {exams.slice(0, 8).map((exam: any, i: number) => (
-                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 truncate">{exam.courseTitle || exam.courseCode}</span>
-                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">{exam.examDate}</span>
-                  <span className="text-[11px] text-gray-400">{exam.examSession || ""}</span>
-                </div>
-              ))}
-              {exams.length > 8 && (
-                <p className="text-[11px] text-gray-400 text-center pt-1">+{exams.length - 8} more exams</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No exams in the next 30 days.</p>
-          ),
-          onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); },
-        });
-      }
-
-      if (lowerQ.includes("@help") || lowerQ.includes("@commands")) {
-        const tips = [
-          { cmd: "@today", desc: "View today's schedule & events" },
-          { cmd: "@exams", desc: "Show upcoming exams (next 30 days)" },
-          { cmd: "@info", desc: "Display your account information" },
-          { cmd: "=2+2*3", desc: "Quick calculator for math expressions" },
-          { cmd: "koha: <query>", desc: "Search library catalog" },
-          { cmd: "<course code>", desc: "Quick attendance lookup (e.g. MAT101)" },
-        ];
-        result.push({
-          id: "smart-help",
-          label: "💡 Available Smart Commands",
-          description: "Type any of these to get instant results",
-          icon: "💡",
-          category: "✨ Smart",
-          detail: (
-            <div className="space-y-1">
-              {tips.map((tip, i) => (
-                <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                  <code className="text-[11px] font-bold text-blue-600 dark:text-blue-400 min-w-[7rem]">{tip.cmd}</code>
-                  <span className="text-[11px] text-gray-600 dark:text-gray-400">{tip.desc}</span>
-                </div>
-              ))}
-            </div>
-          ),
-          onSelect: () => {},
-        });
-      }
-
-      if (lowerQ.includes("@info")) {
-        result.push({
-          id: "smart-info",
-          label: `👤 ${IDs.VtopUsername || "User"}`,
-          description: "Your account information",
-          icon: "👤",
-          category: "✨ Smart",
-          detail: (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Username</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{IDs.VtopUsername || "—"}</span>
-              </div>
-              {settings.friendlyName && (
-                <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                  <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Name</span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{settings.friendlyName}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-white dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/30">
-                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Status</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">{settings.residentialStatus === "hosteller" ? "🏠 Hosteller" : "🚶 Day Scholar"}</span>
-              </div>
-            </div>
-          ),
-          onSelect: () => { setActiveTab("profile"); },
-        });
-      }
-    }
-
-    // ── Course code quick lookup ──
-    const courseCodeRegex = /^([a-zA-Z]{2,4})\s*(\d{3,4})$/;
-    const codeMatch = lowerQ.match(courseCodeRegex);
-    if (codeMatch) {
-      const code = (codeMatch[1] + codeMatch[2]).toUpperCase();
-      const attCourses = (attendanceData as any)?.attendance;
-      const course = Array.isArray(attCourses)
-        ? attCourses.find((c: any) => c.courseCode?.toUpperCase() === code)
-        : null;
-      if (course) {
-        const a = course.attendedClasses || 0;
-        const t = course.totalClasses || 0;
-        const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
-        const pNum = parseFloat(p);
-        const canMiss = t > 0 ? Math.max(0, Math.floor((a - 0.75 * t) / 0.75)) : 0;
-        const needAttend = canMiss === 0 && t > 0 ? Math.ceil((0.75 * t - a) / 0.25) : 0;
-        const color = pNum >= 80 ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20" : pNum >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20";
-
-        result.unshift({
-          id: `smart-course-${code}`,
-          label: `📋 ${course.courseTitle} (${course.courseCode})`,
-          description: `Attendance: ${p}% · ${a}/${t} classes · ${course.slotName || course.slotVenue || ""}`,
-          icon: "📋",
-          category: `✨ Smart · Course`,
-          rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${color}`}>{p}%</span>,
-          detail: (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl shrink-0 ${pNum >= 75 ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}>
-                  <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{course.courseTitle}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{course.courseCode} · {course.slotName || course.slotVenue || "—"}</p>
-                </div>
-                <span className={`text-lg font-black tabular-nums ${pNum >= 80 ? "text-green-600" : pNum >= 75 ? "text-yellow-600" : "text-red-600"}`}>{p}%</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-800/30">
-                  {a}/{t} classes attended
-                </span>
-                {canMiss > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
-                    Can miss {canMiss} more
-                  </span>
-                )}
-                {needAttend > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-50 dark:bg-red-900/15 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-800/30">
-                    Need {needAttend} more to reach 75%
-                  </span>
-                )}
-                {course.faculty && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
-                    {course.faculty}
-                  </span>
-                )}
-              </div>
-            </div>
-          ),
-          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); },
-        });
-      }
-    }
-
-    const hasKoha = paletteQuery.toLowerCase().indexOf("koha") !== -1;
-    if (hasKoha) {
-      const searchTerm = paletteQuery.slice(paletteQuery.toLowerCase().indexOf("koha") + 4).trim().replace(/^[:;,\\-s]+/, "");
-      if (!searchTerm && !kohaLoading) {
-        result.push({ id: "koha-prompt", label: "📖 Type after koha: to search the library catalog", description: "e.g. koha: harry potter", icon: "📖", category: "📚 Library Catalog", onSelect: () => {} });
-      } else if (kohaLoading) {
-        result.push({ id: "koha-loading", label: "🔍 Searching library catalog...", description: `Looking for "${searchTerm}"`, icon: "🔍", category: "📚 Library Catalog", onSelect: () => {} });
-      } else if (searchTerm && kohaBooks.length === 0) {
-        result.push({ id: "koha-none", label: "📭 No books found in library catalog", description: "Try different search terms after koha:", icon: "📭", category: "📚 Library Catalog", onSelect: () => {} });
-      }
-    }
-    kohaBooks.forEach((book, i) => {
-      result.push({
-        id: `koha-${i}`,
-        label: `📖 ${book.title || "Unknown Book"}`,
-        description: book.author ? `by ${book.author}${book.publisher ? " · " + book.publisher : ""}` : book.publisher || "",
-        icon: "📖",
-        category: "📚 Library Catalog",
-        rightSlot: book.isbn ? <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-blue-600  dark:text-blue-300 bg-blue-50  dark:bg-blue-900/20">ISBN</span> : undefined,
-        detail: (
-          <div className="flex gap-3 text-xs text-gray-600  dark:text-gray-400">
-            {book.coverUrl && (
-              <div className="shrink-0 w-20 h-28 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900">
-                <img src={book.coverUrl} alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0 space-y-1.5">
-              <p className="font-semibold text-sm text-gray-900  dark:text-gray-100 leading-tight">{book.title}</p>
-              {book.author && <p className="italic">by {book.author}</p>}
-              {book.publisher && <p className="truncate">{book.publisher}</p>}
-              {book.isbn && <p>ISBN: {book.isbn}</p>}
-              {book.biblionumber && <p className="text-blue-500 mt-1">Click to view details</p>}
-            </div>
-          </div>
-        ),
-        onSelect: () => { setActiveTab("libraries"); }
-      });
-    });
-    return result;
-  }, [cmds, paletteQuery, kohaBooks, kohaLoading, attendanceData, ScheduleData, Calender, IDs, settings, setActiveTab, setActiveAttendanceSubTab, setActiveSubTab]);
-
   if (isLoading) {
     return (
       <LoadingScreen
@@ -2552,11 +2113,37 @@ export default function LoginPage() {
     <motion.div
       className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
     >
-      {isAPIworking && !isOffline && (
-        <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-          ⚠️ Unable to connect to API services. Please check back later. ⚠️
-        </div>
-      )}
+      <AnimatePresence>
+        {isAPIworking && !isOffline && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[320px] px-4"
+          >
+            <div className="flex items-center justify-between gap-3 p-3.5 bg-red-50/90 dark:bg-zinc-950/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-2xl shadow-xl">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 dark:bg-red-950/40 text-red-650 dark:text-red-400 flex items-center justify-center shrink-0">
+                  <WifiOff size={16} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-black text-red-900 dark:text-red-400 leading-none">Connection Offline</h4>
+                  <p className="text-[10px] text-red-700/80 dark:text-red-400/70 font-semibold mt-1 truncate">
+                    Unable to connect to VTOP API services.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAPIworking(false)}
+                className="p-1 rounded-lg text-red-500 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {showReloadBanner && (
         <SyncNotification
           message={message}
@@ -2600,6 +2187,7 @@ export default function LoginPage() {
           {showIntro === true ? (
             <IntroPage
               settings={settings}
+              username={IDs.VtopUsername}
               setSettings={(fn: any) => {
                 if (typeof fn === "function") {
                   setSettings((prev: settings) => {
@@ -2695,8 +2283,9 @@ export default function LoginPage() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
-        commands={mergedCommands}
-        onQueryChange={setPaletteQuery}
+        commands={cmds}
+        apiBase={API_BASE}
+        demoMode={demoMode || IDs.VtopUsername === "demo"}
       />
       {isShortcutsHelpOpen && (
         <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
@@ -2781,34 +2370,4 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EventPreviewCard({ eid, IDs, demoMode }: { eid: string; IDs: any; demoMode: boolean }) {
-  const [data, setData] = useState<{ imageSrc: string; description: string; metaDetails: Record<string, string> } | null>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    loginToEventHub(IDs, demoMode).then(jsessionid => {
-      if (!jsessionid || cancelled) { if (!cancelled) setLoading(false); return; }
-      return fetch(`${API_BASE}/api/events/preview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsessionid, eid }),
-        signal: controller.signal
-      });
-    }).then(async r => { if (!r || !r.ok) return null; return r.json(); }).then(j => {
-      if (!cancelled) { setData(j); setLoading(false); }
-    }).catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; controller.abort(); };
-  }, [eid, IDs, demoMode]);
-  if (loading) return <div className="w-full h-20 rounded-xl bg-gray-100  dark:bg-gray-900 animate-pulse" />;
-  if (!data?.imageSrc) return null;
-  return (
-    <div className="space-y-2">
-      <img src={data.imageSrc} alt="" className="w-full h-28 object-cover rounded-xl" />
-      {data.description && <p className="text-xs font-medium text-gray-900  dark:text-gray-100">{data.description}</p>}
-      {data.metaDetails && Object.entries(data.metaDetails).map(([k, v]) => (
-        <p key={k} className="text-xs text-gray-600  dark:text-gray-400"><span className="text-gray-400">{k}:</span> {v}</p>
-      ))}
-    </div>
-  );
-}
+

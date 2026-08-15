@@ -5,8 +5,8 @@ import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Calendar as CalendarIcon, ChevronRight, BookOpen, EyeOff, Plus, CheckCircle2, Award, FileText, ListChecks, GraduationCap } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import { motion, AnimatePresence } from "framer-motion";
-import ExamsScheduleDisplay from "../Exams/SchduleDisplay";
-import { MoodleUserPassForm } from "../Exams/moodleDisplay";
+import ExamsScheduleDisplay from "../exams/ScheduleDisplay";
+import { MoodleUserPassForm } from "../exams/MoodleDisplay";
 import config from "../../../../config.json";
 import OverallTrackerSubpage from "./OverallTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -58,7 +58,7 @@ function isInstructionalEvent(e) {
     return false;
 }
 
-export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, registeredEvents, setActiveAttendanceSubTab }) {
+export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, setActiveAttendanceSubTab }) {
     
     const [homeworkTracker, setHomeworkTracker] = useState(() => {
         if (typeof window !== "undefined") {
@@ -169,16 +169,18 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
         if (!arr.length) return [];
 
         arr.forEach((a: any) => {
-            a.viewLink?.forEach((h: any) => {
-                if (!dateMap[h.date]) {
-                    dateMap[h.date] = { dateObj: new Date(h.date), allClasses: [] };
-                }
-                dateMap[h.date].allClasses.push({
-                    courseCode: a.courseCode,
-                    courseTitle: a.courseTitle,
-                    status: h.status.toLowerCase()
+            if (Array.isArray(a.viewLink)) {
+                a.viewLink.forEach((h: any) => {
+                    if (!dateMap[h.date]) {
+                        dateMap[h.date] = { dateObj: new Date(h.date), allClasses: [] };
+                    }
+                    dateMap[h.date].allClasses.push({
+                        courseCode: a.courseCode,
+                        courseTitle: a.courseTitle,
+                        status: h.status.toLowerCase()
+                    });
                 });
-            });
+            }
         });
 
         const dates = Object.keys(dateMap).sort((a, b) => dateMap[b].dateObj.getTime() - dateMap[a].dateObj.getTime());
@@ -336,7 +338,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
                 if (attendanceData && attendanceData.attendance) {
                     attendanceData.attendance.forEach(course => {
-                        if(course.viewLink) {
+                        if (Array.isArray(course.viewLink)) {
                             course.viewLink.forEach(vl => {
                                 const vlDate = new Date(vl.date);
                                 if(vlDate.getFullYear() === cYear && vlDate.getMonth() === cMonth && vlDate.getDate() === Number(d.date)) {
@@ -379,29 +381,12 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                     });
                 }
 
-                if (registeredEvents && Array.isArray(registeredEvents)) {
-                    registeredEvents.forEach(ev => {
-                        if (!ev.date) return;
-                        const evDateParts = ev.date.split('-');
-                        if (evDateParts.length !== 3) return;
-                        // Assuming format DD-MMM-YYYY or YYYY-MM-DD - the scraper outputs things like '20-Oct-2023'
-                        const evDate = new Date(ev.date);
-                        if (evDate.getFullYear() === cYear && evDate.getMonth() === cMonth && evDate.getDate() === Number(d.date)) {
-                            extraEvents.push({
-                                type: "event",
-                                text: `[Event] ${ev.name}`,
-                                category: `${ev.time} | ${ev.venue}`
-                            });
-                        }
-                    });
-                }
-
                 return { ...d, events: [...d.events, ...extraEvents], fullDate: dayDate };
             });
 
             return { ...cal, days: newDays };
         });
-    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker, registeredEvents]);
+    }, [calendars, moodleData, scheduleData, attendanceData, ODhoursData, homeworkTracker]);
 
     const { wastedODsCount, validODsCount, recoveredODsCount, totalODHours } = useMemo(() => {
         let wastedCount = 0;

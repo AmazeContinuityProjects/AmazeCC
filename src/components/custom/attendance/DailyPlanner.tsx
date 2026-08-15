@@ -52,9 +52,10 @@ interface DailyPlannerProps {
   onClassClick?: (course: any) => void;
   simulatedSkips?: Record<string, number>;
   isDayscholarWithBus?: boolean;
+  saturdayOverride?: string;
 }
 
-export default function DailyPlanner({ attendance, activeDay: controlledDay, onActiveDayChange, onClassClick, simulatedSkips = {}, isDayscholarWithBus = false }: DailyPlannerProps) {
+export default function DailyPlanner({ attendance, activeDay: controlledDay, onActiveDayChange, onClassClick, simulatedSkips = {}, isDayscholarWithBus = false, saturdayOverride }: DailyPlannerProps) {
   const slotMap = (config as any).slotMap || {};
   const [internalDay, setInternalDay] = useState(getTodayDay());
   const [nowMins, setNowMins] = useState(0);
@@ -64,6 +65,8 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
     setInternalDay(day);
     onActiveDayChange?.(day);
   };
+
+  const effectiveSatOverride = saturdayOverride || (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") || "SAT" : "SAT");
 
   useEffect(() => {
     const updateTime = () => {
@@ -78,7 +81,15 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
   const todayDay = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
   const isToday = activeDay === (todayDay === "SUN" ? "SUN" : todayDay);
 
+  const getTargetDay = (day: string) => {
+    if (day === "SAT" && effectiveSatOverride && effectiveSatOverride !== "SAT") {
+      return effectiveSatOverride;
+    }
+    return day;
+  };
+
   const getClassCountForDay = (day: string) => {
+    const targetDay = getTargetDay(day);
     const uniqueCourses = new Set();
     (attendance || []).forEach((course: any) => {
       const slots = String(course.slotName || "")
@@ -86,7 +97,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
         .map((s) => s.trim())
         .filter(Boolean);
       slots.forEach((slot) => {
-        if ((slotMap as any)[day]?.[slot]) {
+        if ((slotMap as any)[targetDay]?.[slot]) {
           uniqueCourses.add(course.courseCode);
         }
       });
@@ -95,6 +106,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
   };
 
   const buildDailySchedule = (day: string) => {
+    const targetDay = getTargetDay(day);
     const dayClasses: any[] = [];
     (attendance || []).forEach((course: any) => {
       const slots = String(course.slotName || "")
@@ -102,7 +114,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
         .map((s) => s.trim())
         .filter(Boolean);
       slots.forEach((slot) => {
-        const slotInfo = (slotMap as any)[day]?.[slot];
+        const slotInfo = (slotMap as any)[targetDay]?.[slot];
         if (slotInfo?.time) {
           dayClasses.push({
             type: "class",
@@ -184,10 +196,10 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
   const scheduleData = buildDailySchedule(activeDay);
 
-  // Count classes for empty-state check
+  const activeTargetDay = getTargetDay(activeDay);
   const dayHasClasses = (attendance || []).some((course: any) => {
     const slots = String(course.slotName || "").split("+").map(s => s.trim()).filter(Boolean);
-    return slots.some(slot => (slotMap as any)[activeDay]?.[slot]);
+    return slots.some(slot => (slotMap as any)[activeTargetDay]?.[slot]);
   });
 
   return (
@@ -207,7 +219,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
                 className={`flex flex-col items-center min-w-[68px] p-2 rounded-xl border transition-all ${
                   isActive
                     ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                    : "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-855 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
+                    : "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 text-gray-650 dark:text-gray-300"
                 }`}
               >
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? "text-blue-100" : "text-gray-400 dark:text-gray-500"}`}>
@@ -227,7 +239,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
 
       {/* Timeline */}
       {!dayHasClasses ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-855 rounded-2xl py-12">
+        <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-55/50 dark:bg-black/30 border border-dashed border-gray-250 dark:border-gray-800 rounded-2xl py-12">
           <span className="text-4xl mb-3" role="img" aria-label="party">🎉</span>
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">No Classes Scheduled</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mt-1">
@@ -235,13 +247,13 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
           </p>
         </div>
       ) : (
-        <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100 dark:border-gray-855 py-2">
+        <div className="space-y-4 relative pl-4 sm:pl-6 border-l border-gray-100 dark:border-gray-800 py-2">
           {scheduleData.map((item: any, index: number) => {
             if (item.type === "free") {
               return (
                 <div key={index} className="relative">
                   <div className="absolute left-[-21px] sm:left-[-29px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-750" />
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-855 bg-gray-55/35 dark:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20">
+                  <div className="flex items-center gap-4 p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 bg-gray-55/35 dark:bg-black/10 select-none transition-all hover:bg-gray-50/50 dark:hover:bg-slate-900/20">
                     <div className="p-2.5 rounded-lg bg-gray-100 dark:bg-slate-850 text-gray-500 dark:text-gray-400">
                       <Coffee size={16} />
                     </div>
@@ -294,9 +306,20 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               ? parseFloat(((attendedClassesCount / totalClassesCount) * 100).toFixed(1))
               : originalPercentage;
 
-            const thresholdPct = isDayscholarWithBus ? 85 : 75;
+            let thresholdPct = 75;
+            if (typeof window !== "undefined") {
+              try {
+                const saved = localStorage.getItem("settings");
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
+                }
+              } catch (e) {}
+            }
 
-            let borderStyle = isLab ? "border-l-4 border-l-purple-500" : "border-l-4 border-l-blue-500";
+            let borderStyle = isLab 
+              ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 
+              : "border-l-4 border-l-blue-500 dark:border-l-blue-500";
             let cardStyle = "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800";
             let dotColor = isLab ? "bg-purple-500" : "bg-blue-500";
 
@@ -304,7 +327,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               cardStyle = "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
               dotColor = "bg-amber-500 ring-4 ring-amber-400/35";
             } else if (isCompleted) {
-              cardStyle = "bg-white dark:bg-[#060606] border-gray-100 dark:border-gray-855 opacity-60";
+              cardStyle = "bg-white dark:bg-[#060606] border-gray-100 dark:border-gray-800 opacity-60";
               dotColor = "bg-emerald-500";
             }
 
@@ -329,7 +352,7 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
                 </div>
 
                 <div
-                  onClick={() => onClassClick?.(c)}
+                  onClick={() => onClassClick?.(item)}
                   className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 hover:shadow-md cursor-pointer relative ${borderStyle} ${cardStyle}`}
                 >
                   <div className="flex-1 min-w-0 space-y-1 pr-14">

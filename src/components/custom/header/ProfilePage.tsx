@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE } from "../Main";
+import { setCustomApiUrl } from "@/lib/fetch-utils";
 import {
   X,
   Save,
@@ -37,7 +38,7 @@ import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
-import { IconToggle } from "../toggle";
+import { IconToggle } from "../Toggle";
 import { AboutSection } from "./AboutSection";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
@@ -83,8 +84,6 @@ export default function ProfilePage({
   setPassword,
   decimalValues,
   setDecimalValues,
-  loadingScreen,
-  setLoadingScreen,
   isDayscholarWithBus,
   setIsDayscholarWithBus,
   residentialStatus,
@@ -115,6 +114,26 @@ export default function ProfilePage({
   const [appIcon, setAppIcon] = useState<string>("default");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
+  const [customApiInput, setCustomApiInput] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("amazecc_custom_api_url") || "";
+    }
+    return "";
+  });
+
+  const saveCustomApiUrl = () => {
+    if (customApiInput) {
+      setCustomApiUrl(customApiInput);
+      alert("Custom API endpoint saved! Please refresh the application to apply changes.");
+    }
+  };
+
+  const clearCustomApiUrl = () => {
+    setCustomApiInput("");
+    setCustomApiUrl("");
+    alert("API endpoint reset to default. Please refresh the application.");
+  };
+
   const [profileData, setProfileData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<any>(null);
   const [hostelInfo, setHostelInfo] = useState<any>(null);
@@ -145,7 +164,7 @@ export default function ProfilePage({
     background: "#f8fafc",
     surface: "#ffffff",
   };
-  const displayProfileImage = !(settings?.hideProfileImageOutsideInfo && mode !== "info");
+  const displayProfileImage = settings?.showProfilePhoto || mode === "info";
 
   // Collapsible Sync states
   const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
@@ -164,6 +183,27 @@ export default function ProfilePage({
   const updateSetting = (key: string, value: any) => {
     setSettings((prev: any) => {
       const next = { ...prev, [key]: value };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleToggleAllSync = (enable: boolean) => {
+    setSettings((prev: any) => {
+      const next = {
+        ...prev,
+        syncArrearData: enable,
+        syncCourseOptionChange: enable,
+        syncExcRegistration: enable,
+        syncMinorHonour: enable,
+        syncCourseCompletion: enable,
+        syncAdditionalLearning: enable,
+        syncProfileData: enable,
+        syncExamData: enable,
+        syncWishlist: enable,
+        syncProject: enable,
+        syncProjectCourse: enable,
+      };
       localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
@@ -243,7 +283,7 @@ export default function ProfilePage({
   }, [currSemesterID, username]);
 
   useEffect(() => {
-    if (!creds?.cookies) return;
+    if (!creds || !creds.cookies) return;
     try {
       const stored = localStorage.getItem("profile");
       if (stored) {
@@ -371,7 +411,6 @@ export default function ProfilePage({
     } else {
       setTheme(val);
     }
-    window.setTimeout(() => window.location.reload(), 80);
   };
 
   // Advanced section helpers
@@ -786,17 +825,6 @@ export default function ProfilePage({
 
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Profile Image Privacy</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Only show your profile image in My Info</p>
-                    </div>
-                    <Switch
-                      checked={settings?.hideProfileImageOutsideInfo ?? false}
-                      onCheckedChange={(val) => updateSetting("hideProfileImageOutsideInfo", val)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
                       <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
                     </div>
@@ -809,7 +837,7 @@ export default function ProfilePage({
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display your profile photo in the dashboard and sidebar</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Display your profile photo in the dashboard and sidebar</p>
                     </div>
                     <Switch
                       checked={settings?.showProfilePhoto ?? false}
@@ -819,12 +847,12 @@ export default function ProfilePage({
 
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Promote Cab Share</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Show a Cab Share promo card at the top of the mobile home screen</p>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Grades Anonymizer Mode</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-455">Blur all CGPA, credits, and course grades to protect privacy (hover to reveal)</p>
                     </div>
                     <Switch
-                      checked={settings?.promoteCabShare ?? false}
-                      onCheckedChange={(val) => updateSetting("promoteCabShare", val)}
+                      checked={settings?.blurGrades ?? false}
+                      onCheckedChange={(val) => updateSetting("blurGrades", val)}
                     />
                   </div>
 
@@ -968,6 +996,24 @@ export default function ProfilePage({
                       <option value="WEI">Weekend Intra Semester</option>
                     </select>
                   </div>
+
+                  {/* Target Attendance Threshold */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Target Attendance Threshold</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-450">Required attendance percentage for shortage calculations</p>
+                    </div>
+                    <select
+                      value={settings?.targetAttendance ?? 75}
+                      onChange={(e) => updateSetting("targetAttendance", parseInt(e.target.value))}
+                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-semibold"
+                    >
+                      <option value={75}>75% (Standard Requirement)</option>
+                      <option value={80}>80% (Safety Margin)</option>
+                      <option value={85}>85% (Bus Registration / High Goal)</option>
+                      <option value={90}>90% (Honor Target)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
@@ -983,15 +1029,6 @@ export default function ProfilePage({
                       <p className="text-xs text-gray-550 dark:text-gray-450">Show stats/GPA rounded to 1 decimal place</p>
                     </div>
                     <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
-                  </div>
-
-                  {/* Loading screen toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Legacy Loading Screen</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display classic layout loader during fetches</p>
-                    </div>
-                    <Switch checked={loadingScreen} onCheckedChange={setLoadingScreen} />
                   </div>
 
                   {/* Compact Mobile view toggle */}
@@ -1012,6 +1049,62 @@ export default function ProfilePage({
                     <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
                   </div>
 
+                  {/* Default Academics Tab */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Default Academics View</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Initial view when opening Academics Hub</p>
+                    </div>
+                    <select
+                      value={settings?.defaultAcademicsTab || "overview"}
+                      onChange={(e) => updateSetting("defaultAcademicsTab", e.target.value)}
+                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
+                    >
+                      <option value="overview">Academics Hub (Overview)</option>
+                      <option value="course-dashboard">Course Hub (Current Courses)</option>
+                      <option value="curriculum">Degree Curriculum</option>
+                      <option value="grades">Grade History</option>
+                      <option value="predictor">CGPA Predictor</option>
+                      <option value="qbank">Question Bank</option>
+                    </select>
+                  </div>
+
+                  {/* Auto Background Refresh Interval */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Background Auto-Sync Interval</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Automatic periodic data refresh frequency</p>
+                    </div>
+                    <select
+                      value={settings?.autoSyncInterval || "off"}
+                      onChange={(e) => updateSetting("autoSyncInterval", e.target.value)}
+                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
+                    >
+                      <option value="off">Off (Manual Refresh Only)</option>
+                      <option value="15m">Every 15 Minutes</option>
+                      <option value="30m">Every 30 Minutes</option>
+                      <option value="1h">Every 1 Hour</option>
+                    </select>
+                  </div>
+
+                  {/* Low Data Saver Mode */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Low Data Saver Mode</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Disable prefetching heavy assets to save mobile data</p>
+                    </div>
+                    <Switch checked={settings?.lowDataMode ?? false} onCheckedChange={(val) => updateSetting("lowDataMode", val)} />
+                  </div>
+
+                  {/* Sound Effects */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Sound & Action Feedback</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Play subtle audio cues for buttons and task completion</p>
+                    </div>
+                    <Switch checked={settings?.soundEnabled ?? true} onCheckedChange={(val) => updateSetting("soundEnabled", val)} />
+                  </div>
+
                   {/* Pinned Nav Tabs */}
                   <div>
                     <p className="text-sm font-semibold text-gray-850 dark:text-gray-200 mb-1">Pinned Nav Tabs</p>
@@ -1026,6 +1119,7 @@ export default function ProfilePage({
                         { id: "transport", label: "Transport", icon: "Bus" },
                         { id: "more", label: "More", icon: "MoreHorizontal" },
                         { id: "profile", label: "Profile", icon: "User" },
+                        { id: "credentials", label: "Credentials", icon: "Key" },
                       ].map(tab => {
                         const pinned = settings?.pinnedNavTabs ?? [];
                         const isPinned = pinned.includes(tab.id);
@@ -1117,6 +1211,16 @@ export default function ProfilePage({
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
                     </label>
                   )}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Smart Mess Menu Filter</p>
+                      <p className="text-[11px] text-gray-550 dark:text-gray-400">Auto-filter mess menu items for the current week of the month</p>
+                    </div>
+                    <Switch
+                      checked={settings?.smartMessFilter ?? false}
+                      onCheckedChange={(val) => updateSetting("smartMessFilter", val)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1134,7 +1238,23 @@ export default function ProfilePage({
               )}
 
               <div className={`bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
-                  <p className="text-xs text-gray-550 dark:text-gray-400">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 dark:border-gray-800 pb-3">
+                    <p className="text-xs text-gray-550 dark:text-gray-400 font-medium">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleToggleAllSync(true)}
+                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        Enable All
+                      </button>
+                      <button
+                        onClick={() => handleToggleAllSync(false)}
+                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      >
+                        Disable All
+                      </button>
+                    </div>
+                  </div>
 
                 {/* Collapsible Sync Toggles */}
                 <div className="space-y-2">
@@ -1490,6 +1610,42 @@ export default function ProfilePage({
                     </div>
                   </div>
                   <ChevronRight size={14} className="text-gray-400 shrink-0" />
+                </div>
+
+                {/* Custom API URL Configuration */}
+                <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-slate-950/20 text-left">
+                  <div className="flex items-center gap-4 min-w-0 pr-4">
+                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
+                      <Link2 size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Custom API Endpoint URL</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block mt-0.5">Override VTOP and student API data endpoint routes</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://api.amazecc.com"
+                      value={customApiInput}
+                      onChange={(e) => setCustomApiInput(e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-info text-gray-800 dark:text-white"
+                    />
+                    <button
+                      onClick={saveCustomApiUrl}
+                      className="px-3.5 py-1.5 text-[10px] font-black text-white bg-indigo-650 hover:bg-indigo-750 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
+                    >
+                      Save
+                    </button>
+                    {customApiInput && (
+                      <button
+                        onClick={clearCustomApiUrl}
+                        className="px-3.5 py-1.5 text-[10px] font-black text-red-505 border border-red-200 dark:border-red-900/50 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Export Settings */}

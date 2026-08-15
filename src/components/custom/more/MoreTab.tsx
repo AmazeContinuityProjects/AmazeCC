@@ -1,6 +1,6 @@
-import React from "react";
+
 import MoreSubTabs from "./MoreSubTabs";
-import FFCSTimetableTab from "../Exams/FFCSTimetableTab";
+import FFCSTimetableTab from "../exams/FFCSTimetableTab";
 import SocialTab from "../social/SocialTab";
 import EventHubTab from "../events/EventHubTab";
 import ClubHubTab from "./ClubHubTab";

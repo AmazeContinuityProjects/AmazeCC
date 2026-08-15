@@ -236,9 +236,9 @@ input, textarea, [contenteditable] {
 }
 
 /* ── Dark Theme Distinguished Cards Override ── */
-.dark div.rounded-2xl.border,
-.dark div.rounded-xl.border,
-.dark div.rounded-lg.border,
+.dark div.rounded-2xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
+.dark div.rounded-xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
+.dark div.rounded-lg.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
 .dark .solid-card,
 .dark .solid-card {
   background-color: var(--surface) !important;
@@ -291,19 +291,56 @@ input, textarea, [contenteditable] {
 }
 
 
-/* Custom View Transition Animation for Theme Switch */
-::view-transition-old(root) {
-  animation: 350ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
-}
-::view-transition-new(root) {
-  animation: 350ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+
+
+/* Optimize AppLibrary sheet overlay performance on mobile by disabling heavy backdrop-blur */
+@media (max-width: 768px) {
+  .fixed.bottom-0.left-0.right-0.z-\[60\] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .fixed.inset-0.z-\[55\] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* GPU Hardware accelerate the mobile floating bottom navigation bar */
+  .mobile-bottom-nav-bar {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* GPU Hardware accelerate and smooth the overflow-y scrolling in the AppLibrary sheet drawer */
+  .fixed.bottom-0.left-0.right-0.z-\[60\] div.overflow-y-auto {
+    will-change: scroll-position, transform;
+    -webkit-overflow-scrolling: touch;
+    transform: translate3d(0, 0, 0);
+    overscroll-behavior-y: contain;
+  }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: scale(0.995); }
-  to { opacity: 1; transform: scale(1); }
+@keyframes laser-scan {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
 }
-@keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+.scanner-laser {
+  position: absolute;
+  animation: laser-scan 2.5s linear infinite;
+}
+
+/* ── Circular Wave View Transition for Theme Switch ── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
 }

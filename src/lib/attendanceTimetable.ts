@@ -26,8 +26,16 @@ export function getTodayAttendanceDay(date = new Date()): AttendanceDay {
 
 export function buildAttendanceDayCardsMap(
   attendance: any[] = [],
-  slotMap: any = (config as any).slotMap
+  slotMap: any = (config as any).slotMap,
+  saturdayOverride?: string
 ): AttendanceDayCardsMap {
+  let satDay = saturdayOverride;
+  if (!satDay && typeof window !== "undefined") {
+    try {
+      satDay = localStorage.getItem("saturday_timetable_override") || undefined;
+    } catch {}
+  }
+
   const map = ATTENDANCE_DAYS.reduce((acc, day) => {
     acc[day] = [];
     return acc;
@@ -41,7 +49,8 @@ export function buildAttendanceDayCardsMap(
 
     slots.forEach((cleanSlot) => {
       ATTENDANCE_DAYS.forEach((day) => {
-        const info = slotMap?.[day]?.[cleanSlot];
+        const lookupDay = (day === "SAT" && satDay && satDay !== "SAT") ? satDay : day;
+        const info = slotMap?.[lookupDay]?.[cleanSlot];
         if (!info) return;
 
         const pct = parseInt(course.attendancePercentage);

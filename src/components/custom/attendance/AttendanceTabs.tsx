@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import NoContentFound from "../NoContentFound";
-import OverallAttendancePredictor from "./overallAttendancePredictor";
+import OverallAttendancePredictor from "./OverallAttendancePredictor";
 import { BadgeQuestionMark, Calendar, Users } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import DailyPlanner from "./DailyPlanner";
@@ -27,16 +27,21 @@ const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
     </div>
   )
 });
-export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen }) {
+export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen, setActiveTab, setActiveSubTab }: any) {
   const isMobile = useIsMobile();
   const days = [...ATTENDANCE_DAYS];
-  const [expandedIdx, setExpandedIdx] = useState(null);
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
+  const [saturdayOverride, setSaturdayOverride] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("saturday_timetable_override") || "SAT";
+    }
+    return "SAT";
+  });
 
   const getOngoingIndex = (dayClasses) => {
     if (!dayClasses || dayClasses.length === 0) return 0;
@@ -68,9 +73,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   useEffect(() => {
     if (setIsSubpageOpen) {
-      setIsSubpageOpen(expandedIdx !== null || showPredictor || showTimetable || showCommonFree || ODhoursIsOpen);
+      setIsSubpageOpen(showPredictor || showTimetable || showCommonFree || ODhoursIsOpen);
     }
-  }, [expandedIdx, showPredictor, showTimetable, showCommonFree, ODhoursIsOpen, setIsSubpageOpen]);
+  }, [showPredictor, showTimetable, showCommonFree, ODhoursIsOpen, setIsSubpageOpen]);
 
   useEffect(() => {
     // Load friends meant for dashboard
@@ -78,7 +83,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
     setDashboardFriends(allFriends.filter(f => f.showInHomePage));
   }, []);
 
-  const dayCardsMap = buildAttendanceDayCardsMap(data?.attendance || []);
+  const dayCardsMap = useMemo(() => {
+    return buildAttendanceDayCardsMap(data?.attendance || [], undefined, saturdayOverride);
+  }, [data?.attendance, saturdayOverride]);
 
   const { results, importantEvents } = analyzeAllCalendars(calendars);
 
@@ -247,7 +254,16 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   const dayHasCriticalCourse = (dayName: string) => {
     const courses = dayCardsMap[dayName] || [];
-    const threshold = isDayscholarWithBus ? 85 : 75;
+    let threshold = 75;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("settings");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetAttendance) threshold = Number(parsed.targetAttendance);
+        }
+      } catch (e) {}
+    }
     return courses.some(c => {
       const skips = simulatedSkips[c.courseCode] || 0;
       const attended = parseInt(c.attendedClasses);
@@ -260,22 +276,6 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
   const activeDayClasses = dayCardsMap[activeDay] || [];
 
   if (!data || !data.attendance || data.attendance.length === 0) return <NoContentFound />;
-
-  if (expandedIdx !== null && dayCardsMap[activeDay]?.[expandedIdx]) {
-    return (
-      <AttendanceSubpage
-        a={dayCardsMap[activeDay][expandedIdx]}
-        onBack={() => setExpandedIdx(null)}
-        dayCardsMap={dayCardsMap}
-        analyzeCalendars={results}
-        impDates={impDates}
-        decimalValues={decimalValues}
-        isDayscholarWithBus={isDayscholarWithBus}
-      />
-    );
-  }
-
-
 
   return (
     <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -405,6 +405,46 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
         })()}
       </div>
 
+      {/* Saturday Timetable Override Dropdown */}
+      {activeDay === "SAT" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-blue-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:via-blue-950/30 dark:to-purple-950/30 border border-indigo-200/60 dark:border-indigo-850 shadow-xs mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-wider font-outfit">
+                Saturday Order Selection
+              </h4>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+                Working Saturday? Choose which weekday's timetable order to follow today.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-indigo-700 dark:text-indigo-300">Following:</span>
+            <select
+              value={saturdayOverride}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSaturdayOverride(val);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("saturday_timetable_override", val);
+                }
+              }}
+              className="bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-100 text-xs font-black rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
+            >
+              <option value="SAT">Default Saturday Schedule</option>
+              <option value="MON">Monday's Timetable (MON)</option>
+              <option value="TUE">Tuesday's Timetable (TUE)</option>
+              <option value="WED">Wednesday's Timetable (WED)</option>
+              <option value="THU">Thursday's Timetable (THU)</option>
+              <option value="FRI">Friday's Timetable (FRI)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Daily Planner Timeline — replaces old mobile cards + desktop timeline */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_400px] gap-8 p-0 items-start">
         <div>
@@ -413,11 +453,21 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             activeDay={activeDay}
             simulatedSkips={simulatedSkips}
             isDayscholarWithBus={isDayscholarWithBus}
-            onClassClick={(course) => {
-              const idx = activeDayClasses.findIndex(c => c.courseCode === course.courseCode);
+            saturdayOverride={saturdayOverride}
+            onClassClick={(item) => {
+              const idx = activeDayClasses.findIndex(c => 
+                c.courseCode === item.course.courseCode &&
+                c.slotName.split("+").some(slot => item.slots.includes(slot))
+              );
               if (idx !== -1) {
                 setDesktopSelectedIdx(idx);
-                setExpandedIdx(idx);
+                if (isMobile) {
+                  localStorage.setItem("course_dashboard_target", item.course.courseCode);
+                  localStorage.setItem("course_dashboard_tab", "attendance");
+                  if (setActiveTab) setActiveTab("academics");
+                  if (setActiveSubTab) setActiveSubTab("course-dashboard");
+                  if (setIsSubpageOpen) setIsSubpageOpen(true);
+                }
               }
             }}
           />
@@ -433,7 +483,14 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
               results={results}
               dayCardsMap={dayCardsMap}
               impDates={impDates}
-              onViewFullPage={() => setExpandedIdx(desktopSelectedIdx)}
+              onViewFullPage={() => {
+                const courseCode = dayCardsMap[activeDay][desktopSelectedIdx].courseCode;
+                localStorage.setItem("course_dashboard_target", courseCode);
+                localStorage.setItem("course_dashboard_tab", "attendance");
+                if (setActiveTab) setActiveTab("academics");
+                if (setActiveSubTab) setActiveSubTab("course-dashboard");
+                if (setIsSubpageOpen) setIsSubpageOpen(true);
+              }}
               simulatedSkips={simulatedSkips[dayCardsMap[activeDay][desktopSelectedIdx].courseCode] || 0}
               onSimulateSkipsChange={(val) => {
                 setSimulatedSkips(prev => ({

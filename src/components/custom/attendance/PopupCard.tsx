@@ -151,8 +151,17 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
                         const attended = a.attendedClasses;
                         const total = a.totalClasses;
                         const percentage = (attended / total) * 100;
-                        const threshold = isDayscholarWithBus ? 0.85 : 0.75;
-                        const thresholdPct = isDayscholarWithBus ? 85 : 75;
+                        let thresholdPct = 75;
+                        if (typeof window !== "undefined") {
+                            try {
+                                const saved = localStorage.getItem("settings");
+                                if (saved) {
+                                    const parsed = JSON.parse(saved);
+                                    if (parsed.targetAttendance) thresholdPct = Number(parsed.targetAttendance);
+                                }
+                            } catch (e) {}
+                        }
+                        const threshold = thresholdPct / 100;
 
                         if (percentage < thresholdPct) {
                             const needed = Math.ceil((threshold * total - attended) / (1 - threshold));
@@ -240,7 +249,7 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
 
                 <div className="flex-1 pr-1 mt-2">
                     <ul className="list-disc list-inside text-xs space-y-1">
-                        {a.viewLink?.map((d, i) => (
+                        {Array.isArray(a.viewLink) && a.viewLink.map((d, i) => (
                             <li
                                 key={i}
                                                 className={
