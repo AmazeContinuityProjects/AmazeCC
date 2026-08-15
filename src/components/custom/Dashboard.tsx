@@ -1,35 +1,29 @@
 "use client";
 import { getAssetPath } from "@/lib/utils";
 import NavigationTabs from "./header/NavigationTabs";
-import StatsCards from "./statCards";
-import GradesModal from "./Exams/GradesModal";
-import AttendanceTabs from "./attendance/attendanceTabs";
-import AcademicsHub from "./Exams/AcademicsHub";
-import MarksDisplay from "./Exams/MarksDisplay";
-import ExamsScheduleDisplay from "./Exams/SchduleDisplay";
-import TestGradesContainer from "./Exams/TestGradesContainer";
-import CurriculumPage from "./Exams/CurriculumPage";
-import GPAPredictorTab from "./Exams/GPAPredictorTab";
-import HostelSubTabs from "./Hostel/HostelSubsTab";
-import MessDisplay from "./Hostel/messDisplay";
-import LaundryDisplay from "./Hostel/LaundryDisplay";
-import AttendanceSubTabs from "./attendance/AttendanceSubsTabs";
+import StatsCards from "./StatCards";
+import GradesModal from "./exams/GradesModal";
+import AttendanceTabs from "./attendance/AttendanceTabs";
+import AcademicsHub from "./exams/AcademicsHub";
+import TestGradesContainer from "./exams/TestGradesContainer";
+import CurriculumPage from "./exams/CurriculumPage";
+import GPAPredictorTab from "./exams/GPAPredictorTab";
+import MessDisplay from "./hostel/MessDisplay";
+import LaundryDisplay from "./hostel/LaundryDisplay";
 import CalendarView from "./attendance/CalendarView";
 import { useState, useEffect, useRef, useCallback } from "react";
-import LeaveDisplay from "./Hostel/LeaveDisplay";
-import HostelOverview from "./Hostel/HostelOverview";
-import HostelCounsellingView from "./Hostel/HostelCounsellingView";
-import CabShareTab from "./Hostel/CabShare/CabShareTab";
-import CabShareMatchCard from "./Hostel/CabShare/CabShareMatchCard";
-import AllGradesDisplay from "./Exams/AllGradesDisplay";
+import LeaveDisplay from "./hostel/LeaveDisplay";
+import HostelOverview from "./hostel/HostelOverview";
+import HostelCounsellingView from "./hostel/HostelCounsellingView";
+import CabShareTab from "./hostel/CabShare/CabShareTab";
+import CabShareMatchCard from "./hostel/CabShare/CabShareMatchCard";
 import BusFinder from "./dayscholar/BusFinder";
 import MobileHome from "./mobile/MobileHome";
 import AboutTab from "./AboutTab";
 
 import { API_BASE } from "./Main";
-import CourseDashboard from "./Exams/CourseDashboard";
+import CourseDashboard from "./exams/CourseDashboard";
 import { RefreshCcw, Calendar, MapPin } from "lucide-react";
-import ScheduleSubTab from "./Exams/ScheduleSubTab";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
@@ -56,23 +50,22 @@ const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
 });
 import QBankSubTabs from "./qbank/QBankSubTabs";
 import PaymentsTab from "./PaymentsTab";
-import LibrariesTab from "./Libraries/LibrariesTab";
-import ArrearTab from "./Exams/ArrearTab";
+import LibrariesTab from "./libraries/LibrariesTab";
+import ArrearTab from "./exams/ArrearTab";
 import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import MakeupCompreTab from "./Exams/MakeupCompreTab";
-import CourseMgmtTab from "./Exams/CourseMgmtTab";
-import ProjectsTab from "./Exams/ProjectsTab";
-import WishlistTab from "./Exams/WishlistTab";
-import FreeClassroomsTab from "./Exams/FreeClassroomsTab";
-import CircularsTab from "./Exams/CircularsTab";
-import FacultyInfoTab from "./Exams/FacultyInfoTab";
+import MakeupCompreTab from "./exams/MakeupCompreTab";
+import CourseMgmtTab from "./exams/CourseMgmtTab";
+import ProjectsTab from "./exams/ProjectsTab";
+import WishlistTab from "./exams/WishlistTab";
+import FreeClassroomsTab from "./exams/FreeClassroomsTab";
+import CircularsTab from "./exams/CircularsTab";
+import FacultyInfoTab from "./exams/FacultyInfoTab";
 
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
-import FresherWelcomePage, { hasFutureExam } from "./FresherWelcomePage";
+import FresherWelcomePage from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
-import GenericApiView from "./Exams/GenericApiView";
 import Modal from "./shared/Modal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -129,8 +122,8 @@ export default function DashboardContent({
   setIDs,
   registeredEvents,
   setRegisteredEvents,
-  vitolData,
-  setVitolData,
+  vitolData: _vitolData,
+  setVitolData: _setVitolData,
   settings,
   setSettings,
   onOpenCommandPalette,
@@ -151,7 +144,35 @@ export default function DashboardContent({
       setShowFresherWelcome(true);
       return;
     }
-  }, []);
+
+    try {
+      const ept = localStorage.getItem("cache_ept_schedule");
+      const ack = localStorage.getItem("cache_acknowledgement");
+      const dismissed = localStorage.getItem("fresherWelcomeDismissed");
+      
+      let hasFresherData = false;
+      if (ept) {
+        const parsedEpt = JSON.parse(ept);
+        setFresherEptData(parsedEpt);
+        if (parsedEpt.tables?.[0]?.rows?.length > 0) {
+          hasFresherData = true;
+        }
+      }
+      if (ack) {
+        const parsedAck = JSON.parse(ack);
+        setFresherAckData(parsedAck);
+        if (parsedAck.tables?.[1]?.rows?.length > 0) {
+          hasFresherData = true;
+        }
+      }
+
+      if (hasFresherData && dismissed !== "true") {
+        setShowFresherWelcome(true);
+      }
+    } catch (e) {
+      console.error("Failed to load fresher data from localStorage", e);
+    }
+  }, [demoMode]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/fresher-resources`)
@@ -180,7 +201,7 @@ export default function DashboardContent({
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
-  const [hostelCounsellingCreds, setHostelCounsellingCreds] = useState<any>(null);
+
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
 
@@ -472,31 +493,7 @@ export default function DashboardContent({
     }
   };
 
-  const handleScheduleFetch = async () => {
-    setIsReloading(true);
-    try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const ScheduleRes = await fetch(`${API_BASE}/api/schedule`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
-      });
-      const ScheduleData = await ScheduleRes.json();
-      setProgressBar((prev) => prev + 40);
-      setScheduleData(ScheduleData);
-      localStorage.setItem("schedule", JSON.stringify(ScheduleData));
-      setMessage((prev) => prev + "\n✅ Schedule reloaded successfully!");
-      setProgressBar(100);
-      setIsReloading(false);
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Schedule fetch failed, check console.")
-      );
-      setProgressBar(0);
-    }
-  };
 
   const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -541,7 +538,10 @@ export default function DashboardContent({
   if (showFresherWelcome) {
     return (
       <FresherWelcomePage
-        onDismiss={() => setShowFresherWelcome(false)}
+        onDismiss={() => {
+          localStorage.setItem("fresherWelcomeDismissed", "true");
+          setShowFresherWelcome(false);
+        }}
         username={IDs?.VtopUsername || ""}
         friendlyName={settings?.friendlyName || ""}
         eptData={fresherEptData}
@@ -716,6 +716,7 @@ export default function DashboardContent({
                 setHostelActiveSubTab={setHostelActiveSubTab}
                 setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                 setActiveMoreSubTab={setActiveMoreSubTab}
+                setActiveProfileSubTab={setActiveProfileSubTab}
                 handleReloadRequest={handleReloadRequest}
                 onOpenCommandPalette={onOpenCommandPalette}
                 profileData={profileData}
@@ -725,77 +726,6 @@ export default function DashboardContent({
 
           {activeTab === "attendance" && attendanceData?.attendance && (
             <div className="animate-fadeIn">
-              {(() => {
-                // Determine upcoming events within the next 7 days
-                if (!registeredEvents || !Array.isArray(registeredEvents) || registeredEvents.length === 0) return null;
-                const now = new Date();
-                now.setHours(0,0,0,0);
-                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-                const parseEventDate = (dateStr: string) => {
-                  const d = new Date(dateStr);
-                  if (!isNaN(d.getTime())) return d;
-
-                  // Try parsing DD-MM-YYYY or DD/MM/YYYY
-                  const parts = dateStr.split(/[-/]/);
-                  if (parts.length === 3) {
-                    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                  }
-                  return new Date(0); // fallback
-                };
-
-                const upcoming = registeredEvents.filter(ev => {
-                  if (!ev.date) return false;
-                  const d = parseEventDate(ev.date);
-                  return d >= now && d <= nextWeek;
-                }).sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
-
-                if (upcoming.length === 0) return null;
-
-                return (
-                  <div className={`mb-8 ${isSubpageOpen ? "hidden" : ""}`}>
-                    <div className="flex items-center justify-between mb-4 px-1">
-                      <h3 className="text-lg font-bold text-gray-900  dark:text-white">Upcoming Events</h3>
-                    </div>
-                    <div
-                      className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0"
-                      data-prevent-swipe="true"
-                    >
-                      {upcoming.map((ev, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            sessionStorage.setItem("pendingEventOpen", ev.name);
-                            setActiveTab("more");
-                            setActiveMoreSubTab("events");
-                          }}
-                          className="min-w-[85vw] sm:min-w-[300px] md:min-w-0 snap-center bg-white  dark:bg-black rounded-2xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer hover:border-info transition-all hover:shadow-md group relative overflow-hidden flex flex-col justify-between shrink-0"
-                        >
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-info-surface rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-
-                          <div className="z-10">
-                            <h4 className="font-bold text-lg mb-2 text-gray-900  dark:text-white group-hover:text-info transition-colors line-clamp-1">{ev.name}</h4>
-                            <p className="text-sm text-gray-500  dark:text-gray-400 mb-4 flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{ev.date} • {ev.time}</span>
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between text-xs font-medium mt-auto z-10 pt-4 border-t border-gray-100  dark:border-gray-800/50">
-                            <span className="flex items-center gap-1 text-gray-600  dark:text-gray-300 truncate pr-2">
-                              <MapPin className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{ev.venue}</span>
-                            </span>
-                            <span className={`px-2.5 py-1 rounded-full shrink-0 ${(ev.paymentStatus || "").toLowerCase().includes('paid') || (ev.paymentStatus || "").toLowerCase().includes('free') ? 'bg-green-100 text-green-700   dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-700   dark:bg-red-900/20 dark:text-red-400'}`}>
-                              {ev.paymentStatus || "Registered"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
 
 
 
@@ -813,6 +743,8 @@ export default function DashboardContent({
                     ODhoursData={ODhoursData}
                     ODhoursIsOpen={ODhoursIsOpen}
                     setODhoursIsOpen={setODhoursIsOpen}
+                    setActiveTab={setActiveTab}
+                    setActiveSubTab={setActiveSubTab}
                   />
                 </>
               )}
@@ -831,7 +763,6 @@ export default function DashboardContent({
                     setMoodleData={setMoodleData}
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
-                    registeredEvents={registeredEvents}
                     setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                   />
                 </div>
@@ -910,7 +841,13 @@ export default function DashboardContent({
               {activeSubTab === "qbank" && (
                 marksData ? (
                   <div className="animate-fadeIn">
-                    <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
+                    <QBankSubTabs activeSubTab={activeQBankSubTab} setActiveSubTab={setActiveQBankSubTab} />
+                    {activeQBankSubTab === "archive" && (
+                      <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
+                    )}
+                    {activeQBankSubTab === "pure" && (
+                      <PureQBankTab allGradesData={allGradesData} marksData={marksData} setActiveSubTab={setActiveSubTab} />
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4 p-4">
@@ -1076,14 +1013,7 @@ export default function DashboardContent({
                     return next;
                   });
                 }}
-                loadingScreen={settings.loadingScreen}
-                setLoadingScreen={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, loadingScreen: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
+
                 isDayscholarWithBus={settings.isDayscholarWithBus}
                 setIsDayscholarWithBus={(val: boolean) => {
                   setSettings(prev => {

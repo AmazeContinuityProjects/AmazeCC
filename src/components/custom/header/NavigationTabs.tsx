@@ -10,7 +10,9 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
+
 import { getAssetPath } from "@/lib/utils";
+import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
   BookOpen,
   Building,
@@ -35,6 +37,7 @@ import {
   Bus,
   Sun,
   Moon,
+  Lightbulb,
   Search,
   X,
   Coffee,
@@ -44,6 +47,7 @@ import {
   Car,
   CarTaxiFront,
   MoreHorizontal,
+  Pin,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -91,6 +95,18 @@ function formatSemesterName(semId: string): string {
   else if (term === "07") termName = "Summer";
   else termName = `Term ${term}`;
   return `${termName} ${year1}-${year2}`;
+}
+
+function getTabIdFromLabel(label: string): string | null {
+  const lower = label.toLowerCase();
+  if (lower === "attendance") return "attendance";
+  if (lower === "academics overview" || lower === "course dashboard" || lower === "academics") return "academics";
+  if (lower === "hostel payments" || lower === "payments") return "payments";
+  if (lower === "libraries" || lower === "question bank") return "libraries";
+  if (lower === "cab share") return "cabshare";
+  if (lower === "transport") return "transport";
+  if (lower === "credentials") return "credentials";
+  return null;
 }
 
 const navButtonBase =
@@ -159,8 +175,8 @@ export default function NavigationTabs({
   const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
   const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
-  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
-  const [mobilePanel, setMobilePanel] = useState<"primary" | "academics" | "hostel">("primary");
+
+
 
   // Theme settings (next-themes)
   const { theme, setTheme } = useTheme();
@@ -285,6 +301,8 @@ export default function NavigationTabs({
     window.scrollTo(0, 0);
   }, [setActiveTab]);
 
+
+
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroup(current => (current === groupId ? "" : groupId));
   }, []);
@@ -293,20 +311,108 @@ export default function NavigationTabs({
     setActiveRailGroup(current => (current === groupId ? null : groupId));
   }, []);
 
+  // Removed old layout items as they are now fully isolated inside AppLibraryPortal
+
+  const tabIcons = useMemo<Record<string, { icon: React.ReactNode; label: string }>>(() => ({
+    attendance: activeAttendanceSubTab === "calendar"
+      ? { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Calendar" }
+      : { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
+    academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
+    payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
+    libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
+    cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
+    transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
+    more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
+    profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
+    credentials: { icon: <Key className="h-5 w-5 stroke-[2]" />, label: "Credentials" },
+  }), [activeAttendanceSubTab]);
+
+  const togglePin = useCallback((tabId: string) => {
+    const current = settings?.pinnedNavTabs ?? [];
+    const isPinned = current.includes(tabId);
+    const atLimit = !isPinned && current.length >= 4;
+    if (atLimit) return;
+    const next = isPinned
+      ? current.filter((id: string) => id !== tabId)
+      : [...current, tabId];
+    setSettings((prev: any) => {
+      const updated = { ...prev, pinnedNavTabs: next };
+      localStorage.setItem("settings", JSON.stringify(updated));
+      return updated;
+    });
+  }, [settings, setSettings]);
+
+  const rawNavItems = useMemo(() => {
+    const pinnedTabs = settings?.pinnedNavTabs ?? [];
+    const rawItems: any[] = [
+      {
+        id: "home",
+        icon: <Home className="h-5 w-5 stroke-[2]" />,
+        label: "Home",
+        isActive: activeTab === "home" && !isAppLibraryOpen,
+        onClick: () => {
+          setIsAppLibraryOpen(false);
+          selectTab("home");
+        },
+      },
+    ];
+
+    if (pinnedTabs.length === 0) {
+      rawItems.push({
+        id: "search",
+        icon: <Search className="h-5 w-5 stroke-[2]" />,
+        label: "Search",
+        isActive: false,
+        onClick: openCommandPalette,
+      });
+    } else {
+      pinnedTabs.forEach((tabId: string) => {
+        const t = tabIcons[tabId];
+        if (t) {
+          rawItems.push({
+            id: tabId,
+            icon: t.icon,
+            label: t.label,
+            isActive: tabId === "credentials"
+              ? (activeTab === "profile" && activeProfileSubTab === "credentials" && !isAppLibraryOpen)
+              : (activeTab === tabId && !isAppLibraryOpen),
+            onClick: () => {
+              setIsAppLibraryOpen(false);
+              if (tabId === "credentials") {
+                selectTab("profile");
+                setActiveProfileSubTab("credentials");
+              } else {
+                selectTab(tabId);
+                if (tabId === "attendance") {
+                  setActiveAttendanceSubTab("attendance");
+                }
+              }
+            },
+          });
+        }
+      });
+    }
+
+    rawItems.push({
+      id: "modules",
+      icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
+      label: "Modules",
+      isActive: isAppLibraryOpen,
+      onClick: () => {
+        setIsAppLibraryOpen(prev => !prev);
+      },
+    });
+
+    return rawItems;
+  }, [settings?.pinnedNavTabs, activeTab, activeProfileSubTab, isAppLibraryOpen, selectTab, openCommandPalette, tabIcons, setIsAppLibraryOpen, setActiveAttendanceSubTab, setActiveProfileSubTab]);
+
   const sidebarActiveStyles = "bg-sidebar-accent border border-sidebar-border text-info font-semibold";
   const sidebarActiveIconStyles = "text-info font-semibold";
   const railActiveStyles = "bg-sidebar-accent text-info border border-sidebar-border shadow-sm";
 
-  const handleThemeChange = (selectedTheme: string) => {
+  const handleThemeChange = (selectedTheme: string, e?: React.MouseEvent<HTMLElement>) => {
     if (theme === selectedTheme) return;
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-      (document as any).startViewTransition(() => {
-        setTheme(selectedTheme);
-      });
-    } else {
-      setTheme(selectedTheme);
-    }
-    
+    animateThemeCircularExpansion(e || null, selectedTheme, setTheme);
   };
 
   // Keyboard navigation
@@ -524,6 +630,63 @@ export default function NavigationTabs({
     { id: "account", label: "Account", icon: Settings, items: accountItems },
   ], [studyItems, campusItems, toolsItems, accountItems]);
 
+  const pinnedItems = useMemo(() => {
+    const pinnedTabs = settings?.pinnedNavTabs ?? [];
+    const tabData: Record<string, { label: string; icon: any; onSelect: () => void; isActive: boolean }> = {
+      attendance: {
+        label: "Attendance",
+        icon: CalendarCheck,
+        isActive: activeTab === "attendance",
+        onSelect: () => { selectTab("attendance"); }
+      },
+      academics: {
+        label: "Academics",
+        icon: GraduationCap,
+        isActive: activeTab === "academics",
+        onSelect: () => { selectTab("academics"); }
+      },
+      payments: {
+        label: "Payments",
+        icon: CreditCard,
+        isActive: activeTab === "payments",
+        onSelect: () => { selectTab("payments"); }
+      },
+      libraries: {
+        label: "Libraries",
+        icon: Library,
+        isActive: activeTab === "libraries",
+        onSelect: () => { selectTab("libraries"); }
+      },
+      cabshare: {
+        label: "Cab Share",
+        icon: CarTaxiFront,
+        isActive: activeTab === "cabshare",
+        onSelect: () => { selectTab("cabshare"); }
+      },
+      transport: {
+        label: "Transport",
+        icon: Bus,
+        isActive: activeTab === "transport",
+        onSelect: () => { selectTab("transport"); }
+      },
+      more: {
+        label: "More",
+        icon: MoreHorizontal,
+        isActive: activeTab === "more",
+        onSelect: () => { selectTab("more"); }
+      },
+      profile: {
+        label: "Profile",
+        icon: User,
+        isActive: activeTab === "profile",
+        onSelect: () => { selectTab("profile"); }
+      }
+    };
+    return pinnedTabs
+      .map((id: string) => ({ id, ...tabData[id] }))
+      .filter((item: any) => item.label !== undefined);
+  }, [settings?.pinnedNavTabs, activeTab, selectTab]);
+
   const academicsItems = useMemo(() => [
     {
       id: "overview",
@@ -684,313 +847,80 @@ export default function NavigationTabs({
   ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
   const renderMobileNav = () => {
-    const allSearchableItems = [
-      { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
-      { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
-      
-      { label: "Academics Overview", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
-      { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
-      { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
-      { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
-      { label: "CGPA Predictor", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("predictor"); } },
-      { label: "Faculty Explorer", group: "Academics", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } },
-      { label: "Question Bank", group: "Academics", icon: Library, action: () => { selectTab("academics"); setActiveSubTab("qbank"); } },
-      { label: "Arrear Management", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("arrear"); } },
-      { label: "Makeup & Compre", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("makeup-compre"); } },
-      { label: "Course Options", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-mgmt"); } },
-      { label: "Projects", group: "Academics", icon: LayoutGrid, action: () => { selectTab("academics"); setActiveSubTab("projects"); } },
-      { label: "Wishlist", group: "Academics", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } },
-      
-      { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
-      { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
-      { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
-      { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
-      { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
-      { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
-      
-      { label: "Cab Share", group: "Campus", icon: CarTaxiFront, action: () => { selectTab("cabshare"); } },
-      { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
-      { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
-      { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
-      
-      { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
-      { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
-      { label: "Club Hub", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
-      { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-      
-      { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-      { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
-      { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
-      { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
-    ];
-
-    // Primary mobile structure mirroring desktop groups
-    const primaryGroups = [
-      {
-        name: "Study",
-        items: [
-          { label: "Attendance", icon: CalendarCheck, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
-          { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
-          { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
-        ]
-      },
-      {
-        name: "Campus",
-        items: [
-          { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => selectTab("cabshare") },
-          { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
-          { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
-          ...(isHosteller === true || residentialStatus === "hosteller" 
-            ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
-            : [{ label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") }])
-        ]
-      },
-      {
-        name: "Tools",
-        items: [
-          { label: "Social", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
-          { label: "FFCS Planner", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-          { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
-          { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } }
-        ]
-      },
-      {
-        name: "Account",
-        items: [
-          { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-          { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
-          { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
-          { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
-        ]
-      }
-    ];
-
-    const academicsItemsMobile = allSearchableItems.filter(item => item.group === "Academics");
-    const hostelItemsMobile = allSearchableItems.filter(item => item.group === "Hostel");
-
-    // Filter items based on search query
-    const filteredSearchItems = librarySearchQuery
-      ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
-      : [];
-
-    const pinnedTabs = settings?.pinnedNavTabs ?? [];
-    const tabIcons: Record<string, { icon: React.ReactNode; label: string }> = {
-      attendance: { icon: <CalendarCheck className="h-5 w-5 stroke-[2]" />, label: "Attendance" },
-      academics: { icon: <GraduationCap className="h-5 w-5 stroke-[2]" />, label: "Academics" },
-      payments: { icon: <CreditCard className="h-5 w-5 stroke-[2]" />, label: "Payments" },
-      libraries: { icon: <Library className="h-5 w-5 stroke-[2]" />, label: "Libraries" },
-      cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
-      transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
-      more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
-      profile: { icon: <User className="h-5 w-5 stroke-[2]" />, label: "Profile" },
-    };
-
-    const rawNavItems: any[] = [
-      {
-        id: "home",
-        icon: <Home className="h-5 w-5 stroke-[2]" />,
-        label: "Home",
-        isActive: activeTab === "home" && !isAppLibraryOpen,
-        onClick: () => {
-          setIsAppLibraryOpen(false);
-          selectTab("home");
-        },
-      },
-    ];
-
-    if (pinnedTabs.length === 0) {
-      rawNavItems.push({
-        id: "search",
-        icon: <Search className="h-5 w-5 stroke-[2]" />,
-        label: "Search",
-        onClick: openCommandPalette,
-      });
-    } else {
-      pinnedTabs.forEach((tabId: string) => {
-        const t = tabIcons[tabId];
-        if (t) {
-          rawNavItems.push({
-            id: tabId,
-            icon: t.icon,
-            label: t.label,
-            isActive: activeTab === tabId && !isAppLibraryOpen,
-            onClick: () => {
-              setIsAppLibraryOpen(false);
-              selectTab(tabId);
-            },
-          });
-        }
-      });
-    }
-
-    rawNavItems.push({
-      id: "modules",
-      icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />,
-      label: "Modules",
-      isActive: isAppLibraryOpen,
-      onClick: () => {
-        setMobilePanel("primary");
-        setIsAppLibraryOpen(prev => !prev);
-      },
-    });
-
-    const isCompact = rawNavItems.length > 5 || pinnedTabs.length >= 2;
-
     return (
       <>
-        <MobileBottomNav items={rawNavItems} compact={isCompact} />
+        {/* Sleek Floating Pill Bottom Navigation Bar */}
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+          {rawNavItems.map((item) => {
+            const isActive = item.isActive;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={item.onClick}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
+              >
+                {/* Floating pill background highlight that fades and scales in on active */}
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                  />
+                )}
 
-        <AppLibrary
+                {/* Relative container to raise icon and text above active highlight */}
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  {/* Icon with scale effect on active */}
+                  <motion.div 
+                    animate={isActive ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
+                    transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
+                    className={`p-1 transition-colors duration-300 ${
+                      isActive 
+                        ? "text-info" 
+                        : "text-zinc-400 dark:text-zinc-555 hover:text-zinc-655 dark:hover:text-zinc-300"
+                    }`}
+                  >
+                    {item.icon}
+                  </motion.div>
+
+                  {/* Tab Title */}
+                  <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${
+                    isActive 
+                      ? "text-info font-black" 
+                      : "text-zinc-400 dark:text-zinc-555"
+                  }`}>
+                    {item.label}
+                  </span>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <AppLibraryPortal
           open={isAppLibraryOpen}
-          onClose={() => { setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
-          title={mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
-          subtitle={mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
-          showBack={mobilePanel !== "primary"}
-          onBack={() => setMobilePanel("primary")}
-          searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
-          onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
-        >
-          {mobilePanel === "primary" && (
-            <div className="flex items-center gap-1.5 px-1 pb-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Active Sem:</span>
-              <div className="relative flex items-center">
-                <select
-                  value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    handleReloadRequest(val);
-                  }}
-                  className="appearance-none border-none bg-transparent py-0 pr-3.5 text-xs font-black text-info hover:underline focus:outline-none"
-                >
-                  {config.semesterIDs.map((semId: string) => (
-                    <option key={semId} value={semId} className="bg-white text-xs text-gray-900 dark:bg-neutral-900 dark:text-white">
-                      {formatSemesterName(semId)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-info" />
-              </div>
-            </div>
-          )}
-
-          {librarySearchQuery ? (
-            filteredSearchItems.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No modules found matching "{librarySearchQuery}"</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Search Results</h3>
-                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                  {filteredSearchItems.map(item => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => { item.action(); setIsAppLibraryOpen(false); setLibrarySearchQuery(""); }}
-                        className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                      >
-                        <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
-                          <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                        </div>
-                        <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )
-          ) : mobilePanel === "primary" ? (
-            primaryGroups.map(group => (
-              <div key={group.name} className="space-y-2">
-                <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">{group.name}</h3>
-                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                  {group.items.map(item => {
-                    const Icon = item.icon;
-                    const isPanelTrigger = item.type === "panel";
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => { item.action(); if (!isPanelTrigger) setIsAppLibraryOpen(false); }}
-                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
-                            <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                          </div>
-                          <span className="truncate text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label}</span>
-                        </div>
-                        {isPanelTrigger && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
-          ) : mobilePanel === "academics" ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                {academicsItemsMobile.map(item => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
-                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                    >
-                      <div className="rounded-xl bg-purple-50 p-2 text-purple-600 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
-                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                      </div>
-                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Academics ", "")}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                {hostelItemsMobile.map(item => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => { item.action(); setIsAppLibraryOpen(false); }}
-                      className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5 text-left shadow-xs transition-all active:scale-[0.98] dark:border-gray-800/80 dark:bg-gray-900"
-                    >
-                      <div className="rounded-xl bg-amber-50 p-2 text-amber-600 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
-                        <Icon className="h-4.5 w-4.5 stroke-[2]" />
-                      </div>
-                      <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300">{item.label.replace("Hostel ", "")}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
-            <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">Interface Theme</h4>
-            <div className="flex w-full gap-1 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
-              {["light", "dark", "system"].map(t => (
-                <button
-                  key={t}
-                  onClick={() => handleThemeChange(t)}
-                  className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all ${
-                    theme === t
-                      ? "bg-white text-info shadow-xs dark:bg-black"
-                      : "text-gray-500 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white"
-                  }`}
-                >
-                  {t === "light" && <Sun className="h-3.5 w-3.5" />}
-                  {t === "dark" && <Moon className="h-3.5 w-3.5" />}
-                  {t === "system" && <Settings className="h-3.5 w-3.5" />}
-                  <span>{t}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </AppLibrary>
+          onClose={() => setIsAppLibraryOpen(false)}
+          settings={settings}
+          setSettings={setSettings}
+          selectTab={selectTab}
+          setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+          setActiveSubTab={setActiveSubTab}
+          setHostelActiveSubTab={setHostelActiveSubTab}
+          setActiveMoreSubTab={setActiveMoreSubTab}
+          setActiveProfileSubTab={setActiveProfileSubTab}
+          handleLogOutRequest={handleLogOutRequest}
+          handleReloadRequest={handleReloadRequest}
+          isHosteller={isHosteller}
+          residentialStatus={residentialStatus}
+          theme={theme}
+          handleThemeChange={handleThemeChange}
+          openCommandPalette={openCommandPalette}
+          tabIcons={tabIcons}
+          togglePin={togglePin}
+        />
       </>
     );
   };
@@ -1020,11 +950,12 @@ export default function NavigationTabs({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={handleReloadClick}
-                  className={`relative group rounded-xl p-1.5 text-sidebar-foreground/ transition-all duration-300 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:scale-105 ${navButtonBase}`}
-                  title="Reload data"
-                  aria-label="Reload data"
+                  className={`relative group rounded-xl px-2.5 py-1.5 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase}`}
+                  title="Sync Data from VTOP"
+                  aria-label="Sync Data from VTOP"
                 >
-                  <RefreshCcw className={`h-4 w-4 transition-transform ${isSpinning ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
+                  <RefreshCcw className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`} />
+                  <span>Sync</span>
                 </button>
                 <button
                   onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}
@@ -1167,6 +1098,24 @@ export default function NavigationTabs({
           <SidebarContent>
             {!showAcademicsPanel && !showHostelPanel ? (
               <div className="space-y-4">
+                {pinnedItems.length > 0 && (
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Pinned Shortcuts</SidebarGroupLabel>
+                    <div className="space-y-0.5 pt-0.5 pb-1">
+                      {pinnedItems.map((item) => (
+                        <SidebarItem
+                          key={item.id}
+                          icon={<item.icon className="h-5 w-5" />}
+                          label={item.label}
+                          isActive={item.isActive}
+                          onClick={item.onSelect}
+                          onKeyDown={(event) => handleNavKeyDown(event, item.onSelect)}
+                        />
+                      ))}
+                    </div>
+                  </SidebarGroup>
+                )}
+
                 {groups.map((group) => (
                   <SidebarGroup key={group.id}>
                     <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -1248,6 +1197,34 @@ export default function NavigationTabs({
             <div className="flex flex-1 min-h-0 flex-col items-center justify-start w-full mt-3">
             {/* Divider */}
             <div className="w-8 border-t border-sidebar-border mb-3" />
+
+            {pinnedItems.length > 0 && (
+              <>
+                <nav className="flex flex-col items-center gap-2.5 w-full mb-3" aria-label="Pinned rail shortcuts">
+                  {pinnedItems.map(item => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <div key={item.id} className="relative flex justify-center group/rail">
+                        <button
+                          onClick={item.onSelect}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 ${
+                            item.isActive
+                              ? railActiveStyles
+                              : "text-sidebar-foreground/ hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent"
+                          } ${navButtonBase}`}
+                          title={item.label}
+                          aria-label={`Open ${item.label}`}
+                        >
+                          <ItemIcon className={`h-5 w-5 transition-transform duration-300 ${item.isActive ? 'scale-110 text-info' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </nav>
+                {/* Secondary Divider */}
+                <div className="w-8 border-t border-sidebar-border mb-3" />
+              </>
+            )}
 
             {/* Navigation Rail Buttons */}
             <nav className="flex flex-col items-center gap-2.5 w-full" aria-label="Navigation rail">
@@ -1533,3 +1510,473 @@ export default function NavigationTabs({
     </>
   );
 }
+
+// Optimized Sub-component to isolate App Library state & prevent parent re-renders
+const AppLibraryPortal = memo(({
+  open,
+  onClose,
+  settings,
+  setSettings,
+  selectTab,
+  setActiveAttendanceSubTab,
+  setActiveSubTab,
+  setHostelActiveSubTab,
+  setActiveMoreSubTab,
+  setActiveProfileSubTab,
+  handleLogOutRequest,
+  handleReloadRequest,
+  isHosteller,
+  residentialStatus,
+  theme,
+  handleThemeChange,
+  openCommandPalette,
+  tabIcons,
+  togglePin,
+}: any) => {
+  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
+  const [mobilePanel, setMobilePanel] = useState<"primary" | "academics" | "hostel">("primary");
+
+  // Cleanup state on close
+  useEffect(() => {
+    if (!open) {
+      setLibrarySearchQuery("");
+      setMobilePanel("primary");
+    }
+  }, [open]);
+
+  // Memoized variables inside the portal to isolate changes
+  const allSearchableItems = useMemo(() => [
+    { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+    { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+    
+    { label: "Academics Overview", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("overview"); } },
+    { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
+    { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
+    { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
+    { label: "CGPA Predictor", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("predictor"); } },
+    { label: "Faculty Explorer", group: "Academics", icon: User, action: () => { selectTab("academics"); setActiveSubTab("faculty-info"); } },
+    { label: "Question Bank", group: "Academics", icon: Library, action: () => { selectTab("academics"); setActiveSubTab("qbank"); } },
+    { label: "Arrear Management", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("arrear"); } },
+    { label: "Makeup & Compre", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("makeup-compre"); } },
+    { label: "Course Options", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-mgmt"); } },
+    { label: "Projects", group: "Academics", icon: LayoutGrid, action: () => { selectTab("academics"); setActiveSubTab("projects"); } },
+    { label: "Wishlist", group: "Academics", icon: Settings, action: () => { selectTab("academics"); setActiveSubTab("wishlist"); } },
+    
+    { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
+    { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
+    { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
+    { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
+    { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
+    { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
+    
+    { label: "Cab Share", group: "Campus", icon: CarTaxiFront, action: () => { selectTab("cabshare"); } },
+    { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
+    { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
+    { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
+    
+    { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+    { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+    { label: "Club Hub", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
+    { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+    
+    { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+    { label: "Credentials", group: "Account", icon: Key, action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
+    { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+    { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
+    { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
+  ], [selectTab, setActiveAttendanceSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+
+  const primaryGroups = useMemo(() => [
+    {
+      name: "Study",
+      items: [
+        { label: "Attendance", icon: CalendarCheck, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
+        { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+        { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
+      ]
+    },
+    {
+      name: "Campus",
+      items: [
+        { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => selectTab("cabshare") },
+        { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
+        { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
+        ...(isHosteller === true || residentialStatus === "hosteller" 
+          ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
+          : [{ label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") }])
+      ]
+    },
+    {
+      name: "Tools",
+      items: [
+        { label: "Social", icon: User, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
+        { label: "FFCS Planner", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
+        { label: "Event Hub", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+        { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } }
+      ]
+    },
+    {
+      name: "Account",
+      items: [
+        { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
+        { label: "Credentials", icon: Key, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
+        { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+        { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
+        { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
+      ]
+    }
+  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+
+  const academicsItemsMobile = useMemo(() => 
+    allSearchableItems.filter(item => item.group === "Academics"),
+    [allSearchableItems]
+  );
+
+  const hostelItemsMobile = useMemo(() => 
+    allSearchableItems.filter(item => item.group === "Hostel"),
+    [allSearchableItems]
+  );
+
+  const filteredSearchItems = useMemo(() => 
+    librarySearchQuery
+      ? allSearchableItems.filter(item => item.label.toLowerCase().includes(librarySearchQuery.toLowerCase()))
+      : [],
+    [librarySearchQuery, allSearchableItems]
+  );
+
+  return (
+    <AppLibrary
+      open={open}
+      onClose={onClose}
+      title={mobilePanel === "primary" ? "App Library" : mobilePanel === "academics" ? "Academics" : "Hostel Hub"}
+      subtitle={mobilePanel === "primary" ? "Select a module to open" : "Choose a sub-page"}
+      showBack={mobilePanel !== "primary"}
+      onBack={() => setMobilePanel("primary")}
+      searchQuery={mobilePanel === "primary" ? librarySearchQuery : undefined}
+      onSearchChange={mobilePanel === "primary" ? setLibrarySearchQuery : undefined}
+      className="!backdrop-blur-none"
+    >
+      {mobilePanel === "primary" && (
+        <div className="flex items-center gap-1.5 px-1 pb-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">Active Sem:</span>
+          <div className="relative flex items-center">
+            <select
+              value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleReloadRequest(val);
+              }}
+              className="appearance-none border-none bg-transparent py-0 pr-3.5 text-xs font-black text-info hover:underline focus:outline-none"
+            >
+              {config.semesterIDs.map((semId: string) => (
+                <option key={semId} value={semId} className="bg-white text-xs text-gray-900 dark:bg-neutral-900 dark:text-white">
+                  {formatSemesterName(semId)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-info" />
+          </div>
+        </div>
+      )}
+
+      {librarySearchQuery ? (
+        filteredSearchItems.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-555">No modules found matching "{librarySearchQuery}"</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555">Search Results</h3>
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+              {filteredSearchItems.map(item => {
+                const Icon = item.icon;
+                const tabId = getTabIdFromLabel(item.label);
+                const pinned = settings?.pinnedNavTabs ?? [];
+                const isPinned = tabId ? pinned.includes(tabId) : false;
+                const atLimit = !isPinned && pinned.length >= 4;
+
+                return (
+                  <div
+                    key={item.label}
+                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                  >
+                    <button
+                      onClick={() => { item.action(); onClose(); }}
+                      className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                    >
+                      <div className="rounded-xl bg-info-surface p-2 text-info shrink-0">
+                        <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                        <span className="text-[9px] text-zinc-400 dark:text-zinc-555 font-medium">{item.group} category</span>
+                      </div>
+                    </button>
+
+                    {tabId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(tabId);
+                        }}
+                        disabled={atLimit}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                          isPinned
+                            ? "bg-indigo-50 border-indigo-200 text-indigo-655 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                            : atLimit
+                              ? "opacity-20 cursor-not-allowed"
+                              : "border-transparent text-zinc-300 dark:text-zinc-555 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                        }`}
+                        title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                      >
+                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )
+      ) : mobilePanel === "primary" ? (
+        primaryGroups.map(group => (
+          <div key={group.name} className="space-y-2">
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555">{group.name}</h3>
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+              {group.items.map(item => {
+                const Icon = item.icon;
+                const isPanelTrigger = item.type === "panel";
+                const tabId = getTabIdFromLabel(item.label);
+                const pinned = settings?.pinnedNavTabs ?? [];
+                const isPinned = tabId ? pinned.includes(tabId) : false;
+                const atLimit = !isPinned && pinned.length >= 4;
+
+                return (
+                  <div
+                    key={item.label}
+                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                  >
+                    <button
+                      onClick={() => { item.action(); if (!isPanelTrigger) onClose(); }}
+                      className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                    >
+                      <div className={`rounded-xl p-2 shrink-0 transition-all ${
+                        group.name === "Study"
+                          ? "bg-purple-50 text-purple-650 dark:bg-purple-950/30 dark:text-purple-400"
+                          : group.name === "Campus"
+                            ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                            : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                      }`}>
+                        <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
+                          {group.name === "Study" ? "Academic trackers & schedule" : group.name === "Campus" ? "Campus services" : "Social & utilities"}
+                        </span>
+                      </div>
+                    </button>
+
+                    {tabId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(tabId);
+                        }}
+                        disabled={atLimit}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                          isPinned
+                            ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                            : atLimit
+                              ? "opacity-20 cursor-not-allowed"
+                              : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                        }`}
+                        title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                      >
+                        <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                      </button>
+                    )}
+                    
+                    {isPanelTrigger && !tabId && <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      ) : mobilePanel === "academics" ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+            {academicsItemsMobile.map(item => {
+              const Icon = item.icon;
+              const cleanLabel = item.label.replace("Academics ", "");
+              const tabId = getTabIdFromLabel(item.label);
+              const pinned = settings?.pinnedNavTabs ?? [];
+              const isPinned = tabId ? pinned.includes(tabId) : false;
+              const atLimit = !isPinned && pinned.length >= 4;
+
+              return (
+                <div
+                  key={item.label}
+                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                >
+                  <button
+                    onClick={() => { item.action(); onClose(); }}
+                    className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                  >
+                    <div className="rounded-xl bg-purple-50 p-2 text-purple-650 shrink-0 dark:bg-purple-950/30 dark:text-purple-400">
+                      <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-medium font-outfit">Academics Tracker</span>
+                    </div>
+                  </button>
+
+                  {tabId && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePin(tabId);
+                      }}
+                      disabled={atLimit}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                        isPinned
+                          ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                          : atLimit
+                            ? "opacity-20 cursor-not-allowed"
+                            : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-655 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                      }`}
+                      title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                    >
+                      <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+            {hostelItemsMobile.map(item => {
+              const Icon = item.icon;
+              const cleanLabel = item.label.replace("Hostel ", "");
+              const tabId = getTabIdFromLabel(item.label);
+              const pinned = settings?.pinnedNavTabs ?? [];
+              const isPinned = tabId ? pinned.includes(tabId) : false;
+              const atLimit = !isPinned && pinned.length >= 4;
+
+              return (
+                <div
+                  key={item.label}
+                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                >
+                  <button
+                    onClick={() => { item.action(); onClose(); }}
+                    className="flex flex-1 min-w-0 items-center gap-3 text-left cursor-pointer focus:outline-none"
+                  >
+                    <div className="rounded-xl bg-amber-50 p-2 text-amber-655 shrink-0 dark:bg-amber-950/30 dark:text-amber-400">
+                      <Icon className="h-4.5 w-4.5 stroke-[2.2]" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-medium font-outfit">Hostel Hub</span>
+                    </div>
+                  </button>
+
+                  {tabId && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePin(tabId);
+                      }}
+                      disabled={atLimit}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                        isPinned
+                          ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
+                          : atLimit
+                            ? "opacity-20 cursor-not-allowed"
+                            : "border-transparent text-zinc-300 dark:text-zinc-655 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                      }`}
+                      title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
+                    >
+                      <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Customize Pinned Tabs Block */}
+      <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
+        <div className="flex items-center justify-between">
+          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550 font-outfit">Quick Pin tabs (Max 4)</h4>
+          <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
+            {(settings?.pinnedNavTabs ?? []).length}/4 selected
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { id: "attendance", label: "Attendance" },
+            { id: "academics", label: "Academics" },
+            { id: "payments", label: "Payments" },
+            { id: "libraries", label: "Libraries" },
+            { id: "cabshare", label: "Cab Share" },
+            { id: "transport", label: "Transport" },
+            { id: "more", label: "More" },
+            { id: "profile", label: "Profile" },
+            { id: "credentials", label: "Credentials" },
+          ].map(tab => {
+            const pinned = settings?.pinnedNavTabs ?? [];
+            const isPinned = pinned.includes(tab.id);
+            const atLimit = !isPinned && pinned.length >= 4;
+            return (
+              <button
+                key={tab.id}
+                disabled={atLimit}
+                onClick={() => togglePin(tab.id)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[10.5px] font-black border transition-all cursor-pointer select-none ${
+                  isPinned
+                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                    : atLimit
+                      ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-650 cursor-not-allowed opacity-40"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-indigo-400"
+                }`}
+              >
+                {isPinned ? "✓ " : "+ "}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="shrink-0 space-y-2 border-t border-gray-200/50 bg-gray-50/80 px-5 py-4 dark:border-gray-800/50 dark:bg-black/60" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}>
+        <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-550 font-outfit">Interface Theme</h4>
+        <div className="flex w-full gap-1.5 rounded-xl border border-gray-200/20 bg-gray-200/50 p-1 dark:border-gray-800/50 dark:bg-gray-900/50">
+          {["light", "dark"].map(t => (
+            <button
+              key={t}
+              onClick={(e) => handleThemeChange(t, e)}
+              className={`flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-black capitalize transition-all cursor-pointer ${
+                theme === t
+                  ? "bg-white text-info shadow-xs dark:bg-black dark:text-amber-300"
+                  : "text-gray-550 hover:text-gray-955 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              {t === "light" && <Sun className="h-3.5 w-3.5 text-indigo-600" />}
+              {t === "dark" && <Lightbulb className="h-3.5 w-3.5 text-amber-300 fill-amber-300/20 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />}
+              <span>{t}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </AppLibrary>
+  );
+});
+AppLibraryPortal.displayName = "AppLibraryPortal";

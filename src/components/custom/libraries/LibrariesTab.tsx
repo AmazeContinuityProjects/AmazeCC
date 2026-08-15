@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
+import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import SubpageLayout from "../shared/SubpageLayout";
 import { LoadingSpinner } from "../shared";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";

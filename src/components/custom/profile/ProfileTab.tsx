@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import ProfilePage from "../header/ProfilePage";
-import GenericApiView, { clearApiCache } from "../Exams/GenericApiView";
+import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import ProfileSubTabs from "./ProfileSubTabs";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Card, Badge, Modal } from "../shared";
@@ -24,8 +24,6 @@ interface ProfileTabProps {
   setPassword: (val: string[]) => void;
   decimalValues: boolean;
   setDecimalValues: (val: boolean) => void;
-  loadingScreen: boolean;
-  setLoadingScreen: (val: boolean) => void;
   isDayscholarWithBus: boolean;
   setIsDayscholarWithBus: (val: boolean) => void;
   residentialStatus: string;
@@ -96,8 +94,7 @@ const SectionShell = ({ title, icon: Icon, children }: { title: string; icon?: a
 
 export default function ProfileTab(props: ProfileTabProps) {
   const { activeProfileSubTab, setActiveProfileSubTab, loginToVTOP, username, password, setPassword, ...profilePageProps } = props;
-  const { creds, refreshKey, setRefreshKey, reload } = useCredentialSection(loginToVTOP);
-  const [showPassword, setShowPassword] = useState(false);
+  const { creds, refreshKey, reload } = useCredentialSection(loginToVTOP);
   const [changedUsername, setChangedUsername] = useState("");
   const [changedPassword, setChangedPassword] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -129,16 +126,13 @@ export default function ProfileTab(props: ProfileTabProps) {
     } catch (e) {}
   }, [creds]);
 
-  const handleSaveAppLogins = () => {
-    if (changedUsername && changedPassword) {
-      setPassword([changedUsername, changedPassword]);
-    }
-  };
+
 
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto">
+    <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4">
+      <ProfileSubTabs activeTab={activeProfileSubTab} onChange={setActiveProfileSubTab} />
 
       <div className="mt-4">
         {activeProfileSubTab === "info" && (
@@ -162,7 +156,7 @@ export default function ProfileTab(props: ProfileTabProps) {
                 <RefreshCcw className="w-5 h-5" />
               </button>
             </div>
-            {creds && <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />}
+            <CredentialsContent creds={creds} refreshKey={refreshKey} username={username} password={password} setPassword={setPassword} loginToVTOP={loginToVTOP} />
           </div>
         )}
       </div>
@@ -398,7 +392,11 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     }
     setPasswordChangeLoading(true);
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
+      const vtopCreds = await loginToVTOP();
+      if (!vtopCreds || !vtopCreds.cookies) {
+        throw new Error("Failed to authenticate session with VTOP");
+      }
+      const { cookies, authorizedID, csrf } = vtopCreds;
       const res = await fetch(`${API_BASE}/api/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -423,6 +421,10 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
   const handleRefresh = async () => {
     setRefreshing(true);
     clearApiCache();
+    if (!creds || !creds.cookies) {
+      setRefreshing(false);
+      return;
+    }
     const { cookies, authorizedID, csrf } = creds;
     if (authorizedID === "DEMO123") {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -432,7 +434,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             account: "VTOP Student Portal",
             username: "22BCE1234",
             defaultCredentials: "demo-password-vtop",
-            url: "https://vtop.vit.ac.in",
+            url: "https://vtopcc.vit.ac.in",
             venueDate: "Active Session",
             seatLocation: "N/A"
           },
@@ -468,6 +470,11 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
     setChangedUsername(username);
     setChangedPassword(Array.isArray(password) ? password[0] : password);
 
+    if (!creds || !creds.cookies) {
+      setLoading(false);
+      return;
+    }
+
     const { cookies, authorizedID, csrf } = creds;
     if (authorizedID === "DEMO123") {
       setData({
@@ -476,7 +483,7 @@ function CredentialsContent({ creds, refreshKey, username, password, setPassword
             account: "VTOP Student Portal",
             username: "22BCE1234",
             defaultCredentials: "demo-password-vtop",
-            url: "https://vtop.vit.ac.in",
+            url: "https://vtopcc.vit.ac.in",
             venueDate: "Active Session",
             seatLocation: "N/A"
           },

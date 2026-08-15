@@ -41,8 +41,20 @@ export async function loginToVTOP(
         return loginToVTOP(ids, demoMode, true, forceNew, onProgress);
       }
 
-      if (!data.success || !data.authorizedID || !data.cookies)
-        throw new Error(data.message || "Login failed.");
+      if (!data.success || !data.authorizedID || !data.cookies) {
+        let rawMsg = (data.message || "Login failed").trim().replace(/\.+$/, "");
+        let msg = `${rawMsg}.`;
+        const msgLower = rawMsg.toLowerCase();
+        if (
+          msgLower.includes("unknown reason") ||
+          msgLower.includes("reset") ||
+          msgLower.includes("too many") ||
+          msgLower.includes("lock")
+        ) {
+          msg = `${rawMsg}. VTOP may require a password reset due to frequent logins. Try signing into vtopcc.vit.ac.in directly.`;
+        }
+        throw new Error(msg);
+      }
 
       onProgress?.("Login successful", 40);
 

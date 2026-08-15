@@ -74,7 +74,7 @@ export function openTimetablePrintablePage(
   htmlContent: string,
   timetableName: string,
   themeHtmlClass: string,
-  themeBgColor: string,
+  _themeBgColor: string,
   themeTextColor: string
 ): Window | null {
   const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
@@ -158,6 +158,10 @@ export function openTimetablePrintablePage(
               -webkit-backdrop-filter: none;
             }
             body { background: ${isDarkMode ? "#0f172a" : "#ffffff"}; }
+            .overflow-x-auto {
+              overflow: visible !important;
+              overflow-x: visible !important;
+            }
           }
         </style>
       </head>

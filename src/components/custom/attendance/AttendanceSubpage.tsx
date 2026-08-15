@@ -31,6 +31,19 @@ const normalize = (d: Date) => {
     return x.getTime();
 };
 
+function getTargetAttendancePct(): number {
+    if (typeof window !== "undefined") {
+        try {
+            const saved = localStorage.getItem("settings");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.targetAttendance) return Number(parsed.targetAttendance);
+            }
+        } catch (e) {}
+    }
+    return 75;
+}
+
 export function countRemainingClasses(courseCode, slotTime, dayCardsMap, calendarMonths, fromDate = new Date()): RemainingClassDay[] | null {
     if (!courseCode || !dayCardsMap || !calendarMonths) return null;
 
@@ -125,7 +138,7 @@ export function countRemainingClasses(courseCode, slotTime, dayCardsMap, calenda
     return remainingWorkingDays;
 }
 
-function getEffectiveState(
+export function getEffectiveState(
     time: number,
     dateStates: Record<number, number>,
     attendanceLockDates?: Set<number>
@@ -135,7 +148,7 @@ function getEffectiveState(
     return 0; // default attending
 }
 
-function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, isLab = false, impDates, isDayscholarWithBus }) {
+export function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, isLab = false, impDates, isDayscholarWithBus }: any) {
     const [dayStates, setDayStates] = useState<Record<number, number>>({});
     const CLASS_WEIGHT = isLab ? 2 : 1;
 
@@ -192,7 +205,7 @@ function UpcomingClassesList({ classes, attendedClasses = 0, totalClasses = 0, i
     const predictedTotal = totalClasses + upcomingCount;
     const predictedPercent: number = predictedTotal > 0 ? parseFloat(((predictedAttended / predictedTotal) * 100).toFixed(1)) : 0;
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
+    const thresholdPct = getTargetAttendancePct();
 
     return (
         <div className="space-y-4">
@@ -323,11 +336,12 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
         }
     }
 
-    const thresholdPct = isDayscholarWithBus ? 85 : 75;
-    const thresholdDec = isDayscholarWithBus ? 0.85 : 0.75;
+
+    const thresholdPct = getTargetAttendancePct();
+    const thresholdDec = thresholdPct / 100;
 
     // Process History
-    const historyList = a.viewLink || [];
+    const historyList = Array.isArray(a.viewLink) ? a.viewLink : [];
     const filteredHistory = historyList.filter(d => {
         if (filter === "All") return true;
         return d.status.toLowerCase() === filter.toLowerCase();
