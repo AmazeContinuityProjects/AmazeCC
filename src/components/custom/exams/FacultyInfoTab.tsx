@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { API_BASE } from "../Main";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { Search, User, XCircle, Mail, Phone, MapPin, Building2, IdCard } from "lucide-react";
+import { Search, User, XCircle, Mail, Phone, Loader2, Building2, IdCard } from "lucide-react";
 
 interface School {
   id: string;
@@ -27,7 +27,30 @@ const CardShell = ({ children, className = "" }: { children: React.ReactNode; cl
   </div>
 );
 
-const FacultyCard = ({ profile }: { profile: FacultyProfile }) => {
+const FacultyCard = ({ profile, onDetailFetched }: { profile: FacultyProfile; onDetailFetched: (p: FacultyProfile) => void }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (expanded && !profile.email && profile.employeeId) {
+      setLoading(true);
+      fetch(`/api/faculty-profile/${profile.employeeId}`)
+        .then(async (r) => (r.ok ? r.json() : { success: false }))
+        .then((data) => {
+          if (data?.success && data.profile) {
+            onDetailFetched({
+              ...profile,
+              designation: data.profile.designation || profile.designation,
+              email: data.profile.email || "",
+              intercom: data.profile.intercom || "",
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [expanded, profile.email, profile.employeeId]);
+
   return (
     <CardShell className="overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-4 bg-blue-500/10 dark:bg-blue-500/10 border-b border-blue-500/10 flex items-center gap-4">
@@ -49,7 +72,10 @@ const FacultyCard = ({ profile }: { profile: FacultyProfile }) => {
           <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">{profile.designation}</p>
         </div>
       </div>
-      <div className="p-5 space-y-4 bg-white dark:bg-[#0a0a0a]">
+      <div
+        className="p-5 space-y-4 bg-white dark:bg-[#0a0a0a] cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
         {profile.employeeId && (
           <div className="flex items-start gap-3">
             <IdCard className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
@@ -59,23 +85,36 @@ const FacultyCard = ({ profile }: { profile: FacultyProfile }) => {
             </div>
           </div>
         )}
-        {profile.intercom && (
-          <div className="flex items-start gap-3">
-            <Phone className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Intercom</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{profile.intercom}</p>
-            </div>
-          </div>
-        )}
-        {profile.email && (
-          <div className="flex items-start gap-3">
-            <Mail className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
-              <a href={`mailto:${profile.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">{profile.email}</a>
-            </div>
-          </div>
+        {expanded && (
+          <>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                Loading details...
+              </div>
+            ) : (
+              <>
+                {profile.intercom && (
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Intercom</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{profile.intercom}</p>
+                    </div>
+                  </div>
+                )}
+                {profile.email && (
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</p>
+                      <a href={`mailto:${profile.email}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-all">{profile.email}</a>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
     </CardShell>
@@ -217,7 +256,15 @@ export default function FacultyInfoTab({ loginToVTOP, setActiveSubTab }: { login
               {filteredFaculties.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredFaculties.map((f, i) => (
-                    <FacultyCard key={f.id || i} profile={f} />
+                    <FacultyCard
+                      key={f.id || i}
+                      profile={f}
+                      onDetailFetched={(updated) => {
+                        setFaculties((prev) =>
+                          prev.map((p) => (p.id === updated.id ? updated : p))
+                        );
+                      }}
+                    />
                   ))}
                 </div>
               ) : (
