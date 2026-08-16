@@ -803,10 +803,11 @@ export default function DashboardContent({
                   IDs={IDs}
                   setActiveTab={setActiveTab}
                   setActiveSubTab={setActiveSubTab}
-                  setHostelActiveSubTab={setActiveAttendanceSubTab}
+                  setHostelActiveSubTab={setHostelActiveSubTab}
                   setActiveAttendanceSubTab={setActiveAttendanceSubTab}
                   setActiveMoreSubTab={setActiveMoreSubTab}
                   setActiveProfileSubTab={setActiveProfileSubTab}
+                  setActiveToolsSubTab={setActiveToolsSubTab}
                   handleReloadRequest={handleReloadRequest}
                   onOpenCommandPalette={onOpenCommandPalette}
                   profileData={profileData}
