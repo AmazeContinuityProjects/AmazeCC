@@ -143,7 +143,7 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
   useEffect(() => {
     if (typeof window === "undefined" || isDemo) return;
     const hash = window.location.hash;
-    if (hash && hash.includes("share=")) {
+    if (hash && (hash.includes("#s=") || hash.includes("s=") || hash.includes("share="))) {
       try {
         const friend = importScheduleCode(hash);
         if (confirm(`Add ${friend.name} (${friend.regNumber}) to your friends list?`)) {
@@ -151,7 +151,9 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
           loadData();
           window.history.replaceState(null, "", window.location.pathname);
         }
-      } catch (e) {}
+      } catch (e: any) {
+        alert(e?.message || "Failed to import schedule link.");
+      }
     }
   }, [isDemo]);
 
