@@ -1,15 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff, Calendar } from "lucide-react";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff, Sparkles } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import GradesModal from "./GradesModal";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 
-export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, handleFetchGrades }) {
+export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, hideMobileHeader, handleFetchGrades }) {
   const cards = [
+    {
+      id: "courses-simplified",
+      title: "My Courses & Marks",
+      description: "Pill-based course list with instant test marks and grades.",
+      icon: Sparkles,
+      color: "text-white",
+      bg: "bg-gradient-to-br from-indigo-500 to-violet-600 dark:from-indigo-600 dark:to-violet-700",
+      prominent: true,
+    },
     {
       id: "course-dashboard",
       title: "Course Hub",
@@ -18,14 +27,6 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       color: "text-white",
       bg: "bg-gradient-to-br from-indigo-500 to-purple-650 dark:from-indigo-600 dark:to-purple-750",
       prominent: true,
-    },
-    {
-      id: "schedule",
-      title: "Exam Schedule",
-      description: "View CAT, FAT & lab exam timetables, venues and seat numbers.",
-      icon: Calendar,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/5 border-blue-100/50 dark:border-blue-900/30",
     },
     {
       id: "grades",
@@ -58,46 +59,6 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       icon: Database,
       color: "text-rose-600 dark:text-rose-400",
       bg: "bg-gradient-to-br from-rose-50/50 to-pink-50/30 dark:from-rose-950/10 dark:to-pink-950/5 border-rose-100/50 dark:border-rose-900/30",
-    },
-    {
-      id: "arrear",
-      title: "Arrear Management",
-      description: "View arrear schedule, details and grades.",
-      icon: AlertTriangle,
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-gradient-to-br from-amber-50/50 to-yellow-50/30 dark:from-amber-950/10 dark:to-yellow-950/5 border-amber-100/50 dark:border-amber-900/30",
-    },
-    {
-      id: "makeup-compre",
-      title: "Makeup & Compre",
-      description: "Makeup exam eligibility, schedule and compre info.",
-      icon: GraduationCap,
-      color: "text-cyan-600 dark:text-cyan-400",
-      bg: "bg-gradient-to-br from-cyan-50/50 to-blue-50/30 dark:from-cyan-950/10 dark:to-blue-950/5 border-cyan-100/50 dark:border-cyan-900/30",
-    },
-    {
-      id: "course-mgmt",
-      title: "Course Management",
-      description: "Course options, extracurriculars, minor/honour courses.",
-      icon: ScrollText,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-gradient-to-br from-blue-50/50 to-sky-50/30 dark:from-blue-950/10 dark:to-sky-950/5 border-blue-100/50 dark:border-blue-900/30",
-    },
-    {
-      id: "projects",
-      title: "Projects",
-      description: "View your projects and project courses.",
-      icon: FileCode,
-      color: "text-pink-600 dark:text-pink-400",
-      bg: "bg-gradient-to-br from-pink-50/50 to-rose-50/30 dark:from-pink-950/10 dark:to-rose-950/5 border-pink-100/50 dark:border-pink-900/30",
-    },
-    {
-      id: "wishlist",
-      title: "Wishlist & Learning",
-      description: "Wishlist, registration and additional learning courses.",
-      icon: BookMarked,
-      color: "text-teal-600 dark:text-teal-400",
-      bg: "bg-gradient-to-br from-teal-50/50 to-emerald-50/30 dark:from-teal-950/10 dark:to-emerald-950/5 border-teal-100/50 dark:border-teal-900/30",
     },
     {
       id: "faculty-info",
@@ -217,7 +178,6 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
   const toolSummaries: Record<string, string[]> = {
     "course-dashboard": [`${uniqueCurrentCourses.size || currentCourses.length} Courses`, `Avg attendance ${avgAttendance || "-"}%`, `${belowTargetCount} below target`],
-    schedule: ["CAT & FAT timetables", "Seating & venue info", "Export ICS calendar"],
     grades: [`${totalCourses} Courses`, `${passRate}% pass rate`, `Latest GPA ${Number(recentGpa || 0).toFixed(2)}`],
     curriculum: [`${creditsEarned.toFixed(1)} Credits`, `${degreeCompletePercent.toFixed(0)}% complete`, `${Math.max(requiredCredits - creditsEarned, 0).toFixed(1)} remaining`],
     predictor: [savedGoal ? `${savedGoal.target.toFixed(2)} target` : "No saved target", `${currentCgpa.toFixed(2)} current`, "Live calculator"],
@@ -398,7 +358,8 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
       {/* Chart Section */}
       <section className="mt-2">
-        <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs mb-6">
+        {hideMobileHeader && (
+          <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs mb-6">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-lg font-black uppercase text-zinc-800 dark:text-zinc-100 tracking-wider">Overall<br/>Performance</h2>
@@ -465,102 +426,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               </div>
             </CardContent>
           </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-          <Card className="h-full rounded-3xl border border-zinc-200/50 dark:border-zinc-800/80">
-            <CardContent className="p-5 h-full flex flex-col justify-between">
-              <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200 mb-4 font-outfit">Grade Distribution</h3>
-              <div className="w-full h-[230px]">
-                {gradeDistributionData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={gradeDistributionData} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
-                      <XAxis dataKey="name" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#888888" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                      <Tooltip
-                        cursor={{ fill: 'transparent' }}
-                        contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '0.75rem', color: '#f4f4f5' }}
-                        itemStyle={{ color: '#6366f1' }}
-                      />
-                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                        {gradeDistributionData.map((entry, index) => {
-                          const colors: Record<string, string> = {
-                            S: '#10b981', A: '#6366f1', B: '#8b5cf6', C: '#eab308', D: '#f97316', E: '#ef4444', F: '#991b1b', N: '#4b5563'
-                          };
-                          return <Cell key={`cell-${index}`} fill={colors[entry.name] || '#888888'} />
-                        })}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full text-xs text-zinc-400 dark:text-zinc-550">No past grade records available</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="h-full rounded-3xl border border-zinc-200/50 dark:border-zinc-800/80">
-            <CardContent className="p-5 h-full flex flex-col justify-between">
-              <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200 mb-4 font-outfit">Semester Performance</h3>
-              <div className="space-y-2.5 max-h-[230px] overflow-y-auto pr-1" style={{ scrollbarWidth: "none" }}>
-                {Object.entries(data?.grades || {})
-                  .filter(([sem, details]: any) => details && details.gpa)
-                  .map(([sem, details]: any) => {
-                    const gpa = Number(details.gpa).toFixed(2);
-                    const courseCount = details.grades?.length || 0;
-                    const effectiveGrades = Array.isArray(gradesData?.effectiveGrades) ? gradesData.effectiveGrades : [];
-                    const semCredits = details.grades?.reduce((acc: number, curr: any) => {
-                      let credits = parseFloat(curr.creditsEarned) || parseFloat(curr.credits);
-                      if (!credits) {
-                        const matched = effectiveGrades.find(eg => (eg.basketTitle || "").toLowerCase() === (curr.courseTitle || "").toLowerCase() || eg.courseCode === curr.courseCode);
-                        credits = matched ? parseFloat(matched.creditsEarned) : 0;
-                      }
-                      return acc + (credits || 0);
-                    }, 0) || 0;
-                    
-                    let semName = sem;
-                    if (sem.length >= 8 && sem.includes("20")) {
-                      const yearMatch = sem.match(/20\d{4}/);
-                      if (yearMatch) {
-                        const startYear = yearMatch[0].slice(0, 4);
-                        const endYear = "20" + yearMatch[0].slice(4, 6);
-                        let term = "Semester";
-                        if (sem.endsWith("1") || sem.endsWith("01")) term = "Fall";
-                        else if (sem.endsWith("5") || sem.endsWith("05")) term = "Winter";
-                        else if (sem.endsWith("9") || sem.endsWith("09")) term = "Summer";
-                        semName = `${term} Sem ${startYear}-${endYear}`;
-                      }
-                    } else if (sem.length >= 5) {
-                      const match = sem.match(/(\d{2})(\d{2})(\d)/);
-                      if (match) {
-                        const startYear = "20" + match[1];
-                        const endYear = "20" + match[2];
-                        let term = "Semester";
-                        if (match[3] === "1") term = "Fall";
-                        else if (match[3] === "5") term = "Winter";
-                        else if (match[3] === "9") term = "Summer";
-                        semName = `${term} Sem ${startYear}-${endYear}`;
-                      }
-                    }
-                    
-                    return (
-                      <div key={sem} className="flex justify-between items-center p-3 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-50/50 dark:bg-zinc-950/20">
-                        <div>
-                          <p className="font-bold text-zinc-800 dark:text-zinc-200 text-xs">{semName}</p>
-                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-medium">
-                            {courseCount} courses · {semCredits > 0 ? `${semCredits.toFixed(1)} credits` : 'N/A credits'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-500/10 dark:bg-indigo-950/20">
-                          <span className="font-extrabold text-indigo-600 dark:text-indigo-400 text-xs">{gpa}</span>
-                          <span className="text-[8px] text-indigo-400 font-black uppercase tracking-wider">GPA</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        )}
       </section>
 
       {isModalOpen && (

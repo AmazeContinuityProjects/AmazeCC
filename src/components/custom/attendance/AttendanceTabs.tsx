@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./OverallAttendancePredictor";
-import { BadgeQuestionMark, Calendar, Users } from "lucide-react";
+import { BadgeQuestionMark, Calendar, CalendarCheck, Users } from "lucide-react";
 import TimetableGrid from "./TimetableGrid";
 import DailyPlanner from "./DailyPlanner";
 import { getFriends, Friend } from "../../../lib/socialUtils";
@@ -28,9 +28,25 @@ const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
     </div>
   )
 });
-export default function AttendanceTabs({ data, activeDay, setActiveDay, calendars, decimalValues, isDayscholarWithBus, setIsSubpageOpen, ODhoursData, ODhoursIsOpen, setODhoursIsOpen, setActiveTab, setActiveSubTab }: any) {
+export default function AttendanceTabs({ 
+  data, 
+  activeDay: propActiveDay, 
+  setActiveDay: propSetActiveDay, 
+  calendars, 
+  decimalValues, 
+  isDayscholarWithBus, 
+  setIsSubpageOpen, 
+  ODhoursData, 
+  ODhoursIsOpen, 
+  setODhoursIsOpen, 
+  setActiveTab, 
+  setActiveSubTab 
+}: any) {
   const isMobile = useIsMobile();
   const days = [...ATTENDANCE_DAYS];
+  const [internalActiveDay, setInternalActiveDay] = useState("MON");
+  const activeDay = propActiveDay || internalActiveDay;
+  const setActiveDay = propSetActiveDay || setInternalActiveDay;
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
@@ -278,6 +294,20 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
 
   if (!data || !data.attendance || data.attendance.length === 0) return <NoContentFound />;
 
+  if (showPredictor) {
+    return (
+      <OverallAttendancePredictor
+        attendanceData={data.attendance}
+        analyzeCalendars={results}
+        dayCardsMap={dayCardsMap}
+        impDates={impDates}
+        isDayscholarWithBus={isDayscholarWithBus}
+        decimalValues={decimalValues}
+        onBack={() => setShowPredictor(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
@@ -299,8 +329,8 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
             <button onClick={() => setShowTimetable(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer">
               <Calendar className="w-4 h-4" /> <span>Timetable</span>
             </button>
-            <button onClick={() => setShowPredictor(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-[11px] uppercase tracking-wider cursor-pointer">
-              <BadgeQuestionMark className="w-4 h-4" /> <span>Predictor</span>
+            <button onClick={() => setShowPredictor(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition-colors shadow-sm text-xs cursor-pointer">
+              <CalendarCheck className="w-4 h-4" /> <span>Predictor</span>
             </button>
           </>
         }

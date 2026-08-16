@@ -221,26 +221,6 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     )
   ) : undefined;
 
-  if (semesterOptions && allGradesData && allGradesData.grades && endpoint.includes("arrear")) {
-    const [key, val] = semesterOptions;
-    const filteredVal = (val as any[]).filter(o => {
-      if (!o.value || typeof o.value !== "string") return true;
-      const semId = o.value;
-      const sem = allGradesData.grades[semId];
-      if (!sem) return false; // Ignore if not present in allgradesdata
-      let total = 0;
-      const courses = sem.grades || sem;
-      if (Array.isArray(courses)) {
-        courses.forEach((c: any) => {
-          total += (parseFloat(c.creditsEarned) || parseFloat(c.credits) || 0);
-        });
-      }
-      if (total === 0) return false;
-      return true;
-    });
-    semesterOptions = [key, filteredVal] as any;
-  }
-
   const hasSemestersResponse = data?.semesters !== undefined;
   const semestersKeys = data?.semesters ? Object.keys(data.semesters) : [];
 
@@ -317,10 +297,6 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   const semesterHasContent = (semData: any) => {
     if (semData.error) return true;
-    if (endpoint.includes("arrear")) {
-      const regCreds = semData.keyValuePairs?.["Registered Credits"];
-      if (regCreds === "0.0" || regCreds === "0" || regCreds === 0) return false;
-    }
     return semData.tables?.length > 0
       || Object.keys(semData.keyValuePairs || {}).length > 0
       || !!semData.formFields
@@ -434,26 +410,6 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
   const allSelectOptions = data?.selectOptions ? Object.entries(data.selectOptions).filter(([key, val]: any) => Array.isArray(val) && val.length > 0 && !key.toLowerCase().includes("sem")) : [];
 
-  const showArrearContent = () => {
-    if (!endpoint.includes("arrear")) return true;
-    const regCreds = data?.keyValuePairs?.["Registered Credits"];
-    if (regCreds === "0.0" || regCreds === "0" || regCreds === 0) return false;
-
-    if (allGradesData && allGradesData.grades && selectedSemester) {
-      const sem = allGradesData.grades[selectedSemester];
-      if (!sem) return false;
-      let total = 0;
-      const courses = sem.grades || sem;
-      if (Array.isArray(courses)) {
-        courses.forEach((c: any) => {
-          total += (parseFloat(c.creditsEarned) || parseFloat(c.credits) || 0);
-        });
-      }
-      if (total === 0) return false;
-    }
-    return true;
-  };
-
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-bold text-gray-900  dark:text-gray-100">{title}</h3>
@@ -508,7 +464,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
           {loading && <LoadingSpinner size="lg" className="py-8" />}
 
-          {!loading && showArrearContent() ? (
+          {!loading && (
             <>
               {renderKeyValues(data.keyValuePairs)}
               {renderTables(data.tables)}
@@ -579,11 +535,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                 </div>
               )}
             </>
-          ) : !loading && !showArrearContent() ? (
-            <div className="solid-card mb-5">
-              <EmptyState title="No arrears registered for this semester" className="py-12" />
-            </div>
-          ) : null}
+          )}
         </>
       )}
     </div>
