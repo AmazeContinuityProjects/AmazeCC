@@ -1211,7 +1211,7 @@ export default function LoginPage() {
     result.push(
       {
         id: "search-library",
-        label: "📖 Search Library Catalog",
+        label: "Search Library Catalog",
         description: "Search books by title, author, or keyword",
         icon: "📖",
         category: "Search",
@@ -1220,7 +1220,7 @@ export default function LoginPage() {
       },
       {
         id: "search-events",
-        label: "🎪 Search Events",
+        label: "Search Events",
         description: "Search through registered & discoverable events",
         icon: "🎪",
         category: "Search",
@@ -1230,12 +1230,11 @@ export default function LoginPage() {
     );
 
     // ── Settings toggles ──
-    // ── Settings toggles ──
     const toggle = (label: string, key: keyof typeof settings, category: string, icon: string, invertDesc = false) => {
       const current = settings[key] as boolean;
       result.push({
         id: `setting-${key}-on`,
-        label: `${current ? "✅" : "☐"} ${label}`,
+        label: label,
         description: invertDesc
           ? (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on")
           : (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on"),
@@ -1420,7 +1419,7 @@ export default function LoginPage() {
       const overallColor = parseFloat(overallPerc) >= 80 ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : parseFloat(overallPerc) >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
       result.push({
         id: "att-summary",
-        label: "📊 Attendance Summary",
+        label: "Attendance Summary",
         description: `${overallAttended}/${overallTotal} classes · ${below75.length} below 75%`,
         icon: "📊",
         category: `Courses · Attendance`,
@@ -1431,10 +1430,10 @@ export default function LoginPage() {
         const a = c.attendedClasses || 0; const t = c.totalClasses || 0; const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
         result.push({
           id: `att-below75-${c.courseCode}-${i}`,
-          label: `⚠️ ${c.courseTitle} (${c.courseCode})`,
+          label: `${c.courseTitle} (${c.courseCode})`,
           description: `${a}/${t} classes`,
           icon: "🔴",
-          category: "⚠️ Courses Below 75%",
+          category: "Courses Below 75%",
           rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20">{p}%</span>,
           onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
         });
@@ -1515,7 +1514,7 @@ export default function LoginPage() {
         exams.forEach((exam: any, idx: number) => {
           result.push({
             id: `exam-${key}-${idx}`,
-            label: `📝 Exam: ${exam.courseCode || ""} ${exam.courseTitle || ""}`,
+            label: `Exam: ${exam.courseCode || ""} ${exam.courseTitle || ""}`,
             description: `${exam.examDate || ""} · ${exam.examSession || ""} · ${exam.venue || ""}`,
             icon: "📝",
             category: "Exam Schedule",
