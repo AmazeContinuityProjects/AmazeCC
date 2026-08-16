@@ -28,7 +28,9 @@ import {
   ArrowUp,
   ArrowDown,
   RotateCcw,
-  Shirt
+  Shirt,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
@@ -66,26 +68,27 @@ interface WidgetItem {
   id: string;
   title: string;
   enabled: boolean;
+  span?: "full" | "half";
 }
 
 const DEFAULT_WIDGETS: WidgetItem[] = [
-  { id: "insights", title: "Quick Insights Dock", enabled: true },
-  { id: "attendance", title: "Attendance Summary Card", enabled: true },
-  { id: "classes", title: "Today's Classes", enabled: true },
-  { id: "exam_schedule", title: "Upcoming Exam Schedule", enabled: true },
-  { id: "attendance_courses", title: "Course Attendance Detail", enabled: true },
-  { id: "academic_courses", title: "Current Semester Courses", enabled: true },
-  { id: "critical", title: "Critical Attendance Alert", enabled: true },
-  { id: "actions", title: "Quick Actions Grid", enabled: true },
-  { id: "laundry", title: "Laundry Slot Status", enabled: true },
-  { id: "mess", title: "Today's Mess Menu", enabled: true },
-  { id: "deadlines", title: "Upcoming Deadlines", enabled: true },
-  { id: "classrooms", title: "Free Classrooms Finder", enabled: true },
-  { id: "events", title: "Registered Events", enabled: true },
-  { id: "quick_settings", title: "Quick Settings Panel", enabled: true },
-  { id: "cabshare", title: "Cab Share Promo", enabled: false },
-  { id: "cabshare_match", title: "Cab Share Matches", enabled: false },
-  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false },
+  { id: "insights", title: "Quick Insights Dock", enabled: true, span: "full" },
+  { id: "attendance", title: "Attendance Summary Card", enabled: true, span: "full" },
+  { id: "classes", title: "Today's Classes", enabled: true, span: "half" },
+  { id: "exam_schedule", title: "Upcoming Exam Schedule", enabled: true, span: "half" },
+  { id: "attendance_courses", title: "Course Attendance Detail", enabled: true, span: "full" },
+  { id: "academic_courses", title: "Current Semester Courses", enabled: true, span: "full" },
+  { id: "critical", title: "Critical Attendance Alert", enabled: true, span: "full" },
+  { id: "actions", title: "Quick Actions Grid", enabled: true, span: "half" },
+  { id: "laundry", title: "Laundry Slot Status", enabled: true, span: "half" },
+  { id: "mess", title: "Today's Mess Menu", enabled: true, span: "half" },
+  { id: "deadlines", title: "Upcoming Deadlines", enabled: true, span: "half" },
+  { id: "classrooms", title: "Free Classrooms Finder", enabled: true, span: "half" },
+  { id: "events", title: "Registered Events", enabled: true, span: "half" },
+  { id: "quick_settings", title: "Quick Settings Panel", enabled: true, span: "half" },
+  { id: "cabshare", title: "Cab Share Promo", enabled: false, span: "full" },
+  { id: "cabshare_match", title: "Cab Share Matches", enabled: false, span: "full" },
+  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false, span: "full" },
 ];
 
 export default function MobileHome({
@@ -124,9 +127,15 @@ export default function MobileHome({
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const merged = [...parsed];
+            const merged = parsed.map((p: any) => {
+              const def = DEFAULT_WIDGETS.find(d => d.id === p.id);
+              return {
+                ...p,
+                span: p.span || def?.span || "full"
+              };
+            });
             DEFAULT_WIDGETS.forEach(def => {
-              if (!merged.some(m => m.id === def.id)) {
+              if (!merged.some((m: any) => m.id === def.id)) {
                 merged.push(def);
               }
             });
@@ -141,6 +150,18 @@ export default function MobileHome({
   useEffect(() => {
     localStorage.setItem("amaze_dashboard_widgets", JSON.stringify(widgets));
   }, [widgets]);
+
+  const toggleWidgetSpan = (id: string) => {
+    setWidgets(prev =>
+      prev.map(w => {
+        if (w.id === id) {
+          const nextSpan = w.span === "full" ? "half" : "full";
+          return { ...w, span: nextSpan };
+        }
+        return w;
+      })
+    );
+  };
 
   // Load global cab share settings
   useEffect(() => {
@@ -1642,50 +1663,132 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* ── CUSTOMIZATION PANEL ── */}
+      {/* ── CUSTOMIZATION PANEL (Android Quick Settings Style Edit Mode) ── */}
       <AnimatePresence>
         {showCustomizer && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden animate-in fade-in"
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden mb-6"
           >
-            <div className="bg-zinc-55 dark:bg-zinc-950/80 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-5 shadow-sm space-y-4 text-left">
-              <div className="flex items-center justify-between">
+            <div className="bg-zinc-900/95 text-white border border-zinc-800 rounded-[28px] p-5 shadow-2xl backdrop-blur-xl space-y-5 text-left">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 font-outfit font-black">Customize Dashboard</h3>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-550">Toggle visibility and layout of your widgets</p>
+                  <h3 className="text-sm font-black font-outfit flex items-center gap-2 text-white">
+                    <Sliders className="w-4 h-4 text-indigo-400" />
+                    <span>Dashboard Layout & Tile Customizer</span>
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-medium">Reorder tiles, toggle 1x/2x size, and manage active grid</p>
                 </div>
                 <button 
                   onClick={() => {
                     setWidgets(DEFAULT_WIDGETS);
                     localStorage.removeItem("amaze_dashboard_widgets");
                   }}
-                  className="flex items-center gap-1 text-[10px] font-black text-red-505 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-2 py-1 rounded-xl cursor-pointer"
+                  className="flex items-center gap-1 text-[10px] font-extrabold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-xl cursor-pointer hover:bg-red-500/20 transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset Layout
+                  Reset Defaults
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {widgets.map(w => (
-                  <button
-                    key={w.id}
-                    onClick={() => toggleWidget(w.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
-                      w.enabled 
-                        ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-850/50 text-indigo-700 dark:text-indigo-400"
-                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
-                    }`}
-                  >
-                    {w.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span className="truncate">{w.title}</span>
-                  </button>
-                ))}
+              {/* ACTIVE DASHBOARD TILES (Android Quick Settings Active Area) */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
+                    Active Tiles ({widgets.filter(w => w.enabled).length})
+                  </span>
+                  <span className="text-[10px] text-zinc-500">Tap 1x/2x to resize • ⬆️⬇️ to reorder</span>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {widgets.filter(w => w.enabled).map((w, index, arr) => {
+                    const isFull = w.span === "full";
+                    return (
+                      <div
+                        key={w.id}
+                        className={`flex items-center justify-between p-3 rounded-2xl border text-xs font-bold transition-all ${
+                          isFull
+                            ? "bg-indigo-950/40 border-indigo-500/40 text-indigo-200"
+                            : "bg-zinc-850/90 border-zinc-750 text-zinc-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
+                            isFull ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "bg-zinc-700 text-zinc-300"
+                          }`}>
+                            {isFull ? "2x Full" : "1x Half"}
+                          </span>
+                          <span className="truncate text-xs font-bold text-white">{w.title}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Size toggle */}
+                          <button
+                            onClick={() => toggleWidgetSpan(w.id)}
+                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-black cursor-pointer transition-colors"
+                            title={isFull ? "Make 1x (Half Width)" : "Make 2x (Full Width)"}
+                          >
+                            {isFull ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />}
+                          </button>
+                          {/* Move up */}
+                          <button
+                            onClick={() => moveWidget(w.id, "up")}
+                            disabled={index === 0}
+                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-300 cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Move down */}
+                          <button
+                            onClick={() => moveWidget(w.id, "down")}
+                            disabled={index === arr.length - 1}
+                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-300 cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Hide tile */}
+                          <button
+                            onClick={() => toggleWidget(w.id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer"
+                            title="Remove Tile"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* AVAILABLE HIDDEN TILES (Android Quick Settings Bottom Tray) */}
+              {widgets.some(w => !w.enabled) && (
+                <div className="space-y-2 pt-2 border-t border-zinc-800">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
+                    Available Tiles (Tap to Add to Grid)
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {widgets.filter(w => !w.enabled).map(w => (
+                      <button
+                        key={w.id}
+                        onClick={() => toggleWidget(w.id)}
+                        className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-indigo-500/50 text-xs font-semibold text-left transition-all cursor-pointer group"
+                      >
+                        <span className="truncate">{w.title}</span>
+                        <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-indigo-400 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Global search bar preference */}
+              <div className="pt-2 border-t border-zinc-800">
                 <button
                   onClick={() => {
                     const nextVal = !settings?.hideHomeSearchBar;
@@ -1695,21 +1798,22 @@ export default function MobileHome({
                       return next;
                     });
                   }}
-                  className={`col-span-2 flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
                     !settings?.hideHomeSearchBar 
-                      ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-850/50 text-indigo-700 dark:text-indigo-400"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
+                      ? "bg-indigo-950/40 border-indigo-500/40 text-indigo-300"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400"
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    {!settings?.hideHomeSearchBar ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span>Home Page Search Bar</span>
+                    {!settings?.hideHomeSearchBar ? <Eye className="w-3.5 h-3.5 text-indigo-400" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    <span>Show Spotlight Search Bar on Home Page</span>
                   </span>
-                  <span className="text-[10px] font-black uppercase">
-                    {!settings?.hideHomeSearchBar ? "Shown" : "Hidden"}
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-zinc-800">
+                    {!settings?.hideHomeSearchBar ? "Enabled" : "Hidden"}
                   </span>
                 </button>
               </div>
+
             </div>
           </motion.div>
         )}
@@ -1728,14 +1832,15 @@ export default function MobileHome({
         </button>
       )}
 
-      {/* ── DYNAMIC DASHBOARD WIDGETS ── */}
-      <div className="space-y-6">
+      {/* ── DYNAMIC DASHBOARD WIDGETS (Responsive 2-Column Desktop Grid) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <AnimatePresence mode="popLayout">
           {(() => {
             const enabledWidgets = widgets.filter(w => w.enabled);
             return enabledWidgets.map((w, index) => {
               const element = renderWidget(w.id);
               if (!element) return null;
+              const isFull = w.span === "full";
 
               return (
                 <motion.div
@@ -1745,20 +1850,29 @@ export default function MobileHome({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                  className="w-full"
+                  className={`${isFull ? "md:col-span-2" : "md:col-span-1"} w-full`}
                 >
                   {/* Reorder Headers in Edit Mode */}
                   {showCustomizer && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-zinc-55 dark:bg-zinc-800/80 rounded-t-[16px] border border-zinc-200/70 dark:border-zinc-700 border-b-0 text-[10px] font-bold text-gray-450 dark:text-zinc-400">
-                      <span className="flex items-center gap-1.5 font-outfit uppercase tracking-wider">
-                        <Sliders className="w-3.5 h-3.5 text-indigo-505" />
-                        {w.title}
+                    <div className="flex items-center justify-between px-4 py-2 bg-indigo-950/90 text-white rounded-t-[20px] border border-indigo-500/40 border-b-0 text-[11px] font-bold">
+                      <span className="flex items-center gap-2 font-outfit uppercase tracking-wider font-extrabold text-indigo-300">
+                        <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>{w.title}</span>
+                        <span className="text-[9px] bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 px-1.5 py-0.5 rounded font-mono">
+                          {isFull ? "2x Full Width" : "1x Half Width"}
+                        </span>
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
+                          className="px-2 py-0.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 text-[10px] font-black cursor-pointer transition-colors"
+                        >
+                          {isFull ? "Make 1x (Half)" : "Make 2x (Full)"}
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
                           disabled={index === 0}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-900/80 disabled:opacity-30 cursor-pointer"
                           title="Move Up"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
@@ -1766,22 +1880,23 @@ export default function MobileHome({
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
                           disabled={index === enabledWidgets.length - 1}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-900/80 disabled:opacity-30 cursor-pointer"
                           title="Move Down"
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleWidget(w.id); }}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-red-500 cursor-pointer"
-                          title="Hide Widget"
+                          className="p-1 rounded-lg hover:bg-red-900/50 text-red-300 cursor-pointer"
+                          title="Remove Tile"
                         >
-                          <EyeOff className="w-3.5 h-3.5" />
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   )}
-                  <div className={showCustomizer ? "border border-zinc-200 dark:border-zinc-700 rounded-b-[24px] p-2 bg-zinc-55/20 dark:bg-zinc-950/10" : ""}>
+
+                  <div className={showCustomizer ? "border border-indigo-500/40 border-t-0 rounded-b-[24px] overflow-hidden shadow-lg" : ""}>
                     {element}
                   </div>
                 </motion.div>
