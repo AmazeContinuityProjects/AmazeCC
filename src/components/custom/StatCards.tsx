@@ -16,12 +16,12 @@ export default function StatsCards({
   onOpenFeedbackStatus,
 }) {
   const totalODHours =
-    ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
-      ? ODhoursData.reduce((sum, day) => sum + day.total, 0)
+    Array.isArray(ODhoursData) && ODhoursData.length > 0
+      ? ODhoursData.reduce((sum: number, day: any) => sum + (day.total || 0), 0)
       : 0;
 
   const cardBase =
-    "stagger-enter cursor-pointer p-6 rounded-2xl shadow hover:shadow-lg transition-all duration-300 flex-shrink-0 snap-start w-[calc(50%-8px)] md:w-auto flex flex-col items-center justify-center text-center";
+    "stagger-enter cursor-pointer p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/80 shadow-2xs hover:shadow-xs transition-all duration-300 flex-shrink-0 snap-start w-[calc(50%-8px)] md:w-auto flex flex-col items-center justify-center text-center";
 
   const cards = [
     {
@@ -108,11 +108,11 @@ export default function StatsCards({
             className={`${cardBase} bg-white  dark:bg-black dark:border dark:border-gray-800`}
             onClick={card.onClick}
           >
-            <h2 className="text-lg font-semibold text-gray-600  dark:text-gray-200">
+            <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
               {card.label}
             </h2>
             {card.customContent || (
-              <p className="text-3xl font-bold text-gray-900  dark:text-gray-100 mt-2 select-none">
+              <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 select-none font-outfit">
                 {Number.isNaN(card.value) ? "0" : card.value}
               </p>
             )}
