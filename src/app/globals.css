@@ -235,59 +235,17 @@ input, textarea, [contenteditable] {
   animation: pillPop 0.3s ease-out;
 }
 
-/* ── Dark Theme Distinguished Cards Override ── */
-.dark div.rounded-2xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
-.dark div.rounded-xl.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
-.dark div.rounded-lg.border:not([class*="border-blue-"]):not([class*="border-purple-"]):not([class*="border-amber-"]):not([class*="border-red-"]):not([class*="border-emerald-"]):not([class*="border-yellow-"]):not([class*="border-violet-"]):not([class*="border-indigo-"]):not([class*="border-sky-"]):not([class*="border-orange-"]):not([class*="border-green-"]):not([class*="border-l-"]):not([class*="border-t-"]):not([class*="border-r-"]):not([class*="border-b-"]),
-.dark .solid-card,
-.dark .solid-card {
-  background-color: var(--surface) !important;
-  border-color: var(--border-muted) !important;
+/* ── Clean Card & Surface Utilities ── */
+.surface-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border-muted);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-/* Lighter background for inner nested list cards/elements */
-.dark div.rounded-2xl.border div.bg-gray-50\/70,
-.dark div.rounded-2xl.border div.bg-gray-50\/50,
-.dark div.rounded-2xl.border div.bg-gray-50\/30,
-.dark div.rounded-2xl.border div.bg-gray-100,
-.dark div.rounded-2xl.border div.bg-gray-150,
-.dark div.rounded-2xl.border div.bg-gray-900,
-.dark div.rounded-2xl.border div.bg-gray-950\/30,
-.dark div.rounded-2xl.border div.bg-slate-800\/10,
-.dark div.rounded-xl.border div.bg-gray-50\/70,
-.dark div.rounded-xl.border div.bg-gray-50\/50,
-.dark div.rounded-xl.border div.bg-gray-50\/30,
-.dark div.rounded-xl.border div.bg-gray-100,
-.dark div.rounded-xl.border div.bg-gray-150,
-.dark div.rounded-xl.border div.bg-gray-900,
-.dark div.rounded-xl.border div.bg-gray-950\/30,
-.dark div.rounded-xl.border div.bg-slate-800\/10,
-.dark div.rounded-lg.border div.bg-gray-50\/70,
-.dark div.rounded-lg.border div.bg-gray-50\/50,
-.dark div.rounded-lg.border div.bg-gray-50\/30,
-.dark div.rounded-lg.border div.bg-gray-100,
-.dark div.rounded-lg.border div.bg-gray-150,
-.dark div.rounded-lg.border div.bg-gray-900,
-.dark div.rounded-lg.border div.bg-gray-950\/30,
-.dark div.rounded-lg.border div.bg-slate-800\/10 {
-  background-color: var(--surface-secondary) !important;
-}
-
-/* Clear, visible text styles for neutral grays in dark mode */
-.dark .text-gray-900,
-.dark .text-gray-950,
-.dark .text-gray-105 {
-  color: var(--text-primary) !important;
-}
-.dark .text-gray-850,
-.dark .text-gray-800,
-.dark .text-gray-700 {
-  color: var(--text-secondary) !important;
-}
-.dark .text-gray-650,
-.dark .text-gray-600,
-.dark .text-gray-500 {
-  color: var(--text-muted) !important;
+.surface-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 
