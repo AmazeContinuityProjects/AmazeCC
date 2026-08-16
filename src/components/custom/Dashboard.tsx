@@ -702,7 +702,7 @@ export default function DashboardContent({
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "home" && (
             <div>
-              <MobileHome
+<MobileHome
                 attendanceData={attendanceData}
                 marksData={marksData}
                 hostelData={hostelData}
@@ -713,13 +713,13 @@ export default function DashboardContent({
                 IDs={IDs}
                 setActiveTab={setActiveTab}
                 setActiveSubTab={setActiveSubTab}
-                setHostelActiveSubTab={setHostelActiveSubTab}
-                setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                setHostelActiveSubTab={setActiveAttendanceSubTab}
                 setActiveMoreSubTab={setActiveMoreSubTab}
                 setActiveProfileSubTab={setActiveProfileSubTab}
                 handleReloadRequest={handleReloadRequest}
                 onOpenCommandPalette={onOpenCommandPalette}
                 profileData={profileData}
+                ODhoursData={ODhoursData}
               />
             </div>
           )}
