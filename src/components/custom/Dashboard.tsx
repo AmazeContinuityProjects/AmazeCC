@@ -73,6 +73,44 @@ import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { useMemo } from "react";
 
+const TAB_ORDER: Record<string, number> = {
+  home: 0,
+  attendance: 1,
+  academics: 2,
+  hostel: 3,
+  dayscholar: 4,
+  transport: 5,
+  payments: 6,
+  libraries: 7,
+  more: 8,
+  profile: 9,
+  about: 10,
+};
+
+const pageTransitionVariants = {
+  initial: (direction: number) => ({
+    opacity: 0,
+    y: 12,
+    x: direction > 0 ? 16 : direction < 0 ? -16 : 0,
+    scale: 0.985,
+    filter: "blur(4px)",
+  }),
+  animate: {
+    opacity: 1,
+    y: 0,
+    x: 0,
+    scale: 1,
+    filter: "blur(0px)",
+  },
+  exit: (direction: number) => ({
+    opacity: 0,
+    y: -8,
+    x: direction > 0 ? -16 : direction < 0 ? 16 : 0,
+    scale: 0.99,
+    filter: "blur(3px)",
+  }),
+};
+
 export default function DashboardContent({
   demoMode = false,
   activeTab,
@@ -135,6 +173,22 @@ export default function DashboardContent({
   const [fresherEptData, setFresherEptData] = useState<any>(null);
   const [fresherAckData, setFresherAckData] = useState<any>(null);
   const [fresherResources, setFresherResources] = useState<any[]>([]);
+
+  const prevTabRef = useRef(activeTab);
+  const [direction, setDirection] = useState(0);
+
+  useEffect(() => {
+    const prevIdx = TAB_ORDER[prevTabRef.current] ?? 0;
+    const currentIdx = TAB_ORDER[activeTab] ?? 0;
+    if (currentIdx > prevIdx) {
+      setDirection(1);
+    } else if (currentIdx < prevIdx) {
+      setDirection(-1);
+    } else {
+      setDirection(0);
+    }
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
 
   const results = useMemo(() => {
     const analysis = analyzeAllCalendars(calendarData?.calendars);
@@ -731,13 +785,15 @@ export default function DashboardContent({
           </Modal>
         )}
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={`${activeTab}-${activeSubTab}-${activeAttendanceSubTab}-${HostelActiveSubTab}`}
-              initial={{ opacity: 0, y: 8, scale: 0.995 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.995 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              custom={direction}
+              variants={pageTransitionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
             >
               {activeTab === "home" && (
                 <div>

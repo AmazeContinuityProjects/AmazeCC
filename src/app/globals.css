@@ -175,34 +175,52 @@ input, textarea, [contenteditable] {
 @keyframes pageEnter {
   0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.995);
+    transform: translateY(10px) scale(0.985);
+    filter: blur(4px);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+    filter: blur(0px);
   }
 }
 
 .animate-fadeIn {
-  animation: pageEnter 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
+  animation: pageEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
 }
 
 .animate-slide-up {
-  animation: slideUp 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+  animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.2s cubic-bezier(0.25, 1, 0.5, 1) both;
+  animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes shimmer {
