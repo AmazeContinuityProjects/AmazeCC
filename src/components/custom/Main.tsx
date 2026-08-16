@@ -6,7 +6,7 @@ import {
   allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
   isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
   isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
-  activeAttendanceSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
+  activeAttendanceSubTabAtom, activeToolsSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
   activeMoreSubTabAtom, activeProfileSubTabAtom, isLoadingAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
@@ -14,7 +14,7 @@ import {
 } from "@/store";
 import LoginForm from "./LoginForm";
 import DashboardContent from "./Dashboard";
-import IntroPage from "./IntroPage";
+import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
@@ -75,6 +75,7 @@ export default function LoginPage() {
   const [activeSubTab, setActiveSubTab] = useAtom(activeSubTabAtom);
   const [HostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
   const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useAtom(activeAttendanceSubTabAtom);
+  const [activeToolsSubTab, setActiveToolsSubTab] = useAtom(activeToolsSubTabAtom);
   const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useAtom(activeDayscholarSubTabAtom);
   const [activeQBankSubTab, setActiveQBankSubTab] = useAtom(activeQBankSubTabAtom);
   const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
@@ -766,11 +767,7 @@ export default function LoginPage() {
 
       // All other VTOP-scoped endpoints (cached for GenericApiView)
       const bulkEndpoints = [
-        "arrear-schedule", "arrear-details", "arrear-grade",
-        "course-option-change", "exc-registration", "minor-honour", "course-completion",
-        "wishlist", "additional-learning",
-        "project", "project-course",
-        "makeup-exam", "makeup-schedule", "compre-info",
+        "exc-registration", "minor-honour", "course-completion",
         "hostel-counselling",
         "credentials", "registration-schedule", "dayboarder", "bank-info",
       ];
@@ -1146,7 +1143,8 @@ export default function LoginPage() {
     const nav = [
       { id: "nav-profile", label: "Profile", description: "View your profile and personal info", icon: "👤", category: "Navigation" },
       { id: "nav-attendance", label: "Attendance", description: "Track your attendance records", icon: "📋", category: "Navigation" },
-      { id: "nav-academics", label: "Academics Hub", description: "Marks, curriculum, timetable & more", icon: "📚", category: "Navigation" },
+      { id: "nav-academics", label: "Academics", description: "My courses, marks, curriculum & grades", icon: "📚", category: "Navigation" },
+      { id: "nav-tools", label: "Tools & Utilities", description: "Question bank, faculty, CGPA predictor, social & cab share", icon: "🛠️", category: "Navigation" },
       { id: "nav-payments", label: "Payments", description: "Dues, receipts & wallet", icon: "💳", category: "Navigation" },
       { id: "nav-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Navigation" },
       { id: "nav-libraries", label: "Libraries", description: "Search books & library account", icon: "📖", category: "Navigation" },
@@ -1158,20 +1156,12 @@ export default function LoginPage() {
 
     // ── All sub-tab navigation ──
     result.push(
-      { id: "acad-marks", label: "Marks Overview", description: "Course marks & assessments overview", icon: "📊", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); } },
+      { id: "acad-marks", label: "My Courses & Marks", description: "Course marks & assessments", icon: "✨", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("courses-simplified"); } },
       { id: "acad-curriculum", label: "Curriculum", description: "Course curriculum & structure", icon: "📜", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("curriculum"); } },
       { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },
-      { id: "acad-gpa-predictor", label: "GPA Predictor", description: "Predict your GPA for this semester", icon: "📈", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("predictor"); } },
       { id: "acad-course-dashboard", label: "Course Dashboard", description: "Detailed per-course view", icon: "📘", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-circulars", label: "Academic Circulars", description: "View academic circulars & notices", icon: "📢", category: "Academics", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
-      { id: "acad-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("faculty-info"); } },
-      { id: "acad-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("free-class"); } },
-      { id: "acad-arrear", label: "Arrear Exams", description: "View arrear examination details", icon: "🔄", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("arrear"); } },
-      { id: "acad-makeup-compre", label: "Makeup Compre", description: "Makeup comprehensive exam info", icon: "📋", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("makeup-compre"); } },
-      { id: "acad-course-mgmt", label: "Course Management", description: "Manage course registrations", icon: "⚙️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-mgmt"); } },
-      { id: "acad-projects", label: "Projects", description: "View project submissions & details", icon: "💻", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("projects"); } },
-      { id: "acad-wishlist", label: "Course Wishlist", description: "Wishlist for future courses", icon: "⭐", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("wishlist"); } },
       { id: "attendance-view", label: "Attendance Today", description: "Today's attendance overview", icon: "📋", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
       { id: "attendance-calendar", label: "Calendar View", description: "Academic calendar & events", icon: "📅", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
       { id: "attendance-circulars", label: "Attendance Circulars", description: "Circulars related to attendance", icon: "📢", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
@@ -1189,19 +1179,22 @@ export default function LoginPage() {
       { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-placements", label: "Vehicle Placements", description: "5 PM & 6 PM vehicle placement info", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
-      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("archive"); } },
-      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "QBank", onSelect: () => { setActiveTab("academics"); setActiveSubTab("qbank"); setActiveQBankSubTab("pure"); } },
-      { id: "more-social", label: "Social & Schedules", description: "Events, friends & schedules", icon: "👥", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("social"); } },
+      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); setActiveQBankSubTab("archive"); } },
+      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); setActiveQBankSubTab("pure"); } },
+      { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
+      { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
+      { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
+      { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("free-class"); } },
       { id: "more-events", label: "Events Hub", description: "Registered events & activities", icon: "🎉", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); } },
       { id: "more-clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("clubs"); } },
-      { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("ffcs"); } },
+      { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("ffcs"); } },
     );
 
     // ── Tools & Modals ──
     result.push(
       { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
-      { id: "tool-gpa-predictor", label: "GPA Predictor Tool", description: "Calculate and predict your GPA", icon: "🔮", category: "Tools", onSelect: () => { setActiveTab("academics"); setActiveSubTab("predictor"); } },
+      { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
     );
@@ -2185,7 +2178,7 @@ export default function LoginPage() {
       {(isLoggedIn || demoMode) && (
         <>
           {showIntro === true ? (
-            <IntroPage
+            <AmazeOnboardingFlow
               settings={settings}
               username={IDs.VtopUsername}
               setSettings={(fn: any) => {
@@ -2204,6 +2197,20 @@ export default function LoginPage() {
                   await handleReloadRequest(finalSemesterID);
                 }
               }}
+              attendanceData={attendanceData}
+              marksData={marksData}
+              hostelData={hostelData}
+              registeredEvents={registeredEvents}
+              moodleData={moodleData}
+              IDs={IDs}
+              profileData={IDs}
+              ODhoursData={ODhoursData}
+              calendarData={Calender}
+              ScheduleData={ScheduleData}
+              setGradesDisplayIsOpen={setGradesDisplayIsOpen}
+              setODhoursIsOpen={setODhoursIsOpen}
+              handleReloadRequest={handleReloadRequest}
+              onOpenCommandPalette={() => setCommandPaletteOpen(true)}
             />
           ) : (
             <>
@@ -2239,6 +2246,8 @@ export default function LoginPage() {
             setHostelActiveSubTab={setHostelActiveSubTab}
             activeAttendanceSubTab={activeAttendanceSubTab}
             setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+            activeToolsSubTab={activeToolsSubTab}
+            setActiveToolsSubTab={setActiveToolsSubTab}
             activeDayscholarSubTab={activeDayscholarSubTab}
             setActiveDayscholarSubTab={setActiveDayscholarSubTab}
             activeQBankSubTab={activeQBankSubTab}
