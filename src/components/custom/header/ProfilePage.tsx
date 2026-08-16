@@ -7,6 +7,7 @@ import {
   Save,
   LogOut,
   Eye,
+  EyeOff,
   User,
   Link2,
   ExternalLink,
@@ -90,8 +91,6 @@ export default function ProfilePage({
   setResidentialStatus,
   calendarType,
   setCalendarType,
-  hideMobileHeader,
-  setHideMobileHeader,
   reloadAllData,
   setReloadAllData,
   isLoggedIn,
@@ -192,7 +191,6 @@ export default function ProfilePage({
     if (key === "residentialStatus" && typeof setResidentialStatus === "function") setResidentialStatus(value);
     if (key === "friendlyName" && typeof setFriendlyName === "function") setFriendlyName(value);
     if (key === "calendarType" && typeof setCalendarType === "function") setCalendarType(value);
-    if (key === "hideMobileHeader" && typeof setHideMobileHeader === "function") setHideMobileHeader(value);
     if (key === "currSemesterID" && typeof setCurrSemesterID === "function") setCurrSemesterID(value);
   };
 
@@ -831,37 +829,48 @@ export default function ProfilePage({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
-                    </div>
-                    <Switch
-                      checked={settings?.showGpa ?? false}
-                      onCheckedChange={(val) => updateSetting("showGpa", val)}
-                    />
-                  </div>
+                  {/* Subsection: Privacy & Anonymization */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5 flex items-center gap-1.5">
+                      <EyeOff className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Privacy & Anonymization</span>
+                    </h3>
 
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-455">Display your profile photo in the dashboard and sidebar</p>
+                    {/* Hide CGPA Everywhere */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Hide CGPA Everywhere</p>
+                        <p className="text-xs text-gray-550 dark:text-gray-450">Blur/hide CGPA across Home Dashboard, Header, Sidebar & Profile cards</p>
+                      </div>
+                      <Switch
+                        checked={settings?.CGPAHidden ?? false}
+                        onCheckedChange={(val) => updateSetting("CGPAHidden", val)}
+                      />
                     </div>
-                    <Switch
-                      checked={settings?.showProfilePhoto ?? false}
-                      onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Grades Anonymizer Mode</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-455">Blur all CGPA, credits, and course grades to protect privacy (hover to reveal)</p>
+                    {/* Grades Anonymizer Mode */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Grades Anonymizer Mode</p>
+                        <p className="text-xs text-gray-550 dark:text-gray-455">Blur all course grades, assessment marks, and credit totals (hover to reveal)</p>
+                      </div>
+                      <Switch
+                        checked={settings?.blurGrades ?? false}
+                        onCheckedChange={(val) => updateSetting("blurGrades", val)}
+                      />
                     </div>
-                    <Switch
-                      checked={settings?.blurGrades ?? false}
-                      onCheckedChange={(val) => updateSetting("blurGrades", val)}
-                    />
+
+                    {/* Show Profile Photo */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
+                        <p className="text-xs text-gray-550 dark:text-gray-455">Display profile photo in header, sidebar and profile cards</p>
+                      </div>
+                      <Switch
+                        checked={settings?.showProfilePhoto ?? true}
+                        onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -1039,13 +1048,16 @@ export default function ProfilePage({
                     <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
                   </div>
 
-                  {/* Compact Mobile view toggle */}
+                  {/* Home Page Search Bar toggle */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Compact Mobile Layout</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Hide tabs header and status stats in mobile views</p>
+                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Search Bar on Home Page</p>
+                      <p className="text-xs text-gray-550 dark:text-gray-450">Display the Quick Spotlight Search bar on your home dashboard</p>
                     </div>
-                    <Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />
+                    <Switch
+                      checked={!(settings?.hideHomeSearchBar ?? false)}
+                      onCheckedChange={(val) => updateSetting("hideHomeSearchBar", !val)}
+                    />
                   </div>
 
                   {/* Reload All Data toggle */}

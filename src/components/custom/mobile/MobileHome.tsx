@@ -1225,23 +1225,6 @@ export default function MobileHome({
               }}
             />
           </div>
-
-          <div className="flex items-center justify-between text-xs">
-            <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide Mobile Header</p>
-              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Compact header view on smaller screens</p>
-            </div>
-            <Switch
-              checked={settings?.hideMobileHeader ?? false}
-              onCheckedChange={(val) => {
-                setSettings((prev: any) => {
-                  const next = { ...prev, hideMobileHeader: val };
-                  localStorage.setItem("settings", JSON.stringify(next));
-                  return next;
-                });
-              }}
-            />
-          </div>
         </div>
       </div>
     );

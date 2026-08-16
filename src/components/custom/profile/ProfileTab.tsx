@@ -32,8 +32,6 @@ interface ProfileTabProps {
   setFriendlyName: (val: string) => void;
   calendarType: any;
   setCalendarType: (val: any) => void;
-  hideMobileHeader: boolean;
-  setHideMobileHeader: (val: boolean) => void;
   reloadAllData: boolean;
   setReloadAllData: (val: boolean) => void;
   settings: any;
