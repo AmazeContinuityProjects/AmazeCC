@@ -29,6 +29,7 @@ import {
   Sun,
   CalendarOff,
   Building,
+  DoorOpen,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
@@ -55,6 +56,7 @@ interface SimplifiedMobileHomeProps {
   setActiveAttendanceSubTab: (tab: string) => void;
   setActiveMoreSubTab?: (tab: string) => void;
   setActiveProfileSubTab?: (tab: string) => void;
+  setActiveToolsSubTab?: (tab: string) => void;
   handleReloadRequest: () => Promise<void>;
   onOpenCommandPalette: () => void;
   profileData?: any;
@@ -128,6 +130,7 @@ export default function SimplifiedMobileHome({
   setActiveSubTab,
   setActiveAttendanceSubTab,
   setActiveProfileSubTab,
+  setActiveToolsSubTab,
   handleReloadRequest,
   onOpenCommandPalette,
   profileData: profileDataProp,
@@ -140,6 +143,12 @@ export default function SimplifiedMobileHome({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTimetableModal, setShowTimetableModal] = useState(false);
+
+  const handleOpenFreeClassrooms = () => {
+    setActiveTab("tools");
+    setActiveToolsSubTab?.("free-class");
+    setActiveSubTab?.("free-class");
+  };
 
   // Carousel slide index for the dynamic secondary stat card
   const [activeSlide, setActiveSlide] = useState(0);
@@ -982,6 +991,16 @@ export default function SimplifiedMobileHome({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Deep link button: Free Classrooms */}
+            <button
+              onClick={handleOpenFreeClassrooms}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-850 px-2.5 py-1.5 rounded-xl cursor-pointer transition-all shadow-2xs active:scale-95"
+              title="Find Free Classrooms on Campus"
+            >
+              <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Free Classrooms</span>
+            </button>
+
             {/* Deep link button: Open Full Academic Calendar Page */}
             <button
               onClick={() => {
@@ -1564,14 +1583,21 @@ export default function SimplifiedMobileHome({
           </div>
         )}
 
-        {/* ── FULL TIMETABLE BUTTON (PLACED CLEANLY AFTER ALL CLASSES) ── */}
-        <div className="pt-2">
+        {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
           <button
             onClick={() => setShowTimetableModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
           >
             <CalendarIcon className="w-4 h-4 text-indigo-500" />
-            <span>View Full Weekly Timetable</span>
+            <span>Full Weekly Timetable</span>
+          </button>
+          <button
+            onClick={handleOpenFreeClassrooms}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/50 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Find Free Classrooms</span>
           </button>
         </div>
       </div>
@@ -1594,17 +1620,29 @@ export default function SimplifiedMobileHome({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setShowTimetableModal(false);
-                  setActiveTab("attendance");
-                  setActiveAttendanceSubTab("attendance");
-                }}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer mr-6"
-              >
-                <span>Attendance Tab</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
+              <div className="flex items-center gap-3 mr-6">
+                <button
+                  onClick={() => {
+                    setShowTimetableModal(false);
+                    handleOpenFreeClassrooms();
+                  }}
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <DoorOpen className="w-3.5 h-3.5" />
+                  <span>Free Classrooms</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowTimetableModal(false);
+                    setActiveTab("attendance");
+                    setActiveAttendanceSubTab("attendance");
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Attendance Tab</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-zinc-50/40 dark:bg-zinc-950/50">
               <TimetableGrid attendance={attendanceData?.attendance || []} />
