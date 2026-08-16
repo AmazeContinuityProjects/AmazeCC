@@ -1663,132 +1663,98 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* ── CUSTOMIZATION PANEL (Android Quick Settings Style Edit Mode) ── */}
+      {/* ── CUSTOMIZATION PANEL (Clean & Intuitive) ── */}
       <AnimatePresence>
         {showCustomizer && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden mb-6"
           >
-            <div className="bg-zinc-900/95 text-white border border-zinc-800 rounded-[28px] p-5 shadow-2xl backdrop-blur-xl space-y-5 text-left">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-4 sm:p-5 shadow-xl backdrop-blur-xl space-y-4 text-left">
+              <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-3">
                 <div>
-                  <h3 className="text-sm font-black font-outfit flex items-center gap-2 text-white">
-                    <Sliders className="w-4 h-4 text-indigo-400" />
-                    <span>Dashboard Layout & Tile Customizer</span>
+                  <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-indigo-500" />
+                    <span>Customize Dashboard Layout</span>
                   </h3>
-                  <p className="text-[10px] text-zinc-400 font-medium">Reorder tiles, toggle 1x/2x size, and manage active grid</p>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Toggle visibility and size of your dashboard cards</p>
                 </div>
                 <button 
                   onClick={() => {
                     setWidgets(DEFAULT_WIDGETS);
                     localStorage.removeItem("amaze_dashboard_widgets");
                   }}
-                  className="flex items-center gap-1 text-[10px] font-extrabold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-xl cursor-pointer hover:bg-red-500/20 transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-bold text-red-500 border border-red-200 dark:border-red-900/40 px-2.5 py-1 rounded-xl cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset Defaults
+                  Reset
                 </button>
               </div>
 
-              {/* ACTIVE DASHBOARD TILES (Android Quick Settings Active Area) */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
-                    Active Tiles ({widgets.filter(w => w.enabled).length})
-                  </span>
-                  <span className="text-[10px] text-zinc-500">Tap 1x/2x to resize • ⬆️⬇️ to reorder</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {widgets.filter(w => w.enabled).map((w, index, arr) => {
-                    const isFull = w.span === "full";
-                    return (
-                      <div
-                        key={w.id}
-                        className={`flex items-center justify-between p-3 rounded-2xl border text-xs font-bold transition-all ${
-                          isFull
-                            ? "bg-indigo-950/40 border-indigo-500/40 text-indigo-200"
-                            : "bg-zinc-850/90 border-zinc-750 text-zinc-200"
-                        }`}
+              {/* Clean Widget List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {widgets.map((w, index) => {
+                  const isFull = w.span === "full";
+                  return (
+                    <div
+                      key={w.id}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        w.enabled
+                          ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-zinc-800 dark:text-zinc-200"
+                          : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-850/50 text-zinc-400 dark:text-zinc-600"
+                      }`}
+                    >
+                      <button
+                        onClick={() => toggleWidget(w.id)}
+                        className="flex items-center gap-2 min-w-0 flex-1 pr-2 text-left cursor-pointer"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                          <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
-                            isFull ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "bg-zinc-700 text-zinc-300"
-                          }`}>
-                            {isFull ? "2x Full" : "1x Half"}
-                          </span>
-                          <span className="truncate text-xs font-bold text-white">{w.title}</span>
-                        </div>
+                        {w.enabled ? (
+                          <Eye className="w-4 h-4 text-indigo-500 shrink-0" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 text-zinc-400 shrink-0 opacity-60" />
+                        )}
+                        <span className={`truncate text-xs ${w.enabled ? "font-bold" : "font-normal opacity-70"}`}>
+                          {w.title}
+                        </span>
+                      </button>
 
+                      {w.enabled && (
                         <div className="flex items-center gap-1 shrink-0">
-                          {/* Size toggle */}
+                          {/* Size Pill */}
                           <button
                             onClick={() => toggleWidgetSpan(w.id)}
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-black cursor-pointer transition-colors"
-                            title={isFull ? "Make 1x (Half Width)" : "Make 2x (Full Width)"}
+                            className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                            title="Toggle width between 1-Column and Full Width"
                           >
-                            {isFull ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />}
+                            {isFull ? "Full" : "Half"}
                           </button>
-                          {/* Move up */}
+                          {/* Reorder Up/Down */}
                           <button
                             onClick={() => moveWidget(w.id, "up")}
                             disabled={index === 0}
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-300 cursor-pointer"
+                            className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Up"
                           >
                             <ArrowUp className="w-3.5 h-3.5" />
                           </button>
-                          {/* Move down */}
                           <button
                             onClick={() => moveWidget(w.id, "down")}
-                            disabled={index === arr.length - 1}
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-300 cursor-pointer"
+                            disabled={index === widgets.length - 1}
+                            className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Down"
                           >
                             <ArrowDown className="w-3.5 h-3.5" />
                           </button>
-                          {/* Hide tile */}
-                          <button
-                            onClick={() => toggleWidget(w.id)}
-                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer"
-                            title="Remove Tile"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                      )}
+                    </div>
+                  );
+                })}
 
-              {/* AVAILABLE HIDDEN TILES (Android Quick Settings Bottom Tray) */}
-              {widgets.some(w => !w.enabled) && (
-                <div className="space-y-2 pt-2 border-t border-zinc-800">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
-                    Available Tiles (Tap to Add to Grid)
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {widgets.filter(w => !w.enabled).map(w => (
-                      <button
-                        key={w.id}
-                        onClick={() => toggleWidget(w.id)}
-                        className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-800/60 border border-zinc-700/60 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-indigo-500/50 text-xs font-semibold text-left transition-all cursor-pointer group"
-                      >
-                        <span className="truncate">{w.title}</span>
-                        <Plus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-indigo-400 shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Global search bar preference */}
-              <div className="pt-2 border-t border-zinc-800">
+                {/* Home Search Bar Toggle */}
                 <button
                   onClick={() => {
                     const nextVal = !settings?.hideHomeSearchBar;
@@ -1798,18 +1764,18 @@ export default function MobileHome({
                       return next;
                     });
                   }}
-                  className={`w-full flex items-center justify-between p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`sm:col-span-2 flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                     !settings?.hideHomeSearchBar 
-                      ? "bg-indigo-950/40 border-indigo-500/40 text-indigo-300"
-                      : "bg-zinc-800 border-zinc-700 text-zinc-400"
+                      ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-indigo-700 dark:text-indigo-400"
+                      : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    {!settings?.hideHomeSearchBar ? <Eye className="w-3.5 h-3.5 text-indigo-400" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span>Show Spotlight Search Bar on Home Page</span>
+                    {!settings?.hideHomeSearchBar ? <Eye className="w-4 h-4 text-indigo-500" /> : <EyeOff className="w-4 h-4" />}
+                    <span>Home Page Search Bar</span>
                   </span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-zinc-800">
-                    {!settings?.hideHomeSearchBar ? "Enabled" : "Hidden"}
+                  <span className="text-[10px] font-black uppercase">
+                    {!settings?.hideHomeSearchBar ? "Shown" : "Hidden"}
                   </span>
                 </button>
               </div>
@@ -1852,27 +1818,24 @@ export default function MobileHome({
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
                   className={`${isFull ? "md:col-span-2" : "md:col-span-1"} w-full`}
                 >
-                  {/* Reorder Headers in Edit Mode */}
+                  {/* Edit Mode Header Overlay */}
                   {showCustomizer && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-indigo-950/90 text-white rounded-t-[20px] border border-indigo-500/40 border-b-0 text-[11px] font-bold">
-                      <span className="flex items-center gap-2 font-outfit uppercase tracking-wider font-extrabold text-indigo-300">
-                        <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                    <div className="flex items-center justify-between px-4 py-2 bg-indigo-50/90 dark:bg-indigo-950/90 rounded-t-[20px] border border-indigo-200/80 dark:border-indigo-850 border-b-0 text-[11px] font-bold text-indigo-900 dark:text-indigo-200">
+                      <span className="flex items-center gap-1.5 font-outfit font-extrabold uppercase tracking-wider">
+                        <Sliders className="w-3.5 h-3.5 text-indigo-500" />
                         <span>{w.title}</span>
-                        <span className="text-[9px] bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 px-1.5 py-0.5 rounded font-mono">
-                          {isFull ? "2x Full Width" : "1x Half Width"}
-                        </span>
                       </span>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
-                          className="px-2 py-0.5 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 text-[10px] font-black cursor-pointer transition-colors"
+                          className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-indigo-200 dark:border-indigo-800 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
                         >
-                          {isFull ? "Make 1x (Half)" : "Make 2x (Full)"}
+                          {isFull ? "Full Width" : "Half Width"}
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
                           disabled={index === 0}
-                          className="p-1 rounded-lg hover:bg-indigo-900/80 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Up"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
@@ -1880,23 +1843,23 @@ export default function MobileHome({
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
                           disabled={index === enabledWidgets.length - 1}
-                          className="p-1 rounded-lg hover:bg-indigo-900/80 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Down"
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleWidget(w.id); }}
-                          className="p-1 rounded-lg hover:bg-red-900/50 text-red-300 cursor-pointer"
-                          title="Remove Tile"
+                          className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 text-red-500 dark:text-red-400 cursor-pointer"
+                          title="Hide Card"
                         >
-                          <Minus className="w-3.5 h-3.5" />
+                          <EyeOff className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <div className={showCustomizer ? "border border-indigo-500/40 border-t-0 rounded-b-[24px] overflow-hidden shadow-lg" : ""}>
+                  <div className={showCustomizer ? "border border-indigo-200/80 dark:border-indigo-850 border-t-0 rounded-b-[24px] overflow-hidden" : ""}>
                     {element}
                   </div>
                 </motion.div>
