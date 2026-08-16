@@ -41,7 +41,7 @@ export function LoadingScreen({
           clearInterval(interval);
           return 100;
         }
-        const diff = Math.floor(Math.random() * 10) + 6;
+        const diff = Math.floor(Math.random() * 8) + 8;
         const next = Math.min(100, prev + diff);
         const nextStep = Math.min(
           LOADING_STEPS.length - 1,
@@ -50,7 +50,7 @@ export function LoadingScreen({
         setStepIndex(nextStep);
         return next;
       });
-    }, 220);
+    }, 200);
 
     return () => clearInterval(interval);
   }, [externalProgress]);
