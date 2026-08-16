@@ -186,6 +186,14 @@ export default function ProfilePage({
       localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
+
+    if (key === "decimalValues" && typeof setDecimalValues === "function") setDecimalValues(value);
+    if (key === "isDayscholarWithBus" && typeof setIsDayscholarWithBus === "function") setIsDayscholarWithBus(value);
+    if (key === "residentialStatus" && typeof setResidentialStatus === "function") setResidentialStatus(value);
+    if (key === "friendlyName" && typeof setFriendlyName === "function") setFriendlyName(value);
+    if (key === "calendarType" && typeof setCalendarType === "function") setCalendarType(value);
+    if (key === "hideMobileHeader" && typeof setHideMobileHeader === "function") setHideMobileHeader(value);
+    if (key === "currSemesterID" && typeof setCurrSemesterID === "function") setCurrSemesterID(value);
   };
 
   const handleToggleAllSync = (enable: boolean) => {
