@@ -885,7 +885,6 @@ export default function DashboardContent({
                         marksData={marksData}
                         gradesData={GradesData}
                         attendance={attendanceData.attendance}
-                        hideMobileHeader={settings.hideMobileHeader}
                         handleFetchGrades={handleAllGradesFetch}
                       />
                     ) : (
@@ -1144,14 +1143,6 @@ export default function DashboardContent({
                     setCalendarType={(val: any) => {
                       setSettings(prev => {
                         const next = { ...prev, calendarType: val };
-                        localStorage.setItem("settings", JSON.stringify(next));
-                        return next;
-                      });
-                    }}
-                    hideMobileHeader={settings.hideMobileHeader}
-                    setHideMobileHeader={(val: boolean) => {
-                      setSettings(prev => {
-                        const next = { ...prev, hideMobileHeader: val };
                         localStorage.setItem("settings", JSON.stringify(next));
                         return next;
                       });

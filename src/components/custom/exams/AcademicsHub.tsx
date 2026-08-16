@@ -8,7 +8,7 @@ import GradesModal from "./GradesModal";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 
-export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, hideMobileHeader, handleFetchGrades }) {
+export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesData, attendance, handleFetchGrades }) {
   const cards = [
     {
       id: "course-dashboard",
@@ -398,8 +398,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
       {/* Chart Section */}
       <section className="mt-2">
-        {hideMobileHeader && (
-          <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs mb-6">
+        <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs mb-6">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-lg font-black uppercase text-zinc-800 dark:text-zinc-100 tracking-wider">Overall<br/>Performance</h2>
@@ -466,7 +465,6 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               </div>
             </CardContent>
           </Card>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           <Card className="h-full rounded-3xl border border-zinc-200/50 dark:border-zinc-800/80">
