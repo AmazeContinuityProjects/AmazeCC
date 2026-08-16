@@ -1,7 +1,6 @@
-"use client";
-
 import React, { useState, useMemo, useCallback } from "react";
 import PageHeader from "../shared/PageHeader";
+import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import {
   BookOpen,
   Search,
@@ -200,6 +199,33 @@ const calculateGrandWeightage = (
   };
 };
 
+const safeObjectEntries = (obj: any): Array<[string, any]> => {
+  if (!obj || typeof obj !== "object") return [];
+  try {
+    return Object.entries(obj);
+  } catch {
+    return [];
+  }
+};
+
+const safeObjectKeys = (obj: any): string[] => {
+  if (!obj || typeof obj !== "object") return [];
+  try {
+    return Object.keys(obj);
+  } catch {
+    return [];
+  }
+};
+
+const safeObjectValues = (obj: any): any[] => {
+  if (!obj || typeof obj !== "object") return [];
+  try {
+    return Object.values(obj);
+  } catch {
+    return [];
+  }
+};
+
 export default function SimplifiedAcademicsPage({
   marksData,
   allGradesData,
@@ -261,11 +287,12 @@ export default function SimplifiedAcademicsPage({
 
     // 2. Supplement from attendanceData
     if (attendanceData?.attendance && Array.isArray(attendanceData.attendance)) {
-      attendanceData.attendance.forEach((c: any) => {
-        if (!c || typeof c !== "object") return;
-        const rawCode = sanitizeCourseCode(c.courseCode || c.code);
-        const rawTitle = String(c.courseTitle || c.title || "").trim();
-        const classNbr = String(c.classNumber || c.classNbr || c.crn || "").trim();
+      attendanceData.attendance.forEach((att: any) => {
+        if (!att || typeof att !== "object") return;
+        let rawCode = sanitizeCourseCode(att.courseCode || att.code);
+        if (rawCode && rawCode.includes(" ")) rawCode = rawCode.split(" ")[0];
+        const rawTitle = String(att.courseTitle || att.title || "").trim();
+        const classNbr = String(att.classNumber || att.classNbr || att.crn || "").trim();
 
         if (!rawCode && isJunkOrEmpty(rawTitle)) return;
         if (isJunkOrEmpty(rawCode) && isJunkOrEmpty(classNbr)) return;
@@ -275,23 +302,23 @@ export default function SimplifiedAcademicsPage({
 
         const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
         const isLab =
-          c.courseType?.toLowerCase().includes("lab") ||
-          c.slotName?.toLowerCase().startsWith("l");
+          att.courseType?.toLowerCase().includes("lab") ||
+          att.slotName?.toLowerCase().startsWith("l");
 
         if (!map.has(baseCode)) {
           map.set(baseCode, {
             courseCode: baseCode,
             courseTitle,
-            credits: Number(c.credits) || 0,
-            theory: !isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
-            lab: isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
+            credits: Number(att.credits) || 0,
+            theory: !isLab ? { ...att, courseCode: baseCode, courseTitle } : null,
+            lab: isLab ? { ...att, courseCode: baseCode, courseTitle } : null,
             isCurrent: true,
           });
         } else {
           const existing = map.get(baseCode);
-          if (isLab) existing.lab = { ...(existing.lab || {}), ...c, courseCode: baseCode, courseTitle };
-          else existing.theory = { ...(existing.theory || {}), ...c, courseCode: baseCode, courseTitle };
-          if (c.credits) existing.credits = Number(c.credits) || existing.credits;
+          if (isLab) existing.lab = { ...(existing.lab || {}), ...att, courseCode: baseCode, courseTitle };
+          else existing.theory = { ...(existing.theory || {}), ...att, courseCode: baseCode, courseTitle };
+          if (att.credits) existing.credits = Number(att.credits) || existing.credits;
           if (existing.courseTitle === baseCode && !isJunkOrEmpty(rawTitle)) {
             existing.courseTitle = courseTitle;
           }
@@ -308,7 +335,35 @@ export default function SimplifiedAcademicsPage({
     });
   }, [marksData, attendanceData]);
 
-  // ── GROUP PAST SEMESTERS WITH STRICT SANITIZATION ──
+  // ── RESOLVE ALL-GRADES AND PAST SEMESTERS DATA (PROPS + LOCALSTORAGE FALLBACK) ──
+  const resolvedAllGradesData = useMemo(() => {
+    if (allGradesData && typeof allGradesData === "object" && allGradesData.grades) return allGradesData;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("allgradesdata") || localStorage.getItem("allGradesData");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === "object") return parsed;
+        }
+      } catch {}
+    }
+    return allGradesData && typeof allGradesData === "object" ? allGradesData : null;
+  }, [allGradesData]);
+
+  const resolvedPastSemesterData = useMemo(() => {
+    if (pastSemesterData && typeof pastSemesterData === "object" && safeObjectKeys(pastSemesterData).length > 0) {
+      return pastSemesterData;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const loaded = loadFrozenPastSemesters(resolvedAllGradesData);
+        if (loaded && typeof loaded === "object" && safeObjectKeys(loaded).length > 0) return loaded;
+      } catch {}
+    }
+    return pastSemesterData && typeof pastSemesterData === "object" ? pastSemesterData : {};
+  }, [pastSemesterData, resolvedAllGradesData]);
+
+  // ── GROUP PAST SEMESTERS WITH COMPREHENSIVE EXTRACTION & SANITIZATION ──
   const pastSemesters = useMemo(() => {
     const list: Array<{
       semesterId: string;
@@ -319,11 +374,19 @@ export default function SimplifiedAcademicsPage({
 
     const currentSemId = attendanceData?.semester;
 
-    // From pastSemesterData
-    if (pastSemesterData && typeof pastSemesterData === "object") {
-      Object.keys(pastSemesterData).forEach((semId) => {
-        if (semId === currentSemId || semId === "Current") return;
-        const semObj = pastSemesterData[semId];
+    // 1. From resolvedPastSemesterData
+    if (resolvedPastSemesterData && typeof resolvedPastSemesterData === "object") {
+      safeObjectKeys(resolvedPastSemesterData).forEach((semId) => {
+        if (
+          !semId ||
+          semId === currentSemId ||
+          semId === "Current" ||
+          semId === "curriculum" ||
+          semId === "effectiveGrades"
+        )
+          return;
+        const semObj = resolvedPastSemesterData[semId];
+        if (!semObj || typeof semObj !== "object") return;
         const semMap = new Map<string, any>();
 
         if (semObj?.marks?.courses && Array.isArray(semObj.marks.courses)) {
@@ -347,14 +410,49 @@ export default function SimplifiedAcademicsPage({
                 credits: Number(c.credits) || 0,
                 theory: !isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
                 lab: isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
-                grade: c.grade,
+                grade: c.grade || c.courseGrade,
                 isCurrent: false,
               });
             } else {
               const existing = semMap.get(baseCode);
               if (isLab) existing.lab = { ...c, courseCode: baseCode, courseTitle };
               else existing.theory = { ...c, courseCode: baseCode, courseTitle };
-              if (c.grade) existing.grade = c.grade;
+              if (c.grade || c.courseGrade) existing.grade = c.grade || c.courseGrade;
+            }
+          });
+        }
+
+        if (semObj?.attendance?.attendance && Array.isArray(semObj.attendance.attendance)) {
+          semObj.attendance.attendance.forEach((c: any) => {
+            if (!c || typeof c !== "object") return;
+            let rawCode = sanitizeCourseCode(c.courseCode || c.code);
+            if (rawCode && rawCode.includes(" ")) rawCode = rawCode.split(" ")[0];
+            const rawTitle = String(c.courseTitle || c.title || "").trim();
+            if (!rawCode && isJunkOrEmpty(rawTitle)) return;
+            const baseCode = rawCode || sanitizeCourseCode(rawTitle);
+            if (!baseCode) return;
+
+            const courseTitle = sanitizeCourseTitle(rawTitle, baseCode);
+            const isLab =
+              c.courseType?.toLowerCase().includes("lab") ||
+              c.slot?.toLowerCase().startsWith("l") ||
+              c.slotName?.toLowerCase().startsWith("l");
+
+            if (!semMap.has(baseCode)) {
+              semMap.set(baseCode, {
+                courseCode: baseCode,
+                courseTitle,
+                credits: Number(c.credits) || 0,
+                theory: !isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
+                lab: isLab ? { ...c, courseCode: baseCode, courseTitle } : null,
+                grade: c.grade || c.courseGrade,
+                isCurrent: false,
+              });
+            } else {
+              const existing = semMap.get(baseCode);
+              if (isLab) existing.lab = { ...(existing.lab || {}), ...c, courseCode: baseCode, courseTitle };
+              else existing.theory = { ...(existing.theory || {}), ...c, courseCode: baseCode, courseTitle };
+              if (c.grade || c.courseGrade) existing.grade = c.grade || c.courseGrade;
             }
           });
         }
@@ -370,32 +468,61 @@ export default function SimplifiedAcademicsPage({
           list.push({
             semesterId: semId,
             semesterName: formatSemesterName(semId),
-            gpa: allGradesData?.gpaHistory?.[semId] || undefined,
+            gpa:
+              resolvedAllGradesData?.gpaHistory?.[semId] ||
+              resolvedAllGradesData?.grades?.[semId]?.gpa ||
+              undefined,
             courses: validCourses,
           });
         }
       });
     }
 
-    // From allGradesData if not already in pastSemesterData
-    if (allGradesData?.grades && typeof allGradesData.grades === "object") {
-      Object.keys(allGradesData.grades).forEach((semId) => {
+    // 2. From resolvedAllGradesData if not already in resolvedPastSemesterData
+    if (resolvedAllGradesData?.grades) {
+      const gradesObj = resolvedAllGradesData.grades;
+      const semEntries: Array<[string, any]> = Array.isArray(gradesObj)
+        ? gradesObj.map((s: any, idx: number) => [
+            s?.semesterSubId || s?.semesterId || s?.semSubId || `sem_${idx}`,
+            s,
+          ])
+        : safeObjectEntries(gradesObj);
+
+      semEntries.forEach(([semId, semVal]) => {
         if (
+          !semId ||
           semId === currentSemId ||
           semId === "Current" ||
           semId === "curriculum" ||
-          semId === "effectiveGrades"
+          semId === "effectiveGrades" ||
+          !semVal
         )
           return;
         if (list.some((s) => s.semesterId === semId)) return;
 
-        const items = allGradesData.grades[semId];
-        if (Array.isArray(items) && items.length > 0) {
+        let items: any[] = [];
+        if (Array.isArray(semVal)) {
+          items = semVal;
+        } else if (semVal && typeof semVal === "object") {
+          if (Array.isArray(semVal.grades)) items = semVal.grades;
+          else if (Array.isArray(semVal.courseGrades)) items = semVal.courseGrades;
+          else if (Array.isArray(semVal.courses)) items = semVal.courses;
+          else {
+            items = safeObjectValues(semVal).filter(
+              (v) =>
+                v &&
+                typeof v === "object" &&
+                (v.courseCode || v.code || v.courseTitle || v.title)
+            );
+          }
+        }
+
+        if (items.length > 0) {
           const semMap = new Map<string, any>();
           items.forEach((c: any) => {
             if (!c || typeof c !== "object") return;
             const code = sanitizeCourseCode(c.courseCode || c.code);
-            const title = String(c.courseTitle || c.title || "").trim();
+            const title = String(c.courseTitle || c.title || c.courseName || "").trim();
             if (!code && isJunkOrEmpty(title)) return;
             const cleanCode = code || sanitizeCourseCode(title);
             if (!cleanCode) return;
@@ -406,16 +533,20 @@ export default function SimplifiedAcademicsPage({
               semMap.set(cleanCode, {
                 courseCode: cleanCode,
                 courseTitle,
-                credits: Number(c.credits) || 0,
-                grade: c.grade,
+                credits: Number(c.creditsEarned || c.credits) || 0,
+                grade: c.grade || c.courseGrade,
                 theory: {
                   courseType: c.courseType || "Theory",
                   courseCode: cleanCode,
                   courseTitle,
+                  grade: c.grade || c.courseGrade,
                 },
                 lab: null,
                 isCurrent: false,
               });
+            } else {
+              const existing = semMap.get(cleanCode);
+              if (c.grade || c.courseGrade) existing.grade = c.grade || c.courseGrade;
             }
           });
 
@@ -430,7 +561,10 @@ export default function SimplifiedAcademicsPage({
             list.push({
               semesterId: semId,
               semesterName: formatSemesterName(semId),
-              gpa: allGradesData?.gpaHistory?.[semId] || undefined,
+              gpa:
+                semVal?.gpa ||
+                resolvedAllGradesData?.gpaHistory?.[semId] ||
+                undefined,
               courses: validCourses,
             });
           }
@@ -438,8 +572,9 @@ export default function SimplifiedAcademicsPage({
       });
     }
 
-    return list;
-  }, [pastSemesterData, allGradesData, attendanceData]);
+    // Sort past semesters chronologically (most recent first)
+    return list.sort((a, b) => b.semesterId.localeCompare(a.semesterId));
+  }, [resolvedPastSemesterData, resolvedAllGradesData, attendanceData]);
 
   // ── FILTER COURSES ──
   const filterCourseList = useCallback(
@@ -654,36 +789,54 @@ export default function SimplifiedAcademicsPage({
 
         {/* Past Semesters Course Lists */}
         <div className="space-y-6 pt-2">
-          {displayedPastSemesters.map((sem) => {
-            const filteredSemCourses = filterCourseList(sem.courses);
-            if (filteredSemCourses.length === 0) return null;
+          {displayedPastSemesters.length > 0 ? (
+            displayedPastSemesters.map((sem) => {
+              const filteredSemCourses = filterCourseList(sem.courses);
+              if (filteredSemCourses.length === 0) return null;
 
-            return (
-              <div key={sem.semesterId} className="space-y-2.5">
-                {/* Semester Header Strip */}
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
-                      {sem.semesterName}
-                    </span>
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
-                      ({filteredSemCourses.length} courses)
-                    </span>
+              return (
+                <div key={sem.semesterId} className="space-y-2.5">
+                  {/* Semester Header Strip */}
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
+                        {sem.semesterName}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">
+                        ({filteredSemCourses.length} courses)
+                      </span>
+                    </div>
+                    {sem.gpa && (
+                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit">
+                        GPA: {sem.gpa}
+                      </span>
+                    )}
                   </div>
-                  {sem.gpa && (
-                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit">
-                      GPA: {sem.gpa}
-                    </span>
-                  )}
-                </div>
 
-                {/* Course Pills */}
-                <div className="space-y-2">
-                  {filteredSemCourses.map(renderCoursePill)}
+                  {/* Course Pills */}
+                  <div className="space-y-2">
+                    {filteredSemCourses.map(renderCoursePill)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-3">
+              <History className="w-8 h-8 text-zinc-400 mx-auto" />
+              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
+                No archived course records found for earlier semesters.
+              </p>
+              {setActiveSubTab && (
+                <button
+                  onClick={() => setActiveSubTab("grades")}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>View Grade History</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -808,32 +961,40 @@ export default function SimplifiedAcademicsPage({
           </button>
         </div>
 
-        {/* ── PREVIOUS SEMESTERS SEPARATE PAGE PILL ── */}
-        {pastSemesters.length > 0 && (
-          <button
-            onClick={() => setShowPastSemestersView(true)}
-            className="w-full p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <History className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
-                  Looking for previous semesters?
-                </p>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                  View archived courses and grades from {pastSemesters.length} earlier semesters
-                </p>
-              </div>
+        {/* ── PREVIOUS SEMESTERS SEPARATE PAGE PILL (ALWAYS VISIBLE & ACCESSIBLE) ── */}
+        <button
+          onClick={() => {
+            if (pastSemesters.length > 0) {
+              setShowPastSemestersView(true);
+            } else if (setActiveSubTab) {
+              setActiveSubTab("grades");
+            } else {
+              setShowPastSemestersView(true);
+            }
+          }}
+          className="w-full p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <History className="w-5 h-5" />
             </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
+                Looking for previous semesters?
+              </p>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                {pastSemesters.length > 0
+                  ? `View archived courses and grades from ${pastSemesters.length} earlier semesters`
+                  : "View archived courses, GPA & grades from previous semesters"}
+              </p>
+            </div>
+          </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
-              <span>View History</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </button>
-        )}
+          <div className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
+            <span>{pastSemesters.length > 0 ? "View History" : "Grade History"}</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </button>
       </div>
     </div>
   );

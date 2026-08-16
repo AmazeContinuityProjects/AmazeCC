@@ -40,9 +40,13 @@ import {
   VolumeX,
   Check,
   Edit3,
+  Clock,
+  Copy,
+  BookOpen,
+  Lock,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button, Switch } from "@amazecontinuityprojects/amazeui";
+import { Button, Switch, Skeleton } from "@amazecontinuityprojects/amazeui";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import Links from "./Links";
@@ -54,12 +58,14 @@ import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
-import { Badge, useIsMobile } from "../shared";
+import { Badge, Modal, useIsMobile } from "../shared";
+import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type SectionId =
   | "profile"
+  | "credentials"
   | "preferences"
   | "academic"
   | "sync"
@@ -79,11 +85,19 @@ export interface SectionConfig {
 export const SECTIONS: SectionConfig[] = [
   {
     id: "profile",
-    label: "Student Info",
-    subtitle: "Personal information, mentors, residential and address records",
+    label: "Student Profile",
+    subtitle: "Personal information, mentors, residential status, and records",
     icon: User,
     iconBg: "bg-blue-500/10 dark:bg-blue-500/20",
     iconColor: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    id: "credentials",
+    label: "VTOP Credentials",
+    subtitle: "Portal logins, password change, and stored session keys",
+    icon: Key,
+    iconBg: "bg-amber-500/10 dark:bg-amber-500/20",
+    iconColor: "text-amber-600 dark:text-amber-400",
   },
   {
     id: "preferences",
@@ -98,8 +112,8 @@ export const SECTIONS: SectionConfig[] = [
     label: "Academic & Schedule",
     subtitle: "Active term semesters, target attendance, and residential status",
     icon: GraduationCap,
-    iconBg: "bg-amber-500/10 dark:bg-amber-500/20",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
   },
   {
     id: "sync",
@@ -114,8 +128,8 @@ export const SECTIONS: SectionConfig[] = [
     label: "Mobile & Navigation",
     subtitle: "Pinned bottom bar tabs, compact views, and push notifications",
     icon: Grid,
-    iconBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
-    iconColor: "text-indigo-600 dark:text-indigo-400",
+    iconBg: "bg-sky-500/10 dark:bg-sky-500/20",
+    iconColor: "text-sky-600 dark:text-sky-400",
   },
   {
     id: "advanced",
@@ -181,10 +195,10 @@ export default function ProfilePage({
 }: any) {
   const isMobile = useIsMobile();
   const [activeDesktopSection, setActiveDesktopSection] = useState<SectionId>(
-    mode === "info" ? "profile" : "preferences"
+    mode === "info" ? "profile" : mode === "credentials" ? "credentials" : "profile"
   );
   const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<SectionId | null>(
-    mode === "info" ? "profile" : null
+    mode === "info" ? "profile" : mode === "credentials" ? "credentials" : null
   );
 
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
@@ -204,11 +218,38 @@ export default function ProfilePage({
   const [profileImages, setProfileImages] = useState<any>(null);
   const [hostelInfo, setHostelInfo] = useState<any>(null);
 
-  // Modals
+  // Modals & Credential States
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const closeModal = () => setActiveModal(null);
+  const handleCardClick = (id: string) => {
+    setActiveModal(id);
+    onCardClick?.(id);
+  };
+
   const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
   const [storageData, setStorageData] = useState<Record<string, string | null>>({});
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
+
+  // Credentials Section States
+  const [credData, setCredData] = useState<any>(null);
+  const [credLoading, setCredLoading] = useState(true);
+  const [changedUsername, setChangedUsername] = useState(username || "");
+  const [changedPassword, setChangedPassword] = useState(
+    Array.isArray(password) ? password[0] : password || ""
+  );
+  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
+  const [showAppPassword, setShowAppPassword] = useState(false);
+  const [vtopOldPassword, setVtopOldPassword] = useState("");
+  const [vtopNewPassword, setVtopNewPassword] = useState("");
+  const [vtopConfirmPassword, setVtopConfirmPassword] = useState("");
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
+  const [refreshingCreds, setRefreshingCreds] = useState(false);
+  const [kohaCard, setKohaCard] = useState("");
+  const [kohaPassword, setKohaPassword] = useState("");
+  const [kohaSaved, setKohaSaved] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
@@ -357,6 +398,186 @@ export default function ProfilePage({
   };
 
   useEffect(() => {
+    setKohaCard(localStorage.getItem("koha_card") || "");
+    setKohaPassword(localStorage.getItem("koha_password") || "");
+  }, []);
+
+  const saveKoha = () => {
+    localStorage.setItem("koha_card", kohaCard);
+    localStorage.setItem("koha_password", kohaPassword);
+    setKohaSaved(true);
+    setTimeout(() => setKohaSaved(false), 2000);
+  };
+
+  const toggleShow = (idx: number) => setShowPasswords((p) => ({ ...p, [idx]: !p[idx] }));
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {}
+  };
+
+  const handleChangeVtopPassword = async () => {
+    setPasswordChangeError(null);
+    setPasswordChangeSuccess(null);
+    if (!vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword) {
+      setPasswordChangeError("All fields are required");
+      return;
+    }
+    if (vtopNewPassword !== vtopConfirmPassword) {
+      setPasswordChangeError("New passwords do not match");
+      return;
+    }
+    if (vtopNewPassword.length < 6) {
+      setPasswordChangeError("New password must be at least 6 characters");
+      return;
+    }
+    setPasswordChangeLoading(true);
+    try {
+      const vtopCreds = loginToVTOP ? await loginToVTOP() : creds;
+      if (!vtopCreds || !vtopCreds.cookies) {
+        throw new Error("Failed to authenticate session with VTOP");
+      }
+      const { cookies, authorizedID, csrf } = vtopCreds;
+      const res = await fetch(`${API_BASE}/api/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cookies,
+          authorizedID,
+          csrf,
+          oldPassword: vtopOldPassword,
+          newPassword: vtopNewPassword,
+          confirmNewPassword: vtopConfirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPasswordChangeSuccess("VTOP password changed successfully!");
+        setVtopOldPassword("");
+        setVtopNewPassword("");
+        setVtopConfirmPassword("");
+      } else {
+        setPasswordChangeError(data.error || data.message || "Failed to change password");
+      }
+    } catch (err: any) {
+      setPasswordChangeError(err.message || "Network error");
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
+  const handleRefreshCreds = async () => {
+    setRefreshingCreds(true);
+    clearApiCache();
+    if (!creds || !creds.cookies) {
+      setRefreshingCreds(false);
+      return;
+    }
+    const { cookies, authorizedID, csrf } = creds;
+    if (authorizedID === "DEMO123" || username === "demo") {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setCredData({
+        credentials: [
+          {
+            account: "VTOP Student Portal",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-vtop",
+            url: "https://vtopcc.vit.ac.in",
+            venueDate: "Active Session",
+            seatLocation: "N/A",
+          },
+          {
+            account: "Koha Library Card",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-koha",
+            url: "http://opac.vit.ac.in",
+            venueDate: "N/A",
+            seatLocation: "N/A",
+          },
+        ],
+      });
+      setRefreshingCreds(false);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/credentials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies, authorizedID, csrf }),
+      });
+      const fresh = await res.json();
+      setCredData(fresh);
+    } catch (e) {
+      console.error("Refresh failed", e);
+    } finally {
+      setRefreshingCreds(false);
+    }
+  };
+
+  useEffect(() => {
+    setCredLoading(true);
+    setChangedUsername(username);
+    setChangedPassword(Array.isArray(password) ? password[0] : password || "");
+
+    if (!creds || !creds.cookies) {
+      setCredLoading(false);
+      return;
+    }
+
+    const { cookies, authorizedID, csrf } = creds;
+    if (authorizedID === "DEMO123" || username === "demo") {
+      setCredData({
+        credentials: [
+          {
+            account: "VTOP Student Portal",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-vtop",
+            url: "https://vtopcc.vit.ac.in",
+            venueDate: "Active Session",
+            seatLocation: "N/A",
+          },
+          {
+            account: "Koha Library Card",
+            username: "22BCE1234",
+            defaultCredentials: "demo-password-koha",
+            url: "http://opac.vit.ac.in",
+            venueDate: "N/A",
+            seatLocation: "N/A",
+          },
+        ],
+      });
+      setCredLoading(false);
+      return;
+    }
+
+    if (refreshKey === 0) {
+      const cached = localStorage.getItem("cache_credentials");
+      if (cached) {
+        try {
+          setCredData(JSON.parse(cached));
+          setCredLoading(false);
+          return;
+        } catch (e) {}
+      }
+    }
+
+    fetch(`${API_BASE}/api/credentials`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookies, authorizedID, csrf }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res?.credentials || res?.ranks || res?.tables) {
+          setCredData(res);
+        }
+      })
+      .catch((e) => console.error("Credentials fetch error:", e))
+      .finally(() => setCredLoading(false));
+  }, [refreshKey, creds, username, password]);
+
+  useEffect(() => {
     setSelectedSemester(currSemesterID);
     setAppIcon(localStorage.getItem("app-icon") || "default");
 
@@ -460,11 +681,10 @@ export default function ProfilePage({
     } catch (_) {}
   }, [profileData]);
 
-  // Filter sections
+  // Unified available sections
   const availableSections = useMemo(() => {
-    if (mode === "info") return SECTIONS.filter((s) => s.id === "profile");
-    return SECTIONS.filter((s) => s.id !== "profile");
-  }, [mode]);
+    return SECTIONS;
+  }, []);
 
   const filteredSections = useMemo(() => {
     if (!searchQuery.trim()) return availableSections;
@@ -477,6 +697,21 @@ export default function ProfilePage({
     );
   }, [availableSections, searchQuery]);
 
+  const credAccounts =
+    credData?.credentials ||
+    credData?.tables?.[0]?.rows?.map((r: any) => {
+      const h = credData.tables[0].headers || [];
+      return {
+        account: r[h[0]] || "",
+        username: r[h[1]] || "",
+        defaultCredentials: r[h[2]] || "",
+        url: r[h[3]] || "",
+        venueDate: r[h[4]] || "",
+        seatLocation: r[h[5]] || "",
+      };
+    }) ||
+    [];
+
   /* ─────────────────────────────────────────────────────────────
      RENDER: Category Specific Setting Blocks
   ───────────────────────────────────────────────────────────── */
@@ -486,13 +721,23 @@ export default function ProfilePage({
     <div className="space-y-6">
       {creds && (
         <>
-          <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+              Academic & Identity Status
+            </h3>
+            <ProfileStatusCards
+              creds={creds}
+              refreshKey={refreshKey}
+              onCardClick={handleCardClick}
+            />
+          </div>
+
           <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
 
           {profileImages?.proctor && (
-            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-4 shadow-2xs">
               <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                Faculty Mentors
+                Faculty Mentors & Leadership
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
@@ -509,40 +754,42 @@ export default function ProfilePage({
                 ].map((person, idx) => (
                   <div
                     key={idx}
-                    className="bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 flex items-start gap-3.5"
+                    className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70 flex items-start gap-4"
                   >
                     {person.photo ? (
                       <img
                         src={person.photo}
                         alt={person.role}
-                        className="w-12 h-12 rounded-xl object-cover shadow-xs border border-zinc-200 dark:border-zinc-800 shrink-0"
+                        className="w-14 h-14 rounded-2xl object-cover shadow-xs border border-zinc-200 dark:border-zinc-800 shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs shrink-0">
-                        <User size={20} />
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs shrink-0">
+                        <User size={24} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
                         {person.role}
                       </span>
-                      <p className="font-bold text-xs text-zinc-900 dark:text-white truncate">
+                      <p className="font-extrabold text-sm text-zinc-900 dark:text-white truncate font-outfit">
                         {person.details.name || "N/A"}
                       </p>
                       {person.details.designation && (
-                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
                           {person.details.designation}
                         </p>
                       )}
-                      <div className="mt-2 space-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-1.5">
+                      <div className="mt-3 space-y-1 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-2">
                         {Object.entries(person.details)
                           .filter(([k]) => k !== "name" && k !== "designation")
                           .map(([k, val]) => (
-                            <div key={k} className="truncate">
-                              <span className="capitalize font-semibold">
+                            <div key={k} className="truncate text-[11px]">
+                              <span className="capitalize font-semibold text-zinc-400 dark:text-zinc-500">
                                 {k.replace(/([A-Z])/g, " $1").trim()}:{" "}
                               </span>
-                              <span>{String(val)}</span>
+                              <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                                {String(val)}
+                              </span>
                             </div>
                           ))}
                       </div>
@@ -556,7 +803,7 @@ export default function ProfilePage({
       )}
 
       {/* Personal Info Grid */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-6 shadow-2xs">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 sm:p-6 space-y-6 shadow-2xs">
         {[
           profileData?.nativeLanguage,
           profileData?.nationality,
@@ -564,11 +811,16 @@ export default function ProfilePage({
           profileData?.aadharNumber,
           profileData?.mobileNumber,
         ].some(Boolean) && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-              Personal Information
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-xs">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                Personal Information
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Official profile records retrieved from university portal
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 text-xs">
               {[
                 ["Native Language", profileData.nativeLanguage],
                 ["Native State", profileData.nativeState],
@@ -590,11 +842,14 @@ export default function ProfilePage({
               ]
                 .filter(([, v]) => v)
                 .map(([label, val]) => (
-                  <div key={String(label)} className="p-2.5 rounded-xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
-                    <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                  <div
+                    key={String(label)}
+                    className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850 space-y-1"
+                  >
+                    <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                       {String(label)}
                     </p>
-                    <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
+                    <p className="font-extrabold text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 break-words font-outfit">
                       {String(val)}
                     </p>
                   </div>
@@ -604,23 +859,28 @@ export default function ProfilePage({
         )}
 
         {(profileData?.currentAddress || profileData?.permanentAddress) && (
-          <div className="space-y-3 border-t border-zinc-150 dark:border-zinc-800/80 pt-4">
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-              Address Records
-            </h3>
+          <div className="space-y-4 border-t border-zinc-150 dark:border-zinc-800/80 pt-5">
+            <div>
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                Address Records
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Registered residential and communication addresses
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {profileData.currentAddress && (
-                <div className="bg-zinc-50 dark:bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
-                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">
+                <div className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
+                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                     Current Address
                   </p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
                     {Object.entries(profileData.currentAddress)
                       .filter(([, v]) => v)
                       .map(([k, val]) => (
                         <div key={k}>
                           <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">
+                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
                             {String(val)}
                           </p>
                         </div>
@@ -629,17 +889,17 @@ export default function ProfilePage({
                 </div>
               )}
               {profileData.permanentAddress && (
-                <div className="bg-zinc-50 dark:bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
-                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">
+                <div className="bg-zinc-50/80 dark:bg-zinc-950/60 p-4 sm:p-5 rounded-2xl border border-zinc-200/60 dark:border-zinc-800/60 space-y-3">
+                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                     Permanent Address
                   </p>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
                     {Object.entries(profileData.permanentAddress)
                       .filter(([, v]) => v)
                       .map(([k, val]) => (
                         <div key={k}>
                           <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
-                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">
+                          <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
                             {String(val)}
                           </p>
                         </div>
@@ -650,6 +910,316 @@ export default function ProfilePage({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+
+  // 2. VTOP Credentials & Security Section
+  const renderCredentialsContent = () => (
+    <div className="space-y-6">
+      {/* VTOP Session & Account Header Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                VTOP Authentication Session
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Authorized user: <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">{username}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefreshCreds}
+            disabled={refreshingCreds}
+            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <RefreshCcw className={`w-3.5 h-3.5 ${refreshingCreds ? "animate-spin" : ""}`} />
+            <span>{refreshingCreds ? "Syncing..." : "Sync Portal Keys"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* App Saved Portals Grid */}
+      {credAccounts.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
+            Linked Portal Accounts
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {credAccounts.map((row: any, idx: number) => {
+              const accountName = row.account || "Portal Account";
+              const userName = row.username || "";
+              const pass = row.defaultCredentials || "";
+              const url = row.url || "";
+
+              return (
+                <div
+                  key={idx}
+                  className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs"
+                >
+                  <div className="flex items-center gap-3 pb-3 border-b border-zinc-150 dark:border-zinc-800/80">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-extrabold text-xs text-zinc-900 dark:text-white truncate font-outfit">
+                        {accountName}
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                          Username
+                        </p>
+                        <p className="font-bold text-zinc-900 dark:text-zinc-100 truncate font-mono text-xs mt-0.5">
+                          {userName || "N/A"}
+                        </p>
+                      </div>
+                      {userName && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(userName)}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+                          title="Copy Username"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {pass && (
+                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                            Password
+                          </p>
+                          <p className="font-bold text-zinc-900 dark:text-zinc-100 truncate font-mono text-xs mt-0.5 tracking-wider">
+                            {showPasswords[idx] ? pass : "••••••••••••"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleShow(idx)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-500 transition-colors"
+                            title={showPasswords[idx] ? "Hide" : "Show"}
+                          >
+                            {showPasswords[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(pass)}
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+                            title="Copy Password"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {url && url !== "-" && (
+                      <div className="text-[11px] truncate">
+                        <span className="text-zinc-400 font-semibold">URL: </span>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                          {url}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Local App Stored Credentials */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Stored Portal Logins
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Saved locally and encrypted in your device storage for instant autofill and auto-login
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+              VTOP Registration / Username
+            </label>
+            <input
+              type="text"
+              value={changedUsername}
+              onChange={(e) => setChangedUsername(e.target.value)}
+              className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+              VTOP Password
+            </label>
+            <div className="relative">
+              <input
+                type={showAppPassword ? "text" : "password"}
+                value={changedPassword}
+                onChange={(e) => setChangedPassword(e.target.value)}
+                className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3 py-2.5 pr-10 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAppPassword(!showAppPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1 cursor-pointer"
+              >
+                {showAppPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              setPassword([changedUsername, changedPassword]);
+              alert("Credentials saved locally!");
+            }}
+            disabled={!changedUsername || !changedPassword}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+          >
+            <Save className="w-3.5 h-3.5 mr-1.5" /> Save Stored Credentials
+          </Button>
+        </div>
+      </div>
+
+      {/* Change VTOP Portal Password */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Change VTOP Portal Password
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Remotely update your password on VIT's official VTOP servers
+        </p>
+
+        <div className="space-y-3 max-w-md">
+          <input
+            type="password"
+            value={vtopOldPassword}
+            onChange={(e) => setVtopOldPassword(e.target.value)}
+            placeholder="Current VTOP Password"
+            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
+          <input
+            type="password"
+            value={vtopNewPassword}
+            onChange={(e) => setVtopNewPassword(e.target.value)}
+            placeholder="New Password (min 6 chars)"
+            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
+          <input
+            type="password"
+            value={vtopConfirmPassword}
+            onChange={(e) => setVtopConfirmPassword(e.target.value)}
+            placeholder="Confirm New Password"
+            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
+
+          {passwordChangeError && (
+            <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3 rounded-xl">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{passwordChangeError}</span>
+            </div>
+          )}
+
+          {passwordChangeSuccess && (
+            <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 p-3 rounded-xl">
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              <span>{passwordChangeSuccess}</span>
+            </div>
+          )}
+
+          <Button
+            size="sm"
+            onClick={handleChangeVtopPassword}
+            disabled={passwordChangeLoading || !vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword}
+            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold"
+          >
+            <Lock className="w-3.5 h-3.5 mr-1.5" />
+            {passwordChangeLoading ? "Updating VTOP..." : "Submit Password Change"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Koha Library Card Login */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Koha Library Card
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Library membership credentials used to query books, reserves, and due dates
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
+          <input
+            type="text"
+            value={kohaCard}
+            onChange={(e) => setKohaCard(e.target.value)}
+            placeholder="Card Number (e.g. 22BCE1234)"
+            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
+          <input
+            type="password"
+            value={kohaPassword}
+            onChange={(e) => setKohaPassword(e.target.value)}
+            placeholder="Library Password"
+            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+          />
+        </div>
+
+        <Button
+          size="sm"
+          onClick={saveKoha}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+        >
+          <Save className="w-3.5 h-3.5 mr-1.5" />
+          {kohaSaved ? "Saved!" : "Save Library Credentials"}
+        </Button>
+      </div>
+
+      {/* Session Security & Log Out */}
+      <div className="bg-red-50/50 dark:bg-red-950/20 rounded-2xl border border-red-200/80 dark:border-red-900/40 p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 shrink-0">
+            <LogOut className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold text-red-900 dark:text-red-200 font-outfit">
+              Sign Out & End Session
+            </h3>
+            <p className="text-xs text-red-700/80 dark:text-red-400/80">
+              Clear your active session and cookies on this device
+            </p>
+          </div>
+        </div>
+        <div className="pt-2">
+          <Button
+            size="sm"
+            onClick={handleLogOutRequest}
+            className="bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold"
+          >
+            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Log Out Now
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1669,6 +2239,8 @@ export default function ProfilePage({
     switch (id) {
       case "profile":
         return renderProfileContent();
+      case "credentials":
+        return renderCredentialsContent();
       case "preferences":
         return renderPreferencesContent();
       case "academic":
@@ -1702,6 +2274,28 @@ export default function ProfilePage({
       )}
       {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
       {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
+
+      {/* Detail Modals */}
+      {activeModal === "ept" && creds && (
+        <Modal isOpen onClose={closeModal} title="EPT Schedule" maxWidth="max-w-2xl">
+          <GenericApiView endpoint="ept-schedule" title="" creds={creds} refreshKey={refreshKey} />
+        </Modal>
+      )}
+      {activeModal === "reg" && creds && (
+        <Modal isOpen onClose={closeModal} title="Registration Schedule" maxWidth="max-w-sm">
+          <RegistrationModalContent creds={creds} onClose={closeModal} />
+        </Modal>
+      )}
+      {activeModal === "bank" && creds && (
+        <Modal isOpen onClose={closeModal} title="Bank Information" maxWidth="max-w-md">
+          <BankDayStatusModal endpoint="bank-info" title="Bank Info" creds={creds} />
+        </Modal>
+      )}
+      {activeModal === "day" && creds && (
+        <Modal isOpen onClose={closeModal} title="Dayboarder Information" maxWidth="max-w-md">
+          <BankDayStatusModal endpoint="dayboarder" title="Dayboarder Info" creds={creds} />
+        </Modal>
+      )}
 
       {/* Top Profile Summary Header Card */}
       <div className="pt-4 pb-6 mb-6">
@@ -1778,47 +2372,43 @@ export default function ProfilePage({
             </div>
 
             {/* Quick Actions in Header */}
-            {mode === "settings" && (
-              <div className="hidden sm:flex items-center gap-2 shrink-0">
-                <button
-                  onClick={onOpenShortcutsHelp}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 shadow-2xs transition-all cursor-pointer"
-                >
-                  <Keyboard size={14} className="text-indigo-500" />
-                  <span>Shortcuts</span>
-                </button>
-                <button
-                  onClick={handleLogOutRequest}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 hover:bg-red-100 transition-all cursor-pointer"
-                >
-                  <LogOut size={14} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              <button
+                onClick={onOpenShortcutsHelp}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 shadow-2xs transition-all cursor-pointer"
+              >
+                <Keyboard size={14} className="text-indigo-500" />
+                <span>Shortcuts</span>
+              </button>
+              <button
+                onClick={handleLogOutRequest}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 hover:bg-red-100 transition-all cursor-pointer"
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
 
           {/* Settings Search Bar */}
-          {mode === "settings" && (
-            <div className="relative mt-4 pt-4 border-t border-zinc-150 dark:border-zinc-800/80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search all settings, themes, semesters, shortcuts..."
-                className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 text-xs"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          )}
+          <div className="relative mt-4 pt-4 border-t border-zinc-150 dark:border-zinc-800/80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search all settings, credentials, profile, themes, semesters..."
+              className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 text-xs"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1827,43 +2417,53 @@ export default function ProfilePage({
       ───────────────────────────────────────────────────────────── */}
       <div className="hidden md:flex gap-8 items-start">
         {/* Left Navigation Rail */}
-        {availableSections.length > 1 && (
-          <aside className="sticky top-6 w-60 shrink-0 flex flex-col gap-1.5">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 px-3 mb-1">
-              Settings Menu
-            </span>
-            {filteredSections.map((sec) => {
-              const Icon = sec.icon;
-              const isActive = activeDesktopSection === sec.id;
+        <aside className="sticky top-6 w-60 shrink-0 flex flex-col gap-1.5">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 px-3 mb-1">
+            Settings Menu
+          </span>
+          {filteredSections.map((sec) => {
+            const Icon = sec.icon;
+            const isActive = activeDesktopSection === sec.id;
 
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => setActiveDesktopSection(sec.id)}
-                  className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
-                    isActive
-                      ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20 font-black"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white"
+            return (
+              <button
+                key={sec.id}
+                onClick={() => setActiveDesktopSection(sec.id)}
+                className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
+                  isActive
+                    ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20 font-black"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white"
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg ${
+                    isActive ? "bg-white/20 text-white" : `${sec.iconBg} ${sec.iconColor}`
                   }`}
                 >
-                  <div
-                    className={`p-1.5 rounded-lg ${
-                      isActive ? "bg-white/20 text-white" : `${sec.iconBg} ${sec.iconColor}`
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="flex-1 truncate">{sec.label}</span>
-                  <ChevronRight
-                    className={`w-3.5 h-3.5 transition-transform ${
-                      isActive ? "opacity-100 translate-x-0.5" : "opacity-40"
-                    }`}
-                  />
-                </button>
-              );
-            })}
-          </aside>
-        )}
+                  <Icon className="w-4 h-4" />
+                </div>
+                <span className="flex-1 truncate">{sec.label}</span>
+                <ChevronRight
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    isActive ? "opacity-100 translate-x-0.5" : "opacity-40"
+                  }`}
+                />
+              </button>
+            );
+          })}
+
+          <div className="pt-3 mt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
+            <button
+              onClick={handleLogOutRequest}
+              className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all text-left cursor-pointer"
+            >
+              <div className="p-1.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <span className="flex-1 truncate">Sign Out</span>
+            </button>
+          </div>
+        </aside>
 
         {/* Right Settings Content */}
         <main className="flex-1 w-full min-w-0 space-y-6">
@@ -1949,25 +2549,23 @@ export default function ProfilePage({
               </div>
 
               {/* Mobile Hub Quick Actions */}
-              {mode === "settings" && (
-                <div className="pt-4 space-y-2">
-                  <button
-                    onClick={onOpenShortcutsHelp}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-                  >
-                    <Keyboard size={16} className="text-indigo-500" />
-                    <span>Keyboard Hotkeys & Shortcuts</span>
-                  </button>
+              <div className="pt-4 space-y-2">
+                <button
+                  onClick={onOpenShortcutsHelp}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <Keyboard size={16} className="text-indigo-500" />
+                  <span>Keyboard Hotkeys & Shortcuts</span>
+                </button>
 
-                  <button
-                    onClick={handleLogOutRequest}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out of Account</span>
-                  </button>
-                </div>
-              )}
+                <button
+                  onClick={handleLogOutRequest}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out of Account</span>
+                </button>
+              </div>
             </motion.div>
           ) : (
             /* LEVEL 2: Focused Category Sub-Page */
@@ -2004,6 +2602,200 @@ export default function ProfilePage({
       </div>
 
       <TabHelpFooter tabId="settings" />
+    </div>
+  );
+}
+
+function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [hasData, setHasData] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const { cookies, authorizedID, csrf } = creds;
+    fetch(`${API_BASE}/api/registration-schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookies, authorizedID, csrf }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        const hasContent =
+          res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
+        setHasData(hasContent);
+        if (hasContent) {
+          let foundDate = "";
+          let foundTime = "";
+
+          if (res?.keyValuePairs?.date) foundDate = res.keyValuePairs.date;
+          if (res?.keyValuePairs?.fromTime) {
+            const to = res.keyValuePairs.toTime ? ` - ${res.keyValuePairs.toTime}` : "";
+            foundTime = res.keyValuePairs.fromTime + to;
+          }
+
+          if (!foundDate || !foundTime) {
+            const rows = res.tables[0].rows || [];
+            const h = res.tables[0].headers?.[0] || "Registration Details";
+            for (const row of rows) {
+              const label = typeof row === "object" ? row[h] || "" : "";
+              const val = typeof row === "object" ? row["col1"] || "" : "";
+              if (!foundDate && /date/i.test(label)) foundDate = val;
+              if (!foundTime && /from.?time|to.?time|time/i.test(label)) {
+                foundTime = foundTime ? `${foundTime} - ${val}` : val;
+              }
+            }
+          }
+
+          if (!foundDate || !foundTime) {
+            const firstRow = res.tables[0].rows?.[0];
+            const headers = res.tables[0].headers || [];
+            if (!foundDate) {
+              const idx = headers.findIndex((h: string) => /date/i.test(h));
+              if (idx >= 0) {
+                foundDate = String(
+                  typeof firstRow === "object"
+                    ? firstRow[headers[idx]] || firstRow[idx] || ""
+                    : firstRow[idx] || ""
+                );
+              }
+            }
+            if (!foundTime) {
+              const idx = headers.findIndex((h: string) => /time|session/i.test(h));
+              if (idx >= 0) {
+                foundTime = String(
+                  typeof firstRow === "object"
+                    ? firstRow[headers[idx]] || firstRow[idx] || ""
+                    : firstRow[idx] || ""
+                );
+              }
+            }
+          }
+
+          setDate(foundDate);
+          setTime(foundTime);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [creds]);
+
+  const handleMarkRead = () => {
+    localStorage.setItem("_reg_update_read", Date.now().toString());
+    onClose();
+  };
+
+  if (loading) return <Skeleton className="h-20 w-full rounded-xl" />;
+
+  if (error || !hasData) {
+    return (
+      <div className="flex flex-col items-center text-center py-4 space-y-3">
+        <div className="p-3 rounded-full bg-amber-50 dark:bg-amber-900/30">
+          <Clock className="w-8 h-8 text-amber-500" />
+        </div>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          No registration schedule available
+        </p>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center text-center py-4 space-y-4">
+      <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-900/30">
+        <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+      </div>
+      <div>
+        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-outfit">
+          Registration Scheduled
+        </p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          {date && <span>Date: {date}</span>}
+          {date && time && <span>{" • "}</span>}
+          {time && <span>Time: {time}</span>}
+          {!date && !time && <span>Your registration is available</span>}
+        </p>
+      </div>
+      <button
+        onClick={handleMarkRead}
+        className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors cursor-pointer"
+      >
+        Mark as Read
+      </button>
+    </div>
+  );
+}
+
+function BankDayStatusModal({
+  endpoint,
+  title,
+  creds,
+}: {
+  endpoint: string;
+  title: string;
+  creds: any;
+}) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const { cookies, authorizedID, csrf } = creds;
+    fetch(`${API_BASE}/api/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookies, authorizedID, csrf }),
+    })
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [creds, endpoint]);
+
+  if (loading) return <Skeleton className="h-24 w-full rounded-2xl" />;
+
+  const hasContent =
+    data?.tables?.length > 0 ||
+    (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
+
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl">
+      {hasContent ? (
+        <>
+          <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-lg">
+              {title} Filled
+            </p>
+            <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">
+              Your {title.toLowerCase()} has been submitted successfully
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="p-3 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-400">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-700 dark:text-zinc-300 text-lg">
+              {title} Not Filled
+            </p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              No {title.toLowerCase()} found in the system
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

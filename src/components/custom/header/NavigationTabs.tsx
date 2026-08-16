@@ -509,25 +509,45 @@ export default function NavigationTabs({
         onSelect: () => selectTab("payments"),
       },
       {
-        id: "cabshare",
-        label: "Cab Share",
-        icon: Car,
-        isActive: activeTab === "cabshare",
-        onSelect: () => selectTab("cabshare"),
-      },
-      {
         id: "libraries",
         label: "Libraries",
         icon: Library,
         isActive: activeTab === "libraries",
         onSelect: () => selectTab("libraries"),
       },
+      {
+        id: "transport",
+        label: "Transport",
+        icon: Bus,
+        isActive: activeTab === "transport",
+        onSelect: () => selectTab("transport"),
+      },
+      {
+        id: "more-events",
+        label: "Event Hub",
+        icon: Calendar,
+        isActive: activeTab === "more" && activeMoreSubTab === "events",
+        onSelect: () => {
+          selectTab("more");
+          setActiveMoreSubTab("events");
+        },
+      },
+      {
+        id: "more-clubs",
+        label: "Club Hub",
+        icon: LayoutGrid,
+        isActive: activeTab === "more" && activeMoreSubTab === "clubs",
+        onSelect: () => {
+          selectTab("more");
+          setActiveMoreSubTab("clubs");
+        },
+      },
     ];
 
     if (isHosteller === true || residentialStatus === "hosteller") {
       items.push({
         id: "hostel",
-        label: "Hostel",
+        label: "Hostel Hub",
         icon: Home,
         isActive: activeTab === "hostel",
         isExpandable: true,
@@ -539,34 +559,14 @@ export default function NavigationTabs({
       });
     }
 
-    items.push({
-      id: "transport",
-      label: "Transport",
-      icon: Bus,
-      isActive: activeTab === "transport",
-      onSelect: () => selectTab("transport"),
-    });
-
     return items;
-  }, [activeTab, isHosteller, residentialStatus, selectTab, HostelActiveSubTab, setHostelActiveSubTab]);
+  }, [activeTab, isHosteller, residentialStatus, selectTab, activeMoreSubTab, setActiveMoreSubTab, HostelActiveSubTab, setHostelActiveSubTab]);
 
   const toolsItems = useMemo<NavItem[]>(() => [
     {
-      id: "tools",
-      label: "Tools & Utilities",
-      icon: Layers,
-      isActive: activeTab === "tools",
-      isExpandable: true,
-      onSelect: () => {
-        selectTab("tools");
-        if (!activeToolsSubTab) setActiveToolsSubTab?.("overview");
-        setShowToolsPanel(true);
-      },
-    },
-    {
       id: "social",
-      label: "Social",
-      icon: LayoutGrid,
+      label: "Timetable Sharing",
+      icon: Users,
       isActive: (activeTab === "more" && activeMoreSubTab === "social") || (activeTab === "tools" && activeToolsSubTab === "social"),
       onSelect: () => {
         selectTab("tools");
@@ -584,56 +584,77 @@ export default function NavigationTabs({
       },
     },
     {
-      id: "more-events",
-      label: "Event Hub",
-      icon: Calendar,
-      isActive: activeTab === "more" && activeMoreSubTab === "events",
+      id: "tools",
+      label: "Tools & Utilities Hub",
+      icon: Layers,
+      isActive: activeTab === "tools" && (!activeToolsSubTab || activeToolsSubTab === "overview"),
+      isExpandable: true,
       onSelect: () => {
-        selectTab("more");
-        setActiveMoreSubTab("events");
-      }
+        selectTab("tools");
+        if (!activeToolsSubTab) setActiveToolsSubTab?.("overview");
+        setShowToolsPanel(true);
+      },
     },
     {
-      id: "more-clubs",
-      label: "Club Hub",
-      icon: LayoutGrid,
-      isActive: activeTab === "more" && activeMoreSubTab === "clubs",
+      id: "qbank",
+      label: "Question Bank",
+      icon: Database,
+      isActive: activeTab === "tools" && activeToolsSubTab === "qbank",
       onSelect: () => {
-        selectTab("more");
-        setActiveMoreSubTab("clubs");
-      }
+        selectTab("tools");
+        setActiveToolsSubTab?.("qbank");
+      },
     },
-  ], [activeTab, activeMoreSubTab, activeToolsSubTab, selectTab, setActiveMoreSubTab, setActiveToolsSubTab]);
+    {
+      id: "faculty-info",
+      label: "Faculty Explorer",
+      icon: UserCheck,
+      isActive: activeTab === "tools" && activeToolsSubTab === "faculty-info",
+      onSelect: () => {
+        selectTab("tools");
+        setActiveToolsSubTab?.("faculty-info");
+      },
+    },
+    {
+      id: "predictor",
+      label: "CGPA Predictor",
+      icon: TrendingUp,
+      isActive: activeTab === "tools" && activeToolsSubTab === "predictor",
+      onSelect: () => {
+        selectTab("tools");
+        setActiveToolsSubTab?.("predictor");
+      },
+    },
+    {
+      id: "cabshare",
+      label: "Cab Share",
+      icon: CarTaxiFront,
+      isActive: (activeTab === "cabshare") || (activeTab === "tools" && activeToolsSubTab === "cabshare"),
+      onSelect: () => {
+        selectTab("tools");
+        setActiveToolsSubTab?.("cabshare");
+      },
+    },
+    {
+      id: "free-class",
+      label: "Free Classrooms",
+      icon: DoorOpen,
+      isActive: activeTab === "tools" && activeToolsSubTab === "free-class",
+      onSelect: () => {
+        selectTab("tools");
+        setActiveToolsSubTab?.("free-class");
+      },
+    },
+  ], [activeTab, activeMoreSubTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
 
   const accountItems = useMemo<NavItem[]>(() => [
     {
-      id: "profile-info",
-      label: "My Info",
+      id: "profile",
+      label: "Settings & Profile",
       icon: User,
-      isActive: activeTab === "profile" && activeProfileSubTab === "info",
+      isActive: activeTab === "profile",
       onSelect: () => {
         selectTab("profile");
-        setActiveProfileSubTab("info");
-      },
-    },
-    {
-      id: "profile-credentials",
-      label: "Credentials",
-      icon: Key,
-      isActive: activeTab === "profile" && activeProfileSubTab === "credentials",
-      onSelect: () => {
-        selectTab("profile");
-        setActiveProfileSubTab("credentials");
-      },
-    },
-    {
-      id: "profile-settings",
-      label: "Settings",
-      icon: Settings,
-      isActive: activeTab === "profile" && activeProfileSubTab === "settings",
-      onSelect: () => {
-        selectTab("profile");
-        setActiveProfileSubTab("settings");
       },
     },
     {
@@ -654,7 +675,7 @@ export default function NavigationTabs({
       },
       isActive: false,
     },
-  ], [activeTab, activeProfileSubTab, selectTab, setActiveProfileSubTab]);
+  ], [activeTab, selectTab, handleLogOutRequest]);
 
   const groups = useMemo<Group[]>(() => [
     { id: "study", label: "Study", icon: BookOpen, items: studyItems },
@@ -1616,39 +1637,32 @@ const AppLibraryPortal = memo(({
     { label: "Course Dashboard", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("course-dashboard"); } },
     { label: "Grade History", group: "Academics", icon: GraduationCap, action: () => { selectTab("academics"); setActiveSubTab("grades"); } },
     { label: "Curriculum", group: "Academics", icon: BookOpen, action: () => { selectTab("academics"); setActiveSubTab("curriculum"); } },
+
+    { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
+    { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
+    { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
+    { label: "Event Hub", group: "Campus", icon: Calendar, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+    { label: "Club Hub", group: "Campus", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
     
+    { label: "Timetable Sharing", group: "Tools", icon: Users, action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
+    { label: "FFCS Planner", group: "Tools", icon: Compass, action: () => { selectTab("tools"); setActiveToolsSubTab?.("ffcs"); } },
     { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
     { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
     { label: "CGPA Predictor", group: "Tools", icon: TrendingUp, action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
-    { label: "Social Timetable", group: "Tools", icon: Users, action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
     { label: "Free Classrooms", group: "Tools", icon: DoorOpen, action: () => { selectTab("tools"); setActiveToolsSubTab?.("free-class"); } },
-    { label: "FFCS Planner", group: "Tools", icon: Compass, action: () => { selectTab("tools"); setActiveToolsSubTab?.("ffcs"); } },
     
     { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
     { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
     { label: "Laundry", group: "Hostel", icon: Wrench, action: () => { selectTab("hostel"); setHostelActiveSubTab("laundry"); } },
     { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
     { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
-    { label: "Hostel Payments", group: "Hostel", icon: CreditCard, action: () => { selectTab("payments"); } },
     
-    { label: "Cab Share", group: "Campus", icon: CarTaxiFront, action: () => { selectTab("cabshare"); } },
-    { label: "Transport", group: "Campus", icon: Bus, action: () => { selectTab("transport"); } },
-    { label: "Payments", group: "Campus", icon: CreditCard, action: () => { selectTab("payments"); } },
-    { label: "Libraries", group: "Campus", icon: Library, action: () => { selectTab("libraries"); } },
-    
-    { label: "Social Feed", group: "Tools", icon: User, action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
-    { label: "Event Hub", group: "Tools", icon: Compass, action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
-    { label: "Club Hub", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
-    { label: "FFCS Planner", group: "Tools", icon: LayoutGrid, action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-    
-    { label: "My Info", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-    { label: "Credentials", group: "Account", icon: Key, action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
-    { label: "Settings", group: "Account", icon: Wrench, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+    { label: "Settings & Profile", group: "Account", icon: User, action: () => { selectTab("profile"); } },
     { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
     { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
-  ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+  ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, handleLogOutRequest]);
 
   const primaryGroups = useMemo(() => [
     {
@@ -1662,34 +1676,38 @@ const AppLibraryPortal = memo(({
     {
       name: "Campus",
       items: [
-        { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => selectTab("cabshare") },
         { label: "Payments", icon: CreditCard, type: "link", action: () => selectTab("payments") },
         { label: "Libraries", icon: Library, type: "link", action: () => selectTab("libraries") },
+        { label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") },
+        { label: "Event Hub", icon: Calendar, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
+        { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } },
         ...(isHosteller === true || residentialStatus === "hosteller" 
           ? [{ label: "Hostel Hub", icon: Home, type: "panel", action: () => setMobilePanel("hostel") }] 
-          : [{ label: "Transport", icon: Bus, type: "link", action: () => selectTab("transport") }])
+          : [])
       ]
     },
     {
       name: "Tools",
       items: [
-        { label: "Social", icon: User, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("social"); } },
-        { label: "FFCS Planner", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("ffcs"); } },
-        { label: "Event Hub", icon: Compass, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("events"); } },
-        { label: "Club Hub", icon: LayoutGrid, type: "link", action: () => { selectTab("more"); setActiveMoreSubTab("clubs"); } }
+        { label: "Timetable Sharing", icon: Users, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("social"); } },
+        { label: "FFCS Planner", icon: Compass, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("ffcs"); } },
+        { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
+        { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
+        { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
+        { label: "CGPA Predictor", icon: TrendingUp, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
+        { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
+        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("free-class"); } },
       ]
     },
     {
       name: "Account",
       items: [
-        { label: "My Info", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("info"); } },
-        { label: "Credentials", icon: Key, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("credentials"); } },
-        { label: "Settings", icon: Wrench, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
+        { label: "Settings & Profile", icon: User, type: "link", action: () => { selectTab("profile"); } },
         { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
         { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
       ]
     }
-  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
+  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveToolsSubTab, handleLogOutRequest]);
 
   const academicsItemsMobile = useMemo(() => 
     allSearchableItems.filter(item => item.group === "Academics"),
