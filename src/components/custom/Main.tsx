@@ -2222,9 +2222,10 @@ export default function LoginPage() {
             GradesData={GradesData}
             allGradesData={AllGradesData}
             attendancePercentage={attendancePercentage}
-            ODhoursData={ODhoursData}
-            ODhoursIsOpen={ODhoursIsOpen}
-            setODhoursIsOpen={setODhoursIsOpen}
+ODhoursData={ODhoursData}
+          ODhoursIsOpen={ODhoursIsOpen}
+          attendanceData={attendanceData}
+          setODhoursIsOpen={setODhoursIsOpen}
             GradesDisplayIsOpen={GradesDisplayIsOpen}
             setGradesDisplayIsOpen={setGradesDisplayIsOpen}
             attendanceData={attendanceData}

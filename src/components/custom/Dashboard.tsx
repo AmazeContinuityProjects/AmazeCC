@@ -720,6 +720,7 @@ export default function DashboardContent({
                 handleReloadRequest={handleReloadRequest}
                 onOpenCommandPalette={onOpenCommandPalette}
                 profileData={profileData}
+                ODhoursData={ODhoursData}
               />
             </div>
           )}

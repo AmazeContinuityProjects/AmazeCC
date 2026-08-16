@@ -2,6 +2,7 @@ import * as React from "react"
 import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
+import SWUpdateToast from "../components/custom/SWUpdateToast";
 import type { Viewport, Metadata } from "next";
 import './globals.css';
 
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="antialiased font-sans"
       >
         <IconUpdater />
+        <SWUpdateToast />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
