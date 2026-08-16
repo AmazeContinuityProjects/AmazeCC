@@ -23,6 +23,6 @@ export { PageHeader } from "@amazecontinuityprojects/amazeui";
 export { EmptyState } from "@amazecontinuityprojects/amazeui";
 export { CommandPalette } from "./CommandPalette";
 export { ErrorDiagnosticCard } from "@amazecontinuityprojects/amazeui";
-export { LoadingScreen } from "@amazecontinuityprojects/amazeui";
+export { LoadingScreen } from "./LoadingScreen";
 export { AboutSection } from "@amazecontinuityprojects/amazeui";
 export { SettingsPanel } from "@amazecontinuityprojects/amazeui";

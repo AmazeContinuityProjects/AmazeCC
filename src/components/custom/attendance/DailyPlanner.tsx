@@ -53,12 +53,23 @@ interface DailyPlannerProps {
   simulatedSkips?: Record<string, number>;
   isDayscholarWithBus?: boolean;
   saturdayOverride?: string;
+  selectedIndex?: number;
 }
 
-export default function DailyPlanner({ attendance, activeDay: controlledDay, onActiveDayChange, onClassClick, simulatedSkips = {}, isDayscholarWithBus = false, saturdayOverride }: DailyPlannerProps) {
+export default function DailyPlanner({ 
+  attendance, 
+  activeDay: controlledDay, 
+  onActiveDayChange, 
+  onClassClick, 
+  simulatedSkips = {}, 
+  isDayscholarWithBus = false, 
+  saturdayOverride,
+  selectedIndex
+}: DailyPlannerProps) {
   const slotMap = (config as any).slotMap || {};
   const [internalDay, setInternalDay] = useState(getTodayDay());
   const [nowMins, setNowMins] = useState(0);
+  const [selectedSlotKey, setSelectedSlotKey] = useState<string | null>(null);
 
   const activeDay = controlledDay ?? internalDay;
   const setActiveDay = (day: string) => {
@@ -317,13 +328,26 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
               } catch (e) {}
             }
 
+            let classSlotIdx = 0;
+            let classIdxCounter = 0;
+            for (let i = 0; i < index; i++) {
+              if (scheduleData[i]?.type === "class") classIdxCounter++;
+            }
+            classSlotIdx = classIdxCounter;
+
+            const itemKey = `${item.slots.join("-")}-${c.courseCode}`;
+            const isSelected = selectedIndex !== undefined ? (classSlotIdx === selectedIndex) : (selectedSlotKey === itemKey);
+
             let borderStyle = isLab 
               ? "border-l-4 border-l-purple-500 dark:border-l-purple-500" 
               : "border-l-4 border-l-blue-500 dark:border-l-blue-500";
             let cardStyle = "bg-white dark:bg-[#060606] border-gray-200 dark:border-gray-800";
             let dotColor = isLab ? "bg-purple-500" : "bg-blue-500";
 
-            if (isOngoing) {
+            if (isSelected) {
+              cardStyle = "bg-gradient-to-r from-indigo-50/70 via-indigo-50/30 to-purple-50/20 dark:from-indigo-950/40 dark:via-zinc-900 dark:to-purple-950/20 border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/70 dark:ring-indigo-400/70 shadow-md scale-[1.015]";
+              dotColor = "bg-indigo-600 dark:bg-indigo-400 ring-4 ring-indigo-500/50 scale-125 font-bold";
+            } else if (isOngoing) {
               cardStyle = "bg-blue-50/10 dark:bg-blue-950/5 border-blue-500 dark:border-blue-400 ring-1 ring-blue-500/20 shadow-sm";
               dotColor = "bg-amber-500 ring-4 ring-amber-400/35";
             } else if (isCompleted) {
@@ -348,22 +372,32 @@ export default function DailyPlanner({ attendance, activeDay: controlledDay, onA
             return (
               <div key={index} className="relative">
                 <div className={`absolute left-[-21px] sm:left-[-29px] top-[24px] w-2.5 h-2.5 rounded-full transition-all duration-300 ${dotColor}`}>
-                  {isOngoing && <span className="absolute inset-0 rounded-full bg-amber-400 opacity-75 animate-ping" />}
+                  {isOngoing && !isSelected && <span className="absolute inset-0 rounded-full bg-amber-400 opacity-75 animate-ping" />}
+                  {isSelected && <span className="absolute inset-0 rounded-full bg-indigo-500 opacity-75 animate-ping" />}
                 </div>
 
                 <div
-                  onClick={() => onClassClick?.(item)}
+                  onClick={() => {
+                    setSelectedSlotKey(itemKey);
+                    onClassClick?.(item);
+                  }}
                   className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 hover:shadow-md cursor-pointer relative ${borderStyle} ${cardStyle}`}
                 >
                   <div className="flex-1 min-w-0 space-y-1 pr-14">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-850 text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black uppercase ${isSelected ? "bg-indigo-600 text-white shadow-2xs" : "bg-gray-100 dark:bg-gray-850 text-gray-500 dark:text-gray-400"}`}>
                         {item.slots.join(" + ")}
                       </span>
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
                         {minutesToTimeStr(item.start)} to {minutesToTimeStr(item.end)}
                       </span>
-                      {isOngoing && (
+                      {isSelected && (
+                        <span className="flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-100/90 dark:bg-indigo-950/70 px-2 py-0.5 rounded border border-indigo-300 dark:border-indigo-800 shadow-2xs">
+                          <CheckCircle2 size={10} className="text-indigo-600 dark:text-indigo-400" />
+                          Selected Slot
+                        </span>
+                      )}
+                      {isOngoing && !isSelected && (
                         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                           Ongoing ({minsRemaining}m left)

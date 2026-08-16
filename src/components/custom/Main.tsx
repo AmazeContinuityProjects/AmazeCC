@@ -372,7 +372,7 @@ export default function LoginPage() {
       } catch (e) {}
       setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
     }
-    setTimeout(() => setIsLoading(false), 300);
+    setTimeout(() => setIsLoading(false), 2400);
   }, []);
 
   const loginToVTOP = async (retry = false, forceNew = false) => {
@@ -1156,7 +1156,8 @@ export default function LoginPage() {
 
     // ── All sub-tab navigation ──
     result.push(
-      { id: "acad-marks", label: "My Courses & Marks", description: "Course marks & assessments", icon: "✨", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("courses-simplified"); } },
+      { id: "acad-marks", label: "My Courses & Marks", description: "Course marks & assessments overview", icon: "📊", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); } },
+      { id: "acad-exam-schedule", label: "Exam Schedule", description: "CAT, FAT & lab exam timetables & venues", icon: "📅", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("schedule"); } },
       { id: "acad-curriculum", label: "Curriculum", description: "Course curriculum & structure", icon: "📜", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("curriculum"); } },
       { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },
@@ -1203,7 +1204,7 @@ export default function LoginPage() {
     result.push(
       {
         id: "search-library",
-        label: "📖 Search Library Catalog",
+        label: "Search Library Catalog",
         description: "Search books by title, author, or keyword",
         icon: "📖",
         category: "Search",
@@ -1212,7 +1213,7 @@ export default function LoginPage() {
       },
       {
         id: "search-events",
-        label: "🎪 Search Events",
+        label: "Search Events",
         description: "Search through registered & discoverable events",
         icon: "🎪",
         category: "Search",
@@ -1222,12 +1223,11 @@ export default function LoginPage() {
     );
 
     // ── Settings toggles ──
-    // ── Settings toggles ──
     const toggle = (label: string, key: keyof typeof settings, category: string, icon: string, invertDesc = false) => {
       const current = settings[key] as boolean;
       result.push({
         id: `setting-${key}-on`,
-        label: `${current ? "✅" : "☐"} ${label}`,
+        label: label,
         description: invertDesc
           ? (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on")
           : (current ? "Currently on — tap to turn off" : "Currently off — tap to turn on"),
@@ -1248,6 +1248,7 @@ export default function LoginPage() {
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
     toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
     toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
+    toggle("Hide Home Page Search Bar", "hideHomeSearchBar", "Settings", "🔍");
 
     [
       { id: "light", label: "Light", icon: "☀️" },
@@ -1412,7 +1413,7 @@ export default function LoginPage() {
       const overallColor = parseFloat(overallPerc) >= 80 ? "text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20" : parseFloat(overallPerc) >= 75 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-50  dark:bg-yellow-900/20" : "text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20";
       result.push({
         id: "att-summary",
-        label: "📊 Attendance Summary",
+        label: "Attendance Summary",
         description: `${overallAttended}/${overallTotal} classes · ${below75.length} below 75%`,
         icon: "📊",
         category: `Courses · Attendance`,
@@ -1423,10 +1424,10 @@ export default function LoginPage() {
         const a = c.attendedClasses || 0; const t = c.totalClasses || 0; const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
         result.push({
           id: `att-below75-${c.courseCode}-${i}`,
-          label: `⚠️ ${c.courseTitle} (${c.courseCode})`,
+          label: `${c.courseTitle} (${c.courseCode})`,
           description: `${a}/${t} classes`,
           icon: "🔴",
-          category: "⚠️ Courses Below 75%",
+          category: "Courses Below 75%",
           rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20">{p}%</span>,
           onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
         });
@@ -1507,7 +1508,7 @@ export default function LoginPage() {
         exams.forEach((exam: any, idx: number) => {
           result.push({
             id: `exam-${key}-${idx}`,
-            label: `📝 Exam: ${exam.courseCode || ""} ${exam.courseTitle || ""}`,
+            label: `Exam: ${exam.courseCode || ""} ${exam.courseTitle || ""}`,
             description: `${exam.examDate || ""} · ${exam.examSession || ""} · ${exam.venue || ""}`,
             icon: "📝",
             category: "Exam Schedule",
@@ -2091,21 +2092,23 @@ export default function LoginPage() {
     ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
   ]);
 
-  if (isLoading) {
-    return (
-      <LoadingScreen
-        logoSrc="/logo.png"
-        wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
-        wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
-        title="Student Operating System"
-      />
-    );
-  }
-
   return (
-    <motion.div
-      className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
-    >
+    <>
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <LoadingScreen
+            key="splash-loading-screen"
+            logoSrc="/logo.png"
+            wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
+            wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
+            title="Student Operating System"
+          />
+        )}
+      </AnimatePresence>
+      {!isLoading && (
+        <motion.div
+          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
+        >
       <AnimatePresence>
         {isAPIworking && !isOffline && (
           <motion.div
@@ -2299,7 +2302,9 @@ export default function LoginPage() {
       {isShortcutsHelpOpen && (
         <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
       )}
-    </motion.div>
+        </motion.div>
+      )}
+    </>
   );
 }
 
