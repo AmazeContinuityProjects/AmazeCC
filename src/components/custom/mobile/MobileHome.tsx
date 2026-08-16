@@ -28,12 +28,16 @@ import {
   ArrowUp,
   ArrowDown,
   RotateCcw,
-  Shirt
+  Shirt,
+  Maximize2,
+  Minimize2,
+  GripVertical
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
+import TabHelpFooter from "../shared/TabHelpFooter";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { API_BASE } from "@/lib/fetch-utils";
@@ -41,6 +45,10 @@ import { API_BASE } from "@/lib/fetch-utils";
 interface MobileHomeProps {
   attendanceData: any;
   marksData: any;
+  scheduleData?: any;
+  handleScheduleFetch?: () => void;
+  ODhoursData?: any;
+  setODhoursIsOpen?: (val: boolean) => void;
   hostelData: any;
   registeredEvents: any[];
   moodleData: any[];
@@ -56,37 +64,42 @@ interface MobileHomeProps {
   handleReloadRequest: () => Promise<void>;
   onOpenCommandPalette: () => void;
   profileData?: any;
-  ODhoursData: any;
 }
 
 interface WidgetItem {
   id: string;
   title: string;
   enabled: boolean;
+  span?: "full" | "half";
 }
 
 const DEFAULT_WIDGETS: WidgetItem[] = [
-  { id: "insights", title: "Quick Insights Dock", enabled: true },
-  { id: "attendance", title: "Attendance Summary Card", enabled: true },
-  { id: "classes", title: "Today's Classes", enabled: true },
-  { id: "attendance_courses", title: "Course Attendance Detail", enabled: true },
-  { id: "academic_courses", title: "Current Semester Courses", enabled: true },
-  { id: "critical", title: "Critical Attendance Alert", enabled: true },
-  { id: "actions", title: "Quick Actions Grid", enabled: true },
-  { id: "laundry", title: "Laundry Slot Status", enabled: true },
-  { id: "mess", title: "Today's Mess Menu", enabled: true },
-  { id: "deadlines", title: "Upcoming Deadlines", enabled: true },
-  { id: "classrooms", title: "Free Classrooms Finder", enabled: true },
-  { id: "events", title: "Registered Events", enabled: true },
-  { id: "quick_settings", title: "Quick Settings Panel", enabled: true },
-  { id: "cabshare", title: "Cab Share Promo", enabled: false },
-  { id: "cabshare_match", title: "Cab Share Matches", enabled: false },
-  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false },
+  { id: "insights", title: "Quick Insights Dock", enabled: true, span: "full" },
+  { id: "attendance", title: "Attendance Summary Card", enabled: true, span: "full" },
+  { id: "classes", title: "Today's Classes", enabled: true, span: "half" },
+  { id: "exam_schedule", title: "Upcoming Exam Schedule", enabled: true, span: "half" },
+  { id: "attendance_courses", title: "Course Attendance Detail", enabled: true, span: "full" },
+  { id: "academic_courses", title: "Current Semester Courses", enabled: true, span: "full" },
+  { id: "critical", title: "Critical Attendance Alert", enabled: true, span: "full" },
+  { id: "actions", title: "Quick Actions Grid", enabled: true, span: "half" },
+  { id: "laundry", title: "Laundry Slot Status", enabled: true, span: "half" },
+  { id: "mess", title: "Today's Mess Menu", enabled: true, span: "half" },
+  { id: "deadlines", title: "Upcoming Deadlines", enabled: true, span: "half" },
+  { id: "classrooms", title: "Free Classrooms Finder", enabled: true, span: "half" },
+  { id: "events", title: "Registered Events", enabled: true, span: "half" },
+  { id: "quick_settings", title: "Quick Settings Panel", enabled: true, span: "half" },
+  { id: "cabshare", title: "Cab Share Promo", enabled: false, span: "full" },
+  { id: "cabshare_match", title: "Cab Share Matches", enabled: false, span: "full" },
+  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false, span: "full" },
 ];
 
 export default function MobileHome({
   attendanceData,
   marksData,
+  scheduleData,
+  handleScheduleFetch,
+  ODhoursData,
+  setODhoursIsOpen,
   hostelData,
   registeredEvents,
   moodleData,
@@ -102,7 +115,6 @@ export default function MobileHome({
   handleReloadRequest,
   onOpenCommandPalette,
   profileData: profileDataProp,
-  ODhoursData,
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
@@ -117,9 +129,15 @@ export default function MobileHome({
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const merged = [...parsed];
+            const merged = parsed.map((p: any) => {
+              const def = DEFAULT_WIDGETS.find(d => d.id === p.id);
+              return {
+                ...p,
+                span: p.span || def?.span || "full"
+              };
+            });
             DEFAULT_WIDGETS.forEach(def => {
-              if (!merged.some(m => m.id === def.id)) {
+              if (!merged.some((m: any) => m.id === def.id)) {
                 merged.push(def);
               }
             });
@@ -134,6 +152,18 @@ export default function MobileHome({
   useEffect(() => {
     localStorage.setItem("amaze_dashboard_widgets", JSON.stringify(widgets));
   }, [widgets]);
+
+  const toggleWidgetSpan = (id: string) => {
+    setWidgets(prev =>
+      prev.map(w => {
+        if (w.id === id) {
+          const nextSpan = w.span === "full" ? "half" : "full";
+          return { ...w, span: nextSpan };
+        }
+        return w;
+      })
+    );
+  };
 
   // Load global cab share settings
   useEffect(() => {
@@ -276,6 +306,28 @@ export default function MobileHome({
 
     return { current, next };
   }, [todayClasses]);
+
+  // Approved OD hours total calculation
+  const totalODHours = useMemo(() => {
+    if (Array.isArray(ODhoursData) && ODhoursData.length > 0) {
+      return ODhoursData.reduce((sum: number, day: any) => sum + (Number(day.total) || 0), 0);
+    }
+    if (attendanceData?.attendance && Array.isArray(attendanceData.attendance)) {
+      let total = 0;
+      attendanceData.attendance.forEach((course: any) => {
+        if (Array.isArray(course.viewLink)) {
+          course.viewLink.forEach((day: any) => {
+            if (day.status === "On Duty") {
+              const hours = (course.slotName || "").startsWith("L") ? 2 : 1;
+              total += hours;
+            }
+          });
+        }
+      });
+      return total;
+    }
+    return 0;
+  }, [ODhoursData, attendanceData]);
 
   // Overall attendance calculations
   const overallAttendance = useMemo(() => {
@@ -480,16 +532,26 @@ export default function MobileHome({
         </div>
 
         {/* OD Hours Card */}
-        <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
+        <button
+          onClick={() => {
+            if (setODhoursIsOpen) {
+              setODhoursIsOpen(true);
+            } else {
+              setActiveTab("attendance");
+              setActiveAttendanceSubTab("attendance");
+            }
+          }}
+          className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+        >
           <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">OD Approved</span>
           <p className="text-xl font-black text-zinc-900 dark:text-white leading-none mt-1">
-            {ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
-      ? ODhoursData.reduce((sum, day) => sum + day.total, 0)
-      : 0} hrs
+            {totalODHours || (ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
+              ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
+              : 0)} hrs
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none">On-Duty History</span>
-        </div>
+          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none font-outfit">On-Duty History</span>
+        </button>
       </div>
     );
   };
@@ -1153,12 +1215,13 @@ export default function MobileHome({
             All Settings
           </button>
         </div>
-        <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3">
+        <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/50">
           
-          <div className="flex items-center justify-between text-xs">
+          {/* Hide CGPA */}
+          <div className="flex items-center justify-between text-xs pt-0">
             <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur GPA display on dashboard</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA Everywhere</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur CGPA display on dashboard & header</p>
             </div>
             <Switch
               checked={settings?.CGPAHidden ?? false}
@@ -1172,13 +1235,32 @@ export default function MobileHome({
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs">
+          {/* Grades Anonymizer */}
+          <div className="flex items-center justify-between text-xs pt-3">
             <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
-              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in greeting</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur course marks & letter grades</p>
             </div>
             <Switch
-              checked={settings?.showProfilePhoto ?? false}
+              checked={settings?.blurGrades ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, blurGrades: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Show Profile Photo */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
+              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in dashboard greeting</p>
+            </div>
+            <Switch
+              checked={settings?.showProfilePhoto ?? true}
               onCheckedChange={(val) => {
                 setSettings((prev: any) => {
                   const next = { ...prev, showProfilePhoto: val };
@@ -1189,23 +1271,307 @@ export default function MobileHome({
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs">
+          {/* Home Page Search Bar */}
+          <div className="flex items-center justify-between text-xs pt-3">
             <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide Mobile Header</p>
-              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Compact header view on smaller screens</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Home Page Search Bar</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Display Spotlight search bar on home tab</p>
             </div>
             <Switch
-              checked={settings?.hideMobileHeader ?? false}
+              checked={!(settings?.hideHomeSearchBar ?? false)}
               onCheckedChange={(val) => {
                 setSettings((prev: any) => {
-                  const next = { ...prev, hideMobileHeader: val };
+                  const next = { ...prev, hideHomeSearchBar: !val };
                   localStorage.setItem("settings", JSON.stringify(next));
                   return next;
                 });
               }}
             />
           </div>
+
+          {/* Decimal Attendance Values */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Decimal Attendance Values</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show 2 decimal places (e.g. 84.62%)</p>
+            </div>
+            <Switch
+              checked={settings?.decimalValues ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, decimalValues: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Dayscholar Bus Mode */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Dayscholar Bus Mode</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show bus route & boarding point widgets</p>
+            </div>
+            <Switch
+              checked={settings?.isDayscholarWithBus ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, isDayscholarWithBus: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Reload All Data */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Reload All API Categories</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Refresh button syncs all categories</p>
+            </div>
+            <Switch
+              checked={settings?.reloadAllData ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, reloadAllData: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Smart Mess Filter */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Filter</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550 font-medium">Auto-filter mess menu items for current week</p>
+            </div>
+            <Switch
+              checked={settings?.smartMessFilter ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, smartMessFilter: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
         </div>
+      </div>
+    );
+  };
+
+  const renderExamScheduleWidget = () => {
+    const scheduleObj = scheduleData?.Schedule || scheduleData?.schedule;
+
+    const allExams = useMemo(() => {
+      if (!scheduleObj || typeof scheduleObj !== "object") return [];
+      const list: any[] = [];
+      Object.entries(scheduleObj).forEach(([examType, subjects]: [string, any]) => {
+        if (Array.isArray(subjects)) {
+          subjects.forEach((subj) => {
+            list.push({ ...subj, examType });
+          });
+        }
+      });
+
+      const parseDate = (dStr: string) => {
+        if (!dStr) return null;
+        const parts = dStr.split(/[-/]/);
+        if (parts.length === 3) {
+          let [d, m, y] = parts;
+          const dayNum = parseInt(d, 10);
+          if (isNaN(dayNum)) return null;
+          const yearNum = parseInt(y, 10);
+          if (isNaN(parseInt(m, 10))) {
+            const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+            const mIndex = monthNames.findIndex((x) => m.toLowerCase().startsWith(x));
+            if (mIndex === -1) return null;
+            return new Date(yearNum, mIndex, dayNum);
+          } else {
+            return new Date(yearNum, parseInt(m, 10) - 1, dayNum);
+          }
+        }
+        return new Date(dStr);
+      };
+
+      return list
+        .map((exam) => ({ ...exam, parsedDate: parseDate(exam.examDate) }))
+        .sort((a, b) => {
+          if (!a.parsedDate && !b.parsedDate) return 0;
+          if (!a.parsedDate) return 1;
+          if (!b.parsedDate) return -1;
+          return a.parsedDate.getTime() - b.parsedDate.getTime();
+        });
+    }, [scheduleObj]);
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    const todayExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() === todayDate.getTime());
+    const upcomingExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() >= todayDate.getTime());
+    const nextExam = upcomingExams.length > 0 ? upcomingExams[0] : null;
+
+    const calculateDaysLeft = (targetDate: Date) => {
+      const diffTime = targetDate.getTime() - todayDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Tomorrow";
+      return `In ${diffDays} days`;
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <span>Exam Schedule</span>
+          </h2>
+          <button 
+            onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+          >
+            Full Schedule
+          </button>
+        </div>
+
+        {allExams.length === 0 ? (
+          <div className="p-5 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-500 shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No exam schedule loaded</h4>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Fetch your CAT & FAT timetables from VTOP</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (handleScheduleFetch) {
+                  handleScheduleFetch();
+                } else {
+                  setActiveTab("academics");
+                  setActiveSubTab("schedule");
+                }
+              }}
+              className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-xl transition-all shrink-0 cursor-pointer uppercase tracking-wider shadow-2xs"
+            >
+              Fetch Schedule
+            </button>
+          </div>
+        ) : todayExams.length > 0 ? (
+          <div className="space-y-2.5">
+            <div className="p-4.5 rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm border border-emerald-600/30 relative overflow-hidden text-left">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full pointer-events-none" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 rounded-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                Exam Today!
+              </span>
+              {todayExams.map((exam, idx) => (
+                <div key={idx} className={idx > 0 ? "mt-4 pt-4 border-t border-white/20" : "mt-2"}>
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-extrabold text-base leading-tight">
+                      {exam.courseCode} — {exam.courseTitle}
+                    </h4>
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded bg-black/20 text-white uppercase shrink-0">
+                      {exam.examType}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-white/90 font-semibold">
+                    <div>
+                      <p className="text-[9px] text-white/70 uppercase">Exam Time</p>
+                      <p className="font-bold">{exam.examTime || exam.reportingTime}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-white/70 uppercase">Venue & Seat</p>
+                      <p className="font-bold">{exam.venue || "TBA"} • #{exam.seatNo || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : nextExam ? (
+          <div className="space-y-3">
+            {/* Spotlight next upcoming exam */}
+            <div 
+              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+              className="p-4.5 rounded-[24px] bg-gradient-to-br from-blue-50/70 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/60 dark:border-blue-900/40 text-left cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-all relative overflow-hidden shadow-2xs"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-blue-600/10 text-blue-700 dark:text-blue-400 rounded-md border border-blue-600/20 font-outfit">
+                  Next Exam • {nextExam.parsedDate ? calculateDaysLeft(nextExam.parsedDate) : nextExam.examDate}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  {nextExam.examType}
+                </span>
+              </div>
+
+              <h4 className="font-black text-sm text-zinc-900 dark:text-white font-outfit truncate">
+                {nextExam.courseCode} — {nextExam.courseTitle}
+              </h4>
+
+              <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-blue-100 dark:border-blue-900/30 text-xs">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Date & Time</p>
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.examDate}</p>
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">{nextExam.examTime}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Venue & Seat</p>
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.venue || "TBA"}</p>
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">Seat #{nextExam.seatNo || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* List of remaining upcoming exams */}
+            {upcomingExams.length > 1 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                {upcomingExams.slice(1, 3).map((exam, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+                    className="p-3 rounded-[18px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 transition-all cursor-pointer flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+                          {exam.examType}
+                        </span>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">{exam.courseCode}</p>
+                      </div>
+                      <p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-semibold truncate mt-0.5">{exam.courseTitle}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{exam.examDate}</span>
+                      <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold">{exam.venue}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No upcoming exams</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">All scheduled exams for this term are completed</p>
+            </div>
+            <button 
+              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+            >
+              View History
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -1230,6 +1596,8 @@ export default function MobileHome({
         return renderCriticalAlerts();
       case "classes":
         return renderTodayClasses();
+      case "exam_schedule":
+        return renderExamScheduleWidget();
       case "actions":
         return renderQuickActions();
       case "laundry":
@@ -1299,74 +1667,161 @@ export default function MobileHome({
         </div>
       </div>
 
-      {/* ── CUSTOMIZATION PANEL ── */}
+      {/* ── CUSTOMIZATION PANEL (Clean & Intuitive) ── */}
       <AnimatePresence>
         {showCustomizer && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden animate-in fade-in"
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden mb-6"
           >
-            <div className="bg-zinc-55 dark:bg-zinc-950/80 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-5 shadow-sm space-y-4 text-left">
-              <div className="flex items-center justify-between">
+            <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-4 sm:p-5 shadow-xl backdrop-blur-xl space-y-4 text-left">
+              <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 font-outfit font-black">Customize Dashboard</h3>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-550">Toggle visibility and layout of your widgets</p>
+                  <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-indigo-500" />
+                    <span>Customize Dashboard Layout</span>
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Toggle visibility and size of your dashboard cards</p>
                 </div>
                 <button 
                   onClick={() => {
                     setWidgets(DEFAULT_WIDGETS);
                     localStorage.removeItem("amaze_dashboard_widgets");
                   }}
-                  className="flex items-center gap-1 text-[10px] font-black text-red-505 dark:text-red-400 border border-red-200 dark:border-red-900/50 px-2 py-1 rounded-xl cursor-pointer"
+                  className="flex items-center gap-1 text-[10px] font-bold text-red-500 border border-red-200 dark:border-red-900/40 px-2.5 py-1 rounded-xl cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset Layout
+                  Reset
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {widgets.map(w => (
-                  <button
-                    key={w.id}
-                    onClick={() => toggleWidget(w.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
-                      w.enabled 
-                        ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-850/50 text-indigo-700 dark:text-indigo-400"
-                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
-                    }`}
-                  >
-                    {w.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span className="truncate">{w.title}</span>
-                  </button>
-                ))}
+              {/* Drag & Drop Reorderable Widget List */}
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-1 font-outfit">
+                <GripVertical className="w-3.5 h-3.5" />
+                <span>Drag handle to reorder • Tap eye to toggle</span>
+              </p>
+
+              <Reorder.Group axis="y" values={widgets} onReorder={setWidgets} className="space-y-2">
+                {widgets.map((w, index) => {
+                  const isFull = w.span === "full";
+                  return (
+                    <Reorder.Item
+                      key={w.id}
+                      value={w}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-grab active:cursor-grabbing select-none ${
+                        w.enabled
+                          ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-zinc-800 dark:text-zinc-200"
+                          : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-850/50 text-zinc-400 dark:text-zinc-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1 pr-2 text-left">
+                        <GripVertical className="w-4 h-4 text-zinc-400 dark:text-zinc-500 shrink-0 cursor-grab active:cursor-grabbing" />
+                        <button
+                          onClick={() => toggleWidget(w.id)}
+                          className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+                        >
+                          {w.enabled ? (
+                            <Eye className="w-4 h-4 text-indigo-500 shrink-0" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-zinc-400 shrink-0 opacity-60" />
+                          )}
+                          <span className={`truncate text-xs ${w.enabled ? "font-bold" : "font-normal opacity-70"}`}>
+                            {w.title}
+                          </span>
+                        </button>
+                      </div>
+
+                      {w.enabled && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Size Pill */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
+                            className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                            title="Toggle width between 1-Column and Full Width"
+                          >
+                            {isFull ? "Full" : "Half"}
+                          </button>
+                          {/* Reorder Up/Down */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
+                            disabled={index === 0}
+                            className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
+                            disabled={index === widgets.length - 1}
+                            className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
+
+              {/* Home Search Bar Toggle */}
+              <div className="pt-2 border-t border-zinc-150 dark:border-zinc-800">
+                <button
+                  onClick={() => {
+                    const nextVal = !settings?.hideHomeSearchBar;
+                    setSettings((prev: any) => {
+                      const next = { ...prev, hideHomeSearchBar: nextVal };
+                      localStorage.setItem("settings", JSON.stringify(next));
+                      return next;
+                    });
+                  }}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    !settings?.hideHomeSearchBar 
+                      ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-indigo-700 dark:text-indigo-400"
+                      : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {!settings?.hideHomeSearchBar ? <Eye className="w-4 h-4 text-indigo-500" /> : <EyeOff className="w-4 h-4" />}
+                    <span>Home Page Search Bar</span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase">
+                    {!settings?.hideHomeSearchBar ? "Shown" : "Hidden"}
+                  </span>
+                </button>
               </div>
+
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ── QUICK SPOTLIGHT SEARCH ── */}
-      <button 
-        onClick={onOpenCommandPalette}
-        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl cursor-pointer"
-      >
-        <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
-        <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">Search anything... (Spotlight)</span>
-        <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
-      </button>
+      {!settings?.hideHomeSearchBar && (
+        <button 
+          onClick={onOpenCommandPalette}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl cursor-pointer"
+        >
+          <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
+          <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">Search anything... (Spotlight)</span>
+          <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
+        </button>
+      )}
 
-      {/* ── DYNAMIC DASHBOARD WIDGETS ── */}
-      <div className="space-y-6">
+      {/* ── DYNAMIC DASHBOARD WIDGETS (Responsive 2-Column Desktop Grid) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <AnimatePresence mode="popLayout">
           {(() => {
             const enabledWidgets = widgets.filter(w => w.enabled);
             return enabledWidgets.map((w, index) => {
               const element = renderWidget(w.id);
               if (!element) return null;
+              const isFull = w.span === "full";
 
               return (
                 <motion.div
@@ -1376,20 +1831,27 @@ export default function MobileHome({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                  className="w-full"
+                  className={`${isFull ? "md:col-span-2" : "md:col-span-1"} w-full`}
                 >
-                  {/* Reorder Headers in Edit Mode */}
+                  {/* Edit Mode Header Overlay */}
                   {showCustomizer && (
-                    <div className="flex items-center justify-between px-4 py-2 bg-zinc-55 dark:bg-zinc-800/80 rounded-t-[16px] border border-zinc-200/70 dark:border-zinc-700 border-b-0 text-[10px] font-bold text-gray-450 dark:text-zinc-400">
-                      <span className="flex items-center gap-1.5 font-outfit uppercase tracking-wider">
-                        <Sliders className="w-3.5 h-3.5 text-indigo-505" />
-                        {w.title}
+                    <div className="flex items-center justify-between px-4 py-2 bg-indigo-50/90 dark:bg-indigo-950/90 rounded-t-[20px] border border-indigo-200/80 dark:border-indigo-850 border-b-0 text-[11px] font-bold text-indigo-900 dark:text-indigo-200">
+                      <span className="flex items-center gap-1.5 font-outfit font-extrabold uppercase tracking-wider">
+                        <GripVertical className="w-3.5 h-3.5 text-indigo-400 cursor-grab" />
+                        <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{w.title}</span>
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
+                          className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-indigo-200 dark:border-indigo-800 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          {isFull ? "Full Width" : "Half Width"}
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
                           disabled={index === 0}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Up"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
@@ -1397,22 +1859,23 @@ export default function MobileHome({
                         <button
                           onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
                           disabled={index === enabledWidgets.length - 1}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-30 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 disabled:opacity-30 text-indigo-700 dark:text-indigo-300 cursor-pointer"
                           title="Move Down"
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleWidget(w.id); }}
-                          className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-red-500 cursor-pointer"
-                          title="Hide Widget"
+                          className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/50 text-red-500 dark:text-red-400 cursor-pointer"
+                          title="Hide Card"
                         >
                           <EyeOff className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   )}
-                  <div className={showCustomizer ? "border border-zinc-200 dark:border-zinc-700 rounded-b-[24px] p-2 bg-zinc-55/20 dark:bg-zinc-950/10" : ""}>
+
+                  <div className={showCustomizer ? "border border-indigo-200/80 dark:border-indigo-850 border-t-0 rounded-b-[24px] overflow-hidden" : ""}>
                     {element}
                   </div>
                 </motion.div>
@@ -1421,6 +1884,9 @@ export default function MobileHome({
           })()}
         </AnimatePresence>
       </div>
+
+      {/* Tab Help & Guide Footer */}
+      <TabHelpFooter tabId="home" />
 
     </div>
   );

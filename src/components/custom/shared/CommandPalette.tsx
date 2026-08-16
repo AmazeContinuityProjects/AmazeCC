@@ -2,7 +2,78 @@
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Sparkles } from "lucide-react";
+import { 
+  Search, X, Sparkles, User, Calendar, BookOpen, CreditCard, Car, Home, Bus, 
+  Plus, BarChart3, FileText, GraduationCap, TrendingUp, 
+  Volume2, Users, School, RotateCcw, ClipboardList, Settings, 
+  Code, Star, Utensils, Shirt, Plane, Handshake, HelpCircle, 
+  PartyPopper, Landmark, Clock, MessageSquare, 
+  CheckCircle2, Sun, Moon, AlertTriangle
+} from "lucide-react";
+
+function renderCommandIcon(icon: React.ReactNode | string) {
+  if (React.isValidElement(icon)) return icon;
+  if (typeof icon !== "string") return <Sparkles size={15} className="text-indigo-500" />;
+
+  switch (icon.trim()) {
+    case "👤": return <User size={15} className="text-indigo-500" />;
+    case "📋": return <ClipboardList size={15} className="text-blue-500" />;
+    case "📚": return <BookOpen size={15} className="text-emerald-500" />;
+    case "💳": return <CreditCard size={15} className="text-amber-500" />;
+    case "🚕": return <Car size={15} className="text-amber-500" />;
+    case "📖": return <BookOpen size={15} className="text-indigo-500" />;
+    case "🏠": return <Home size={15} className="text-violet-500" />;
+    case "🚏":
+    case "🚍":
+    case "🚌": return <Bus size={15} className="text-sky-500" />;
+    case "➕": return <Plus size={15} className="text-zinc-400" />;
+    case "📊": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "📅":
+    case "🗓️": return <Calendar size={15} className="text-blue-500" />;
+    case "📜": return <FileText size={15} className="text-amber-500" />;
+    case "🎓": return <GraduationCap size={15} className="text-purple-500" />;
+    case "📈": return <TrendingUp size={15} className="text-emerald-500" />;
+    case "📘": return <BookOpen size={15} className="text-blue-500" />;
+    case "📢": return <Volume2 size={15} className="text-rose-500" />;
+    case "👨‍🏫": return <Users size={15} className="text-teal-500" />;
+    case "🏫": return <School size={15} className="text-indigo-500" />;
+    case "🔄": return <RotateCcw size={15} className="text-blue-500" />;
+    case "⚙️": return <Settings size={15} className="text-zinc-500" />;
+    case "💻": return <Code size={15} className="text-violet-500" />;
+    case "⭐": return <Star size={15} className="text-amber-400 fill-amber-400" />;
+    case "🍽️": return <Utensils size={15} className="text-orange-500" />;
+    case "👕": return <Shirt size={15} className="text-sky-500" />;
+    case "✈️": return <Plane size={15} className="text-indigo-500" />;
+    case "🤝": return <Handshake size={15} className="text-emerald-500" />;
+    case "📄": return <FileText size={15} className="text-zinc-400" />;
+    case "❓": return <HelpCircle size={15} className="text-amber-500" />;
+    case "👥": return <Users size={15} className="text-blue-500" />;
+    case "🎉": return <PartyPopper size={15} className="text-pink-500" />;
+    case "🏛️": return <Landmark size={15} className="text-amber-600" />;
+    case "⏰": return <Clock size={15} className="text-amber-500" />;
+    case "🔮": return <Sparkles size={15} className="text-purple-500" />;
+    case "💬": return <MessageSquare size={15} className="text-indigo-500" />;
+    case "📝": return <FileText size={15} className="text-blue-500" />;
+    case "🔢": return <BarChart3 size={15} className="text-emerald-500" />;
+    case "🙈":
+    case "🕵️": return <User size={15} className="text-zinc-400" />;
+    case "☀️": return <Sun size={15} className="text-amber-500" />;
+    case "🌙": return <Moon size={15} className="text-indigo-400" />;
+    case "📏": return <BarChart3 size={15} className="text-blue-500" />;
+    case "🚶": return <Users size={15} className="text-zinc-500" />;
+    case "🟡": return <AlertTriangle size={15} className="text-amber-500" />;
+    case "🔴":
+    case "⚠️": return <AlertTriangle size={15} className="text-red-500" />;
+    case "🎪": return <PartyPopper size={15} className="text-pink-500" />;
+    case "✅": return <CheckCircle2 size={15} className="text-emerald-500" />;
+    case "☐": return <CheckCircle2 size={15} className="text-zinc-400" />;
+    default:
+      if (/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(icon)) {
+        return <Sparkles size={15} className="text-indigo-500" />;
+      }
+      return <span className="text-xs font-bold text-zinc-500">{icon}</span>;
+  }
+}
 
 export interface CommandItem {
   id: string;
@@ -281,8 +352,12 @@ export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMo
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             {cmd.icon && (
-                              <span className="text-base shrink-0 flex items-center justify-center">
-                                {cmd.icon}
+                              <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border transition-all ${
+                                isSelected
+                                  ? "bg-white/20 border-white/30 text-white"
+                                  : "bg-zinc-100/80 dark:bg-zinc-800/80 border-zinc-200/60 dark:border-zinc-700/60"
+                              }`}>
+                                {renderCommandIcon(cmd.icon)}
                               </span>
                             )}
                             <div className="min-w-0">

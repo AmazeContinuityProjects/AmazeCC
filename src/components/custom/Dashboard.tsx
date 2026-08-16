@@ -1138,14 +1138,6 @@ export default function DashboardContent({
                     return next;
                   });
                 }}
-                hideMobileHeader={settings.hideMobileHeader}
-                setHideMobileHeader={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, hideMobileHeader: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
                 reloadAllData={settings.reloadAllData}
                 setReloadAllData={(val: boolean) => {
                   setSettings(prev => {

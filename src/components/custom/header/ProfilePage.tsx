@@ -1,6 +1,7 @@
 "use client";
 
 import { API_BASE } from "../Main";
+import TabHelpFooter from "../shared/TabHelpFooter";
 import { setCustomApiUrl } from "@/lib/fetch-utils";
 import {
   X,
@@ -2001,6 +2002,8 @@ export default function ProfilePage({
           )}
         </AnimatePresence>
       </div>
+
+      <TabHelpFooter tabId="settings" />
     </div>
   );
 }

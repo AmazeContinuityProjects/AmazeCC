@@ -746,6 +746,15 @@ export default function NavigationTabs({
       },
     },
     {
+      id: "schedule",
+      label: "Exam Schedule",
+      isActive: activeTab === "academics" && activeSubTab === "schedule",
+      onSelect: () => {
+        selectTab("academics");
+        setActiveSubTab("schedule");
+      },
+    },
+    {
       id: "grades",
       label: "Grade History",
       isActive: activeTab === "academics" && activeSubTab === "grades",
