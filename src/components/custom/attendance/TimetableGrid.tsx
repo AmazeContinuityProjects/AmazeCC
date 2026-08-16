@@ -359,19 +359,17 @@ export default function TimetableVtop({ attendance }) {
             </div>
 
             {/* Timetable Contents */}
-            <div ref={captureRef} className="space-y-6">
-                {/* Scrollable container for the timetable grid */}
-                <div className="w-full overflow-x-auto scrollbar-thin pb-2">
-                    <div className="min-w-[850px] w-full">
-                        <AmazeUITimetableGrid
-                          courses={addedCourses}
-                          theoryPeriods={amazeTheoryPeriods}
-                          labPeriods={amazeLabPeriods}
-                          days={attDaysList}
-                          title=""
-                          showLegend={false}
-                        />
-                    </div>
+            <div ref={captureRef} className="space-y-6 w-full max-w-full">
+                {/* Timetable grid */}
+                <div className="w-full max-w-full">
+                    <AmazeUITimetableGrid
+                      courses={addedCourses}
+                      theoryPeriods={amazeTheoryPeriods}
+                      labPeriods={amazeLabPeriods}
+                      days={attDaysList}
+                      title=""
+                      showLegend={false}
+                    />
                 </div>
 
                 {/* Course Reference Section */}

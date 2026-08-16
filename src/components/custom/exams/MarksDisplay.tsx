@@ -19,6 +19,33 @@ const formatNumber = (num) => {
   return Number(numericValue.toFixed(2)).toString();
 };
 
+const isJunkOrEmpty = (val: any) => {
+  if (val == null) return true;
+  const s = String(val).trim().toLowerCase();
+  return (
+    s === "" ||
+    s === "nil" ||
+    s === "null" ||
+    s === "undefined" ||
+    s === "n/a" ||
+    s === "na" ||
+    s === "-" ||
+    s === "--" ||
+    s === "none"
+  );
+};
+
+const sanitizeCourseCode = (code: any) => {
+  if (isJunkOrEmpty(code)) return "";
+  const cleaned = String(code).replace(/\s*\([LPT]\)$/i, "").trim();
+  return isJunkOrEmpty(cleaned) ? "" : cleaned;
+};
+
+const sanitizeCourseTitle = (title: any, fallbackCode: string) => {
+  if (isJunkOrEmpty(title)) return fallbackCode;
+  return String(title).trim();
+};
+
 const getNumericValue = (value, fallback = 0) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
@@ -145,30 +172,41 @@ export default function MarksDisplay({ data }) {
   const [allStats, setAllStats] = useState({});
 
   useEffect(() => {
-    if (!data || !data.courses || data.courses.length === 0) return;
+    if (!data || !data.courses || !Array.isArray(data.courses) || data.courses.length === 0) return;
 
-    const uniqueCourses: any[] = [];
     const codeMap = new Map();
     data.courses.forEach(c => {
-      const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-      if (!codeMap.has(c.courseCode)) {
-        codeMap.set(c.courseCode, {
-          courseCode: c.courseCode,
-          courseTitle: c.courseTitle,
-          theory: !isLab ? c : null,
-          lab: isLab ? c : null,
+      if (!c || typeof c !== "object") return;
+      const baseCode = sanitizeCourseCode(c.courseCode || c.code);
+      const rawTitle = String(c.courseTitle || c.title || "").trim();
+      const classNbr = String(c.classNumber || c.classNbr || c.crn || "").trim();
+      if (!baseCode && isJunkOrEmpty(rawTitle)) return;
+      if (isJunkOrEmpty(baseCode) && isJunkOrEmpty(classNbr)) return;
+      const code = baseCode || sanitizeCourseCode(rawTitle) || sanitizeCourseCode(classNbr);
+      if (!code) return;
+
+      const courseTitle = sanitizeCourseTitle(rawTitle, code);
+      const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
+      if (!codeMap.has(code)) {
+        codeMap.set(code, {
+          courseCode: code,
+          courseTitle,
+          theory: !isLab ? { ...c, courseCode: code, courseTitle } : null,
+          lab: isLab ? { ...c, courseCode: code, courseTitle } : null,
         });
       } else {
-        const existing = codeMap.get(c.courseCode);
-        if (isLab) existing.lab = c;
-        else existing.theory = c;
+        const existing = codeMap.get(code);
+        if (isLab) existing.lab = { ...c, courseCode: code, courseTitle };
+        else existing.theory = { ...c, courseCode: code, courseTitle };
       }
     });
-    uniqueCourses.push(...Array.from(codeMap.values()));
+    const uniqueCourses = Array.from(codeMap.values()).filter(
+      (c: any) => !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab)
+    );
 
     const fetchStats = async () => {
       try {
-        const classIds = uniqueCourses.map(g => (g.theory || g.lab).classNbr).join(',');
+        const classIds = uniqueCourses.map((g: any) => (g.theory || g.lab)?.classNbr).filter(Boolean).join(',');
         if (!classIds) return;
 
         const res = await fetch(`${API_BASE}/api/marks/stats?classes=${classIds}`);
@@ -203,24 +241,37 @@ export default function MarksDisplay({ data }) {
     );
   }
 
-  const uniqueCourses: any[] = [];
   const codeMap = new Map();
-  data.courses.forEach(c => {
-    const isLab = c.courseType.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-    if (!codeMap.has(c.courseCode)) {
-      codeMap.set(c.courseCode, {
-        courseCode: c.courseCode,
-        courseTitle: c.courseTitle,
-        theory: !isLab ? c : null,
-        lab: isLab ? c : null,
-      });
-    } else {
-      const existing = codeMap.get(c.courseCode);
-      if (isLab) existing.lab = c;
-      else existing.theory = c;
-    }
-  });
-  uniqueCourses.push(...Array.from(codeMap.values()));
+  if (Array.isArray(data.courses)) {
+    data.courses.forEach(c => {
+      if (!c || typeof c !== "object") return;
+      const baseCode = sanitizeCourseCode(c.courseCode || c.code);
+      const rawTitle = String(c.courseTitle || c.title || "").trim();
+      const classNbr = String(c.classNumber || c.classNbr || c.crn || "").trim();
+      if (!baseCode && isJunkOrEmpty(rawTitle)) return;
+      if (isJunkOrEmpty(baseCode) && isJunkOrEmpty(classNbr)) return;
+      const code = baseCode || sanitizeCourseCode(rawTitle) || sanitizeCourseCode(classNbr);
+      if (!code) return;
+
+      const courseTitle = sanitizeCourseTitle(rawTitle, code);
+      const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
+      if (!codeMap.has(code)) {
+        codeMap.set(code, {
+          courseCode: code,
+          courseTitle,
+          theory: !isLab ? { ...c, courseCode: code, courseTitle } : null,
+          lab: isLab ? { ...c, courseCode: code, courseTitle } : null,
+        });
+      } else {
+        const existing = codeMap.get(code);
+        if (isLab) existing.lab = { ...c, courseCode: code, courseTitle };
+        else existing.theory = { ...c, courseCode: code, courseTitle };
+      }
+    });
+  }
+  const uniqueCourses = Array.from(codeMap.values()).filter(
+    (c: any) => !isJunkOrEmpty(c.courseCode) && !isJunkOrEmpty(c.courseTitle) && Boolean(c.theory || c.lab)
+  );
 
   if (openCourseId) {
     const selectedGroup = uniqueCourses.find(c => c.courseCode === openCourseId);
