@@ -49,7 +49,8 @@ const decodeBase64 = (str: string) => {
 export function exportScheduleCode(
   attendance: any[],
   name: string,
-  regNumber: string
+  regNumber: string,
+  expiryMinutes?: number
 ): string {
   if (!Array.isArray(attendance) || attendance.length === 0) return "";
   const slotMap = config.slotMap as any;
@@ -107,15 +108,21 @@ export function exportScheduleCode(
   const coursesString = uniqueTitles.join(";");
   const assignmentsString = assignments.join("");
 
+  if (expiryMinutes && expiryMinutes > 0) {
+    const expiresAtSec = Math.floor(Date.now() / 1000) + expiryMinutes * 60;
+    return `v6|${expiresAtSec}|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
+  }
+
   return `v5|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
 export function exportShareableLink(
   attendance: any[],
   name: string,
-  regNumber: string
+  regNumber: string,
+  expiryMinutes?: number
 ): string {
-  const code = exportScheduleCode(attendance, name, regNumber);
+  const code = exportScheduleCode(attendance, name, regNumber, expiryMinutes);
   if (!code) return "";
   const encoded = encodeURIComponent(code);
   if (typeof window !== "undefined") {
@@ -142,7 +149,64 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
     let regNumber = "";
     const classSlots: FriendClassSlot[] = [];
 
-    if (qrData.startsWith("v5|")) {
+    if (qrData.startsWith("v6|")) {
+      const parts = qrData.split("|");
+      if (parts.length < 6) {
+        throw new Error("Invalid v6 temporary link format");
+      }
+      const expiresAtSec = parseInt(parts[1], 10);
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (expiresAtSec && nowSec > expiresAtSec) {
+        const minAgo = Math.max(1, Math.ceil((nowSec - expiresAtSec) / 60));
+        throw new Error(`This temporary link expired ${minAgo} minute${minAgo !== 1 ? 's' : ''} ago. Please request a fresh link.`);
+      }
+
+      name = parts[2];
+      regNumber = parts[3];
+      const coursesData = parts[4];
+      const assignmentsData = parts[5];
+
+      const titles = coursesData.length > 0 ? coursesData.split(";") : [];
+      const slotMap = config.slotMap as any;
+      const staticSlotsList: string[] = [];
+      const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+      days.forEach((day) => {
+        if (slotMap[day]) {
+          Object.keys(slotMap[day])
+            .sort()
+            .forEach((slotId) => {
+              staticSlotsList.push(`${day}:${slotId}`);
+            });
+        }
+      });
+
+      for (let i = 0; i < assignmentsData.length; i += 3) {
+        const chunk = assignmentsData.substring(i, i + 3);
+        if (chunk.length === 3) {
+          const slotHex = chunk.substring(0, 2);
+          const courseHex = chunk.substring(2, 3);
+          const slotIdx = parseInt(slotHex, 36);
+          const courseIdx = parseInt(courseHex, 36);
+
+          const slotKey = staticSlotsList[slotIdx];
+          const title = titles[courseIdx];
+
+          if (slotKey && title !== undefined) {
+            const [dayKey, slotId] = slotKey.split(":");
+            if (slotMap[dayKey]?.[slotId]) {
+              classSlots.push({
+                day: DAYS_MAP[dayKey] || dayKey,
+                timeSlot: slotMap[dayKey][slotId].time,
+                courseCode: "",
+                courseTitle: title,
+                venue: "",
+                slotId,
+              });
+            }
+          }
+        }
+      }
+    } else if (qrData.startsWith("v5|")) {
       const parts = qrData.split("|");
       if (parts.length < 5) {
         throw new Error("Invalid v5 format");
