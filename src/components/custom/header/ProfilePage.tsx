@@ -7,6 +7,7 @@ import {
   Save,
   LogOut,
   Eye,
+  EyeOff,
   User,
   Link2,
   ExternalLink,
@@ -15,6 +16,7 @@ import {
   Shield,
   FileText,
   ChevronRight,
+  ChevronLeft,
   History,
   RefreshCcw,
   Trophy,
@@ -27,41 +29,109 @@ import {
   Search,
   CheckCircle,
   AlertCircle,
-  Keyboard
+  Keyboard,
+  Sparkles,
+  Palette,
+  Layers,
+  GraduationCap,
+  Home as HomeIcon,
+  Volume2,
+  VolumeX,
+  Check,
+  Edit3,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button } from "@amazecontinuityprojects/amazeui";
+import { Button, Switch } from "@amazecontinuityprojects/amazeui";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
-import { Switch } from "@amazecontinuityprojects/amazeui";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
 import DataPage from "../footer/DataPage";
 import { IconToggle } from "../Toggle";
-import { AboutSection } from "./AboutSection";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, useIsMobile } from "../shared";
 import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-type SectionId = "profile" | "preferences" | "academic" | "sync" | "advanced";
+export type SectionId =
+  | "profile"
+  | "preferences"
+  | "academic"
+  | "sync"
+  | "navigation"
+  | "advanced"
+  | "about";
 
-interface SectionConfig {
+export interface SectionConfig {
   id: SectionId;
   label: string;
+  subtitle: string;
   icon: any;
+  iconBg: string;
+  iconColor: string;
 }
 
-const SECTIONS: SectionConfig[] = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "preferences", label: "Appearance", icon: Sliders },
-  { id: "academic", label: "Academic Settings", icon: Settings },
-  { id: "sync", label: "Data Sync", icon: RefreshCcw },
-  { id: "advanced", label: "Advanced", icon: Shield },
+export const SECTIONS: SectionConfig[] = [
+  {
+    id: "profile",
+    label: "Student Info",
+    subtitle: "Personal information, mentors, residential and address records",
+    icon: User,
+    iconBg: "bg-blue-500/10 dark:bg-blue-500/20",
+    iconColor: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    id: "preferences",
+    label: "Appearance & Theme",
+    subtitle: "Theme modes, color palettes, dashboard layouts, and privacy",
+    icon: Palette,
+    iconBg: "bg-purple-500/10 dark:bg-purple-500/20",
+    iconColor: "text-purple-600 dark:text-purple-400",
+  },
+  {
+    id: "academic",
+    label: "Academic & Schedule",
+    subtitle: "Active term semesters, target attendance, and residential status",
+    icon: GraduationCap,
+    iconBg: "bg-amber-500/10 dark:bg-amber-500/20",
+    iconColor: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    id: "sync",
+    label: "Data Sync & Cache",
+    subtitle: "Auto-refresh intervals, low data mode, and background sync modules",
+    icon: RefreshCcw,
+    iconBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    id: "navigation",
+    label: "Mobile & Navigation",
+    subtitle: "Pinned bottom bar tabs, compact views, and push notifications",
+    icon: Grid,
+    iconBg: "bg-indigo-500/10 dark:bg-indigo-500/20",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+  },
+  {
+    id: "advanced",
+    label: "Advanced & System",
+    subtitle: "Local storage database, custom API endpoints, backup, and restore",
+    icon: Shield,
+    iconBg: "bg-rose-500/10 dark:bg-rose-500/20",
+    iconColor: "text-rose-600 dark:text-rose-400",
+  },
+  {
+    id: "about",
+    label: "About & Community",
+    subtitle: "Version history, changelog, hall of fame, and useful campus links",
+    icon: Info,
+    iconBg: "bg-cyan-500/10 dark:bg-cyan-500/20",
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+  },
 ];
 
 const COLOR_PALETTES = [
@@ -106,14 +176,22 @@ export default function ProfilePage({
   settings,
   setSettings,
   mode = "settings",
-  onOpenShortcutsHelp
+  onOpenShortcutsHelp,
 }: any) {
   const isMobile = useIsMobile();
-  const [expandedSection, setExpandedSection] = useState<string>("preferences");
+  const [activeDesktopSection, setActiveDesktopSection] = useState<SectionId>(
+    mode === "info" ? "profile" : "preferences"
+  );
+  const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<SectionId | null>(
+    mode === "info" ? "profile" : null
+  );
+
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [customApiInput, setCustomApiInput] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("amazecc_custom_api_url") || "";
@@ -121,64 +199,26 @@ export default function ProfilePage({
     return "";
   });
 
-  const saveCustomApiUrl = () => {
-    if (customApiInput) {
-      setCustomApiUrl(customApiInput);
-      alert("Custom API endpoint saved! Please refresh the application to apply changes.");
-    }
-  };
-
-  const clearCustomApiUrl = () => {
-    setCustomApiInput("");
-    setCustomApiUrl("");
-    alert("API endpoint reset to default. Please refresh the application.");
-  };
-
   const [profileData, setProfileData] = useState<any>(null);
   const [profileImages, setProfileImages] = useState<any>(null);
   const [hostelInfo, setHostelInfo] = useState<any>(null);
 
-  // Modals & Pages
+  // Modals
   const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
   const [storageData, setStorageData] = useState<Record<string, string | null>>({});
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
-  // Search & Navigation
-  const [searchQuery, setSearchQuery] = useState("");
+  const { theme, setTheme } = useTheme();
 
-  const sectionsToUse = useMemo(() => {
-    if (mode === "info") {
-      return SECTIONS.filter(s => s.id === "profile");
-    } else {
-      return SECTIONS.filter(s => s.id !== "profile");
-    }
-  }, [mode]);
-
-  const [activeSection, setActiveSection] = useState<SectionId>(
-    mode === "info" ? "profile" : "preferences"
-  );
-  const activePalette = settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
+  const activePalette =
+    settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
   const customPalette = settings?.customPalette || {
     accent: "#0ea5e9",
     background: "#f8fafc",
     surface: "#ffffff",
   };
   const displayProfileImage = settings?.showProfilePhoto || mode === "info";
-
-  // Collapsible Sync states
-  const [syncOpen, setSyncOpen] = useState<Record<string, boolean>>({
-    academics: true,
-    attendance: false,
-    exams: false,
-    faculty: false,
-    wishlist: false,
-    projects: false,
-  });
-
-  const toggleSyncCategory = (cat: string) => {
-    setSyncOpen(prev => ({ ...prev, [cat]: !prev[cat] }));
-  };
 
   const updateSetting = (key: string, value: any) => {
     setSettings((prev: any) => {
@@ -192,17 +232,10 @@ export default function ProfilePage({
     setSettings((prev: any) => {
       const next = {
         ...prev,
-        syncArrearData: enable,
-        syncCourseOptionChange: enable,
         syncExcRegistration: enable,
         syncMinorHonour: enable,
         syncCourseCompletion: enable,
-        syncAdditionalLearning: enable,
         syncProfileData: enable,
-        syncExamData: enable,
-        syncWishlist: enable,
-        syncProject: enable,
-        syncProjectCourse: enable,
       };
       localStorage.setItem("settings", JSON.stringify(next));
       return next;
@@ -225,6 +258,103 @@ export default function ProfilePage({
     setCurrSemesterID(selectedSemester);
   };
 
+  const handleThemeChange = (val: string) => {
+    if (theme === val) return;
+    if (typeof document !== "undefined" && (document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setTheme(val);
+      });
+    } else {
+      setTheme(val);
+    }
+  };
+
+  const handleIconChange = (icon: string) => {
+    setAppIcon(icon);
+    localStorage.setItem("app-icon", icon);
+    window.dispatchEvent(new Event("app-icon-changed"));
+  };
+
+  const saveCustomApiUrl = () => {
+    if (customApiInput) {
+      setCustomApiUrl(customApiInput);
+      alert("Custom API endpoint saved! Please refresh the application to apply changes.");
+    }
+  };
+
+  const clearCustomApiUrl = () => {
+    setCustomApiInput("");
+    setCustomApiUrl("");
+    alert("API endpoint reset to default. Please refresh the application.");
+  };
+
+  const openStoragePage = () => {
+    const data: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const value = localStorage.getItem(key);
+      if (value !== null) data[key] = value;
+    }
+    setStorageData(data);
+    setShowStoragePage(true);
+  };
+
+  const handleDeleteItem = (key: string) => {
+    localStorage.removeItem(key);
+    setStorageData((prev) => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+  };
+
+  const handleResetCache = () => {
+    if (confirm("Are you sure you want to reset all cached data? You will need to log in again.")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  const handleExportSettings = () => {
+    const data = {
+      settings: localStorage.getItem("settings"),
+      appIcon: localStorage.getItem("app-icon"),
+      friendlyName: localStorage.getItem("friendlyName"),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "amazecc-settings-backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSettings = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed.settings) localStorage.setItem("settings", parsed.settings);
+          if (parsed.appIcon) localStorage.setItem("app-icon", parsed.appIcon);
+          if (parsed.friendlyName) localStorage.setItem("friendlyName", parsed.friendlyName);
+          window.location.reload();
+        } catch (err) {
+          alert("Invalid settings backup file.");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   useEffect(() => {
     setSelectedSemester(currSemesterID);
     setAppIcon(localStorage.getItem("app-icon") || "default");
@@ -245,13 +375,20 @@ export default function ProfilePage({
         friendMobileNumber: "+91 88888 88888",
         aadharNumber: "XXXX-XXXX-XXXX",
         bloodGroup: "O+",
-        currentAddress: { line1: "VIT Chennai Campus", line2: "Vandalur-Kelambakkam Road", city: "Chennai", pincode: "600127" },
-        permanentAddress: { line1: "VIT Chennai Campus", line2: "Vandalur-Kelambakkam Road", city: "Chennai", pincode: "600127" }
+        currentAddress: {
+          line1: "VIT Chennai Campus",
+          line2: "Vandalur-Kelambakkam Road",
+          city: "Chennai",
+          pincode: "600127",
+        },
+        permanentAddress: {
+          line1: "VIT Chennai Campus",
+          line2: "Vandalur-Kelambakkam Road",
+          city: "Chennai",
+          pincode: "600127",
+        },
       });
-      setHostelInfo({
-        blockName: "D-Block",
-        roomNo: "402"
-      });
+      setHostelInfo({ blockName: "D-Block", roomNo: "402" });
       return;
     }
 
@@ -284,19 +421,16 @@ export default function ProfilePage({
 
   useEffect(() => {
     if (!creds || !creds.cookies) return;
-    try {
-      const stored = localStorage.getItem("profile");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.nativeLanguage || parsed?.currentAddress || parsed?.father) return;
-      }
-    } catch (_) {}
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/api/student`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }),
+          body: JSON.stringify({
+            cookies: creds.cookies,
+            authorizedID: creds.authorizedID,
+            csrf: creds.csrf,
+          }),
         });
         const data = await res.json();
         if (data?.profile) {
@@ -325,1403 +459,1547 @@ export default function ProfilePage({
     } catch (_) {}
   }, [profileData]);
 
-  const handleReload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onReload?.();
-    if (!creds?.cookies) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/student`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }),
-      });
-      const data = await res.json();
-      if (data?.profile) {
-        setProfileData(data.profile);
-        localStorage.setItem("profile", JSON.stringify(data.profile));
-      }
-    } catch (e) {
-      console.error("Failed to refresh profile", e);
-    }
-  };
+  // Filter sections
+  const availableSections = useMemo(() => {
+    if (mode === "info") return SECTIONS.filter((s) => s.id === "profile");
+    return SECTIONS.filter((s) => s.id !== "profile");
+  }, [mode]);
 
-  const handleIconChange = (icon: string) => {
-    setAppIcon(icon);
-    localStorage.setItem("app-icon", icon);
-    window.dispatchEvent(new Event("app-icon-changed"));
-  };
-
-  const openStoragePage = () => {
-    const data: Record<string, string> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      const value = localStorage.getItem(key);
-      if (value !== null) data[key] = value;
-    }
-    setStorageData(data);
-    setShowStoragePage(true);
-  };
-
-  const handleDeleteItem = (key: string) => {
-    localStorage.removeItem(key);
-    setStorageData((prev) => {
-      const updated = { ...prev };
-      delete updated[key];
-      return updated;
-    });
-  };
-
-  // Scroll Sync and Active Section Highlight
-  const scrollToSection = (id: SectionId) => {
-    const element = document.getElementById(`sec-${id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveSection(id);
-    }
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (sectionsToUse.length === 0) return;
-      let current: SectionId = sectionsToUse[0].id;
-      for (const section of sectionsToUse) {
-        const el = document.getElementById(`sec-${section.id}`);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 160) {
-            current = section.id;
-          }
-        }
-      }
-      setActiveSection(current);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [sectionsToUse]);
-
-  const { theme, setTheme } = useTheme();
-  const handleThemeChange = (val: string) => {
-    if (theme === val) return;
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-      (document as any).startViewTransition(() => {
-        setTheme(val);
-      });
-    } else {
-      setTheme(val);
-    }
-  };
-
-  // Advanced section helpers
-  const handleResetCache = () => {
-    localStorage.clear();
-    window.location.reload();
-  };
-
-  const handleExportSettings = () => {
-    const data = {
-      settings: localStorage.getItem("settings"),
-      appIcon: localStorage.getItem("app-icon"),
-      friendlyName: localStorage.getItem("friendlyName")
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `amazecc-settings-export.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportSettings = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = (e: any) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        try {
-          const parsed = JSON.parse(event.target.result);
-          if (parsed.settings) localStorage.setItem("settings", parsed.settings);
-          if (parsed.appIcon) localStorage.setItem("app-icon", parsed.appIcon);
-          if (parsed.friendlyName) localStorage.setItem("friendlyName", parsed.friendlyName);
-          window.location.reload();
-        } catch (err) {
-          alert("Invalid settings backup file.");
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
-  };
-
-  // Search Filter calculation
   const filteredSections = useMemo(() => {
-    if (!searchQuery) return sectionsToUse;
-    const query = searchQuery.toLowerCase();
-    return sectionsToUse.filter(section => {
-      const matchLabel = section.label.toLowerCase().includes(query);
-      if (matchLabel) return true;
+    if (!searchQuery.trim()) return availableSections;
+    const q = searchQuery.toLowerCase().trim();
+    return availableSections.filter(
+      (s) =>
+        s.label.toLowerCase().includes(q) ||
+        s.subtitle.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q)
+    );
+  }, [availableSections, searchQuery]);
 
-      // Check inner settings titles & descriptions
-      if (section.id === "profile") {
-        return "personal info address residential hostel scholar".includes(query);
-      }
-      if (section.id === "preferences") {
-        return "theme appearance icon palette color profile image semester calendar decimal loading mobile header reload".includes(query);
-      }
-      if (section.id === "academic") {
-        return "overview proctor faculty credentials mentor".includes(query);
-      }
-      if (section.id === "sync") {
-        return "sync arrears exams additional wishlist projects".includes(query);
-      }
-      if (section.id === "advanced") {
-        return "storage developer export import reset logout cache".includes(query);
-      }
-      return false;
-    });
-  }, [searchQuery, sectionsToUse]);
+  /* ─────────────────────────────────────────────────────────────
+     RENDER: Category Specific Setting Blocks
+  ───────────────────────────────────────────────────────────── */
 
-  const renderSection = (id: string, label: string, Icon: any, children: React.ReactNode) => {
-    if (!filteredSections.some(s => s.id === id)) return null;
+  // 1. Student Info Section
+  const renderProfileContent = () => (
+    <div className="space-y-6">
+      {creds && (
+        <>
+          <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
+          <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
 
-    if (isMobile && mode === "settings") {
-      const isOpen = expandedSection === id;
-      return (
-        <div key={id} className="border border-gray-200/85 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-2xl overflow-hidden shadow-xs">
-          <button
-            onClick={() => setExpandedSection(isOpen ? "" : id)}
-            className="w-full flex items-center justify-between p-4 font-bold text-gray-850 dark:text-gray-200 hover:bg-gray-100/40 dark:hover:bg-slate-800/30 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <Icon className="w-4.5 h-4.5 text-info" />
-              <span className="text-sm font-extrabold">{label}</span>
-            </div>
-            <ChevronRight className={`w-4 h-4 text-gray-405 transition-transform duration-200 ${isOpen ? "rotate-90 text-info" : ""}`} />
-          </button>
-          {isOpen && (
-            <div className="p-4 border-t border-gray-200 dark:border-gray-850 space-y-5 animate-fadeIn">
-              {children}
+          {profileImages?.proctor && (
+            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                Faculty Mentors
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  {
+                    role: "Proctor",
+                    photo: profileImages.proctor.photoBase64,
+                    details: profileImages.proctor.details || {},
+                  },
+                  ...(profileImages.hodDean?.people?.map((p: any) => ({
+                    role: p.role,
+                    photo: p.photoBase64,
+                    details: p.details || {},
+                  })) || []),
+                ].map((person, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 flex items-start gap-3.5"
+                  >
+                    {person.photo ? (
+                      <img
+                        src={person.photo}
+                        alt={person.role}
+                        className="w-12 h-12 rounded-xl object-cover shadow-xs border border-zinc-200 dark:border-zinc-800 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs shrink-0">
+                        <User size={20} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                        {person.role}
+                      </span>
+                      <p className="font-bold text-xs text-zinc-900 dark:text-white truncate">
+                        {person.details.name || "N/A"}
+                      </p>
+                      {person.details.designation && (
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                          {person.details.designation}
+                        </p>
+                      )}
+                      <div className="mt-2 space-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-1.5">
+                        {Object.entries(person.details)
+                          .filter(([k]) => k !== "name" && k !== "designation")
+                          .map(([k, val]) => (
+                            <div key={k} className="truncate">
+                              <span className="capitalize font-semibold">
+                                {k.replace(/([A-Z])/g, " $1").trim()}:{" "}
+                              </span>
+                              <span>{String(val)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
-      );
-    }
+        </>
+      )}
 
-    return (
-      <section key={id} id={`sec-${id}`} className="scroll-mt-6 space-y-5">
-        <div className="flex items-center gap-2 pb-1 border-b border-gray-150 dark:border-gray-800">
-          <Icon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{label}</h2>
+      {/* Personal Info Grid */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-6 shadow-2xs">
+        {[
+          profileData?.nativeLanguage,
+          profileData?.nationality,
+          profileData?.community,
+          profileData?.aadharNumber,
+          profileData?.mobileNumber,
+        ].some(Boolean) && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+              Personal Information
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-xs">
+              {[
+                ["Native Language", profileData.nativeLanguage],
+                ["Native State", profileData.nativeState],
+                ["Nationality", profileData.nationality],
+                ["Community", profileData.community],
+                ["Religion", profileData.religion],
+                ["Caste", profileData.caste],
+                ["Physically Challenged", profileData.physicallyChallenged],
+                ["Mobile Number", profileData.mobileNumber],
+                ["Friend Mobile", profileData.friendMobileNumber],
+                ["Aadhar Number", profileData.aadharNumber],
+                ["Blood Group", profileData.bloodGroup],
+                [
+                  "Hostel Status",
+                  profileData.isHosteller
+                    ? `${hostelInfo?.blockName || "Hostel"} - Room ${hostelInfo?.roomNo || "N/A"}`
+                    : "Day Scholar",
+                ],
+              ]
+                .filter(([, v]) => v)
+                .map(([label, val]) => (
+                  <div key={String(label)} className="p-2.5 rounded-xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+                    <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                      {String(label)}
+                    </p>
+                    <p className="font-bold text-zinc-800 dark:text-zinc-200 break-words">
+                      {String(val)}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {(profileData?.currentAddress || profileData?.permanentAddress) && (
+          <div className="space-y-3 border-t border-zinc-150 dark:border-zinc-800/80 pt-4">
+            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+              Address Records
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {profileData.currentAddress && (
+                <div className="bg-zinc-50 dark:bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
+                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">
+                    Current Address
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {Object.entries(profileData.currentAddress)
+                      .filter(([, v]) => v)
+                      .map(([k, val]) => (
+                        <div key={k}>
+                          <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">
+                            {String(val)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {profileData.permanentAddress && (
+                <div className="bg-zinc-50 dark:bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60">
+                  <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">
+                    Permanent Address
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {Object.entries(profileData.permanentAddress)
+                      .filter(([, v]) => v)
+                      .map(([k, val]) => (
+                        <div key={k}>
+                          <p className="text-[10px] text-zinc-400 capitalize mb-0.5">{k}</p>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200 break-words">
+                            {String(val)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // 2. Appearance & Theme Section
+  const renderPreferencesContent = () => (
+    <div className="space-y-6">
+      {/* Theme & Layout Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Theme & Display Mode
+        </h3>
+
+        {/* Theme Mode Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Theme Mode</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Seamlessly switch between Light and Dark aesthetics
+            </p>
+          </div>
+          <div className="flex rounded-xl bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
+            <button
+              onClick={() => handleThemeChange("light")}
+              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                theme === "light"
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              Light
+            </button>
+            <button
+              onClick={() => handleThemeChange("dark")}
+              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                theme === "dark"
+                  ? "bg-zinc-900 text-indigo-400 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              Dark
+            </button>
+          </div>
         </div>
-        {children}
-      </section>
-    );
+
+        {/* Dashboard Layout Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Dashboard Layout</p>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event("open-interface-selector"))}
+                className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer"
+              >
+                Visual Picker
+              </button>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Select your default landing and widget configuration
+            </p>
+          </div>
+          <select
+            value={
+              settings?.defaultLandingTab === "attendance"
+                ? "attendance"
+                : settings?.dashboardViewMode || "simplified"
+            }
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "attendance") {
+                updateSetting("defaultLandingTab", "attendance");
+                updateSetting("dashboardViewMode", "simplified");
+              } else {
+                updateSetting("defaultLandingTab", "home");
+                updateSetting("dashboardViewMode", val);
+              }
+              updateSetting("interfaceChosen", true);
+            }}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="simplified">✨ Minimal (Timetable & Stat Cards)</option>
+            <option value="classic">📱 Classic (Multi-Widget View)</option>
+            <option value="attendance">📊 Direct Attendance (Instant Tracker)</option>
+          </select>
+        </div>
+
+        {/* Timetable Pill Style */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Timetable Class Density
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Choose between compact 2-line cards or spacious multi-line cards
+            </p>
+          </div>
+          <select
+            value={settings?.timetablePillStyle || "compact"}
+            onChange={(e) => updateSetting("timetablePillStyle", e.target.value)}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="compact">📋 Compact (2-Line Info + Percentage on Right)</option>
+            <option value="detailed">🃏 Detailed (Spacious Multi-line Card)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Privacy & Visibility Toggles Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Privacy & Visibility
+        </h3>
+
+        <div className="divide-y divide-zinc-150 dark:divide-zinc-800/60">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Grades Anonymizer Mode
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Blur CGPA, GPA, and course grades to protect privacy in public (hover to reveal)
+              </p>
+            </div>
+            <Switch
+              checked={settings?.blurGrades ?? false}
+              onCheckedChange={(val) => updateSetting("blurGrades", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Show GPA on Dashboard
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Display cumulative CGPA score cards on the home page and sidebar
+              </p>
+            </div>
+            <Switch
+              checked={settings?.showGpa ?? false}
+              onCheckedChange={(val) => updateSetting("showGpa", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Show Profile Photo
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Render student avatar in headers, navigation rails, and profile cards
+              </p>
+            </div>
+            <Switch
+              checked={settings?.showProfilePhoto ?? false}
+              onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sound & Action Audio
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Play subtle audio feedback when completing tasks or toggling states
+              </p>
+            </div>
+            <Switch
+              checked={settings?.soundEnabled ?? true}
+              onCheckedChange={(val) => updateSetting("soundEnabled", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Color Palette Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Color Palette & Accent
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Personalize the interface accent colors and gradient accents
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+          {COLOR_PALETTES.map((palette) => (
+            <button
+              key={palette.id}
+              type="button"
+              onClick={() => updateSetting("colorPalette", palette.id)}
+              className={`flex items-center justify-between gap-2 rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                activePalette === palette.id
+                  ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
+                  : "border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+              }`}
+            >
+              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                {palette.label}
+              </span>
+              <span className="flex -space-x-1">
+                {palette.swatches.map((color) => (
+                  <span
+                    key={color}
+                    className="h-4 w-4 rounded-full border border-white/70 dark:border-zinc-900 shadow-xs"
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {activePalette === "custom" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3.5 bg-zinc-50/60 dark:bg-zinc-950/40 mt-3">
+            {[
+              ["accent", "Accent Color"],
+              ["background", "Background"],
+              ["surface", "Surface Card"],
+            ].map(([key, label]) => (
+              <label
+                key={key}
+                className="flex items-center justify-between gap-2 text-xs font-bold text-zinc-700 dark:text-zinc-300"
+              >
+                <span>{label}</span>
+                <input
+                  type="color"
+                  value={customPalette[key as "accent" | "background" | "surface"]}
+                  onChange={(e) =>
+                    updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)
+                  }
+                  className="h-8 w-12 cursor-pointer rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent p-0.5"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* App Icon Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Application Icon
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Choose which icon is displayed across header brandings
+        </p>
+
+        <div className="flex gap-4 pt-1">
+          <button
+            onClick={() => handleIconChange("default")}
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+              appIcon === "default"
+                ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
+                : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+            }`}
+          >
+            <img
+              src={getAssetPath("/logo.png")}
+              alt="Default Icon"
+              className="w-12 h-12 rounded-xl shadow-xs"
+            />
+            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Default</span>
+          </button>
+          <button
+            onClick={() => handleIconChange("fire")}
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer ${
+              appIcon === "fire"
+                ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/20"
+                : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+            }`}
+          >
+            <img
+              src={getAssetPath("/images/icons/fire.png")}
+              alt="Fire Icon"
+              className="w-12 h-12 rounded-xl shadow-xs"
+            />
+            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Fire</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 3. Academic & Schedule Section
+  const renderAcademicContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Semester & Terms
+        </h3>
+
+        {/* Active Semester Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Active Semester</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Select term to fetch attendance, marks, and timetable
+            </p>
+          </div>
+          <div className="flex gap-2 w-full sm:w-80 shrink-0">
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="flex-1 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {config.semesterIDs?.map((id: string, index: number) => (
+                <option key={index} value={id}>
+                  {id.endsWith("01")
+                    ? "FALLSEM"
+                    : id.endsWith("05")
+                    ? "WINTERSEM"
+                    : id.endsWith("07")
+                    ? "SUMMERSEM"
+                    : "TERM"}{" "}
+                  {id.slice(4, -4)}-{id.slice(6, -2)}
+                </option>
+              ))}
+            </select>
+            <Button
+              onClick={handleSaveSemester}
+              disabled={!selectedSemester || selectedSemester === currSemesterID}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3.5 py-2 rounded-xl"
+            >
+              <Save size={14} className="mr-1.5" /> Save
+            </Button>
+          </div>
+        </div>
+
+        {/* Academic Calendar Dropdown */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Academic Calendar</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Default calendar scheme for exam dates and working days
+            </p>
+          </div>
+          <select
+            value={calendarType || "ALL"}
+            onChange={(e) => setCalendarType(e.target.value)}
+            className="w-full sm:w-80 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="ALL">General Semester</option>
+            <option value="ALL02">General Flexible</option>
+            <option value="ALL03">General Freshers</option>
+            <option value="ALL05">General LAW</option>
+            <option value="ALL06">Flexible Freshers</option>
+            <option value="ALL08">Cohort LAW</option>
+            <option value="ALL11">Flexible Research</option>
+            <option value="WEI">Weekend Intra Semester</option>
+          </select>
+        </div>
+
+        {/* Target Attendance Threshold */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Target Attendance Goal
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Target threshold for safe bunk margin calculations
+            </p>
+          </div>
+          <select
+            value={settings?.targetAttendance ?? 75}
+            onChange={(e) => updateSetting("targetAttendance", parseInt(e.target.value))}
+            className="w-full sm:w-80 text-xs font-bold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value={75}>75% (Standard Exam Eligibility)</option>
+            <option value={80}>80% (Safety Buffer)</option>
+            <option value={85}>85% (Bus Registration / Dayscholar Goal)</option>
+            <option value={90}>90% (Distinction Honor Target)</option>
+          </select>
+        </div>
+
+        {/* Precision Decimal Toggle */}
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Use One Decimal Place
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Round attendance stats and scores to 1 decimal place instead of 2
+            </p>
+          </div>
+          <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
+        </div>
+      </div>
+
+      {/* Residential & Hostel Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Residential Status & Mess
+        </h3>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Hostel vs Day Scholar</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Affects mess menu shortcuts and gate pass integrations
+            </p>
+          </div>
+          <div className="flex rounded-xl bg-zinc-200/70 dark:bg-zinc-800 p-1 w-full sm:w-56 shrink-0">
+            <button
+              onClick={() => {
+                setResidentialStatus("hosteller");
+                setIsDayscholarWithBus(false);
+              }}
+              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                residentialStatus === "hosteller"
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              Hosteller
+            </button>
+            <button
+              onClick={() => setResidentialStatus("dayscholar")}
+              className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                residentialStatus === "dayscholar"
+                  ? "bg-white text-indigo-600 shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              Dayscholar
+            </button>
+          </div>
+        </div>
+
+        {residentialStatus === "dayscholar" && (
+          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDayscholarWithBus}
+              onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
+              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+              Registered for University Transport / Bus
+            </span>
+          </label>
+        )}
+
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Smart Mess Menu Auto-Filter
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Auto-select meal schedule based on current week of the month
+            </p>
+          </div>
+          <Switch
+            checked={settings?.smartMessFilter ?? false}
+            onCheckedChange={(val) => updateSetting("smartMessFilter", val)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // 4. Data Sync Section
+  const renderSyncContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-150 dark:border-zinc-800/80 pb-4">
+          <div>
+            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+              Data Synchronization Policies
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Choose which modules refresh automatically to conserve data and API limits
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => handleToggleAllSync(true)}
+              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer"
+            >
+              Enable All
+            </button>
+            <button
+              onClick={() => handleToggleAllSync(false)}
+              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 transition-colors cursor-pointer"
+            >
+              Disable All
+            </button>
+          </div>
+        </div>
+
+        {/* Background Sync Frequency */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Background Auto-Refresh Frequency
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Periodic timetable and marks check in the background
+            </p>
+          </div>
+          <select
+            value={settings?.autoSyncInterval || "off"}
+            onChange={(e) => updateSetting("autoSyncInterval", e.target.value)}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="off">Off (Manual Refresh Only)</option>
+            <option value="15m">Every 15 Minutes</option>
+            <option value="30m">Every 30 Minutes</option>
+            <option value="1h">Every 1 Hour</option>
+          </select>
+        </div>
+
+        {/* Sync Toggles List */}
+        <div className="divide-y divide-zinc-150 dark:divide-zinc-800/60">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sync Profile & Hosteller Data
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Credentials, contact numbers, and hostel room information
+              </p>
+            </div>
+            <Switch
+              checked={settings?.syncProfileData ?? true}
+              onCheckedChange={(val) => updateSetting("syncProfileData", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sync Extra-Curricular (EXC) Registration
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Clubs, chapters, and co-curricular credit allocations
+              </p>
+            </div>
+            <Switch
+              checked={settings?.syncExcRegistration ?? true}
+              onCheckedChange={(val) => updateSetting("syncExcRegistration", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sync Minor & Honour Registrations
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Minor degrees and honour program course completions
+              </p>
+            </div>
+            <Switch
+              checked={settings?.syncMinorHonour ?? true}
+              onCheckedChange={(val) => updateSetting("syncMinorHonour", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Reload All Data on Global Refresh
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Refresh button triggers a full multi-module sweep instead of attendance only
+              </p>
+            </div>
+            <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Low Data Saver Mode
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Disables automatic prefetching of heavy assets on metered connections
+              </p>
+            </div>
+            <Switch
+              checked={settings?.lowDataMode ?? false}
+              onCheckedChange={(val) => updateSetting("lowDataMode", val)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 5. Navigation & Mobile Section
+  const renderNavigationContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Mobile Bottom Navigation Bar
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Pin up to 4 custom shortcuts to your bottom navigation bar for quick access. Home is
+          always present.
+        </p>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          {[
+            { id: "attendance", label: "Attendance" },
+            { id: "academics", label: "Academics" },
+            { id: "tools", label: "Tools Hub" },
+            { id: "payments", label: "Payments" },
+            { id: "libraries", label: "Libraries" },
+            { id: "cabshare", label: "Cab Share" },
+            { id: "transport", label: "Transport" },
+            { id: "more", label: "More Hub" },
+            { id: "profile", label: "Profile" },
+            { id: "credentials", label: "Credentials" },
+          ].map((tab) => {
+            const pinned = settings?.pinnedNavTabs ?? [];
+            const isPinned = pinned.includes(tab.id);
+            const atLimit = !isPinned && pinned.length >= 4;
+
+            return (
+              <button
+                key={tab.id}
+                disabled={atLimit}
+                onClick={() => {
+                  const current = settings?.pinnedNavTabs ?? [];
+                  const next = isPinned
+                    ? current.filter((id: string) => id !== tab.id)
+                    : [...current, tab.id];
+                  updateSetting("pinnedNavTabs", next);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  isPinned
+                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                    : atLimit
+                    ? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                    : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-indigo-400"
+                }`}
+              >
+                {isPinned && <Check className="w-3.5 h-3.5" />}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between py-3 border-t border-zinc-150 dark:border-zinc-800/80">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Compact Mobile Header
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Hide bulky headers on small screens to maximize reading area
+            </p>
+          </div>
+          <Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />
+        </div>
+      </div>
+
+      {/* Push Notifications Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+          Push Notifications
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Receive exam reminders, attendance alerts, and moodle deadline notifications
+        </p>
+        <div className="pt-2">
+          <PushNotificationManager />
+        </div>
+      </div>
+    </div>
+  );
+
+  // 6. Advanced & System Section
+  const renderAdvancedContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-150 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+        {/* Local Storage Database */}
+        <div
+          onClick={openStoragePage}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+              <Database size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Local Storage Viewer
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Inspect raw client cache entries, tokens, and database keys
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Custom API Endpoint */}
+        <div className="p-4 space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+              <Link2 size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Custom API Endpoint URL
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+                Override student API data server route
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              placeholder="https://api.amazecc.com"
+              value={customApiInput}
+              onChange={(e) => setCustomApiInput(e.target.value)}
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-800 dark:text-white"
+            />
+            <button
+              onClick={saveCustomApiUrl}
+              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all cursor-pointer shadow-2xs"
+            >
+              Save
+            </button>
+            {customApiInput && (
+              <button
+                onClick={clearCustomApiUrl}
+                className="px-3 py-2 text-xs font-bold text-red-600 border border-red-200 dark:border-red-900/50 rounded-xl transition-all cursor-pointer shadow-2xs"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Backup Settings */}
+        <div
+          onClick={handleExportSettings}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Save size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Backup / Export Settings
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Save application preferences, layout options, and custom name to file
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Restore Settings */}
+        <div
+          onClick={handleImportSettings}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+              <ExternalLink size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Restore / Import Settings
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Import and restore configuration from a settings backup JSON file
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Keyboard Shortcuts */}
+        <div
+          onClick={onOpenShortcutsHelp}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+              <Keyboard size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Keyboard Shortcuts Cheat-Sheet
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                View interactive hotkey shortcuts for quick navigation
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Reset Cache */}
+        <div
+          onClick={handleResetCache}
+          className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 shrink-0">
+              <RefreshCcw size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-red-600 block">
+                Reset Application Cache
+              </span>
+              <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
+                Clear all stored data, cached timetables, and reload fresh
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-red-400 shrink-0" />
+        </div>
+
+        {/* Log Out */}
+        <div
+          onClick={handleLogOutRequest}
+          className="flex items-center justify-between p-4 hover:bg-red-500/5 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 shrink-0">
+              <LogOut size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-red-600 block">Sign Out</span>
+              <span className="text-[11px] text-red-500/80 block truncate mt-0.5">
+                Safely disconnect and clear active session tokens
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-red-400 shrink-0" />
+        </div>
+      </div>
+    </div>
+  );
+
+  // 7. About & Community Section
+  const renderAboutContent = () => (
+    <div className="space-y-6">
+      {/* App Info Hero Card */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 flex flex-col items-center text-center space-y-4 shadow-2xs">
+        <div className="scale-125 mb-1 shrink-0">
+          <IconToggle />
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-zinc-900 dark:text-white font-outfit">
+            AmazeCC
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Your high-speed, continuity-powered college companion.
+          </p>
+        </div>
+
+        <div className="w-full max-w-sm grid grid-cols-2 gap-3 text-xs text-left pt-3 border-t border-zinc-150 dark:border-zinc-800/60">
+          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-850">
+            <span className="text-zinc-400 font-semibold block text-[10px]">Version</span>
+            <span className="font-bold text-zinc-800 dark:text-zinc-200">v3.2.0</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-850">
+            <span className="text-zinc-400 font-semibold block text-[10px]">Build Number</span>
+            <span className="font-bold text-zinc-800 dark:text-zinc-200">2026.0816</span>
+          </div>
+        </div>
+
+        <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 tracking-widest uppercase pt-2 border-t border-zinc-150 dark:border-zinc-850/60 w-full">
+          Crafted with care by Amaze Continuity Projects
+        </p>
+      </div>
+
+      {/* Community & Useful Links List */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-150 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+        {quickLinks.importantLinks.map((link) => (
+          <a
+            key={link.id}
+            href={link.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors"
+          >
+            <div className="flex items-center gap-3.5 min-w-0 pr-4">
+              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                <Link2 size={18} />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                  {link.title}
+                </span>
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                  {link.desc}
+                </span>
+              </div>
+            </div>
+            <ExternalLink size={14} className="text-zinc-400 shrink-0" />
+          </a>
+        ))}
+
+        {/* Changelog */}
+        <div
+          onClick={() => setShowChangelog(true)}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+              <History size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Changelog & Release Notes
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                See all latest feature updates and performance improvements
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Hall of Fame */}
+        <div
+          onClick={() => setShowHallOfFame(true)}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+              <Trophy size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Hall of Fame
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Meet the contributors, developers, and testers
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* GitHub */}
+        <a
+          href="https://github.com/AmazeContinuityProjects/AmazeCC/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 shrink-0">
+              <Github size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                GitHub Repository
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Open-source repository, issues, and contributions
+              </span>
+            </div>
+          </div>
+          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
+        </a>
+
+        {/* Privacy Policy */}
+        <div
+          onClick={() => window.open("/privacy", "_blank")}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+              <FileText size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Privacy Policy
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Read about client-side storage encryption and local safety
+              </span>
+            </div>
+          </div>
+          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
+        </div>
+
+        {/* Terms of Service */}
+        <div
+          onClick={() => window.open("/terms", "_blank")}
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5 min-w-0 pr-4">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+              <Shield size={18} />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
+                Terms of Service
+              </span>
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
+                Usage guidelines and student companion service terms
+              </span>
+            </div>
+          </div>
+          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const getSectionContent = (id: SectionId) => {
+    switch (id) {
+      case "profile":
+        return renderProfileContent();
+      case "preferences":
+        return renderPreferencesContent();
+      case "academic":
+        return renderAcademicContent();
+      case "sync":
+        return renderSyncContent();
+      case "navigation":
+        return renderNavigationContent();
+      case "advanced":
+        return renderAdvancedContent();
+      case "about":
+        return renderAboutContent();
+      default:
+        return null;
+    }
   };
 
+  /* ─────────────────────────────────────────────────────────────
+     MAIN RENDER
+  ───────────────────────────────────────────────────────────── */
+
   return (
-    <div className="w-full h-full pb-16 px-4 md:px-8 max-w-7xl mx-auto">
+    <div className="w-full pb-16 px-3 sm:px-6 md:px-8 max-w-6xl mx-auto">
       {/* Footer Modals */}
       {showStoragePage && isLoggedIn && (
-        <DataPage handleClose={() => setShowStoragePage(false)} handleDeleteItem={handleDeleteItem} storageData={storageData} />
+        <DataPage
+          handleClose={() => setShowStoragePage(false)}
+          handleDeleteItem={handleDeleteItem}
+          storageData={storageData}
+        />
       )}
       {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
       {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
 
-      {/* Top Header layout (VS Code / Discord settings style) */}
-      <div className="pt-6 pb-6 border-b border-gray-150 dark:border-gray-800/80 mb-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4.5">
-            {displayProfileImage && profileData?.image ? (
-              <img src={profileData.image} alt="Profile" className="w-16 h-16 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-info flex items-center justify-center shadow-xs">
-                <User size={28} className="text-white" />
-              </div>
-            )}
-            <div className="min-w-0">
-              {isEditingName ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={tempFriendlyName}
-                    onChange={(e) => setTempFriendlyName(e.target.value)}
-                    placeholder="Preferred name..."
-                    className="px-2.5 py-1 text-base font-semibold border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-info"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        setFriendlyName(tempFriendlyName);
-                        setIsEditingName(false);
-                      }
-                    }}
-                  />
-                  <Button size="sm" onClick={() => { setFriendlyName(tempFriendlyName); setIsEditingName(false); }} className="bg-info hover:bg-info text-white py-1 h-8 rounded-lg">Save</Button>
-                </div>
+      {/* Top Profile Summary Header Card */}
+      <div className="pt-4 pb-6 mb-6">
+        <div className="relative p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-white/90 to-zinc-50/80 dark:from-zinc-900/90 dark:to-zinc-950/80 border border-zinc-200/80 dark:border-zinc-800 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            <div className="flex items-center gap-4 min-w-0">
+              {displayProfileImage && profileData?.image ? (
+                <img
+                  src={profileData.image}
+                  alt="Profile"
+                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
+                />
               ) : (
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-gray-50 tracking-tight truncate">{friendlyName || username || "Student"}</h1>
-                  <button onClick={() => setIsEditingName(true)} className="text-[10px] font-semibold text-info bg-info-surface px-2 py-0.5 rounded-full hover:bg-info-surface transition-colors">Edit</button>
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
+                  {friendlyName ? friendlyName[0].toUpperCase() : (username || "A")[0].toUpperCase()}
                 </div>
               )}
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-1.5 font-medium">
-                <span>VTOP ID: {username}</span>
-                {profileData?.branch && (
-                  <>
-                    <span>•</span>
-                    <span className="truncate">{profileData.branch}</span>
-                  </>
+              <div className="min-w-0">
+                {isEditingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tempFriendlyName}
+                      onChange={(e) => setTempFriendlyName(e.target.value)}
+                      placeholder="Preferred name..."
+                      className="px-3 py-1.5 text-sm font-bold border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          setFriendlyName(tempFriendlyName);
+                          setIsEditingName(false);
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setFriendlyName(tempFriendlyName);
+                        setIsEditingName(false);
+                      }}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 h-auto rounded-xl"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                      {friendlyName || username || "Student"}
+                    </h1>
+                    <button
+                      onClick={() => setIsEditingName(true)}
+                      className="p-1 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
+                      title="Edit Preferred Name"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  </div>
                 )}
-                {profileData?.isHosteller !== undefined && (
-                  <>
-                    <span>•</span>
-                    <span>{profileData.isHosteller ? "Hosteller" : "Day Scholar"}</span>
-                  </>
-                )}
-                <span>•</span>
-                <span>Semester {currSemesterID ? currSemesterID.slice(4, -4) : "Current"}</span>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 font-mono text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
+                    {username}
+                  </span>
+                  {profileData?.branch && (
+                    <span className="truncate max-w-[200px] sm:max-w-none">{profileData.branch}</span>
+                  )}
+                  {profileData?.isHosteller !== undefined && (
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
+                      {profileData.isHosteller ? "Hosteller" : "Day Scholar"}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Settings Search bar */}
-        <div className="relative mt-5 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Settings..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-900/50 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-info transition-all"
-          />
+            {/* Quick Actions in Header */}
+            {mode === "settings" && (
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <button
+                  onClick={onOpenShortcutsHelp}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 shadow-2xs transition-all cursor-pointer"
+                >
+                  <Keyboard size={14} className="text-indigo-500" />
+                  <span>Shortcuts</span>
+                </button>
+                <button
+                  onClick={handleLogOutRequest}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 hover:bg-red-100 transition-all cursor-pointer"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Settings Search Bar */}
+          {mode === "settings" && (
+            <div className="relative mt-4 pt-4 border-t border-zinc-150 dark:border-zinc-800/80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search all settings, themes, semesters, shortcuts..."
+                className="w-full pl-9 pr-4 py-2 text-xs font-medium border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 text-xs"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Main settings body layout */}
-      <div className="flex flex-col md:flex-row gap-8 items-start relative">
-           {/* Left Sticky navigation (Desktop) */}
-        {sectionsToUse.length > 1 && (
-          <aside className="sticky top-6 w-full md:w-56 shrink-0 hidden md:flex flex-col gap-0.5 border-r border-gray-150 dark:border-gray-800/60 pr-4">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2.5 mb-2">Settings</div>
-            {sectionsToUse.map(sec => {
+      {/* ─────────────────────────────────────────────────────────────
+          DESKTOP VIEW: Split Rail & Spacious Content
+      ───────────────────────────────────────────────────────────── */}
+      <div className="hidden md:flex gap-8 items-start">
+        {/* Left Navigation Rail */}
+        {availableSections.length > 1 && (
+          <aside className="sticky top-6 w-60 shrink-0 flex flex-col gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 px-3 mb-1">
+              Settings Menu
+            </span>
+            {filteredSections.map((sec) => {
               const Icon = sec.icon;
-              const isActive = activeSection === sec.id;
+              const isActive = activeDesktopSection === sec.id;
+
               return (
                 <button
                   key={sec.id}
-                  onClick={() => scrollToSection(sec.id)}
-                  className={`flex items-center gap-3 w-full px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
+                  onClick={() => setActiveDesktopSection(sec.id)}
+                  className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                     isActive
-                      ? "bg-info-surface text-info border border-info/30"
-                      : "text-gray-600 dark:text-gray-450 hover:bg-gray-100/60 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white border border-transparent"
+                      ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20 font-black"
+                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-info" : "text-gray-400 dark:text-gray-500"}`} />
-                  <span>{sec.label}</span>
+                  <div
+                    className={`p-1.5 rounded-lg ${
+                      isActive ? "bg-white/20 text-white" : `${sec.iconBg} ${sec.iconColor}`
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="flex-1 truncate">{sec.label}</span>
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      isActive ? "opacity-100 translate-x-0.5" : "opacity-40"
+                    }`}
+                  />
                 </button>
               );
             })}
           </aside>
         )}
 
-        {/* Horizontal Navigation tabs (Mobile / Tablet) */}
-        {sectionsToUse.length > 1 && mode !== "settings" && (
-          <nav className="flex md:hidden overflow-x-auto w-full border-b border-gray-150 dark:border-gray-800 pb-2 mb-2 gap-1.5 scrollbar-none">
-            {sectionsToUse.map(sec => {
-              const isActive = activeSection === sec.id;
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => scrollToSection(sec.id)}
-                  className={`px-3 py-1.5 text-xs font-bold whitespace-nowrap rounded-full transition-all ${
-                    isActive
-                      ? "bg-info text-white shadow-xs"
-                      : "bg-gray-100 dark:bg-slate-850 text-gray-605 dark:text-gray-300"
-                  }`}
-                >
-                  {sec.label}
-                </button>
-              );
-            })}
-          </nav>
-        )}
-
-        {/* Right side Settings Content pane */}
-        <main className="flex-1 w-full space-y-3.5 md:space-y-12">
-
-          {/* Section: Profile */}
-          {renderSection("profile", "Profile", User, (
-            <div className="space-y-6">
-
-              {/* Status and Proctor overview cards */}
-              {creds && (
-                <>
-                  {/* Status overview metrics */}
-                  <ProfileStatusCards creds={creds} refreshKey={refreshKey} onCardClick={onCardClick} />
-                  <AcknowledgementCards creds={creds} refreshKey={refreshKey} />
-
-                  {/* Proctor & Dean section */}
-                  {profileImages?.proctor && (
-                    <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
-                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Faculty Mentors</h3>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[{
-                          role: "Proctor",
-                          photo: profileImages.proctor.photoBase64,
-                          details: profileImages.proctor.details || {}
-                        }, ...(profileImages.hodDean?.people?.map((p: any) => ({
-                          role: p.role,
-                          photo: p.photoBase64,
-                          details: p.details || {}
-                        })) || [])].map((person, idx) => (
-                          <div key={idx} className="bg-gray-100/50 dark:bg-slate-800/10 p-4 rounded-xl border border-gray-150 dark:border-gray-800/60 flex items-start gap-4">
-                            {person.photo ? (
-                              <img src={person.photo} alt={person.role} className="w-12 h-12 rounded-full object-cover shadow-xs border border-gray-200 dark:border-gray-800 shrink-0" />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-info flex items-center justify-center shadow-xs shrink-0">
-                                <User size={20} className="text-white" />
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-info block mb-0.5">{person.role}</span>
-                              <p className="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{person.details.name || "N/A"}</p>
-                              {person.details.designation && (
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{person.details.designation}</p>
-                              )}
-
-                              {/* Extra contact rows */}
-                              <div className="mt-2 space-y-0.5 text-[10px] text-gray-500 dark:text-gray-400 border-t border-gray-150 dark:border-gray-800/60 pt-1.5">
-                                {Object.entries(person.details).filter(([k]) => k !== "name" && k !== "designation").map(([k, val]) => (
-                                  <div key={k} className="truncate">
-                                    <span className="capitalize font-semibold">{k.replace(/([A-Z])/g, " $1").trim()}: </span>
-                                    <span>{String(val)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
-
-                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
-
-                {/* Personal Information Grid */}
-                {[profileData?.nativeLanguage, profileData?.nationality, profileData?.community, profileData?.aadharNumber, profileData?.mobileNumber].some(Boolean) && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Personal Information</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3.5 text-xs">
-                      {[
-                        ["Native Language", profileData.nativeLanguage],
-                        ["Native State", profileData.nativeState],
-                        ["Nationality", profileData.nationality],
-                        ["Community", profileData.community],
-                        ["Religion", profileData.religion],
-                        ["Caste", profileData.caste],
-                        ["Physically Challenged", profileData.physicallyChallenged],
-                        ["Mobile Number", profileData.mobileNumber],
-                        ["Friend Mobile", profileData.friendMobileNumber],
-                        ["Aadhar Number", profileData.aadharNumber],
-                        ["Blood Group", profileData.bloodGroup],
-                        ["Hostel Status", profileData.isHosteller ? `${hostelInfo?.blockName || "N/A"} - Room ${hostelInfo?.roomNo || "N/A"}` : "Day Scholar"],
-                      ].filter(([, v]) => v).map(([label, val]) => (
-                        <div key={String(label)}>
-                          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">{String(label)}</p>
-                          <p className="font-semibold text-gray-800 dark:text-gray-200 break-words">{String(val)}</p>
-                        </div>
-                      ))}
-                    </div>
+        {/* Right Settings Content */}
+        <main className="flex-1 w-full min-w-0 space-y-6">
+          {searchQuery.trim() ? (
+            <div className="space-y-8">
+              {filteredSections.map((sec) => (
+                <div key={sec.id} className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+                    <sec.icon className={`w-4 h-4 ${sec.iconColor}`} />
+                    <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit uppercase tracking-wider">
+                      {sec.label}
+                    </h2>
                   </div>
-                )}
-
-                {/* Address Info Subsection */}
-                {(profileData?.currentAddress || profileData?.permanentAddress) && (
-                  <>
-                    <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Address</h3>
-                      {profileData.currentAddress && (
-                        <div className="bg-gray-100/40 dark:bg-slate-800/10 p-3 rounded-xl border border-gray-150 dark:border-gray-800/60">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Current Address</p>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                            {Object.entries(profileData.currentAddress).filter(([, v]) => v).map(([key, val]) => (
-                              <div key={key}>
-                                <p className="text-[10px] text-gray-450 capitalize mb-0.5">{key}</p>
-                                <p className="font-semibold text-gray-800 dark:text-gray-200 break-words">{String(val)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {profileData.permanentAddress && (
-                        <div className="bg-gray-100/40 dark:bg-slate-800/10 p-3 rounded-xl border border-gray-150 dark:border-gray-800/60">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Permanent Address</p>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                            {Object.entries(profileData.permanentAddress).filter(([, v]) => v).map(([key, val]) => (
-                              <div key={key}>
-                                <p className="text-[10px] text-gray-450 capitalize mb-0.5">{key}</p>
-                                <p className="font-semibold text-gray-800 dark:text-gray-200 break-words">{String(val)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-              </div>
+                  {getSectionContent(sec.id)}
+                </div>
+              ))}
             </div>
-          ))}
-
-          {/* Section: Preferences */}
-          {renderSection("preferences", "Appearance", Sliders, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-6">
-
-                {/* Subsection: Appearance */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Appearance</h3>
-
-                  {/* Theme Toggle pills */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Theme</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Switch between light and dark UI themes</p>
-                    </div>
-                    <div className="flex rounded-lg bg-gray-100 dark:bg-slate-800 p-1 w-full sm:w-64">
-                      <button
-                        onClick={() => handleThemeChange("light")}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          theme === "light"
-                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
-                            : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
-                      >
-                        Light
-                      </button>
-                      <button
-                        onClick={() => handleThemeChange("dark")}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                          theme === "dark"
-                            ? "bg-white dark:bg-slate-700 text-info shadow-xs"
-                            : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                        }`}
-                      >
-                        Dark
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show GPA on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Display GPA/CGPA in the dashboard and sidebar</p>
-                    </div>
-                    <Switch
-                      checked={settings?.showGpa ?? false}
-                      onCheckedChange={(val) => updateSetting("showGpa", val)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Show Profile Photo on Dashboard</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-455">Display your profile photo in the dashboard and sidebar</p>
-                    </div>
-                    <Switch
-                      checked={settings?.showProfilePhoto ?? false}
-                      onCheckedChange={(val) => updateSetting("showProfilePhoto", val)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Grades Anonymizer Mode</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-455">Blur all CGPA, credits, and course grades to protect privacy (hover to reveal)</p>
-                    </div>
-                    <Switch
-                      checked={settings?.blurGrades ?? false}
-                      onCheckedChange={(val) => updateSetting("blurGrades", val)}
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Color Palette</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Pick a preset or tune your own colors</p>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {COLOR_PALETTES.map((palette) => (
-                        <button
-                          key={palette.id}
-                          type="button"
-                          onClick={() => updateSetting("colorPalette", palette.id)}
-                          className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition-all ${
-                            activePalette === palette.id
-                              ? "border-info bg-info-surface"
-                              : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
-                          }`}
-                        >
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{palette.label}</span>
-                          <span className="flex -space-x-1">
-                            {palette.swatches.map((color) => (
-                              <span
-                                key={color}
-                                className="h-4 w-4 rounded-full border border-white/70 dark:border-slate-900 shadow-xs"
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    {activePalette === "custom" && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-gray-200 dark:border-gray-800 p-3 bg-white/30 dark:bg-slate-900/30">
-                        {[
-                          ["accent", "Accent"],
-                          ["background", "Background"],
-                          ["surface", "Surface"],
-                        ].map(([key, label]) => (
-                          <label key={key} className="flex items-center justify-between gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                            <span>{label}</span>
-                            <input
-                              type="color"
-                              value={customPalette[key as "accent" | "background" | "surface"]}
-                              onChange={(e) => updateCustomPalette(key as "accent" | "background" | "surface", e.target.value)}
-                              className="h-8 w-12 cursor-pointer rounded-md border border-gray-200 dark:border-gray-800 bg-transparent p-0.5"
-                              aria-label={`${label} color`}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* App Icon selector */}
-                  <div className="flex flex-col justify-start gap-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">App Icon</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Choose a customized application icon</p>
-                    </div>
-                    <div className="flex gap-4 pt-1">
-                      <button
-                        onClick={() => handleIconChange("default")}
-                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
-                          appIcon === "default"
-                            ? "border-info bg-info-surface"
-                            : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
-                        }`}
-                      >
-                        <img src={getAssetPath("/logo.png")} alt="Default Icon" className="w-10 h-10 rounded-lg shadow-xs" />
-                        <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">Default</span>
-                      </button>
-                      <button
-                        onClick={() => handleIconChange("fire")}
-                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
-                          appIcon === "fire"
-                            ? "border-info bg-info-surface"
-                            : "border-gray-200 dark:border-gray-800 hover:bg-gray-100/60 dark:hover:bg-slate-800/40"
-                        }`}
-                      >
-                        <img src={getAssetPath("/images/icons/fire.png")} alt="Fire Icon" className="w-10 h-10 rounded-lg shadow-xs" />
-                        <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300">Fire</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
-
-                {/* Subsection: Academic settings */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Academic Settings</h3>
-
-                  {/* Select Semester dropdown + save */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Select Semester</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Active academic term semester ID</p>
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-80 shrink-0">
-                      <select
-                        value={selectedSemester}
-                        onChange={(e) => setSelectedSemester(e.target.value)}
-                        className="flex-1 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info"
-                      >
-                        {config.semesterIDs?.map((id: string, index: number) => (
-                          <option key={index} value={id}>
-                            {id.endsWith("01") ? "FALLSEM" : id.endsWith("05") ? "WINTERSEM" : id.endsWith("07") ? "SUMMERSEM" : "UNKNOWN"} {id.slice(4, -4)}-{id.slice(6, -2)}
-                          </option>
-                        ))}
-                      </select>
-                      <Button
-                        onClick={handleSaveSemester}
-                        disabled={!selectedSemester || selectedSemester === currSemesterID}
-                        className="bg-info hover:bg-info text-white text-xs px-3.5 py-1.5 h-auto rounded-lg"
-                      >
-                        <Save size={14} className="mr-1.5" /> Save
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Academic Calendar dropdown */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Academic Calendar</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Default timetable calendar format</p>
-                    </div>
-                    <select
-                      value={calendarType || "ALL"}
-                      onChange={(e) => setCalendarType(e.target.value)}
-                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0"
-                    >
-                      <option value="ALL">General Semester</option>
-                      <option value="ALL02">General Flexible</option>
-                      <option value="ALL03">General Freshers</option>
-                      <option value="ALL05">General LAW</option>
-                      <option value="ALL06">Flexible Freshers</option>
-                      <option value="ALL08">Cohort LAW</option>
-                      <option value="ALL11">Flexible Research</option>
-                      <option value="WEI">Weekend Intra Semester</option>
-                    </select>
-                  </div>
-
-                  {/* Target Attendance Threshold */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Target Attendance Threshold</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-450">Required attendance percentage for shortage calculations</p>
-                    </div>
-                    <select
-                      value={settings?.targetAttendance ?? 75}
-                      onChange={(e) => updateSetting("targetAttendance", parseInt(e.target.value))}
-                      className="w-full sm:w-80 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-semibold"
-                    >
-                      <option value={75}>75% (Standard Requirement)</option>
-                      <option value={80}>80% (Safety Margin)</option>
-                      <option value={85}>85% (Bus Registration / High Goal)</option>
-                      <option value={90}>90% (Honor Target)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
-
-                {/* Subsection: Display and Behaviour */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Display & Behaviour</h3>
-
-                  {/* Decimal toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Use One Decimal Place</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Show stats/GPA rounded to 1 decimal place</p>
-                    </div>
-                    <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
-                  </div>
-
-                  {/* Compact Mobile view toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Compact Mobile Layout</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Hide tabs header and status stats in mobile views</p>
-                    </div>
-                    <Switch checked={hideMobileHeader} onCheckedChange={setHideMobileHeader} />
-                  </div>
-
-                  {/* Reload All Data toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Reload All Data</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Refresh button fetches all categories instead of just attendance</p>
-                    </div>
-                    <Switch checked={reloadAllData} onCheckedChange={setReloadAllData} />
-                  </div>
-
-                  {/* Default Academics Tab */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Default Academics View</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Initial view when opening Academics Hub</p>
-                    </div>
-                    <select
-                      value={settings?.defaultAcademicsTab || "overview"}
-                      onChange={(e) => updateSetting("defaultAcademicsTab", e.target.value)}
-                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
-                    >
-                      <option value="overview">Academics Hub (Overview)</option>
-                      <option value="course-dashboard">Course Hub (Current Courses)</option>
-                      <option value="curriculum">Degree Curriculum</option>
-                      <option value="grades">Grade History</option>
-                      <option value="predictor">CGPA Predictor</option>
-                      <option value="qbank">Question Bank</option>
-                    </select>
-                  </div>
-
-                  {/* Auto Background Refresh Interval */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Background Auto-Sync Interval</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Automatic periodic data refresh frequency</p>
-                    </div>
-                    <select
-                      value={settings?.autoSyncInterval || "off"}
-                      onChange={(e) => updateSetting("autoSyncInterval", e.target.value)}
-                      className="w-full sm:w-72 text-xs border border-gray-250 dark:border-gray-800 rounded-lg bg-white/50 dark:bg-slate-900/60 text-gray-800 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-info shrink-0 font-medium"
-                    >
-                      <option value="off">Off (Manual Refresh Only)</option>
-                      <option value="15m">Every 15 Minutes</option>
-                      <option value="30m">Every 30 Minutes</option>
-                      <option value="1h">Every 1 Hour</option>
-                    </select>
-                  </div>
-
-                  {/* Low Data Saver Mode */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Low Data Saver Mode</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Disable prefetching heavy assets to save mobile data</p>
-                    </div>
-                    <Switch checked={settings?.lowDataMode ?? false} onCheckedChange={(val) => updateSetting("lowDataMode", val)} />
-                  </div>
-
-                  {/* Sound Effects */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-850 dark:text-gray-200">Sound & Action Feedback</p>
-                      <p className="text-xs text-gray-550 dark:text-gray-450">Play subtle audio cues for buttons and task completion</p>
-                    </div>
-                    <Switch checked={settings?.soundEnabled ?? true} onCheckedChange={(val) => updateSetting("soundEnabled", val)} />
-                  </div>
-
-                  {/* Pinned Nav Tabs */}
-                  <div>
-                    <p className="text-sm font-semibold text-gray-850 dark:text-gray-200 mb-1">Pinned Nav Tabs</p>
-                    <p className="text-xs text-gray-550 dark:text-gray-450 mb-2">Choose tabs to show in the mobile bottom bar (max 4). Home & Modules are always on the bar.</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { id: "attendance", label: "Attendance", icon: "CalendarCheck" },
-                        { id: "academics", label: "Academics", icon: "GraduationCap" },
-                        { id: "payments", label: "Payments", icon: "CreditCard" },
-                        { id: "libraries", label: "Libraries", icon: "Library" },
-                        { id: "cabshare", label: "Cab Share", icon: "CarTaxiFront" },
-                        { id: "transport", label: "Transport", icon: "Bus" },
-                        { id: "more", label: "More", icon: "MoreHorizontal" },
-                        { id: "profile", label: "Profile", icon: "User" },
-                        { id: "credentials", label: "Credentials", icon: "Key" },
-                      ].map(tab => {
-                        const pinned = settings?.pinnedNavTabs ?? [];
-                        const isPinned = pinned.includes(tab.id);
-                        const atLimit = !isPinned && pinned.length >= 4;
-                        return (
-                          <button
-                            key={tab.id}
-                            disabled={atLimit}
-                            onClick={() => {
-                              const current = settings?.pinnedNavTabs ?? [];
-                              const next = isPinned
-                                ? current.filter((id: string) => id !== tab.id)
-                                : [...current, tab.id];
-                              setSettings((prev: any) => {
-                                const updated = { ...prev, pinnedNavTabs: next };
-                                localStorage.setItem("settings", JSON.stringify(updated));
-                                return updated;
-                              });
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                              isPinned
-                                ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                                : atLimit
-                                  ? "bg-gray-100 dark:bg-gray-900 border-gray-150 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
-                                  : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400"
-                            }`}
-                          >
-                            {tab.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-px bg-gray-150 dark:bg-gray-800/80" />
-
-                {/* Subsection: Notifications */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-150 dark:border-gray-850 pb-1.5">Notifications</h3>
-                  <PushNotificationManager />
-                </div>
-
-              </div>
-          ))}
-
-          {/* Section: Academic Settings */}
-          {renderSection("academic", "Academic Settings", Settings, (
-            <div className="space-y-6">
-
-
-              {/* Residential Status Subsection */}
-              <div className="bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-800 p-5 space-y-4">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Residential Settings</h3>
-                    <p className="text-xs text-gray-550 dark:text-gray-400">Configure your boarding status and transport settings</p>
-                  </div>
-                  <div className="flex rounded-lg bg-gray-100 dark:bg-slate-800 p-1 w-full sm:w-64">
-                    <button
-                      onClick={() => { setResidentialStatus("hosteller"); setIsDayscholarWithBus(false); }}
-                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                        residentialStatus === "hosteller"
-                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
-                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                      }`}
-                    >
-                      Hosteller
-                    </button>
-                    <button
-                      onClick={() => setResidentialStatus("dayscholar")}
-                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                        residentialStatus === "dayscholar"
-                          ? "bg-white dark:bg-slate-700 text-info shadow-xs"
-                          : "text-gray-500 dark:text-gray-450 hover:text-gray-700 dark:hover:text-gray-300"
-                      }`}
-                    >
-                      Dayscholar
-                    </button>
-                  </div>
-                  {residentialStatus === "dayscholar" && (
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60 cursor-pointer transition-all hover:border-info/40">
-                      <input
-                        type="checkbox"
-                        checked={isDayscholarWithBus}
-                        onChange={(e) => setIsDayscholarWithBus(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-info focus:ring-info/50 bg-transparent"
-                      />
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">I have bus registration</span>
-                    </label>
-                  )}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/20 dark:bg-slate-800/10 border border-gray-200 dark:border-gray-800/60">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Smart Mess Menu Filter</p>
-                      <p className="text-[11px] text-gray-550 dark:text-gray-400">Auto-filter mess menu items for the current week of the month</p>
-                    </div>
-                    <Switch
-                      checked={settings?.smartMessFilter ?? false}
-                      onCheckedChange={(val) => updateSetting("smartMessFilter", val)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Section: Data Sync */}
-          {renderSection("sync", "Data Sync", RefreshCcw, (
-            <div className="relative">
-              {username === "demo" && (
-                <div className="absolute inset-0 bg-neutral-950/65 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center z-10 border border-amber-500/10">
-                  <span className="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/20 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
-                    🔒 Sync Disabled in Demo Mode
-                  </span>
-                </div>
-              )}
-
-              <div className={`bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 sm:p-5 space-y-4 ${username === "demo" ? "pointer-events-none opacity-50 select-none" : ""}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-150 dark:border-gray-800 pb-3">
-                    <p className="text-xs text-gray-550 dark:text-gray-400 font-medium">Choose which API categories to fetch when reloading data to save time and bandwidth.</p>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => handleToggleAllSync(true)}
-                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-100 transition-colors cursor-pointer"
-                      >
-                        Enable All
-                      </button>
-                      <button
-                        onClick={() => handleToggleAllSync(false)}
-                        className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                      >
-                        Disable All
-                      </button>
-                    </div>
-                  </div>
-
-                {/* Collapsible Sync Toggles */}
-                <div className="space-y-2">
-
-                  {/* Category: Academics */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("academics")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Academics</span>
-                      <motion.div animate={{ rotate: syncOpen.academics ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.academics && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Arrears Data</p>
-                            <p className="text-[10px] text-gray-450">Arrear schedule, details, and grades</p>
-                          </div>
-                          <Switch checked={settings?.syncArrearData ?? true} onCheckedChange={(val) => updateSetting("syncArrearData", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Course Option Change</p>
-                            <p className="text-[10px] text-gray-450">Track optional elective changes</p>
-                          </div>
-                          <Switch checked={settings?.syncCourseOptionChange ?? true} onCheckedChange={(val) => updateSetting("syncCourseOptionChange", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">EXC Registration</p>
-                            <p className="text-[10px] text-gray-450">Extra-curricular registrations status</p>
-                          </div>
-                          <Switch checked={settings?.syncExcRegistration ?? true} onCheckedChange={(val) => updateSetting("syncExcRegistration", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Minor / Honour Course</p>
-                            <p className="text-[10px] text-gray-450">Minor and Honour program registration info</p>
-                          </div>
-                          <Switch checked={settings?.syncMinorHonour ?? true} onCheckedChange={(val) => updateSetting("syncMinorHonour", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Course Completion</p>
-                            <p className="text-[10px] text-gray-450">Academic credits check completion status</p>
-                          </div>
-                          <Switch checked={settings?.syncCourseCompletion ?? true} onCheckedChange={(val) => updateSetting("syncCourseCompletion", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Additional Learning</p>
-                            <p className="text-[10px] text-gray-450">Extra certifications and non-graded learning</p>
-                          </div>
-                          <Switch checked={settings?.syncAdditionalLearning ?? true} onCheckedChange={(val) => updateSetting("syncAdditionalLearning", val)} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category: Attendance */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("attendance")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Attendance & Profile</span>
-                      <motion.div animate={{ rotate: syncOpen.attendance ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.attendance && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Profile Data</p>
-                            <p className="text-[10px] text-gray-450">Credentials, dayboarder info, and bank information</p>
-                          </div>
-                          <Switch checked={settings?.syncProfileData ?? true} onCheckedChange={(val) => updateSetting("syncProfileData", val)} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category: Exams */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("exams")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Exams</span>
-                      <motion.div animate={{ rotate: syncOpen.exams ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.exams && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Exam Data</p>
-                            <p className="text-[10px] text-gray-450">Makeup exams, compre schedules and status</p>
-                          </div>
-                          <Switch checked={settings?.syncExamData ?? true} onCheckedChange={(val) => updateSetting("syncExamData", val)} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category: Faculty */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("faculty")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Faculty & Proctor Info</span>
-                      <motion.div animate={{ rotate: syncOpen.faculty ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.faculty && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 text-xs text-gray-400">
-                        Proctor and dean information updates are synced automatically with profile data.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category: Wishlist */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("wishlist")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Wishlist</span>
-                      <motion.div animate={{ rotate: syncOpen.wishlist ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.wishlist && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Wishlist Data</p>
-                            <p className="text-[10px] text-gray-450">Fetch draft wishlist courses from VTOP</p>
-                          </div>
-                          <Switch checked={settings?.syncWishlist ?? true} onCheckedChange={(val) => updateSetting("syncWishlist", val)} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category: Projects */}
-                  <div className="border border-gray-200/60 dark:border-gray-800 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleSyncCategory("projects")}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50/50 dark:bg-slate-900/20 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <span>Projects</span>
-                      <motion.div animate={{ rotate: syncOpen.projects ? 90 : 0 }}>
-                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                      </motion.div>
-                    </button>
-                    {syncOpen.projects && (
-                      <div className="px-4 py-3 bg-transparent border-t border-gray-200/40 dark:border-gray-800/40 space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Sync Project Information</p>
-                            <p className="text-[10px] text-gray-450">Fetch active project details</p>
-                          </div>
-                          <Switch checked={settings?.syncProject ?? true} onCheckedChange={(val) => updateSetting("syncProject", val)} />
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">Project Course Sync</p>
-                            <p className="text-[10px] text-gray-450">Fetch individual project course grades</p>
-                          </div>
-                          <Switch checked={settings?.syncProjectCourse ?? true} onCheckedChange={(val) => updateSetting("syncProjectCourse", val)} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Section: Resources */}
-          {renderSection("resources", "Resources", Link2, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
-
-                {/* Utilities / Important Links */}
-                {quickLinks.importantLinks.map((link) => (
-                  <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                        <Link2 size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">{link.desc}</span>
-                      </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  </a>
-                ))}
-
-                {/* Social Community links */}
-                {quickLinks.communityLinks.map((link, idx) => (
-                  <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <div className="flex items-center gap-4 min-w-0 pr-4">
-                      <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                        <ExternalLink size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">VIT community discussion forums and updates</span>
-                      </div>
-                    </div>
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  </a>
-                ))}
-
-                {/* Local Link Component integrations */}
-                <div className="p-4 bg-transparent">
-                  <Links />
-                </div>
-
-                {/* Changelog */}
-                <div onClick={() => setShowChangelog(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <History size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Changelog</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">View latest updates, features and releases in AmazeCC</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Hall of Fame */}
-                <div onClick={() => setShowHallOfFame(true)} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Trophy size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Hall of Fame</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the contributors, developers, and testers of the app</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Source on GitHub */}
-                <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Github size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">GitHub Repository</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Check out code, contribute fixes or report system bugs</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </a>
-
-                {/* Privacy Policy */}
-                <div onClick={() => window.open("/privacy", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Privacy Policy</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Read about local credentials and encryption safety</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Terms of Service */}
-                <div onClick={() => window.open("/terms", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Shield size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Terms of Service</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Understand guidelines and rules of utilizing AmazeCC services</span>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-              </div>
-          ))}
-
-          {/* Section: About */}
-          {renderSection("about", "About AmazeCC", Info, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 p-6 flex flex-col items-center text-center space-y-4">
-                <div className="scale-125 mb-1 shrink-0">
-                  <IconToggle />
-                </div>
+          ) : (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">AmazeCC</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your ultimate college companion application.</p>
+                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+                    {SECTIONS.find((s) => s.id === activeDesktopSection)?.label}
+                  </h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {SECTIONS.find((s) => s.id === activeDesktopSection)?.subtitle}
+                  </p>
                 </div>
-
-                <div className="w-full max-w-xs grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-left pt-2 border-t border-gray-150 dark:border-gray-800/60 mt-2">
-                  <div>
-                    <span className="text-gray-400 font-medium block">Version</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">v3.1.0</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Build Number</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">2026.0703</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Last Updated</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">July 2026</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-medium block">Platform</span>
-                    <span className="font-bold text-gray-850 dark:text-gray-200">Web App</span>
-                  </div>
-                </div>
-
-                <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-widest uppercase pt-2 border-t border-gray-150 dark:border-gray-850/60 w-full">
-                  MADE WITH ❤️ BY SUGEETHJSA AND DHIVYANJ
-                </p>
               </div>
-          ))}
-
-          {/* Section: Advanced */}
-          {renderSection("advanced", "Advanced Settings", Shield, (
-            <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
-
-                {/* Local Storage Viewer */}
-                <div onClick={openStoragePage} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Database size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Local Storage Viewer</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block truncate mt-0.5">Inspect raw application database cache items and tokens</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Custom API URL Configuration */}
-                <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-slate-950/20 text-left">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Link2 size={18} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Custom API Endpoint URL</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block mt-0.5">Override VTOP and student API data endpoint routes</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      placeholder="https://api.amazecc.com"
-                      value={customApiInput}
-                      onChange={(e) => setCustomApiInput(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-gray-250 dark:border-gray-800 bg-white/50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-info text-gray-800 dark:text-white"
-                    />
-                    <button
-                      onClick={saveCustomApiUrl}
-                      className="px-3.5 py-1.5 text-[10px] font-black text-white bg-indigo-650 hover:bg-indigo-750 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
-                    >
-                      Save
-                    </button>
-                    {customApiInput && (
-                      <button
-                        onClick={clearCustomApiUrl}
-                        className="px-3.5 py-1.5 text-[10px] font-black text-red-505 border border-red-200 dark:border-red-900/50 rounded-xl transition-all uppercase tracking-wider cursor-pointer shadow-2xs"
-                      >
-                        Reset
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Export Settings */}
-                <div onClick={handleExportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Save size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Backup / Export Settings</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block truncate mt-0.5">Save app options, custom name, and layout preferences to file</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Import Settings */}
-                <div onClick={handleImportSettings} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <ExternalLink size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Restore / Import Settings</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block truncate mt-0.5">Restore app options and name configurations from settings backup file</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Keyboard Shortcuts */}
-                <div onClick={onOpenShortcutsHelp} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-info-surface text-info shrink-0">
-                      <Keyboard size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Keyboard Shortcuts Cheat-Sheet</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-455 block truncate mt-0.5">Show the interactive global keyboard hotkeys dialog</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-400 shrink-0" />
-                </div>
-
-                {/* Reset Cache */}
-                <div onClick={handleResetCache} className="flex items-center justify-between p-4 hover:bg-red-500/5 hover:bg-red-550/10 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-red-500/10 text-red-550 shrink-0">
-                      <Database size={18} className="text-red-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-red-500 block">Reset Application Cache</span>
-                      <span className="text-[10px] text-red-400/80 block truncate mt-0.5">Erase all local storage, cached profiles, and reload settings</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-red-400 shrink-0" />
-                </div>
-
-                {/* Log Out */}
-                <div onClick={handleLogOutRequest} className="flex items-center justify-between p-4 hover:bg-red-500/5 hover:bg-red-550/10 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4 min-w-0 pr-4">
-                    <div className="p-2 rounded-xl bg-red-500/10 text-red-550 shrink-0">
-                      <LogOut size={18} className="text-red-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-red-500 block">Log Out</span>
-                      <span className="text-[10px] text-red-400/80 block truncate mt-0.5">Safely sign out of the active account session</span>
-                    </div>
-                  </div>
-                  <ChevronRight size={14} className="text-red-400 shrink-0" />
-                </div>
-
-              </div>
-          ))}
-
+              {getSectionContent(activeDesktopSection)}
+            </div>
+          )}
         </main>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MOBILE VIEW: Nested Submenus (Zero Collapsible Clutter)
+      ───────────────────────────────────────────────────────────── */}
+      <div className="block md:hidden">
+        <AnimatePresence mode="wait">
+          {/* LEVEL 1: Settings Hub Menu */}
+          {activeMobileSubmenu === null ? (
+            <motion.div
+              key="mobile-hub"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-3"
+            >
+              <div className="px-1 pb-1">
+                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  Settings Categories
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
+                {filteredSections.map((sec) => {
+                  const Icon = sec.icon;
+                  return (
+                    <button
+                      key={sec.id}
+                      onClick={() => setActiveMobileSubmenu(sec.id)}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 active:scale-[0.98] transition-all text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                        <div className={`p-2.5 rounded-xl shrink-0 ${sec.iconBg} ${sec.iconColor}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit truncate">
+                            {sec.label}
+                          </h3>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                            {sec.subtitle}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Mobile Hub Quick Actions */}
+              {mode === "settings" && (
+                <div className="pt-4 space-y-2">
+                  <button
+                    onClick={onOpenShortcutsHelp}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <Keyboard size={16} className="text-indigo-500" />
+                    <span>Keyboard Hotkeys & Shortcuts</span>
+                  </button>
+
+                  <button
+                    onClick={handleLogOutRequest}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <LogOut size={16} />
+                    <span>Sign Out of Account</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            /* LEVEL 2: Focused Category Sub-Page */
+            <motion.div
+              key="mobile-submenu"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-4"
+            >
+              {/* Back Button Navigation Header */}
+              <div className="sticky top-2 z-20 flex items-center justify-between p-3 rounded-2xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/80 dark:border-zinc-800 shadow-xs backdrop-blur-md">
+                <button
+                  onClick={() => setActiveMobileSubmenu(null)}
+                  className="flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Settings</span>
+                </button>
+
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit truncate">
+                  {SECTIONS.find((s) => s.id === activeMobileSubmenu)?.label}
+                </span>
+
+                <div className="w-12" />
+              </div>
+
+              {/* Sub-page Settings Content */}
+              <div className="pt-1">{getSectionContent(activeMobileSubmenu)}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

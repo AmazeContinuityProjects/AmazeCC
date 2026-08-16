@@ -24,23 +24,20 @@ export type Settings = {
   residentialStatus?: "hosteller" | "dayscholar";
   friendlyName?: string;
   syncProfileData?: boolean;
-  syncArrearData?: boolean;
-  syncExamData?: boolean;
   syncAdditionalData?: boolean;
-  syncCourseOptionChange?: boolean;
   syncExcRegistration?: boolean;
   syncMinorHonour?: boolean;
   syncCourseCompletion?: boolean;
-  syncWishlist?: boolean;
-  syncAdditionalLearning?: boolean;
-  syncProject?: boolean;
-  syncProjectCourse?: boolean;
   pinnedNavTabs?: string[];
   defaultAcademicsTab?: string;
   autoSyncInterval?: string;
   lowDataMode?: boolean;
   soundEnabled?: boolean;
   smartMessFilter?: boolean;
+  dashboardViewMode?: "simplified" | "classic";
+  timetablePillStyle?: "compact" | "detailed";
+  interfaceChosen?: boolean;
+  defaultLandingTab?: "home" | "attendance" | "academics";
 
   // Push Notifications Settings & Feature Options
   pushNotificationsEnabled?: boolean;
@@ -88,23 +85,18 @@ export const defaultSettings: Settings = {
   residentialStatus: "hosteller",
   friendlyName: "",
   syncProfileData: true,
-  syncArrearData: true,
-  syncExamData: true,
   syncAdditionalData: true,
-  syncCourseOptionChange: true,
   syncExcRegistration: true,
   syncMinorHonour: true,
   syncCourseCompletion: true,
-  syncWishlist: true,
-  syncAdditionalLearning: true,
-  syncProject: true,
-  syncProjectCourse: true,
   pinnedNavTabs: ["academics", "attendance"],
   defaultAcademicsTab: "overview",
   autoSyncInterval: "manual",
   lowDataMode: false,
   soundEnabled: true,
   smartMessFilter: false,
+  dashboardViewMode: "simplified",
+  timetablePillStyle: "compact",
 
   // Default Push Notification Preferences
   pushNotificationsEnabled: true,

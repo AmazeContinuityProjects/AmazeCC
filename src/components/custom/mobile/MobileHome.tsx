@@ -102,6 +102,7 @@ export default function MobileHome({
   handleReloadRequest,
   onOpenCommandPalette,
   profileData: profileDataProp,
+  ODhoursData,
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
