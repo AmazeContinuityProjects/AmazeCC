@@ -172,31 +172,37 @@ input, textarea, [contenteditable] {
   background-color: var(--text-secondary);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0 }
-  to { opacity: 1 }
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.25s ease-out;
+  animation: pageEnter 0.22s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slide-up {
-  animation: slideUp 0.35s ease-out both;
+  animation: slideUp 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.94); }
   to { opacity: 1; transform: scale(1); }
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.25s ease-out both;
+  animation: scaleIn 0.2s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
 @keyframes shimmer {
@@ -207,7 +213,7 @@ input, textarea, [contenteditable] {
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--text-heading) 8%, transparent) 50%, transparent 100%);
   background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
+  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 .stagger-enter {
