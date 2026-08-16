@@ -27,6 +27,7 @@ import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { motion, AnimatePresence } from "framer-motion";
 
 const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
   loading: () => (
@@ -730,386 +731,396 @@ export default function DashboardContent({
           </Modal>
         )}
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
-          {activeTab === "home" && (
-            <div>
-              <MobileHome
-                attendanceData={attendanceData}
-                marksData={marksData}
-                scheduleData={ScheduleData}
-                handleScheduleFetch={handleScheduleFetch}
-                ODhoursData={ODhoursData}
-                setODhoursIsOpen={setODhoursIsOpen}
-                hostelData={hostelData}
-                registeredEvents={registeredEvents}
-                moodleData={moodleData}
-                settings={settings}
-                setSettings={setSettings}
-                IDs={IDs}
-                setActiveTab={setActiveTab}
-                setActiveSubTab={setActiveSubTab}
-                setHostelActiveSubTab={setHostelActiveSubTab}
-                setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                setActiveMoreSubTab={setActiveMoreSubTab}
-                setActiveProfileSubTab={setActiveProfileSubTab}
-                handleReloadRequest={handleReloadRequest}
-                onOpenCommandPalette={onOpenCommandPalette}
-                profileData={profileData}
-              />
-            </div>
-          )}
-
-          {activeTab === "attendance" && attendanceData?.attendance && (
-            <div className="animate-fadeIn">
-
-
-
-              {activeAttendanceSubTab === "attendance" && (
-                <>
-                  <AttendanceTabs
-                    key={`attendance-tabs-${resetKey}`}
-                    data={attendanceData}
-                    activeDay={activeDay}
-                    setActiveDay={setActiveDay}
-                    calendars={calendarData.calendars}
-                    decimalValues={settings.decimalValues}
-                    isDayscholarWithBus={settings.isDayscholarWithBus}
-                    setIsSubpageOpen={setIsSubpageOpen}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeTab}-${activeSubTab}-${activeAttendanceSubTab}-${HostelActiveSubTab}`}
+              initial={{ opacity: 0, y: 8, scale: 0.995 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.995 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            >
+              {activeTab === "home" && (
+                <div>
+                  <MobileHome
+                    attendanceData={attendanceData}
+                    marksData={marksData}
+                    scheduleData={ScheduleData}
+                    handleScheduleFetch={handleScheduleFetch}
                     ODhoursData={ODhoursData}
-                    ODhoursIsOpen={ODhoursIsOpen}
                     setODhoursIsOpen={setODhoursIsOpen}
+                    hostelData={hostelData}
+                    registeredEvents={registeredEvents}
+                    moodleData={moodleData}
+                    settings={settings}
+                    setSettings={setSettings}
+                    IDs={IDs}
                     setActiveTab={setActiveTab}
                     setActiveSubTab={setActiveSubTab}
-                  />
-                </>
-              )}
-
-              {activeAttendanceSubTab === "calendar" && (
-                <div className="animate-fadeIn">
-                  <CalendarView
-                    calendars={calendarData?.calendars}
-                    calendarType={settings.calendarType}
-                    handleCalendarFetch={handleCalendarFetch}
-                    moodleData={moodleData}
-                    scheduleData={ScheduleData}
-                    attendanceData={attendanceData}
-                    ODhoursData={ODhoursData}
-                    setIsSubpageOpen={setIsSubpageOpen}
-                    setMoodleData={setMoodleData}
-                    handleFetchMoodle={handleFetchMoodle}
-                    IDs={IDs}
+                    setHostelActiveSubTab={setHostelActiveSubTab}
                     setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                    setActiveMoreSubTab={setActiveMoreSubTab}
+                    setActiveProfileSubTab={setActiveProfileSubTab}
+                    handleReloadRequest={handleReloadRequest}
+                    onOpenCommandPalette={onOpenCommandPalette}
+                    profileData={profileData}
                   />
                 </div>
               )}
 
-              {activeAttendanceSubTab === "circulars" && (
+              {activeTab === "attendance" && attendanceData?.attendance && (
                 <div className="animate-fadeIn">
-                  <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
+
+
+
+                  {activeAttendanceSubTab === "attendance" && (
+                    <>
+                      <AttendanceTabs
+                        key={`attendance-tabs-${resetKey}`}
+                        data={attendanceData}
+                        activeDay={activeDay}
+                        setActiveDay={setActiveDay}
+                        calendars={calendarData.calendars}
+                        decimalValues={settings.decimalValues}
+                        isDayscholarWithBus={settings.isDayscholarWithBus}
+                        setIsSubpageOpen={setIsSubpageOpen}
+                        ODhoursData={ODhoursData}
+                        ODhoursIsOpen={ODhoursIsOpen}
+                        setODhoursIsOpen={setODhoursIsOpen}
+                        setActiveTab={setActiveTab}
+                        setActiveSubTab={setActiveSubTab}
+                      />
+                    </>
+                  )}
+
+                  {activeAttendanceSubTab === "calendar" && (
+                    <div className="animate-fadeIn">
+                      <CalendarView
+                        calendars={calendarData?.calendars}
+                        calendarType={settings.calendarType}
+                        handleCalendarFetch={handleCalendarFetch}
+                        moodleData={moodleData}
+                        scheduleData={ScheduleData}
+                        attendanceData={attendanceData}
+                        ODhoursData={ODhoursData}
+                        setIsSubpageOpen={setIsSubpageOpen}
+                        setMoodleData={setMoodleData}
+                        handleFetchMoodle={handleFetchMoodle}
+                        IDs={IDs}
+                        setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                      />
+                    </div>
+                  )}
+
+                  {activeAttendanceSubTab === "circulars" && (
+                    <div className="animate-fadeIn">
+                      <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {activeTab === "academics" && (
-            <div className="animate-fadeIn">
-              {activeSubTab === "overview" && (
-                marksData ? (
-                  <AcademicsHub
-                    setActiveSubTab={setActiveSubTab}
-                    data={allGradesData}
-                    marksData={marksData}
-                    gradesData={GradesData}
-                    attendance={attendanceData.attendance}
-                    hideMobileHeader={settings.hideMobileHeader}
-                    handleFetchGrades={handleAllGradesFetch}
-                  />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "course-dashboard" && (
-                marksData ? (
-                  <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "schedule" && (
-                <ScheduleSubTab data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />
-              )}
-              {activeSubTab === "grades" && (
-                marksData ? (
-                  <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "curriculum" && (
-                marksData ? (
-                  <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "predictor" && (
-                marksData ? (
-                  <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "qbank" && (
-                marksData ? (
-                  <div className="animate-fadeIn">
-                    <QBankSubTabs activeSubTab={activeQBankSubTab} setActiveSubTab={setActiveQBankSubTab} />
-                    {activeQBankSubTab === "archive" && (
-                      <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
-                    )}
-                    {activeQBankSubTab === "pure" && (
-                      <PureQBankTab allGradesData={allGradesData} marksData={marksData} setActiveSubTab={setActiveSubTab} />
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "arrear" && (
-                <ArrearTab key={`arrear-${resetKey}`} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} allGradesData={allGradesData} />
-              )}
-              {activeSubTab === "makeup-compre" && (
-                <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "course-mgmt" && (
-                <CourseMgmtTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "projects" && (
-                <ProjectsTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "wishlist" && (
-                <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "free-class" && (
-                <FreeClassroomsTab setActiveSubTab={setActiveSubTab} />
+              {activeTab === "academics" && (
+                <div className="animate-fadeIn">
+                  {activeSubTab === "overview" && (
+                    marksData ? (
+                      <AcademicsHub
+                        setActiveSubTab={setActiveSubTab}
+                        data={allGradesData}
+                        marksData={marksData}
+                        gradesData={GradesData}
+                        attendance={attendanceData.attendance}
+                        hideMobileHeader={settings.hideMobileHeader}
+                        handleFetchGrades={handleAllGradesFetch}
+                      />
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "course-dashboard" && (
+                    marksData ? (
+                      <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "schedule" && (
+                    <ScheduleSubTab data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />
+                  )}
+                  {activeSubTab === "grades" && (
+                    marksData ? (
+                      <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "curriculum" && (
+                    marksData ? (
+                      <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "predictor" && (
+                    marksData ? (
+                      <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "qbank" && (
+                    marksData ? (
+                      <div className="animate-fadeIn">
+                        <QBankSubTabs activeSubTab={activeQBankSubTab} setActiveSubTab={setActiveQBankSubTab} />
+                        {activeQBankSubTab === "archive" && (
+                          <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
+                        )}
+                        {activeQBankSubTab === "pure" && (
+                          <PureQBankTab allGradesData={allGradesData} marksData={marksData} setActiveSubTab={setActiveSubTab} />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4 p-4">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
+                        <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                      </div>
+                    )
+                  )}
+                  {activeSubTab === "arrear" && (
+                    <ArrearTab key={`arrear-${resetKey}`} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} allGradesData={allGradesData} />
+                  )}
+                  {activeSubTab === "makeup-compre" && (
+                    <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                  )}
+                  {activeSubTab === "course-mgmt" && (
+                    <CourseMgmtTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                  )}
+                  {activeSubTab === "projects" && (
+                    <ProjectsTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                  )}
+                  {activeSubTab === "wishlist" && (
+                    <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                  )}
+                  {activeSubTab === "free-class" && (
+                    <FreeClassroomsTab setActiveSubTab={setActiveSubTab} />
+                  )}
+
+                  {activeSubTab === "faculty-info" && (
+                    <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
+                  )}
+                </div>
               )}
 
-              {activeSubTab === "faculty-info" && (
-                <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-            </div>
-          )}
+              {activeTab === "hostel" && (
+                <div className="animate-fadeIn">
 
-          {activeTab === "hostel" && (
-            <div className="animate-fadeIn">
+                  {HostelActiveSubTab === "overview" && (
+                    <HostelOverview hostelData={hostelData} setHostelActiveSubTab={setHostelActiveSubTab} />
+                  )}
+                  {HostelActiveSubTab === "mess" && (
+                    <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+                  )}
+                  {HostelActiveSubTab === "laundry" && (
+                    <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+                  )}
+                  {HostelActiveSubTab === "leave" && (
+                    <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+                  )}
+                  {HostelActiveSubTab === "payment" && (
+                    <PaymentsTab loginToVTOP={loginToVTOP} />
+                  )}
+                  {HostelActiveSubTab === "counselling" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
+                        <button
+                          onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
+                          className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
+                          title="Reload"
+                        >
+                          <RefreshCcw className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {HostelActiveSubTab === "overview" && (
-                <HostelOverview hostelData={hostelData} setHostelActiveSubTab={setHostelActiveSubTab} />
+              {activeTab === "cabshare" && (
+                <CabShareTab />
               )}
-              {HostelActiveSubTab === "mess" && (
-                <MessDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
+
+              {activeTab === "dayscholar" && (
+                <div className="animate-fadeIn space-y-8">
+                  <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
+                </div>
               )}
-              {HostelActiveSubTab === "laundry" && (
-                <LaundryDisplay hostelData={hostelData} handleHostelDetailsFetch={handleHostelDetailsFetch} />
-              )}
-              {HostelActiveSubTab === "leave" && (
-                <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
-              )}
-              {HostelActiveSubTab === "payment" && (
-                <PaymentsTab loginToVTOP={loginToVTOP} />
-              )}
-              {HostelActiveSubTab === "counselling" && (
-                <div className="space-y-4">
+
+              {activeTab === "transport" && (
+                <div className="animate-fadeIn space-y-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transport</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bus routes, boarding points, vehicle placements & contact info</p>
+                    </div>
                     <button
-                      onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
-                      title="Reload"
+                      onClick={refreshTransportBuses}
+                      disabled={transportBusesLoading}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/25"
                     >
-                      <RefreshCcw className="w-5 h-5" />
+                      <RefreshCcw className={`w-4 h-4 ${transportBusesLoading ? "animate-spin" : ""}`} />
+                      {transportBusesLoading ? "Refreshing..." : "Refresh Bus Data"}
                     </button>
                   </div>
-                  <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
+                  <BusFinder buses={transportBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
                 </div>
               )}
-            </div>
-          )}
 
-          {activeTab === "cabshare" && (
-            <CabShareTab />
-          )}
-
-          {activeTab === "dayscholar" && (
-            <div className="animate-fadeIn space-y-8">
-              <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
-            </div>
-          )}
-
-          {activeTab === "transport" && (
-            <div className="animate-fadeIn space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transport</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bus routes, boarding points, vehicle placements & contact info</p>
+              {activeTab === "payments" && (
+                <div className="animate-fadeIn">
+                  <PaymentsTab loginToVTOP={loginToVTOP} />
                 </div>
-                <button
-                  onClick={refreshTransportBuses}
-                  disabled={transportBusesLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/25"
-                >
-                  <RefreshCcw className={`w-4 h-4 ${transportBusesLoading ? "animate-spin" : ""}`} />
-                  {transportBusesLoading ? "Refreshing..." : "Refresh Bus Data"}
-                </button>
-              </div>
-              <BusFinder buses={transportBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
-            </div>
-          )}
+              )}
 
-          {activeTab === "payments" && (
-            <div className="animate-fadeIn">
-              <PaymentsTab loginToVTOP={loginToVTOP} />
-            </div>
-          )}
+              {activeTab === "libraries" && (
+                <div className="animate-fadeIn">
+                  <LibrariesTab loginToVTOP={loginToVTOP} />
+                </div>
+              )}
 
-          {activeTab === "libraries" && (
-            <div className="animate-fadeIn">
-              <LibrariesTab loginToVTOP={loginToVTOP} />
-            </div>
-          )}
-
-          {activeTab === "more" && (
-            <div className="animate-fadeIn">
-              <MoreTab
-                attendanceData={attendanceData}
-                activeMoreSubTab={activeMoreSubTab}
-                setActiveMoreSubTab={setActiveMoreSubTab}
-                IDs={IDs}
-                loginToVTOP={loginToVTOP}
-                isSubpageOpen={isSubpageOpen}
-                setIsSubpageOpen={setIsSubpageOpen}
-                registeredEvents={registeredEvents}
-                setRegisteredEvents={setRegisteredEvents}
-              />
-            </div>
-          )}
+              {activeTab === "more" && (
+                <div className="animate-fadeIn">
+                  <MoreTab
+                    attendanceData={attendanceData}
+                    activeMoreSubTab={activeMoreSubTab}
+                    setActiveMoreSubTab={setActiveMoreSubTab}
+                    IDs={IDs}
+                    loginToVTOP={loginToVTOP}
+                    isSubpageOpen={isSubpageOpen}
+                    setIsSubpageOpen={setIsSubpageOpen}
+                    registeredEvents={registeredEvents}
+                    setRegisteredEvents={setRegisteredEvents}
+                  />
+                </div>
+              )}
 
 
 
-          {activeTab === "profile" && (
-            <div className="animate-fadeIn">
-              <ProfileTab
-                onOpenShortcutsHelp={onOpenShortcutsHelp}
-                activeProfileSubTab={activeProfileSubTab}
-                setActiveProfileSubTab={setActiveProfileSubTab}
-                isLoggedIn={true}
-                loginToVTOP={loginToVTOP}
-                currSemesterID={settings.currSemesterID}
-                setCurrSemesterID={(val: string) => {
-                  setSettings(prev => {
-                    const next = { ...prev, currSemesterID: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                handleLogin={handleLogin}
-                setIsReloading={setIsReloading}
-                handleLogOutRequest={handleLogOutRequest}
-                password={IDs.VtopPassword}
-                username={IDs.VtopUsername}
-                setPassword={(val: string[]) =>{
-                  setIDs(prev => {
-                    const next = { ...prev, VtopUsername: val[0], VtopPassword: val[1] };
-                    localStorage.setItem("IDs", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                decimalValues={settings.decimalValues}
-                setDecimalValues={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, decimalValues: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
+              {activeTab === "profile" && (
+                <div className="animate-fadeIn">
+                  <ProfileTab
+                    onOpenShortcutsHelp={onOpenShortcutsHelp}
+                    activeProfileSubTab={activeProfileSubTab}
+                    setActiveProfileSubTab={setActiveProfileSubTab}
+                    isLoggedIn={true}
+                    loginToVTOP={loginToVTOP}
+                    currSemesterID={settings.currSemesterID}
+                    setCurrSemesterID={(val: string) => {
+                      setSettings(prev => {
+                        const next = { ...prev, currSemesterID: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    handleLogin={handleLogin}
+                    setIsReloading={setIsReloading}
+                    handleLogOutRequest={handleLogOutRequest}
+                    password={IDs.VtopPassword}
+                    username={IDs.VtopUsername}
+                    setPassword={(val: string[]) =>{
+                      setIDs(prev => {
+                        const next = { ...prev, VtopUsername: val[0], VtopPassword: val[1] };
+                        localStorage.setItem("IDs", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    decimalValues={settings.decimalValues}
+                    setDecimalValues={(val: boolean) => {
+                      setSettings(prev => {
+                        const next = { ...prev, decimalValues: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
 
-                isDayscholarWithBus={settings.isDayscholarWithBus}
-                setIsDayscholarWithBus={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, isDayscholarWithBus: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                residentialStatus={settings.residentialStatus || "hosteller"}
-                setResidentialStatus={(val: "hosteller" | "dayscholar") => {
-                  setSettings(prev => {
-                    const next = { ...prev, residentialStatus: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                friendlyName={settings.friendlyName}
-                setFriendlyName={(val: string) => {
-                  setSettings(prev => {
-                    const next = { ...prev, friendlyName: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                calendarType={settings.calendarType}
-                setCalendarType={(val: any) => {
-                  setSettings(prev => {
-                    const next = { ...prev, calendarType: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                hideMobileHeader={settings.hideMobileHeader}
-                setHideMobileHeader={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, hideMobileHeader: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                reloadAllData={settings.reloadAllData}
-                setReloadAllData={(val: boolean) => {
-                  setSettings(prev => {
-                    const next = { ...prev, reloadAllData: val };
-                    localStorage.setItem("settings", JSON.stringify(next));
-                    return next;
-                  });
-                }}
-                settings={settings}
-                setSettings={setSettings}
-              />
-            </div>
-          )}
+                    isDayscholarWithBus={settings.isDayscholarWithBus}
+                    setIsDayscholarWithBus={(val: boolean) => {
+                      setSettings(prev => {
+                        const next = { ...prev, isDayscholarWithBus: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    residentialStatus={settings.residentialStatus || "hosteller"}
+                    setResidentialStatus={(val: "hosteller" | "dayscholar") => {
+                      setSettings(prev => {
+                        const next = { ...prev, residentialStatus: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    friendlyName={settings.friendlyName}
+                    setFriendlyName={(val: string) => {
+                      setSettings(prev => {
+                        const next = { ...prev, friendlyName: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    calendarType={settings.calendarType}
+                    setCalendarType={(val: any) => {
+                      setSettings(prev => {
+                        const next = { ...prev, calendarType: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    hideMobileHeader={settings.hideMobileHeader}
+                    setHideMobileHeader={(val: boolean) => {
+                      setSettings(prev => {
+                        const next = { ...prev, hideMobileHeader: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    reloadAllData={settings.reloadAllData}
+                    setReloadAllData={(val: boolean) => {
+                      setSettings(prev => {
+                        const next = { ...prev, reloadAllData: val };
+                        localStorage.setItem("settings", JSON.stringify(next));
+                        return next;
+                      });
+                    }}
+                    settings={settings}
+                    setSettings={setSettings}
+                  />
+                </div>
+              )}
 
-          {activeTab === "about" && (
-            <div className="animate-fadeIn">
-              <AboutTab />
-            </div>
-          )}
+              {activeTab === "about" && (
+                <div className="animate-fadeIn">
+                  <AboutTab />
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
