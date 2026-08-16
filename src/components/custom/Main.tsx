@@ -1159,6 +1159,7 @@ export default function LoginPage() {
     // ── All sub-tab navigation ──
     result.push(
       { id: "acad-marks", label: "Marks Overview", description: "Course marks & assessments overview", icon: "📊", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("overview"); } },
+      { id: "acad-exam-schedule", label: "Exam Schedule", description: "CAT, FAT & lab exam timetables & venues", icon: "📅", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("schedule"); } },
       { id: "acad-curriculum", label: "Curriculum", description: "Course curriculum & structure", icon: "📜", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("curriculum"); } },
       { id: "acad-timetable", label: "Timetable & Schedule", description: "Exam schedule & timetable", icon: "🗓️", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },

@@ -60,6 +60,7 @@ import WishlistTab from "./exams/WishlistTab";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
 import CircularsTab from "./exams/CircularsTab";
 import FacultyInfoTab from "./exams/FacultyInfoTab";
+import ScheduleSubTab from "./exams/ScheduleSubTab";
 
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
@@ -467,6 +468,35 @@ export default function DashboardContent({
     }
   };
 
+  const handleScheduleFetch = async () => {
+    setIsReloading(true);
+    try {
+      const { cookies, authorizedID, csrf } = await loginToVTOP();
+
+      const scheduleRes = await fetch(`${API_BASE}/api/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
+      });
+
+      const schedData = await scheduleRes.json();
+      setProgressBar((prev) => prev + 40);
+
+      setScheduleData(schedData);
+      localStorage.setItem("schedule", JSON.stringify(schedData));
+
+      setMessage((prev) => prev + "\n✅ Exam Schedule reloaded successfully!");
+      setProgressBar(100);
+      setIsReloading(false);
+    } catch (err) {
+      console.error(err);
+      setMessage(
+        "❌ " + (err instanceof Error ? err.message : "Exam Schedule fetch failed, check console.")
+      );
+      setProgressBar(0);
+    }
+  };
+
   const handleHostelDetailsFetch = async () => {
     setIsReloading(true);
     try {
@@ -705,6 +735,10 @@ export default function DashboardContent({
               <MobileHome
                 attendanceData={attendanceData}
                 marksData={marksData}
+                scheduleData={ScheduleData}
+                handleScheduleFetch={handleScheduleFetch}
+                ODhoursData={ODhoursData}
+                setODhoursIsOpen={setODhoursIsOpen}
                 hostelData={hostelData}
                 registeredEvents={registeredEvents}
                 moodleData={moodleData}
@@ -807,6 +841,9 @@ export default function DashboardContent({
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
+              )}
+              {activeSubTab === "schedule" && (
+                <ScheduleSubTab data={ScheduleData} handleScheduleFetch={handleScheduleFetch} />
               )}
               {activeSubTab === "grades" && (
                 marksData ? (
