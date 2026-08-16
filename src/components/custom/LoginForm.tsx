@@ -419,21 +419,21 @@ export default function LoginForm({
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                   <button
                     onClick={() => setShowLoginCard(true)}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer group"
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer group"
                   >
                     <span>Get Started</span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button
                     onClick={handleDemoClick}
-                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                    className="w-full sm:w-auto bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-center"
                   >
                     <Zap size={14} />
                     <span>Try Instant Demo</span>
                   </button>
                   <button
                     onClick={() => scrollToSection("sec-features")}
-                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
+                    className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 dark:bg-neutral-900/60 dark:hover:bg-neutral-900 dark:border-neutral-800 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-300 font-black text-xs px-6 py-4 rounded-xl transition-all duration-150 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-center"
                   >
                     Explore Features
                   </button>
