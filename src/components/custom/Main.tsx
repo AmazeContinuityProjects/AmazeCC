@@ -2098,21 +2098,23 @@ export default function LoginPage() {
     ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
   ]);
 
-  if (isLoading) {
-    return (
-      <LoadingScreen
-        logoSrc="/logo.png"
-        wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
-        wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
-        title="Student Operating System"
-      />
-    );
-  }
-
   return (
-    <motion.div
-      className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
-    >
+    <>
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <LoadingScreen
+            key="splash-loading-screen"
+            logoSrc="/logo.png"
+            wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
+            wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
+            title="Student Operating System"
+          />
+        )}
+      </AnimatePresence>
+      {!isLoading && (
+        <motion.div
+          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
+        >
       <AnimatePresence>
         {isAPIworking && !isOffline && (
           <motion.div
@@ -2290,7 +2292,9 @@ export default function LoginPage() {
       {isShortcutsHelpOpen && (
         <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
       )}
-    </motion.div>
+        </motion.div>
+      )}
+    </>
   );
 }
 
