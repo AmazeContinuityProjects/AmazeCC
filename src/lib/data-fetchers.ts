@@ -199,17 +199,10 @@ export async function fetchBusRoutes(): Promise<void> {
 }
 
 type BulkSettings = {
-  syncArrearData?: boolean;
   syncAdditionalData?: boolean;
-  syncCourseOptionChange?: boolean;
   syncExcRegistration?: boolean;
   syncMinorHonour?: boolean;
   syncCourseCompletion?: boolean;
-  syncWishlist?: boolean;
-  syncAdditionalLearning?: boolean;
-  syncProject?: boolean;
-  syncProjectCourse?: boolean;
-  syncExamData?: boolean;
   syncProfileData?: boolean;
 };
 
@@ -219,24 +212,23 @@ export async function fetchBulkEndpoints(
 ): Promise<void> {
   const bulkEndpoints: string[] = [];
 
-  if (settings.syncArrearData !== false) {
-    bulkEndpoints.push("arrear-schedule", "arrear-details", "arrear-grade");
-  }
   if (settings.syncAdditionalData !== false) {
-    if (settings.syncCourseOptionChange !== false) bulkEndpoints.push("course-option-change");
     if (settings.syncExcRegistration !== false) bulkEndpoints.push("exc-registration");
     if (settings.syncMinorHonour !== false) bulkEndpoints.push("minor-honour");
     if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
-    if (settings.syncWishlist !== false) bulkEndpoints.push("wishlist");
-    if (settings.syncAdditionalLearning !== false) bulkEndpoints.push("additional-learning");
-    if (settings.syncProject !== false) bulkEndpoints.push("project");
-    if (settings.syncProjectCourse !== false) bulkEndpoints.push("project-course");
-  }
-  if (settings.syncExamData !== false) {
-    bulkEndpoints.push("makeup-exam", "makeup-schedule", "compre-info");
   }
   if (settings.syncProfileData !== false) {
-    bulkEndpoints.push("credentials", "registration-schedule", "dayboarder", "bank-info", "library-due", "hostel-counselling");
+    bulkEndpoints.push(
+      "credentials",
+      "registration-schedule",
+      "dayboarder",
+      "bank-info",
+      "library-due",
+      "hostel-counselling",
+      "payments",
+      "payment-receipts",
+      "wallet"
+    );
   }
 
   await Promise.allSettled(
@@ -246,6 +238,9 @@ export async function fetchBulkEndpoints(
         .then(data => {
           if (data.success !== false) {
             storage.cache.set(path, data);
+            if (path === "payments") localStorage.setItem("payments_dues", JSON.stringify(data));
+            if (path === "payment-receipts") localStorage.setItem("payments_receipts", JSON.stringify(data));
+            if (path === "wallet") localStorage.setItem("payments_wallet", JSON.stringify(data));
           }
         })
         .catch(() => {})

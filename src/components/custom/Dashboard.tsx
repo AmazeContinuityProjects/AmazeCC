@@ -19,10 +19,15 @@ import CabShareTab from "./hostel/CabShare/CabShareTab";
 import CabShareMatchCard from "./hostel/CabShare/CabShareMatchCard";
 import BusFinder from "./dayscholar/BusFinder";
 import MobileHome from "./mobile/MobileHome";
+import SimplifiedMobileHome from "./mobile/SimplifiedMobileHome";
+import AmazeOnboardingFlow, { InterfaceOptionId } from "./onboarding/AmazeOnboardingFlow";
 import AboutTab from "./AboutTab";
 
 import { API_BASE } from "./Main";
 import CourseDashboard from "./exams/CourseDashboard";
+import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
+import ToolsTab from "./tools/ToolsTab";
+import SubpageLayout from "./shared/SubpageLayout";
 import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
@@ -51,12 +56,7 @@ const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
 import QBankSubTabs from "./qbank/QBankSubTabs";
 import PaymentsTab from "./PaymentsTab";
 import LibrariesTab from "./libraries/LibrariesTab";
-import ArrearTab from "./exams/ArrearTab";
 import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
-import MakeupCompreTab from "./exams/MakeupCompreTab";
-import CourseMgmtTab from "./exams/CourseMgmtTab";
-import ProjectsTab from "./exams/ProjectsTab";
-import WishlistTab from "./exams/WishlistTab";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
 import CircularsTab from "./exams/CircularsTab";
 import FacultyInfoTab from "./exams/FacultyInfoTab";
@@ -68,6 +68,8 @@ import FresherWelcomePage from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
 import Modal from "./shared/Modal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
+import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor";
+import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { useMemo } from "react";
 
@@ -97,6 +99,8 @@ export default function DashboardContent({
   setHostelActiveSubTab,
   activeAttendanceSubTab,
   setActiveAttendanceSubTab,
+  activeToolsSubTab = "overview",
+  setActiveToolsSubTab,
   activeDayscholarSubTab,
   setActiveDayscholarSubTab,
   activeQBankSubTab,
@@ -133,6 +137,32 @@ export default function DashboardContent({
   const [fresherEptData, setFresherEptData] = useState<any>(null);
   const [fresherAckData, setFresherAckData] = useState<any>(null);
   const [fresherResources, setFresherResources] = useState<any[]>([]);
+  const [showInterfaceOnboarding, setShowInterfaceOnboarding] = useState(false);
+
+  // Check if user has chosen an interface option yet (for new and existing users)
+  useEffect(() => {
+    try {
+      const hasChosen = localStorage.getItem("has_selected_interface") === "true" || settings?.interfaceChosen === true;
+      if (!hasChosen) {
+        setShowInterfaceOnboarding(true);
+      }
+    } catch {}
+  }, [settings?.interfaceChosen]);
+
+  // Listen for global open-interface-selector events from Profile or switchers
+  useEffect(() => {
+    const handleOpen = () => setShowInterfaceOnboarding(true);
+    window.addEventListener("open-interface-selector", handleOpen);
+    return () => window.removeEventListener("open-interface-selector", handleOpen);
+  }, []);
+
+  // Honor preferred default landing tab (e.g. direct attendance)
+  useEffect(() => {
+    if (settings?.defaultLandingTab === "attendance") {
+      setActiveTab("attendance");
+      setActiveAttendanceSubTab("attendance");
+    }
+  }, []);
 
   const results = useMemo(() => {
     const analysis = analyzeAllCalendars(calendarData?.calendars);
@@ -204,6 +234,7 @@ export default function DashboardContent({
 
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
+  const [courseDashboardTarget, setCourseDashboardTarget] = useState<{ courseCode: string; targetTab?: string } | null>(null);
 
   useEffect(() => {
     if (allGradesData) {
@@ -212,19 +243,25 @@ export default function DashboardContent({
   }, [allGradesData]);
 
   useEffect(() => {
-    const academicAliases: Record<string, string> = {
+    const academicToolRedirects: Record<string, string> = {
+      qbank: "qbank",
+      predictor: "predictor",
       gpa: "predictor",
       faculty: "faculty-info",
-      timetable: "course-dashboard",
+      "faculty-info": "faculty-info",
+      "free-class": "free-class",
     };
 
-    if (activeTab === "academics" && academicAliases[activeSubTab]) {
-      setActiveSubTab(academicAliases[activeSubTab]);
+    if (activeTab === "academics" && academicToolRedirects[activeSubTab]) {
+      setActiveTab("tools");
+      if (setActiveToolsSubTab) {
+        setActiveToolsSubTab(academicToolRedirects[activeSubTab]);
+      }
     }
 
     if (activeTab === "more" && activeMoreSubTab === "qbank") {
-      setActiveTab("academics");
-      setActiveSubTab("qbank");
+      setActiveTab("tools");
+      if (setActiveToolsSubTab) setActiveToolsSubTab("qbank");
     }
 
     if (activeTab === "hostel" && HostelActiveSubTab === "payment") {
@@ -303,7 +340,7 @@ export default function DashboardContent({
     }
   }, [activeTab, loadTransportData]);
 
-  const tabsOrder = ["home", "attendance", "academics", "payments", "libraries", "more", "profile"];
+  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -551,6 +588,35 @@ export default function DashboardContent({
     );
   }
 
+  if (showInterfaceOnboarding) {
+    return (
+      <AmazeOnboardingFlow
+        initialStep={1}
+        isStandaloneInterfacePicker={true}
+        settings={settings}
+        setSettings={setSettings}
+        username={IDs?.VtopUsername}
+        onComplete={() => {
+          setShowInterfaceOnboarding(false);
+        }}
+        attendanceData={attendanceData}
+        marksData={marksData}
+        hostelData={hostelData}
+        registeredEvents={registeredEvents}
+        moodleData={moodleData}
+        IDs={IDs}
+        profileData={profileData}
+        ODhoursData={ODhoursData}
+        calendarData={calendarData}
+        ScheduleData={ScheduleData}
+        setGradesDisplayIsOpen={setGradesDisplayIsOpen}
+        setODhoursIsOpen={setODhoursIsOpen}
+        handleReloadRequest={handleReloadRequest}
+        onOpenCommandPalette={onOpenCommandPalette}
+      />
+    );
+  }
+
   return (
     <div
       className="w-full max-w-md md:max-w-full mx-auto overflow-visible"
@@ -592,6 +658,8 @@ export default function DashboardContent({
         setGradesDisplayIsOpen={setGradesDisplayIsOpen}
         activeAttendanceSubTab={activeAttendanceSubTab}
         setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+        activeToolsSubTab={activeToolsSubTab}
+        setActiveToolsSubTab={setActiveToolsSubTab}
         activeSubTab={activeSubTab}
         setActiveSubTab={setActiveSubTab}
         HostelActiveSubTab={HostelActiveSubTab}
@@ -702,25 +770,53 @@ export default function DashboardContent({
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "home" && (
             <div>
-              <MobileHome
-                attendanceData={attendanceData}
-                marksData={marksData}
-                hostelData={hostelData}
-                registeredEvents={registeredEvents}
-                moodleData={moodleData}
-                settings={settings}
-                setSettings={setSettings}
-                IDs={IDs}
-                setActiveTab={setActiveTab}
-                setActiveSubTab={setActiveSubTab}
-                setHostelActiveSubTab={setHostelActiveSubTab}
-                setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                setActiveMoreSubTab={setActiveMoreSubTab}
-                setActiveProfileSubTab={setActiveProfileSubTab}
-                handleReloadRequest={handleReloadRequest}
-                onOpenCommandPalette={onOpenCommandPalette}
-                profileData={profileData}
-              />
+              {settings?.dashboardViewMode === "classic" ? (
+                <MobileHome
+                  attendanceData={attendanceData}
+                  marksData={marksData}
+                  hostelData={hostelData}
+                  registeredEvents={registeredEvents}
+                  moodleData={moodleData}
+                  settings={settings}
+                  setSettings={setSettings}
+                  IDs={IDs}
+                  setActiveTab={setActiveTab}
+                  setActiveSubTab={setActiveSubTab}
+                  setHostelActiveSubTab={setHostelActiveSubTab}
+                  setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                  setActiveMoreSubTab={setActiveMoreSubTab}
+                  setActiveProfileSubTab={setActiveProfileSubTab}
+                  handleReloadRequest={handleReloadRequest}
+                  onOpenCommandPalette={onOpenCommandPalette}
+                  profileData={profileData}
+                  ODhoursData={ODhoursData}
+                />
+              ) : (
+                <SimplifiedMobileHome
+                  attendanceData={attendanceData}
+                  marksData={marksData}
+                  hostelData={hostelData}
+                  registeredEvents={registeredEvents}
+                  moodleData={moodleData}
+                  settings={settings}
+                  setSettings={setSettings}
+                  IDs={IDs}
+                  setActiveTab={setActiveTab}
+                  setActiveSubTab={setActiveSubTab}
+                  setHostelActiveSubTab={setActiveAttendanceSubTab}
+                  setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                  setActiveMoreSubTab={setActiveMoreSubTab}
+                  setActiveProfileSubTab={setActiveProfileSubTab}
+                  handleReloadRequest={handleReloadRequest}
+                  onOpenCommandPalette={onOpenCommandPalette}
+                  profileData={profileData}
+                  ODhoursData={ODhoursData}
+                  calendarData={calendarData}
+                  ScheduleData={ScheduleData}
+                  setGradesDisplayIsOpen={setGradesDisplayIsOpen}
+                  setODhoursIsOpen={setODhoursIsOpen}
+                />
+              )}
             </div>
           )}
 
@@ -773,33 +869,60 @@ export default function DashboardContent({
                   <CircularsTab loginToVTOP={loginToVTOP} onBack={() => setActiveAttendanceSubTab("calendar")} />
                 </div>
               )}
+
+              {activeAttendanceSubTab === "predictor" && (
+                <div className="animate-fadeIn">
+                  {(() => {
+                    const calendarAnalysis = calendarData?.calendars ? analyzeAllCalendars(calendarData.calendars) : null;
+                    const impEventsList = calendarAnalysis?.importantEvents ? Array.from(calendarAnalysis.importantEvents.values()) : [];
+                    const findDate = (name: string) => {
+                      const found = impEventsList.find((e: any) => e.event?.toLowerCase()?.includes(name.toLowerCase()));
+                      return found?.formattedDate || null;
+                    };
+                    return (
+                      <OverallAttendancePredictor
+                        attendanceData={attendanceData.attendance}
+                        analyzeCalendars={calendarAnalysis?.results || []}
+                        dayCardsMap={buildAttendanceDayCardsMap(
+                          attendanceData.attendance,
+                          undefined,
+                          (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT"
+                        )}
+                        impDates={{
+                          cat1Date: findDate("cat i") || findDate("cat 1"),
+                          cat2Date: findDate("cat ii") || findDate("cat 2"),
+                          lidTheoryDate: findDate("lid for theory") || findDate("last instructional day"),
+                          lidLabDate: findDate("lid for laboratory") || findDate("lid for lab"),
+                        }}
+                        isDayscholarWithBus={settings.isDayscholarWithBus}
+                        decimalValues={settings.decimalValues}
+                        onBack={() => setActiveAttendanceSubTab("attendance")}
+                      />
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === "academics" && (
             <div className="animate-fadeIn">
-              {activeSubTab === "overview" && (
+              {(activeSubTab === "courses-simplified" || activeSubTab === "simplified-academics" || activeSubTab === "overview" || activeSubTab === "course-dashboard") && (
                 marksData ? (
-                  <AcademicsHub
-                    setActiveSubTab={setActiveSubTab}
-                    data={allGradesData}
+                  <CourseDashboard
                     marksData={marksData}
-                    gradesData={GradesData}
-                    attendance={attendanceData.attendance}
-                    hideMobileHeader={settings.hideMobileHeader}
-                    handleFetchGrades={handleAllGradesFetch}
+                    allGradesData={allGradesData}
+                    pastSemesterData={pastSemesterData}
+                    attendanceData={attendanceData}
+                    loginToVTOP={loginToVTOP}
+                    setActiveSubTab={setActiveSubTab}
+                    calendars={calendarData?.calendars}
+                    decimalValues={settings.decimalValues}
+                    isDayscholarWithBus={settings.isDayscholarWithBus}
+                    targetCourseCode={courseDashboardTarget?.courseCode}
+                    targetTab={courseDashboardTarget?.targetTab}
+                    onClearTarget={() => setCourseDashboardTarget(null)}
                   />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "course-dashboard" && (
-                marksData ? (
-                  <CourseDashboard marksData={marksData} allGradesData={allGradesData} pastSemesterData={pastSemesterData} attendanceData={attendanceData} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} calendars={calendarData?.calendars} decimalValues={settings.decimalValues} isDayscholarWithBus={settings.isDayscholarWithBus} />
                 ) : (
                   <div className="space-y-4 p-4">
                     <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
@@ -815,6 +938,7 @@ export default function DashboardContent({
                   <div className="space-y-4 p-4">
                     <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
+                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
               )}
@@ -825,59 +949,27 @@ export default function DashboardContent({
                   <div className="space-y-4 p-4">
                     <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "predictor" && (
-                marksData ? (
-                  <GPAPredictorTab marksData={marksData} attendance={attendanceData.attendance} setActiveSubTab={setActiveSubTab} />
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
               )}
-              {activeSubTab === "qbank" && (
-                marksData ? (
-                  <div className="animate-fadeIn">
-                    <QBankSubTabs activeSubTab={activeQBankSubTab} setActiveSubTab={setActiveQBankSubTab} />
-                    {activeQBankSubTab === "archive" && (
-                      <PapersArchiveTab allGradesData={allGradesData} marksData={marksData} username={IDs.VtopUsername} setActiveSubTab={setActiveSubTab} />
-                    )}
-                    {activeQBankSubTab === "pure" && (
-                      <PureQBankTab allGradesData={allGradesData} marksData={marksData} setActiveSubTab={setActiveSubTab} />
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4 p-4">
-                    <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
-                    <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
-                  </div>
-                )
-              )}
-              {activeSubTab === "arrear" && (
-                <ArrearTab key={`arrear-${resetKey}`} loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} allGradesData={allGradesData} />
-              )}
-              {activeSubTab === "makeup-compre" && (
-                <MakeupCompreTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "course-mgmt" && (
-                <CourseMgmtTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "projects" && (
-                <ProjectsTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "wishlist" && (
-                <WishlistTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
-              {activeSubTab === "free-class" && (
-                <FreeClassroomsTab setActiveSubTab={setActiveSubTab} />
-              )}
+            </div>
+          )}
 
-              {activeSubTab === "faculty-info" && (
-                <FacultyInfoTab loginToVTOP={loginToVTOP} setActiveSubTab={setActiveSubTab} />
-              )}
+          {activeTab === "tools" && (
+            <div className="animate-fadeIn">
+              <ToolsTab
+                marksData={marksData}
+                allGradesData={allGradesData}
+                attendanceData={attendanceData}
+                loginToVTOP={loginToVTOP}
+                IDs={IDs}
+                activeToolsSubTab={activeToolsSubTab}
+                setActiveToolsSubTab={setActiveToolsSubTab}
+                activeQBankSubTab={activeQBankSubTab}
+                setActiveQBankSubTab={setActiveQBankSubTab}
+                setActiveTab={setActiveTab}
+              />
             </div>
           )}
 
