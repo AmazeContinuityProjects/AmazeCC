@@ -546,7 +546,9 @@ export default function MobileHome({
           <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">OD Approved</span>
           <p className="text-xl font-black text-zinc-900 dark:text-white leading-none mt-1">
-            {totalODHours} hrs
+            {totalODHours || (ODhoursData && ODhoursData.length > 0 && ODhoursData[0].courses
+              ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
+              : 0)} hrs
           </p>
           <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none font-outfit">On-Duty History</span>
         </button>
