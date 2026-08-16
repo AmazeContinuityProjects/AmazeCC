@@ -821,11 +821,11 @@ export default function SimplifiedMobileHome({
       {/* ── STATS: SPACIOUS, MINIMAL SIDE-BY-SIDE CARDS ── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         
-        {/* CARD 1: PINNED HERO ATTENDANCE (SPACIOUS & CLEAN) */}
+        {/* CARD 1: PINNED HERO ATTENDANCE (NAVIGATES TO PREDICTOR) */}
         <div
           onClick={() => {
             setActiveTab("attendance");
-            setActiveAttendanceSubTab("attendance");
+            setActiveAttendanceSubTab("predictor");
           }}
           className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-32 sm:h-36 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group relative overflow-hidden"
         >
@@ -1028,27 +1028,7 @@ export default function SimplifiedMobileHome({
           </div>
         </div>
 
-        {/* Quick Shortcut Buttons: Timetable & Predictor */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowTimetableModal(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <CalendarIcon className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Full Timetable</span>
-          </button>
 
-          <button
-            onClick={() => {
-              setActiveTab("attendance");
-              setActiveAttendanceSubTab("predictor");
-            }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <CalendarCheck className="w-3.5 h-3.5 text-blue-500" />
-            <span>Predictor</span>
-          </button>
-        </div>
 
         {/* ── INTEGRATED CALENDAR WEEK ROW (DATES + DAYS + EXAMS + HOLIDAYS) ── */}
         <div className="grid grid-cols-7 gap-1.5 p-1.5 rounded-2xl bg-zinc-100/90 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/70 shadow-2xs">
@@ -1583,6 +1563,17 @@ export default function SimplifiedMobileHome({
             })}
           </div>
         )}
+
+        {/* ── FULL TIMETABLE BUTTON (PLACED CLEANLY AFTER ALL CLASSES) ── */}
+        <div className="pt-2">
+          <button
+            onClick={() => setShowTimetableModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <CalendarIcon className="w-4 h-4 text-indigo-500" />
+            <span>View Full Weekly Timetable</span>
+          </button>
+        </div>
       </div>
 
       {/* Full Timetable Modal */}

@@ -218,7 +218,17 @@ export async function fetchBulkEndpoints(
     if (settings.syncCourseCompletion !== false) bulkEndpoints.push("course-completion");
   }
   if (settings.syncProfileData !== false) {
-    bulkEndpoints.push("credentials", "registration-schedule", "dayboarder", "bank-info", "library-due", "hostel-counselling");
+    bulkEndpoints.push(
+      "credentials",
+      "registration-schedule",
+      "dayboarder",
+      "bank-info",
+      "library-due",
+      "hostel-counselling",
+      "payments",
+      "payment-receipts",
+      "wallet"
+    );
   }
 
   await Promise.allSettled(
@@ -228,6 +238,9 @@ export async function fetchBulkEndpoints(
         .then(data => {
           if (data.success !== false) {
             storage.cache.set(path, data);
+            if (path === "payments") localStorage.setItem("payments_dues", JSON.stringify(data));
+            if (path === "payment-receipts") localStorage.setItem("payments_receipts", JSON.stringify(data));
+            if (path === "wallet") localStorage.setItem("payments_wallet", JSON.stringify(data));
           }
         })
         .catch(() => {})

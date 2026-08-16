@@ -891,16 +891,18 @@ export default function NavigationTabs({
   const renderMobileNav = () => {
     return (
       <>
-        {/* Sleek Floating Pill Bottom Navigation Bar */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-55 bg-white/80 dark:bg-zinc-950/85 border border-zinc-200/50 dark:border-zinc-800/80 rounded-[26px] p-1 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+        {/* Sleek Floating Pill Bottom Navigation Bar (Icon-Only on Mobile) */}
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-55 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[26px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
               <motion.button
                 key={item.id}
                 onClick={item.onClick}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center justify-center flex-1 py-1.5 relative select-none cursor-pointer group focus:outline-none"
+                whileTap={{ scale: 0.92 }}
+                aria-label={item.label}
+                title={item.label}
+                className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none"
               >
                 {/* Floating pill background highlight that fades and scales in on active */}
                 {isActive && (
@@ -908,18 +910,17 @@ export default function NavigationTabs({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute inset-0.5 rounded-[20px] bg-info-surface/90 dark:bg-info/10 z-0"
+                    className="absolute inset-1 rounded-[18px] bg-info-surface/90 dark:bg-info/10 z-0"
                     transition={{ duration: 0.15, ease: "easeOut" }}
                   />
                 )}
 
-                {/* Relative container to raise icon and text above active highlight */}
-                <div className="relative z-10 flex flex-col items-center justify-center">
-                  {/* Icon with scale effect on active */}
+                {/* Relative container for icon with subtle scale effect on active */}
+                <div className="relative z-10 flex items-center justify-center">
                   <motion.div 
-                    animate={isActive ? { scale: 1.12, y: -2 } : { scale: 1, y: 0 }}
+                    animate={isActive ? { scale: 1.15 } : { scale: 1 }}
                     transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
-                    className={`p-1 transition-colors duration-300 ${
+                    className={`p-1.5 transition-colors duration-200 ${
                       isActive 
                         ? "text-info" 
                         : "text-zinc-400 dark:text-zinc-555 hover:text-zinc-655 dark:hover:text-zinc-300"
@@ -927,15 +928,6 @@ export default function NavigationTabs({
                   >
                     {item.icon}
                   </motion.div>
-
-                  {/* Tab Title */}
-                  <span className={`text-[9.5px] font-black tracking-wide transition-colors duration-300 ${
-                    isActive 
-                      ? "text-info font-black" 
-                      : "text-zinc-400 dark:text-zinc-555"
-                  }`}>
-                    {item.label}
-                  </span>
                 </div>
               </motion.button>
             );

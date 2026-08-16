@@ -756,15 +756,66 @@ export default function SimplifiedAcademicsPage({
         )}
       </div>
 
-      {/* ── PREVIOUS SEMESTERS SEPARATE PAGE PILL (AT BOTTOM) ── */}
-      {pastSemesters.length > 0 && (
-        <div className="pt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
+      {/* ── ACADEMIC EXPLORER NAVIGATION CARDS (CURRICULUM & GRADE HISTORY) ── */}
+      <div className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Degree Curriculum Card */}
           <button
-            onClick={() => setShowPastSemestersView(true)}
-            className="w-full p-3.5 sm:p-4 rounded-[22px] sm:rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+            onClick={() => setActiveSubTab?.("curriculum")}
+            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
+                  Degree Curriculum
+                </p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                  Program credits, baskets & distribution
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
+              <span>Curriculum</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+
+          {/* Grade History Card */}
+          <button
+            onClick={() => setActiveSubTab?.("grades")}
+            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-purple-500/40 dark:hover:border-purple-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate">
+                  Grade History
+                </p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                  Cumulative GPA & past semesters
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-black text-purple-600 dark:text-purple-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
+              <span>Grades</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+        </div>
+
+        {/* ── PREVIOUS SEMESTERS SEPARATE PAGE PILL ── */}
+        {pastSemesters.length > 0 && (
+          <button
+            onClick={() => setShowPastSemestersView(true)}
+            className="w-full p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <History className="w-5 h-5" />
               </div>
               <div className="min-w-0">
@@ -777,13 +828,13 @@ export default function SimplifiedAcademicsPage({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
+            <div className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
               <span>View History</span>
               <ChevronRight className="w-4 h-4" />
             </div>
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
