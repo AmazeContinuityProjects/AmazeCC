@@ -28,6 +28,7 @@ import {
   removeFriendGroup, 
   exportShareableLink, 
   importScheduleCode, 
+  pullSocialFromCloud,
   Friend, 
   FriendGroup, 
   FriendClassSlot 
@@ -72,13 +73,22 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const loadData = () => {
+  const loadData = async () => {
     if (isDemo) {
       loadDemoData();
       return;
     }
-    setFriends(getFriends());
-    setGroups(getFriendGroups());
+    setFriends(getFriends(studentReg));
+    setGroups(getFriendGroups(studentReg));
+
+    // Pull friends & groups saved on other devices for this student
+    const cloudData = await pullSocialFromCloud(studentReg);
+    if (cloudData && Array.isArray(cloudData.friends)) {
+      setFriends(cloudData.friends);
+      if (Array.isArray(cloudData.groups)) {
+        setGroups(cloudData.groups);
+      }
+    }
   };
 
   const loadDemoData = () => {

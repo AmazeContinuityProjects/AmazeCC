@@ -443,9 +443,97 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
   }
 }
 
-export function getFriends(): Friend[] {
+export function getActiveUserRegNumber(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const profile = localStorage.getItem("profile");
+    if (profile) {
+      const parsed = JSON.parse(profile);
+      if (parsed?.regNumber) return parsed.regNumber;
+    }
+    const attendance = localStorage.getItem("attendance");
+    if (attendance) {
+      const parsed = JSON.parse(attendance);
+      if (parsed?.studentInfo?.regNumber) return parsed.studentInfo.regNumber;
+    }
+  } catch (e) {}
+  return "";
+}
+
+export async function syncSocialToCloud(regNumber?: string) {
+  if (typeof window === "undefined") return;
+  const userReg = regNumber || getActiveUserRegNumber();
+  if (!userReg) return;
+
+  const friends = getFriends(userReg);
+  const groups = getFriendGroups(userReg);
+
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.amazecc.com";
+    await fetch(`${API_BASE}/api/social/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        regNumber: userReg,
+        friends,
+        groups,
+        updatedAt: new Date().toISOString()
+      }),
+    });
+  } catch (e) {
+    // Offline mode
+  }
+}
+
+export async function pullSocialFromCloud(regNumber?: string): Promise<{ friends: Friend[]; groups: FriendGroup[] } | null> {
+  if (typeof window === "undefined") return null;
+  const userReg = regNumber || getActiveUserRegNumber();
+  if (!userReg) return null;
+
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.amazecc.com";
+    const res = await fetch(`${API_BASE}/api/social/sync?regNumber=${userReg}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.friends)) {
+        const localFriends = getFriends(userReg);
+        const mergedFriendsMap = new Map<string, Friend>();
+        
+        localFriends.forEach(f => mergedFriendsMap.set(f.id, f));
+        data.friends.forEach((f: Friend) => mergedFriendsMap.set(f.id, f));
+        
+        const mergedFriends = Array.from(mergedFriendsMap.values());
+        const key = userReg ? `friends_schedules_${userReg}` : "friends_schedules";
+        localStorage.setItem(key, JSON.stringify(mergedFriends));
+        localStorage.setItem("friends_schedules", JSON.stringify(mergedFriends));
+
+        let mergedGroups = getFriendGroups(userReg);
+        if (Array.isArray(data.groups)) {
+          const localGroups = getFriendGroups(userReg);
+          const mergedGroupsMap = new Map<string, FriendGroup>();
+          localGroups.forEach(g => mergedGroupsMap.set(g.id, g));
+          data.groups.forEach((g: FriendGroup) => mergedGroupsMap.set(g.id, g));
+          mergedGroups = Array.from(mergedGroupsMap.values());
+          const groupKey = userReg ? `friends_groups_${userReg}` : "friends_groups";
+          localStorage.setItem(groupKey, JSON.stringify(mergedGroups));
+          localStorage.setItem("friends_groups", JSON.stringify(mergedGroups));
+        }
+
+        return { friends: mergedFriends, groups: mergedGroups };
+      }
+    }
+  } catch (e) {
+    // Offline mode
+  }
+
+  return null;
+}
+
+export function getFriends(userReg?: string): Friend[] {
   if (typeof window === "undefined") return [];
-  const data = localStorage.getItem("friends_schedules");
+  const reg = userReg || getActiveUserRegNumber();
+  const key = reg ? `friends_schedules_${reg}` : "friends_schedules";
+  const data = localStorage.getItem(key) || localStorage.getItem("friends_schedules");
   if (!data) return [];
   try {
     return JSON.parse(data);
@@ -454,26 +542,38 @@ export function getFriends(): Friend[] {
   }
 }
 
-export function saveFriend(friend: Friend) {
-  const friends = getFriends();
+export function saveFriend(friend: Friend, userReg?: string) {
+  const reg = userReg || getActiveUserRegNumber();
+  const friends = getFriends(reg);
   const index = friends.findIndex((f) => f.id === friend.id);
   if (index >= 0) {
     friends[index] = friend;
   } else {
     friends.push(friend);
   }
+  const key = reg ? `friends_schedules_${reg}` : "friends_schedules";
+  localStorage.setItem(key, JSON.stringify(friends));
   localStorage.setItem("friends_schedules", JSON.stringify(friends));
+
+  syncSocialToCloud(reg);
 }
 
-export function removeFriend(id: string) {
-  const friends = getFriends();
+export function removeFriend(id: string, userReg?: string) {
+  const reg = userReg || getActiveUserRegNumber();
+  const friends = getFriends(reg);
   const filtered = friends.filter((f) => f.id !== id);
+  const key = reg ? `friends_schedules_${reg}` : "friends_schedules";
+  localStorage.setItem(key, JSON.stringify(filtered));
   localStorage.setItem("friends_schedules", JSON.stringify(filtered));
+
+  syncSocialToCloud(reg);
 }
 
-export function getFriendGroups(): FriendGroup[] {
+export function getFriendGroups(userReg?: string): FriendGroup[] {
   if (typeof window === "undefined") return [];
-  const data = localStorage.getItem("friends_groups");
+  const reg = userReg || getActiveUserRegNumber();
+  const key = reg ? `friends_groups_${reg}` : "friends_groups";
+  const data = localStorage.getItem(key) || localStorage.getItem("friends_groups");
   if (!data) return [];
   try {
     return JSON.parse(data);
@@ -482,19 +582,29 @@ export function getFriendGroups(): FriendGroup[] {
   }
 }
 
-export function saveFriendGroup(group: FriendGroup) {
-  const groups = getFriendGroups();
+export function saveFriendGroup(group: FriendGroup, userReg?: string) {
+  const reg = userReg || getActiveUserRegNumber();
+  const groups = getFriendGroups(reg);
   const index = groups.findIndex((g) => g.id === group.id);
   if (index >= 0) {
     groups[index] = group;
   } else {
     groups.push(group);
   }
+  const key = reg ? `friends_groups_${reg}` : "friends_groups";
+  localStorage.setItem(key, JSON.stringify(groups));
   localStorage.setItem("friends_groups", JSON.stringify(groups));
+
+  syncSocialToCloud(reg);
 }
 
-export function removeFriendGroup(id: string) {
-  const groups = getFriendGroups();
+export function removeFriendGroup(id: string, userReg?: string) {
+  const reg = userReg || getActiveUserRegNumber();
+  const groups = getFriendGroups(reg);
   const filtered = groups.filter((g) => g.id !== id);
+  const key = reg ? `friends_groups_${reg}` : "friends_groups";
+  localStorage.setItem(key, JSON.stringify(filtered));
   localStorage.setItem("friends_groups", JSON.stringify(filtered));
+
+  syncSocialToCloud(reg);
 }
