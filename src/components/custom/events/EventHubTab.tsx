@@ -10,6 +10,7 @@ import EventHubSubpage from "./EventHubSubpage";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
+import TabHelpFooter from "../shared/TabHelpFooter";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
@@ -460,6 +461,9 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
           ))}
         </div>
       )}
+
+      {/* Tab Help Footer */}
+      <TabHelpFooter tabId="events" />
 
     </motion.div>
   );

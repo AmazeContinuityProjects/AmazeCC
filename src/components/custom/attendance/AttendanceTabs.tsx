@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import Modal from "../shared/Modal";
 import PageHeader from "../shared/PageHeader";
+import TabHelpFooter from "../shared/TabHelpFooter";
 import { useIsMobile } from "../shared";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 
@@ -506,6 +507,9 @@ export default function AttendanceTabs({ data, activeDay, setActiveDay, calendar
           )}
         </div>
       </div>
+
+      {/* Tab Help Footer */}
+      <TabHelpFooter tabId="attendance" />
 
       {showPredictor && (
         <Modal onClose={() => setShowPredictor(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
