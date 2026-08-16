@@ -41,6 +41,10 @@ import { API_BASE } from "@/lib/fetch-utils";
 interface MobileHomeProps {
   attendanceData: any;
   marksData: any;
+  scheduleData?: any;
+  handleScheduleFetch?: () => void;
+  ODhoursData?: any;
+  setODhoursIsOpen?: (val: boolean) => void;
   hostelData: any;
   registeredEvents: any[];
   moodleData: any[];
@@ -68,6 +72,7 @@ const DEFAULT_WIDGETS: WidgetItem[] = [
   { id: "insights", title: "Quick Insights Dock", enabled: true },
   { id: "attendance", title: "Attendance Summary Card", enabled: true },
   { id: "classes", title: "Today's Classes", enabled: true },
+  { id: "exam_schedule", title: "Upcoming Exam Schedule", enabled: true },
   { id: "attendance_courses", title: "Course Attendance Detail", enabled: true },
   { id: "academic_courses", title: "Current Semester Courses", enabled: true },
   { id: "critical", title: "Critical Attendance Alert", enabled: true },
@@ -86,6 +91,10 @@ const DEFAULT_WIDGETS: WidgetItem[] = [
 export default function MobileHome({
   attendanceData,
   marksData,
+  scheduleData,
+  handleScheduleFetch,
+  ODhoursData,
+  setODhoursIsOpen,
   hostelData,
   registeredEvents,
   moodleData,
@@ -274,6 +283,28 @@ export default function MobileHome({
 
     return { current, next };
   }, [todayClasses]);
+
+  // Approved OD hours total calculation
+  const totalODHours = useMemo(() => {
+    if (Array.isArray(ODhoursData) && ODhoursData.length > 0) {
+      return ODhoursData.reduce((sum: number, day: any) => sum + (Number(day.total) || 0), 0);
+    }
+    if (attendanceData?.attendance && Array.isArray(attendanceData.attendance)) {
+      let total = 0;
+      attendanceData.attendance.forEach((course: any) => {
+        if (Array.isArray(course.viewLink)) {
+          course.viewLink.forEach((day: any) => {
+            if (day.status === "On Duty") {
+              const hours = (course.slotName || "").startsWith("L") ? 2 : 1;
+              total += hours;
+            }
+          });
+        }
+      });
+      return total;
+    }
+    return 0;
+  }, [ODhoursData, attendanceData]);
 
   // Overall attendance calculations
   const overallAttendance = useMemo(() => {
@@ -478,14 +509,24 @@ export default function MobileHome({
         </div>
 
         {/* OD Hours Card */}
-        <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
+        <button
+          onClick={() => {
+            if (setODhoursIsOpen) {
+              setODhoursIsOpen(true);
+            } else {
+              setActiveTab("attendance");
+              setActiveAttendanceSubTab("attendance");
+            }
+          }}
+          className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+        >
           <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">OD Approved</span>
           <p className="text-xl font-black text-zinc-900 dark:text-white leading-none mt-1">
-            {attendanceData?.odHoursTotal ? attendanceData.odHoursTotal : "0"} hrs
+            {totalODHours} hrs
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none">On-Duty History</span>
-        </div>
+          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none font-outfit">On-Duty History</span>
+        </button>
       </div>
     );
   };
@@ -1206,6 +1247,216 @@ export default function MobileHome({
     );
   };
 
+  const renderExamScheduleWidget = () => {
+    const scheduleObj = scheduleData?.Schedule || scheduleData?.schedule;
+
+    const allExams = useMemo(() => {
+      if (!scheduleObj || typeof scheduleObj !== "object") return [];
+      const list: any[] = [];
+      Object.entries(scheduleObj).forEach(([examType, subjects]: [string, any]) => {
+        if (Array.isArray(subjects)) {
+          subjects.forEach((subj) => {
+            list.push({ ...subj, examType });
+          });
+        }
+      });
+
+      const parseDate = (dStr: string) => {
+        if (!dStr) return null;
+        const parts = dStr.split(/[-/]/);
+        if (parts.length === 3) {
+          let [d, m, y] = parts;
+          const dayNum = parseInt(d, 10);
+          if (isNaN(dayNum)) return null;
+          const yearNum = parseInt(y, 10);
+          if (isNaN(parseInt(m, 10))) {
+            const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+            const mIndex = monthNames.findIndex((x) => m.toLowerCase().startsWith(x));
+            if (mIndex === -1) return null;
+            return new Date(yearNum, mIndex, dayNum);
+          } else {
+            return new Date(yearNum, parseInt(m, 10) - 1, dayNum);
+          }
+        }
+        return new Date(dStr);
+      };
+
+      return list
+        .map((exam) => ({ ...exam, parsedDate: parseDate(exam.examDate) }))
+        .sort((a, b) => {
+          if (!a.parsedDate && !b.parsedDate) return 0;
+          if (!a.parsedDate) return 1;
+          if (!b.parsedDate) return -1;
+          return a.parsedDate.getTime() - b.parsedDate.getTime();
+        });
+    }, [scheduleObj]);
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    const todayExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() === todayDate.getTime());
+    const upcomingExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() >= todayDate.getTime());
+    const nextExam = upcomingExams.length > 0 ? upcomingExams[0] : null;
+
+    const calculateDaysLeft = (targetDate: Date) => {
+      const diffTime = targetDate.getTime() - todayDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Tomorrow";
+      return `In ${diffDays} days`;
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            <span>Exam Schedule</span>
+          </h2>
+          <button 
+            onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+          >
+            Full Schedule
+          </button>
+        </div>
+
+        {allExams.length === 0 ? (
+          <div className="p-5 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-500 shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No exam schedule loaded</h4>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Fetch your CAT & FAT timetables from VTOP</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                if (handleScheduleFetch) {
+                  handleScheduleFetch();
+                } else {
+                  setActiveTab("academics");
+                  setActiveSubTab("schedule");
+                }
+              }}
+              className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-xl transition-all shrink-0 cursor-pointer uppercase tracking-wider shadow-2xs"
+            >
+              Fetch Schedule
+            </button>
+          </div>
+        ) : todayExams.length > 0 ? (
+          <div className="space-y-2.5">
+            <div className="p-4.5 rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm border border-emerald-600/30 relative overflow-hidden text-left">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full pointer-events-none" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 rounded-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                Exam Today!
+              </span>
+              {todayExams.map((exam, idx) => (
+                <div key={idx} className={idx > 0 ? "mt-4 pt-4 border-t border-white/20" : "mt-2"}>
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-extrabold text-base leading-tight">
+                      {exam.courseCode} — {exam.courseTitle}
+                    </h4>
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded bg-black/20 text-white uppercase shrink-0">
+                      {exam.examType}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-white/90 font-semibold">
+                    <div>
+                      <p className="text-[9px] text-white/70 uppercase">Exam Time</p>
+                      <p className="font-bold">{exam.examTime || exam.reportingTime}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-white/70 uppercase">Venue & Seat</p>
+                      <p className="font-bold">{exam.venue || "TBA"} • #{exam.seatNo || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : nextExam ? (
+          <div className="space-y-3">
+            {/* Spotlight next upcoming exam */}
+            <div 
+              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+              className="p-4.5 rounded-[24px] bg-gradient-to-br from-blue-50/70 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200/60 dark:border-blue-900/40 text-left cursor-pointer hover:border-blue-400 dark:hover:border-blue-700 transition-all relative overflow-hidden shadow-2xs"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-blue-600/10 text-blue-700 dark:text-blue-400 rounded-md border border-blue-600/20 font-outfit">
+                  Next Exam • {nextExam.parsedDate ? calculateDaysLeft(nextExam.parsedDate) : nextExam.examDate}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  {nextExam.examType}
+                </span>
+              </div>
+
+              <h4 className="font-black text-sm text-zinc-900 dark:text-white font-outfit truncate">
+                {nextExam.courseCode} — {nextExam.courseTitle}
+              </h4>
+
+              <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-blue-100 dark:border-blue-900/30 text-xs">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Date & Time</p>
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.examDate}</p>
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">{nextExam.examTime}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Venue & Seat</p>
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">{nextExam.venue || "TBA"}</p>
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">Seat #{nextExam.seatNo || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* List of remaining upcoming exams */}
+            {upcomingExams.length > 1 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                {upcomingExams.slice(1, 3).map((exam, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+                    className="p-3 rounded-[18px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 transition-all cursor-pointer flex items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 shrink-0">
+                          {exam.examType}
+                        </span>
+                        <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">{exam.courseCode}</p>
+                      </div>
+                      <p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-semibold truncate mt-0.5">{exam.courseTitle}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{exam.examDate}</span>
+                      <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold">{exam.venue}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No upcoming exams</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">All scheduled exams for this term are completed</p>
+            </div>
+            <button 
+              onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
+              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+            >
+              View History
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderWidget = (id: string) => {
     switch (id) {
       case "cabshare":
@@ -1226,6 +1477,8 @@ export default function MobileHome({
         return renderCriticalAlerts();
       case "classes":
         return renderTodayClasses();
+      case "exam_schedule":
+        return renderExamScheduleWidget();
       case "actions":
         return renderQuickActions();
       case "laundry":

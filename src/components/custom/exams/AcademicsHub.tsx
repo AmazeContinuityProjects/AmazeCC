@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff } from "lucide-react";
+import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff, Calendar } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
 import GradesModal from "./GradesModal";
@@ -18,6 +18,14 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       color: "text-white",
       bg: "bg-gradient-to-br from-indigo-500 to-purple-650 dark:from-indigo-600 dark:to-purple-750",
       prominent: true,
+    },
+    {
+      id: "schedule",
+      title: "Exam Schedule",
+      description: "View CAT, FAT & lab exam timetables, venues and seat numbers.",
+      icon: Calendar,
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/5 border-blue-100/50 dark:border-blue-900/30",
     },
     {
       id: "grades",
@@ -209,6 +217,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
 
   const toolSummaries: Record<string, string[]> = {
     "course-dashboard": [`${uniqueCurrentCourses.size || currentCourses.length} Courses`, `Avg attendance ${avgAttendance || "-"}%`, `${belowTargetCount} below target`],
+    schedule: ["CAT & FAT timetables", "Seating & venue info", "Export ICS calendar"],
     grades: [`${totalCourses} Courses`, `${passRate}% pass rate`, `Latest GPA ${Number(recentGpa || 0).toFixed(2)}`],
     curriculum: [`${creditsEarned.toFixed(1)} Credits`, `${degreeCompletePercent.toFixed(0)}% complete`, `${Math.max(requiredCredits - creditsEarned, 0).toFixed(1)} remaining`],
     predictor: [savedGoal ? `${savedGoal.target.toFixed(2)} target` : "No saved target", `${currentCgpa.toFixed(2)} current`, "Live calculator"],
