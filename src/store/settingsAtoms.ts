@@ -19,6 +19,7 @@ export type Settings = {
     surface: string;
   };
   hideMobileHeader?: boolean;
+  hideHomeSearchBar?: boolean;
   reloadAllData?: boolean;
   isSidebarCollapsed?: boolean;
   residentialStatus?: "hosteller" | "dayscholar";
@@ -83,6 +84,7 @@ export const defaultSettings: Settings = {
     surface: "#ffffff",
   },
   hideMobileHeader: false,
+  hideHomeSearchBar: false,
   reloadAllData: false,
   isSidebarCollapsed: false,
   residentialStatus: "hosteller",

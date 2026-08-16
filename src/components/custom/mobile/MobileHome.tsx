@@ -1591,6 +1591,30 @@ export default function MobileHome({
                     <span className="truncate">{w.title}</span>
                   </button>
                 ))}
+
+                <button
+                  onClick={() => {
+                    const nextVal = !settings?.hideHomeSearchBar;
+                    setSettings((prev: any) => {
+                      const next = { ...prev, hideHomeSearchBar: nextVal };
+                      localStorage.setItem("settings", JSON.stringify(next));
+                      return next;
+                    });
+                  }}
+                  className={`col-span-2 flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    !settings?.hideHomeSearchBar 
+                      ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-850/50 text-indigo-700 dark:text-indigo-400"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {!settings?.hideHomeSearchBar ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    <span>Home Page Search Bar</span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase">
+                    {!settings?.hideHomeSearchBar ? "Shown" : "Hidden"}
+                  </span>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -1598,15 +1622,17 @@ export default function MobileHome({
       </AnimatePresence>
 
       {/* ── QUICK SPOTLIGHT SEARCH ── */}
-      <button 
-        onClick={onOpenCommandPalette}
-        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl cursor-pointer"
-      >
-        <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
-        <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">Search anything... (Spotlight)</span>
-        <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
-      </button>
+      {!settings?.hideHomeSearchBar && (
+        <button 
+          onClick={onOpenCommandPalette}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl cursor-pointer"
+        >
+          <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
+          <span className="text-sm font-bold flex-1 text-gray-400 dark:text-gray-550">Search anything... (Spotlight)</span>
+          <span className="text-[10px] font-black bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-lg">⌘K</span>
+        </button>
+      )}
 
       {/* ── DYNAMIC DASHBOARD WIDGETS ── */}
       <div className="space-y-6">

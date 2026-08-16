@@ -1255,6 +1255,7 @@ export default function LoginPage() {
     toggle("Dayscholar Bus Mode", "isDayscholarWithBus", "Settings", "🚌");
     toggle("Show Profile Photo on Dashboard", "showProfilePhoto", "Settings", "👤");
     toggle("Grades Anonymizer Mode", "blurGrades", "Settings", "🕵️");
+    toggle("Hide Home Page Search Bar", "hideHomeSearchBar", "Settings", "🔍");
 
     [
       { id: "light", label: "Light", icon: "☀️" },
