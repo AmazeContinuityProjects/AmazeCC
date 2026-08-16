@@ -30,9 +30,10 @@ import {
   RotateCcw,
   Shirt,
   Maximize2,
-  Minimize2
+  Minimize2,
+  GripVertical
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
@@ -1694,38 +1695,47 @@ export default function MobileHome({
                 </button>
               </div>
 
-              {/* Clean Widget List */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Drag & Drop Reorderable Widget List */}
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-1 font-outfit">
+                <GripVertical className="w-3.5 h-3.5" />
+                <span>Drag handle to reorder • Tap eye to toggle</span>
+              </p>
+
+              <Reorder.Group axis="y" values={widgets} onReorder={setWidgets} className="space-y-2">
                 {widgets.map((w, index) => {
                   const isFull = w.span === "full";
                   return (
-                    <div
+                    <Reorder.Item
                       key={w.id}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                      value={w}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-grab active:cursor-grabbing select-none ${
                         w.enabled
                           ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-zinc-800 dark:text-zinc-200"
                           : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-850/50 text-zinc-400 dark:text-zinc-600"
                       }`}
                     >
-                      <button
-                        onClick={() => toggleWidget(w.id)}
-                        className="flex items-center gap-2 min-w-0 flex-1 pr-2 text-left cursor-pointer"
-                      >
-                        {w.enabled ? (
-                          <Eye className="w-4 h-4 text-indigo-500 shrink-0" />
-                        ) : (
-                          <EyeOff className="w-4 h-4 text-zinc-400 shrink-0 opacity-60" />
-                        )}
-                        <span className={`truncate text-xs ${w.enabled ? "font-bold" : "font-normal opacity-70"}`}>
-                          {w.title}
-                        </span>
-                      </button>
+                      <div className="flex items-center gap-2 min-w-0 flex-1 pr-2 text-left">
+                        <GripVertical className="w-4 h-4 text-zinc-400 dark:text-zinc-500 shrink-0 cursor-grab active:cursor-grabbing" />
+                        <button
+                          onClick={() => toggleWidget(w.id)}
+                          className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+                        >
+                          {w.enabled ? (
+                            <Eye className="w-4 h-4 text-indigo-500 shrink-0" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-zinc-400 shrink-0 opacity-60" />
+                          )}
+                          <span className={`truncate text-xs ${w.enabled ? "font-bold" : "font-normal opacity-70"}`}>
+                            {w.title}
+                          </span>
+                        </button>
+                      </div>
 
                       {w.enabled && (
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Size Pill */}
                           <button
-                            onClick={() => toggleWidgetSpan(w.id)}
+                            onClick={(e) => { e.stopPropagation(); toggleWidgetSpan(w.id); }}
                             className="px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black text-indigo-600 dark:text-indigo-400 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                             title="Toggle width between 1-Column and Full Width"
                           >
@@ -1733,7 +1743,7 @@ export default function MobileHome({
                           </button>
                           {/* Reorder Up/Down */}
                           <button
-                            onClick={() => moveWidget(w.id, "up")}
+                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "up"); }}
                             disabled={index === 0}
                             className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Up"
@@ -1741,7 +1751,7 @@ export default function MobileHome({
                             <ArrowUp className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => moveWidget(w.id, "down")}
+                            onClick={(e) => { e.stopPropagation(); moveWidget(w.id, "down"); }}
                             disabled={index === widgets.length - 1}
                             className="p-1 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-500 cursor-pointer"
                             title="Move Down"
@@ -1750,11 +1760,13 @@ export default function MobileHome({
                           </button>
                         </div>
                       )}
-                    </div>
+                    </Reorder.Item>
                   );
                 })}
+              </Reorder.Group>
 
-                {/* Home Search Bar Toggle */}
+              {/* Home Search Bar Toggle */}
+              <div className="pt-2 border-t border-zinc-150 dark:border-zinc-800">
                 <button
                   onClick={() => {
                     const nextVal = !settings?.hideHomeSearchBar;
@@ -1764,7 +1776,7 @@ export default function MobileHome({
                       return next;
                     });
                   }}
-                  className={`sm:col-span-2 flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                     !settings?.hideHomeSearchBar 
                       ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-indigo-700 dark:text-indigo-400"
                       : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500"
@@ -1822,6 +1834,7 @@ export default function MobileHome({
                   {showCustomizer && (
                     <div className="flex items-center justify-between px-4 py-2 bg-indigo-50/90 dark:bg-indigo-950/90 rounded-t-[20px] border border-indigo-200/80 dark:border-indigo-850 border-b-0 text-[11px] font-bold text-indigo-900 dark:text-indigo-200">
                       <span className="flex items-center gap-1.5 font-outfit font-extrabold uppercase tracking-wider">
+                        <GripVertical className="w-3.5 h-3.5 text-indigo-400 cursor-grab" />
                         <Sliders className="w-3.5 h-3.5 text-indigo-500" />
                         <span>{w.title}</span>
                       </span>
