@@ -1190,12 +1190,13 @@ export default function MobileHome({
             All Settings
           </button>
         </div>
-        <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3">
+        <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/50">
           
-          <div className="flex items-center justify-between text-xs">
+          {/* Hide CGPA */}
+          <div className="flex items-center justify-between text-xs pt-0">
             <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur GPA display on dashboard</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA Everywhere</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur CGPA display on dashboard & header</p>
             </div>
             <Switch
               checked={settings?.CGPAHidden ?? false}
@@ -1209,13 +1210,32 @@ export default function MobileHome({
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs">
+          {/* Grades Anonymizer */}
+          <div className="flex items-center justify-between text-xs pt-3">
             <div>
-              <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
-              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in greeting</p>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur course marks & letter grades</p>
             </div>
             <Switch
-              checked={settings?.showProfilePhoto ?? false}
+              checked={settings?.blurGrades ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, blurGrades: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Show Profile Photo */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
+              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in dashboard greeting</p>
+            </div>
+            <Switch
+              checked={settings?.showProfilePhoto ?? true}
               onCheckedChange={(val) => {
                 setSettings((prev: any) => {
                   const next = { ...prev, showProfilePhoto: val };
@@ -1225,6 +1245,97 @@ export default function MobileHome({
               }}
             />
           </div>
+
+          {/* Home Page Search Bar */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Home Page Search Bar</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Display Spotlight search bar on home tab</p>
+            </div>
+            <Switch
+              checked={!(settings?.hideHomeSearchBar ?? false)}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, hideHomeSearchBar: !val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Decimal Attendance Values */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Decimal Attendance Values</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show 2 decimal places (e.g. 84.62%)</p>
+            </div>
+            <Switch
+              checked={settings?.decimalValues ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, decimalValues: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Dayscholar Bus Mode */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Dayscholar Bus Mode</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show bus route & boarding point widgets</p>
+            </div>
+            <Switch
+              checked={settings?.isDayscholarWithBus ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, isDayscholarWithBus: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Reload All Data */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Reload All API Categories</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Refresh button syncs all categories</p>
+            </div>
+            <Switch
+              checked={settings?.reloadAllData ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, reloadAllData: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          {/* Smart Mess Filter */}
+          <div className="flex items-center justify-between text-xs pt-3">
+            <div>
+              <p className="font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Filter</p>
+              <p className="text-[10px] text-zinc-450 dark:text-zinc-550 font-medium">Auto-filter mess menu items for current week</p>
+            </div>
+            <Switch
+              checked={settings?.smartMessFilter ?? false}
+              onCheckedChange={(val) => {
+                setSettings((prev: any) => {
+                  const next = { ...prev, smartMessFilter: val };
+                  localStorage.setItem("settings", JSON.stringify(next));
+                  return next;
+                });
+              }}
+            />
+          </div>
+
         </div>
       </div>
     );
