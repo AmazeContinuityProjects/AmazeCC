@@ -371,7 +371,7 @@ export default function LoginPage() {
       } catch (e) {}
       setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
     }
-    setTimeout(() => setIsLoading(false), 300);
+    setTimeout(() => setIsLoading(false), 2400);
   }, []);
 
   const loginToVTOP = async (retry = false, forceNew = false) => {
