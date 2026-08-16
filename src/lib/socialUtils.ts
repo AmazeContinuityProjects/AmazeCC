@@ -116,6 +116,41 @@ export function exportScheduleCode(
   return `v5|${name}|${regNumber}|${coursesString}|${assignmentsString}`;
 }
 
+// Shorten raw code using compressed base64url representation
+export function compressScheduleCode(code: string): string {
+  if (!code) return "";
+  try {
+    const bytes = new TextEncoder().encode(code);
+    let binary = "";
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    return btoa(binary)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+  } catch (e) {
+    return code;
+  }
+}
+
+export function decompressScheduleCode(compressed: string): string {
+  if (!compressed) return "";
+  if (compressed.startsWith("v5|") || compressed.startsWith("v6|")) return compressed;
+  try {
+    let b64 = compressed.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4 !== 0) {
+      b64 += "=";
+    }
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch (e) {
+    return compressed;
+  }
+}
+
 export function exportShareableLink(
   attendance: any[],
   name: string,
@@ -124,12 +159,12 @@ export function exportShareableLink(
 ): string {
   const code = exportScheduleCode(attendance, name, regNumber, expiryMinutes);
   if (!code) return "";
-  const encoded = encodeURIComponent(code);
+  const shortHash = compressScheduleCode(code);
   if (typeof window !== "undefined") {
     const origin = window.location.origin + window.location.pathname;
-    return `${origin}#share=${encoded}`;
+    return `${origin}#s=${shortHash}`;
   }
-  return `https://amazecc.app/#share=${encoded}`;
+  return `https://amazecc.app/#s=${shortHash}`;
 }
 
 export function importScheduleCode(rawData: string, nickname?: string): Friend {
@@ -139,10 +174,16 @@ export function importScheduleCode(rawData: string, nickname?: string): Friend {
     }
 
     let qrData = rawData.trim();
-    if (qrData.includes("#share=")) {
+    if (qrData.includes("#s=")) {
+      qrData = decompressScheduleCode(qrData.split("#s=")[1].split("&")[0]);
+    } else if (qrData.includes("s=")) {
+      qrData = decompressScheduleCode(qrData.split("s=")[1].split("&")[0]);
+    } else if (qrData.includes("#share=")) {
       qrData = decodeURIComponent(qrData.split("#share=")[1].split("&")[0]);
     } else if (qrData.includes("share=")) {
       qrData = decodeURIComponent(qrData.split("share=")[1].split("&")[0]);
+    } else {
+      qrData = decompressScheduleCode(qrData);
     }
 
     let name = "";
