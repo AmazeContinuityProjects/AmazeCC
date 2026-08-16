@@ -39,6 +39,7 @@ import FriendTimetableModal from "./FriendTimetableModal";
 import CommonFreeSlotsModal from "./CommonFreeSlotsModal";
 import CommonFreeSlotsGrid from "./CommonFreeSlotsGrid";
 import AddGroupModal from "./AddGroupModal";
+import TabHelpFooter from "../shared/TabHelpFooter";
 
 export default function SocialTab({ attendanceData, isDemo }: { attendanceData: any; isDemo?: boolean }) {
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -732,6 +733,9 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
           )}
         </div>
       )}
+
+      {/* Tab Help Footer */}
+      <TabHelpFooter tabId="social" />
 
       {/* Modals */}
       {isShareModalOpen && (

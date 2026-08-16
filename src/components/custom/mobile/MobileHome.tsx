@@ -37,6 +37,7 @@ import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
+import TabHelpFooter from "../shared/TabHelpFooter";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { API_BASE } from "@/lib/fetch-utils";
@@ -1881,6 +1882,9 @@ export default function MobileHome({
           })()}
         </AnimatePresence>
       </div>
+
+      {/* Tab Help & Guide Footer */}
+      <TabHelpFooter tabId="home" />
 
     </div>
   );

@@ -9,6 +9,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { Button } from "@amazecontinuityprojects/amazeui";
+import TabHelpFooter from "../shared/TabHelpFooter";
 
 interface HostelOverviewProps {
   hostelData: any;
@@ -308,8 +309,10 @@ export default function HostelOverview({ hostelData, setHostelActiveSubTab }: Ho
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* Tab Help Footer */}
+      <TabHelpFooter tabId="hostel" />
     </div>
   );
 }
