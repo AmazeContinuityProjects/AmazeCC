@@ -20,7 +20,6 @@ import {
   ChevronRight,
   Plane,
   Bus,
-  Car,
   Bookmark,
   FolderOpen,
   Eye,
@@ -36,7 +35,6 @@ import {
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
-import CabShareMatchCard from "../hostel/CabShare/CabShareMatchCard";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
@@ -88,9 +86,6 @@ const DEFAULT_WIDGETS: WidgetItem[] = [
   { id: "classrooms", title: "Free Classrooms Finder", enabled: true, span: "half" },
   { id: "events", title: "Registered Events", enabled: true, span: "half" },
   { id: "quick_settings", title: "Quick Settings Panel", enabled: true, span: "half" },
-  { id: "cabshare", title: "Cab Share Promo", enabled: false, span: "full" },
-  { id: "cabshare_match", title: "Cab Share Matches", enabled: false, span: "full" },
-  { id: "dayscholar_guide", title: "Day Scholar Helper", enabled: false, span: "full" },
 ];
 
 export default function MobileHome({
@@ -118,7 +113,6 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
-  const [globalPromoteCab, setGlobalPromoteCab] = useState(false);
   
   // Customizable Widgets State
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -164,18 +158,6 @@ export default function MobileHome({
       })
     );
   };
-
-  // Load global cab share settings
-  useEffect(() => {
-    fetch(`${API_BASE}/api/settings/global`)
-      .then(r => r.json())
-      .then(data => {
-        if (data?.success && data.config?.promoteCabShare?.enabled === true) {
-          setGlobalPromoteCab(true);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Sync profile info
   useEffect(() => {
@@ -440,62 +422,6 @@ export default function MobileHome({
     .toUpperCase();
 
   // ── WIDGETS RENDER METHODS ──
-
-  const renderCabSharePromo = () => {
-    return (
-      <button
-        onClick={() => { setActiveTab("cabshare"); window.scrollTo(0, 0); }}
-        className="w-full flex items-center gap-4 px-5 py-4 rounded-[24px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm active:scale-[0.98] transition-all duration-150 text-left"
-      >
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-          <Car className="w-6 h-6" />
-        </div>
-        <div className="flex-1">
-          <p className="text-xs font-black uppercase tracking-wider text-amber-100">Use CAB Share</p>
-          <p className="text-sm font-bold mt-0.5">Share a cab with students heading the same way</p>
-        </div>
-        <ChevronRight className="w-5 h-5 shrink-0 text-white/80" />
-      </button>
-    );
-  };
-
-  const renderCabShareMatch = () => (
-    <CabShareMatchCard />
-  );
-
-  const renderDayScholarWidget = () => {
-    const isDayscholar = settings?.residentialStatus === "dayscholar" || cachedProfile?.residentialStatus === "dayscholar" || hostelData?.hostelInfo?.isHosteller === false;
-    if (!isDayscholar) return null;
-
-    return (
-      <div className="p-5 rounded-[24px] bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/10 dark:to-purple-950/5 border border-indigo-100/50 dark:border-indigo-900/30 text-left relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full pointer-events-none" />
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider bg-indigo-550/10 border border-indigo-500/25 text-indigo-700 dark:text-indigo-400 rounded-md">
-          Day Scholar Mode
-        </span>
-        <h4 className="font-extrabold text-sm text-zinc-900 dark:text-white mt-2 leading-tight font-outfit">
-          Find Study Spots & Bus Routes
-        </h4>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 max-w-md">
-          Use the Free Classrooms finder to locate an empty room between classes, or view active bus schedules.
-        </p>
-        <div className="flex gap-2 mt-4">
-          <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("free-class"); }}
-            className="flex items-center gap-1 text-[10px] font-black text-white bg-indigo-650 hover:bg-indigo-700 px-3.5 py-2 rounded-xl transition-all cursor-pointer uppercase tracking-wider shadow-2xs"
-          >
-            Find Classrooms
-          </button>
-          <button 
-            onClick={() => { setActiveTab("dayscholar"); }}
-            className="flex items-center gap-1 text-[10px] font-black text-indigo-650 dark:text-indigo-400 bg-white/80 dark:bg-zinc-900/60 border border-indigo-100/50 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl hover:bg-white dark:hover:bg-zinc-900 transition-all cursor-pointer uppercase tracking-wider shadow-2xs"
-          >
-            Bus Routes
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   const renderInsightsDock = () => {
     return (
@@ -1578,12 +1504,6 @@ export default function MobileHome({
 
   const renderWidget = (id: string) => {
     switch (id) {
-      case "cabshare":
-        return renderCabSharePromo();
-      case "cabshare_match":
-        return renderCabShareMatch();
-      case "dayscholar_guide":
-        return renderDayScholarWidget();
       case "insights":
         return renderInsightsDock();
       case "attendance":

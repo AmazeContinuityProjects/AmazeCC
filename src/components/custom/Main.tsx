@@ -1163,8 +1163,7 @@ export default function LoginPage() {
       { id: "acad-grades", label: "Grade History", description: "All semester grades & CGPA", icon: "🎓", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("grades"); } },
       { id: "acad-course-dashboard", label: "Course Dashboard", description: "Detailed per-course view", icon: "📘", category: "Academics", onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); } },
       { id: "acad-circulars", label: "Academic Circulars", description: "View academic circulars & notices", icon: "📢", category: "Academics", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
-      { id: "attendance-view", label: "Attendance Today", description: "Today's attendance overview", icon: "📋", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
-      { id: "attendance-calendar", label: "Calendar View", description: "Academic calendar & events", icon: "📅", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
+      { id: "attendance-calendar", label: "Calendar View", description: "Academic calendar & timetable events", icon: "📅", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
       { id: "attendance-circulars", label: "Attendance Circulars", description: "Circulars related to attendance", icon: "📢", category: "Attendance", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("circulars"); } },
       { id: "profile-info", label: "Profile Info", description: "View profile information", icon: "👤", category: "Profile", onSelect: () => { setActiveTab("profile"); } },
       { id: "profile-settings", label: "Profile Settings", description: "App settings & preferences", icon: "⚙️", category: "Profile", onSelect: () => { setActiveTab("profile"); } },
@@ -1368,7 +1367,7 @@ export default function LoginPage() {
           category: `Courses · Attendance`,
           rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${percColor}`}>{percStr}%</span>,
           detail: attDetail(course),
-          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
         });
 
         // "Miss N classes" what-if commands (1 through max 5 or canMiss+2)
@@ -1384,7 +1383,7 @@ export default function LoginPage() {
             icon: "🟡",
             category: `What-If · Attendance`,
             rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${newColor}`}>{newPercStr}%</span>,
-            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
           });
         }
 
@@ -1398,7 +1397,7 @@ export default function LoginPage() {
             icon: "📈",
             category: `What-If · Attendance`,
             rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-green-600 dark:text-green-400 bg-green-50  dark:bg-green-900/20">🎯 75%</span>,
-            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+            onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
           });
         }
       });
@@ -1418,7 +1417,7 @@ export default function LoginPage() {
         icon: "📊",
         category: `Courses · Attendance`,
         rightSlot: <span className={`inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold ${overallColor}`}>{overallPerc}%</span>,
-        onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+        onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
       });
       below75.forEach((c, i) => {
         const a = c.attendedClasses || 0; const t = c.totalClasses || 0; const p = t > 0 ? ((a / t) * 100).toFixed(1) : "N/A";
@@ -1429,7 +1428,7 @@ export default function LoginPage() {
           icon: "🔴",
           category: "Courses Below 75%",
           rightSlot: <span className="inline-flex items-center justify-center min-w-[3.25rem] h-9 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50  dark:bg-red-900/20">{p}%</span>,
-          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }
+          onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("calendar"); }
         });
       });
     }

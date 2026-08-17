@@ -405,7 +405,7 @@ export default function NavigationTabs({
               } else {
                 selectTab(tabId);
                 if (tabId === "attendance") {
-                  setActiveAttendanceSubTab("attendance");
+                  setActiveAttendanceSubTab("calendar");
                 }
               }
             },
@@ -466,20 +466,10 @@ export default function NavigationTabs({
       onSelect: () => selectTab("home"),
     },
     {
-      id: "attendance",
-      label: "Attendance",
-      icon: CalendarCheck,
-      isActive: activeTab === "attendance" && activeAttendanceSubTab === "attendance",
-      onSelect: () => {
-        selectTab("attendance");
-        setActiveAttendanceSubTab("attendance");
-      },
-    },
-    {
       id: "calendar",
       label: "Timetable Calendar",
       icon: Calendar,
-      isActive: activeTab === "attendance" && activeAttendanceSubTab === "calendar",
+      isActive: activeTab === "attendance",
       onSelect: () => {
         selectTab("attendance");
         setActiveAttendanceSubTab("calendar");
@@ -497,7 +487,7 @@ export default function NavigationTabs({
         setShowAcademicsPanel(true);
       },
     },
-  ], [activeTab, activeAttendanceSubTab, activeSubTab, selectTab, setActiveAttendanceSubTab, setActiveSubTab]);
+  ], [activeTab, activeSubTab, selectTab, setActiveAttendanceSubTab, setActiveSubTab]);
 
   const campusItems = useMemo<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -1630,7 +1620,6 @@ const AppLibraryPortal = memo(({
 
   // Memoized variables inside the portal to isolate changes
   const allSearchableItems = useMemo(() => [
-    { label: "Attendance", group: "Study", icon: CalendarCheck, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
     { label: "Timetable Calendar", group: "Study", icon: Calendar, action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
     
     { label: "My Courses & Marks", group: "Academics", icon: Sparkles, action: () => { selectTab("academics"); setActiveSubTab("courses-simplified"); } },
@@ -1668,7 +1657,6 @@ const AppLibraryPortal = memo(({
     {
       name: "Study",
       items: [
-        { label: "Attendance", icon: CalendarCheck, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("attendance"); } },
         { label: "Timetable Calendar", icon: Calendar, type: "link", action: () => { selectTab("attendance"); setActiveAttendanceSubTab("calendar"); } },
         { label: "Academics", icon: GraduationCap, type: "panel", action: () => setMobilePanel("academics") }
       ]
@@ -2004,7 +1992,7 @@ const AppLibraryPortal = memo(({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {[
-            { id: "attendance", label: "Attendance" },
+            { id: "attendance", label: "Timetable Calendar" },
             { id: "academics", label: "Academics" },
             { id: "payments", label: "Payments" },
             { id: "libraries", label: "Libraries" },
