@@ -11,13 +11,13 @@
 
 ```bash
 # Unit tests
-npm run test              # Run once
-npm run test:watch        # Watch mode
-npm run test:coverage     # Coverage report
+pnpm test              # Run once
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # Coverage report
 
 # E2E tests (if configured)
-npm run test:e2e
-npm run test:e2e:ui
+pnpm test:e2e
+pnpm test:e2e:ui
 ```
 
 ## Test Structure
@@ -262,8 +262,8 @@ describe('GET /api/attendance', () => {
 
 ### Setup
 ```bash
-npm install -D @playwright/test
-npx playwright install
+pnpm add -D @playwright/test
+pnpm exec playwright install
 ```
 
 ### Test Example
@@ -407,13 +407,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'pnpm'
       
-      - run: npm ci
-      - run: npm run test:coverage
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:coverage
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3

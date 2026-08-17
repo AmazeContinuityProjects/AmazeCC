@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Node.js**: 18.17.0 or later
-- **npm**: 9.0.0 or later (comes with Node.js)
+- **pnpm**: 9.0.0 or later
 - **Git**: For version control
 - **VS Code** (recommended): With TypeScript, ESLint, Prettier extensions
 
@@ -17,7 +17,7 @@ cd AmazeCC
 
 ### 2. Install Dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Environment Setup
@@ -44,7 +44,7 @@ SUPABASE_SERVICE_ROLE_KEY=xxx
 
 ### 4. Run Development Server
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open http://localhost:3001 in your browser.
@@ -71,18 +71,18 @@ AmazeCC/
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start dev server with HTTPS (port 3001) |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run test` | Run Vitest tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Generate coverage report |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Fix ESLint errors |
-| `npm run typecheck` | Run TypeScript compiler check |
-| `npm run api-dev` | Start API in dev mode |
-| `npm run api-build` | Build API |
-| `npm run api-start` | Start API production |
+| `pnpm dev` | Start dev server with HTTPS (port 3001) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm test` | Run Vitest tests |
+| `pnpm test:watch` | Run tests in watch mode |
+| `pnpm test:coverage` | Generate coverage report |
+| `pnpm lint` | Run ESLint |
+| `pnpm lint:fix` | Fix ESLint errors |
+| `pnpm typecheck` | Run TypeScript compiler check |
+| `pnpm api-dev` | Start API in dev mode |
+| `pnpm api-build` | Build API |
+| `pnpm api-start` | Start API production |
 
 ## Development Workflow
 
@@ -98,9 +98,9 @@ git checkout -b feat/your-feature-name
 
 ### 3. Run Checks
 ```bash
-npm run lint
-npm run typecheck
-npm run test
+pnpm lint
+pnpm typecheck
+pnpm test
 ```
 
 ### 4. Commit Changes
@@ -161,13 +161,13 @@ lsof -ti:3001 | xargs kill -9
 ### Module Resolution Errors
 ```bash
 # Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 ### TypeScript Errors After Pull
 ```bash
-npm run typecheck
+pnpm typecheck
 # Fix any new type errors
 ```
 

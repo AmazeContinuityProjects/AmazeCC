@@ -123,15 +123,15 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 ### Prerequisites
 
 - Node.js 18+
-- npm
+- pnpm
 
 ### Frontend
 
 ```bash
 git clone https://github.com/AmazeContinuityProjects/AmazeCC.git
 cd AmazeCC
-npm install
-npm run dev          # → http://localhost:3001
+pnpm install
+pnpm dev          # → http://localhost:3001
 ```
 
 ### Backend (Self-Hosted)
@@ -147,8 +147,8 @@ B2_ACCESS_KEY_ID=     SMTP_USER=
 B2_SECRET_ACCESS_KEY= SMTP_HOST=
 B2_REGION=
 
-npm run api-build
-npm run api-start
+pnpm run api-build
+pnpm run api-start
 ```
 
 Override the API URL via `NEXT_PUBLIC_API_URL` env var or in `src/components/custom/Main.tsx`:
@@ -160,14 +160,14 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Next.js dev server (:3001, HTTPS) |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run test` | Run Vitest tests |
-| `npm run lint` | Run ESLint |
-| `npm run api-dev` | Start backend in dev mode |
-| `npm run api-build` | Build backend |
-| `npm run api-start` | Start backend production |
+| `pnpm dev` | Start Next.js dev server (:3001, HTTPS) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm test` | Run Vitest tests |
+| `pnpm lint` | Run ESLint |
+| `pnpm api-dev` | Start backend in dev mode |
+| `pnpm api-build` | Build backend |
+| `pnpm api-start` | Start backend production |
 
 ---
 
