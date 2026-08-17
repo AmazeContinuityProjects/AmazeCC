@@ -1002,16 +1002,6 @@ export default function SimplifiedMobileHome({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Deep link button: Free Classrooms */}
-            <button
-              onClick={handleOpenFreeClassrooms}
-              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-850 px-2.5 py-1.5 rounded-xl cursor-pointer transition-all shadow-2xs active:scale-95"
-              title="Find Free Classrooms on Campus"
-            >
-              <DoorOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Free Classrooms</span>
-            </button>
-
             {/* Deep link button: Open Full Academic Calendar Page */}
             <button
               onClick={() => {
