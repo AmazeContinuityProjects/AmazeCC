@@ -386,8 +386,8 @@ function calculatePercentage(attended: number, total: number): number {
 
 ### ESLint
 ```bash
-npm run lint          # Check
-npm run lint:fix      # Auto-fix
+pnpm lint          # Check
+pnpm lint:fix      # Auto-fix
 ```
 
 ### Prettier
@@ -396,7 +396,7 @@ npm run lint:fix      # Auto-fix
 
 ### TypeScript
 ```bash
-npm run typecheck     # tsc --noEmit
+pnpm typecheck     # tsc --noEmit
 ```
 
 ## Performance

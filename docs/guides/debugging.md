@@ -7,7 +7,7 @@
 #### TypeScript Errors
 ```bash
 # Run type check
-npm run typecheck
+pnpm typecheck
 
 # Common fixes:
 # - Add missing type definitions
@@ -19,7 +19,7 @@ npm run typecheck
 ```bash
 # Clear caches
 rm -rf .next node_modules/.cache
-npm run build
+pnpm build
 ```
 
 ### 2. Runtime Errors
@@ -122,7 +122,7 @@ async headers() {
 @source "../src/**/*.{js,ts,jsx,tsx}";
 
 # Rebuild
-npm run dev
+pnpm dev
 ```
 
 #### Dark Mode Not Working
@@ -161,7 +161,7 @@ SELECT * FROM users WHERE id = auth.uid();
 #### Slow Page Loads
 ```bash
 # Analyze bundle
-ANALYZE=true npm run build
+ANALYZE=true pnpm build
 
 # Check for:
 # - Large dependencies (use bundle analyzer)
@@ -197,7 +197,7 @@ console.log(`API took ${Date.now() - start}ms`)
       "name": "Next.js: Debug Full Stack",
       "type": "node-terminal",
       "request": "launch",
-      "command": "npm run dev"
+      "command": "pnpm dev"
     },
     {
       "name": "Next.js: Debug Server",
@@ -362,7 +362,7 @@ export const clientLogger = {
 ```bash
 # Clear all caches
 rm -rf .next node_modules/.cache
-npm run dev
+pnpm dev
 
 # Reset database (dev only)
 psql $DATABASE_URL -f reset.sql
@@ -371,16 +371,16 @@ psql $DATABASE_URL -f reset.sql
 tail -f logs/combined.log
 
 # Check TypeScript errors
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 
 # Lint specific file
-npx eslint src/components/custom/Main.tsx
+pnpm exec eslint src/components/custom/Main.tsx
 
 # Test specific file
-npx vitest run src/lib/utils.test.ts
+pnpm exec vitest run src/lib/utils.test.ts
 
 # Build with analysis
-ANALYZE=true npm run build
+ANALYZE=true pnpm build
 ```
 
 ## Getting Help

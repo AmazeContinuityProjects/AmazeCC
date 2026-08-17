@@ -3,14 +3,15 @@
   "version": "3.1.0",
   "private": true,
   "license": "GPL-3.0-only",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "test": "vitest run",
     "predev": "node scripts/generate-build-info.js",
     "dev": "next dev --webpack --experimental-https -p 3001",
     "prebuild": "node scripts/generate-build-info.js",
     "build": "next build --webpack",
-    "start": "npx serve@latest out -p 3001 -s",
-    "serve": "npx serve@latest out -p 3001 -s",
+    "start": "pnpm dlx serve@latest out -p 3001 -s",
+    "serve": "pnpm dlx serve@latest out -p 3001 -s",
     "lint": "eslint",
     "api-dev": "nodemon backend/src/server.ts",
     "api-build": "tsc -p backend/tsconfig.json",
@@ -102,10 +103,15 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   },
-  "allowScripts": {
-    "canvas@3.2.0": true,
-    "core-js@3.49.0": true,
-    "sharp@0.34.5": true,
-    "unrs-resolver@1.11.1": true
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "canvas",
+      "core-js",
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "workerd"
+    ]
   }
 }

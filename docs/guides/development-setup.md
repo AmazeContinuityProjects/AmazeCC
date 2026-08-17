@@ -159,7 +159,7 @@ docker-compose logs -f app
       "name": "Next.js: Debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "npm run dev"
+      "command": "pnpm dev"
     },
     {
       "name": "Next.js: Debug Tests",
@@ -198,15 +198,15 @@ export const logger = createLogger({
 
 ### Unit Tests (Vitest)
 ```bash
-npm run test           # Run once
-npm run test:watch     # Watch mode
-npm run test:coverage  # Coverage report
+pnpm test           # Run once
+pnpm test:watch     # Watch mode
+pnpm test:coverage  # Coverage report
 ```
 
 ### E2E Tests (Playwright - if configured)
 ```bash
-npm run test:e2e
-npm run test:e2e:ui
+pnpm test:e2e
+pnpm test:e2e:ui
 ```
 
 ### Test Database
@@ -220,7 +220,7 @@ DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres_tes
 
 ### Next.js Bundle Analyzer
 ```bash
-ANALYZE=true npm run build
+ANALYZE=true pnpm build
 # Opens browser with bundle analysis
 ```
 
@@ -265,9 +265,9 @@ SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 20;
 ### "Cannot find module" Errors
 ```bash
 # Clear TypeScript cache
-npx tsc --build --clean
+pnpm exec tsc --build --clean
 # Rebuild
-npm run build
+pnpm build
 ```
 
 ### Hydration Mismatches
