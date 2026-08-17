@@ -4,9 +4,9 @@
 
 ### 1. Checklist
 - [ ] Code follows [Style Guide](./style-guide.md)
-- [ ] All tests pass (`npm run test`)
-- [ ] TypeScript compiles (`npm run typecheck`)
-- [ ] ESLint passes (`npm run lint`)
+- [ ] All tests pass (`pnpm test`)
+- [ ] TypeScript compiles (`pnpm typecheck`)
+- [ ] ESLint passes (`pnpm lint`)
 - [ ] No `console.log` or `debugger` statements
 - [ ] Documentation updated if needed
 - [ ] Commits follow [Conventional Commits](#commit-messages)
@@ -96,7 +96,7 @@ Fixes #456
 |---------|--------|
 | "Please add tests" | Add unit/integration tests |
 | "Update documentation" | Update relevant docs |
-| "Follow style guide" | Run `npm run lint:fix` |
+| "Follow style guide" | Run `pnpm lint:fix` |
 | "TypeScript error" | Fix type issues |
 | "Breaking change" | Add migration guide |
 
@@ -157,7 +157,7 @@ git push origin --delete feat/your-feature-name  # If not auto-deleted
 4. Backport if needed
 
 ### Dependencies
-1. Update `package.json` and `package-lock.json`
+1. Update `package.json` and `pnpm-lock.yaml`
 2. Test thoroughly
 3. Check for breaking changes in deps
 4. Update lockfile
@@ -165,10 +165,10 @@ git push origin --delete feat/your-feature-name  # If not auto-deleted
 ## CI/CD Checks
 
 All PRs must pass:
-- [ ] Lint (`npm run lint`)
-- [ ] TypeCheck (`npm run typecheck`)
-- [ ] Tests (`npm run test`)
-- [ ] Build (`npm run build`)
+- [ ] Lint (`pnpm lint`)
+- [ ] TypeCheck (`pnpm typecheck`)
+- [ ] Tests (`pnpm test`)
+- [ ] Build (`pnpm build`)
 
 ## Getting Help
 

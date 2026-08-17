@@ -1137,18 +1137,18 @@ type settings = {
 
 **AmazeCC:**
 ```bash
-npm run dev          # Next.js dev server on :3001 (HTTPS)
-npm run build        # Production build (webpack)
-npm run start        # Start production server on :3001
-npm run test         # Vitest run
-npm run lint         # ESLint
+pnpm dev          # Next.js dev server on :3001 (HTTPS)
+pnpm build        # Production build (webpack)
+pnpm start        # Start production server on :3001
+pnpm test         # Vitest run
+pnpm lint         # ESLint
 ```
 
 **AmazeCC-API:**
 ```bash
-npm run dev          # Next.js dev server on :3000
-npm run build        # Production build
-npm start            # Start production server on :3000
+pnpm run dev          # Next.js dev server on :3000
+pnpm run build        # Production build
+pnpm start            # Start production server on :3000
 ```
 
 ### 21.2 Database Migrations

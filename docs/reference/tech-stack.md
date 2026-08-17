@@ -141,11 +141,8 @@ node --version
 
 ### Package Manager
 ```bash
-# npm (comes with Node.js)
-npm --version
-
-# Or pnpm (faster, disk efficient)
-corepack enable pnpm
+# pnpm
+pnpm --version
 ```
 
 ## Update Strategy
@@ -153,28 +150,28 @@ corepack enable pnpm
 ### Dependencies
 ```bash
 # Check outdated
-npm outdated
+pnpm outdated
 
 # Update patch/minor
-npm update
+pnpm update
 
 # Update major (careful)
-npm install package@latest
+pnpm add package@latest
 ```
 
 ### Next.js
 ```bash
 # Check for updates
-npx @next/codemod@latest upgrade
+pnpm dlx @next/codemod@latest upgrade
 ```
 
 ### Security
 ```bash
 # Audit
-npm audit
+pnpm audit
 
 # Fix
-npm audit fix
+pnpm audit --fix
 ```
 
 ## Related Documentation

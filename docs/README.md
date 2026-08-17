@@ -50,7 +50,7 @@ docs/
 ├── reference/                  # Reference materials
 │   ├── tech-stack.md           # Technology stack details
 │   ├── project-structure.md    # Project directory structure
-│   ├── scripts.md              # Available npm scripts
+│   ├── scripts.md              # Available pnpm scripts
 │   ├── environment-variables.md # All env vars reference
 │   ├── dependencies.md         # Key dependencies
 │   └── glossary.md             # Project glossary
