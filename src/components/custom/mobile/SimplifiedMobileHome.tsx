@@ -150,6 +150,17 @@ export default function SimplifiedMobileHome({
     setActiveSubTab?.("free-class");
   };
 
+  const handleCourseClick = (courseCode: string) => {
+    if (!courseCode) return;
+    const cleanCode = String(courseCode).replace(/\([LPT]\)$/i, "").trim();
+    try {
+      localStorage.setItem("course_dashboard_target", cleanCode);
+      localStorage.setItem("course_dashboard_tab", "overview");
+    } catch {}
+    setActiveTab("academics");
+    setActiveSubTab("course-dashboard");
+  };
+
   // Carousel slide index for the dynamic secondary stat card
   const [activeSlide, setActiveSlide] = useState(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
@@ -1326,10 +1337,7 @@ export default function SimplifiedMobileHome({
                 return (
                   <div
                     key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                    onClick={() => {
-                      setActiveTab("attendance");
-                      setActiveAttendanceSubTab("attendance");
-                    }}
+                    onClick={() => handleCourseClick(cls.courseCode)}
                     className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${
                       isLive
                         ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
@@ -1441,10 +1449,7 @@ export default function SimplifiedMobileHome({
               return (
                 <div
                   key={`${cls.courseCode}-${cls.slotName}-${index}`}
-                  onClick={() => {
-                    setActiveTab("attendance");
-                    setActiveAttendanceSubTab("attendance");
-                  }}
+                  onClick={() => handleCourseClick(cls.courseCode)}
                   className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${
                     isLive
                       ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
