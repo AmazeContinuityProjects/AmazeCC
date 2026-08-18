@@ -13,7 +13,6 @@ export default function HostelSubTabs({
         { id: "mess", label: "Mess Menu" },
         { id: "laundry", label: "Laundry" },
         { id: "leave", label: "Leave" },
-        { id: "counselling", label: "Counselling" },
       ]}
       activeTab={HostelActiveSubTab}
       onChange={setHostelActiveSubTab}

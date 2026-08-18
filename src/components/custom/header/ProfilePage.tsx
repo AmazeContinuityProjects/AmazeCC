@@ -3,6 +3,7 @@
 import { API_BASE } from "../Main";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { setCustomApiUrl } from "@/lib/fetch-utils";
+import { mapCredData, mapProfile } from "@/lib/identity-map";
 import {
   X,
   Save,
@@ -501,13 +502,15 @@ export default function ProfilePage({
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/credentials`, {
+      const res = await fetch(`${API_BASE}/api/me`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
       });
       const fresh = await res.json();
-      setCredData(fresh);
+      if (fresh?.identity) {
+        setCredData(mapCredData(fresh.identity));
+      }
     } catch (e) {
       console.error("Refresh failed", e);
     } finally {
@@ -562,15 +565,15 @@ export default function ProfilePage({
       }
     }
 
-    fetch(`${API_BASE}/api/credentials`, {
+    fetch(`${API_BASE}/api/me`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cookies, authorizedID, csrf }),
     })
       .then((r) => r.json())
       .then((res) => {
-        if (res?.credentials || res?.ranks || res?.tables) {
-          setCredData(res);
+        if (res?.identity) {
+          setCredData(mapCredData(res.identity));
         }
       })
       .catch((e) => console.error("Credentials fetch error:", e))
@@ -645,7 +648,7 @@ export default function ProfilePage({
     if (!creds || !creds.cookies) return;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/student`, {
+        const res = await fetch(`${API_BASE}/api/me`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -655,9 +658,10 @@ export default function ProfilePage({
           }),
         });
         const data = await res.json();
-        if (data?.profile) {
-          setProfileData(data.profile);
-          localStorage.setItem("profile", JSON.stringify(data.profile));
+        if (data?.identity) {
+          const profile = mapProfile(data.identity);
+          setProfileData(profile);
+          localStorage.setItem("profile", JSON.stringify(profile));
         }
       } catch (e) {
         console.error("Failed to fetch profile", e);
@@ -2288,7 +2292,7 @@ export default function ProfilePage({
       )}
       {activeModal === "bank" && creds && (
         <Modal isOpen onClose={closeModal} title="Bank Information" maxWidth="max-w-md">
-          <BankDayStatusModal endpoint="bank-info" title="Bank Info" creds={creds} />
+          <BankDayStatusModal source="me" title="Bank Info" creds={creds} />
         </Modal>
       )}
       {activeModal === "day" && creds && (
@@ -2735,10 +2739,12 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
 
 function BankDayStatusModal({
   endpoint,
+  source,
   title,
   creds,
 }: {
-  endpoint: string;
+  endpoint?: string;
+  source?: "me" | "endpoint";
   title: string;
   creds: any;
 }) {
@@ -2748,22 +2754,32 @@ function BankDayStatusModal({
   useEffect(() => {
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/${endpoint}`, {
+    const path = source === "me" ? "me" : endpoint;
+    fetch(`${API_BASE}/api/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cookies, authorizedID, csrf }),
     })
       .then((r) => r.json())
-      .then(setData)
+      .then((res) => {
+        if (source === "me") setData(res?.identity?.bank ?? null);
+        else setData(res);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [creds, endpoint]);
+  }, [creds, endpoint, source]);
 
   if (loading) return <Skeleton className="h-24 w-full rounded-2xl" />;
 
   const hasContent =
-    data?.tables?.length > 0 ||
-    (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
+    source === "me"
+      ? !!data &&
+        (data.name ||
+          data.branch ||
+          data.address ||
+          (Array.isArray(data.fields) && data.fields.length > 0))
+      : data?.tables?.length > 0 ||
+        (data?.keyValuePairs && Object.keys(data.keyValuePairs).length > 0);
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-xl">

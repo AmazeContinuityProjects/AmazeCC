@@ -14,7 +14,6 @@ import CalendarView from "./attendance/CalendarView";
 import { useState, useEffect, useRef, useCallback } from "react";
 import LeaveDisplay from "./hostel/LeaveDisplay";
 import HostelOverview from "./hostel/HostelOverview";
-import HostelCounsellingView from "./hostel/HostelCounsellingView";
 import CabShareTab from "./hostel/CabShare/CabShareTab";
 import CabShareMatchCard from "./hostel/CabShare/CabShareMatchCard";
 import BusFinder from "./dayscholar/BusFinder";
@@ -232,7 +231,6 @@ export default function DashboardContent({
   const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
 
-  const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
   const [courseDashboardTarget, setCourseDashboardTarget] = useState<{ courseCode: string; targetTab?: string } | null>(null);
 
@@ -991,21 +989,6 @@ export default function DashboardContent({
               )}
               {HostelActiveSubTab === "payment" && (
                 <PaymentsTab loginToVTOP={loginToVTOP} />
-              )}
-              {HostelActiveSubTab === "counselling" && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hostel Counselling</h2>
-                    <button
-                      onClick={() => { setHostelCounsellingRefreshKey(k => k + 1); }}
-                      className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors"
-                      title="Reload"
-                    >
-                      <RefreshCcw className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <HostelCounsellingView loginToVTOP={loginToVTOP} refreshKey={hostelCounsellingRefreshKey} />
-                </div>
               )}
             </div>
           )}

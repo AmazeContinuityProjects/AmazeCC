@@ -74,22 +74,12 @@ export default function ProfileStatusCards({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
       }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/bank-info`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
       fetch(`${API_BASE}/api/dayboarder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
       }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/credentials`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/apaarid`, {
+      fetch(`${API_BASE}/api/me`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
@@ -97,15 +87,16 @@ export default function ProfileStatusCards({
         .then((r) => r.json())
         .catch(() => ({ success: false })),
     ])
-      .then(([eptRes, regRes, bankRes, dayRes, credRes, apaarRes]) => {
+      .then(([eptRes, regRes, dayRes, meRes]) => {
         setEpt(eptRes);
         setReg(regRes);
-        setBank(bankRes);
         setDay(dayRes);
-        setApaar(apaarRes);
-        const rankVal = credRes?.ranks?.[0]?.rank;
+        const identity = meRes?.identity || {};
+        setBank(identity.bank ?? null);
+        setApaar(identity.apaar ?? null);
+        const rankVal = identity.ranks?.[0]?.rank;
         if (rankVal) setRank(String(rankVal));
-        localStorage.setItem("cache_apaarid", JSON.stringify(apaarRes));
+        localStorage.setItem("cache_apaarid", JSON.stringify(identity.apaar || { hasApaar: false }));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -114,15 +105,22 @@ export default function ProfileStatusCards({
   const hasEpt = ept?.tables?.length > 0 && ept.tables.some((t: any) => t.rows?.length > 0);
   const hasReg = reg?.tables?.length > 0 && reg.tables.some((t: any) => t.rows?.length > 0);
   const hasBank =
-    bank?.bankDetails !== null ||
-    (bank?.fields && Object.values(bank.fields).some((f: any) => f.value && f.value.length > 0));
+    !!bank &&
+    (bank?.name ||
+      bank?.branch ||
+      bank?.address ||
+      (Array.isArray(bank?.fields) && bank.fields.length > 0) ||
+      (bank?.fields && typeof bank.fields === "object" &&
+        Object.values(bank.fields).some((f: any) => f?.value && f.value.length > 0)));
   const hasDay =
     day?.fields && Object.values(day.fields).some((f: any) => f.value && f.value.length > 0);
-  const apaarFormFilled = apaar?.formFields
-    ? Object.values(apaar.formFields).some(
-        (v: any) => v && v.length > 4 && v !== "-" && !String(v).startsWith("0")
-      )
-    : false;
+  const apaarFormFilled =
+    (Array.isArray(apaar?.fields) && apaar.fields.length > 0) ||
+    (apaar?.formFields
+      ? Object.values(apaar.formFields).some(
+          (v: any) => v && v.length > 4 && v !== "-" && !String(v).startsWith("0")
+        )
+      : false);
   const hasApaar =
     apaar?.hasApaar === true ||
     (apaar?.keyValuePairs && Object.keys(apaar.keyValuePairs).length > 0) ||

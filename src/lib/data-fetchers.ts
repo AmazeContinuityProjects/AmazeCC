@@ -2,6 +2,7 @@ import { API_BASE, fetchWithTimeout } from "./fetch-utils";
 import { storage } from "./storage";
 import { loginToEventHub } from "./event-hub";
 import type { LoginCredentials } from "./auth";
+import { mapProfile, mapProfileImages, type StudentIdentityLike } from "./identity-map";
 
 async function apiPost(path: string, body: unknown): Promise<Response> {
   return fetchWithTimeout(`${API_BASE}/api/${path}`, {
@@ -73,13 +74,14 @@ export async function fetchCoreData(
 
     apiPost("all-grades", { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }).then(r => r.json()),
 
-    apiPost("profile-images", { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf })
+    apiPost("me", { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf })
       .then(async r => {
         if (!r.ok) return null;
         const j = await r.json();
-        if (j?.success) {
-          storage.profileImages.set(j);
-          return j;
+        if (j?.success && j.identity) {
+          const mapped = mapProfileImages(j.identity as StudentIdentityLike);
+          storage.profileImages.set(mapped);
+          return mapped;
         }
         return null;
       })
@@ -141,11 +143,12 @@ export async function fetchStudentProfile(
   creds: LoginCredentials,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const res = await apiPost("student", { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf });
+    const res = await apiPost("me", { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf });
     const data = await res.json();
-    if (data?.profile) {
-      storage.profile.set(data.profile);
-      return data.profile;
+    if (data?.identity) {
+      const profile = mapProfile(data.identity as StudentIdentityLike);
+      storage.profile.set(profile);
+      return profile;
     }
   } catch {
     /* background fetch */
@@ -219,12 +222,9 @@ export async function fetchBulkEndpoints(
   }
   if (settings.syncProfileData !== false) {
     bulkEndpoints.push(
-      "credentials",
       "registration-schedule",
       "dayboarder",
-      "bank-info",
       "library-due",
-      "hostel-counselling",
       "payments",
       "payment-receipts",
       "wallet"

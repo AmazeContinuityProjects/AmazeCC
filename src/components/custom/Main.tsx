@@ -768,8 +768,7 @@ export default function LoginPage() {
       // All other VTOP-scoped endpoints (cached for GenericApiView)
       const bulkEndpoints = [
         "exc-registration", "minor-honour", "course-completion",
-        "hostel-counselling",
-        "credentials", "registration-schedule", "dayboarder", "bank-info",
+        "registration-schedule", "dayboarder",
       ];
       await Promise.allSettled(
         bulkEndpoints.map(path =>
@@ -1174,7 +1173,6 @@ export default function LoginPage() {
       { id: "hostel-mess", label: "Hostel Mess", description: "Mess menu, feedback & details", icon: "🍽️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); } },
       { id: "hostel-laundry", label: "Laundry", description: "Laundry service status", icon: "👕", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); } },
       { id: "hostel-leave", label: "Leave", description: "Leave applications & history", icon: "✈️", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); } },
-      { id: "hostel-counselling", label: "Hostel Counselling", description: "Hostel counselling sessions", icon: "🤝", category: "Hostel", onSelect: () => { setActiveTab("hostel"); setHostelActiveSubTab("counselling"); } },
       { id: "ds-bus-finder", label: "Bus Finder", description: "Find your bus route & stops", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },

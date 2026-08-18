@@ -57,19 +57,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
       if (authorizedID === "DEMO123") {
         await new Promise(resolve => setTimeout(resolve, 300));
         let result: any = null;
-        if (endpoint === "hostel-counselling") {
-          result = {
-            tables: [
-              {
-                caption: "Hostel Counselling Requests",
-                headers: ["S.NO.", "REQUEST FRIEND REGNO", "BASKETID", "ROOM CAPACITY", "ROOM CATEGORY", "OTP", "OTP STATUS"],
-                rows: [
-                  ["1", "25BYB1043", "4AC-DBL-COT-NORMAL", "4", "AC-DBL-COT", "6919", "OTP accepted by Room Leader"]
-                ]
-              }
-            ]
-          };
-        } else if (endpoint === "library-due") {
+        if (endpoint === "library-due") {
           result = {
             tables: [
               {
