@@ -13,6 +13,7 @@
     "start": "pnpm dlx serve@latest out -p 3001 -s",
     "serve": "pnpm dlx serve@latest out -p 3001 -s",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "api-dev": "nodemon backend/src/server.ts",
     "api-build": "tsc -p backend/tsconfig.json",
     "api-start": "node backend/dist/server.js"
