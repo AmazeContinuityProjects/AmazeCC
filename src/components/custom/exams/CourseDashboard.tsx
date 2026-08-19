@@ -19,6 +19,7 @@ import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
 import SimplifiedAcademicsPage from "./SimplifiedAcademicsPage";
+import { formatSemesterName } from "@/lib/academic-utils";
 
 const AttendanceCalendarView = dynamic(
   () => import("../attendance/AttendanceCalendarView"),
@@ -29,19 +30,6 @@ const getNumericValue = (value: any, fallback = 0) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
 };
-
-function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
-}
 
 const formatNumber = (num: any) => {
   const numericValue = Number(num);

@@ -8,6 +8,8 @@ import FetchButton from "../shared/FetchButton";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 
+import { getGradePoint } from "@/lib/academic-utils";
+
 const GRADE_BADGE_CLASSES: Record<string, string> = {
   S: 'bg-emerald-50 text-emerald-700 border-emerald-500/10 dark:bg-emerald-950/30 dark:text-emerald-450',
   A: 'bg-green-50 text-green-700 border-green-500/10 dark:bg-green-950/30 dark:text-green-400',
@@ -100,19 +102,6 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
   }));
 
   const [predictedGrades, setPredictedGrades] = useState<Record<string, string>>({});
-
-  const gradePointMap = {
-    S: 10,
-    A: 9,
-    B: 8,
-    C: 7,
-    D: 6,
-    E: 5,
-    F: 0,
-    N: 0
-  };
-
-  const getGradePoint = (grade) => gradePointMap[grade] ?? 9;
 
   const currentCgpa = Number(CGPA?.cgpa) || 0;
   const currentCredits = Number(CGPA?.creditsEarned) || 0;

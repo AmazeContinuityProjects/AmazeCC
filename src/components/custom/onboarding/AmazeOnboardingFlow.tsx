@@ -62,18 +62,7 @@ interface AmazeOnboardingFlowProps {
   acknowledgementData?: any;
 }
 
-function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
-}
+import { formatSemesterName } from "@/lib/academic-utils";
 
 function urlBase64ToUint8Array(base64String: string) {
   if (!base64String) return new Uint8Array(0);

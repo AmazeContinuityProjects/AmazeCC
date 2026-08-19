@@ -74,6 +74,7 @@ import {
 import { AppLibrary, MobileBottomNav } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { formatSemesterName } from "@/lib/academic-utils";
 
 type NavItem = {
   id: string;
@@ -90,19 +91,6 @@ type Group = {
   icon: LucideIcon;
   items: NavItem[];
 };
-
-function formatSemesterName(semId: string): string {
-  if (!semId || !semId.toUpperCase().startsWith("CH") || semId.length !== 10) return semId;
-  const year1 = semId.substring(2, 6);
-  const year2 = semId.substring(6, 8);
-  const term = semId.substring(8, 10);
-  let termName = "";
-  if (term === "01") termName = "Fall";
-  else if (term === "05") termName = "Winter";
-  else if (term === "07") termName = "Summer";
-  else termName = `Term ${term}`;
-  return `${termName} ${year1}-${year2}`;
-}
 
 function getTabIdFromLabel(label: string): string | null {
   const lower = label.toLowerCase();
