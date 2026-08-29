@@ -2,6 +2,7 @@ import { API_BASE, fetchWithTimeout } from "./fetch-utils";
 
 let globalLoginPromise: Promise<{ cookies: string[]; authorizedID: string; csrf: string }> | null = null;
 let cachedVTOPCredentials: { cookies: string[]; authorizedID: string; csrf: string } | null = null;
+let failedLogin: { username: string; password: string } | null = null;
 
 export interface LoginCredentials {
   cookies: string[];
@@ -21,6 +22,21 @@ export async function loginToVTOP(
   }
   if (cachedVTOPCredentials && !forceNew && !retry) return cachedVTOPCredentials;
   if (globalLoginPromise) return globalLoginPromise;
+
+  // Give up immediately on a known-bad credential pair so we don't keep
+  // hammering the API (and VTOP) with the same wrong username/password,
+  // which can lock the account. A retry/captcha attempt or fresh creds bypass this.
+  if (
+    failedLogin &&
+    !forceNew &&
+    !retry &&
+    failedLogin.username === ids.VtopUsername &&
+    failedLogin.password === ids.VtopPassword
+  ) {
+    throw new Error(
+      "Login failed — please check your credentials and try again. (Stopped retrying to avoid locking your account.)"
+    );
+  }
 
   globalLoginPromise = (async () => {
     try {
@@ -42,6 +58,7 @@ export async function loginToVTOP(
       }
 
       if (!data.success || !data.authorizedID || !data.cookies) {
+        failedLogin = { username: ids.VtopUsername, password: ids.VtopPassword };
         let rawMsg = (data.message || "Login failed").trim().replace(/\.+$/, "");
         let msg = `${rawMsg}.`;
         const msgLower = rawMsg.toLowerCase();
@@ -63,6 +80,7 @@ export async function loginToVTOP(
         authorizedID: data.authorizedID,
         csrf: data.csrf,
       };
+      failedLogin = null;
       return cachedVTOPCredentials;
     } finally {
       globalLoginPromise = null;
@@ -74,4 +92,5 @@ export async function loginToVTOP(
 export function clearCachedCredentials(): void {
   cachedVTOPCredentials = null;
   globalLoginPromise = null;
+  failedLogin = null;
 }
