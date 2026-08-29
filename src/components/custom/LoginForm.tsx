@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { m, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import { 
   Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, ChevronLeft, Plus, 
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 
@@ -51,14 +51,14 @@ function Tilt3DCard({ children, className = "" }: { children: React.ReactNode; c
   };
 
   return (
-    <motion.div
+    <m.div
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ rotateX, rotateY, transformStyle: "preserve-3d", perspective: 1000 }}
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -360,31 +360,31 @@ export default function LoginForm({
             {/* Hero Section */}
             <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pt-32 pb-20 lg:pt-40 lg:pb-28 cursor-default">
               {/* Creative 3D Interactive Aurora Orbs */}
-              <motion.div 
+              <m.div 
                 style={{ x: orbX1, y: orbY1 }}
                 className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-600/20 via-purple-500/20 to-pink-500/15 blur-[110px] pointer-events-none"
               />
-              <motion.div 
+              <m.div 
                 style={{ x: orbX2, y: orbY2 }}
                 className="absolute bottom-1/4 right-1/4 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-cyan-500/15 via-indigo-600/15 to-purple-600/20 blur-[130px] pointer-events-none"
               />
 
               {/* Dynamic Hardware-Accelerated Spotlight Glow (PC Only) */}
               {isDesktop && (
-                <motion.div 
+                <m.div 
                   className="absolute inset-0 pointer-events-none z-1"
                   style={{ background: spotlightBg }}
                 />
               )}
 
               {/* Interactive 3D Mesh Grid with Soft Edge Fade */}
-              <motion.div 
+              <m.div 
                 style={{ rotateX: heroRotateX, rotateY: heroRotateY, transformStyle: "preserve-3d", perspective: 1000 }}
                 className="absolute -inset-16 bg-[radial-gradient(#6366f1_1.2px,transparent_1.2px)] [background-size:28px_28px] opacity-20 dark:opacity-25 pointer-events-none [mask-image:radial-gradient(ellipse_90%_90%_at_50%_50%,black_40%,transparent_100%)]"
               />
 
               {/* Oversized Parallax Background Image (No Hard Edges) */}
-              <motion.div 
+              <m.div 
                 style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.png')" }}
                 className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
               />
@@ -394,7 +394,7 @@ export default function LoginForm({
               <div className="absolute inset-0 bg-gradient-to-b from-slate-50/10 via-transparent to-slate-50 dark:from-[#03060F]/10 dark:via-transparent dark:to-[#03060F] pointer-events-none" />
 
               {/* Centered Hero Content with Hardware 3D Mouse Tilt */}
-              <motion.div 
+              <m.div 
                 style={{ y: textY, rotateX: heroRotateX, rotateY: heroRotateY }}
                 className="max-w-4xl mx-auto text-center space-y-6 relative z-10 animate-fadeIn"
               >
@@ -454,12 +454,12 @@ export default function LoginForm({
                     <p className="text-[10px] text-slate-500 dark:text-gray-500 font-bold uppercase mt-1">Free & Local</p>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             </section>
 
             {/* Problem Section (Emojis Replaced with Lucide Icons) */}
             <section id="sec-problem" className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-20 px-6">
-              <motion.div 
+              <m.div 
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.05 }}
@@ -476,7 +476,7 @@ export default function LoginForm({
                 
                 {/* Floating tags */}
                 <div className="flex flex-wrap gap-4 justify-center items-center py-6">
-                  <motion.div 
+                  <m.div 
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -485,8 +485,8 @@ export default function LoginForm({
                   >
                     <ShieldAlert size={14} className="text-rose-500 shrink-0" />
                     VTOP Session Expired (Re-login)
-                  </motion.div>
-                  <motion.div 
+                  </m.div>
+                  <m.div 
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -495,8 +495,8 @@ export default function LoginForm({
                   >
                     <MessageSquareWarning size={14} className="text-amber-500 shrink-0" />
                     Outing Pass OTP Pending
-                  </motion.div>
-                  <motion.div 
+                  </m.div>
+                  <m.div 
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -505,8 +505,8 @@ export default function LoginForm({
                   >
                     <Lock size={14} className="text-purple-500 shrink-0" />
                     Laundry Booking Slot Locked
-                  </motion.div>
-                  <motion.div 
+                  </m.div>
+                  <m.div 
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -515,8 +515,8 @@ export default function LoginForm({
                   >
                     <BookOpen size={14} className="text-sky-500 shrink-0" />
                     Mess Menu PDF (Page 4)
-                  </motion.div>
-                  <motion.div 
+                  </m.div>
+                  <m.div 
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -525,7 +525,7 @@ export default function LoginForm({
                   >
                     <CreditCard size={14} className="text-emerald-500 shrink-0" />
                     Koha Book Catalog Error
-                  </motion.div>
+                  </m.div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center space-y-2">
@@ -535,12 +535,12 @@ export default function LoginForm({
                   </span>
                   <div className="h-10 w-[1px] bg-gradient-to-t from-indigo-500 to-transparent" />
                 </div>
-              </motion.div>
+              </m.div>
             </section>
 
             {/* Features Module Grid Section (Emojis Replaced with elegant Lucide icons) */}
             <section id="sec-features" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
-              <motion.div 
+              <m.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -552,12 +552,12 @@ export default function LoginForm({
                 <p className="text-xs md:text-sm text-slate-600 dark:text-gray-400 max-w-xl mx-auto font-medium">
                   A unified layout that groups core widgets, predictive calculators, and offline catalogs under cohesive interfaces.
                 </p>
-              </motion.div>
+              </m.div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
                 {features.map((feat, idx) => (
                   <Tilt3DCard key={idx} className="h-full">
-                    <motion.div 
+                    <m.div 
                       initial={{ opacity: 0, y: 30, scale: 0.95 }}
                       whileInView={{ opacity: 1, y: 0, scale: 1 }}
                       viewport={{ once: true, amount: 0.05 }}
@@ -575,7 +575,7 @@ export default function LoginForm({
                           {feat.desc}
                         </p>
                       </div>
-                    </motion.div>
+                    </m.div>
                   </Tilt3DCard>
                 ))}
               </div>
@@ -586,7 +586,7 @@ export default function LoginForm({
               <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 blur-[120px] pointer-events-none" />
               <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                 
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, x: -30 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.05 }}
@@ -608,10 +608,10 @@ export default function LoginForm({
                       <span>Dynamic percentage</span>
                     </div>
                   </div>
-                </motion.div>
+                </m.div>
 
                 {/* Simulator Card Box */}
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, x: 30 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.05 }}
@@ -680,13 +680,13 @@ export default function LoginForm({
                       <Minus size={11} /> Skip
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               </div>
             </section>
 
             {/* UI Showcase Layout */}
             <section className="max-w-7xl mx-auto px-6 py-24 space-y-16">
-              <motion.div 
+              <m.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -698,13 +698,13 @@ export default function LoginForm({
                 <p className="text-xs md:text-sm text-slate-600 dark:text-gray-400 max-w-xl mx-auto font-medium">
                   A high-fidelity layout optimized for fast reading, dark preferences, and desktop-first tracking.
                 </p>
-              </motion.div>
+              </m.div>
 
               {/* Showcase Skeletons (Emojis replaced with Lucide Icons) */}
               <div className="relative max-w-4xl mx-auto h-[450px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100/40 dark:border-neutral-900 dark:bg-[#050711]/50 p-6 md:p-8 flex items-center justify-center shadow-md dark:shadow-xl">
                 
                 {/* Desktop layout skeleton card */}
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, x: -40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -747,10 +747,10 @@ export default function LoginForm({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </m.div>
 
                 {/* Mobile layout skeleton card */}
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, x: 40 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -774,7 +774,7 @@ export default function LoginForm({
                       <span className="text-[7px] text-slate-405 dark:text-gray-500 block">D-Block Slot #03 locked</span>
                     </div>
                   </div>
-                </motion.div>
+                </m.div>
 
               </div>
             </section>
@@ -782,7 +782,7 @@ export default function LoginForm({
             {/* Benefits Section */}
             <section className="bg-slate-100/50 border-y border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
               <div className="max-w-7xl mx-auto space-y-16">
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -794,11 +794,11 @@ export default function LoginForm({
                   <p className="text-xs md:text-sm text-slate-600 dark:text-gray-400 max-w-xl mx-auto font-medium">
                     Design choices aligned to speed, local privacy, and simplicity.
                   </p>
-                </motion.div>
+                </m.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                   {benefits.map((benefit, idx) => (
-                    <motion.div 
+                    <m.div 
                       key={idx} 
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -812,7 +812,7 @@ export default function LoginForm({
                       <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">
                         {benefit.desc}
                       </p>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </div>
               </div>
@@ -820,7 +820,7 @@ export default function LoginForm({
 
             {/* Timeline walkthrough */}
             <section id="sec-timeline" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
-              <motion.div 
+              <m.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -832,11 +832,11 @@ export default function LoginForm({
                 <p className="text-xs md:text-sm text-slate-650 dark:text-gray-400 max-w-xl mx-auto font-medium">
                   See how AmazeCC supports your schedule checks and mess menu updates throughout college hours.
                 </p>
-              </motion.div>
+              </m.div>
 
               <div className="max-w-3xl mx-auto space-y-8 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-200 dark:before:bg-neutral-900">
                 {companionTimeline.map((item, idx) => (
-                  <motion.div 
+                  <m.div 
                     key={idx} 
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -850,7 +850,7 @@ export default function LoginForm({
                       <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">{item.title}</h3>
                       <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">{item.desc}</p>
                     </div>
-                  </motion.div>
+                  </m.div>
                 ))}
               </div>
             </section>
@@ -858,7 +858,7 @@ export default function LoginForm({
             {/* Roadmap */}
             <section id="sec-roadmap" className="bg-slate-100/50 border-t border-slate-200 dark:bg-[#02040a]/40 dark:border-neutral-900 py-24 px-6">
               <div className="max-w-7xl mx-auto space-y-16">
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -870,11 +870,11 @@ export default function LoginForm({
                   <p className="text-xs md:text-sm text-slate-655 dark:text-gray-400 max-w-xl mx-auto font-medium">
                     Continuous upgrades to extend scheduling assistance.
                   </p>
-                </motion.div>
+                </m.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                   {roadmap.map((item, idx) => (
-                    <motion.div 
+                    <m.div 
                       key={idx} 
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -889,7 +889,7 @@ export default function LoginForm({
                         <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider pt-2 font-[family-name:var(--font-outfit)]">{item.title}</h3>
                         <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed font-medium">{item.desc}</p>
                       </div>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </div>
               </div>
@@ -897,7 +897,7 @@ export default function LoginForm({
 
             {/* FAQ Accordion */}
             <section id="sec-faq" className="max-w-4xl mx-auto px-6 py-24 space-y-16">
-              <motion.div 
+              <m.div 
                 initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -909,13 +909,13 @@ export default function LoginForm({
                 <p className="text-xs md:text-sm text-slate-600 dark:text-gray-400 max-w-xl mx-auto font-medium">
                   Answers to common questions regarding credentials and connections.
                 </p>
-              </motion.div>
+              </m.div>
 
               <div className="space-y-4">
                 {faqs.map((faq, idx) => {
                   const isOpen = openFaq === idx;
                   return (
-                    <motion.div 
+                    <m.div 
                       key={idx} 
                       initial={{ opacity: 0, y: 15 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -935,7 +935,7 @@ export default function LoginForm({
                           {faq.a}
                         </div>
                       )}
-                    </motion.div>
+                    </m.div>
                   );
                 })}
               </div>

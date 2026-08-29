@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { X, Trophy, Github, Star, ExternalLink, ChevronLeft } from 'lucide-react';
 
 const credits = [
@@ -43,7 +43,7 @@ const credits = [
 export default function HallOfFameModal({ handleClose }: { handleClose: () => void }) {
     return (
         <AnimatePresence>
-            <motion.div 
+            <m.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
@@ -81,7 +81,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                     <div className="relative z-10 w-full pb-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {credits.map((credit, idx) => (
-                            <motion.a 
+                            <m.a 
                                 href={credit.repo}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -112,7 +112,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                                 <p className="text-sm text-gray-600  dark:text-gray-400 leading-relaxed font-medium">
                                     {credit.description}
                                 </p>
-                            </motion.a>
+                            </m.a>
                             ))}
                         </div>
 
@@ -123,7 +123,7 @@ export default function HallOfFameModal({ handleClose }: { handleClose: () => vo
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </m.div>
         </AnimatePresence>
     );
 }

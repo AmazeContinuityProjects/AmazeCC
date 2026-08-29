@@ -61,7 +61,7 @@ import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, Modal, useIsMobile } from "../shared";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 export type SectionId =
   | "profile"
@@ -2506,7 +2506,7 @@ export default function ProfilePage({
         <AnimatePresence mode="wait">
           {/* LEVEL 1: Settings Hub Menu */}
           {activeMobileSubmenu === null ? (
-            <motion.div
+            <m.div
               key="mobile-hub"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -2566,10 +2566,10 @@ export default function ProfilePage({
                   <span>Sign Out of Account</span>
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           ) : (
             /* LEVEL 2: Focused Category Sub-Page */
-            <motion.div
+            <m.div
               key="mobile-submenu"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -2596,7 +2596,7 @@ export default function ProfilePage({
 
               {/* Sub-page Settings Content */}
               <div className="pt-1">{getSectionContent(activeMobileSubmenu)}</div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

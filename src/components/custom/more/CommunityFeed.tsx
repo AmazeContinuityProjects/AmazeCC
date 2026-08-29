@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { motion, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUp, Calendar, ExternalLink } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -116,7 +116,7 @@ export default function CommunityFeed({ IDs, loginToVTOP }: { IDs?: any, loginTo
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {feed.map((post) => (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           key={post.id}
@@ -209,7 +209,7 @@ export default function CommunityFeed({ IDs, loginToVTOP }: { IDs?: any, loginTo
               <span className="tabular-nums">{post.promote_count || 0} Promotes</span>
             </button>
           </div>
-        </motion.div>
+        </m.div>
       ))}
     </div>
   );

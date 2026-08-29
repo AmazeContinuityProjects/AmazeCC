@@ -19,7 +19,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+
 import type { ParsedCourse } from "../exams/FFCS/types";
 
 // Campus Schemas
@@ -142,6 +142,7 @@ export default function FreeClassroomsTab({
     }
 
     try {
+      const XLSX = await import("xlsx");
       const response = await fetch("/ffcs/ffcsReport.csv");
       if (!response.ok) throw new Error("Failed to load campus timetable records");
       const arrayBuffer = await response.arrayBuffer();

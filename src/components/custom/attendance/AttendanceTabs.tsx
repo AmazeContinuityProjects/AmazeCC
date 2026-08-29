@@ -8,6 +8,7 @@ import DailyPlanner from "./DailyPlanner";
 import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
 import AttendanceSubpage from "./AttendanceSubpage";
+import AttendanceSummary from "./AttendanceSummary";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import Modal from "../shared/Modal";
@@ -334,6 +335,13 @@ export default function AttendanceTabs({
             </button>
           </>
         }
+      />
+
+      <AttendanceSummary
+        attendance={data.attendance}
+        simulatedSkips={simulatedSkips}
+        isDayscholarWithBus={isDayscholarWithBus}
+        onOpenPredictor={() => setShowPredictor(true)}
       />
 
       {/* Rich Weekday Selector */}

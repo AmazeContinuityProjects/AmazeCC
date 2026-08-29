@@ -11,7 +11,7 @@ import GPAPredictorTab from "./exams/GPAPredictorTab";
 import MessDisplay from "./hostel/MessDisplay";
 import LaundryDisplay from "./hostel/LaundryDisplay";
 import CalendarView from "./attendance/CalendarView";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import LeaveDisplay from "./hostel/LeaveDisplay";
 import HostelOverview from "./hostel/HostelOverview";
 import HostelCounsellingView from "./hostel/HostelCounsellingView";
@@ -73,7 +73,7 @@ import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { useMemo } from "react";
 
-export default function DashboardContent({
+function DashboardContent({
   demoMode = false,
   activeTab,
   setActiveTab,
@@ -1163,3 +1163,5 @@ export default function DashboardContent({
     </div>
   );
 }
+
+export default memo(DashboardContent);

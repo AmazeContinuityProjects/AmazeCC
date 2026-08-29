@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { Card, Skeleton, EmptyState, Badge, Button } from "@amazecontinuityprojects/amazeui";
 import PageHeader from "./shared/PageHeader";
-import { motion, AnimatePresence } from "framer-motion";
 
 const SUB_TABS = ["dues", "receipts", "wallet"] as const;
 type SubTab = (typeof SUB_TABS)[number];

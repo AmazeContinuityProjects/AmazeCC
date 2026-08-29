@@ -5,7 +5,7 @@ import { clearEventHubSession } from "@/lib/event-hub";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import EventHubSubpage from "./EventHubSubpage";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -329,7 +329,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     : filteredEvents;
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-8"
@@ -398,7 +398,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {displayEvents.map((event: any) => (
-            <motion.div
+            <m.div
               key={event.eid}
               whileHover={{ y: -4 }}
               className="bg-white  dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
@@ -457,7 +457,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
                   View Details &rarr;
                 </span>
               </div>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       )}
@@ -465,6 +465,6 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       {/* Tab Help Footer */}
       <TabHelpFooter tabId="events" />
 
-    </motion.div>
+    </m.div>
   );
 }

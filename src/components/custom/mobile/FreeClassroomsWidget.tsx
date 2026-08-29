@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
-import * as XLSX from "xlsx";
+
 import type { ParsedCourse } from "../exams/FFCS/types";
 
 
@@ -110,6 +110,7 @@ export default function FreeClassroomsWidget() {
       } catch (e) {}
 
       try {
+        const XLSX = await import("xlsx");
         const response = await fetch("/ffcs/ffcsReport.csv");
         if (!response.ok) throw new Error("Failed to load FFCS report");
         const arrayBuffer = await response.arrayBuffer();

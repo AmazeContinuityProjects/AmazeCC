@@ -5,7 +5,7 @@ import { Info, Activity, GraduationCap, AlertTriangle } from "lucide-react";
 import CircularProgress from "../shared/CircularProgress";
 import Image from "next/image";
 import { API_BASE } from "../Main";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import SubpageLayout from "../shared/SubpageLayout";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
@@ -279,7 +279,7 @@ export default function MarksDisplay({ data }) {
   }
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
@@ -340,7 +340,7 @@ export default function MarksDisplay({ data }) {
           }
 
           return (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
@@ -379,11 +379,11 @@ export default function MarksDisplay({ data }) {
                   />
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           );
         })}
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -555,7 +555,7 @@ function MarksSubpage({ group, allStats, onBack }) {
   };
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -745,6 +745,6 @@ function MarksSubpage({ group, allStats, onBack }) {
           </div>
         </div>
       </SubpageLayout>
-    </motion.div>
+    </m.div>
   );
 }

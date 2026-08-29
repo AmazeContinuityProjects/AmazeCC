@@ -16,7 +16,16 @@ export const isShortcutsHelpOpenAtom = atom<boolean>(false);
 export const isReloadingAtom = atom<boolean>(false);
 export const isLoadingAtom = atom<boolean>(true);
 export const progressBarAtom = atom<number>(0);
-export const messageAtom = atom<string>("");
+export const messageAtom = atom<string, [string | ((prev: string) => string)], void>(
+  "",
+  (get, set, update) => {
+    const prev = get(messageAtom);
+    const next = typeof update === "function" ? update(prev) : update;
+    const lines = next.split("\n");
+    const capped = lines.length > 60 ? lines.slice(-60).join("\n") : next;
+    set(messageAtom, capped);
+  }
+);
 export const odHoursIsOpenAtom = atom<boolean>(false);
 export const gradesDisplayIsOpenAtom = atom<boolean>(false);
 export const isOfflineAtom = atom<boolean>(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Sparkles, X, CheckCircle2, GitCommit } from "lucide-react";
 import { fetchGitHubCommits, GitHubCommit } from "@/lib/githubChangelog";
 import buildInfo from "../../data/buildInfo.json";
@@ -49,7 +49,7 @@ export default function ChangelogModal() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -30, scale: 0.92 }}
@@ -84,7 +84,7 @@ export default function ChangelogModal() {
           <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-850 max-h-[30vh] md:max-h-[250px]">
             <div className="space-y-2">
               {displayItems.map((change, idx) => (
-                <motion.div
+                <m.div
                   key={idx}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -97,7 +97,7 @@ export default function ChangelogModal() {
                   <p className="text-xs text-gray-700 dark:text-gray-300 leading-snug">
                     {change}
                   </p>
-                </motion.div>
+                </m.div>
               ))}
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function ChangelogModal() {
               Awesome, let&apos;s go!
             </button>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

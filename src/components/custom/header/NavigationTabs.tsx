@@ -57,7 +57,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { 
   useTheme, 
   Sidebar, 
@@ -916,7 +916,7 @@ export default function NavigationTabs({
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
-              <motion.button
+              <m.button
                 key={item.id}
                 onClick={item.onClick}
                 whileTap={{ scale: 0.92 }}
@@ -926,7 +926,7 @@ export default function NavigationTabs({
               >
                 {/* Floating pill background highlight that fades and scales in on active */}
                 {isActive && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
@@ -937,7 +937,7 @@ export default function NavigationTabs({
 
                 {/* Relative container for icon with subtle scale effect on active */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <motion.div 
+                  <m.div 
                     animate={isActive ? { scale: 1.15 } : { scale: 1 }}
                     transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
                     className={`p-1.5 transition-colors duration-200 ${
@@ -947,9 +947,9 @@ export default function NavigationTabs({
                     }`}
                   >
                     {item.icon}
-                  </motion.div>
+                  </m.div>
                 </div>
-              </motion.button>
+              </m.button>
             );
           })}
         </div>
@@ -1027,7 +1027,7 @@ export default function NavigationTabs({
           {/* Profile Section, Semester summary, & Search */}
           <AnimatePresence initial={false}>
             {isOpen ? (
-              <motion.div
+              <m.div
                 key="header-expanded"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -1126,9 +1126,9 @@ export default function NavigationTabs({
                     ⌘K
                   </kbd>
                 </button>
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="header-collapsed"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1143,7 +1143,7 @@ export default function NavigationTabs({
                 >
                   <Command className="h-4 w-4" />
                 </button>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </SidebarHeader>
@@ -1336,7 +1336,7 @@ export default function NavigationTabs({
         <SidebarFooter>
           <AnimatePresence initial={false}>
           {isOpen ? (
-            <motion.div
+            <m.div
               key="footer-expanded"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -1355,9 +1355,9 @@ export default function NavigationTabs({
               <div className="h-px bg-sidebar-accent" />
 
               <SidebarThemeControl theme={theme} onThemeChange={handleThemeChange} />
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.div
+            <m.div
               key="footer-collapsed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1376,7 +1376,7 @@ export default function NavigationTabs({
                 initials={initials || "ST"}
                 onProfileClick={() => selectTab("profile")}
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
         </SidebarFooter>
@@ -1384,7 +1384,7 @@ export default function NavigationTabs({
         {/* Floating popover beside the compact rail */}
         <AnimatePresence>
           {activeRailGroup && (
-            <motion.div
+            <m.div
               ref={flyoutRef}
               initial={{ opacity: 0, scale: 0.95, x: -10 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -1425,14 +1425,14 @@ export default function NavigationTabs({
                       >
                         <Wrench className="h-4 w-4 shrink-0 text-sidebar-foreground/ group-hover:text-sidebar-foreground" />
                         <span className="truncate flex-1 text-left">Theme</span>
-                        <motion.div
+                        <m.div
                           animate={{ rotate: isThemeExpanded ? 90 : 0 }}
                           transition={{ duration: 0.18 }}
                         >
                           <ChevronRight className="h-3 w-3 text-sidebar-foreground/" />
-                        </motion.div>
+                        </m.div>
                       </button>
-                      <motion.div
+                      <m.div
                         initial={false}
                         animate={{ height: isThemeExpanded ? "auto" : 0, opacity: isThemeExpanded ? 1 : 0 }}
                         transition={{ duration: 0.18, ease: "easeInOut" }}
@@ -1458,7 +1458,7 @@ export default function NavigationTabs({
                             <span className={theme === "dark" ? "text-info font-medium" : ""}>Dark</span>
                           </button>
                         </div>
-                      </motion.div>
+                      </m.div>
                     </div>
 
                     {/* Log out */}
@@ -1576,7 +1576,7 @@ export default function NavigationTabs({
                   </div>
                 </div>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </Sidebar>

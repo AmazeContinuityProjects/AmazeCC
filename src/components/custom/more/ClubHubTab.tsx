@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Search, Users, Hash, Layers } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
@@ -138,7 +138,7 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
   }
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-8"
@@ -205,7 +205,7 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
             }
 
             return (
-              <motion.div
+              <m.div
                 key={club.id}
                 whileHover={{ y: -4 }}
                 className="bg-white dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-full group"
@@ -246,7 +246,7 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
                   View Details
                 </button>
               </div>
-            </motion.div>
+            </m.div>
             );
           })}
             </div>
@@ -259,6 +259,6 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
         onClose={() => setSelectedClub(null)}
         club={selectedClub}
       />
-    </motion.div>
+    </m.div>
   );
 }
