@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard } from "lucide-react";
-import * as XLSX from "xlsx";
+
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { useTheme } from "next-themes";
@@ -582,8 +582,9 @@ export default function FFCSTimetableTab() {
     const loadHardcodedCSV = async () => {
       setIsLoadingCourses(true);
       setError(null);
-      try {
-        const response = await fetch("/ffcs/ffcsReport.csv");
+       try {
+         const XLSX = await import("xlsx");
+         const response = await fetch("/ffcs/ffcsReport.csv");
         if (!response.ok) throw new Error("Failed to fetch /ffcs/ffcsReport.csv");
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import ReelsScroller from "./ReelScroller";
+import dynamic from "next/dynamic";
 import { X } from "lucide-react";
 import { getMinimalMessage } from "@/lib/utils";
+
+const ReelsScroller = dynamic(() => import("./ReelScroller"), { ssr: false });
 
 export function ReloadModal({ message, onClose, progressBar }) {
     useEffect(() => {

@@ -31,7 +31,7 @@ import {
   Building,
   DoorOpen,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -916,7 +916,7 @@ export default function SimplifiedMobileHome({
 
             {/* Slide Body */}
             <AnimatePresence mode="wait">
-              <motion.div
+              <m.div
                 key={currentSlideData.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -933,7 +933,7 @@ export default function SimplifiedMobileHome({
                 >
                   {currentSlideData.headline}
                 </span>
-              </motion.div>
+              </m.div>
             </AnimatePresence>
 
             {/* Footer with subline and dots */}

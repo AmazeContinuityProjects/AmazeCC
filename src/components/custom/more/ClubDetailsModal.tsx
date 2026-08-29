@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
@@ -40,14 +40,14 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
           />
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -257,7 +257,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
               )}
 
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

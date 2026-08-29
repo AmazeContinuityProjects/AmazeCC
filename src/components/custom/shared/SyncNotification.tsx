@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl } from "@/lib/fetch-utils";
 import { 
   Loader2, 
@@ -144,7 +144,7 @@ export default function SyncNotification({
       {/* Full screen backdrop overlay for expanded state */}
       <AnimatePresence>
         {!isMinimized && (
-          <motion.div
+          <m.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -156,7 +156,7 @@ export default function SyncNotification({
       </AnimatePresence>
 
       {/* Unified animated card */}
-      <motion.div
+      <m.div
         layout
         transition={{ type: "spring", stiffness: 450, damping: 35 }}
         className={
@@ -169,7 +169,7 @@ export default function SyncNotification({
         <AnimatePresence mode="wait">
           {isMinimized ? (
             /* Collapsed view content */
-            <motion.div
+            <m.div
               key="minimized-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -234,10 +234,10 @@ export default function SyncNotification({
                   <X size={12} />
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           ) : (
             /* Extended view content */
-            <motion.div
+            <m.div
               key="expanded-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -300,7 +300,7 @@ export default function SyncNotification({
                       <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.min(100, Math.round(progress))}%</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden relative">
-                      <motion.div
+                      <m.div
                         className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.3)]"
                         animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                         transition={{ type: "spring", damping: 20, stiffness: 120 }}
@@ -315,7 +315,7 @@ export default function SyncNotification({
                         const isLast = idx === logLines.length - 1;
                         const { text, status } = parseLogLine(line, isLast);
                         return (
-                          <motion.div 
+                          <m.div 
                             key={idx} 
                             initial={{ opacity: 0, y: 4 }} 
                             animate={{ opacity: 1, y: 0 }} 
@@ -326,7 +326,7 @@ export default function SyncNotification({
                             <span className={isLast ? "font-extrabold text-slate-900 dark:text-white" : "text-slate-500 dark:text-gray-400"}>
                               {text}
                             </span>
-                          </motion.div>
+                          </m.div>
                         );
                       })}
                     </AnimatePresence>
@@ -335,7 +335,7 @@ export default function SyncNotification({
                   {/* Slow connection switch backup button */}
                   <AnimatePresence>
                     {showBackupBtn && (
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 8 }}
@@ -351,13 +351,13 @@ export default function SyncNotification({
                           <RefreshCw size={11} className="animate-spin text-amber-500" style={{ animationDuration: '3s' }} />
                           <span>Slow network? Use Backup API</span>
                         </button>
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                 </>
               ) : (
                 /* Switched to backup server success screen */
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.2 }}
@@ -400,12 +400,12 @@ export default function SyncNotification({
                   >
                     Dismiss & Try Again
                   </button>
-                </motion.div>
+                </m.div>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
     </>
   );
 }

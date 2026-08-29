@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import InfoRow from "../shared/InfoRow";
 import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";

@@ -4,7 +4,7 @@ import { eachDayOfInterval, endOfMonth, getDay, isSameDay } from "date-fns";
 import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Calendar as CalendarIcon, ChevronRight, BookOpen, EyeOff, Plus, CheckCircle2, Award, FileText, ListChecks, GraduationCap } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import ExamsScheduleDisplay from "../exams/ScheduleDisplay";
 import { MoodleUserPassForm } from "../exams/MoodleDisplay";
 import config from "../../../../config.json";
@@ -848,7 +848,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
                 <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm   dark:border-gray-800 dark:bg-black">
                     <AnimatePresence mode="wait">
-                        <motion.div
+                        <m.div
                             key={activeIdx}
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -980,7 +980,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                     );
                                 })}
                             </div>
-                        </motion.div>
+                        </m.div>
                     </AnimatePresence>
                 </div>
             </section>
@@ -1056,7 +1056,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                         </div>
 
                         <AnimatePresence mode="wait">
-                          <motion.div
+                          <m.div
                             key={selectedDay ? `${selectedDay.fullDate instanceof Date ? selectedDay.fullDate.getTime() : selectedDay.date}` : "empty"}
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -1192,7 +1192,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                                   })()}
                               </div>
                             )}
-                          </motion.div>
+                          </m.div>
                         </AnimatePresence>
                     </div>
 
@@ -1333,7 +1333,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
         
         <AnimatePresence>
             {showOverallTracker && (
-                <motion.div 
+                <m.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 20 }}
@@ -1347,7 +1347,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             onBack={() => setShowOverallTracker(false)}
                         />
                     </div>
-                </motion.div>
+                </m.div>
             )}
         </AnimatePresence>
         </>

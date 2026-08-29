@@ -24,8 +24,8 @@ const serwist = new Serwist({
     ignoreURLParametersMatching: [],
   },
   skipWaiting: false,
-  clientsClaim: false,
-  navigationPreload: false,
+  clientsClaim: true,
+  navigationPreload: true,
   disableDevLogs: true,
   runtimeCaching: defaultCache,
   fallbacks: {

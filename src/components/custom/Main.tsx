@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAtom } from "jotai";
 import {
   credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
@@ -19,8 +19,7 @@ import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
-import demoData from '../../data/demoData.json';
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LazyMotion, m } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
 import { CommandPalette, LoadingScreen } from "@/components/custom/shared";
@@ -46,10 +45,6 @@ const COLOR_PALETTES: Record<string, { accent: string; background?: string; surf
   forest: { accent: "#059669", background: "#f8fffb", surface: "#ffffff" },
   rose: { accent: "#e11d48", background: "#fff8fa", surface: "#ffffff" },
   amber: { accent: "#d97706", background: "#fffdf6", surface: "#ffffff" },
-};
-
-const reloadAfterThemeChange = () => {
-  window.setTimeout(() => window.location.reload(), 80);
 };
 
 export default function LoginPage() {
@@ -227,7 +222,7 @@ export default function LoginPage() {
     root.style.setProperty("--chart-3", `color-mix(in oklab, ${accent} 70%, #f59e0b)`);
   }, [settings.colorPalette, settings.customPalette, theme]);
 
-  function setAttendanceAndOD(attendance: attendanceRes): void {
+  const setAttendanceAndOD = useCallback((attendance: attendanceRes): void => {
     setAttendanceData(attendance);
     
     // Check for dynamic OD changes (Present -> OD = Wasted) (OD -> Present = Recovered)
@@ -310,7 +305,7 @@ export default function LoginPage() {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     setODhoursData(formattedList);
-  }
+  }, []);
 
   // --- Effects ---
   useEffect(() => {
@@ -372,10 +367,10 @@ export default function LoginPage() {
       } catch (e) {}
       setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
     }
-    setTimeout(() => setIsLoading(false), 2400);
+    setIsLoading(false);
   }, []);
 
-  const loginToVTOP = async (retry = false, forceNew = false) => {
+  const loginToVTOP = useCallback(async (retry = false, forceNew = false) => {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
@@ -383,10 +378,11 @@ export default function LoginPage() {
       if (msg) setMessage(prev => prev + "\n" + msg);
       if (progress) setProgressBar(prev => prev + progress);
     });
-  };
+  }, [IDs, demoMode]);
 
-  const handleLogin = async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
+  const handleLogin = useCallback(async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
     if (demoMode || IDs.VtopUsername === "demo") {
+      const demoData = await (await fetch('/data/demoData.json')).json();
       setDemoMode(true);
       storage.demoMode.set(true);
       setIsReloading(true);
@@ -503,9 +499,9 @@ export default function LoginPage() {
       setIsReloading(false);
       throw err;
     }
-  };
+  }, [IDs, demoMode, settings, loginToVTOP, setAttendanceAndOD]);
 
-  const fetchTransportData = async () => {
+  const fetchTransportData = useCallback(async () => {
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
       const res = await fetch(`${API_BASE}/api/transport`, {
@@ -537,10 +533,10 @@ export default function LoginPage() {
     } catch (err) {
       console.error("Failed to fetch transport data:", err);
     }
-  };
+  }, [loginToVTOP, settings]);
 
   // --- Event Handlers ---
-  const handleReloadRequest = async (targetSemesterID?: string) => {
+  const handleReloadRequest = useCallback(async (targetSemesterID?: string) => {
     const activeSem = targetSemesterID || settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2];
     if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
       setSettings(prev => {
@@ -551,6 +547,7 @@ export default function LoginPage() {
     }
 
     if (demoMode) {
+      const demoData = await (await fetch('/data/demoData.json')).json();
       setIsReloading(true);
       setProgressBar(10);
       setMessage("Reloading demo environment...");
@@ -729,69 +726,72 @@ export default function LoginPage() {
 
       await Promise.all(tasks);
 
-      // Fresher / EPT data
-      try {
-        const [eptRes, ackRes] = await Promise.all([
-          fetch(`${API_BASE}/api/ept-schedule`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-          fetch(`${API_BASE}/api/acknowledgement`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          }).then(r => r.json()),
-        ]);
-        if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
-        if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
-        setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
-      } catch {}
-
-      // Bus routes
-      try {
-        const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
-        if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-        setMessage(prev => prev + "\n✅ Bus routes fetched");
-      } catch {}
-
-      // Library data
-      try {
-        const dueRes = await fetch(`${API_BASE}/api/library-due`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cookies, authorizedID, csrf }),
-        });
-        const dueData = await dueRes.json();
-        if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
-        setMessage(prev => prev + "\n✅ Library data fetched");
-      } catch {}
-
-      // All other VTOP-scoped endpoints (cached for GenericApiView)
-      const bulkEndpoints = [
-        "exc-registration", "minor-honour", "course-completion",
-        "hostel-counselling",
-        "credentials", "registration-schedule", "dayboarder", "bank-info",
-      ];
-      await Promise.allSettled(
-        bulkEndpoints.map(path =>
-          fetch(`${API_BASE}/api/${path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          })
-            .then(r => r.json())
-            .then(data => {
-              if (data.success !== false) {
-                localStorage.setItem("cache_" + path, JSON.stringify(data));
-              }
-            })
-            .catch(() => {})
-        )
-      );
-      setMessage(prev => prev + "\n✅ All tab data cached");
-
+      // Primary data is ready — make the app interactive immediately (P2-15).
+      // Secondary/cache-only data is fetched in the background so it no longer
+      // blocks the reload spinner.
       setProgressBar(100);
       setIsLoggedIn(true);
       setIsReloading(false);
+
+      (async () => {
+        try {
+          // Fresher / EPT data
+          const [eptRes, ackRes] = await Promise.all([
+            fetch(`${API_BASE}/api/ept-schedule`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cookies, authorizedID, csrf }),
+            }).then(r => r.json()),
+            fetch(`${API_BASE}/api/acknowledgement`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cookies, authorizedID, csrf }),
+            }).then(r => r.json()),
+          ]);
+          if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
+          if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
+          setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
+
+          // Bus routes
+          const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
+          if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
+          setMessage(prev => prev + "\n✅ Bus routes fetched");
+
+          // Library data
+          const dueRes = await fetch(`${API_BASE}/api/library-due`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cookies, authorizedID, csrf }),
+          });
+          const dueData = await dueRes.json();
+          if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
+          setMessage(prev => prev + "\n✅ Library data fetched");
+
+          // All other VTOP-scoped endpoints (cached for GenericApiView)
+          const bulkEndpoints = [
+            "exc-registration", "minor-honour", "course-completion",
+            "hostel-counselling",
+            "credentials", "registration-schedule", "dayboarder", "bank-info",
+          ];
+          await Promise.allSettled(
+            bulkEndpoints.map(path =>
+              fetch(`${API_BASE}/api/${path}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cookies, authorizedID, csrf }),
+              })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.success !== false) {
+                    localStorage.setItem("cache_" + path, JSON.stringify(data));
+                  }
+                })
+                .catch(() => {})
+            )
+          );
+          setMessage(prev => prev + "\n✅ All tab data cached");
+        } catch (bgErr) {
+          console.warn("Background data sync failed:", bgErr);
+        }
+      })();
 
     } catch (err) {
       console.error(err);
@@ -800,9 +800,9 @@ export default function LoginPage() {
       );
       setProgressBar(0);
     }
-  };
+  }, [settings, config, demoMode, IDs, loginToVTOP, fetchTransportData, setAttendanceAndOD, handleLogin]);
 
-  const handleLogOutRequest = () => {
+  const handleLogOutRequest = useCallback(() => {
     const savedTheme = localStorage.getItem("theme") || theme || "light";
     setIsLoggedIn(false);
     setIDs(defaultIDs);
@@ -834,7 +834,10 @@ export default function LoginPage() {
     setGradesData({});
     setScheduleData({});
     setMessage("");
-  };
+  }, [theme]);
+
+  const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
+  const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -861,7 +864,8 @@ export default function LoginPage() {
     };
   }, []);
 
-  const handleDemoClick = () => {
+  const handleDemoClick = async () => {
+    const demoData = await (await fetch('/data/demoData.json')).json();
     setDemoMode(true);
     localStorage.setItem("demoMode", "true");
     setIDs({
@@ -974,7 +978,7 @@ export default function LoginPage() {
         } else if (key === "t") {
           e.preventDefault();
           setTheme(theme === "dark" ? "light" : "dark");
-          reloadAfterThemeChange();
+
         }
       }
     };
@@ -1263,7 +1267,7 @@ export default function LoginPage() {
         onSelect: () => {
           if (theme === option.id) return;
           setTheme(option.id);
-          reloadAfterThemeChange();
+
         },
       });
     });
@@ -2092,6 +2096,7 @@ export default function LoginPage() {
   ]);
 
   return (
+    <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
     <>
       <AnimatePresence mode="wait">
         {isLoading && (
@@ -2105,12 +2110,12 @@ export default function LoginPage() {
         )}
       </AnimatePresence>
       {!isLoading && (
-        <motion.div
+        <m.div
           className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
         >
       <AnimatePresence>
         {isAPIworking && !isOffline && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -2136,7 +2141,7 @@ export default function LoginPage() {
                 <X size={14} />
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       {showReloadBanner && (
@@ -2279,8 +2284,8 @@ export default function LoginPage() {
             setVitolData={setVitolData}
             settings={settings}
             setSettings={setSettings}
-            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-            onOpenShortcutsHelp={() => setIsShortcutsHelpOpen(true)}
+            onOpenCommandPalette={openCommandPalette}
+            onOpenShortcutsHelp={openShortcutsHelp}
           />
             </>
           )}
@@ -2301,9 +2306,10 @@ export default function LoginPage() {
       {isShortcutsHelpOpen && (
         <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
       )}
-        </motion.div>
+        </m.div>
       )}
     </>
+    </LazyMotion>
   );
 }
 

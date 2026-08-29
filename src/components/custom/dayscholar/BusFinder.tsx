@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui";
 import { Search, MapPin, Phone, MessageCircle, ChevronRight, Clock, Shield } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import Modal from "../shared/Modal";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -45,7 +45,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
         <AnimatePresence mode="popLayout">
           {filteredBuses.length > 0 ? (
             filteredBuses.map((bus, index) => (
-              <motion.div
+              <m.div
                 layout
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -85,10 +85,10 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
 
 
                 </Card>
-              </motion.div>
+              </m.div>
             ))
           ) : (
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -99,7 +99,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
                 title="No buses found"
                 description={`We couldn't find any buses matching "${searchQuery}". Try a different route, stop, or driver name.`}
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

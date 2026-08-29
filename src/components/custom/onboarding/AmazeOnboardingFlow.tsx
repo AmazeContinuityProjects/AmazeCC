@@ -6,7 +6,7 @@ import {
   Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, ChevronDown, 
   Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
 import { fetchGitHubCommits } from "@/lib/githubChangelog";
 import buildInfo from "../../../data/buildInfo.json";
@@ -341,7 +341,7 @@ export default function AmazeOnboardingFlow({
           
           {/* ──── STEP 0: WELCOME, SEMESTER & CAMPUS/BUS RESIDENCY ──── */}
           {step === 0 && !isStandaloneInterfacePicker && (
-            <motion.div
+            <m.div
               key="step-profile"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -459,12 +459,12 @@ export default function AmazeOnboardingFlow({
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* ──── STEP 1: CHOOSE YOUR INTERFACE (ISLAND CAROUSEL WITH DYNAMIC ASPECT RATIO) ──── */}
           {(step === 1 || isStandaloneInterfacePicker) && (
-            <motion.div
+            <m.div
               key="step-interface"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -524,7 +524,7 @@ export default function AmazeOnboardingFlow({
                     }}
                   >
                     <AnimatePresence mode="wait">
-                      <motion.div
+                      <m.div
                         key={currentOption.id}
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -607,17 +607,17 @@ export default function AmazeOnboardingFlow({
                             )}
                           </div>
                         )}
-                      </motion.div>
+                      </m.div>
                     </AnimatePresence>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* ──── STEP 2: PERSONALIZATION, AVATAR & GOALS ──── */}
           {step === 2 && !isStandaloneInterfacePicker && (
-            <motion.div
+            <m.div
               key="step-personalization"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -766,12 +766,12 @@ export default function AmazeOnboardingFlow({
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* ──── STEP 3: CUSTOMIZE BOTTOM NAVIGATION TABS ──── */}
           {step === 3 && !isStandaloneInterfacePicker && (
-            <motion.div
+            <m.div
               key="step-bottomnav"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -849,12 +849,12 @@ export default function AmazeOnboardingFlow({
                   })}
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* ──── STEP 4: SMART NOTIFICATIONS & READY ──── */}
           {step === 4 && !isStandaloneInterfacePicker && (
-            <motion.div
+            <m.div
               key="step-notifications"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -922,7 +922,7 @@ export default function AmazeOnboardingFlow({
                   </div>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </main>

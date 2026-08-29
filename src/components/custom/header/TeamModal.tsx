@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Users, Github, Linkedin, ChevronLeft } from 'lucide-react';
 import teamData from '../../../data/team.json';
 
@@ -8,7 +8,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
 
     return (
         <AnimatePresence>
-            <motion.div 
+            <m.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
@@ -57,7 +57,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {sortedMembers.map((member, idx) => (
-                                                <motion.div 
+                                                <m.div 
                                                     key={idx}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
@@ -91,7 +91,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
                                                             )}
                                                         </div>
                                                     </div>
-                                                </motion.div>
+                                                </m.div>
                                             ))}
                                         </div>
                                     </div>
@@ -100,7 +100,7 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </m.div>
         </AnimatePresence>
     );
 }

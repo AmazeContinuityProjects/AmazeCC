@@ -32,7 +32,7 @@ import {
   Minimize2,
   GripVertical
 } from "lucide-react";
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { m, AnimatePresence, Reorder } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import TabHelpFooter from "../shared/TabHelpFooter";
@@ -1590,7 +1590,7 @@ export default function MobileHome({
       {/* ── CUSTOMIZATION PANEL (Clean & Intuitive) ── */}
       <AnimatePresence>
         {showCustomizer && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -1716,7 +1716,7 @@ export default function MobileHome({
               </div>
 
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -1744,7 +1744,7 @@ export default function MobileHome({
               const isFull = w.span === "full";
 
               return (
-                <motion.div
+                <m.div
                   key={w.id}
                   layoutId={w.id}
                   initial={{ opacity: 0, y: 15 }}
@@ -1798,7 +1798,7 @@ export default function MobileHome({
                   <div className={showCustomizer ? "border border-indigo-200/80 dark:border-indigo-850 border-t-0 rounded-b-[24px] overflow-hidden" : ""}>
                     {element}
                   </div>
-                </motion.div>
+                </m.div>
               );
             });
           })()}

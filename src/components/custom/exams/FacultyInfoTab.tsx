@@ -21,7 +21,7 @@ import {
   Sparkles,
   School as SchoolIcon
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface School {
   id: string;
@@ -360,7 +360,7 @@ export default function FacultyInfoTab({
               STEP 1: SCHOOL SELECTION (COMPACT PILL CARDS GRID)
              ═══════════════════════════════════════════════════════ */}
           {!selectedSchool ? (
-            <motion.div
+            <m.div
               key="school-selection-view"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -467,12 +467,12 @@ export default function FacultyInfoTab({
                   </div>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           ) : (
             /* ═══════════════════════════════════════════════════════
                STEP 2: FACULTY DIRECTORY FOR SELECTED SCHOOL
                ═══════════════════════════════════════════════════════ */
-            <motion.div
+            <m.div
               key="faculty-directory-view"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -591,7 +591,7 @@ export default function FacultyInfoTab({
                   )}
                 </>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

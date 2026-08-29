@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { 
   Search, X, Sparkles, User, Calendar, BookOpen, CreditCard, Car, Home, Bus, 
   Plus, BarChart3, FileText, GraduationCap, TrendingUp, 
@@ -273,7 +273,7 @@ export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMo
         <div className="fixed inset-0" onClick={onClose} />
 
         {/* Modal Container */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.96, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
@@ -422,7 +422,7 @@ export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMo
               </div>
             </>
           )}
-        </motion.div>
+        </m.div>
       </div>
     </AnimatePresence>
   );

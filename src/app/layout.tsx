@@ -3,7 +3,12 @@ import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
 import type { Viewport, Metadata } from "next";
+import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import './globals.css';
+
+const geist = Geist({ weight: 'variable', subsets: ['latin'], display: 'swap', variable: '--font-geist' });
+const geistMono = Geist_Mono({ weight: 'variable', subsets: ['latin'], display: 'swap', variable: '--font-geist-mono' });
+const dmSans = DM_Sans({ weight: 'variable', style: ['normal', 'italic'], subsets: ['latin'], display: 'swap', variable: '--font-dm-sans' });
 
 export const viewport: Viewport = {
   themeColor: [
@@ -48,12 +53,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" suppressHydrationWarning className={`${geist.className} ${geistMono.className} ${dmSans.className}`}>
       <body
         suppressHydrationWarning
         className="antialiased font-sans"

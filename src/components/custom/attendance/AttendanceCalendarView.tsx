@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { getDay } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CheckCircle2, FileText, X } from "lucide-react";
 
 export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false }) {
@@ -76,7 +76,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
             {/* Calendar Grid */}
             <div className="w-full overflow-hidden rounded-xl border border-gray-200  dark:border-gray-800 bg-white  dark:bg-black shadow-sm">
                 <AnimatePresence mode="wait">
-                    <motion.div
+                    <m.div
                         key={activeIdx}
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -205,7 +205,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 );
                             })}
                         </div>
-                    </motion.div>
+                    </m.div>
                 </AnimatePresence>
             </div>
 
@@ -213,7 +213,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
             <AnimatePresence>
                 {selectedOverallDate && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 " onClick={() => setSelectedOverallDate(null)}>
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
@@ -252,7 +252,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                     );
                                 })}
                             </div>
-                        </motion.div>
+                        </m.div>
                     </div>
                 )}
             </AnimatePresence>
