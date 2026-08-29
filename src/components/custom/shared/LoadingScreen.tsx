@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Sparkles, ShieldCheck, Cpu } from "lucide-react";
 
 interface LoadingScreenProps {

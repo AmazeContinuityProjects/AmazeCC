@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl } from "@/lib/fetch-utils";
 import { 
   Loader2, 

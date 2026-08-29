@@ -21,7 +21,7 @@ import {
   Sparkles,
   School as SchoolIcon
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 interface School {
   id: string;

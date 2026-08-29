@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { 
   Search, X, Sparkles, User, Calendar, BookOpen, CreditCard, Car, Home, Bus, 
   Plus, BarChart3, FileText, GraduationCap, TrendingUp, 

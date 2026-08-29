@@ -31,7 +31,7 @@ import {
   Building,
   DoorOpen,
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";

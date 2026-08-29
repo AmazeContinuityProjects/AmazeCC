@@ -32,7 +32,7 @@ import {
   Minimize2,
   GripVertical
 } from "lucide-react";
-import { m, AnimatePresence, Reorder } from "framer-motion";
+import { AnimatePresence, Reorder, m } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import TabHelpFooter from "../shared/TabHelpFooter";

@@ -6,7 +6,7 @@ import {
   Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, ChevronDown, 
   Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
 import { fetchGitHubCommits } from "@/lib/githubChangelog";
 import buildInfo from "../../../data/buildInfo.json";

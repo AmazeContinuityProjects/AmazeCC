@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Sparkles, X, CheckCircle2, GitCommit } from "lucide-react";
 import { fetchGitHubCommits, GitHubCommit } from "@/lib/githubChangelog";
 import buildInfo from "../../data/buildInfo.json";

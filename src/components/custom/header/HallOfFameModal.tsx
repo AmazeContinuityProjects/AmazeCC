@@ -1,4 +1,4 @@
-import { m, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { X, Trophy, Github, Star, ExternalLink, ChevronLeft } from 'lucide-react';
 
 const credits = [

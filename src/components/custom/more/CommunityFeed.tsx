@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUp, Calendar, ExternalLink } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

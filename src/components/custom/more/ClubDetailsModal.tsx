@@ -1,4 +1,4 @@
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { API_BASE } from "../../custom/Main";

@@ -61,7 +61,7 @@ import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, Modal, useIsMobile } from "../shared";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 export type SectionId =
   | "profile"

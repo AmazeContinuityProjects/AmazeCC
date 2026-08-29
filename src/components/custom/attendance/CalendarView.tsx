@@ -4,7 +4,7 @@ import { eachDayOfInterval, endOfMonth, getDay, isSameDay } from "date-fns";
 import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Calendar as CalendarIcon, ChevronRight, BookOpen, EyeOff, Plus, CheckCircle2, Award, FileText, ListChecks, GraduationCap } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import ExamsScheduleDisplay from "../exams/ScheduleDisplay";
 import { MoodleUserPassForm } from "../exams/MoodleDisplay";
 import config from "../../../../config.json";

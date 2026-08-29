@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { getDay } from "date-fns";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText, X } from "lucide-react";
 
 export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false }) {

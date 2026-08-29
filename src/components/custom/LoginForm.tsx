@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { m, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { m, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import { 
   Eye, EyeOff, ArrowRight, Shield, Zap, Sparkles, ChevronLeft, Plus, 
   RotateCcw, Minus, Sun, Moon, Loader2, Server, ShieldAlert, 

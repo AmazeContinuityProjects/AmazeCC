@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui";
 import { Search, MapPin, Phone, MessageCircle, ChevronRight, Clock, Shield } from 'lucide-react';
-import { m, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import Modal from "../shared/Modal";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";

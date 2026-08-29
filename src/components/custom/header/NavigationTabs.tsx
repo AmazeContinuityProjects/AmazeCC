@@ -57,7 +57,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { 
   useTheme, 
   Sidebar, 

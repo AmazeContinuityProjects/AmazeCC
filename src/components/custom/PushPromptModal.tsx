@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
 import { API_BASE } from "@/components/custom/Main";
 

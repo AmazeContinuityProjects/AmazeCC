@@ -5,7 +5,7 @@ import { clearEventHubSession } from "@/lib/event-hub";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
-import { m, AnimatePresence } from "framer-motion";
+import { m } from "framer-motion";
 import EventHubSubpage from "./EventHubSubpage";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
