@@ -1,18 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Sparkles,
-  GraduationCap,
-  Sliders,
-  Target,
-  BarChart3,
-  RotateCcw,
-  BookOpen,
-  ArrowLeft,
-  Share2,
-  Check,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Sparkles } from "lucide-react";
 import SubpageLayout from "../shared/SubpageLayout";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
@@ -25,12 +14,11 @@ import AllCoursesMatrix from "./marks-predictor/AllCoursesMatrix";
 import AddCustomCourseModal from "./marks-predictor/AddCustomCourseModal";
 
 import {
-  PredictorAssessment,
-  CoursePredictionResult,
+  type PredictorAssessment,
+  type CoursePredictionResult,
   computeCoursePrediction,
   createPredictorAssessmentsFromVTOP,
   safeNumber,
-  PRESET_REGIMENS,
 } from "@/lib/marksPredictor";
 
 import {
@@ -39,8 +27,7 @@ import {
   resetCoursePredictorState,
   getCustomCourses,
   saveCustomCourse,
-  deleteCustomCourse,
-  CustomCourseMock,
+  type CustomCourseMock,
 } from "@/lib/marksPredictorStorage";
 
 interface MarksPredictorTabProps {
@@ -420,11 +407,11 @@ export default function MarksPredictorTab({
       title="Marks Predictor & Simulator"
       onBack={() => setActiveSubTab && setActiveSubTab("overview")}
     >
-      <div className="space-y-6 pb-20 max-w-7xl mx-auto animate-fadeIn">
-        {/* Page Header */}
+      <div className="w-full max-w-3xl mx-auto space-y-3.5 pb-12 animate-in fade-in duration-200 text-left select-none overflow-hidden">
+        {/* Page Header — mirrors SimplifiedAcademicsPage philosophy: minimal, single row */}
         <PageHeader
           icon={<Sparkles className="w-5 h-5 text-indigo-500" />}
-          title="Marks Predictor & Regimen Simulator"
+          title="Marks Predictor & Simulator"
           meta={
             <Badge
               variant="default"
@@ -463,19 +450,21 @@ export default function MarksPredictorTab({
 
         {/* View Mode 2: Individual Course Predictor */}
         {viewMode === "individual" && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Hero Card with Gauge, Deficit, Ceiling */}
-            <CoursePredictorHero
-              prediction={activePrediction}
-              onOpenRegimenEditor={() => setIsRegimenEditorOpen(true)}
-              onResetCourse={handleResetCourse}
-              onScrollToSimulator={() => {}}
-              onScrollToTargetSolver={() => {}}
-            />
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            {/* Hero Card with Gauge, Deficit, Ceiling — compact, no overflow */}
+            <div className="overflow-hidden">
+              <CoursePredictorHero
+                prediction={activePrediction}
+                onOpenRegimenEditor={() => setIsRegimenEditorOpen(true)}
+                onResetCourse={handleResetCourse}
+                onScrollToSimulator={() => {}}
+                onScrollToTargetSolver={() => {}}
+              />
+            </div>
 
-            {/* Assessment Regimen Editor Modal/Drawer */}
+            {/* Assessment Regimen Editor Modal/Drawer — constrained, scrolls inside, never overflows viewport */}
             {isRegimenEditorOpen && (
-              <div className="animate-fadeIn">
+              <div className="animate-in fade-in duration-200 overflow-hidden">
                 <AssessmentRegimenEditor
                   courseCode={activeCourseMeta.courseCode}
                   isEmbedded={activePrediction.isEmbedded}
@@ -490,19 +479,19 @@ export default function MarksPredictorTab({
             )}
 
             {/* Target Grade & FAT Solver */}
-            <TargetGradeSolver prediction={activePrediction} />
+            <div className="overflow-hidden">
+              <TargetGradeSolver prediction={activePrediction} />
+            </div>
 
-            {/* What-If Scenario Simulator */}
-            <div className="p-5 sm:p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white font-outfit">
-                    Interactive What-If Marks Simulator
-                  </h3>
-                  <p className="text-xs text-zinc-400 font-medium">
-                    Drag sliders or input test marks to simulate hypothetical final outcomes
-                  </p>
-                </div>
+            {/* What-If Scenario Simulator — mirrors SimplifiedAcademicsPage pill: rounded-[22px], tighter padding */}
+            <div className="p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs space-y-3 overflow-hidden">
+              <div className="flex flex-col gap-1 min-w-0">
+                <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit truncate">
+                  Interactive What-If Marks Simulator
+                </h3>
+                <p className="text-[11px] text-zinc-400 font-medium leading-snug">
+                  Drag sliders or input test marks to simulate hypothetical final outcomes
+                </p>
               </div>
 
               <WhatIfSimulator

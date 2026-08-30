@@ -5,8 +5,7 @@ import {
   solveTargetFAT,
   estimateGrade,
   normalizeWeights,
-  PRESET_REGIMENS,
-  PredictorAssessment,
+  type PredictorAssessment,
 } from "../lib/marksPredictor";
 
 describe("Marks Predictor Calculation Engine", () => {

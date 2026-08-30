@@ -101,14 +101,14 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
     name: "Theory: 2 CATs + 3 DAs + FAT (Standard)",
     category: "theory",
     component: "theory",
-    description: "Standard Theory: CAT-1 (15%), CAT-2 (15%), 3 Digital Assignments / Quizzes (10% each), FAT (40%)",
+    description: "Standard Theory: CAT-1 (15%), CAT-2 (15%), 3 DAs / Quizzes (10% each), FAT (40%)",
     items: [
       { title: "CAT - I", maxMark: 50, weightagePercent: 15 },
       { title: "CAT - II", maxMark: 50, weightagePercent: 15 },
-      { title: "Digital Assignment - 1", maxMark: 10, weightagePercent: 10 },
-      { title: "Digital Assignment - 2", maxMark: 10, weightagePercent: 10 },
-      { title: "Digital Assignment - 3", maxMark: 10, weightagePercent: 10 },
-      { title: "Final Assessment Test (FAT)", maxMark: 100, weightagePercent: 40 },
+      { title: "DA - 1", maxMark: 10, weightagePercent: 10 },
+      { title: "DA - 2", maxMark: 10, weightagePercent: 10 },
+      { title: "DA - 3", maxMark: 10, weightagePercent: 10 },
+      { title: "FAT", maxMark: 100, weightagePercent: 40 },
     ],
   },
   {
@@ -120,11 +120,11 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
     items: [
       { title: "CAT - I", maxMark: 50, weightagePercent: 15 },
       { title: "CAT - II", maxMark: 50, weightagePercent: 15 },
-      { title: "Digital Assignment - 1", maxMark: 10, weightagePercent: 10 },
-      { title: "Digital Assignment - 2", maxMark: 10, weightagePercent: 10 },
+      { title: "DA - 1", maxMark: 10, weightagePercent: 10 },
+      { title: "DA - 2", maxMark: 10, weightagePercent: 10 },
       { title: "Quiz - I", maxMark: 10, weightagePercent: 5 },
       { title: "Quiz - II", maxMark: 10, weightagePercent: 5 },
-      { title: "Final Assessment Test (FAT)", maxMark: 100, weightagePercent: 40 },
+      { title: "FAT", maxMark: 100, weightagePercent: 40 },
     ],
   },
   {
@@ -144,7 +144,7 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
       { title: "Lab Experiment - 8", maxMark: 100, weightagePercent: 6 },
       { title: "Lab Experiment - 9", maxMark: 100, weightagePercent: 6 },
       { title: "Lab Experiment - 10", maxMark: 100, weightagePercent: 6 },
-      { title: "Lab Final Assessment Test (FAT)", maxMark: 50, weightagePercent: 40 },
+      { title: "Lab FAT", maxMark: 50, weightagePercent: 40 },
     ],
   },
   {
@@ -159,7 +159,7 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
       { title: "PAT - III", maxMark: 50, weightagePercent: 15 },
       { title: "PAT - IV", maxMark: 50, weightagePercent: 10 },
       { title: "Assignment & Record Completion", maxMark: 100, weightagePercent: 10 },
-      { title: "Lab Final Assessment Test (FAT)", maxMark: 50, weightagePercent: 40 },
+      { title: "Lab FAT", maxMark: 50, weightagePercent: 40 },
     ],
   },
   {
@@ -174,7 +174,7 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
       { title: "Assessment - 3", maxMark: 10, weightagePercent: 12 },
       { title: "Assessment - 4", maxMark: 10, weightagePercent: 12 },
       { title: "Assessment - 5", maxMark: 10, weightagePercent: 12 },
-      { title: "Lab Final Assessment Test (FAT)", maxMark: 50, weightagePercent: 40 },
+      { title: "Lab FAT", maxMark: 50, weightagePercent: 40 },
     ],
   },
   {
@@ -200,7 +200,7 @@ export const PRESET_REGIMENS: RegimenPreset[] = [
       { title: "Assessment - 2", maxMark: 15, weightagePercent: 15 },
       { title: "CAT - I", maxMark: 30, weightagePercent: 15 },
       { title: "CAT - II", maxMark: 30, weightagePercent: 15 },
-      { title: "Final Assessment Test", maxMark: 50, weightagePercent: 40 },
+      { title: "FAT", maxMark: 50, weightagePercent: 40 },
     ],
   },
 ];
@@ -518,10 +518,10 @@ export const solveTargetFAT = ({
   const isAchievable = rawScore <= fatMaxMark;
   
   // VIT FAT Minimum Passing Criteria: Student must score at least 40% in FAT (i.e. 40/100 or 20/50 or 16/40 wt)
-  const meetsVITMinimumCutoff = rawScore >= (0.40 * fatMaxMark);
+  const meetsVITMinimumCutoff = rawScore >= 0.4 * fatMaxMark;
 
-  let feasibility: TargetFATSolverResult["feasibility"] = "moderate";
-  let feasibilityMessage = "";
+  let feasibility: TargetFATSolverResult["feasibility"];
+  let feasibilityMessage: string;
 
   if (isAlreadyAchieved) {
     feasibility = "secured";
@@ -614,7 +614,7 @@ export const createPredictorAssessmentsFromVTOP = (
     const missingWeight = Math.max(10, 100 - totalWeight);
     parsed.push({
       id: `${component}-auto-fat`,
-      title: component === "lab" ? "Lab Final Assessment Test (FAT)" : "Final Assessment Test (FAT)",
+      title: component === "lab" ? "Lab FAT" : "FAT",
       maxMark: component === "lab" ? 50 : 100,
       weightagePercent: missingWeight,
       scoredMark: null,
