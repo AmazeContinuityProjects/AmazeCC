@@ -1,4 +1,4 @@
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 
 export async function syncPastSemesters(allGradesData: any, creds: any): Promise<void> {
   if (!allGradesData?.grades || !creds) return;
@@ -21,16 +21,16 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
     if (!localStorage.getItem(attKey) || !localStorage.getItem(marksKey)) {
       console.log(`Fetching frozen data for past semester: ${semId}`);
       try {
-        const res = await fetch(`${API_BASE}/api/attendance`, {
+        const res = (await api("attendance", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             cookies: creds.cookies,
             authorizedID: creds.authorizedID,
             csrf: creds.csrf,
             semesterId: semId,
-          }),
-        });
+          },
+          parse: "raw",
+        })) as Response;
 
         if (res.ok) {
           const data = await res.json();

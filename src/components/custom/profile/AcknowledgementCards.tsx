@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import { FileText } from "lucide-react";
 
 const cardBase = "solid-card";
@@ -28,10 +28,10 @@ export default function AcknowledgementCards({ creds, refreshKey }: { creds: any
     }
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/acknowledgement`, {
+    api("acknowledgement", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cookies, authorizedID, csrf }),
-    }).then(r => r.json()).then(setData).catch(() => {}).finally(() => setLoading(false));
+    }).then(setData).catch(() => {}).finally(() => setLoading(false));
   }, [refreshKey, creds]);
 
   if (loading) {

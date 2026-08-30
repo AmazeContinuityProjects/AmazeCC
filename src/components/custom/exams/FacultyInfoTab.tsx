@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { 
@@ -61,8 +61,8 @@ const FacultyCard = ({
   useEffect(() => {
     if (expanded && !profile.email && profile.employeeId) {
       setLoading(true);
-      fetch(`/api/faculty-profile/${profile.employeeId}`)
-        .then(async (r) => (r.ok ? r.json() : { success: false }))
+      api(`faculty-profile/${profile.employeeId}`, { parse: "raw" })
+        .then(async (r: any) => (r.ok ? r.json() : { success: false }))
         .then((data) => {
           if (data?.success && data.profile) {
             onDetailFetched({
@@ -231,8 +231,8 @@ export default function FacultyInfoTab({
 
   // Fetch school list on mount (do NOT auto-select so user can pick from pill cards)
   useEffect(() => {
-    fetch(`${API_BASE}/api/faculty/schools`)
-      .then(async (r) => {
+    api("faculty/schools", { parse: "raw" })
+      .then(async (r: any) => {
         if (!r.ok) {
           throw new Error(`Failed to load schools: API returned ${r.status}`);
         }
@@ -257,11 +257,12 @@ export default function FacultyInfoTab({
     setSearchTerm("");
 
     try {
-      const res = await fetch(`${API_BASE}/api/faculty/scrape`, {
+      const res = await api("faculty/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schoolId }),
-      });
+        body: { schoolId },
+        parse: "raw",
+      }) as Response;
       if (!res.ok) {
         throw new Error(`Failed to fetch faculty list: API returned ${res.status}`);
       }

@@ -2,6 +2,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, CalendarDays, MapPin, DollarSign, X, Sparkles, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/sync-engine";
+import { eventhubImageUrl } from "@/lib/eventhub";
 
 interface EventItem {
   title?: string;
@@ -26,7 +28,6 @@ interface EventItem {
 }
 
 interface EventSearchPaletteProps {
-  apiBase: string;
 }
 
 const badge = {
@@ -108,7 +109,7 @@ function mergeEvents(events: EventItem[]): EventItem[] {
   return [...Array.from(byEid.values()), ...Array.from(byName.values()), ...unnamed];
 }
 
-export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps) {
+export default function EventSearchPalette() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "registered" | "discover">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -153,13 +154,13 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
       setLoading(false);
       return;
     }
-    fetch(`${apiBase}/api/events`).then(r => r.json()).then(data => {
+    api("events").then((data: any) => {
       if (cancelled) return;
       setEventHubEvents(Array.isArray(data) ? data : []);
       setLoading(false);
     }).catch(() => { if (!cancelled) { setEventHubEvents([]); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -193,21 +194,16 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
       }, 100);
       return;
     }
-    fetch(`${apiBase}/api/events/preview`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, eid: selectedEvent.eid }),
-    }).then(async r => {
-      if (cancelled) return;
-      if (!r.ok) { setPreviewError(`Preview fetch failed (${r.status})`); setPreviewLoading(false); return; }
-      const data = await r.json();
-      if (cancelled) return;
-      if (data?.imageSrc || data?.description) setPreviewData({ imageSrc: data.imageSrc, description: data.description });
-      else setPreviewError("No poster or description available");
-      setPreviewLoading(false);
-    }).catch(() => { if (!cancelled) { setPreviewError("Network error fetching poster"); setPreviewLoading(false); } });
+    api("events/preview", { method: "POST", body: { username, password, eid: selectedEvent.eid } })
+      .then((data: any) => {
+        if (cancelled) return;
+        if (data?.imageSrc || data?.description) setPreviewData({ imageSrc: data.imageSrc, description: data.description });
+        else setPreviewError("No poster or description available");
+        setPreviewLoading(false);
+      })
+      .catch(() => { if (!cancelled) { setPreviewError("Network error fetching poster"); setPreviewLoading(false); } });
     return () => { cancelled = true; };
-  }, [selectedEvent?.eid, apiBase]);
+  }, [selectedEvent?.eid]);
 
   const totalCount = (registeredEvents?.length || 0) + (eventHubEvents?.length || 0);
   const tabs = [
@@ -275,7 +271,7 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
   }, [results, safeIndex, selectedEvent, activeTab, query, tabs]);
 
   const getTitle = (e: EventItem) => e.title || e.name || "Untitled Event";
-  const posterSrc = previewData?.imageSrc || selectedEvent?.posterUrl || "";
+  const posterSrc = selectedEvent?.eid ? eventhubImageUrl(selectedEvent.eid) : "";
   const [posterFailed, setPosterFailed] = useState(false);
   const [showEnlarged, setShowEnlarged] = useState(false);
   useEffect(() => { setPosterFailed(false); }, [posterSrc]);
@@ -483,9 +479,9 @@ export default function EventSearchPalette({ apiBase }: EventSearchPaletteProps)
                   : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
               )}
             >
-              {ev.posterUrl ? (
+              {ev.eid ? (
                 <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-sm ring-1 ring-black/5">
-                  <img src={ev.posterUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <img src={eventhubImageUrl(ev.eid)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </span>
               ) : (
                 <span className={cn(

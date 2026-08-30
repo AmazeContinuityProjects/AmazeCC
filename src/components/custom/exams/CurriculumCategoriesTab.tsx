@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw, BookOpen, Award, ChevronDown, ChevronRight, Layers, Download, Loader2 } from "lucide-react";
@@ -70,12 +70,11 @@ export default function CurriculumCategoriesTab({ loginToVTOP }: CurriculumCateg
         }
       }
       const { cookies, authorizedID, csrf } = c;
-      const res = await fetch(`${API_BASE}/api/curriculum`, {
+      const result = await api("curriculum", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
+        body: { cookies, authorizedID, csrf },
       });
-      const result = await res.json();
       if (result.success === false) setError(result.error || "Failed to load");
       else {
         setData(result);
@@ -106,12 +105,13 @@ export default function CurriculumCategoriesTab({ loginToVTOP }: CurriculumCateg
         return; 
       }
     }
-    const c = creds || await loginToVTOP();
+      const c = creds || await loginToVTOP();
     try {
-      const res = await fetch(`${API_BASE}/api/curriculum/download`, {
+      const res = await api("curriculum/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf }),
+        body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf },
+        parse: "raw",
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: res.statusText }));
@@ -143,10 +143,11 @@ export default function CurriculumCategoriesTab({ loginToVTOP }: CurriculumCateg
     }
     const c = creds || await loginToVTOP();
     try {
-      const res = await fetch(`${API_BASE}/api/curriculum/syllabus`, {
+      const res = await api("curriculum/syllabus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf, courseCode }),
+        body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf, courseCode },
+        parse: "raw",
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: res.statusText }));

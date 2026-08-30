@@ -8,6 +8,7 @@ import AcademicsHub from "./exams/AcademicsHub";
 import TestGradesContainer from "./exams/TestGradesContainer";
 import CurriculumPage from "./exams/CurriculumPage";
 import GPAPredictorTab from "./exams/GPAPredictorTab";
+import MarksPredictorTab from "./exams/MarksPredictorTab";
 import MessDisplay from "./hostel/MessDisplay";
 import LaundryDisplay from "./hostel/LaundryDisplay";
 import CalendarView from "./attendance/CalendarView";
@@ -23,7 +24,7 @@ import SimplifiedMobileHome from "./mobile/SimplifiedMobileHome";
 import AmazeOnboardingFlow, { InterfaceOptionId } from "./onboarding/AmazeOnboardingFlow";
 import AboutTab from "./AboutTab";
 
-import { API_BASE } from "./Main";
+import { api } from "@/lib/sync-engine";
 import CourseDashboard from "./exams/CourseDashboard";
 import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
 import ToolsTab from "./tools/ToolsTab";
@@ -205,9 +206,8 @@ function DashboardContent({
   }, [demoMode]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/fresher-resources`)
-      .then(r => r.json())
-      .then(data => { if (data.success && data.resources) setFresherResources(data.resources); })
+    api("fresher-resources")
+      .then((data: any) => { if (data?.success && data.resources) setFresherResources(data.resources); })
       .catch(() => {});
   }, []);
 
@@ -320,8 +320,7 @@ function DashboardContent({
   const refreshTransportBuses = useCallback(async () => {
     setTransportBusesLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/buses`);
-      const data = await res.json();
+      const data = await api("buses") as any;
       if (data.success) {
         setTransportBuses(data.buses);
         setDayscholarBuses(data.buses);
@@ -407,13 +406,10 @@ function DashboardContent({
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const AllGradesRes = await fetch(`${API_BASE}/api/all-grades`, {
+      const AllGradesData = await api("all-grades", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-      });
-
-      const AllGradesData = await AllGradesRes.json();
+        body: { cookies, authorizedID, csrf },
+      }) as any;
       setProgressBar((prev) => prev + 40);
 
       setAllGradesData(AllGradesData);
@@ -444,18 +440,10 @@ function DashboardContent({
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const calenderRes = await fetch(`${API_BASE}/api/calendar`, {
+      const CalenderRes = await api("calendar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cookies: cookies,
-          authorizedID, csrf,
-          type: FncalendarType || "ALL",
-          semesterId: settings.currSemesterID
-        }),
-      });
-
-      const CalenderRes = await calenderRes.json();
+        body: { cookies, authorizedID, csrf, type: FncalendarType || "ALL", semesterId: settings.currSemesterID },
+      }) as any;
       setProgressBar((prev) => prev + 40);
 
       setCalender(CalenderRes);
@@ -480,13 +468,10 @@ function DashboardContent({
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const gradesRes = await fetch(`${API_BASE}/api/grades`, {
+      const gradesData = await api("grades", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
-      });
-
-      const gradesData = await gradesRes.json();
+        body: { cookies, authorizedID, csrf, semesterId: settings.currSemesterID },
+      }) as any;
       setProgressBar((prev) => prev + 40);
 
       setGradesData(gradesData);
@@ -509,12 +494,10 @@ function DashboardContent({
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
-      const HostelRes = await fetch(`${API_BASE}/api/hostel`, {
+      const HostelData = await api("hostel", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: cookies, authorizedID, csrf }),
-      });
-      const HostelData = await HostelRes.json();
+        body: { cookies, authorizedID, csrf },
+      }) as any;
       setProgressBar((prev) => prev + 40);
       sethostelData(HostelData);
       localStorage.setItem("hostel", JSON.stringify(HostelData));
@@ -538,13 +521,10 @@ function DashboardContent({
     setProgressBar(20);
     setMessage("Fetching Moodle data...");
     try {
-      const moodleRes = await fetch(`${API_BASE}/api/lms-data`, {
+      const moodleData = await api("lms-data", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, pass }),
-      });
-
-      const moodleData = await moodleRes.json();
+        body: { username, pass },
+      }) as any;
       setProgressBar((prev) => prev + 40);
 
       const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
@@ -953,6 +933,15 @@ function DashboardContent({
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
+              )}
+              {activeSubTab === "marks-predictor" && (
+                <div className="animate-fadeIn">
+                  <MarksPredictorTab
+                    marksData={marksData}
+                    attendance={attendanceData?.attendance}
+                    setActiveSubTab={setActiveSubTab}
+                  />
+                </div>
               )}
             </div>
           )}

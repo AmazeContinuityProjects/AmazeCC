@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { Car, MapPin, Clock, Clock3, Users } from "lucide-react";
 import { getLocalTrips } from "./cabShareFallback";
 
@@ -53,8 +53,8 @@ export default function CabShareMatchCard() {
       const user = JSON.parse(userStr);
       if (!user || !user.reg_number) return;
       
-      fetch(`${API_BASE}/api/cabshare/trips/me?reg_number=${user.reg_number}`)
-        .then(res => res.json())
+      api(`cabshare/trips/me?reg_number=${user.reg_number}`, { parse: "raw" })
+        .then((res) => (res as Response).json())
         .then(data => {
           if (data.success) {
             // Accepted match (confirmed ride)

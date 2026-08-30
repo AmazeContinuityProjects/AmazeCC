@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw, FileText, ChevronRight, ChevronDown, FolderOpen, File, Download, X, Bell } from "lucide-react";
@@ -42,11 +42,12 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
   const downloadCircular = useCallback(async (id: string, title: string) => {
     if (!creds) return;
     try {
-      const res = await fetch(`${API_BASE}/api/circulars/download`, {
+      const res = await api("circulars/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, circularId: id }),
-      });
+        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, circularId: id },
+        parse: "raw",
+      }) as Response;
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -152,12 +153,11 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
     setError(null);
     try {
       const { cookies, authorizedID, csrf } = c;
-      const res = await fetch(`${API_BASE}/api/circulars`, {
+      const result = await api("circulars", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      });
-      const result = await res.json();
+        body: { cookies, authorizedID, csrf },
+      }) as any;
       if (result.success === false) setError(result.error || "Failed to load");
       else {
         setData(result);

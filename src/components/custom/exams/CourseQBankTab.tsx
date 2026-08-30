@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FileText, BookOpen, UploadCloud, AlertCircle } from "lucide-react";
 import { LoadingSpinner } from "../shared";
 import EmptyState from "../shared/EmptyState";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import ExamQuestion from "../qbank/ExamQuestion";
 import FetchButton from "../shared/FetchButton";
 
@@ -28,14 +28,14 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
     const fetchData = async () => {
       try {
         setError(null);
-        const papersRes = await fetch(`${API_BASE}/api/qbank/papers?course=${encodeURIComponent(courseCode)}`);
+        const papersRes = await api(`qbank/papers?course=${encodeURIComponent(courseCode)}`, { parse: "raw" });
         if (!papersRes.ok) throw new Error("Failed to fetch papers");
         const papersJson = await papersRes.json();
         const papersData = papersJson.success ? papersJson.data : [];
         if (!isMounted) return;
         setPapers(papersData);
 
-        const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=${encodeURIComponent(courseCode)}`);
+        const questionsRes = await api(`qbank/questions?course=${encodeURIComponent(courseCode)}`, { parse: "raw" });
         if (!questionsRes.ok) throw new Error("Failed to fetch questions");
         const questionsJson = await questionsRes.json();
         if (isMounted) setQuestions(questionsJson.success ? questionsJson.data : []);
@@ -75,10 +75,11 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
         isAdmin: false
       };
 
-      const res = await fetch(`${API_BASE}/api/qbank/upload`, {
+      const res = await api("qbank/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
+        parse: "raw",
       });
 
       const json = await res.json();

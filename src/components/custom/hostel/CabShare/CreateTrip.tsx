@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { Loader2, Calendar as CalendarIcon, Clock, MapPin, Users, CheckCircle2, MessageSquareText, SlidersHorizontal, ArrowRight } from "lucide-react";
 import { createLocalTrip, fallbackHubs, readJsonResponse, dedupeHubs } from "./cabShareFallback";
 
@@ -27,8 +27,8 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
   const fetchHubs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
-      const data = await readJsonResponse(res);
+      const res = await api("cabshare/hubs", { parse: "raw" });
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         const unique = dedupeHubs(data.hubs, fallbackHubs);
         setHubs(unique);
@@ -87,12 +87,11 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/trips`, {
+      const res = await api("cabshare/trips", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: payload
       });
-      const data = await readJsonResponse(res);
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         onTripCreated();
       } else {

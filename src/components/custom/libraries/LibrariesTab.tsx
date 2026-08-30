@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import { LoadingSpinner } from "../shared";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw, BookOpen, Search, ChevronLeft, ChevronRight, User, LogOut, Library } from "lucide-react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 
 interface LibrariesTabProps {
   loginToVTOP: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
@@ -65,8 +65,7 @@ function BookSearch({ isDemo }: { isDemo?: boolean }) {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/koha/search?q=${encodeURIComponent(q)}&idx=${index}&offset=${off}&count=20`);
-      const data = await res.json();
+      const data = (await api(`koha/search?q=${encodeURIComponent(q)}&idx=${index}&offset=${off}&count=20`)) as any;
       if (data.success) {
         setBooks(data.books || []);
         setTotal(data.total || 0);
@@ -103,8 +102,7 @@ function BookSearch({ isDemo }: { isDemo?: boolean }) {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/koha/detail?biblionumber=${biblionumber}`);
-      const data = await res.json();
+      const data = (await api(`koha/detail?biblionumber=${biblionumber}`)) as any;
       if (data.success) {
         setDetailBook(data.book);
       } else {
@@ -339,12 +337,10 @@ function KohaPatronPage({ onBack, isDemo }: { onBack: () => void; isDemo?: boole
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/koha/patron`, {
+      const data = (await api("koha/patron", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card: c.trim(), password: p }),
-      });
-      const data = await res.json();
+        body: { card: c.trim(), password: p },
+      })) as any;
       if (data.success) {
         setPatronData(data.data);
         setLoggedIn(true);

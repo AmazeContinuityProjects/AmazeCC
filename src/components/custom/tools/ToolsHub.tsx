@@ -13,6 +13,7 @@ import {
   Search,
   CalendarCheck,
   Layers,
+  Sparkles,
 } from "lucide-react";
 
 interface ToolsHubProps {
@@ -49,6 +50,14 @@ export default function ToolsHub({
       subtitle: "Directory, cabins & direct contact details",
       category: "academic",
       icon: UserCheck,
+      iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
+    },
+    {
+      id: "marks-predictor",
+      title: "Marks Predictor",
+      subtitle: "Simulate test marks, weightage lost & FAT targets",
+      category: "academic",
+      icon: Sparkles,
       iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
     },
     {

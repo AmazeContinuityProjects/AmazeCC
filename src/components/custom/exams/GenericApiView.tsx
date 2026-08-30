@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { ChevronDown, Inbox, Send } from "lucide-react";
 import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/shared";
@@ -124,12 +124,11 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
 
       const body: Record<string, any> = { cookies, authorizedID, csrf, ...(extraParams || {}) };
       if (semesterId) body.semesterId = semesterId;
-      const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      const result = await api(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body,
       });
-      const result = await res.json();
       if (result.success === false) {
         setError(result.error || result.message || "Failed to load data");
       } else {
@@ -196,12 +195,11 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
     setSubmitResult(null);
     try {
       const { cookies, authorizedID, csrf } = credsRef.current;
-      const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+      const result = await api(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf, formData: formValues }),
+        body: { cookies, authorizedID, csrf, formData: formValues },
       });
-      const result = await res.json();
       if (result.success === false) {
         setSubmitResult({ error: result.error || result.message || "Submission failed" });
       } else {

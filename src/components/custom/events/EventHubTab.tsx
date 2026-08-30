@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { API_BASE, loginToEventHub } from "../Main";
-import { clearEventHubSession } from "@/lib/event-hub";
+import { api, clearEventHubSession } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
+import { eventhubImageUrl } from "@/lib/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
 import { m } from "framer-motion";
 import EventHubSubpage from "./EventHubSubpage";
@@ -78,9 +78,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/events`);
-      if (!res.ok) throw new Error("Failed to fetch events");
-      const data: EventHubEvent[] = await res.json();
+      const data: EventHubEvent[] = (await api("events")) as EventHubEvent[];
       
       // Deduplicate by eid
       const uniqueEventsMap = new Map<string, EventHubEvent>();
@@ -156,23 +154,10 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     }
 
     try {
-      const jsessionid = await loginToEventHub(IDs, IDs?.VtopUsername === "demo");
-      if (!jsessionid) {
-        setPreviewError("Please save your VTOP credentials in the settings first.");
-        setPreviewLoading(false);
-        return;
-      }
-      const res = await fetch(`${API_BASE}/api/events/preview`, {
+      const data = (await api("events/preview", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsessionid,
-          eid: event.eid,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`Failed to load event preview (status: ${res.status})`);
-      const data = await res.json();
+        body: { eid: event.eid, username: IDs.VtopUsername, password: IDs.VtopPassword },
+      })) as EventHubPreview;
       setPreviewData(data);
     } catch (err: any) {
       setPreviewError(err.message || "Failed to load preview");
@@ -233,23 +218,10 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
 
     setRegisteredError("");
     try {
-      const jsessionid = await loginToEventHub(IDs, false);
-      if (!jsessionid) {
-        setRegisteredError("Failed to authenticate with Event Hub.");
-        return;
-      }
-      const res = await fetch(`${API_BASE}/api/events/profile`, {
+      const data = (await api("events/profile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsessionid })
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        let errMsg = "Failed to fetch registered events";
-        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
-        throw new Error(errMsg);
-      }
-      const data = await res.json();
+        body: { username: IDs.VtopUsername, password: IDs.VtopPassword },
+      })) as any;
       if (setRegisteredEvents) {
         setRegisteredEvents(data.events || []);
         localStorage.setItem("registeredEvents", JSON.stringify(data.events || []));
@@ -404,6 +376,15 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
               className="bg-white  dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
               onClick={() => openPreview(event)}
             >
+              <div className="mb-4 aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                <img
+                  src={eventhubImageUrl(event.eid)}
+                  alt={event.title}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }}
+                />
+              </div>
               <div>
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-bold text-lg text-gray-900  dark:text-white leading-tight">

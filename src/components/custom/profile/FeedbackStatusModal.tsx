@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Modal, Card, Badge } from "../shared";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import { XCircle, CheckCircle, Clock, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 
 interface Props {
@@ -27,13 +27,13 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
     loginToVTOP()
       .then((c) => {
         creds = c;
-        return fetch(`${API_BASE}/api/feedback-status`, {
+        return api("feedback-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf }),
-        }).then((r) => r.json());
+        });
       })
-      .then(async (initial) => {
+      .then(async (initial: any) => {
         if (initial.success === false) {
           setError(initial.error || "Failed to load feedback status");
           return;
@@ -49,16 +49,18 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
           semesterOptions
             .filter((s: any) => !s.selected)
             .map((s: any) =>
-              fetch(`${API_BASE}/api/feedback-status`, {
+              api("feedback-status", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: s.value }),
-              }).then((r) => r.json())
+              })
             )
         );
         results.forEach((res, i) => {
-          if (res.status === "fulfilled" && res.value?.success !== false) {
-            semList[semesterOptions.findIndex((s: any) => !s.selected) + i].rows = res.value.feedbackTable || [];
+          if (res.status !== "fulfilled") return;
+          const val = res.value as any;
+          if (val?.success !== false) {
+            semList[semesterOptions.findIndex((s: any) => !s.selected) + i].rows = val.feedbackTable || [];
           }
         });
         setSemesters(semList);

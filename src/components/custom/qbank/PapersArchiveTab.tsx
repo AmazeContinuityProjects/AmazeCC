@@ -5,7 +5,7 @@ import SearchInput from "../shared/SearchInput";
 import { LoadingSpinner } from "../shared";
 import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { useQBankCourses } from "./useQBankCourses";
 import { QBankCourse, QBankPaper, QBankQuestion } from "@/types/qbank.types";
@@ -34,16 +34,12 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
 
     try {
       // Fetch papers via API route
-      const papersRes = await fetch(`${API_BASE}/api/qbank/papers?course=` + encodeURIComponent(course.code));
-      if (!papersRes.ok) throw new Error("Failed to fetch papers");
-      const papersJson = await papersRes.json();
+      const papersJson = (await api("qbank/papers?course=" + encodeURIComponent(course.code))) as any;
       const papersData = papersJson.success ? papersJson.data : [];
       setPapers(papersData);
 
       // Fetch questions independently via API route
-      const questionsRes = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
-      if (!questionsRes.ok) throw new Error("Failed to fetch questions");
-      const questionsJson = await questionsRes.json();
+      const questionsJson = (await api("qbank/questions?course=" + encodeURIComponent(course.code))) as any;
       setQuestions(questionsJson.success ? questionsJson.data : []);
     } catch (err: any) {
       console.error(err);

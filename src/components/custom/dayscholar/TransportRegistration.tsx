@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import { Bus, MapPin, CreditCard, QrCode, ExternalLink, CheckCircle2, XCircle, Navigation, Loader2, Phone, Shield, Clock, ChevronRight } from "lucide-react";
 import { LoadingSpinner } from "../shared";
 
@@ -27,12 +27,10 @@ export default function TransportRegistration({ data, loading, loginToVTOP, buse
     setTracking(true);
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
-      const res = await fetch(`${API_BASE}/api/transport/track`, {
+      const result = (await api("transport/track", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf, busRouteId: data.busRouteId }),
-      });
-      const result = await res.json();
+        body: { cookies, authorizedID, csrf, busRouteId: data.busRouteId },
+      })) as any;
       if (result.busUrl) {
         window.open(result.busUrl, "_blank", "noopener,noreferrer");
       }

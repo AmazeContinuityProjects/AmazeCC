@@ -1,4 +1,4 @@
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 const getNumericValue = (value: any, fallback = 0) => {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
@@ -133,15 +133,15 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any, userna
 
         if (actions.length > 0) {
             const userHash = await hashString(username);
-            const res = await fetch(`${API_BASE}/api/marks/sync`, {
+            const res = (await api("marks/sync", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     actions,
                     userHash,
                     timestamp: Date.now()
-                })
-            });
+                },
+                parse: "raw"
+            })) as Response;
             if (res.ok) {
                 localStorage.setItem("hasSyncedMarksV2", "true");
             }

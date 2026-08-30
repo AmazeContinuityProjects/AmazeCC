@@ -4,7 +4,7 @@ import EmptyState from "../shared/EmptyState";
 import SearchInput from "../shared/SearchInput";
 import { LoadingSpinner } from "../shared";
 import ExamQuestion from "./ExamQuestion";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { useQBankCourses } from "./useQBankCourses";
 import { QBankCourse, QBankQuestion } from "@/types/qbank.types";
@@ -28,9 +28,7 @@ export default function PureQBankTab({ allGradesData, marksData, setActiveSubTab
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/qbank/questions?course=` + encodeURIComponent(course.code));
-      if (!res.ok) throw new Error("Failed to fetch questions");
-      const json = await res.json();
+      const json = (await api("qbank/questions?course=" + encodeURIComponent(course.code))) as any;
       if (json.success && json.data) {
         setQuestions(json.data);
       } else {

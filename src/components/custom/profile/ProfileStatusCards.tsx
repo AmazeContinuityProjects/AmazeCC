@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import {
   GraduationCap,
   ClipboardCheck,
@@ -64,40 +64,39 @@ export default function ProfileStatusCards({
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
     Promise.all([
-      fetch(`${API_BASE}/api/ept-schedule`, {
+      api("ept-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/registration-schedule`, {
+      }),
+      api("registration-schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/bank-info`, {
+      }),
+      api("bank-info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/dayboarder`, {
+      }),
+      api("dayboarder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/credentials`, {
+      }),
+      api("credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
-      }).then((r) => r.json()),
-      fetch(`${API_BASE}/api/apaarid`, {
+      }),
+      api("apaarid", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cookies, authorizedID, csrf }),
       })
-        .then((r) => r.json())
         .catch(() => ({ success: false })),
     ])
-      .then(([eptRes, regRes, bankRes, dayRes, credRes, apaarRes]) => {
+      .then(([eptRes, regRes, bankRes, dayRes, credRes, apaarRes]: any[]) => {
         setEpt(eptRes);
         setReg(regRes);
         setBank(bankRes);

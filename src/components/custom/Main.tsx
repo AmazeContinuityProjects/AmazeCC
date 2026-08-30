@@ -13,6 +13,7 @@ import {
   defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
+import CredentialEditorModal from "./CredentialEditorModal";
 import DashboardContent from "./Dashboard";
 import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
 import config from "../../../config.json";
@@ -29,14 +30,10 @@ import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard, WifiOff } from "lucide-react";
 import { getAssetPath } from "@/lib/utils";
-import { loginToVTOP as vtopLogin } from "@/lib/auth";
-import { fetchCoreData, fetchBulkEndpoints, fetchPastAttendance, fetchStudentProfile, fetchFresherData, fetchBusRoutes, fetchAttendanceAndMarks, fetchEventData } from "@/lib/data-fetchers";
+import { syncEngine, clearEventHubSession, api } from "@/lib/sync-engine";
+import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
-import { fetchWithTimeout, API_BASE, getRewrittenUrl } from "@/lib/fetch-utils";
 import { reportError } from "@/lib/error-utils";
-import { loginToEventHub, clearEventHubSession } from "@/lib/event-hub";
-
-export { API_BASE, loginToEventHub };
 
 const COLOR_PALETTES: Record<string, { accent: string; background?: string; surface?: string }> = {
   default: { accent: "" },
@@ -87,19 +84,19 @@ export default function LoginPage() {
   const [eventHubEvents, setEventHubEvents] = useAtom(eventHubEventsAtom);
   const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
+  const [credEditorOpen, setCredEditorOpen] = useState(false);
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     setActiveDay(day);
-    const checkAPIStatus = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/status`);
-        const data = await res.json();
-        setIsAPIworking(data.text === "API is working" ? false : true);
-      } catch (err) {
-        setIsAPIworking(true);
-      }
-    };
+      const checkAPIStatus = async () => {
+        try {
+          const data = await api("status") as any;
+          setIsAPIworking(data.text === "API is working" ? false : true);
+        } catch (err) {
+          setIsAPIworking(true);
+        }
+      };
     checkAPIStatus();
   }, []);
 
@@ -370,17 +367,14 @@ export default function LoginPage() {
     setIsLoading(false);
   }, []);
 
-  const loginToVTOP = useCallback(async (retry = false, forceNew = false) => {
+  const loginToVTOP = useCallback(async () => {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
-    return vtopLogin(IDs, demoMode, retry, forceNew, (msg, progress) => {
-      if (msg) setMessage(prev => prev + "\n" + msg);
-      if (progress) setProgressBar(prev => prev + progress);
-    });
+    return syncEngine.login(IDs, demoMode);
   }, [IDs, demoMode]);
 
-  const handleLogin = useCallback(async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2]) => {
+  const handleLogin = useCallback(async (currSemesterID = config.semesterIDs[config.semesterIDs.length - 2], loginIds?: Ids) => {
     if (demoMode || IDs.VtopUsername === "demo") {
       const demoData = await (await fetch('/data/demoData.json')).json();
       setDemoMode(true);
@@ -427,11 +421,12 @@ export default function LoginPage() {
     };
 
     try {
-      const creds = await loginToVTOP();
-      storage.ids.set(IDs);
+      const ids = loginIds ?? IDs;
+      await syncEngine.login(ids as Ids, demoMode);
+      storage.ids.set(ids as typeof IDs);
 
       onProgress("Attendance/Marks fetched", 10);
-      const { attRes, marksRes } = await fetchAttendanceAndMarks(creds, currSemesterID);
+      const { attRes, marksRes } = await syncEngine.sync<any>("attendanceMarks", { semesterId: currSemesterID });
 
       setAttendanceAndOD(attRes);
       setMarksData(marksRes as object);
@@ -440,10 +435,10 @@ export default function LoginPage() {
       storage.marks.set(marksRes);
 
       const oldMarks = storage.marks.get() || {};
-      syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
+      syncMarksDiff(oldMarks, marksRes, ids.VtopUsername);
 
       let profileRes = storage.profile.get();
-      const fetchedProfile = await fetchStudentProfile(creds);
+      const fetchedProfile = await syncEngine.sync<any>("studentProfile");
       if (fetchedProfile) {
         profileRes = fetchedProfile;
         onProgress("Profile details fetched", 5);
@@ -452,7 +447,11 @@ export default function LoginPage() {
       const isHosteller = (profileRes as any)?.isHosteller ?? false;
 
       onProgress("Core data fetched", 23);
-      const coreData = await fetchCoreData(creds, currSemesterID, settings.calendarType, isHosteller);
+      const coreData = await syncEngine.sync<any>("core", {
+        semesterId: currSemesterID,
+        calendarType: settings.calendarType,
+        isHosteller,
+      });
 
       setGradesData(coreData.gradesRes);
       setAllGradesData(coreData.allGradesRes);
@@ -473,16 +472,16 @@ export default function LoginPage() {
       (async () => {
         try {
           console.log("Starting background sync for non-critical data...");
-          
-          const eventData = await fetchEventData(IDs, demoMode);
-          setRegisteredEvents(eventData.registeredEvents);
-          setEventHubEvents(eventData.eventHubEvents);
 
-          await fetchPastAttendance(creds, coreData.allGradesRes as { grades?: Record<string, unknown> }, currSemesterID);
-          await fetchFresherData(creds);
-          await fetchBusRoutes();
-          await fetchBulkEndpoints(creds, settings);
-          
+          await syncEngine.sync("events", { demoMode });
+          await syncEngine.sync("pastAttendance", {
+            semesterId: currSemesterID,
+            allGradesRes: storage.allGrades.get(),
+          });
+          await syncEngine.sync("fresher");
+          await syncEngine.sync("buses");
+          await syncEngine.sync("bulk", { settings });
+
           console.log("Background sync completed successfully!");
         } catch (bgErr) {
           console.warn("Background sync failed:", bgErr);
@@ -497,22 +496,19 @@ export default function LoginPage() {
       );
       setProgressBar(0);
       setIsReloading(false);
+      if (err instanceof Error && /login failed|stopped retrying|event hub login failed/i.test(err.message)) {
+        setCredEditorOpen(true);
+      }
       throw err;
     }
-  }, [IDs, demoMode, settings, loginToVTOP, setAttendanceAndOD]);
+  }, [IDs, demoMode, settings, setAttendanceAndOD]);
 
   const fetchTransportData = useCallback(async () => {
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      const res = await fetch(`${API_BASE}/api/transport`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      });
-      const result = await res.json();
-      localStorage.setItem("transportData", JSON.stringify(result));
+      await syncEngine.sync("transport");
+      const result = storage.transportData.get() as any;
 
-      if (result.success && result.hasRegistration === true) {
+      if (result?.success && result?.hasRegistration === true) {
         if (true !== settings.isDayscholarWithBus) {
           setSettings(prev => ({
             ...prev,
@@ -533,7 +529,7 @@ export default function LoginPage() {
     } catch (err) {
       console.error("Failed to fetch transport data:", err);
     }
-  }, [loginToVTOP, settings]);
+  }, [settings]);
 
   // --- Event Handlers ---
   const handleReloadRequest = useCallback(async (targetSemesterID?: string) => {
@@ -593,7 +589,7 @@ export default function LoginPage() {
         await fetchTransportData();
         
         try {
-          const { cookies, authorizedID, csrf } = await loginToVTOP();
+          const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
           const allGradesData = JSON.parse(localStorage.getItem("allGrades") || "{}");
           await syncPastSemesters(allGradesData, { cookies, authorizedID, csrf });
         } catch (err) {
@@ -603,21 +599,15 @@ export default function LoginPage() {
         return;
       }
 
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
+      const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
 
-      const coreTask = fetchWithTimeout(`${API_BASE}/api/attendance`, {
+      const coreTask = api("attendance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cookies,
-          authorizedID,
-          csrf,
-          semesterId: activeSem,
-        }),
-      }).then(async r => {
-        const { attRes, marksRes } = await r.json();
+        body: { cookies, authorizedID, csrf, semesterId: activeSem },
+      }).then((data: any) => {
+        const { attRes, marksRes } = data;
         setAttendanceAndOD(attRes);
-      setMarksData(marksRes as object);
+        setMarksData(marksRes as object);
         const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
         syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
         localStorage.setItem("attendance", JSON.stringify(attRes));
@@ -629,27 +619,19 @@ export default function LoginPage() {
       const tasks: Promise<void>[] = [coreTask];
       
       tasks.push(
-        loginToEventHub(IDs, demoMode).then(async (jsessionid) => {
-          if (!jsessionid) return;
-          const r = await fetchWithTimeout(`${API_BASE}/api/events/profile`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsessionid }),
-          });
-          if (!r.ok) return;
-          const { events } = await r.json();
-          if (events) {
-            setRegisteredEvents(events);
-            storage.registeredEvents.set(events);
-            setMessage(prev => prev + "\n✅ Registered events fetched");
-          }
-        }).catch(() => {})
+        api("events/profile", { method: "POST", auth: "eventhub" })
+          .then((data: any) => {
+            if (data?.events) {
+              setRegisteredEvents(data.events);
+              storage.registeredEvents.set(data.events);
+              setMessage(prev => prev + "\n✅ Registered events fetched");
+            }
+          })
+          .catch(() => {})
       );
 
       tasks.push(
-        fetch(`${API_BASE}/api/events`).then(async r => {
-          if (!r.ok) return;
-          const events = await r.json();
+        api("events").then((events: any) => {
           if (Array.isArray(events) && events.length) {
             setEventHubEvents(events);
             setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
@@ -665,16 +647,10 @@ export default function LoginPage() {
       if (moodleUsername && moodlePassword) {
         tasks.push(
           (async () => {
-            const res = await fetchWithTimeout(`${API_BASE}/api/lms-data`, {
+            const moodleData = await api("lms-data", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: moodleUsername,
-                pass: moodlePassword,
-              }),
-            });
-
-            const moodleData = await res.json();
+              body: { username: moodleUsername, pass: moodlePassword },
+            }) as any;
             const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
 
             const merged = moodleData.map(item => {
@@ -737,31 +713,20 @@ export default function LoginPage() {
         try {
           // Fresher / EPT data
           const [eptRes, ackRes] = await Promise.all([
-            fetch(`${API_BASE}/api/ept-schedule`, {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ cookies, authorizedID, csrf }),
-            }).then(r => r.json()),
-            fetch(`${API_BASE}/api/acknowledgement`, {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ cookies, authorizedID, csrf }),
-            }).then(r => r.json()),
+            api("ept-schedule", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
+            api("acknowledgement", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
           ]);
           if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
           if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
           setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
 
           // Bus routes
-          const busesRes = await fetch(`${API_BASE}/api/buses`).then(r => r.json());
+          const busesRes = await api("buses") as any;
           if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
           setMessage(prev => prev + "\n✅ Bus routes fetched");
 
           // Library data
-          const dueRes = await fetch(`${API_BASE}/api/library-due`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cookies, authorizedID, csrf }),
-          });
-          const dueData = await dueRes.json();
+          const dueData = await api("library-due", { method: "POST", body: { cookies, authorizedID, csrf } }) as any;
           if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
           setMessage(prev => prev + "\n✅ Library data fetched");
 
@@ -773,14 +738,9 @@ export default function LoginPage() {
           ];
           await Promise.allSettled(
             bulkEndpoints.map(path =>
-              fetch(`${API_BASE}/api/${path}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cookies, authorizedID, csrf }),
-              })
-                .then(r => r.json())
-                .then(data => {
-                  if (data.success !== false) {
+              api(path, { method: "POST", body: { cookies, authorizedID, csrf } })
+                .then((data: any) => {
+                  if (data && data.success !== false) {
                     localStorage.setItem("cache_" + path, JSON.stringify(data));
                   }
                 })
@@ -1198,6 +1158,7 @@ export default function LoginPage() {
     result.push(
       { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
+      { id: "tool-marks-predictor", label: "Marks Predictor & Simulator", description: "Simulate test marks, weightage lost & FAT targets", icon: "📊", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("marks-predictor"); } },
       { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
@@ -1212,7 +1173,7 @@ export default function LoginPage() {
         icon: "📖",
         category: "Search",
         onSelect: () => {},
-        subpage: <LibrarySearchPalette apiBase={API_BASE} />,
+        subpage: <LibrarySearchPalette />,
       },
       {
         id: "search-events",
@@ -1221,7 +1182,7 @@ export default function LoginPage() {
         icon: "🎪",
         category: "Search",
         onSelect: () => {},
-        subpage: <EventSearchPalette apiBase={API_BASE} />,
+        subpage: <EventSearchPalette />,
       },
     );
 
@@ -2106,8 +2067,8 @@ export default function LoginPage() {
             wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
             wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
             title="Student Operating System"
-          />
-        )}
+             />
+      )}
       </AnimatePresence>
       {!isLoading && (
         <m.div
@@ -2157,6 +2118,7 @@ export default function LoginPage() {
       )}
 
       {(!isLoggedIn && !demoMode) && (
+        <>
         <LoginForm
           username={IDs.VtopUsername}
           setUsername={(val: string) =>
@@ -2180,7 +2142,27 @@ export default function LoginPage() {
             localStorage.setItem("settings", JSON.stringify({ ...settings, isDayscholarWithBus: val }));
           }}
         />
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => setCredEditorOpen(true)}
+              style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}
+            >
+              Edit saved credentials
+            </button>
+          </div>
+        </>
       )}
+
+      <CredentialEditorModal
+        open={credEditorOpen}
+        onClose={() => setCredEditorOpen(false)}
+        onSaved={(ids) => {
+          setIDs(ids as typeof IDs);
+          setCredEditorOpen(false);
+          handleLogin(undefined, ids as Ids);
+        }}
+      />
 
       {(isLoggedIn || demoMode) && (
         <>
@@ -2300,7 +2282,6 @@ export default function LoginPage() {
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
         commands={cmds}
-        apiBase={API_BASE}
         demoMode={demoMode || IDs.VtopUsername === "demo"}
       />
       {isShortcutsHelpOpen && (
