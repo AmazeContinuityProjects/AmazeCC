@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import {
   Target,
-  Trophy,
   AlertTriangle,
   CheckCircle2,
   Sparkles,

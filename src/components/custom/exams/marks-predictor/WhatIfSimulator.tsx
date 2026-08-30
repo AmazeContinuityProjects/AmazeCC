@@ -1,12 +1,8 @@
 "use client";
 
 import React from "react";
-import {
-  Sparkles,
-  Zap,
-  RotateCcw,
-} from "lucide-react";
-import { PredictorAssessment, ComponentStats, safeNumber } from "@/lib/marksPredictor";
+import { Zap, RotateCcw } from "lucide-react";
+import { type ComponentStats, safeNumber } from "@/lib/marksPredictor";
 
 interface WhatIfSimulatorProps {
   theoryStats: ComponentStats | null;

@@ -2,7 +2,6 @@ import { credentialManager } from "./credential-manager";
 import { progressBus } from "./progress-bus";
 import { makeCtx, getOp } from "./operation-registry";
 import { toEngineError } from "./errors";
-import { apiRequest } from "./request-layer";
 import { storage } from "../storage";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
@@ -68,7 +67,7 @@ class SyncEngine {
   }
 
   async syncAll(opts: SyncAllOptions): Promise<void> {
-    const ids = this.ensureIds();
+    this.ensureIds();
     await this.sync("attendanceMarks", { semesterId: opts.semesterId });
     await this.sync("core", {
       semesterId: opts.semesterId,

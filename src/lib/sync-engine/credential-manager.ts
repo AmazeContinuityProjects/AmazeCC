@@ -1,5 +1,5 @@
 import { request, setAuthProvider } from "./request-layer";
-import { AuthError, backoff, isAuthFailMessage } from "./errors";
+import { AuthError, backoff } from "./errors";
 import { storage } from "../storage";
 import type { AuthDomain, Ids, VtopCreds } from "./types";
 

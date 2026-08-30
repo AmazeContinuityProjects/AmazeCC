@@ -1,4 +1,4 @@
-import { PredictorAssessment, PRESET_REGIMENS } from "./marksPredictor";
+import { type PredictorAssessment } from "./marksPredictor";
 
 export interface CustomCourseMock {
   courseCode: string;
@@ -23,7 +23,6 @@ export interface StoredCourseState {
 
 const STORAGE_KEY = "uni_cc_marks_predictor_state";
 const CUSTOM_COURSES_KEY = "uni_cc_marks_predictor_custom_courses";
-const USER_PRESETS_KEY = "uni_cc_marks_predictor_user_presets";
 
 export const getStoredPredictorState = (): Record<string, StoredCourseState> => {
   if (typeof window === "undefined") return {};
