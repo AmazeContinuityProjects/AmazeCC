@@ -4,7 +4,7 @@ import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
 import { api, clearEventHubSession } from "@/lib/sync-engine";
-import { getRewrittenUrl } from "@/lib/fetch-utils";
+import { eventhubImageUrl, eventHubLoginHtml, EVENTHUB_BASE } from "@/lib/eventhub";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
 import SubpageLayout from "../shared/SubpageLayout";
@@ -37,7 +37,7 @@ export default function EventHubSubpage({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<{title: string, message: string}>({title: "", message: ""});
   const [pwaUrl, setPwaUrl] = useState<string | null>(null);
-  const [pwaMode, setPwaMode] = useState<"pay" | "view" | null>(null);
+  const [pwaMode, setPwaMode] = useState<"pay" | "view" | "download" | null>(null);
   const [clubsList, setClubsList] = useState<any[]>([]);
   const [selectedClub, setSelectedClub] = useState<any | null>(null);
 
@@ -72,9 +72,12 @@ export default function EventHubSubpage({
       return;
     }
 
-    setIsRegistering(true); // Re-use loading state to show "Processing..."
+    // Normalize to an absolute Event Hub URL (mirrors the old backend route).
+    const fileUrl = url.startsWith("http")
+      ? url
+      : `${EVENTHUB_BASE}${url.startsWith("/") ? url : "/" + url}`;
+
     if (IDs?.VtopUsername === "demo") {
-      await new Promise(resolve => setTimeout(resolve, 500));
       const element = document.createElement("a");
       const file = new Blob(["This is a mock AmazeCC Event Hub document for " + selectedEvent.title], { type: 'text/plain' });
       element.href = URL.createObjectURL(file);
@@ -82,38 +85,32 @@ export default function EventHubSubpage({
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
-      setIsRegistering(false);
       return;
     }
 
-    try {
-      const res = (await api("events/download", {
-        method: "POST",
-        auth: "eventhub",
-        body: { url },
-        parse: "raw",
-      })) as Response;
+    // Log into Event Hub inside a window/frame to set the JSESSIONID cookie on
+    // the eventhubcc origin, then navigate that window to the file so the PDF
+    // downloads directly from Event Hub — no byte streaming through our backend.
+    if (isMobilePWA()) {
+      setPwaUrl(fileUrl);
+      setPwaMode("download");
+      return;
+    }
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error((errorData as any).error || "Failed to download document.");
-      }
-
-      const blob = await res.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = isCert ? `${selectedEvent.title.replace(/[^a-z0-9]/gi, '_')}_Certificate.pdf` : `${selectedEvent.title.replace(/[^a-z0-9]/gi, '_')}_Receipt.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(objectUrl);
-    } catch (err: any) {
-      setModalContent({ title: "Download Error", message: err.message });
-      clearEventHubSession();
+    const htmlPayload = eventHubLoginHtml(IDs.VtopUsername, IDs.VtopPassword);
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(htmlPayload);
+      setTimeout(() => {
+        try {
+          win.location.href = fileUrl;
+        } catch (e) {
+          console.error("Failed to redirect popup", e);
+        }
+      }, 3500);
+    } else {
+      setModalContent({ title: "Popup Blocked", message: "Please allow popups to download the document." });
       setModalOpen(true);
-    } finally {
-      setIsRegistering(false);
     }
   };
 
@@ -125,41 +122,14 @@ export default function EventHubSubpage({
     }
 
     const tcUrl = `https://eventhubcc.vit.ac.in/EventHub/eventPreview?eid=${selectedEvent.eid}`;
-    
+
     if (isMobilePWA()) {
       setPwaUrl(tcUrl);
       setPwaMode("view");
       return;
     }
 
-    const htmlPayload = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-          <title>Redirecting to Event Hub...</title>
-          <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #334155; }
-              .loader { border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-right: 12px; }
-              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-              .container { display: flex; align-items: center; background: white; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <div class="loader"></div>
-              <p>Opening Event Hub Details...</p>
-          </div>
-          <form id="loginForm" action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST">
-              <input type="hidden" name="username" value="${IDs.VtopUsername.replace(/"/g, '&quot;')}" />
-              <input type="hidden" name="password" value="${IDs.VtopPassword.replace(/"/g, '&quot;')}" />
-              <input type="hidden" name="validateVitian" value="1" />
-          </form>
-          <script>
-              document.getElementById("loginForm").submit();
-          </script>
-      </body>
-      </html>
-    `;
+    const htmlPayload = eventHubLoginHtml(IDs.VtopUsername, IDs.VtopPassword);
 
     const win = window.open("", "_blank");
     if (win) {
@@ -196,8 +166,7 @@ export default function EventHubSubpage({
     try {
       const data = (await api("events/register", {
         method: "POST",
-        auth: "eventhub",
-        body: { eid: selectedEvent.eid },
+        body: { eid: selectedEvent.eid, username: IDs.VtopUsername, password: IDs.VtopPassword },
       })) as any;
 
       if (data.status === "success") {
@@ -412,11 +381,11 @@ export default function EventHubSubpage({
         ) : previewData ? (
           <div className="flex flex-col md:flex-row gap-8">
             {/* Left Column: Image */}
-            {previewData.imageSrc && (
+            {selectedEvent.eid && (
               <div className="md:w-5/12 lg:w-1/3 shrink-0">
                 <div className="rounded-2xl overflow-hidden bg-gray-50  dark:bg-gray-900 flex justify-center border border-gray-100  dark:border-gray-800 md:sticky md:top-8">
                   <img 
-                    src={getRewrittenUrl(previewData.imageSrc)} 
+                    src={eventhubImageUrl(selectedEvent.eid)} 
                     alt={selectedEvent.title}
                     className="w-full h-auto object-contain"
                   />
@@ -425,7 +394,7 @@ export default function EventHubSubpage({
             )}
             
             {/* Right Column: Details */}
-            <div className={`space-y-8 ${previewData.imageSrc ? 'md:w-7/12 lg:w-2/3' : 'w-full'}`}>
+            <div className={`space-y-8 ${selectedEvent.eid ? 'md:w-7/12 lg:w-2/3' : 'w-full'}`}>
               {previewData.metaDetails && Object.keys(previewData.metaDetails).length > 0 ? (
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(previewData.metaDetails).map(([key, value]) => {
@@ -557,7 +526,7 @@ export default function EventHubSubpage({
                 variant="outline" 
                 className="w-full border-gray-200  dark:border-gray-700 text-gray-700  dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 whitespace-normal h-auto py-3 text-center"
               >
-                {pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
+                {pwaMode === "download" ? "Download Certificate / Receipt" : pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
               </Button>
             </div>
           </div>

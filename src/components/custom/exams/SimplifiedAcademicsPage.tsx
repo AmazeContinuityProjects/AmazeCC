@@ -909,8 +909,33 @@ export default function SimplifiedAcademicsPage({
         )}
       </div>
 
-      {/* ── ACADEMIC EXPLORER NAVIGATION CARDS (CURRICULUM & GRADE HISTORY) ── */}
+      {/* ── ACADEMIC EXPLORER NAVIGATION CARDS (CURRICULUM & GRADE HISTORY & MARKS PREDICTOR) ── */}
       <div className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-2.5">
+        {/* Marks Predictor Featured Hero Card */}
+        <button
+          onClick={() => setActiveSubTab?.("marks-predictor")}
+          className="w-full p-4 rounded-[22px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-black font-outfit text-zinc-900 dark:text-white truncate flex items-center gap-2">
+                <span>Marks Predictor & Simulator</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-black uppercase">New</span>
+              </p>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                Simulate what-if scores, calculate points lost & solve FAT targets
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400 font-outfit group-hover:translate-x-0.5 transition-transform shrink-0">
+            <span>Predictor</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </button>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Degree Curriculum Card */}
           <button

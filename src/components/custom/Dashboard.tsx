@@ -8,6 +8,7 @@ import AcademicsHub from "./exams/AcademicsHub";
 import TestGradesContainer from "./exams/TestGradesContainer";
 import CurriculumPage from "./exams/CurriculumPage";
 import GPAPredictorTab from "./exams/GPAPredictorTab";
+import MarksPredictorTab from "./exams/MarksPredictorTab";
 import MessDisplay from "./hostel/MessDisplay";
 import LaundryDisplay from "./hostel/LaundryDisplay";
 import CalendarView from "./attendance/CalendarView";
@@ -932,6 +933,15 @@ function DashboardContent({
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
+              )}
+              {activeSubTab === "marks-predictor" && (
+                <div className="animate-fadeIn">
+                  <MarksPredictorTab
+                    marksData={marksData}
+                    attendance={attendanceData?.attendance}
+                    setActiveSubTab={setActiveSubTab}
+                  />
+                </div>
               )}
             </div>
           )}

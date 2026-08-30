@@ -1642,6 +1642,35 @@ export default function CourseDashboard({
             )}
           </div>
 
+          {!isSelectedPastSemester && (
+            <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-xs">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
+                    Simulate Marks & Regimen for {selectedCode}
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                    Test what-if scores, points lost, and calculate exact FAT target marks
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (setActiveSubTab) {
+                    setActiveSubTab("marks-predictor");
+                  }
+                }}
+                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+              >
+                <span>Launch Marks Predictor</span>
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {renderAssessmentTable(selectedGroup?.theory?.assessments, "Theory")}
           {renderAssessmentTable(selectedGroup?.lab?.assessments, "Lab")}
 

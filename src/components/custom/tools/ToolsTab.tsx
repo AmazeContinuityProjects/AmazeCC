@@ -23,6 +23,7 @@ import SocialTab from "../social/SocialTab";
 import CabShareTab from "../hostel/CabShare/CabShareTab";
 import QBankSubTabs from "../qbank/QBankSubTabs";
 import OverallAttendancePredictor from "../attendance/OverallAttendancePredictor";
+import MarksPredictorTab from "../exams/MarksPredictorTab";
 
 const PapersArchiveTab = dynamic(() => import("../qbank/PapersArchiveTab"), {
   ssr: false,
@@ -109,6 +110,16 @@ export default function ToolsTab({
         {activeToolsSubTab === "predictor" && (
           <div className="animate-fadeIn">
             <GPAPredictorTab
+              marksData={marksData}
+              attendance={attendanceData?.attendance}
+              setActiveSubTab={setActiveToolsSubTab}
+            />
+          </div>
+        )}
+
+        {activeToolsSubTab === "marks-predictor" && (
+          <div className="animate-fadeIn">
+            <MarksPredictorTab
               marksData={marksData}
               attendance={attendanceData?.attendance}
               setActiveSubTab={setActiveToolsSubTab}

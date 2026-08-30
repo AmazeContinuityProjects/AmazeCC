@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, CalendarDays, MapPin, DollarSign, X, Sparkles, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/sync-engine";
+import { eventhubImageUrl } from "@/lib/eventhub";
 
 interface EventItem {
   title?: string;
@@ -270,7 +271,7 @@ export default function EventSearchPalette() {
   }, [results, safeIndex, selectedEvent, activeTab, query, tabs]);
 
   const getTitle = (e: EventItem) => e.title || e.name || "Untitled Event";
-  const posterSrc = previewData?.imageSrc || selectedEvent?.posterUrl || "";
+  const posterSrc = selectedEvent?.eid ? eventhubImageUrl(selectedEvent.eid) : "";
   const [posterFailed, setPosterFailed] = useState(false);
   const [showEnlarged, setShowEnlarged] = useState(false);
   useEffect(() => { setPosterFailed(false); }, [posterSrc]);
@@ -478,9 +479,9 @@ export default function EventSearchPalette() {
                   : "text-gray-700  dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-gray-800/40 dark:hover:bg-gray-800/30"
               )}
             >
-              {ev.posterUrl ? (
+              {ev.eid ? (
                 <span className="shrink-0 w-9 h-12 rounded-lg overflow-hidden bg-gray-100  dark:bg-gray-900 shadow-sm ring-1 ring-black/5">
-                  <img src={ev.posterUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <img src={eventhubImageUrl(ev.eid)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </span>
               ) : (
                 <span className={cn(

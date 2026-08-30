@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { api, clearEventHubSession } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
+import { eventhubImageUrl } from "@/lib/eventhub";
 import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
 import { m } from "framer-motion";
 import EventHubSubpage from "./EventHubSubpage";
@@ -155,8 +156,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     try {
       const data = (await api("events/preview", {
         method: "POST",
-        auth: "eventhub",
-        body: { eid: event.eid },
+        body: { eid: event.eid, username: IDs.VtopUsername, password: IDs.VtopPassword },
       })) as EventHubPreview;
       setPreviewData(data);
     } catch (err: any) {
@@ -220,8 +220,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     try {
       const data = (await api("events/profile", {
         method: "POST",
-        auth: "eventhub",
-        body: {},
+        body: { username: IDs.VtopUsername, password: IDs.VtopPassword },
       })) as any;
       if (setRegisteredEvents) {
         setRegisteredEvents(data.events || []);
@@ -377,6 +376,15 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
               className="bg-white  dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
               onClick={() => openPreview(event)}
             >
+              <div className="mb-4 aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                <img
+                  src={eventhubImageUrl(event.eid)}
+                  alt={event.title}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }}
+                />
+              </div>
               <div>
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-bold text-lg text-gray-900  dark:text-white leading-tight">

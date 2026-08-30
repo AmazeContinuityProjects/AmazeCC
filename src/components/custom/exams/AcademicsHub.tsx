@@ -45,6 +45,14 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       bg: "bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/10 dark:to-teal-950/5 border-emerald-100/50 dark:border-emerald-900/30",
     },
     {
+      id: "marks-predictor",
+      title: "Marks Predictor",
+      description: "Simulate test marks, points lost & FAT target marks.",
+      icon: Sparkles,
+      color: "text-indigo-600 dark:text-indigo-400",
+      bg: "bg-gradient-to-br from-indigo-50/50 to-purple-50/30 dark:from-indigo-950/10 dark:to-purple-950/5 border-indigo-100/50 dark:border-indigo-900/30",
+    },
+    {
       id: "predictor",
       title: "CGPA Predictor",
       description: "Estimate your future CGPA based on expected grades.",
@@ -180,6 +188,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
     "course-dashboard": [`${uniqueCurrentCourses.size || currentCourses.length} Courses`, `Avg attendance ${avgAttendance || "-"}%`, `${belowTargetCount} below target`],
     grades: [`${totalCourses} Courses`, `${passRate}% pass rate`, `Latest GPA ${Number(recentGpa || 0).toFixed(2)}`],
     curriculum: [`${creditsEarned.toFixed(1)} Credits`, `${degreeCompletePercent.toFixed(0)}% complete`, `${Math.max(requiredCredits - creditsEarned, 0).toFixed(1)} remaining`],
+    "marks-predictor": [`${uniqueCurrentCourses.size || currentCourses.length} Courses`, "Simulate test marks", "FAT target solver"],
     predictor: [savedGoal ? `${savedGoal.target.toFixed(2)} target` : "No saved target", `${currentCgpa.toFixed(2)} current`, "Live calculator"],
     qbank: [`${uniqueCurrentCourses.size || currentCourses.length} course paths`, "Papers + extracted questions", "Upload & browse"],
   };

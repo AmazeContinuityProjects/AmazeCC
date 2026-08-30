@@ -1158,6 +1158,7 @@ export default function LoginPage() {
     result.push(
       { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
+      { id: "tool-marks-predictor", label: "Marks Predictor & Simulator", description: "Simulate test marks, weightage lost & FAT targets", icon: "📊", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("marks-predictor"); } },
       { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
