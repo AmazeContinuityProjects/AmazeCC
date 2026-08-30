@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../custom/Main";
+import { api } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { m } from "framer-motion";
 import { ArrowUp, Calendar, ExternalLink } from "lucide-react";
@@ -17,8 +17,8 @@ export default function CommunityFeed({ IDs, loginToVTOP }: { IDs?: any, loginTo
     try {
       const vtopIdParam = currentVtopId ? `?vtop_id=${currentVtopId}` : "";
       const [feedRes, eventsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/club-admin/feed${vtopIdParam}`).then(res => res.ok ? res.json() : Promise.reject(new Error(`API Error: ${res.status}`))),
-        fetch(`${API_BASE}/api/events`).then(res => res.ok ? res.json() : []).catch(() => [])
+        (api(`club-admin/feed${vtopIdParam}`, { parse: "raw" }) as Promise<Response>).then((res) => res.ok ? res.json() : Promise.reject(new Error(`API Error: ${res.status}`))),
+        (api("events", { parse: "raw" }) as Promise<Response>).then((res) => res.ok ? res.json() : []).catch(() => [])
       ]);
 
       if (feedRes.success) {
@@ -60,12 +60,11 @@ export default function CommunityFeed({ IDs, loginToVTOP }: { IDs?: any, loginTo
 
     setActionLoading(postId);
     try {
-      const res = await fetch(`${API_BASE}/api/club-admin/feed/promote`, {
+      const data = (await api("club-admin/feed/promote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ post_id: postId, vtop_id: currentAuthID })
-      });
-      const data = await res.json();
+      })) as any;
       if (data.success) {
         setFeed(prev => prev.map(p => {
           if (p.id === postId) {

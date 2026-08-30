@@ -1,4 +1,5 @@
 import config from "../../config.json";
+import { api } from "@/lib/sync-engine";
 
 const DAYS_MAP: Record<string, string> = {
   MON: "Monday",
@@ -511,15 +512,14 @@ export async function syncSocialToCloud(regNumber?: string) {
 
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.amazecc.com";
-    await fetch(`${API_BASE}/api/social/sync`, {
+    await api(`${API_BASE}/api/social/sync`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         regNumber: userReg,
         friends,
         groups,
         updatedAt: new Date().toISOString()
-      }),
+      },
     });
   } catch (e) {
     // Offline mode
@@ -533,7 +533,7 @@ export async function pullSocialFromCloud(regNumber?: string): Promise<{ friends
 
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.amazecc.com";
-    const res = await fetch(`${API_BASE}/api/social/sync?regNumber=${userReg}`);
+    const res = (await api(`${API_BASE}/api/social/sync?regNumber=${userReg}`, { parse: "raw" })) as Response;
     if (res.ok) {
       const data = await res.json();
       if (data && Array.isArray(data.friends)) {

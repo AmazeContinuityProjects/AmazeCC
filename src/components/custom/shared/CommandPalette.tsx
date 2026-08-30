@@ -10,6 +10,7 @@ import {
   PartyPopper, Landmark, Clock, MessageSquare, 
   CheckCircle2, Sun, Moon, AlertTriangle
 } from "lucide-react";
+import { api } from "@/lib/sync-engine";
 
 function renderCommandIcon(icon: React.ReactNode | string) {
   if (React.isValidElement(icon)) return icon;
@@ -91,11 +92,10 @@ export interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   commands: CommandItem[];
-  apiBase?: string;
   demoMode?: boolean;
 }
 
-export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMode = false }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, commands, demoMode = false }: CommandPaletteProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeSubpage, setActiveSubpage] = useState<React.ReactNode | null>(null);
@@ -155,9 +155,8 @@ export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMo
     }
 
     const controller = new AbortController();
-    fetch(`${apiBase}/api/koha/search?q=${encodeURIComponent(searchTerm)}&count=10`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then((data) => {
+    api("koha/search", { query: { q: searchTerm, count: 10 }, signal: controller.signal })
+      .then((data: any) => {
         setKohaBooks(data?.success && Array.isArray(data?.books) ? data.books : []);
         setKohaLoading(false);
       })
@@ -169,7 +168,7 @@ export function CommandPalette({ isOpen, onClose, commands, apiBase = "", demoMo
       });
 
     return () => controller.abort();
-  }, [deferredQuery, isOpen, apiBase, demoMode]);
+  }, [deferredQuery, isOpen, demoMode]);
 
   // Dynamic Koha command items
   const dynamicKohaCommands = useMemo<CommandItem[]>(() => {

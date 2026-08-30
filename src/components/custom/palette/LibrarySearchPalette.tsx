@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, BookOpen, Loader2, ExternalLink, X, ArrowLeft, MapPin, Hash, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/sync-engine";
 
 interface Holding {
   itemId: string;
@@ -37,7 +38,6 @@ interface BookResult {
 }
 
 interface LibrarySearchPaletteProps {
-  apiBase: string;
 }
 
 const ROMAN_MAP: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4", V: "5", VI: "6" };
@@ -88,7 +88,7 @@ const badge = {
   purple: "bg-purple-100 text-purple-800 border-purple-300    dark:bg-purple-900/80 dark:text-purple-300 dark:border-purple-800/50",
 };
 
-export default function LibrarySearchPalette({ apiBase }: LibrarySearchPaletteProps) {
+export default function LibrarySearchPalette() {
   const [query, setQuery] = useState("");
   const [books, setBooks] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,15 +104,14 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
     if (!query.trim()) { setBooks([]); setLoading(false); return; }
     setLoading(true);
     const controller = new AbortController();
-    fetch(`${apiBase}/api/koha/search?q=${encodeURIComponent(query)}&count=20`, { signal: controller.signal })
-      .then(r => r.json())
-      .then(data => {
+    api("koha/search", { query: { q: query, count: 20 }, signal: controller.signal })
+      .then((data: any) => {
         setBooks(data?.success && Array.isArray(data?.books) ? data.books : []);
         setLoading(false);
       })
       .catch(() => { if (!controller.signal.aborted) { setBooks([]); setLoading(false); } });
     return () => controller.abort();
-  }, [query, apiBase]);
+  }, [query]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -140,15 +139,14 @@ export default function LibrarySearchPalette({ apiBase }: LibrarySearchPalettePr
     setDetailLoading(true);
     setDetailError(null);
     const controller = new AbortController();
-    fetch(`${apiBase}/api/koha/detail?biblionumber=${selectedBook.biblionumber}`, { signal: controller.signal })
-      .then(r => r.json())
-      .then(data => {
+    api("koha/detail", { query: { biblionumber: selectedBook.biblionumber }, signal: controller.signal })
+      .then((data: any) => {
         if (data?.success && data?.book) { setBookDetail(data.book); setDetailLoading(false); }
         else { setDetailError("Could not load book details"); setDetailLoading(false); }
       })
       .catch(() => { if (!controller.signal.aborted) { setDetailError("Failed to load details"); setDetailLoading(false); } });
     return () => controller.abort();
-  }, [selectedBook?.biblionumber, apiBase]);
+  }, [selectedBook?.biblionumber]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

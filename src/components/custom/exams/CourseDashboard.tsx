@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
@@ -870,7 +870,7 @@ export default function CourseDashboard({
       try {
         const classIds = uniqueCourses.map(g => (g.theory || g.lab).classNbr).join(",");
         if (!classIds) return;
-        const res = await fetch(`${API_BASE}/api/marks/stats?classes=${classIds}`);
+        const res = await api("marks/stats", { query: { classes: classIds }, parse: "raw" }) as Response;
         if (res.ok) { const d = await res.json(); setAllStats(d); }
       } catch {}
     };
@@ -996,18 +996,17 @@ export default function CourseDashboard({
     if (comp.faculty && /^\w+\s*-/.test(comp.faculty.trim())) return comp.faculty;
     
     try {
-      const r = await fetch(`${API_BASE}/api/course-page`, {
+      const d = await api("course-page", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           cookies: creds?.cookies, authorizedID: creds?.authorizedID, csrf: creds?.csrf,
           formData: { 
             semesterSubId: selectedGroup?.semesterSubId === "Current" ? "" : (selectedGroup?.semesterSubId || ""), 
             courseCode: comp.classNbr, 
             slotId: comp.slot 
           }
-        }),
-      });
-      const d = await r.json();
+        },
+      }) as any;
       if (d.success !== false && d.results?.selectOptions?.faculty?.length > 1) {
         const options = d.results.selectOptions.faculty.slice(1);
         let selectedOpt = options[0];
@@ -1032,14 +1031,13 @@ export default function CourseDashboard({
       const planData: any[] = [];
       for (const comp of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
-        const r = await fetch(`${API_BASE}/api/course-page`, {
+        const d = await api("course-page", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
             formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
-          }),
-        });
-        const d = await r.json();
+          },
+        }) as any;
         if (d.success !== false && d.results) planData.push({ type: comp.courseType, data: d.results });
       }
       setCoursePlan(planData.length > 0 ? planData : null);
@@ -1058,14 +1056,13 @@ export default function CourseDashboard({
       for (const comp of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
         const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
-        const r = await fetch(`${API_BASE}/api/course-page`, {
+        const d = await api("course-page", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf,
             formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
-          }),
-        });
-        const d = await r.json();
+          },
+        }) as any;
         if (d.success !== false && d.results) detailData.push({ type: comp.courseType, data: d.results });
       }
       setViewDetail(detailData.length > 0 ? detailData : null);
@@ -1116,11 +1113,10 @@ export default function CourseDashboard({
     setQcmLoading(true); setQcmError("");
     try {
       const semId = selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || "");
-      const res = await fetch(`${API_BASE}/api/qcm-view`, {
+      const d = await api("qcm-view", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId }),
-      });
-      const d = await res.json();
+        body: { cookies: creds.cookies, authorizedID: creds.authorizedID, csrf: creds.csrf, semesterId: semId },
+      }) as any;
       if (d.success && d.data) {
         let courseQcmTables = [];
         for (const [key, sem] of Object.entries(d.data)) {

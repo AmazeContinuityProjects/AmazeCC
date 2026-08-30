@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Info, Activity, GraduationCap, AlertTriangle } from "lucide-react";
 import CircularProgress from "../shared/CircularProgress";
 import Image from "next/image";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import { m } from "framer-motion";
 import SubpageLayout from "../shared/SubpageLayout";
 import PageHeader from "../shared/PageHeader";
@@ -209,7 +209,7 @@ export default function MarksDisplay({ data }) {
         const classIds = uniqueCourses.map((g: any) => (g.theory || g.lab)?.classNbr).filter(Boolean).join(',');
         if (!classIds) return;
 
-        const res = await fetch(`${API_BASE}/api/marks/stats?classes=${classIds}`);
+        const res = await api("marks/stats", { query: { classes: classIds }, parse: "raw" }) as Response;
         if (res.ok) {
           const statsData = await res.json();
           setAllStats(statsData);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { API_BASE } from "./Main";
+import { api } from "@/lib/sync-engine";
 import {
   Wallet,
   Receipt,
@@ -188,12 +188,11 @@ export default function PaymentsTab({ loginToVTOP }: PaymentsTabProps) {
         const effectiveExtra = extra || (tab === "receipts" ? receiptExtra : undefined);
         if (effectiveExtra) Object.assign(body, effectiveExtra);
 
-        const res = await fetch(`${API_BASE}/api/${endpoint}`, {
+        const data = await api(`${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const data = await res.json();
 
         if (tab === "dues") {
           setPaymentsData(data);

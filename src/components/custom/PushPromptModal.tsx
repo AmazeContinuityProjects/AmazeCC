@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, m } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 
 function urlBase64ToUint8Array(base64String: string) {
     if (!base64String) return new Uint8Array(0);
@@ -68,16 +68,15 @@ const DEFAULT_VAPID_PUBLIC_KEY =
                 });
             }
 
-            await fetch(`${API_BASE}/api/notifications/subscribe`, {
+            await api("notifications/subscribe", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: {
                     UserID,
                     subscription: JSON.parse(JSON.stringify(sub)),
                     vitol_enabled: false,
                     vitol_reminder_day: 1,
                     vitol_reminder_time: "10:00"
-                }),
+                },
             });
 
             new Notification("Welcome to AmazeCC Alerts!", {

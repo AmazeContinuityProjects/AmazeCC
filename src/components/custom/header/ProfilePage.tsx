@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { setCustomApiUrl } from "@/lib/fetch-utils";
 import {
@@ -439,19 +439,17 @@ export default function ProfilePage({
         throw new Error("Failed to authenticate session with VTOP");
       }
       const { cookies, authorizedID, csrf } = vtopCreds;
-      const res = await fetch(`${API_BASE}/api/change-password`, {
+      const data = (await api("change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           cookies,
           authorizedID,
           csrf,
           oldPassword: vtopOldPassword,
           newPassword: vtopNewPassword,
           confirmNewPassword: vtopConfirmPassword,
-        }),
-      });
-      const data = await res.json();
+        },
+      })) as any;
       if (data.success) {
         setPasswordChangeSuccess("VTOP password changed successfully!");
         setVtopOldPassword("");
@@ -501,12 +499,10 @@ export default function ProfilePage({
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/credentials`, {
+      const fresh = (await api("credentials", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies, authorizedID, csrf }),
-      });
-      const fresh = await res.json();
+        body: { cookies, authorizedID, csrf },
+      })) as any;
       setCredData(fresh);
     } catch (e) {
       console.error("Refresh failed", e);
@@ -562,15 +558,13 @@ export default function ProfilePage({
       }
     }
 
-    fetch(`${API_BASE}/api/credentials`, {
+    api("credentials", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookies, authorizedID, csrf }),
+      body: { cookies, authorizedID, csrf },
     })
-      .then((r) => r.json())
-      .then((res) => {
-        if (res?.credentials || res?.ranks || res?.tables) {
-          setCredData(res);
+      .then((data: any) => {
+        if (data?.credentials || data?.ranks || data?.tables) {
+          setCredData(data);
         }
       })
       .catch((e) => console.error("Credentials fetch error:", e))
@@ -645,16 +639,14 @@ export default function ProfilePage({
     if (!creds || !creds.cookies) return;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/student`, {
+        const data = (await api("student", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             cookies: creds.cookies,
             authorizedID: creds.authorizedID,
             csrf: creds.csrf,
-          }),
-        });
-        const data = await res.json();
+          },
+        })) as any;
         if (data?.profile) {
           setProfileData(data.profile);
           localStorage.setItem("profile", JSON.stringify(data.profile));
@@ -2615,13 +2607,11 @@ function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () 
 
   useEffect(() => {
     const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/registration-schedule`, {
+    api("registration-schedule", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookies, authorizedID, csrf }),
+      body: { cookies, authorizedID, csrf },
     })
-      .then((r) => r.json())
-      .then((res) => {
+      .then((res: any) => {
         const hasContent =
           res?.tables?.length > 0 && res.tables.some((t: any) => t.rows?.length > 0);
         setHasData(hasContent);
@@ -2748,13 +2738,11 @@ function BankDayStatusModal({
   useEffect(() => {
     setLoading(true);
     const { cookies, authorizedID, csrf } = creds;
-    fetch(`${API_BASE}/api/${endpoint}`, {
+    api(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookies, authorizedID, csrf }),
+      body: { cookies, authorizedID, csrf },
     })
-      .then((r) => r.json())
-      .then(setData)
+      .then((data: any) => setData(data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [creds, endpoint]);

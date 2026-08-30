@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import { QBankCourse } from "@/types/qbank.types";
 
 export function useQBankCourses(allGradesData: any, marksData: any) {
@@ -10,10 +10,9 @@ export function useQBankCourses(allGradesData: any, marksData: any) {
   // Fetch global approved courses
   useEffect(() => {
     setGlobalCoursesLoading(true);
-    fetch(`${API_BASE}/api/qbank/courses`)
-      .then(r => r.json())
+    api("qbank/courses")
       .then(d => {
-        if (d.success) setGlobalCourses(d.data);
+        if ((d as any).success) setGlobalCourses((d as any).data);
       })
       .catch(err => console.error("Failed to fetch global courses:", err))
       .finally(() => setGlobalCoursesLoading(false));

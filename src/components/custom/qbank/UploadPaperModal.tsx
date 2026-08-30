@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UploadCloud, AlertCircle, Plus } from "lucide-react";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import Modal from "../shared/Modal";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";
 import { QBankCourse } from "@/types/qbank.types";
@@ -40,14 +40,12 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
         isAdmin
       };
 
-      const res = await fetch(`${API_BASE}/api/qbank/upload`, {
+      const json = (await api("qbank/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        body: payload,
+      })) as any;
 
-      const json = await res.json();
-      if (!res.ok || !json.success) {
+      if (!json.success) {
         throw new Error(json.error || "Upload failed");
       }
 

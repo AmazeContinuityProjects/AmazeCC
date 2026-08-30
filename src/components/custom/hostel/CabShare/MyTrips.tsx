@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { Loader2, Phone, MapPin, Clock, Calendar, Check, X, Inbox, Send } from "lucide-react";
 import ShareTripButton from "./ShareTripButton";
 import EmptyState from "../../shared/EmptyState";
@@ -20,8 +20,8 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
   const fetchTrips = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/trips/me?reg_number=${cabShareUser.reg_number}`);
-      const data = await readJsonResponse(res);
+      const res = await api(`cabshare/trips/me?reg_number=${cabShareUser.reg_number}`, { parse: "raw" });
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setMyTrips(data.my_trips);
         setJoinedTrips(data.joined_trips);
@@ -39,16 +39,15 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
   const handleMatchAction = async (match_id: number, action: string) => {
     try {
       setMessage(null);
-      const res = await fetch(`${API_BASE}/api/cabshare/match`, {
+      const res = await api("cabshare/match", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: { 
           reg_number: cabShareUser.reg_number, 
           match_id, 
           action 
-        })
+        }
       });
-      const data = await readJsonResponse(res);
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setMessage({ type: "success", text: action === "accept" ? "Ride request accepted." : "Ride request rejected." });
         fetchTrips();

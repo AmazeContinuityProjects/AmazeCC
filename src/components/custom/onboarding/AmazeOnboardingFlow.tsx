@@ -11,7 +11,7 @@ import { getAssetPath } from "@/lib/utils";
 import { fetchGitHubCommits } from "@/lib/githubChangelog";
 import buildInfo from "../../../data/buildInfo.json";
 import config from "../../../../config.json";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
 import MobileHome from "../mobile/MobileHome";
 import AttendanceTabs from "../attendance/AttendanceTabs";
@@ -257,16 +257,15 @@ export default function AmazeOnboardingFlow({
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
           });
 
-          await fetch(`${API_BASE}/api/notifications/subscribe`, {
+          await api("notifications/subscribe", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+            body: {
               UserID: username || IDs?.VtopUsername,
               subscription: JSON.parse(JSON.stringify(sub)),
               vitol_enabled: false,
               vitol_reminder_day: 1,
               vitol_reminder_time: "10:00",
-            }),
+            },
           });
         }
       } else {

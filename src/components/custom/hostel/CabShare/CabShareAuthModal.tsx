@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { Loader2, Car, Shield, AlertCircle, KeyRound, Phone, UserRound } from "lucide-react";
 import { readJsonResponse } from "./cabShareFallback";
 
@@ -46,13 +46,12 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/auth`, {
+      const res = await api("cabshare/auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, phone_number: phoneNumber }),
+        body: { username, password, phone_number: phoneNumber },
       });
 
-      const data = await readJsonResponse(res);
+      const data = await readJsonResponse(res as Response);
       if (!data) {
         onAuthSuccess({
           reg_number: username.trim(),

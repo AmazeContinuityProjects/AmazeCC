@@ -38,7 +38,6 @@ import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
-import { API_BASE } from "@/lib/fetch-utils";
 
 interface MobileHomeProps {
   attendanceData: any;

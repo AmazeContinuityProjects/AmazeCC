@@ -3,8 +3,7 @@ import InfoRow from "../shared/InfoRow";
 import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
-import { API_BASE, loginToEventHub } from "../Main";
-import { clearEventHubSession } from "@/lib/event-hub";
+import { api, clearEventHubSession } from "@/lib/sync-engine";
 import { getRewrittenUrl } from "@/lib/fetch-utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
@@ -43,14 +42,10 @@ export default function EventHubSubpage({
   const [selectedClub, setSelectedClub] = useState<any | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/clubs/details`)
-      .then(async res => {
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        return res.json();
-      })
+    api("clubs/details")
       .then(data => {
-        if (data.success && data.clubs) {
-          setClubsList(data.clubs);
+        if ((data as any).success && (data as any).clubs) {
+          setClubsList((data as any).clubs);
         }
       })
       .catch(console.error);
@@ -92,25 +87,16 @@ export default function EventHubSubpage({
     }
 
     try {
-      const jsessionid = await loginToEventHub(IDs, IDs?.VtopUsername === "demo");
-      if (!jsessionid) {
-        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
-        setModalOpen(true);
-        setIsRegistering(false);
-        return;
-      }
-      const res = await fetch(`${API_BASE}/api/events/download`, {
+      const res = (await api("events/download", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsessionid,
-          url: url
-        })
-      });
+        auth: "eventhub",
+        body: { url },
+        parse: "raw",
+      })) as Response;
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to download document.");
+        throw new Error((errorData as any).error || "Failed to download document.");
       }
 
       const blob = await res.blob();
@@ -208,32 +194,11 @@ export default function EventHubSubpage({
     }
 
     try {
-      const jsessionid = await loginToEventHub(IDs, false);
-      if (!jsessionid) {
-        setModalContent({ title: "Authentication Required", message: "Failed to authenticate with Event Hub." });
-        setModalOpen(true);
-        setIsRegistering(false);
-        return;
-      }
-      const res = await fetch(`${API_BASE}/api/events/register`, {
+      const data = (await api("events/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsessionid,
-          eid: selectedEvent.eid
-        })
-      });
-      
-      if (!res.ok) {
-        const errText = await res.text();
-        let errMsg = "Failed to register for event.";
-        try { errMsg = JSON.parse(errText).error || errMsg; } catch(e) {}
-        setModalContent({ title: "Registration Failed", message: errMsg });
-        setModalOpen(true);
-        return;
-      }
-
-      const data = await res.json();
+        auth: "eventhub",
+        body: { eid: selectedEvent.eid },
+      })) as any;
 
       if (data.status === "success") {
         setModalContent({ title: "Registration Successful", message: data.message });
@@ -306,19 +271,14 @@ export default function EventHubSubpage({
                                   return;
                                 }
                                 try {
-                                  const res = await fetch(`${API_BASE}/api/events/paynow`, {
+                                  const data = (await api("events/paynow", {
                                     method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
+                                    body: {
                                       username: IDs.VtopUsername,
                                       password: IDs.VtopPassword,
                                       url: linkToPay
-                                    })
-                                  });
-                                  if (!res.ok) {
-                                    throw new Error(`Payment API failed with status ${res.status}`);
-                                  }
-                                  const data = await res.json();
+                                    }
+                                  })) as any;
                                   if (data.status === "payment_required" || data.status === "redirect") {
                                     window.open(data.url, "_blank");
                                   } else if (data.status === "payment_form") {

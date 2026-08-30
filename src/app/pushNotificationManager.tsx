@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAtom } from "jotai";
 import { settingsAtom } from "@/store/settingsAtoms";
 import { Switch } from "@amazecontinuityprojects/amazeui";
-import { API_BASE } from "@/components/custom/Main";
+import { api } from "@/lib/sync-engine";
 import { 
   Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
   FileText, Sparkles, Send, CheckCircle, Key, Plane, Bus, BookMarked, Award, Clock
@@ -142,14 +142,13 @@ export default function PushNotificationManager() {
       }
 
       if (userID) {
-        fetch(`${API_BASE}/api/notifications/subscribe`, {
+        api("notifications/subscribe", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             UserID: userID,
             subscription: JSON.parse(JSON.stringify(sub)),
             settings,
-          }),
+          },
         }).catch((err) => console.warn("Backend push sync warning:", err));
       }
 
@@ -166,13 +165,12 @@ export default function PushNotificationManager() {
     try {
       await subscription.unsubscribe();
       if (userID) {
-        fetch(`${API_BASE}/api/notifications/unsubscribe`, {
+        api("notifications/unsubscribe", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             UserID: userID,
             endpoint: subscription.endpoint,
-          }),
+          },
         }).catch(() => {});
       }
       setSubscription(null);

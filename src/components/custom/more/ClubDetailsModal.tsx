@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../custom/Main";
+import { api } from "@/lib/sync-engine";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -18,9 +18,8 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
   useEffect(() => {
     if (isOpen && club?.club_id) {
       setLoadingLp(true);
-      fetch(`${API_BASE}/api/club-admin/landing-page?club_id=${club.club_id}`)
-        .then(res => res.json())
-        .then(data => {
+      api(`club-admin/landing-page?club_id=${club.club_id}`)
+        .then((data: any) => {
           if (data.success && data.landingPage) {
             setLandingPage(data.landingPage);
           } else {

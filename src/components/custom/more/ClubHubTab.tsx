@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../custom/Main";
+import { api } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { Search, Users, Hash, Layers } from "lucide-react";
 import { m } from "framer-motion";
@@ -23,9 +23,8 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
 
   useEffect(() => {
     fetchClubs();
-    fetch(`${API_BASE}/api/clubs/details`)
-      .then(res => res.json())
-      .then(data => {
+    api("clubs/details")
+      .then((data: any) => {
         if (data.success && data.clubs) {
           setPublicClubDetails(data.clubs);
         }
@@ -67,15 +66,16 @@ export default function ClubHubTab({ IDs, loginToVTOP }: { IDs: any, loginToVTOP
         }
       }
 
-      const res = await fetch(`${API_BASE}/api/club-enrollment`, {
+      const res = (await api("club-enrollment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cookies: currentCookies,
           authorizedID: currentAuthID,
           csrf: currentCsrf,
-        })
-      });
+        }),
+        parse: "raw",
+      })) as Response;
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch clubs");
       if (!data.success) throw new Error("Failed to load club data from VTOP");

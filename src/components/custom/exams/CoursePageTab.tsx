@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { XCircle } from "lucide-react";
@@ -92,12 +92,11 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
     const c = credsRef.current;
     if (!c || Object.keys(formData).length === 0) return null;
     try {
-      const res = await fetch(`${API_BASE}/api/course-page`, {
+      const data = await api("course-page", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, formData }),
-      });
-      const data = await res.json();
+        body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf, formData },
+      }) as any;
       if (data.success === false) { setError(data.error || "Failed"); return null; }
       return data.results || null;
     } catch (err: any) {
@@ -178,11 +177,11 @@ export default function CoursePageTab({ loginToVTOP }: { loginToVTOP: () => Prom
     loginToVTOP().then(c => {
       credsRef.current = c;
       setCreds(c);
-      fetch(`${API_BASE}/api/course-page`, {
+      api("course-page", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf }),
-      }).then(r => r.json()).then(d => {
+        body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: c.csrf },
+      }).then((d: any) => {
         if (d.semesters) setSemesters(d.semesters);
         if (d.semesters?.length > 0) {
           const sel = d.semesters.find((s: any) => s.selected);

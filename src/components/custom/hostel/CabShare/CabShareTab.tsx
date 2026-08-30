@@ -8,7 +8,7 @@ import MyTrips from "./MyTrips";
 import PageHeader from "../../shared/PageHeader";
 import { Car, Loader2, Plus, Search, UserRoundCheck } from "lucide-react";
 import CabShareAuthModal from "./CabShareAuthModal";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { readJsonResponse } from "./cabShareFallback";
 
 export default function CabShareTab() {
@@ -28,8 +28,8 @@ export default function CabShareTab() {
   const refreshPendingCount = useCallback(async () => {
     if (!cabShareUser) return;
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/trips/me?reg_number=${cabShareUser.reg_number}`);
-      const data = await readJsonResponse(res);
+      const res = await api(`cabshare/trips/me?reg_number=${cabShareUser.reg_number}`, { parse: "raw" });
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         const count = (data.my_trips || []).reduce((acc: number, trip: any) =>
           acc + (trip.requests || []).filter((r: any) => r.status === 'pending').length, 0);

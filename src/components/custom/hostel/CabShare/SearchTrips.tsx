@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE } from "../../Main";
+import { api } from "@/lib/sync-engine";
 import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle, Clock3 } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
 import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
@@ -27,8 +27,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   const fetchHubs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/hubs`);
-      const data = await readJsonResponse(res);
+      const res = await api("cabshare/hubs", { parse: "raw" });
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         const unique = dedupeHubs(data.hubs, fallbackHubs);
         setHubs(unique);
@@ -71,8 +71,8 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
       if (date) params.append("date", date);
       params.append("reg_number", cabShareUser.reg_number); // To exclude own trips
 
-      const res = await fetch(`${API_BASE}/api/cabshare/trips?${params.toString()}`);
-      const data = await readJsonResponse(res);
+      const res = await api(`cabshare/trips?${params.toString()}`, { parse: "raw" });
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setTrips(data.trips);
       } else {
@@ -99,16 +99,15 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   const handleJoinRequest = async (trip_id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/match`, {
+      const res = await api("cabshare/match", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: { 
           reg_number: cabShareUser.reg_number, 
           trip_id, 
           action: "request" 
-        })
+        }
       });
-      const data = await readJsonResponse(res);
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setShowPendingModal(true);
         handleSearch({ preventDefault: () => {} } as React.FormEvent);
@@ -139,16 +138,15 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   const handleAlertMe = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/cabshare/waitlist`, {
+      const res = await api("cabshare/waitlist", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           reg_number: cabShareUser.reg_number,
           hub_id: parseInt(hubId),
           travel_date: date
-        })
+        }
       });
-      const data = await readJsonResponse(res);
+      const data = await readJsonResponse(res as Response);
       if (data?.success) {
         setMessage({ type: "success", text: "You will be notified when a matching ride is posted." });
       } else {

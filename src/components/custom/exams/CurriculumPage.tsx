@@ -9,7 +9,7 @@ import {
   CheckCircle2, Clock, AlertCircle, Calculator, Sliders, LayoutGrid, Check,
   BookMarked, ArrowUpRight, ShieldCheck, ListFilter
 } from "lucide-react";
-import { API_BASE } from "../Main";
+import { api } from "@/lib/sync-engine";
 import FetchButton from "../shared/FetchButton";
 import SubpageLayout from "../shared/SubpageLayout";
 import { storage } from "@/lib/storage";
@@ -178,13 +178,12 @@ export default function CurriculumPage({
     loginToVTOP()
       .then(c => {
         setCreds(c);
-        return fetch(`${API_BASE}/api/curriculum`, {
+        return api("curriculum", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(c),
+          body: c,
         });
       })
-      .then(r => r.json())
       .then(result => {
         if (result.success !== false) {
           setCurricDetails(result.details || []);
@@ -219,15 +218,16 @@ export default function CurriculumPage({
         c = await loginToVTOP();
         setCreds(c);
       }
-      const res = await fetch(`${API_BASE}/api/curriculum/syllabus`, {
+      const res = await api("curriculum/syllabus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           cookies: c.cookies,
           authorizedID: c.authorizedID,
           csrf: pageCsrf || c.csrf,
           courseCode,
-        }),
+        },
+        parse: "raw",
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: res.statusText }));
@@ -261,10 +261,11 @@ export default function CurriculumPage({
         c = await loginToVTOP();
         setCreds(c);
       }
-      const res = await fetch(`${API_BASE}/api/curriculum/download`, {
+      const res = await api("curriculum/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf }),
+        body: { cookies: c.cookies, authorizedID: c.authorizedID, csrf: pageCsrf || c.csrf },
+        parse: "raw",
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ error: res.statusText }));
