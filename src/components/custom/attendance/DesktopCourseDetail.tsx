@@ -8,6 +8,7 @@ import ExpandableSection from "../shared/ExpandableSection";
 import CircularProgress from "../shared/CircularProgress";
 import EmptyState from "../shared/EmptyState";
 import { countRemainingClasses } from "./AttendanceSubpage";
+import { findOfficialOdWhy } from "@/lib/officialOd";
 
 const normalize = (d: Date) => {
     const x = new Date(d);
@@ -484,16 +485,24 @@ export default function DesktopCourseDetail({
                             const isPresent = status === "present";
                             const isAbsent = status === "absent";
                             const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
+                            const isOD = status === "on duty" || status === "partial od";
+                            const officialWhy = isOD ? findOfficialOdWhy(d.date) : [];
 
                             return (
                                 <div key={idx} className="flex items-center justify-between p-3.5 hover:bg-gray-50/50 dark:hover:bg-gray-950/30 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-1.5 h-7 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
-                                        <div>
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className={`w-1.5 h-7 rounded-full shrink-0 ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
+                                        <div className="min-w-0 flex-1">
                                             <p className="font-bold text-xs text-gray-900 dark:text-gray-100">{d.date}</p>
                                             <p className={`text-[9px] font-extrabold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400" : "text-yellow-600 dark:text-yellow-400"}`}>
                                                 {d.status}
                                             </p>
+                                            {officialWhy.length > 0 && (
+                                                <p className="text-[10px] text-blue-700  dark:text-blue-300 leading-snug mt-1 break-words">
+                                                    <span className="font-bold">{officialWhy[0].reason}</span>
+                                                    {officialWhy[0].remarks ? ` — ${officialWhy[0].remarks}` : ""}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 

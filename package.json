@@ -9,6 +9,7 @@
     "test": "vitest run",
     "predev": "node scripts/generate-build-info.js",
     "dev": "next dev --webpack --experimental-https -p 3001",
+    "dev:http": "next dev --webpack -p 3001",
     "prebuild": "node scripts/generate-build-info.js",
     "build": "next build --webpack",
     "start": "pnpm dlx serve@latest out -p 3001 -s",

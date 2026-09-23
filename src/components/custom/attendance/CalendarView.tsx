@@ -13,6 +13,7 @@ import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";
 import Modal from "../shared/Modal";
+import { useOverlayBack } from "@/lib/overlayStack";
 const CALENDAR_TYPES = {
     ALL: "General Semester",
     ALL02: "General Flexible",
@@ -70,6 +71,9 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
     const [showOverallTracker, setShowOverallTracker] = useState(false);
     const [showMoodleModal, setShowMoodleModal] = useState(false);
+
+    // Overlays dismiss via system back before screen navigation does
+    useOverlayBack("moodle-connect", showMoodleModal, () => setShowMoodleModal(false));
 
     useEffect(() => {
         if (setIsSubpageOpen) {

@@ -9,6 +9,7 @@ import HeatMap from "@uiw/react-heat-map";
 import AttendanceCalendarView from "./AttendanceCalendarView";
 import SubpageLayout from "../shared/SubpageLayout";
 import Badge from "../shared/Badge";
+import { findOfficialOdWhy } from "@/lib/officialOd";
 
 type CalendarEvent = {
     text: string;
@@ -615,18 +616,30 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                         const status = d.status.toLowerCase();
                                         const isPresent = status === "present";
                                         const isAbsent = status === "absent";
+                                        const isOD = status === "on duty" || status === "partial od";
 
                                         const hasNotes = notesTracker[a.courseCode]?.[d.date] === true;
+                                        const officialWhy = isOD ? findOfficialOdWhy(d.date) : [];
 
                                         return (
                                             <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
-                                                    <div>
+                                                <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                    <div className={`w-2 h-10 rounded-full shrink-0 ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`}></div>
+                                                    <div className="min-w-0 flex-1">
                                                         <p className="font-bold text-gray-950  dark:text-gray-100">{d.date}</p>
                                                         <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
                                                             {d.status}
                                                         </p>
+                                                        {officialWhy.length > 0 && (
+                                                            <div className="mt-1.5 space-y-1">
+                                                                {officialWhy.map((o, oi) => (
+                                                                    <p key={oi} className="text-[11px] text-blue-700  dark:text-blue-300 leading-snug break-words">
+                                                                        <span className="font-bold">{o.reason}</span>
+                                                                        {o.remarks ? ` — ${o.remarks}` : ""}
+                                                                    </p>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 

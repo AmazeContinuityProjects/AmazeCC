@@ -1,5 +1,6 @@
 "use client";
 import { getAssetPath } from "@/lib/utils";
+import { useOverlayBack } from "@/lib/overlayStack";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./StatCards";
 import GradesModal from "./exams/GradesModal";
@@ -67,7 +68,6 @@ import PushPromptModal from "./PushPromptModal";
 import ChangelogModal from "./ChangelogModal";
 import FresherWelcomePage from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
-import Modal from "./shared/Modal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor";
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
@@ -132,7 +132,8 @@ function DashboardContent({
   settings,
   setSettings,
   onOpenCommandPalette,
-  onOpenShortcutsHelp
+  onOpenShortcutsHelp,
+  onSystemBack
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
@@ -231,6 +232,10 @@ function DashboardContent({
   const hasMoved = useRef(false);
   const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("grades-modal", GradesDisplayIsOpen, () => setGradesDisplayIsOpen(false));
+  useOverlayBack("feedback-status", showFeedbackStatus, () => setShowFeedbackStatus(false));
 
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
@@ -737,16 +742,6 @@ function DashboardContent({
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <ChangelogModal />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
-        {ODhoursIsOpen && (
-          <Modal onClose={() => setODhoursIsOpen(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
-            <ODTrackerSubpage
-              ODhoursData={ODhoursData}
-              attendanceData={attendanceData?.attendance}
-              analyzeCalendars={results}
-              onBack={() => setODhoursIsOpen(false)}
-            />
-          </Modal>
-        )}
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "home" && (
             <div>
@@ -881,6 +876,18 @@ function DashboardContent({
                       />
                     );
                   })()}
+                </div>
+              )}
+
+              {activeAttendanceSubTab === "od" && (
+                <div className="animate-fadeIn">
+                  <ODTrackerSubpage
+                    ODhoursData={ODhoursData}
+                    attendanceData={attendanceData?.attendance}
+                    onBack={onSystemBack}
+                    currSemesterID={settings?.currSemesterID}
+                    allGradesData={allGradesData}
+                  />
                 </div>
               )}
             </div>

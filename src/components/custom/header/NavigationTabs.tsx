@@ -1102,7 +1102,10 @@ export default function NavigationTabs({
                     </button>
 
                     <button
-                      onClick={() => setODhoursIsOpen(true)}
+                      onClick={() => {
+                        selectTab("attendance");
+                        setActiveAttendanceSubTab("od");
+                      }}
                       className="flex justify-between items-center w-full text-left hover:bg-sidebar-accent rounded px-1 -mx-1 py-0.5 transition-colors cursor-pointer text-sidebar-foreground/ hover:text-sidebar-foreground"
                       title="Click to view OD tracker details"
                     >

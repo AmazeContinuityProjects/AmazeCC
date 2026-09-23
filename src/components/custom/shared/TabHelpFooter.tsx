@@ -21,6 +21,7 @@ import {
   ListOrdered
 } from "lucide-react";
 import Modal from "./Modal";
+import { useOverlayBack } from "@/lib/overlayStack";
 
 export interface TabHelpItem {
   icon: React.ReactNode;
@@ -288,6 +289,9 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
 
 export default function TabHelpFooter({ tabId }: { tabId: string }) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Guide dismisses via system back before screen navigation does
+  useOverlayBack(`tab-help-${tabId}`, isOpen, () => setIsOpen(false));
 
   const guide = TAB_GUIDES[tabId] || TAB_GUIDES.home;
 

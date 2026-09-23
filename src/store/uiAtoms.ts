@@ -14,7 +14,6 @@ export const activeDayAtom = atom<string>("");
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);
 export const isReloadingAtom = atom<boolean>(false);
-export const isLoadingAtom = atom<boolean>(true);
 export const progressBarAtom = atom<number>(0);
 export const messageAtom = atom<string, [string | ((prev: string) => string)], void>(
   "",

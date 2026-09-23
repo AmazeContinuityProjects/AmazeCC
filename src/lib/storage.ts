@@ -61,6 +61,7 @@ export const KEYS = {
   CACHE_PREFIX: "cache_",
   FROZEN_ATT_PREFIX: "frozen_att_",
   FROZEN_MARKS_PREFIX: "frozen_marks_",
+  OFFICIAL_OD_PREFIX: "official_od_",
 } as const;
 
 function getItem<T>(key: string): T | null {
@@ -264,6 +265,11 @@ export const storage = {
     get: (semesterId: string) => getItem<attendanceRes>(KEYS.FROZEN_ATT_PREFIX + semesterId),
     set: (semesterId: string, data: attendanceRes) => setItem(KEYS.FROZEN_ATT_PREFIX + semesterId, data),
     remove: (semesterId: string) => removeItem(KEYS.FROZEN_ATT_PREFIX + semesterId),
+  },
+  officialOd: {
+    get: (semesterId: string) => getItem<import("@/types/data/od").OfficialOdResponse>(KEYS.OFFICIAL_OD_PREFIX + semesterId),
+    set: (semesterId: string, data: import("@/types/data/od").OfficialOdResponse) => setItem(KEYS.OFFICIAL_OD_PREFIX + semesterId, data),
+    remove: (semesterId: string) => removeItem(KEYS.OFFICIAL_OD_PREFIX + semesterId),
   },
   noteTracker: {
     get: () => getItem<Record<string, unknown>>(KEYS.UNICC_NOTES_TRACKER),

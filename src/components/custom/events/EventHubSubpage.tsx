@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@amazecontinuityprojects/amazeui";
 import SubpageLayout from "../shared/SubpageLayout";
 import ClubDetailsModal from "../more/ClubDetailsModal";
+import { useOverlayBack } from "@/lib/overlayStack";
 import { getSimilarity } from "@/lib/string-similarity";
 
 interface EventHubSubpageProps {
@@ -35,6 +36,9 @@ export default function EventHubSubpage({
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("eventhub-status", modalOpen, () => setModalOpen(false));
   const [modalContent, setModalContent] = useState<{title: string, message: string}>({title: "", message: ""});
   const [pwaUrl, setPwaUrl] = useState<string | null>(null);
   const [pwaMode, setPwaMode] = useState<"pay" | "view" | "download" | null>(null);

@@ -1,15 +1,16 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useAtom } from "jotai";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useAtom, useSetAtom } from "jotai";
 import {
   credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
   allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
   isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
   isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
   activeAttendanceSubTabAtom, activeToolsSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
-  activeMoreSubTabAtom, activeProfileSubTabAtom, isLoadingAtom, progressBarAtom,
+  activeMoreSubTabAtom, activeProfileSubTabAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
+  officialOdDataAtom,
   defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
@@ -23,17 +24,18 @@ import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
-import { CommandPalette, LoadingScreen } from "@/components/custom/shared";
+import { CommandPalette } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
 import { useTheme } from "next-themes";
 import { X, Keyboard, WifiOff } from "lucide-react";
-import { getAssetPath } from "@/lib/utils";
 import { syncEngine, clearEventHubSession, api } from "@/lib/sync-engine";
+import { closeTopOverlayFromPop, useOverlayBack } from "@/lib/overlayStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
 import { reportError } from "@/lib/error-utils";
+import { DEMO_OFFICIAL_OD } from "@/lib/officialOd";
 
 const COLOR_PALETTES: Record<string, { accent: string; background?: string; surface?: string }> = {
   default: { accent: "" },
@@ -61,6 +63,7 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
   const [attendancePercentage, setattendancePercentage] = useAtom(attendancePercentageAtom);
   const [ODhoursData, setODhoursData] = useAtom(odHoursDataAtom);
+  const setOfficialOdData = useSetAtom(officialOdDataAtom);
   const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
   const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
@@ -72,7 +75,6 @@ export default function LoginPage() {
   const [activeQBankSubTab, setActiveQBankSubTab] = useAtom(activeQBankSubTabAtom);
   const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
   const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
-  const [isLoading, setIsLoading] = useAtom(isLoadingAtom);
   const [progressBar, setProgressBar] = useAtom(progressBarAtom);
   const [moodleData, setMoodleData] = useAtom(moodleDataAtom);
   const [vitolData, setVitolData] = useAtom(vitolDataAtom);
@@ -85,6 +87,11 @@ export default function LoginPage() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
   const [credEditorOpen, setCredEditorOpen] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));
+  useOverlayBack("shortcuts-help", isShortcutsHelpOpen, () => setIsShortcutsHelpOpen(false));
+  useOverlayBack("credential-editor", credEditorOpen, () => setCredEditorOpen(false));
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -335,6 +342,13 @@ export default function LoginPage() {
     if (MoodleData) setMoodleData(MoodleData as never[]);
     if (VitolData) setVitolData(VitolData as never[]);
     if (storedRegisteredEvents) setRegisteredEvents(storedRegisteredEvents);
+    try {
+      const bootSem = (settingsRaw as any)?.currSemesterID as string | undefined;
+      if (bootSem) {
+        const storedOd = storage.officialOd.get(bootSem);
+        if (storedOd) setOfficialOdData(storedOd);
+      }
+    } catch {}
     
     setIDs({
       VtopUsername: storedUsername || "",
@@ -364,7 +378,6 @@ export default function LoginPage() {
       } catch (e) {}
       setIsLoggedIn((storedUsername && storedPassword) || hasVtop ? true : false);
     }
-    setIsLoading(false);
   }, []);
 
   const loginToVTOP = useCallback(async () => {
@@ -474,6 +487,7 @@ export default function LoginPage() {
           console.log("Starting background sync for non-critical data...");
 
           await syncEngine.sync("events", { demoMode });
+          await syncEngine.sync("officialOd", { semesterId: currSemesterID });
           await syncEngine.sync("pastAttendance", {
             semesterId: currSemesterID,
             allGradesRes: storage.allGrades.get(),
@@ -574,6 +588,11 @@ export default function LoginPage() {
       if ((demoData as any).profile) {
         localStorage.setItem("profile", JSON.stringify((demoData as any).profile));
       }
+      setOfficialOdData(DEMO_OFFICIAL_OD);
+      try {
+        const demoSem = settings.currSemesterID || "DEMO";
+        storage.officialOd.set(demoSem, { ...DEMO_OFFICIAL_OD, semesterId: demoSem });
+      } catch {}
       setIsReloading(false);
       return;
     }
@@ -729,6 +748,14 @@ export default function LoginPage() {
           const dueData = await api("library-due", { method: "POST", body: { cookies, authorizedID, csrf } }) as any;
           if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
           setMessage(prev => prev + "\n✅ Library data fetched");
+
+          // Official OD records (unified sync engine — atom + local storage)
+          try {
+            await syncEngine.sync("officialOd", { semesterId: activeSem });
+            setMessage(prev => prev + "\n✅ Official OD records fetched");
+          } catch {
+            console.warn("Official OD sync failed");
+          }
 
           // All other VTOP-scoped endpoints (cached for GenericApiView)
           const bulkEndpoints = [
@@ -927,7 +954,8 @@ export default function LoginPage() {
         // Modal & Action Shortcuts
         else if (key === "o") {
           e.preventDefault();
-          setODhoursIsOpen(prev => !prev);
+          setActiveTab("attendance");
+          setActiveAttendanceSubTab("od");
         } else if (key === "b") {
           e.preventDefault();
           setSettings(prev => {
@@ -944,7 +972,112 @@ export default function LoginPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [theme, setTheme, settings, setSettings, setActiveTab, setActiveMoreSubTab, setActiveSubTab, setActiveProfileSubTab, setODhoursIsOpen]);
+  }, [theme, setTheme, settings, setSettings, setActiveTab, setActiveMoreSubTab, setActiveSubTab, setActiveAttendanceSubTab, setActiveProfileSubTab]);
+
+  // ── App-wide screen history: every tab/sub-tab navigation becomes a real
+  // browser history entry, so the OS back gesture / system back button
+  // (incl. Android predictive back) walks back through screens instead of
+  // exiting the app. Overlays (modals, palettes, predictors) are not screens.
+  const screenKey = useMemo(() => {
+    switch (activeTab) {
+      case "attendance": return `attendance:${activeAttendanceSubTab}`;
+      case "academics": return `academics:${activeSubTab}`;
+      case "hostel": return `hostel:${HostelActiveSubTab}`;
+      case "more": return `more:${activeMoreSubTab}`;
+      case "profile": return `profile:${activeProfileSubTab}`;
+      case "tools": return `tools:${activeToolsSubTab}`;
+      case "transport": return `transport:${activeDayscholarSubTab}`;
+      default: return activeTab;
+    }
+  }, [activeTab, activeAttendanceSubTab, activeSubTab, HostelActiveSubTab, activeMoreSubTab, activeProfileSubTab, activeToolsSubTab, activeDayscholarSubTab]);
+
+  const restoreScreen = useCallback((key: string) => {
+    const sep = key.indexOf(":");
+    const tab = sep === -1 ? key : key.slice(0, sep);
+    const sub = sep === -1 ? null : key.slice(sep + 1);
+    setActiveTab(tab);
+    if (sub === null) return;
+    if (tab === "attendance") setActiveAttendanceSubTab(sub);
+    else if (tab === "academics") setActiveSubTab(sub);
+    else if (tab === "hostel") setHostelActiveSubTab(sub);
+    else if (tab === "more") setActiveMoreSubTab(sub);
+    else if (tab === "profile") setActiveProfileSubTab(sub);
+    else if (tab === "tools") setActiveToolsSubTab(sub);
+    else if (tab === "transport") setActiveDayscholarSubTab(sub);
+  }, [setActiveTab, setActiveAttendanceSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, setActiveToolsSubTab, setActiveDayscholarSubTab]);
+
+  const screenStackRef = useRef<string[]>([]);
+  const skipScreenPushRef = useRef(false);
+  const restoreScreenRef = useRef(restoreScreen);
+  restoreScreenRef.current = restoreScreen;
+  const screenKeyRef = useRef(screenKey);
+  screenKeyRef.current = screenKey;
+
+  // Next.js App Router patches history.pushState/replaceState and force-reloads
+  // on popstate when the landed entry lacks its internal markers — and its
+  // patch installs (ancestor effect) after ours runs on mount. So every entry
+  // we write preserves the current history.state (markers included), mirroring
+  // Next's own copyNextJsInternalHistoryState. Never bypass via
+  // History.prototype: marker-less entries trigger location.reload on pop.
+  const writeScreenState = useCallback((method: "push" | "replace", key: string) => {
+    try {
+      const prev = window.history.state;
+      const data = prev && typeof prev === "object" ? { ...prev, screen: key } : { screen: key };
+      if (method === "push") window.history.pushState(data, "");
+      else window.history.replaceState(data, "");
+    } catch {}
+  }, []);
+
+  const screenMountedRef = useRef(false);
+  useEffect(() => {
+    if (!screenMountedRef.current) {
+      screenMountedRef.current = true;
+      screenStackRef.current = [screenKey];
+      writeScreenState("replace", screenKey);
+      return;
+    }
+    if (skipScreenPushRef.current) { skipScreenPushRef.current = false; return; }
+    const stack = screenStackRef.current;
+    if (stack[stack.length - 1] === screenKey) return;
+    stack.push(screenKey);
+    writeScreenState("push", screenKey);
+  }, [screenKey, writeScreenState]);
+
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      // Overlays first: a back press dismisses the topmost modal/palette/
+      // in-tab subpage. The pop consumed a screen entry, so re-push the
+      // current screen to keep history in sync (net zero entries).
+      if (closeTopOverlayFromPop()) {
+        writeScreenState("push", screenKeyRef.current);
+        return;
+      }
+      const s = (e.state as { screen?: unknown } | null)?.screen;
+      if (typeof s !== "string") return; // before app history — allow default (exit)
+      const stack = screenStackRef.current;
+      if (stack.length >= 2 && stack[stack.length - 2] === s) {
+        stack.pop(); // genuine back step
+      } else if (stack[stack.length - 1] !== s) {
+        stack.push(s); // forward step into a screen we had left
+      } else {
+        return; // duplicate of current screen — nothing to do
+      }
+      skipScreenPushRef.current = true;
+      restoreScreenRef.current(s);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [writeScreenState]);
+
+  const goBack = useCallback(() => {
+    if (screenStackRef.current.length > 1) {
+      try { window.history.back(); return; } catch {}
+    }
+    skipScreenPushRef.current = true;
+    screenStackRef.current = ["home"];
+    writeScreenState("replace", "home");
+    restoreScreen("home");
+  }, [restoreScreen, writeScreenState]);
 
   const cmds = useMemo(() => {
     const result: any[] = [];
@@ -1156,7 +1289,7 @@ export default function LoginPage() {
 
     // ── Tools & Modals ──
     result.push(
-      { id: "tool-od-hours", label: "OD Hours Display", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => setODhoursIsOpen(true) },
+      { id: "tool-od-hours", label: "OD Hours", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("od"); } },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
       { id: "tool-marks-predictor", label: "Marks Predictor & Simulator", description: "Simulate test marks, weightage lost & FAT targets", icon: "📊", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("marks-predictor"); } },
       { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
@@ -2053,24 +2186,12 @@ export default function LoginPage() {
     setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab,
     setActiveDayscholarSubTab, setActiveMoreSubTab, setActiveQBankSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
-    ODhoursData, setODhoursIsOpen, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
+    ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
   ]);
 
   return (
     <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
     <>
-      <AnimatePresence mode="wait">
-        {isLoading && (
-          <LoadingScreen
-            key="splash-loading-screen"
-            logoSrc="/logo.png"
-            wordmarkLightSrc={getAssetPath("/images/icons/wordmarkLight.svg")}
-            wordmarkDarkSrc={getAssetPath("/images/icons/wordmarkDark.svg")}
-            title="Student Operating System"
-             />
-      )}
-      </AnimatePresence>
-      {!isLoading && (
         <m.div
           className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
         >
@@ -2268,6 +2389,7 @@ export default function LoginPage() {
             setSettings={setSettings}
             onOpenCommandPalette={openCommandPalette}
             onOpenShortcutsHelp={openShortcutsHelp}
+            onSystemBack={goBack}
           />
             </>
           )}
@@ -2288,7 +2410,6 @@ export default function LoginPage() {
         <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
       )}
         </m.div>
-      )}
     </>
     </LazyMotion>
   );
@@ -2311,7 +2432,7 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
       title: "Quick Tools & Actions",
       items: [
         { keys: ["Ctrl", "K"], desc: "Toggle Spotlight Command Palette" },
-        { keys: ["Alt", "O"], desc: "Toggle On-Duty (OD) hours popup planner" },
+        { keys: ["Alt", "O"], desc: "Open On-Duty (OD) hours page" },
         { keys: ["Alt", "B"], desc: "Toggle privacy blur filter (hides GPA)" },
         { keys: ["Alt", "T"], desc: "Toggle Theme (Light / Dark mode)" },
         { keys: ["?"], desc: "Show this keyboard shortcuts cheat-sheet" },

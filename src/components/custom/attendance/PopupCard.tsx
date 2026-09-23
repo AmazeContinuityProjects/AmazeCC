@@ -7,6 +7,8 @@ import ExpandableSection from "../shared/ExpandableSection"
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar"
 import "react-circular-progressbar/dist/styles.css"
 import Modal from "../shared/Modal";
+import { findOfficialOdWhy } from "@/lib/officialOd";
+import { useOverlayBack } from "@/lib/overlayStack";
 
 type CalendarEvent = {
     text: string;
@@ -38,6 +40,9 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
             document.body.style.overflow = "";
         };
     }, []);
+
+    // Mounted = expanded: system back collapses before screen navigation does
+    useOverlayBack("course-detail", true, () => setExpandedIdx(null));
 
     const countTillDate = (endDate): RemainingClassDay[] | null => {
         if (!endDate) return null;
@@ -249,22 +254,32 @@ export default function PopupCard({ a, setExpandedIdx, dayCardsMap, analyzeCalen
 
                 <div className="flex-1 pr-1 mt-2">
                     <ul className="list-disc list-inside text-xs space-y-1">
-                        {Array.isArray(a.viewLink) && a.viewLink.map((d, i) => (
+                        {Array.isArray(a.viewLink) && a.viewLink.map((d, i) => {
+                            const dayStatus = d.status.toLowerCase();
+                            const isOD = dayStatus === "on duty" || dayStatus === "partial od";
+                            const officialWhy = isOD ? findOfficialOdWhy(d.date) : [];
+                            return (
                             <li
                                 key={i}
                                                 className={
-                                                    d.status.toLowerCase() === "absent"
+                                                    dayStatus === "absent"
                                                         ? "text-red-500 dark:text-red-400"
-                                                        : d.status.toLowerCase() === "present"
+                                                        : dayStatus === "present"
                                                             ? "text-green-500 dark:text-green-400"
-                                                            : d.status.toLowerCase() === "on duty"
+                                                            : dayStatus === "on duty"
                                                                 ? "text-yellow-500 dark:text-yellow-400"
                                                                 : "text-gray-700  dark:text-gray-300"
                                                 }
                             >
                                 {d.date} – {d.status}
+                                {officialWhy.length > 0 && (
+                                    <span className="block pl-4 text-blue-600 dark:text-blue-400">
+                                        {officialWhy.map((o) => o.reason + (o.remarks ? ` — ${o.remarks}` : "")).join(" | ")}
+                                    </span>
+                                )}
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 </div>
             </div>

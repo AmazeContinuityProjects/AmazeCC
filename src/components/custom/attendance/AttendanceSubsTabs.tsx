@@ -9,6 +9,7 @@ export default function AttendanceSubTabs({ activeSubTab, setActiveAttendanceSub
         { id: "attendance", label: "Attendance" },
         { id: "calendar", label: "Calendar" },
         { id: "predictor", label: "Predictor" },
+        { id: "od", label: "On-Duty" },
       ]}
       activeTab={activeSubTab}
       onChange={setActiveAttendanceSubTab}

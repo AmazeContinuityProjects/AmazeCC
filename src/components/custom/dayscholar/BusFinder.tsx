@@ -5,6 +5,7 @@ import { AnimatePresence, m } from 'framer-motion';
 import Modal from "../shared/Modal";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
+import { useOverlayBack } from "@/lib/overlayStack";
 import TransportRegistration from "./TransportRegistration";
 import type { BusRoute, TransportData } from '@/types/transport';
 
@@ -18,6 +19,9 @@ interface BusFinderProps {
 const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLoading, loginToVTOP }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBus, setSelectedBus] = useState<BusRoute | null>(null);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("bus-detail", selectedBus !== null, () => setSelectedBus(null));
 
   const filteredBuses = buses.filter((bus) => {
     if (!searchQuery) return true;
