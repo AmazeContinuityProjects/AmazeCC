@@ -15,7 +15,7 @@ export interface SyncAllOptions {
   demoMode?: boolean;
 }
 
-const BACKGROUND_OPS = ["pastAttendance", "fresher", "buses", "transport", "events", "bulk", "lms"];
+const BACKGROUND_OPS = ["pastAttendance", "fresher", "buses", "transport", "events", "bulk", "lms", "officialOd"];
 
 class SyncEngine {
   private ids: Ids | null = null;

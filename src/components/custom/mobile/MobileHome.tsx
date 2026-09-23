@@ -459,12 +459,8 @@ export default function MobileHome({
         {/* OD Hours Card */}
         <button
           onClick={() => {
-            if (setODhoursIsOpen) {
-              setODhoursIsOpen(true);
-            } else {
-              setActiveTab("attendance");
-              setActiveAttendanceSubTab("attendance");
-            }
+            setActiveTab("attendance");
+            setActiveAttendanceSubTab("od");
           }}
           className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
         >

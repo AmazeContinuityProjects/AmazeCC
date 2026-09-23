@@ -70,6 +70,27 @@ registerOp({
 });
 
 registerOp({
+  name: "officialOd",
+  auth: "vtop",
+  async run(ctx, args) {
+    const semesterId = args?.semesterId as string;
+    if (!semesterId) return null;
+    try {
+      const data = await ctx.request("od", { semesterId }, { auth: "vtop", retry: { max: 1 } });
+      if (data?.success === false) return null;
+      const payload = { success: true, semesterId, totalCount: data?.totalCount ?? 0, note: data?.note ?? null, records: data?.records ?? [] };
+      try {
+        storage.officialOd.set(semesterId, payload);
+      } catch {}
+      ctx.bridge.setAtom(dataAtoms.officialOdDataAtom, payload);
+      return payload;
+    } catch {
+      return null;
+    }
+  },
+});
+
+registerOp({
   name: "studentProfile",
   auth: "vtop",
   async run(ctx) {

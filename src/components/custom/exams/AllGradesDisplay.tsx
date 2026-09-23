@@ -7,6 +7,7 @@ import Modal from "../shared/Modal";
 import FetchButton from "../shared/FetchButton";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
+import { useOverlayBack } from "@/lib/overlayStack";
 
 const GRADE_BADGE_CLASSES: Record<string, string> = {
   S: 'bg-emerald-50 text-emerald-700 border-emerald-500/10 dark:bg-emerald-950/30 dark:text-emerald-450',
@@ -70,6 +71,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
 
   const [activeSem, setActiveSem] = useState(semesterKeys[semesterKeys.length - 1]);
   const [openCourse, setOpenCourse] = useState<string | null>(null);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("course-grades", openCourse !== null, () => setOpenCourse(null));
 
   const semesterData = data.grades[activeSem];
   const gpa = semesterData?.gpa || null;

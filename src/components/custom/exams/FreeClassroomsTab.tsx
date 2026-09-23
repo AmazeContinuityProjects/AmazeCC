@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import SubpageLayout from "../shared/SubpageLayout";
 import Modal from "../shared/Modal";
+import { useOverlayBack } from "@/lib/overlayStack";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import {
   Search,
@@ -71,6 +72,9 @@ export default function FreeClassroomsTab({
 
   // Room Inspector Modal
   const [inspectedRoom, setInspectedRoom] = useState<string | null>(null);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("room-inspector", inspectedRoom !== null, () => setInspectedRoom(null));
   const [copiedRoom, setCopiedRoom] = useState<string | null>(null);
 
   const schema = CAMPUS_SCHEMAS[selectedCampus] || chennaiSchema;

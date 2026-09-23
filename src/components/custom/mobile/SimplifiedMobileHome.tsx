@@ -38,6 +38,7 @@ import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
 import TimetableGrid from "../attendance/TimetableGrid";
 import Modal from "../shared/Modal";
+import { useOverlayBack } from "@/lib/overlayStack";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -143,6 +144,9 @@ export default function SimplifiedMobileHome({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTimetableModal, setShowTimetableModal] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("home-timetable", showTimetableModal, () => setShowTimetableModal(false));
 
   const handleOpenFreeClassrooms = () => {
     setActiveTab("tools");
@@ -421,8 +425,8 @@ export default function SimplifiedMobileHome({
         subline: "Approved On-Duty Total",
         badge: "OD",
         onClick: () => {
-          if (setODhoursIsOpen) setODhoursIsOpen(true);
-          else setActiveTab("attendance");
+          setActiveTab("attendance");
+          setActiveAttendanceSubTab("od");
         },
       });
     }
@@ -472,7 +476,6 @@ export default function SimplifiedMobileHome({
     setActiveSubTab,
     setActiveAttendanceSubTab,
     setGradesDisplayIsOpen,
-    setODhoursIsOpen,
   ]);
 
   // Carousel auto-advance timer

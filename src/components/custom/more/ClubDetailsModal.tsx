@@ -2,6 +2,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
+import { useOverlayBack } from "@/lib/overlayStack";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -14,6 +15,9 @@ interface ClubDetailsModalProps {
 export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsModalProps) {
   const [landingPage, setLandingPage] = useState<any>(null);
   const [loadingLp, setLoadingLp] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("club-details", isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && club?.club_id) {

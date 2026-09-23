@@ -15,6 +15,7 @@ import Modal from "../shared/Modal";
 import PageHeader from "../shared/PageHeader";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { useIsMobile } from "../shared";
+import { useOverlayBack } from "@/lib/overlayStack";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
@@ -51,6 +52,11 @@ export default function AttendanceTabs({
   const [showPredictor, setShowPredictor] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
+
+  // Overlays dismiss via system back before screen navigation does
+  useOverlayBack("attendance-predictor", showPredictor, () => setShowPredictor(false));
+  useOverlayBack("attendance-timetable", showTimetable, () => setShowTimetable(false));
+  useOverlayBack("common-free-slots", showCommonFree, () => setShowCommonFree(false));
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
