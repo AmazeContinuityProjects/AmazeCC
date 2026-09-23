@@ -504,10 +504,31 @@ export default function LoginPage() {
 
       return true;
     } catch (err) {
-      reportError(err, { context: "handleLogin" });
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Login failed")
-      );
+      const isAbort =
+        err instanceof Error &&
+        (err.name === "AbortError" ||
+          /aborted without reason|aborted/i.test(err.message));
+      const isTimeout =
+        err instanceof Error &&
+        (err.name === "TimeoutError" || /timed out/i.test(err.message));
+      if (isAbort) {
+        // User navigated away / request was cancelled — not a real login failure.
+        setMessage("⚠️ Login was cancelled. Please try again.");
+        setProgressBar(0);
+        setIsReloading(false);
+        throw err;
+      }
+      if (isTimeout) {
+        reportError(err, { context: "handleLogin", level: "warn" });
+        setMessage(
+          "❌ Login timed out (server took too long). Please check your connection and try again."
+        );
+      } else {
+        reportError(err, { context: "handleLogin" });
+        setMessage(
+          "❌ " + (err instanceof Error ? err.message : "Login failed")
+        );
+      }
       setProgressBar(0);
       setIsReloading(false);
       if (err instanceof Error && /login failed|stopped retrying|event hub login failed/i.test(err.message)) {

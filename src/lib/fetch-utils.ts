@@ -181,13 +181,40 @@ export async function fetchWithFailover(
 }
 
 export async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutController = new AbortController();
+  const timeoutReason =
+    typeof DOMException !== "undefined"
+      ? new DOMException(`Request timed out after ${timeoutMs}ms`, "TimeoutError")
+      : Object.assign(new Error(`Request timed out after ${timeoutMs}ms`), { name: "TimeoutError" });
+  const timer = setTimeout(() => timeoutController.abort(timeoutReason), timeoutMs);
+
+  const userSignal = options.signal as AbortSignal | undefined | null;
+  // Already aborted by the caller — fail fast without starting a request.
+  if (userSignal?.aborted) {
+    clearTimeout(timer);
+    throw userSignal.reason ?? new DOMException("signal is aborted without reason", "AbortError");
+  }
+
+  // Combine caller cancellation with our timeout so neither is swallowed.
+  // AbortSignal.any is available in modern browsers/Node 20+; fall back otherwise.
+  let signal: AbortSignal = timeoutController.signal;
+  let detach: (() => void) | undefined;
+  if (userSignal) {
+    if (typeof (AbortSignal as any).any === "function") {
+      signal = (AbortSignal as any).any([userSignal, timeoutController.signal]);
+    } else {
+      const onAbort = () => timeoutController.abort(userSignal.reason ?? new DOMException("signal is aborted without reason", "AbortError"));
+      userSignal.addEventListener("abort", onAbort, { once: true });
+      detach = () => userSignal.removeEventListener("abort", onAbort);
+    }
+  }
+
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const res = await fetch(url, { ...options, signal });
     return res;
   } finally {
     clearTimeout(timer);
+    detach?.();
   }
 }
 

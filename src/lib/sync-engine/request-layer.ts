@@ -90,10 +90,27 @@ export async function request(
       } catch (err) {
         lastErr = err;
         if (err instanceof AuthError) throw err;
+        // Caller-cancelled: never retry, never wrap — propagate the AbortError as-is
+        // so UI can silently ignore it instead of showing "TransientError: AbortError".
         if (opts.signal?.aborted) {
-          const e = new Error("AbortError");
-          e.name = "AbortError";
-          throw e;
+          throw err;
+        }
+        if (
+          err instanceof Error &&
+          (err.name === "AbortError" || err.name === "TimeoutError") &&
+          !opts.signal
+        ) {
+          // No caller signal involved, so this abort came from our own timeout.
+          // Retry it like any transient failure with a clear message.
+          const timeoutErr = new TransientError(
+            `Request to ${path} timed out after ${opts.timeoutMs ?? 60000}ms — please retry`,
+            backoff(base, attempt),
+          );
+          if (attempt < max) {
+            await sleep(timeoutErr.retryAfterMs);
+            continue;
+          }
+          throw timeoutErr;
         }
         if (err instanceof TransientError) {
           if (attempt < max) {
@@ -106,7 +123,10 @@ export async function request(
           await sleep(backoff(base, attempt));
           continue;
         }
-        throw new TransientError(String(err), backoff(base, attempt));
+        throw new TransientError(
+          err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+          backoff(base, attempt),
+        );
       }
     }
     throw lastErr;
