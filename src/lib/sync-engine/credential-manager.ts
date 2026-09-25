@@ -84,7 +84,10 @@ class CredentialManager {
       res = await request(
         "login",
         { username: ids.VtopUsername, password: ids.VtopPassword },
-        { auth: "none", authFailDomain: "vtop", retry: { max: 0 } },
+        // VTOP login does server-side captcha solving and can take a while:
+        // generous timeout + one retry on transient/timeout failures.
+        // AuthError is never retried (thrown immediately in request()).
+        { auth: "none", authFailDomain: "vtop", retry: { max: 1 }, timeoutMs: 120000 },
       );
     } catch (e) {
       if (e instanceof AuthError) this.markFailed("vtop", ids);
