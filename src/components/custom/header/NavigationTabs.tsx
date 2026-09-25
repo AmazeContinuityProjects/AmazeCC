@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { getAssetPath } from "@/lib/utils";
+import { useOverlayBack } from "@/lib/overlayStack";
 import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
   BookOpen,
@@ -187,6 +188,10 @@ export default function NavigationTabs({
   const [showHostelPanel, setShowHostelPanel] = useState(activeTab === "hostel");
   const [activeRailGroup, setActiveRailGroup] = useState<string | null>(null);
   const [isAppLibraryOpen, setIsAppLibraryOpen] = useState(false);
+
+  // System back (incl. Android predictive back) dismisses the App Library
+  // directly, before screen navigation does
+  useOverlayBack("app-library", isAppLibraryOpen, () => setIsAppLibraryOpen(false));
 
 
 
