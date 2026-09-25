@@ -1,17 +1,18 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
-import SubpageLayout from "../shared/SubpageLayout";
+import { BackButton } from "../shared";
 import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
 import { Skeleton, SubTabStrip } from "@amazecontinuityprojects/amazeui";
 import {
   XCircle, BookOpen, User, Target, Clock, Info, Activity,
-  ChevronLeft, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
+  ChevronLeft, ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
   Building2, AlertCircle, Star, Grid3x3, List, CheckCircle2,
   FileText as FileTextIcon, Search, ChevronDown, Sparkles
 } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { countRemainingClasses, UpcomingClassesList } from "../attendance/AttendanceSubpage";
 import config from '../../../../config.json';
@@ -340,6 +341,10 @@ export default function CourseDashboard({
   const [qcmData, setQcmData] = useState<any>(null);
   const [qcmLoading, setQcmLoading] = useState(false);
   const [qcmError, setQcmError] = useState("");
+  const [ovActiveSlide, setOvActiveSlide] = useState(0);
+  const [ovCarouselPaused, setOvCarouselPaused] = useState(false);
+  const [ovAttSlide, setOvAttSlide] = useState(0);
+  const [ovAttPaused, setOvAttPaused] = useState(false);
 
   // Attendance tab state
   const [attFilter, setAttFilter] = useState("All");
@@ -1154,7 +1159,19 @@ export default function CourseDashboard({
     setSelectedCode(code);
     setInnerTab(tab);
   };
-  const handleBack = () => { setSelectedCode(null); setCoursePlan(null); setViewDetail(null); };
+  // Hierarchical back: subtab -> overview -> course list (never straight home)
+  const handleBack = () => {
+    if (innerTab !== "overview") {
+      setOvActiveSlide(0);
+      setOvAttSlide(0);
+      setInnerTab("overview");
+      return;
+    }
+    setSelectedCode(null); setCoursePlan(null); setViewDetail(null);
+  };
+
+  // Overview hero carousels: reset on course/tab change (auto-advance wired after marks helpers)
+  useEffect(() => { setOvActiveSlide(0); setOvAttSlide(0); }, [selectedCode, innerTab, embeddedScope]);
 
   const isEmbedded = selectedGroup?.theory && selectedGroup?.lab;
 
@@ -1303,6 +1320,86 @@ export default function CourseDashboard({
     if (found) selectedPastGrade = found.grade || found.courseGrade;
   }
 
+  // ---- OVERVIEW HERO DERIVED DATA (SimplifiedMobileHome + OD page pattern) ----
+  const ovTheoryTotals = getAssessmentTotals(selectedGroup?.theory?.assessments || []);
+  const ovLabTotals = getAssessmentTotals(selectedGroup?.lab?.assessments || []);
+  const ovTheoryPct = ovTheoryTotals.weightPercent > 0 ? (ovTheoryTotals.weighted / ovTheoryTotals.weightPercent) * 100 : (ovTheoryTotals.max > 0 ? (ovTheoryTotals.scored / ovTheoryTotals.max) * 100 : null);
+  const ovLabPct = ovLabTotals.weightPercent > 0 ? (ovLabTotals.weighted / ovLabTotals.weightPercent) * 100 : (ovLabTotals.max > 0 ? (ovLabTotals.scored / ovLabTotals.max) * 100 : null);
+  const ovMarksSlides = useMemo(() => {
+    if (!selectedGroup) return [];
+    if (isSelectedPastSemester && selectedPastGrade) {
+      return [{ id: "grade", title: "Grades", headline: `Grade ${selectedPastGrade}`, subline: "Published grade", badge: "Final", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20", headlineColor: "text-emerald-600 dark:text-emerald-400" }];
+    }
+    const slides: any[] = [];
+    const hasTheory = (selectedGroup?.theory?.assessments?.length || 0) > 0;
+    const hasLab = (selectedGroup?.lab?.assessments?.length || 0) > 0;
+    if (selectedGroup?.theory && selectedGroup?.lab) {
+      slides.push({ id: "combined", title: "Marks", headline: String(courseTotalString), subline: `Projected ${courseStats.projected}% · Max ${formatNumber(courseStats.maxPossible)}%`, badge: "Overall" });
+      slides.push({ id: "theory", title: "Marks", headline: hasTheory ? `${formatNumber(ovTheoryTotals.weighted)} / ${formatNumber(ovTheoryTotals.weightPercent)}` : "—", subline: ovTheoryPct !== null ? `${formatNumber(ovTheoryPct)}% scored` : "No theory marks yet", badge: "Theory", badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" });
+      slides.push({ id: "lab", title: "Marks", headline: hasLab ? `${formatNumber(ovLabTotals.weighted)} / ${formatNumber(ovLabTotals.weightPercent)}` : "—", subline: ovLabPct !== null ? `${formatNumber(ovLabPct)}% scored` : "No lab marks yet", badge: "Lab", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" });
+    } else {
+      const t = selectedGroup?.lab ? ovLabTotals : ovTheoryTotals;
+      const pct = selectedGroup?.lab ? ovLabPct : ovTheoryPct;
+      const has = hasTheory || hasLab;
+      slides.push({ id: "total", title: "Marks", headline: has ? `${formatNumber(t.weighted)} / ${formatNumber(t.weightPercent)}` : "—", subline: pct !== null ? `${formatNumber(pct)}% scored · Max ${formatNumber(courseStats.maxPossible)}%` : "No marks yet", badge: selectedGroup?.lab ? "Lab" : "Theory", badgeColor: selectedGroup?.lab ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" });
+    }
+    return slides;
+  }, [selectedGroup, isSelectedPastSemester, selectedPastGrade, courseTotalString, courseStats, ovTheoryTotals, ovLabTotals, ovTheoryPct, ovLabPct]);
+  const ovSlideCount = innerTab === "overview" && selectedCode ? ovMarksSlides.length : 0;
+  useEffect(() => {
+    if (ovCarouselPaused || ovSlideCount <= 1) return;
+    const t = setInterval(() => setOvActiveSlide((p) => (p + 1) % ovSlideCount), 5000);
+    return () => clearInterval(t);
+  }, [ovCarouselPaused, ovSlideCount]);
+  // Attendance hero carousel slides (theory + lab rotate on their own, like the marks card)
+  const ovAttSlides = useMemo(() => {
+    const toSlide = (item: any, badge: string, badgeColor?: string) => {
+      const pct = Number(item?.attendancePercentage) || 0;
+      const attended = Number(item?.attendedClasses) || 0;
+      const total = Number(item?.totalClasses) || 0;
+      const status = total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
+      return {
+        id: badge.toLowerCase(), title: "Attendance",
+        headline: total > 0 ? `${Number(pct.toFixed(1))}%` : "—",
+        subline: total > 0 ? `${attended} of ${total} attended${item?.slotVenue ? ` · ${item.slotVenue}` : ""}` : "No attendance data",
+        badge, badgeColor, status, pct, attended, total,
+      };
+    };
+    if (theoryAttItem && labAttItem) {
+      return [
+        toSlide(theoryAttItem, "Theory", "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"),
+        toSlide(labAttItem, "Lab", "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"),
+      ];
+    }
+    const item = attendanceItem || theoryAttItem || labAttItem;
+    return [toSlide(item, item ? (String(item.courseCode || "").endsWith("(L)") || String(item.courseCode || "").endsWith("(P)") ? "Lab" : "Theory") : "Theory")];
+  }, [theoryAttItem, labAttItem, attendanceItem, thresholdPct]);
+  const ovAttSlideCount = innerTab === "overview" && selectedCode ? ovAttSlides.length : 0;
+  useEffect(() => {
+    if (ovAttPaused || ovAttSlideCount <= 1) return;
+    const t = setInterval(() => setOvAttSlide((p) => (p + 1) % ovAttSlideCount), 5000);
+    return () => clearInterval(t);
+  }, [ovAttPaused, ovAttSlideCount]);
+  const ovAttPct = Number(attendanceItem?.attendancePercentage) || 0;
+  const ovAttended = Number(attendanceItem?.attendedClasses) || 0;
+  const ovTotal = Number(attendanceItem?.totalClasses) || 0;
+  const ovAttStatus = ovTotal === 0 ? "N/A" : ovAttPct >= thresholdPct + 5 ? "Safe" : ovAttPct >= thresholdPct ? "Warning" : "Critical";
+  const ovBunkText = (() => {
+    if (ovTotal === 0) return "No classes held yet";
+    if (ovAttPct < thresholdPct) {
+      const needed = Math.ceil((thresholdDec * ovTotal - ovAttended) / (1 - thresholdDec));
+      return `Need ${Math.max(1, needed)} more to reach ${thresholdPct}%`;
+    }
+    const canMiss = Math.floor(ovAttended / thresholdDec - ovTotal);
+    if (canMiss <= 0) return "On safety margin";
+    return `${canMiss} bunkable · safe above ${thresholdPct}%`;
+  })();
+  const ovGo = (id: string) => {
+    setOvActiveSlide(0);
+    setInnerTab(id);
+    if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+  };
+
   const courseGradeHistory = useMemo(() => {
     if (!selectedGroup || !allGradesData?.grades) return [];
     let history: any[] = [];
@@ -1370,22 +1467,42 @@ export default function CourseDashboard({
   }
 
   return (
-    <SubpageLayout title={selectedCode || ""} subtitle={selectedGroup?.courseTitle || ""} onBack={handleBack}>
-      <SubTabStrip
-        tabs={[
-          { id: "overview", label: "Overview" },
-          { id: "grades", label: "Grade History" },
-          { id: "marks", label: "Marks" },
-          { id: "attendance", label: "Attendance" },
-          { id: "plan", label: "Course Plan" },
-          { id: "qbank", label: "QBank" },
-        ]}
-        activeTab={innerTab}
-        onChange={(id) => {
-          setInnerTab(id);
-          if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
-        }}
-      />
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300">
+      {/* ── HEADER (OD hours page arrangement) ── */}
+      <div className="px-1">
+        <div className="mb-5 flex">
+          <BackButton onClick={handleBack} className="self-start" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+            Academics · {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? formatSemesterName(selectedGroup.semesterSubId) : "Current Semester"}
+          </p>
+          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit">
+            {selectedCode}
+          </h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+            {selectedGroup?.courseTitle || ""}
+          </p>
+        </div>
+      </div>
+
+      {innerTab !== "overview" && (
+        <SubTabStrip
+          tabs={[
+            { id: "overview", label: "Overview" },
+            { id: "grades", label: "Grade History" },
+            { id: "marks", label: "Marks" },
+            { id: "attendance", label: "Attendance" },
+            { id: "plan", label: "Course Plan" },
+            { id: "qbank", label: "QBank" },
+          ]}
+          activeTab={innerTab}
+          onChange={(id) => {
+            setInnerTab(id);
+            if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+          }}
+        />
+      )}
 
       {error && (
         <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
@@ -1393,110 +1510,289 @@ export default function CourseDashboard({
         </div>
       )}
 
-      {/* OVERVIEW */}
+      {/* OVERVIEW — SimplifiedMobileHome + OD page vibe */}
       {innerTab === "overview" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/5 blur-3xl rounded-full -mr-24 -mt-24 pointer-events-none" />
-            <div className="relative z-10">
-              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> Attendance Overview</h4>
-              {isEmbedded ? (
-                <div className="flex flex-col gap-6">
-                  {theoryAttItem && (
-                    <div className="flex items-center gap-5 border-b border-gray-100/50 dark:border-gray-800/50 pb-5">
-                      <div className="relative">
-                        <CircularProgress value={Number(theoryAttItem.attendancePercentage) || 0} size={70} />
-                        <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 blur-xl rounded-full -z-10 animate-pulse" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full w-fit">Theory</p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{theoryAttItem.attendedClasses}</strong> / {theoryAttItem.totalClasses} classes</p>
-                        {theoryAttItem.slotVenue && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Venue: {theoryAttItem.slotVenue}</p>}
-                      </div>
-                    </div>
-                  )}
-                  {labAttItem && (
-                    <div className="flex items-center gap-5">
-                      <div className="relative">
-                        <CircularProgress value={Number(labAttItem.attendancePercentage) || 0} size={70} />
-                        <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/20 blur-xl rounded-full -z-10 animate-pulse" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full w-fit">Lab</p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200"><strong>{labAttItem.attendedClasses}</strong> / {labAttItem.totalClasses} classes</p>
-                        {labAttItem.slotVenue && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Venue: {labAttItem.slotVenue}</p>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : attendanceItem ? (
-                <div className="flex flex-col items-center justify-center text-center py-4">
-                  <div className="relative mb-4">
-                    <CircularProgress value={Number(attendanceItem.attendancePercentage) || 0} size={120} />
-                    <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 blur-2xl rounded-full -z-10 animate-pulse" />
+        <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* ── HERO STATS ── */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          {/* CARD 1: ATTENDANCE CAROUSEL (theory + lab rotate on their own) */}
+          <div
+            onMouseEnter={() => setOvAttPaused(true)}
+            onMouseLeave={() => setOvAttPaused(false)}
+            onTouchStart={() => setOvAttPaused(true)}
+            onTouchEnd={() => setOvAttPaused(false)}
+            onClick={() => ovGo("attendance")}
+            className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden"
+          >
+            {(() => {
+              const slide = ovAttSlides[ovAttSlide] || ovAttSlides[0];
+              if (!slide) return null;
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+                      {slide.title}
+                    </span>
+                    <span
+                      className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${
+                        slide.status === "Safe"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          : slide.status === "Warning"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          : slide.status === "N/A"
+                          ? "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20"
+                          : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                      }`}
+                    >
+                      {slide.status}
+                    </span>
                   </div>
-                  <div className="space-y-1.5">
-                    <p className="text-base text-gray-800 dark:text-gray-200"><strong>{attendanceItem.attendedClasses}</strong> / {attendanceItem.totalClasses} classes attended</p>
-                    {attendanceItem.slotVenue && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Venue: {attendanceItem.slotVenue}</p>}
-                    {attendanceItem.faculty && <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-2 flex items-center justify-center gap-1.5"><User className="w-3.5 h-3.5" /> {attendanceItem.faculty}</p>}
+                  <AnimatePresence mode="wait">
+                    <m.div
+                      key={slide.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.2 }}
+                      className="my-auto py-1 min-w-0"
+                    >
+                      <span
+                        className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${
+                          slide.status === "Safe"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : slide.status === "Warning"
+                            ? "text-amber-500 dark:text-amber-400"
+                            : slide.status === "N/A"
+                            ? "text-zinc-400 dark:text-zinc-500"
+                            : "text-red-500 dark:text-red-400"
+                        }`}
+                      >
+                        {slide.headline}
+                      </span>
+                    </m.div>
+                  </AnimatePresence>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                      {slide.subline}
+                    </p>
+                    {ovAttSlides.length > 1 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {ovAttSlides.map((s: any, idx: number) => (
+                          <button
+                            key={s.id}
+                            onClick={(e) => { e.stopPropagation(); setOvAttSlide(idx); }}
+                            aria-label={`Go to ${s.badge} attendance`}
+                            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                              ovAttSlide === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ) : <p className="text-sm font-medium text-gray-400 dark:text-gray-500 text-center py-10">No attendance data</p>}
-            </div>
+                </>
+              );
+            })()}
           </div>
           
-          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 blur-3xl rounded-full -ml-24 -mt-24 pointer-events-none" />
-            <div className="relative z-10 flex-1">
-              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Target className="w-4 h-4 text-purple-500" /> Course Details</h4>
-              {mainCourse ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Type</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{isEmbedded ? "Embedded" : mainCourse.courseType}</span>
+          {/* CARD 2: MARKS CAROUSEL (combined + theory + lab) */}
+          <div
+            onMouseEnter={() => setOvCarouselPaused(true)}
+            onMouseLeave={() => setOvCarouselPaused(false)}
+            onTouchStart={() => setOvCarouselPaused(true)}
+            onTouchEnd={() => setOvCarouselPaused(false)}
+            onClick={() => ovGo("marks")}
+            className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden"
+          >
+            {(() => {
+              const slide = ovMarksSlides[ovActiveSlide] || ovMarksSlides[0];
+              if (!slide) return null;
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+                      {slide.title}
+                    </span>
+                    <span
+                      className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+                        slide.badgeColor || "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40"
+                      }`}
+                    >
+                      {slide.badge}
+                    </span>
                   </div>
-                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Slot</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{mainCourse.slot}</span>
-                  </div>
-                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center col-span-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Faculty</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{mainCourse.faculty}</span>
-                  </div>
-                  <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">System</span>
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{mainCourse.courseSystem}</span>
-                  </div>
-                  {attendanceItem?.credits && (
-                    <div className="bg-gray-50/80 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800/60 flex flex-col justify-center">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Credits</span>
-                      <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{attendanceItem.credits}</span>
-                    </div>
-                  )}
-                  {isEmbedded && (
-                    <div className="col-span-2 mt-2 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-900/20 p-3.5 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-3">Components</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{selectedGroup.theory?.courseType}</span>
-                          <span className="text-xs font-bold text-gray-800 dark:text-gray-200 bg-white/60 dark:bg-black/40 px-2 py-0.5 rounded shadow-sm">Class: {selectedGroup.theory?.classNbr?.slice(-4)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{selectedGroup.lab?.courseType}</span>
-                          <span className="text-xs font-bold text-gray-800 dark:text-gray-200 bg-white/60 dark:bg-black/40 px-2 py-0.5 rounded shadow-sm">Class: {selectedGroup.lab?.classNbr?.slice(-4)}</span>
-                        </div>
+                  <AnimatePresence mode="wait">
+                    <m.div
+                      key={`${slide.id}-${embeddedScope}`}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.2 }}
+                      className="my-auto py-1 min-w-0"
+                    >
+                      <span className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${slide.headlineColor || "text-zinc-900 dark:text-white"}`}>
+                        {slide.headline}
+                      </span>
+                    </m.div>
+                  </AnimatePresence>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                      {slide.subline}
+                    </p>
+                    {ovMarksSlides.length > 1 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        {ovMarksSlides.map((s: any, idx: number) => (
+                          <button
+                            key={s.id}
+                            onClick={(e) => { e.stopPropagation(); setOvActiveSlide(idx); }}
+                            aria-label={`Go to ${s.title}`}
+                            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                              ovActiveSlide === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
+                            }`}
+                          />
+                        ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          </div>
+
+          {/* ── COURSE SECTIONS (OD-style compact cards) ── */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-indigo-500" />
+                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+                  Course sections
+                </h2>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                  5
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2.5">
+              {/* Attendance */}
+              <button
+                onClick={() => ovGo("attendance")}
+                className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-all rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-indigo-500/40 dark:hover:border-indigo-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ovAttStatus === "Safe" ? "bg-emerald-500" : ovAttStatus === "Warning" ? "bg-amber-500" : ovAttStatus === "N/A" ? "bg-zinc-400" : "bg-red-500"}`} />
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Attendance</h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
+                    {ovTotal > 0 ? `${ovAttended}/${ovTotal} classes · ${ovBunkText}` : "No attendance data"}
+                    {attendanceItem?.slotVenue ? ` · ${attendanceItem.slotVenue}` : ""}
+                  </p>
                 </div>
-              ) : <p className="text-sm font-medium text-gray-400 dark:text-gray-500 text-center py-10">No course data</p>}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-base font-black font-outfit tracking-tight leading-none ${ovAttStatus === "Safe" ? "text-emerald-600 dark:text-emerald-400" : ovAttStatus === "Warning" ? "text-amber-600 dark:text-amber-400" : "text-zinc-500 dark:text-zinc-400"}`}>
+                    {ovTotal > 0 ? `${Number(ovAttPct.toFixed(1))}%` : "—"}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </div>
+              </button>
+              {/* Marks */}
+              <button
+                onClick={() => ovGo("marks")}
+                className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-all rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-indigo-500/40 dark:hover:border-indigo-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-indigo-500" />
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Marks</h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
+                    {isEmbedded
+                      ? `Theory ${formatNumber(ovTheoryTotals.weighted)}/${formatNumber(ovTheoryTotals.weightPercent)} · Lab ${formatNumber(ovLabTotals.weighted)}/${formatNumber(ovLabTotals.weightPercent)}`
+                      : String(courseTotalString)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400">
+                    {isSelectedPastSemester && selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </div>
+              </button>
+              {/* Grade History */}
+              <button
+                onClick={() => ovGo("grades")}
+                className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-all rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-indigo-500/40 dark:hover:border-indigo-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Grades</h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
+                    {isRelative ? "Relative grading" : "Absolute grading"}{courseGradeHistory.length > 0 ? ` · ${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-zinc-900 dark:text-white">
+                    {selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </div>
+              </button>
+              {/* Course Plan */}
+              <button
+                onClick={() => ovGo("plan")}
+                className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-all rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-indigo-500/40 dark:hover:border-indigo-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-blue-500" />
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Course Plan</h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
+                    {mainCourse?.faculty || "Faculty N/A"}{mainCourse?.courseType ? ` · ${isEmbedded ? "Embedded" : mainCourse.courseType}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200 truncate max-w-24">
+                    {mainCourse?.slot || "—"}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </div>
+              </button>
+              {/* QBank */}
+              <button
+                onClick={() => ovGo("qbank")}
+                className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-all rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-indigo-500/40 dark:hover:border-indigo-500/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-purple-500" />
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">QBank</h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
+                    Papers & extracted questions
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200">
+                    {(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)} tests
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </div>
+              </button>
             </div>
           </div>
-          <div className="md:col-span-2 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"><MessageSquare className="w-4 h-4 text-emerald-500" /> Quality Circle Meeting (QCM)</h4>
+          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Quality Circle Meeting</h2>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">QCM</span>
+              </div>
               {!qcmData && (
-                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-colors border border-emerald-200/50 dark:border-emerald-500/20 shadow-sm active:scale-95">
+                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-xs active:scale-95 cursor-pointer w-fit">
                   {qcmLoading ? "Loading..." : "Load QCM Data"}
                 </button>
               )}
@@ -1526,7 +1822,7 @@ export default function CourseDashboard({
                           const hodComments = findCol(["hod comment", "hod reply", "hod"]);
                           
                           return (
-                            <div key={ri} className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
+                            <div key={ri} className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4">
                                <div className="flex justify-between items-center mb-3">
                                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
                                   {action && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 uppercase">{action}</span>}
@@ -1559,28 +1855,30 @@ export default function CourseDashboard({
                  </div>
                )}
               </div>
-          <Card className="md:col-span-2">
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Course Plan</h4>
-                {coursePlan && <button onClick={() => { setInnerTab("plan"); }} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">View Details</button>}
+          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-500" />
+                  <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Plan</h2>
+                </div>
+                {coursePlan && <button onClick={() => { ovGo("plan"); }} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer active:scale-95">View Details</button>}
               </div>
               {planLoading ? <Skeleton className="h-24 w-full rounded-xl" />
               : coursePlan ? coursePlan.map((cp: any, i: number) => (
                 cp.data.tables?.map((t: any) => t.rows?.slice(0, 2).map((r: any, ri: number) => (
-                  <div key={`${i}-${ri}`} className="p-3 rounded-xl bg-gray-50  dark:bg-slate-800/50 mb-2">
-                    <p className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase mb-1">{cp.type}</p>
-                    <p className="text-sm font-semibold text-gray-800  dark:text-gray-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
-                    <p className="text-xs text-gray-500  dark:text-gray-400">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
+                  <div key={`${i}-${ri}`} className="py-2.5 px-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 mb-2">
+                    <p className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">{cp.type}</p>
+                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
                   </div>
                 )))
-              )) : <p className="text-sm text-gray-400  dark:text-gray-500">Course plan loads automatically</p>}
-            </div>
-          </Card>
+              )) : <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium px-1">Course plan loads automatically</p>}
+          </div>
           {viewDetail && (
-            <Card className="md:col-span-2">
-              <div className="p-5">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Schedule Preview</h4>
+            <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5">
+              <div className="px-1 mb-4">
+                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Schedule Preview</h2>
+              </div>
                 {viewDetail.map((vd: any, ci: number) => (
                   <div key={ci} className="mb-4 last:mb-0">
                     {viewDetail.length > 1 && <p className="text-xs font-semibold text-gray-400 uppercase mb-2">{vd.type}</p>}
@@ -1600,9 +1898,8 @@ export default function CourseDashboard({
                     ))}
                   </div>
                 ))}
-                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-sm text-gray-400  dark:text-gray-500">No schedule data</p>}
-              </div>
-            </Card>
+                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium px-1">No schedule data</p>}
+            </div>
           )}
         </div>
       )}
@@ -2332,6 +2629,6 @@ export default function CourseDashboard({
               )}
         </div>
       )}
-    </SubpageLayout>
+    </div>
   );
 }
