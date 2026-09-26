@@ -10,7 +10,7 @@ import {
   activeMoreSubTabAtom, activeProfileSubTabAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
-  officialOdDataAtom,
+  officialOdDataAtom, tasksAtom, tasksQuickAddRequestAtom,
   defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
@@ -21,6 +21,8 @@ import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
+import { migrateCustomHomework } from "@/lib/tasksStorage";
+import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
 import { AnimatePresence, LazyMotion, m } from "framer-motion";
 import { syncMarksDiff } from "@/lib/marksSync";
 import { syncPastSemesters } from "@/lib/pastDataSync";
@@ -91,6 +93,8 @@ export default function LoginPage() {
   const [progressBar, setProgressBar] = useAtom(progressBarAtom);
   const [moodleData, setMoodleData] = useAtom(moodleDataAtom);
   const [vitolData, setVitolData] = useAtom(vitolDataAtom);
+  const [tasks, setTasks] = useAtom(tasksAtom);
+  const setTasksQuickAddRequest = useSetAtom(tasksQuickAddRequestAtom);
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
   const [demoMode, setDemoMode] = useAtom(demoModeAtom);
   const [settings, setSettings] = useAtom(settingsAtom);
@@ -104,6 +108,9 @@ export default function LoginPage() {
   // Overlays dismiss via system back before screen navigation does
   useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));
   // Credential editor + shortcuts sheet register themselves via BottomSheet.
+
+  // Task reminders are app-wide (not tied to the Tasks tab being open)
+  useTaskReminderScheduler();
 
   // Engine op feed -> sync session, so the sheet logs what actually fetched
   // (success or failure) per module instead of manual string appends.
@@ -368,6 +375,10 @@ export default function LoginPage() {
     if (MoodleData) setMoodleData(MoodleData as never[]);
     if (VitolData) setVitolData(VitolData as never[]);
     if (storedRegisteredEvents) setRegisteredEvents(storedRegisteredEvents);
+    // Tasks own their own bucket (plus a one-time customHomework migration)
+    try {
+      setTasks(migrateCustomHomework());
+    } catch {}
     try {
       const bootSem = (settingsRaw as any)?.currSemesterID as string | undefined;
       if (bootSem) {
@@ -1366,7 +1377,10 @@ export default function LoginPage() {
       { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
+      { id: "tool-tasks", label: "Tasks & Study Schedule", description: "View and manage homework, tests & weekly study chunks", icon: "✅", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("tasks"); } },
+      { id: "tasks-quick-add", label: "Add New Task", description: "Create a new course-linked task, homework, or test", icon: "➕", category: "Tasks", onSelect: () => { setTasksQuickAddRequest({ title: "", nonce: Date.now() }); setActiveTab("tools"); setActiveToolsSubTab("tasks"); } },
     );
+
 
     // ── Quick Search subpages ──
     result.push(
@@ -2257,7 +2271,8 @@ export default function LoginPage() {
     setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab,
     setActiveDayscholarSubTab, setActiveMoreSubTab, setActiveQBankSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
-    ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme
+    ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme,
+    setTasksQuickAddRequest
   ]);
 
   return (
