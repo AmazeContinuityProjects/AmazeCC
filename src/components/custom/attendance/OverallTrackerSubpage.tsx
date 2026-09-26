@@ -250,7 +250,10 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                             rectProps={{ rx: 4, ry: 4 }}
                                             rectRender={(props, dayData) => {
                                                 const data = dayData as any;
-                                                return <rect {...props}><title>{`${data.date}: ${data.status}`}</title></rect>;
+                                                // NB: the library resolves discrete count maps to the NEXT
+                                                // bucket's color (off-by-one), so set the fill explicitly.
+                                                const fill = data?.count === 1 ? "#10B981" : data?.count === 2 ? "#EF4444" : data?.count === 3 ? "#F97316" : data?.count === 4 ? "#F43F5E" : data?.count === 5 ? "#EAB308" : (props as any).fill;
+                                                return <rect {...props} fill={fill}><title>{`${data.date}: ${data.status}`}</title></rect>;
                                             }}
                                             panelColors={{
                                                 0: "rgba(156, 163, 175, 0.1)", // Empty

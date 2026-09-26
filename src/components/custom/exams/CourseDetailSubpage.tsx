@@ -2,14 +2,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { api } from "@/lib/sync-engine";
 import { BackButton } from "../shared";
-import CircularProgress from "../shared/CircularProgress";
 import Badge from "../shared/Badge";
-import { Skeleton, SubTabStrip } from "@amazecontinuityprojects/amazeui";
+import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import {
-  XCircle, BookOpen, User, Target, Clock, Info, Activity,
-  ChevronLeft, ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
-  Building2, AlertCircle, Star, Grid3x3, List, CheckCircle2,
-  FileText as FileTextIcon, Search, ChevronDown, Sparkles
+  XCircle, BookOpen, Target, Clock, Info, Activity,
+  ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
+  Grid3x3, CheckCircle2,
+  FileText as FileTextIcon, Sparkles
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
@@ -19,6 +18,12 @@ import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
+
+// Dedicated whitespace between the heatmap card and the log section.
+// Nulls out the parent stack gap so the total separation is exactly its height.
+const LogGap = () => (
+  <div aria-hidden="true" className="h-3" style={{ marginBlockStart: 0 }} />
+);
 import {
   Creds,
   formatSemesterName,
@@ -52,14 +57,13 @@ interface CourseDetailSubpageProps {
   isDayscholarWithBus?: boolean;
   selectedCode: string;
   initialTab?: string;
-  initialEmbeddedScope?: "theory" | "lab";
   onBack: () => void;
 }
 
 export default function CourseDetailSubpage({
   marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
-  calendars, decimalValues, isDayscholarWithBus,
-  selectedCode, initialTab, initialEmbeddedScope, onBack
+  calendars, isDayscholarWithBus,
+  selectedCode, initialTab, onBack
 }: CourseDetailSubpageProps) {
   const [creds, setCreds] = useState<Creds | null>(null);
   const credsRef = useRef<Creds | null>(null);
@@ -70,7 +74,6 @@ export default function CourseDetailSubpage({
   const [viewLoading, setViewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allStats, setAllStats] = useState<Record<string, any>>({});
-  const [embeddedScope, setEmbeddedScope] = useState<"theory" | "lab">(initialEmbeddedScope || "theory");
 
   const [qcmData, setQcmData] = useState<any>(null);
   const [qcmLoading, setQcmLoading] = useState(false);
@@ -80,9 +83,8 @@ export default function CourseDetailSubpage({
   const [ovAttSlide, setOvAttSlide] = useState(0);
   const [ovAttPaused, setOvAttPaused] = useState(false);
 
-  // Attendance tab state
+  // Attendance log filter (shared by the Theory / Lab log pages)
   const [attFilter, setAttFilter] = useState("All");
-  const [viewMode, setViewMode] = useState<"list" | "heatmap" | "calendar">("list");
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
   const [targetGrade, setTargetGrade] = useState("A");
 
@@ -108,8 +110,7 @@ export default function CourseDetailSubpage({
   useEffect(() => {
     setOvActiveSlide(0); setOvAttSlide(0);
     setInnerTab(initialTab || "overview");
-    setEmbeddedScope(initialEmbeddedScope || "theory");
-  }, [selectedCode, initialTab, initialEmbeddedScope]);
+  }, [selectedCode, initialTab]);
 
   // System back (incl. Android predictive back) walks the in-course hierarchy —
   // subtab -> overview -> course list — instead of falling through to screen
@@ -353,26 +354,30 @@ export default function CourseDetailSubpage({
   const selectedGroup = useMemo(() => uniqueCourses.find(c => c.courseCode === selectedCode), [selectedCode, uniqueCourses]);
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
 
-  const { theoryAttItem, labAttItem, attendanceItem } = useMemo(() => {
-    if (!selectedCode) return { theoryAttItem: null, labAttItem: null, attendanceItem: null };
-    
+  const { theoryAttItem, labAttItem } = useMemo(() => {
+    if (!selectedCode) return { theoryAttItem: null, labAttItem: null };
+
     let sourceAttendance = attendanceData?.attendance || [];
     if (selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" && pastSemesterData?.[selectedGroup.semesterSubId]?.attendance?.attendance) {
       sourceAttendance = pastSemesterData[selectedGroup.semesterSubId].attendance.attendance;
     }
-    
+
     const items = sourceAttendance.filter((a: any) =>
       a.courseCode?.replace(/\([LPT]\)$/i, "").trim() === selectedCode.trim()
     );
     const theoryItem = items.find((a: any) => !a.courseCode?.endsWith("(L)") && !a.courseCode?.endsWith("(P)")) || items[0];
     const labItem = items.find((a: any) => a.courseCode?.endsWith("(L)") || a.courseCode?.endsWith("(P)"));
-    
+
     return {
       theoryAttItem: theoryItem,
-      labAttItem: labItem,
-      attendanceItem: embeddedScope === "lab" && labItem ? labItem : theoryItem
+      labAttItem: labItem
     };
-  }, [attendanceData, selectedCode, embeddedScope]);
+  }, [attendanceData, selectedCode]);
+
+  // Attendance sub-tabs resolve straight to a component — no shared scope.
+  // Legacy "attendance" deep-links land on the default component's log.
+  const defaultAttScope = labAttItem && !theoryAttItem ? "lab" : "theory";
+  const effectiveTab = innerTab === "attendance" ? `${defaultAttScope}-log` : innerTab;
 
   // Derived attendance data for full Attendance tab replication
   const dayCardsMap = useMemo(() => {
@@ -452,8 +457,8 @@ export default function CourseDetailSubpage({
     };
   }, [importantEvents]);
 
-  const toggleNotes = (dateStr: string) => {
-    const key = attendanceItem?.courseCode || "";
+  const toggleNotes = (dateStr: string, courseKey?: string) => {
+    const key = courseKey || "";
     setNotesTracker(prev => {
       const newState = {
         ...prev,
@@ -498,11 +503,11 @@ export default function CourseDetailSubpage({
     if (!selectedGroup || !creds) return;
     setPlanLoading(true); setError(null);
     try {
-      const components = [];
-      if (selectedGroup.theory) components.push(selectedGroup.theory);
-      if (selectedGroup.lab) components.push(selectedGroup.lab);
+      const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
+      if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
+      if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
       const planData: any[] = [];
-      for (const comp of components) {
+      for (const { comp, scope } of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
         const d = await api("course-page", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -511,7 +516,7 @@ export default function CourseDetailSubpage({
             formData: { semesterSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), courseCode: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
           },
         }) as any;
-        if (d.success !== false && d.results) planData.push({ type: comp.courseType, data: d.results });
+        if (d.success !== false && d.results) planData.push({ scope, type: comp.courseType, data: d.results });
       }
       setCoursePlan(planData.length > 0 ? planData : null);
     } catch (err: any) { setError(err.message); }
@@ -522,11 +527,11 @@ export default function CourseDetailSubpage({
     if (!selectedGroup || !creds) return;
     setViewLoading(true); setError(null);
     try {
-      const components = [];
-      if (selectedGroup.theory) components.push(selectedGroup.theory);
-      if (selectedGroup.lab) components.push(selectedGroup.lab);
+      const components: Array<{ comp: any; scope: "theory" | "lab" }> = [];
+      if (selectedGroup.theory) components.push({ comp: selectedGroup.theory, scope: "theory" });
+      if (selectedGroup.lab) components.push({ comp: selectedGroup.lab, scope: "lab" });
       const detailData: any[] = [];
-      for (const comp of components) {
+      for (const { comp, scope } of components) {
         const resolvedFaculty = await resolveFacultyForComp(comp);
         const erpId = resolvedFaculty?.split("-")[0]?.trim() || "";
         const d = await api("course-page", {
@@ -536,7 +541,7 @@ export default function CourseDetailSubpage({
             formData: { viewDetail: "true", semSubId: selectedGroup.semesterSubId === "Current" ? "" : (selectedGroup.semesterSubId || ""), erpId, classId: comp.classNbr, slotId: comp.slot, faculty: resolvedFaculty }
           },
         }) as any;
-        if (d.success !== false && d.results) detailData.push({ type: comp.courseType, data: d.results });
+        if (d.success !== false && d.results) detailData.push({ scope, type: comp.courseType, data: d.results });
       }
       setViewDetail(detailData.length > 0 ? detailData : null);
     } catch (err: any) { setError(err.message); }
@@ -643,92 +648,134 @@ export default function CourseDetailSubpage({
     } catch (e) {}
   }
   const thresholdDec = thresholdPct / 100;
-  const historyList = Array.isArray(attendanceItem?.viewLink) ? attendanceItem.viewLink : [];
-  const filteredHistory = historyList.filter((d: any) => {
-    if (attFilter === "All") return true;
-    return d.status.toLowerCase() === attFilter.toLowerCase();
-  });
-  const missingNotesCount = historyList.filter((d: any) =>
-    d.status.toLowerCase() !== "present" &&
-    !notesTracker[attendanceItem?.courseCode || ""]?.[d.date]
-  ).length;
 
-  const isLabAtt = attendanceItem?.courseCode?.endsWith("(L)");
-  const isTheoryAtt = attendanceItem?.courseCode?.endsWith("(T)");
+  // Per-component attendance data (log + predictor), OD-page style. Called
+  // once per component, unconditionally, so hook order stays stable.
+  // Reactive inputs arrive as arguments so memo deps stay lint-clean.
+  const useScopeAttendance = (item: any, filter: string, tracker: Record<string, Record<string, boolean>>) => {
+    const historyList = useMemo(() => (Array.isArray(item?.viewLink) ? item.viewLink : []), [item]);
+    const filteredHistory = useMemo(() => historyList.filter((d: any) => {
+      if (filter === "All") return true;
+      return d.status.toLowerCase() === filter.toLowerCase();
+    }), [historyList, filter]);
+    const missingNotesCount = useMemo(() => historyList.filter((d: any) =>
+      d.status.toLowerCase() !== "present" &&
+      !tracker[item?.courseCode || ""]?.[d.date]
+    ).length, [historyList, tracker, item]);
+    const isLab = String(item?.courseCode || "").endsWith("(L)") || String(item?.courseCode || "").endsWith("(P)");
+    const isTheory = String(item?.courseCode || "").endsWith("(T)");
 
-  let classesTillCAT1: any[] | null = null;
-  let classesTillCAT2: any[] | null = null;
-  let classesTillMidSem: any[] | null = null;
-  let classesTillLID: any[] | null = null;
+    const countTillDate = (endDate: any) => {
+      if (!endDate) return null;
+      const endMid = new Date(endDate);
+      endMid.setHours(23, 59, 59, 999);
 
-  const countTillDate = (endDate: any) => {
-    if (!endDate) return null;
-    const endMid = new Date(endDate);
-    endMid.setHours(23, 59, 59, 999);
+      const filteredMonths = analyzeCalendars.map((monthObj: any) => ({
+        ...monthObj,
+        days: monthObj.days?.filter((d: any) => {
+          if (!d.date || !d.weekday) return false;
+          const monthStr = String(monthObj.month ?? "").toLowerCase();
+          const mIndex = [
+            "january", "february", "march", "april", "may", "june",
+            "july", "august", "september", "october", "november", "december"
+          ].findIndex((m) => monthStr.includes(m));
+          const dFull = new Date(monthObj.year, mIndex, d.date);
+          dFull.setHours(0, 0, 0, 0);
+          return dFull <= endMid;
+        }) || [],
+      }));
 
-    const filteredMonths = analyzeCalendars.map((monthObj: any) => ({
-      ...monthObj,
-      days: monthObj.days?.filter((d: any) => {
-        if (!d.date || !d.weekday) return false;
-        const monthStr = String(monthObj.month ?? "").toLowerCase();
-        const mIndex = [
-          "january", "february", "march", "april", "may", "june",
-          "july", "august", "september", "october", "november", "december"
-        ].findIndex((m) => monthStr.includes(m));
-        const dFull = new Date(monthObj.year, mIndex, d.date);
-        dFull.setHours(0, 0, 0, 0);
-        return dFull <= endMid;
-      }) || [],
-    }));
+      return countRemainingClasses(
+        item?.courseCode || "",
+        item?.time || "",
+        dayCardsMap,
+        filteredMonths,
+        new Date()
+      );
+    };
 
-    return countRemainingClasses(
-      attendanceItem?.courseCode || "",
-      attendanceItem?.time || "",
-      dayCardsMap,
-      filteredMonths,
-      new Date()
-    );
-  };
+    let classesTillCAT1: any[] | null = null;
+    let classesTillCAT2: any[] | null = null;
+    let classesTillMidSem: any[] | null = null;
+    let classesTillLID: any[] | null = null;
+    if (Array.isArray(analyzeCalendars) && analyzeCalendars.length > 0) {
+        const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
+        if (!allMonthsAreHolidays) {
+            if (isLab) {
+                classesTillCAT1 = countTillDate(impDates.cat1Date);
+                classesTillCAT2 = countTillDate(impDates.cat2Date);
+                classesTillMidSem = countTillDate(impDates.midsemStart);
+                classesTillLID = countTillDate(impDates.lidLabDate);
+            } else if (isTheory) {
+                classesTillCAT1 = countTillDate(impDates.cat1Date);
+                classesTillCAT2 = countTillDate(impDates.cat2Date);
+                classesTillMidSem = countTillDate(impDates.midsemStart);
+                classesTillLID = countTillDate(impDates.lidTheoryDate);
+            }
+        }
+    }
 
-  if (Array.isArray(analyzeCalendars) && analyzeCalendars.length > 0) {
-      const allMonthsAreHolidays = analyzeCalendars.every((month: any) => month?.summary?.working === 0);
-      if (!allMonthsAreHolidays) {
-          if (isLabAtt) {
-              classesTillCAT1 = countTillDate(impDates.cat1Date);
-              classesTillCAT2 = countTillDate(impDates.cat2Date);
-              classesTillMidSem = countTillDate(impDates.midsemStart);
-              classesTillLID = countTillDate(impDates.lidLabDate);
-          } else if (isTheoryAtt) {
-              classesTillCAT1 = countTillDate(impDates.cat1Date);
-              classesTillCAT2 = countTillDate(impDates.cat2Date);
-              classesTillMidSem = countTillDate(impDates.midsemStart);
-              classesTillLID = countTillDate(impDates.lidTheoryDate);
-          }
+    const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
+      .some(data => Array.isArray(data) && data.length > 0);
+    const upcomingTotal = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
+      .reduce((n, d) => n + (Array.isArray(d) ? d.length : 0), 0);
+
+    const heatmapData = useMemo(() => {
+      const dateMap: Record<string, { present: number; absent: number; od: number }> = {};
+      historyList.forEach((d: any) => {
+        const dateObj = new Date(d.date);
+        const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
+        if (!dateMap[dateStr]) dateMap[dateStr] = { present: 0, absent: 0, od: 0 };
+        const status = d.status.toLowerCase();
+        if (status === "present") dateMap[dateStr].present++;
+        else if (status === "absent") dateMap[dateStr].absent++;
+        else if (status === "on duty") dateMap[dateStr].od++;
+      });
+      return Object.entries(dateMap).map(([dateStr, counts]) => {
+        let val = 0, status = "";
+        if (counts.absent > 0) { val = 2; status = "Absent"; }
+        else if (counts.od > 0) { val = 3; status = "On Duty"; }
+        else if (counts.present > 0) { val = 1; status = "Present"; }
+        return { date: dateStr, count: val, status };
+      });
+    }, [historyList]);
+
+    const attended = Number(item?.attendedClasses) || 0;
+    const total = Number(item?.totalClasses) || 0;
+    const pct = total > 0 ? (attended / total) * 100 : 0;
+    const status = total === 0 ? "N/A" : pct >= thresholdPct + 5 ? "Safe" : pct >= thresholdPct ? "Warning" : "Critical";
+    let marginHeadline = "—";
+    let marginSubline = "No classes held yet";
+    let marginTone: "emerald" | "amber" | "red" | "zinc" = "zinc";
+    if (total > 0 && pct < thresholdPct) {
+      const needed = Math.ceil((thresholdDec * total - attended) / (1 - thresholdDec));
+      const neededValue = isLab ? Math.ceil(needed / 2) : needed;
+      marginHeadline = `Need ${neededValue}`;
+      marginSubline = `more ${isLab ? "lab" : "class"}${neededValue > 1 ? (isLab ? "s" : "es") : ""} to reach ${thresholdPct}%`;
+      marginTone = "red";
+    } else if (total > 0) {
+      const canMiss = Math.floor(attended / thresholdDec - total);
+      const canMissValue = isLab ? Math.floor(canMiss / 2) : canMiss;
+      if (canMissValue <= 0) {
+        marginHeadline = "On edge";
+        marginSubline = `No misses left · at ${thresholdPct}% margin`;
+        marginTone = "amber";
+      } else {
+        marginHeadline = `${canMissValue} bunkable`;
+        marginSubline = `safe above ${thresholdPct}%`;
+        marginTone = "emerald";
       }
-  }
+    }
 
-  const hasPredictor = [classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID]
-    .some(data => Array.isArray(data) && data.length > 0);
-
-  const heatmapData = useMemo(() => {
-    const dateMap: Record<string, { present: number; absent: number; od: number }> = {};
-    historyList.forEach((d: any) => {
-      const dateObj = new Date(d.date);
-      const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
-      if (!dateMap[dateStr]) dateMap[dateStr] = { present: 0, absent: 0, od: 0 };
-      const status = d.status.toLowerCase();
-      if (status === "present") dateMap[dateStr].present++;
-      else if (status === "absent") dateMap[dateStr].absent++;
-      else if (status === "on duty") dateMap[dateStr].od++;
-    });
-    return Object.entries(dateMap).map(([dateStr, counts]) => {
-      let val = 0, status = "";
-      if (counts.absent > 0) { val = 2; status = "Absent"; }
-      else if (counts.od > 0) { val = 3; status = "On Duty"; }
-      else if (counts.present > 0) { val = 1; status = "Present"; }
-      return { date: dateStr, count: val, status };
-    });
-  }, [historyList]);
+    return {
+      historyList, filteredHistory, missingNotesCount,
+      classesTillCAT1, classesTillCAT2, classesTillMidSem, classesTillLID,
+      hasPredictor, upcomingTotal, heatmapData,
+      attended, total, pct, status, marginHeadline, marginSubline, marginTone, isLab,
+    };
+  };
+  const theoryData = useScopeAttendance(theoryAttItem, attFilter, notesTracker);
+  const labData = useScopeAttendance(labAttItem, attFilter, notesTracker);
 
   const heatmapStartDate = useMemo(() => {
     if (analyzeCalendars && analyzeCalendars.length > 0) {
@@ -828,33 +875,388 @@ export default function CourseDetailSubpage({
         toSlide(labAttItem, "Lab", "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"),
       ];
     }
-    const item = attendanceItem || theoryAttItem || labAttItem;
+    const item = theoryAttItem || labAttItem;
     return [toSlide(item, item ? (String(item.courseCode || "").endsWith("(L)") || String(item.courseCode || "").endsWith("(P)") ? "Lab" : "Theory") : "Theory")];
-  }, [theoryAttItem, labAttItem, attendanceItem, thresholdPct]);
+  }, [theoryAttItem, labAttItem, thresholdPct]);
   const ovAttSlideCount = innerTab === "overview" && selectedCode ? ovAttSlides.length : 0;
   useEffect(() => {
     if (ovAttPaused || ovAttSlideCount <= 1) return;
     const t = setInterval(() => setOvAttSlide((p) => (p + 1) % ovAttSlideCount), 5000);
     return () => clearInterval(t);
   }, [ovAttPaused, ovAttSlideCount]);
-  const ovAttPct = Number(attendanceItem?.attendancePercentage) || 0;
-  const ovAttended = Number(attendanceItem?.attendedClasses) || 0;
-  const ovTotal = Number(attendanceItem?.totalClasses) || 0;
-  const ovAttStatus = ovTotal === 0 ? "N/A" : ovAttPct >= thresholdPct + 5 ? "Safe" : ovAttPct >= thresholdPct ? "Warning" : "Critical";
-  const ovBunkText = (() => {
-    if (ovTotal === 0) return "No classes held yet";
-    if (ovAttPct < thresholdPct) {
-      const needed = Math.ceil((thresholdDec * ovTotal - ovAttended) / (1 - thresholdDec));
-      return `Need ${Math.max(1, needed)} more to reach ${thresholdPct}%`;
-    }
-    const canMiss = Math.floor(ovAttended / thresholdDec - ovTotal);
-    if (canMiss <= 0) return "On safety margin";
-    return `${canMiss} bunkable · safe above ${thresholdPct}%`;
-  })();
   const ovGo = (id: string) => {
     setOvActiveSlide(0);
     setInnerTab(id);
     if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+  };
+  // Review-tab scope helpers: theory/lab plan + schedule stay separated.
+  const reviewScopes: Array<"theory" | "lab"> = isEmbedded
+    ? ["theory", "lab"]
+    : [selectedGroup?.lab && !selectedGroup?.theory ? "lab" : "theory"];
+  const planEntriesByScope = (scope: "theory" | "lab") =>
+    (coursePlan || []).filter((cp: any) => (cp.scope || "theory") === scope);
+  const detailEntriesByScope = (scope: "theory" | "lab") =>
+    (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
+  const renderScopeBadge = (scope: "theory" | "lab") => (
+    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full w-fit ${scope === "theory" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30" : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"}`}>
+      {scope === "theory" ? "Theory" : "Lab"}
+    </span>
+  );
+  const renderCourseDetailCard = (courseComp: any, attItem: any, badge: "Theory" | "Lab" | null) => {
+    if (!courseComp && !attItem) return null;
+    const tiles: Array<[string, string]> = [
+      ["Type", isEmbedded ? "Embedded" : (courseComp?.courseType || "—")],
+      ["Slot", courseComp?.slot || attItem?.slotName || "—"],
+      ["System", courseComp?.courseSystem || "—"],
+      ["Credits", attItem?.credits != null ? String(attItem.credits) : (courseComp?.credits != null ? String(courseComp.credits) : "—")],
+    ];
+    const faculty = courseComp?.faculty || attItem?.faculty || "";
+    const venue = attItem?.slotVenue || "";
+    return (
+      <div className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 space-y-3">
+        {badge && renderScopeBadge(badge === "Theory" ? "theory" : "lab")}
+        <div className="grid grid-cols-2 gap-2.5">
+          {tiles.map(([label, value]) => (
+            <div key={label} className="bg-zinc-50/80 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">{label}</p>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{value}</p>
+            </div>
+          ))}
+        </div>
+        {(faculty || venue) && (
+          <div className="bg-zinc-50/80 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
+            {faculty && <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{faculty}</p>}
+            {venue && <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">Venue: {venue}</p>}
+          </div>
+        )}
+      </div>
+    );
+  };
+  // Heatmap status colors, shared by the panel and the rectRender override.
+  // (0 = no class, 1 = present, 2 = absent, 3 = on duty)
+  const HEAT_STATUS_COLORS: Record<number, string> = {
+    0: "rgba(156, 163, 175, 0.1)",
+    1: "#10B981",
+    2: "#EF4444",
+    3: "#EAB308",
+  };
+  // Shared status tones for attendance heroes, rows and pages.
+  const STATUS_TEXT: Record<string, string> = {
+    Safe: "text-emerald-600 dark:text-emerald-400",
+    Warning: "text-amber-500 dark:text-amber-400",
+    "N/A": "text-zinc-400 dark:text-zinc-500",
+    Critical: "text-red-500 dark:text-red-400",
+  };
+  const STATUS_BADGE: Record<string, string> = {
+    Safe: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    Warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    "N/A": "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
+    Critical: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  };
+  const TONE_TEXT: Record<string, string> = {
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    amber: "text-amber-500 dark:text-amber-400",
+    red: "text-red-500 dark:text-red-400",
+    zinc: "text-zinc-400 dark:text-zinc-500",
+  };
+  const TONE_BADGE: Record<string, string> = {
+    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
+  };
+  const scopeAccent = (badge: "Theory" | "Lab") => badge === "Theory"
+    ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+
+  const renderLogRow = (item: any, d: any, badge: "Theory" | "Lab") => (
+    <button
+      onClick={() => setInnerTab(`${badge.toLowerCase()}-log`)}
+      className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
+    >
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${scopeAccent(badge)}`}>
+        <Clock className="w-5 h-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">{badge} Log</h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+          {d.total > 0 ? `${d.attended}/${d.total}${item?.slotVenue ? ` · ${item.slotVenue}` : ""}` : "No attendance data"}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-base font-black font-outfit tracking-tight leading-none ${STATUS_TEXT[d.status]}`}>
+          {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
+        </span>
+        <ChevronRight className="w-4 h-4 text-zinc-400" />
+      </div>
+    </button>
+  );
+
+  const renderPredictorRow = (item: any, d: any, badge: "Theory" | "Lab") => (
+    <button
+      onClick={() => setInnerTab(`${badge.toLowerCase()}-predictor`)}
+      className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
+    >
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${scopeAccent(badge)}`}>
+        <Target className="w-5 h-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">{badge} Predictor</h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+          {d.marginSubline}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[d.marginTone]}`}>
+          {d.upcomingTotal > 0 ? `${d.upcomingTotal}` : "—"}
+        </span>
+        <ChevronRight className="w-4 h-4 text-zinc-400" />
+      </div>
+    </button>
+  );
+
+  const renderAttHeroes = (d: any) => (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Attendance</span>
+          <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${STATUS_BADGE[d.status]}`}>{d.status}</span>
+        </div>
+        <div className="my-auto py-1">
+          <span className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${STATUS_TEXT[d.status]}`}>
+            {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
+          </span>
+        </div>
+        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          {d.total > 0 ? `${d.attended}/${d.total} attended` : "No attendance data"}
+        </p>
+      </div>
+      <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Margin</span>
+          <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE[d.marginTone]}`}>{d.status}</span>
+        </div>
+        <div className="my-auto py-1">
+          <span className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block ${TONE_TEXT[d.marginTone]}`}>
+            {d.marginHeadline}
+          </span>
+        </div>
+        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          {d.marginSubline}
+        </p>
+      </div>
+    </div>
+  );
+
+  const milestoneBlocks = (d: any) => [
+    { key: "CAT1", label: "Classes before CAT I", data: d.classesTillCAT1 },
+    { key: "CAT2", label: "Classes before CAT II", data: d.classesTillCAT2 },
+    { key: "MIDSEM", label: "Classes before Mid Term Test", data: d.classesTillMidSem },
+    { key: "LID", label: "Classes before FAT", data: d.classesTillLID },
+  ];
+
+  const renderLogPage = (item: any, d: any, badge: "Theory" | "Lab") => {
+    if (!item) {
+      return (
+        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
+          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No attendance data available for this course.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {renderAttHeroes(d)}
+        <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+          <div className="flex items-center gap-2 px-1 mb-3">
+            <Calendar className="w-4 h-4 text-indigo-500" />
+            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Calendar</h2>
+          </div>
+          <AttendanceCalendarView
+            analyzeCalendars={analyzeCalendars}
+            historyList={d.historyList}
+            notesTracker={notesTracker}
+            toggleNotes={(dateStr: string) => toggleNotes(dateStr, item.courseCode)}
+            courseCode={item.courseCode}
+            isOverall={false}
+            toggleIndividualNote={() => {}}
+            compact
+          />
+        </div>
+        <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+          <div className="flex items-center gap-2 px-1 mb-3">
+            <Grid3x3 className="w-4 h-4 text-indigo-500" />
+            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Heatmap</h2>
+          </div>
+          <div className="flex justify-start w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
+            <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
+              <HeatMap
+                value={d.heatmapData}
+                startDate={heatmapStartDate}
+                endDate={heatmapEndDate}
+                width={550}
+                rectSize={15}
+                space={3}
+                legendCellSize={0}
+                rectProps={{ rx: 4, ry: 4 }}
+                rectRender={(props: any, dayData: any) => {
+                  const data = dayData as any;
+                  const status = data.count === 1 ? "Present" : data.count === 2 ? "Absent" : data.count === 3 ? "On Duty" : "No Class";
+                  // NB: the library resolves discrete count maps to the NEXT
+                  // bucket's color (off-by-one), so set the fill explicitly.
+                  const fill = typeof data?.count === "number" && HEAT_STATUS_COLORS[data.count]
+                    ? HEAT_STATUS_COLORS[data.count]
+                    : (props as any).fill;
+                  return <rect {...props} fill={fill}><title>{`${data.date}: ${status}`}</title></rect>;
+                }}
+                panelColors={HEAT_STATUS_COLORS}
+              />
+              <div className="flex flex-wrap items-center justify-center gap-5 mt-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
+                  <span>Present</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-[#EF4444] shadow-sm"></div>
+                  <span>Absent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded bg-[#EAB308] shadow-sm"></div>
+                  <span>On Duty</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <LogGap />
+        <div className="space-y-4" style={{ marginBlockStart: 0 }}>
+          <div className="px-1">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-500" />
+              <h2 className="text-m font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Log</h2>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                {d.historyList.length}
+              </span>
+              {d.missingNotesCount > 0 && (
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                  {d.missingNotesCount} notes missing
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-2.5 p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs overflow-x-auto hide-scrollbar">
+              {(["All", "Present", "Absent", "On Duty"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setAttFilter(f)}
+                  className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    attFilter === f
+                      ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
+                      : "text-zinc-500 dark:text-zinc-400"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+          {d.filteredHistory.length === 0 ? (
+            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
+              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No records under this filter.</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+              {d.filteredHistory.map((h: any, i: number) => {
+                const st = h.status.toLowerCase();
+                const isPresent = st === "present";
+                const isAbsent = st === "absent";
+                const hasNotes = notesTracker[item?.courseCode || ""]?.[h.date] === true;
+                return (
+                  <div key={i} className="flex items-center justify-between gap-3 py-3 px-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-amber-500"}`} />
+                      <div className="min-w-0">
+                        <p className="font-bold text-base text-zinc-900 dark:text-white truncate font-outfit leading-tight">{h.date}</p>
+                        <p className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
+                          {h.status}
+                        </p>
+                      </div>
+                    </div>
+                    {!isPresent && (
+                      <button
+                        onClick={() => toggleNotes(h.date, item?.courseCode || "")}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                          hasNotes
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
+                            : "bg-white border-zinc-200 text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300"
+                        }`}
+                      >
+                        {hasNotes ? <CheckCircle2 size={14} /> : <FileTextIcon size={14} />}
+                        <span className="hidden sm:inline">{hasNotes ? "Secured" : "Get Notes"}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPredictorPage = (item: any, d: any, badge: "Theory" | "Lab") => {
+    if (!item) {
+      return (
+        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
+          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No attendance data available for this course.</p>
+        </div>
+      );
+    }
+    const blocks = milestoneBlocks(d).filter((b) => Array.isArray(b.data) && b.data.length > 0);
+    return (
+      <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {renderAttHeroes(d)}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1 gap-2">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Predictor</h2>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                {d.upcomingTotal}
+              </span>
+            </div>
+          </div>
+          {blocks.length === 0 ? (
+            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
+              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No upcoming milestones to simulate.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {blocks.map(({ key, label, data }) => (
+                <div key={key} className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 px-1 mb-3">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                      <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
+                      <span>{label}</span>
+                    </h3>
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full">
+                      {data.length} Left
+                    </span>
+                  </div>
+                  <UpcomingClassesList
+                    classes={data}
+                    attendedClasses={item.attendedClasses}
+                    totalClasses={item.totalClasses}
+                    isLab={item.courseCode?.endsWith("(L)") || false}
+                    impDates={impDates}
+                    isDayscholarWithBus={isDayscholarWithBus}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const courseGradeHistory = useMemo(() => {
@@ -927,24 +1329,6 @@ export default function CourseDetailSubpage({
         </div>
       </div>
 
-      {innerTab !== "overview" && (
-        <SubTabStrip
-          tabs={[
-            { id: "overview", label: "Overview" },
-            { id: "grades", label: "Grade History" },
-            { id: "marks", label: "Marks" },
-            { id: "attendance", label: "Attendance" },
-            { id: "plan", label: "Course Plan" },
-            { id: "qbank", label: "QBank" },
-          ]}
-          activeTab={innerTab}
-          onChange={(id) => {
-            setInnerTab(id);
-            if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
-          }}
-        />
-      )}
-
       {error && (
         <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4 flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0" /> {error}
@@ -962,7 +1346,7 @@ export default function CourseDetailSubpage({
             onMouseLeave={() => setOvAttPaused(false)}
             onTouchStart={() => setOvAttPaused(true)}
             onTouchEnd={() => setOvAttPaused(false)}
-            onClick={() => ovGo("attendance")}
+            onClick={() => setInnerTab(`${defaultAttScope}-log`)}
             className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden"
           >
             {(() => {
@@ -1064,7 +1448,7 @@ export default function CourseDetailSubpage({
                   </div>
                   <AnimatePresence mode="wait">
                     <m.div
-                      key={`${slide.id}-${embeddedScope}`}
+                      key={slide.id}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
@@ -1110,33 +1494,26 @@ export default function CourseDetailSubpage({
                   Course sections
                 </h2>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                  5
+                  {isEmbedded && theoryAttItem && labAttItem ? 8 : 6}
                 </span>
               </div>
             </div>
             {/* Joined grouped list: single shell, dividers, curves only on outer top/bottom */}
             <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
-              {/* Attendance */}
-              <button
-                onClick={() => ovGo("attendance")}
-                className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-              >
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Attendance</h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {ovTotal > 0 ? `${ovAttended}/${ovTotal}${attendanceItem?.slotVenue ? ` · ${attendanceItem.slotVenue}` : ""} · ${ovBunkText}` : "No attendance data"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-base font-black font-outfit tracking-tight leading-none ${ovAttStatus === "Safe" ? "text-emerald-600 dark:text-emerald-400" : ovAttStatus === "Warning" ? "text-amber-600 dark:text-amber-400" : "text-zinc-500 dark:text-zinc-400"}`}>
-                    {ovTotal > 0 ? `${Number(ovAttPct.toFixed(1))}%` : "—"}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400" />
-                </div>
-              </button>
+              {/* Log + Predictor — split per component when embedded */}
+              {isEmbedded && theoryAttItem && labAttItem ? (
+                <>
+                  {renderLogRow(theoryAttItem, theoryData, "Theory")}
+                  {renderLogRow(labAttItem, labData, "Lab")}
+                  {renderPredictorRow(theoryAttItem, theoryData, "Theory")}
+                  {renderPredictorRow(labAttItem, labData, "Lab")}
+                </>
+              ) : (
+                <>
+                  {renderLogRow(theoryAttItem || labAttItem, (theoryAttItem ? theoryData : labData), theoryAttItem ? "Theory" : "Lab")}
+                  {renderPredictorRow(theoryAttItem || labAttItem, (theoryAttItem ? theoryData : labData), theoryAttItem ? "Theory" : "Lab")}
+                </>
+              )}
               {/* Marks */}
               <button
                 onClick={() => ovGo("marks")}
@@ -1190,7 +1567,7 @@ export default function CourseDetailSubpage({
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Course Plan</h3>
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Review Course Details</h3>
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
                     {mainCourse?.faculty || "Faculty N/A"}{mainCourse?.courseType ? ` · ${isEmbedded ? "Embedded" : mainCourse.courseType}` : ""}
                   </p>
@@ -1225,156 +1602,60 @@ export default function CourseDetailSubpage({
               </button>
             </div>
           </div>
-          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-emerald-500" />
-                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Quality Circle Meeting</h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">QCM</span>
-              </div>
-              {!qcmData && (
-                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-xs active:scale-95 cursor-pointer w-fit">
-                  {qcmLoading ? "Loading..." : "Load QCM Data"}
-                </button>
-              )}
-            </div>
-               
-               {qcmError && <p className="text-sm text-red-500">{qcmError}</p>}
-               
-               {qcmData && qcmData.length === 0 && (
-                 <p className="text-sm text-gray-500">No QCM data found for {selectedCode} in this semester.</p>
-               )}
-
-               {qcmData && qcmData.length > 0 && (
-                 <div className="space-y-4">
-                   {qcmData.map((table: any, ti: number) => (
-                      <div key={ti} className="space-y-4">
-                        {table.caption && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">{table.caption}</p>}
-                        {table.rows.map((row: any, ri: number) => {
-                          const findCol = (keywords: string[]) => {
-                             const key = Object.keys(row).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
-                             return key ? row[key] : null;
-                          };
-                          
-                          const qcmNo = findCol(["qcm no", "qcm"]);
-                          const action = findCol(["action"]);
-                          const suggestions = findCol(["suggestion", "feedback", "remarks"]);
-                          const facultyReply = findCol(["faculty reply", "faculty comment"]);
-                          const hodComments = findCol(["hod comment", "hod reply", "hod"]);
-                          
-                          return (
-                            <div key={ri} className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4">
-                               <div className="flex justify-between items-center mb-3">
-                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
-                                  {action && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 uppercase">{action}</span>}
-                               </div>
-                               <div className="space-y-3">
-                                  {suggestions && (
-                                     <div>
-                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Suggestions / Feedback</p>
-                                        <p className="text-sm text-gray-800 dark:text-gray-200">{suggestions}</p>
-                                     </div>
-                                  )}
-                                  {facultyReply && (
-                                     <div className="pl-3 border-l-2 border-emerald-200 dark:border-emerald-900/50">
-                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Faculty Reply</p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">{facultyReply}</p>
-                                     </div>
-                                  )}
-                                  {hodComments && (
-                                     <div className="pl-3 border-l-2 border-purple-200 dark:border-purple-900/50">
-                                        <p className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-0.5">HOD Comments</p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">{hodComments}</p>
-                                     </div>
-                                  )}
-                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                   ))}
-                 </div>
-               )}
-              </div>
-          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-4 px-1">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-indigo-500" />
-                  <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Plan</h2>
-                </div>
-                {coursePlan && <button onClick={() => { ovGo("plan"); }} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer active:scale-95">View Details</button>}
-              </div>
-              {planLoading ? <Skeleton className="h-24 w-full rounded-xl" />
-              : coursePlan ? coursePlan.map((cp: any, i: number) => (
-                cp.data.tables?.map((t: any) => t.rows?.slice(0, 2).map((r: any, ri: number) => (
-                  <div key={`${i}-${ri}`} className="py-2.5 px-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 mb-2">
-                    <p className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">{cp.type}</p>
-                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{r["Course Title"] || r["Course Code"] || "Course info"}</p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{r["Slot"] && `Slot: ${r["Slot"]}`}{r["Faculty"] ? ` | ${r["Faculty"]}` : ""}</p>
-                  </div>
-                )))
-              )) : <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium px-1">Course plan loads automatically</p>}
-          </div>
-          {viewDetail && (
-            <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5">
-              <div className="px-1 mb-4">
-                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Schedule Preview</h2>
-              </div>
-                {viewDetail.map((vd: any, ci: number) => (
-                  <div key={ci} className="mb-4 last:mb-0">
-                    {viewDetail.length > 1 && <p className="text-xs font-semibold text-gray-400 uppercase mb-2">{vd.type}</p>}
-                    {vd.data.tables?.slice(1).map((t: any) => (
-                      <div key={0} className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead><tr className="border-b border-gray-200 dark:border-gray-700">
-                            {t.headers?.map((h: string) => (<th key={h} className="text-left py-2 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>))}
-                          </tr></thead>
-                          <tbody>{t.rows?.map((row: any, ri: number) => (
-                            <tr key={ri} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                              {t.headers.map((h: string) => (<td key={h} className="py-2 px-2 text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{row[h] || "—"}</td>))}
-                            </tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                {(!viewDetail[0]?.data.tables || viewDetail[0].data.tables.length <= 1) && <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium px-1">No schedule data</p>}
-            </div>
-          )}
         </div>
       )}
 
       {/* MARKS - Full replication of MarksSubpage */}
       {innerTab === "marks" && (
-        <div>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
-              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Course Type</p>
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1">{courseTypeLabel}</p>
-            </div>
-            
+        <div className="space-y-6 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* HERO STATS (overview format) */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {isSelectedPastSemester && selectedPastGrade ? (
-              <div className="bg-emerald-50/80 dark:bg-emerald-950/40 backdrop-blur-md border border-emerald-200/50 dark:border-emerald-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-emerald-400/10 blur-xl rounded-full" />
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-widest mb-1 relative z-10">Final Grade</p>
-                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 relative z-10">{selectedPastGrade}</p>
-              </div>
+              <>
+                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Final Grade</span>
+                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Final</span>
+                  </div>
+                  <div className="my-auto py-1">
+                    <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-emerald-600 dark:text-emerald-400">Grade {selectedPastGrade}</span>
+                  </div>
+                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">Published grade</p>
+                </div>
+                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Grading</span>
+                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">System</span>
+                  </div>
+                  <div className="my-auto py-1">
+                    <span className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block text-zinc-900 dark:text-white">{isRelative ? "Relative" : "Absolute"}</span>
+                  </div>
+                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+                    {courseGradeHistory.length > 0 ? `${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : "Grade history"}
+                  </p>
+                </div>
+              </>
             ) : (
               <>
-                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-indigo-500/5 blur-xl rounded-full" />
-                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 relative z-10">Total Score</p>
-                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400 relative z-10">{courseTotalString}</p>
+                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Total Score</span>
+                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">Marks</span>
+                  </div>
+                  <div className="my-auto py-1">
+                    <span className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block text-zinc-900 dark:text-white">{courseTotalString}</span>
+                  </div>
+                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">{courseTypeLabel}</p>
                 </div>
-                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
-                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Projected %</p>
-                  <p className="text-xl font-black text-blue-600 dark:text-blue-400">{courseStats.projected}%</p>
-                </div>
-                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 shadow-sm text-center flex flex-col justify-center">
-                  <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Max Potential</p>
-                  <p className="text-xl font-black text-orange-600 dark:text-orange-400">{formatNumber(courseStats.maxPossible)}%</p>
+                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Projected</span>
+                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">Forecast</span>
+                  </div>
+                  <div className="my-auto py-1">
+                    <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-blue-600 dark:text-blue-400">{courseStats.projected}%</span>
+                  </div>
+                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">Max potential {formatNumber(courseStats.maxPossible)}%</p>
                 </div>
               </>
             )}
@@ -1562,364 +1843,105 @@ export default function CourseDetailSubpage({
         </div>
       )}
 
-      {/* ATTENDANCE - Full replication of AttendanceSubpage */}
-      {innerTab === "attendance" && attendanceItem && (
-        <div>
-          {isEmbedded && (
-            <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl mb-6 w-fit mx-auto border border-gray-200 dark:border-gray-800">
-              <button
-                onClick={() => setEmbeddedScope("theory")}
-                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                  embeddedScope === "theory" 
-                    ? "bg-white dark:bg-black text-blue-600 dark:text-blue-400 shadow-sm" 
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                }`}
-              >
-                Theory
-              </button>
-              <button
-                onClick={() => setEmbeddedScope("lab")}
-                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                  embeddedScope === "lab" 
-                    ? "bg-white dark:bg-black text-emerald-600 dark:text-emerald-400 shadow-sm" 
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                }`}
-              >
-                Lab
-              </button>
-            </div>
-          )}
-          {/* Badges Row */}
-          <div className="flex flex-wrap gap-3 mb-8">
-            <Badge variant="info" className="rounded-lg border border-blue-100  dark:border-blue-900/40 gap-1.5">
-              <CalendarIcon className="w-4 h-4 text-blue-500  dark:text-blue-400" /> {attendanceItem.slotName}
-            </Badge>
-            <Badge variant="purple" className="rounded-lg border border-purple-100  dark:border-purple-900/40 gap-1.5">
-              <Building2 className="w-4 h-4 text-purple-500  dark:text-purple-400" /> {attendanceItem.slotVenue}
-            </Badge>
-            <Badge variant="warning" className="rounded-lg border border-amber-100  dark:border-amber-900/40 gap-1.5">
-              <Clock className="w-4 h-4 text-orange-500  dark:text-amber-400" /> {attendanceItem.time}
-            </Badge>
-            <Badge variant="success" className="rounded-lg border border-emerald-100  dark:border-emerald-900/40 gap-1.5">
-              <User className="w-4 h-4 text-green-500  dark:text-emerald-400" /> {attendanceItem.faculty}
-            </Badge>
-          </div>
+      {/* THEORY LOG — OD-hours style dedicated page */}
+      {effectiveTab === "theory-log" && renderLogPage(theoryAttItem, theoryData, "Theory")}
 
-          {/* Metrics Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white  dark:bg-gray-900 rounded-2xl p-6 border border-gray-200  dark:border-gray-800 flex items-center justify-between shadow-sm md:col-span-1">
-              <div>
-                <h3 className="text-gray-500  dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-1">Attendance</h3>
-                <p className="text-3xl font-black text-gray-900  dark:text-gray-100">{attendanceItem.attendancePercentage}%</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">{attendanceItem.attendedClasses} / {attendanceItem.totalClasses} Classes</p>
-              </div>
-              <div className="w-24 h-24">
-                <CircularProgress
-                  value={attendanceItem.attendancePercentage}
-                  text={`${!decimalValues ? attendanceItem.attendancePercentage : (attendanceItem.attendedClasses / attendanceItem.totalClasses * 100).toFixed(1)}%`}
-                  size={96}
-                  threshold={thresholdPct}
-                  midThreshold={thresholdPct + 10}
-                />
-              </div>
-            </div>
+      {/* LAB LOG */}
+      {effectiveTab === "lab-log" && renderLogPage(labAttItem, labData, "Lab")}
 
-            <div className="bg-white  dark:bg-gray-900 rounded-2xl p-6 border border-gray-200  dark:border-gray-800 shadow-sm md:col-span-2 flex flex-col justify-center">
-              <h3 className="text-gray-500  dark:text-gray-400 font-semibold uppercase tracking-wider text-xs mb-3">Status Insight</h3>
-              {attendanceItem.totalClasses > 0 && (() => {
-                const attended = attendanceItem.attendedClasses;
-                const total = attendanceItem.totalClasses;
-                const percentage = (attended / total) * 100;
-                if (percentage < thresholdPct) {
-                  const needed = Math.ceil((thresholdDec * total - attended) / (1 - thresholdDec));
-                  const neededValue = isLabAtt ? Math.ceil(needed / 2) : needed;
-                  return (
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-red-100  dark:bg-red-900/30 text-red-600  dark:text-red-400 rounded-xl">
-                        <AlertCircle size={24} />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-gray-900  dark:text-gray-100">Critical Status</p>
-                        <p className="text-gray-600  dark:text-gray-400 mt-1">You need to attend <strong>{neededValue}</strong> more {isLabAtt ? "lab" : "class"}{neededValue > 1 && (isLabAtt ? "s" : "es")} consecutively to reach the safe {thresholdPct}% threshold.</p>
-                      </div>
-                    </div>
-                  );
-                } else {
-                  const canMiss = Math.floor(attended / thresholdDec - total);
-                  const canMissValue = isLabAtt ? Math.floor(canMiss / 2) : canMiss;
-                  if (canMissValue === 0) {
-                    return (
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-yellow-100  dark:bg-yellow-900/30 text-yellow-600  dark:text-yellow-400 rounded-xl">
-                          <AlertCircle size={24} />
-                        </div>
-                        <div>
-                          <p className="text-xl font-bold text-gray-900  dark:text-gray-100">On the Edge</p>
-                          <p className="text-gray-600  dark:text-gray-400 mt-1">You cannot afford to miss the next {isLabAtt ? "lab" : "class"}. Attend to build a safety buffer.</p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-emerald-100  dark:bg-emerald-900/30 text-emerald-600  dark:text-emerald-400 rounded-xl">
-                        <Star size={24} />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold text-gray-900  dark:text-gray-100">Safe Margin</p>
-                        <p className="text-gray-600  dark:text-gray-400 mt-1">You can safely miss <strong>{canMissValue}</strong> {isLabAtt ? "lab" : "class"}{canMissValue !== 1 && (isLabAtt ? "s" : "es")} and still stay above the {thresholdPct}% threshold.</p>
-                      </div>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-          </div>
+      {/* THEORY PREDICTOR */}
+      {effectiveTab === "theory-predictor" && renderPredictorPage(theoryAttItem, theoryData, "Theory")}
 
-          {/* Layout Split */}
-          <div className={`grid grid-cols-1 gap-6 ${hasPredictor ? 'xl:grid-cols-3' : ''}`}>
-            {hasPredictor && (
-              <div className="xl:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm h-full relative">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
-                  <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                    <div>
-                      <h2 className="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2 mb-1">
-                        <Activity className="w-4 h-4" /> Interactive Predictor
-                      </h2>
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tap on upcoming classes to see how skipping them affects your attendance before exams.</p>
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-6 divide-y divide-gray-200/50 dark:divide-gray-800/50 relative z-10">
-                    {[
-                      { key: "CAT1", label: "Classes before CAT I", data: classesTillCAT1 },
-                      { key: "CAT2", label: "Classes before CAT II", data: classesTillCAT2 },
-                      { key: "MIDSEM", label: "Classes before Mid Term Test", data: classesTillMidSem },
-                      { key: "LID", label: "Classes before FAT", data: classesTillLID },
-                    ].map(({ key, label, data }, idx) => (
-                      Array.isArray(data) && data.length > 0 ? (
-                        <div key={key} className={`space-y-4 ${idx > 0 ? 'pt-6' : ''}`}>
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                              <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
-                              <span>{label}</span>
-                            </h3>
-                            <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full shadow-inner">
-                              {data.length} Left
-                            </span>
-                          </div>
-                          <UpcomingClassesList
-                            classes={data}
-                            attendedClasses={attendanceItem.attendedClasses}
-                            totalClasses={attendanceItem.totalClasses}
-                            isLab={attendanceItem.courseCode?.endsWith("(L)") || false}
-                            impDates={impDates}
-                            isDayscholarWithBus={isDayscholarWithBus}
-                          />
-                        </div>
-                      ) : null
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={`${hasPredictor ? "xl:col-span-1" : ""} min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200`}>
-              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm h-full flex flex-col relative">
-                <div className="p-6 border-b border-gray-200/50 dark:border-gray-800/50 flex flex-col gap-5 relative z-10">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        Attendance Log
-                        {missingNotesCount > 0 && (
-                          <Badge variant="danger" className="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-black shadow-inner border border-red-100 dark:border-red-900/50">
-                            {missingNotesCount} Missing Notes
-                          </Badge>
-                        )}
-                      </h2>
-                      {!hasPredictor && <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mt-1">Track past classes and secure notes.</p>}
-                    </div>
-                    <div className="flex bg-white/50 dark:bg-black/50 p-1 rounded-xl shadow-inner border border-gray-200/50 dark:border-gray-800/50">
-                      {[
-                        { key: "calendar" as const, icon: <CalendarIcon size={16} /> },
-                        { key: "heatmap" as const, icon: <Grid3x3 size={16} /> },
-                        { key: "list" as const, icon: <List size={16} /> },
-                      ].map(opt => (
-                        <button
-                          key={opt.key}
-                          onClick={() => setViewMode(opt.key)}
-                          className={`p-2 rounded-lg transition-all duration-200 ${viewMode === opt.key ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-gray-200 dark:ring-gray-700' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                        >
-                          {opt.icon}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {viewMode === "list" && (
-                    <div className="flex bg-white/50 dark:bg-black/50 p-1 rounded-xl shadow-inner border border-gray-200/50 dark:border-gray-800/50 overflow-x-auto hide-scrollbar w-max mx-auto sm:mx-0">
-                      {["All", "Present", "Absent", "On Duty"].map(f => (
-                        <button
-                          key={f}
-                          onClick={() => setAttFilter(f)}
-                          className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${attFilter === f ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-gray-200 dark:ring-gray-700" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}
-                        >
-                          {f}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[450px] xl:max-h-[500px]">
-                  {viewMode === "calendar" ? (
-                    <div className="p-0 sm:p-4 w-full overflow-x-auto hide-scrollbar">
-                      <div className="min-w-[600px]">
-                        <AttendanceCalendarView
-                          analyzeCalendars={analyzeCalendars}
-                          historyList={historyList}
-                          notesTracker={notesTracker}
-                          toggleNotes={toggleNotes}
-                          courseCode={attendanceItem.courseCode}
-                          isOverall={false}
-                          toggleIndividualNote={() => {}}
-                        />
-                      </div>
-                    </div>
-                  ) : viewMode === "heatmap" ? (
-                    <div className="p-6 flex justify-center w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
-                      <div style={{ direction: "ltr", minWidth: "500px" }}>
-                        <HeatMap
-                          value={heatmapData}
-                          startDate={heatmapStartDate}
-                          endDate={heatmapEndDate}
-                          width={550}
-                          rectProps={{ rx: 4, ry: 4 }}
-                          rectRender={(props: any, dayData: any) => {
-                            const data = dayData as any;
-                            const status = data.count === 1 ? "Present" : data.count === 2 ? "Absent" : data.count === 3 ? "On Duty" : "No Class";
-                            return <rect {...props}><title>{`${data.date}: ${status}`}</title></rect>;
-                          }}
-                          panelColors={{
-                            0: "rgba(156, 163, 175, 0.1)",
-                            1: "#10B981",
-                            2: "#EF4444",
-                            3: "#EAB308",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : filteredHistory.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500  dark:text-gray-400">
-                      No records found for "{attFilter}".
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100  dark:divide-gray-800">
-                      {filteredHistory.map((d: any, i: number) => {
-                        const status = d.status.toLowerCase();
-                        const isPresent = status === "present";
-                        const isAbsent = status === "absent";
-                        const hasNotes = notesTracker[attendanceItem?.courseCode || ""]?.[d.date] === true;
-                        return (
-                          <div key={i} className="flex sm:items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-900/30 transition-colors">
-                            <div className="flex items-center gap-4">
-                              <div className={`w-2 h-10 rounded-full ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-yellow-500"}`} />
-                              <div>
-                                <p className="font-bold text-gray-900  dark:text-gray-100">{d.date}</p>
-                                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600  dark:text-emerald-400" : isAbsent ? "text-red-600  dark:text-red-400" : "text-yellow-600  dark:text-yellow-400"}`}>
-                                  {d.status}
-                                </p>
-                              </div>
-                            </div>
-                            {!isPresent && (
-                              <button
-                                onClick={() => toggleNotes(d.date)}
-                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
-                                  hasNotes
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:hover:bg-slate-700 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
-                                }`}
-                              >
-                                {hasNotes ? <CheckCircle2 size={14} /> : <FileTextIcon size={14} />}
-                                <span className="hidden sm:inline">{hasNotes ? "Secured" : "Get Notes"}</span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {innerTab === "attendance" && !attendanceItem && (
-        <Card><div className="p-5 text-sm text-gray-400">No attendance data available for this course.</div></Card>
-      )}
+      {/* LAB PREDICTOR */}
+      {effectiveTab === "lab-predictor" && renderPredictorPage(labAttItem, labData, "Lab")}
 
       {/* COURSE PLAN - Full tables without truncation */}
       {innerTab === "plan" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
-          <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-blue-500" /> Course Syllabus & Plan
-          </h4>
-          
-          {planLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-1/3 rounded-2xl" />
-              <Skeleton className="h-64 w-full rounded-3xl" />
-              <Skeleton className="h-48 w-full rounded-3xl" />
+          {/* 1 ── COURSE DETAILS */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <BookOpen className="w-4 h-4 text-indigo-500" />
+              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Details</h2>
             </div>
-          ) : coursePlan && coursePlan.length > 0 ? (
-            <div className="space-y-8">
-              {coursePlan.map((cp: any, ci: number) => (
-                <div key={ci} className="space-y-4">
-                  {coursePlan.length > 1 && (
-                    <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-2 px-2">
-                      <FileText className="w-4 h-4" /> {cp.type === "Embedded Theory" || cp.type === "Theory Only" ? "Theory" : "Lab"} Component
-                    </h4>
-                  )}
-                  {cp.data.tables?.map((t: any, ti: number) => (
-                    <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
-                      <div className="p-6 relative z-10">
-                        {t.caption && <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
-                        <div className="overflow-x-auto hide-scrollbar">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
-                                {t.headers?.map((h: string, hi: number) => (
-                                  <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {t.rows?.map((row: any, ri: number) => (
-                                <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
-                                  {t.headers.map((h: string, hi: number) => (
-                                    <td key={hi} className="py-3 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                      {row[h] || "—"}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+            {isEmbedded ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {renderCourseDetailCard(selectedGroup.theory, theoryAttItem, "Theory")}
+                {renderCourseDetailCard(selectedGroup.lab, labAttItem, "Lab")}
+              </div>
+            ) : (
+              renderCourseDetailCard(mainCourse, theoryAttItem || labAttItem, null)
+            )}
+          </div>
+
+          {/* 2 ── COURSE PLAN TABLES (theory / lab separated) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <FileText className="w-4 h-4 text-blue-500" />
+              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Syllabus & Plan</h2>
+            </div>
+
+            {planLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-1/3 rounded-2xl" />
+                <Skeleton className="h-64 w-full rounded-3xl" />
+                <Skeleton className="h-48 w-full rounded-3xl" />
+              </div>
+            ) : coursePlan && coursePlan.length > 0 ? (
+              <div className="space-y-6">
+                {reviewScopes.map((scope) => {
+                  const entries = planEntriesByScope(scope);
+                  if (entries.length === 0) return null;
+                  const showBadge = reviewScopes.filter((s) => planEntriesByScope(s).length > 0).length > 1;
+                  return (
+                    <div key={scope} className="space-y-4">
+                      {showBadge && (
+                        <div className="px-1">{renderScopeBadge(scope)}</div>
+                      )}
+                      {entries.map((cp: any, ci: number) => (
+                        <div key={ci} className="space-y-4">
+                          {cp.data.tables?.map((t: any, ti: number) => (
+                            <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative">
+                              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
+                              <div className="p-6 relative z-10">
+                                {t.caption && <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
+                                <div className="overflow-x-auto hide-scrollbar">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
+                                        {t.headers?.map((h: string, hi: number) => (
+                                          <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {t.rows?.map((row: any, ri: number) => (
+                                        <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                                          {t.headers.map((h: string, hi: number) => (
+                                            <td key={hi} className="py-3 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                              {row[h] || "—"}
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
-              <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Course plan is unavailable or loading.</p>
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
+                <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Course plan is unavailable or loading.</p>
+              </div>
+            )}
+          </div>
 
           {/* Schedule toggle */}
           <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative mt-8">
@@ -1938,37 +1960,119 @@ export default function CourseDetailSubpage({
             
             {viewDetail && (
               <div className="p-6 relative z-10 space-y-6">
-                {viewDetail.map((vd: any, ci: number) => (
-                  <div key={ci} className="space-y-4">
-                    {viewDetail.length > 1 && <p className="text-[11px] font-black text-indigo-500 uppercase tracking-widest">{vd.type} Schedule</p>}
-                    {vd.data.tables?.slice(1).map((t: any, ti: number) => (
-                      <div key={ti} className="overflow-x-auto hide-scrollbar">
-                        {t.caption && <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.caption}</h5>}
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
-                              {t.headers?.map((h: string, hi: number) => (
-                                <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {t.rows?.map((row: any, ri: number) => (
-                              <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
-                                {t.headers.map((h: string, ci: number) => (
-                                  <td key={ci} className="py-2.5 px-2 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{row[h] || "—"}</td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                {reviewScopes.map((scope) => {
+                  const entries = detailEntriesByScope(scope);
+                  if (entries.length === 0) return null;
+                  const showBadge = reviewScopes.filter((s) => detailEntriesByScope(s).length > 0).length > 1;
+                  return (
+                    <div key={scope} className="space-y-4">
+                      {showBadge && renderScopeBadge(scope)}
+                      {entries.map((vd: any, ci: number) => (
+                        <div key={ci} className="space-y-4">
+                          {vd.data.tables?.slice(1).map((t: any, ti: number) => (
+                            <div key={ti} className="overflow-x-auto hide-scrollbar">
+                              {t.caption && <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.caption}</h5>}
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
+                                    {t.headers?.map((h: string, hi: number) => (
+                                      <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {t.rows?.map((row: any, ri: number) => (
+                                    <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                                      {t.headers.map((h: string, ci: number) => (
+                                        <td key={ci} className="py-2.5 px-2 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{row[h] || "—"}</td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
+
+          {/* 4 ── QUALITY CIRCLE MEETING (QCM) */}
+          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Quality Circle Meeting</h2>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">QCM</span>
+              </div>
+              {!qcmData && (
+                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-xs active:scale-95 cursor-pointer w-fit">
+                  {qcmLoading ? "Loading..." : "Load QCM Data"}
+                </button>
+              )}
+            </div>
+
+               {qcmError && <p className="text-sm text-red-500">{qcmError}</p>}
+
+               {qcmData && qcmData.length === 0 && (
+                 <p className="text-sm text-gray-500">No QCM data found for {selectedCode} in this semester.</p>
+               )}
+
+               {qcmData && qcmData.length > 0 && (
+                 <div className="space-y-4">
+                   {qcmData.map((table: any, ti: number) => (
+                      <div key={ti} className="space-y-4">
+                        {table.caption && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">{table.caption}</p>}
+                        {table.rows.map((row: any, ri: number) => {
+                          const findCol = (keywords: string[]) => {
+                             const key = Object.keys(row).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+                             return key ? row[key] : null;
+                          };
+
+                          const qcmNo = findCol(["qcm no", "qcm"]);
+                          const action = findCol(["action"]);
+                          const suggestions = findCol(["suggestion", "feedback", "remarks"]);
+                          const facultyReply = findCol(["faculty reply", "faculty comment"]);
+                          const hodComments = findCol(["hod comment", "hod reply", "hod"]);
+
+                          return (
+                            <div key={ri} className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4">
+                               <div className="flex justify-between items-center mb-3">
+                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
+                                  {action && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 uppercase">{action}</span>}
+                               </div>
+                               <div className="space-y-3">
+                                  {suggestions && (
+                                     <div>
+                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Suggestions / Feedback</p>
+                                        <p className="text-sm text-gray-800 dark:text-gray-200">{suggestions}</p>
+                                     </div>
+                                  )}
+                                  {facultyReply && (
+                                     <div className="pl-3 border-l-2 border-emerald-200 dark:border-emerald-900/50">
+                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Faculty Reply</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">{facultyReply}</p>
+                                     </div>
+                                  )}
+                                  {hodComments && (
+                                     <div className="pl-3 border-l-2 border-purple-200 dark:border-purple-900/50">
+                                        <p className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-0.5">HOD Comments</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">{hodComments}</p>
+                                     </div>
+                                  )}
+                               </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                   ))}
+                 </div>
+               )}
+               </div>
         </div>
       )}
 

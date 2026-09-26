@@ -577,8 +577,11 @@ export default function AttendanceSubpage({ a, onBack, dayCardsMap, analyzeCalen
                                             rectRender={(props, dayData) => {
                                                 const data = dayData as any;
                                                 const status = data.count === 1 ? "Present" : data.count === 2 ? "Absent" : data.count === 3 ? "On Duty" : "No Class";
+                                                // NB: the library resolves discrete count maps to the NEXT
+                                                // bucket's color (off-by-one), so set the fill explicitly.
+                                                const fill = data?.count === 1 ? "#10B981" : data?.count === 2 ? "#EF4444" : data?.count === 3 ? "#EAB308" : (props as any).fill;
                                                 return (
-                                                    <rect {...props}>
+                                                    <rect {...props} fill={fill}>
                                                         <title>{`${data.date}: ${status}`}</title>
                                                     </rect>
                                                 );

@@ -37,13 +37,20 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
 
         if (res.ok) {
           const data = await res.json();
+          let hasContent = false;
           if (data.attRes?.attendance) {
             localStorage.setItem(attKey, JSON.stringify(data.attRes));
+            hasContent = true;
           }
           if (data.marksRes?.courses) {
             localStorage.setItem(marksKey, JSON.stringify(data.marksRes));
+            hasContent = true;
           }
-          fetched++;
+          if (hasContent) {
+            fetched++;
+          } else {
+            failed++;
+          }
         } else {
           failed++;
         }

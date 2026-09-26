@@ -79,6 +79,7 @@ import {
   setSyncProgress,
   closeSyncSession,
 } from "@/lib/sync-engine/sync-session";
+import { assertApiSuccess } from "@/lib/sync-engine/errors";
 
 function DashboardContent({
   demoMode = false,
@@ -422,6 +423,7 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf },
       }) as any;
+      assertApiSuccess(AllGradesData, "All grades");
       setSyncProgress(40);
 
       setAllGradesData(AllGradesData);
@@ -458,6 +460,7 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf, type: FncalendarType || "ALL", semesterId: settings.currSemesterID },
       }) as any;
+      assertApiSuccess(CalenderRes, "Academic calendar");
       setSyncProgress(40);
 
       setCalender(CalenderRes);
@@ -488,6 +491,7 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf, semesterId: settings.currSemesterID },
       }) as any;
+      assertApiSuccess(gradesData, "Grades");
       setSyncProgress(40);
 
       setGradesData(gradesData);
@@ -516,6 +520,7 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf },
       }) as any;
+      assertApiSuccess(HostelData, "Hostel details");
       setSyncProgress(40);
       sethostelData(HostelData);
       localStorage.setItem("hostel", JSON.stringify(HostelData));
@@ -544,6 +549,10 @@ function DashboardContent({
         method: "POST",
         body: { username, pass },
       }) as any;
+      assertApiSuccess(moodleData, "Moodle data");
+      if (!Array.isArray(moodleData)) {
+        throw new Error("Moodle data came back in an unexpected shape");
+      }
       setSyncProgress(60);
 
       const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");

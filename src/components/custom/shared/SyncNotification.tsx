@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import BottomSheet from "./BottomSheet";
-import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl } from "@/lib/fetch-utils";
+import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
 import { 
   Loader2, 
   RefreshCw, 
@@ -102,8 +102,9 @@ export default function SyncNotification({
       setCurrentActiveApi(getActiveApiUrl());
       
       // Show the backup API switch button if loading takes more than 6 seconds
+      // (only when a distinct backup gateway is actually configured)
       timer = setTimeout(() => {
-        if (getActiveApiUrl() === PRIMARY_API_URL) {
+        if (hasBackupApi() && getActiveApiUrl() === PRIMARY_API_URL) {
           setShowBackupBtn(true);
         }
       }, 6000);
@@ -119,6 +120,7 @@ export default function SyncNotification({
   }, [active]);
 
   const handleSwitchToBackup = () => {
+    if (!hasBackupApi()) return;
     setActiveApiUrl(BACKUP_API_URL);
     setCurrentActiveApi(BACKUP_API_URL);
     setShowBackupBtn(false);
@@ -352,7 +354,7 @@ export default function SyncNotification({
 
                   {/* Slow connection switch backup button */}
                   <AnimatePresence>
-                    {showBackupBtn && (
+                    {showBackupBtn && hasBackupApi() && (
                       <m.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}

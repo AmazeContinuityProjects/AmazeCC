@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Input, Button } from "@amazecontinuityprojects/amazeui";
 import ThemeToggle from "./ThemeToggle";
-import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL } from "@/lib/fetch-utils";
+import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
 
 interface LoginFormProps {
   username: any;
@@ -1038,7 +1038,9 @@ export default function LoginForm({
                       className="text-xs bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer focus:outline-none"
                     >
                       <option value={PRIMARY_API_URL} className="bg-white dark:bg-neutral-950">Primary</option>
-                      <option value={BACKUP_API_URL} className="bg-white dark:bg-neutral-950">Backup</option>
+                      {hasBackupApi() && (
+                        <option value={BACKUP_API_URL} className="bg-white dark:bg-neutral-950">Backup</option>
+                      )}
                     </select>
                   </div>
 
