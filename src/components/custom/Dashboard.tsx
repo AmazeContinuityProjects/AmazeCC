@@ -1069,7 +1069,7 @@ function DashboardContent({
 
           {activeTab === "libraries" && (
             <div className="animate-fadeIn">
-              <LibrariesTab loginToVTOP={loginToVTOP} />
+              <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
             </div>
           )}
 
