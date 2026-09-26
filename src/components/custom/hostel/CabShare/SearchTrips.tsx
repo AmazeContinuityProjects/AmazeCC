@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
 import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle, Clock3 } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
+import BottomSheet from "../../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
 
 export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
@@ -295,27 +297,27 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
           ))
         )}
       </div>
+      <AnimatePresence>
       {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowPendingModal(false)}>
-          <div className="w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-black" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400">
-                <Clock3 className="h-8 w-8" />
-              </div>
-              <h3 className="mt-5 text-xl font-black text-gray-950 dark:text-white">Request Pending</h3>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
-                The host will see your request and respond soon. You can check the status in My Trips.
-              </p>
-              <button
-                onClick={() => setShowPendingModal(false)}
-                className="mt-6 w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-              >
-                Got it
-              </button>
+        <BottomSheet onClose={() => setShowPendingModal(false)} overlayId="cabshare-pending" maxWidth="max-w-sm">
+          <div className="flex flex-col items-center text-center py-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <Clock3 className="h-8 w-8" />
             </div>
+            <h3 className="mt-5 text-xl font-black text-gray-950 dark:text-white font-outfit">Request Pending</h3>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
+              The host will see your request and respond soon. You can check the status in My Trips.
+            </p>
+            <button
+              onClick={() => setShowPendingModal(false)}
+              className="mt-6 w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 cursor-pointer active:scale-[0.98]"
+            >
+              Got it
+            </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -22,6 +22,12 @@ interface BottomSheetProps {
   onSwipeDown?: () => void;
   /** System-back (predictive back) handler. Defaults to onClose. */
   onSystemBack?: () => void;
+  /**
+   * Whether the sheet can be dismissed at all. When false, the grabber,
+   * swipe-down, backdrop tap, X, Escape and system back are all disabled.
+   * Defaults to true.
+   */
+  dismissable?: boolean;
 }
 
 /**
@@ -40,13 +46,14 @@ export default function BottomSheet({
   onBackdropClick,
   onSwipeDown,
   onSystemBack,
+  dismissable = true,
 }: BottomSheetProps) {
   const handleBackdropClick = onBackdropClick ?? onClose;
   const handleSwipeDown = onSwipeDown ?? onClose;
   const handleSystemBack = onSystemBack ?? onClose;
 
   // Mounted = open: system back dismisses the topmost sheet first
-  useOverlayBack(overlayId, true, handleSystemBack);
+  useOverlayBack(overlayId, dismissable, handleSystemBack);
 
   // Portal to document.body so the sheet escapes any transformed/filtered
   // ancestor: true viewport-fixed positioning, full screen width, and a
@@ -59,7 +66,7 @@ export default function BottomSheet({
   // Escape to close + lock body scroll while open
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && dismissable) onClose();
     };
     document.addEventListener("keydown", handler);
     const prevOverflow = document.body.style.overflow;
@@ -68,13 +75,14 @@ export default function BottomSheet({
       document.removeEventListener("keydown", handler);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose]);
+  }, [onClose, dismissable]);
 
   // Grabber-initiated swipe-down to dismiss (content keeps native scrolling)
   const panelRef = useRef<HTMLDivElement>(null);
   const dragState = useRef({ startY: 0, dy: 0, dragging: false });
 
   const onGrabberPointerDown = (e: React.PointerEvent) => {
+    if (!dismissable) return;
     // Never hijack presses that start on interactive elements (e.g. the X
     // button): capturing the pointer would retarget pointer-up and kill
     // their click, which breaks the X on mouse-driven viewports.
@@ -113,7 +121,7 @@ export default function BottomSheet({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        onClick={handleBackdropClick}
+        onClick={dismissable ? handleBackdropClick : undefined}
         className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs"
         style={{ willChange: "opacity" }}
       />
@@ -135,7 +143,7 @@ export default function BottomSheet({
           onPointerCancel={endGrabberDrag}
         >
           <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-          {showClose && (
+          {showClose && dismissable && (
             <button
               onClick={onClose}
               aria-label="Close"

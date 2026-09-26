@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import SubpageLayout from "../shared/SubpageLayout";
-import Modal from "../shared/Modal";
-import { useOverlayBack } from "@/lib/overlayStack";
+import BottomSheet from "../shared/BottomSheet";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { AnimatePresence } from "framer-motion";
 import {
   Search,
   Clock,
@@ -70,11 +70,8 @@ export default function FreeClassroomsTab({
   const [venueTypeFilter, setVenueTypeFilter] = useState<"all" | "theory" | "lab">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Room Inspector Modal
+  // Room Inspector sheet (registers itself for system back via BottomSheet)
   const [inspectedRoom, setInspectedRoom] = useState<string | null>(null);
-
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("room-inspector", inspectedRoom !== null, () => setInspectedRoom(null));
   const [copiedRoom, setCopiedRoom] = useState<string | null>(null);
 
   const schema = CAMPUS_SCHEMAS[selectedCampus] || chennaiSchema;
@@ -784,11 +781,12 @@ export default function FreeClassroomsTab({
         {/* ═══════════════════════════════════════════════════════
             4. ROOM SCHEDULE TIMELINE INSPECTOR MODAL (FLUID ON MOBILE)
            ═══════════════════════════════════════════════════════ */}
+        <AnimatePresence>
         {inspectedRoom && (
-          <Modal onClose={() => setInspectedRoom(null)} maxWidth="max-w-xl" noPadding>
-            <div className="flex flex-col max-h-[85vh] text-left">
-              {/* Modal Header */}
-              <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/80 to-indigo-50/50 dark:from-zinc-900 dark:to-zinc-900 rounded-t-2xl sm:rounded-t-3xl">
+          <BottomSheet onClose={() => setInspectedRoom(null)} overlayId="room-inspector" maxWidth="max-w-xl">
+            <div className="flex flex-col min-h-0 text-left">
+              {/* Sheet Header */}
+              <div className="p-4 sm:p-5 border border-gray-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-50/80 to-indigo-50/50 dark:from-zinc-900 dark:to-zinc-900">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0">
                     <DoorOpen className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -824,7 +822,7 @@ export default function FreeClassroomsTab({
               </div>
 
               {/* Timeline Schedule Body */}
-              <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-2 bg-gray-50/50 dark:bg-zinc-950/50">
+              <div className="p-3.5 sm:p-5 space-y-2">
                 <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 font-semibold px-0.5 uppercase tracking-wider">
                   Hourly Slot Timeline
                 </p>
@@ -880,18 +878,19 @@ export default function FreeClassroomsTab({
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-end rounded-b-2xl sm:rounded-b-3xl">
+              {/* Sheet Footer */}
+              <div className="pt-1 flex justify-end">
                 <button
                   onClick={() => setInspectedRoom(null)}
-                  className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   Close
                 </button>
               </div>
             </div>
-          </Modal>
+          </BottomSheet>
         )}
+        </AnimatePresence>
 
       </div>
     </SubpageLayout>

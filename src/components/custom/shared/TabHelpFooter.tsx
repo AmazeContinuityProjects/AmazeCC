@@ -20,8 +20,8 @@ import {
   CheckCircle2,
   ListOrdered
 } from "lucide-react";
-import Modal from "./Modal";
-import { useOverlayBack } from "@/lib/overlayStack";
+import BottomSheet from "./BottomSheet";
+import { AnimatePresence } from "framer-motion";
 
 export interface TabHelpItem {
   icon: React.ReactNode;
@@ -290,8 +290,7 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
 export default function TabHelpFooter({ tabId }: { tabId: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Guide dismisses via system back before screen navigation does
-  useOverlayBack(`tab-help-${tabId}`, isOpen, () => setIsOpen(false));
+  // Guide registers itself for system back via BottomSheet.
 
   const guide = TAB_GUIDES[tabId] || TAB_GUIDES.home;
 
@@ -308,10 +307,11 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
         <span>How to use {guide.tabName}?</span>
       </button>
 
-      {/* Detailed Step-by-Step Guide Modal */}
+      {/* Detailed Step-by-Step Guide Sheet */}
+      <AnimatePresence>
       {isOpen && (
-        <Modal onClose={() => setIsOpen(false)} maxWidth="max-w-lg">
-          <div className="text-left space-y-4 max-h-[82vh] overflow-y-auto pr-1">
+        <BottomSheet onClose={() => setIsOpen(false)} overlayId={`tab-help-${tabId}`} maxWidth="max-w-lg">
+          <div className="text-left space-y-5">
             <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
@@ -369,14 +369,15 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
             <div className="pt-3 border-t border-zinc-150 dark:border-zinc-800">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-[0.98]"
               >
                 Got it, thanks!
               </button>
             </div>
           </div>
-        </Modal>
+        </BottomSheet>
       )}
+      </AnimatePresence>
     </div>
   );
 }

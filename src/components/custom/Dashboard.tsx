@@ -1,6 +1,5 @@
 "use client";
 import { getAssetPath } from "@/lib/utils";
-import { useOverlayBack } from "@/lib/overlayStack";
 import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./StatCards";
 import GradesModal from "./exams/GradesModal";
@@ -34,6 +33,7 @@ import { RefreshCcw, Calendar, MapPin } from "lucide-react";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { AnimatePresence } from "framer-motion";
 
 const PapersArchiveTab = dynamic(() => import("./qbank/PapersArchiveTab"), {
   loading: () => (
@@ -239,9 +239,8 @@ function DashboardContent({
   const [resetKey, setResetKey] = useState(0);
   const [showFeedbackStatus, setShowFeedbackStatus] = useState(false);
 
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("grades-modal", GradesDisplayIsOpen, () => setGradesDisplayIsOpen(false));
-  useOverlayBack("feedback-status", showFeedbackStatus, () => setShowFeedbackStatus(false));
+  // Grades + feedback dialogs register themselves for system back via
+  // BottomSheet; nothing to do here.
 
   const [hostelCounsellingRefreshKey, setHostelCounsellingRefreshKey] = useState(0);
   const [pastSemesterData, setPastSemesterData] = useState<any>(null);
@@ -444,7 +443,7 @@ function DashboardContent({
       console.error(err);
       appendSyncLine(err instanceof Error ? err.message : "All Grades fetch failed, check console.", "error");
       setSyncProgress(0);
-      closeSyncSession(4000);
+      closeSyncSession(4000, "error");
     }
   };
 
@@ -474,7 +473,7 @@ function DashboardContent({
       console.error(err);
       appendSyncLine(err instanceof Error ? err.message : "Calendar fetch failed, check console.", "error");
       setSyncProgress(0);
-      closeSyncSession(4000);
+      closeSyncSession(4000, "error");
     }
   };
 
@@ -502,7 +501,7 @@ function DashboardContent({
       console.error(err);
       appendSyncLine(err instanceof Error ? err.message : "Grades fetch failed, check console.", "error");
       setSyncProgress(0);
-      closeSyncSession(4000);
+      closeSyncSession(4000, "error");
     }
   };
 
@@ -528,7 +527,7 @@ function DashboardContent({
       console.error(err);
       appendSyncLine(err instanceof Error ? err.message : "Hostel details fetch failed, check console.", "error");
       setSyncProgress(0);
-      closeSyncSession(4000);
+      closeSyncSession(4000, "error");
     }
   };
 
@@ -568,7 +567,7 @@ function DashboardContent({
       console.error(err);
       appendSyncLine(err instanceof Error ? err.message : "Moodle Data fetch failed, check console.", "error");
       setSyncProgress(0);
-      closeSyncSession(4000);
+      closeSyncSession(4000, "error");
     }
   };
 
@@ -743,16 +742,18 @@ function DashboardContent({
 
 
 
-        {GradesDisplayIsOpen && (
-          <GradesModal
-            allGradesData={allGradesData}
-            GradesData={GradesData}
-            marksData={marksData}
-            onClose={() => setGradesDisplayIsOpen(false)}
-            handleFetchGrades={handleFetchGrades}
-            attendance={attendanceData.attendance}
-          />
-        )}
+        <AnimatePresence>
+          {GradesDisplayIsOpen && (
+            <GradesModal
+              allGradesData={allGradesData}
+              GradesData={GradesData}
+              marksData={marksData}
+              onClose={() => setGradesDisplayIsOpen(false)}
+              handleFetchGrades={handleFetchGrades}
+              attendance={attendanceData.attendance}
+            />
+          )}
+        </AnimatePresence>
 
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <ChangelogModal />

@@ -8,18 +8,22 @@ export interface SyncLogLine {
   status: SyncLineStatus;
 }
 
+export type SyncOutcome = "success" | "error" | null;
+
 interface SyncSessionState {
   open: boolean;
   title: string;
   lines: SyncLogLine[];
   progress: number;
   runId: number;
+  /** Set when the run finishes; drives the success tick. Null while running. */
+  outcome: SyncOutcome;
 }
 
 const MAX_LINES = 60;
 const DEFAULT_HOLD_MS = 2500;
 
-let state: SyncSessionState = { open: false, title: "", lines: [], progress: 0, runId: 0 };
+let state: SyncSessionState = { open: false, title: "", lines: [], progress: 0, runId: 0, outcome: null };
 const listeners = new Set<() => void>();
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 // Run dismissed by the user mid-flight: later events from the same run must
@@ -42,6 +46,7 @@ export function openSyncSession(title: string) {
     lines: [{ text: `${title}…`, status: "loading" }],
     progress: 0,
     runId: state.runId + 1,
+    outcome: null,
   };
   emit();
 }
@@ -69,10 +74,18 @@ export function bumpSyncProgress(delta: number) {
   setSyncProgress(state.progress + delta);
 }
 
-/** Close the session, holding the final log visible for holdMs first. */
-export function closeSyncSession(holdMs: number = DEFAULT_HOLD_MS) {
+/**
+ * Close the session, holding the final state visible for holdMs first so a
+ * success tick (or the error log) is actually seen before dismissing.
+ */
+export function closeSyncSession(
+  holdMs: number = DEFAULT_HOLD_MS,
+  outcome: Exclude<SyncOutcome, null> = "success"
+) {
   if (!state.open) return;
   setSyncProgress(100);
+  state = { ...state, outcome };
+  emit();
   const runId = state.runId;
   if (closeTimer) clearTimeout(closeTimer);
   closeTimer = setTimeout(() => {
@@ -105,6 +118,11 @@ function getSnapshot(): SyncSessionState {
   return state;
 }
 
+/** Test/consumer read access to the current snapshot. */
+export function getSyncSessionSnapshot(): SyncSessionState {
+  return getSnapshot();
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => {
@@ -130,10 +148,17 @@ export function formatSessionMessage(lines: SyncLogLine[]): string {
 }
 
 // Engine op -> human label + progress weight for a full login sweep (~100).
+// Includes per-request child ops emitted inside the "core" parent op.
 const OP_LABELS: Record<string, { label: string; delta: number }> = {
   attendanceMarks: { label: "Attendance & Marks", delta: 25 },
   studentProfile: { label: "Profile details", delta: 5 },
-  core: { label: "Core data (grades, schedule, calendar)", delta: 35 },
+  core: { label: "Core data bundle", delta: 9 },
+  grades: { label: "Grades", delta: 8 },
+  schedule: { label: "Exam schedule", delta: 8 },
+  hostel: { label: "Hostel details", delta: 5 },
+  calendar: { label: "Academic calendar", delta: 8 },
+  "all-grades": { label: "All grades history", delta: 8 },
+  "profile-images": { label: "Profile images", delta: 2 },
   transport: { label: "Transport data", delta: 5 },
   events: { label: "Registered events", delta: 5 },
   officialOd: { label: "Official OD records", delta: 5 },

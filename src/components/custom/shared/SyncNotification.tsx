@@ -25,6 +25,7 @@ interface SyncNotificationProps {
   progress: number;
   active: boolean;
   onDismiss: () => void;
+  outcome?: "success" | "error" | null;
 }
 
 // Helper to clean emojis and determine status
@@ -84,7 +85,8 @@ export default function SyncNotification({
   message,
   progress,
   active,
-  onDismiss
+  onDismiss,
+  outcome = null
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
@@ -257,8 +259,38 @@ export default function SyncNotification({
                 </button>
               </div>
 
-              {!hasSwitched ? (
+              {/* Success tick takes over the whole sheet; everything else
+                  disappears the moment it appears */}
+              {outcome === "success" ? (
+                <m.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 18, stiffness: 240 }}
+                  className="flex flex-col items-center text-center py-8 px-4"
+                >
+                  <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                    <Check className="w-8 h-8" strokeWidth={3} />
+                  </div>
+                  <h4 className="mt-4 text-base font-black text-zinc-900 dark:text-white font-outfit">
+                    Sync successful
+                  </h4>
+                  <p className="mt-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    All records are up to date
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDismiss();
+                    }}
+                    className="mt-5 px-8 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95"
+                  >
+                    Done
+                  </button>
+                </m.div>
+              ) : (
                 <>
+                  {!hasSwitched ? (
+                  <>
                   {/* Header section with live target status */}
                   <div className="flex flex-col gap-1 pr-12">
                     <div className="flex items-center gap-2">
@@ -387,6 +419,8 @@ export default function SyncNotification({
                     Dismiss & Try Again
                   </button>
                 </m.div>
+                  )}
+                </>
               )}
             </div>
             </BottomSheet>

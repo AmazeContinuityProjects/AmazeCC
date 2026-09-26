@@ -11,9 +11,7 @@ import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { LoadingSpinner } from "../shared";
 import TabHelpFooter from "../shared/TabHelpFooter";
-import { useOverlayBack } from "@/lib/overlayStack";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
 
 export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: { 
@@ -36,10 +34,6 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
   const [viewMode, setViewMode] = useState<"all" | "registered">("all");
 
   const [loadingRegistered, setLoadingRegistered] = useState(false);
-  const [showRegisteredModal, setShowRegisteredModal] = useState(false);
-
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("event-registered", showRegisteredModal, () => setShowRegisteredModal(false));
   const [registeredError, setRegisteredError] = useState("");
 
   useEffect(() => {

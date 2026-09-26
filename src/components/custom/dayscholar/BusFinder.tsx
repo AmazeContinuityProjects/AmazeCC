@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from "@amazecontinuityprojects/amazeui";
 import { Search, MapPin, Phone, MessageCircle, ChevronRight, Clock, Shield } from 'lucide-react';
 import { AnimatePresence, m } from 'framer-motion';
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
-import { useOverlayBack } from "@/lib/overlayStack";
 import TransportRegistration from "./TransportRegistration";
 import type { BusRoute, TransportData } from '@/types/transport';
 
@@ -21,7 +20,7 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
   const [selectedBus, setSelectedBus] = useState<BusRoute | null>(null);
 
   // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("bus-detail", selectedBus !== null, () => setSelectedBus(null));
+  // Bus detail sheet registers itself for system back via BottomSheet.
 
   const filteredBuses = buses.filter((bus) => {
     if (!searchQuery) return true;
@@ -108,9 +107,11 @@ const BusFinder: React.FC<BusFinderProps> = ({ buses, transportData, transportLo
         </AnimatePresence>
       </div>
 
-      {selectedBus && (
-        <BusDetailModal bus={selectedBus} onClose={() => setSelectedBus(null)} />
-      )}
+      <AnimatePresence>
+        {selectedBus && (
+          <BusDetailModal bus={selectedBus} onClose={() => setSelectedBus(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -121,7 +122,7 @@ function BusDetailModal({ bus, onClose }: { bus: BusRoute; onClose: () => void }
   const firstStops = stops.slice(0, 5);
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-lg">
+    <BottomSheet onClose={onClose} overlayId="bus-detail" maxWidth="max-w-lg">
       <div className={`absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-20 dark:opacity-15 pointer-events-none ${bus.type === 'AC' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
 
       {/* Route header bar */}
@@ -290,7 +291,7 @@ function BusDetailModal({ bus, onClose }: { bus: BusRoute; onClose: () => void }
           </a>
         )}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }
 

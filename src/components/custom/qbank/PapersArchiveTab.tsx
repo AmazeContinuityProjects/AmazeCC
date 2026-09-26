@@ -7,6 +7,7 @@ import UploadPaperModal from "./UploadPaperModal";
 import ExamQuestion from "./ExamQuestion";
 import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
+import { AnimatePresence } from "framer-motion";
 import { useQBankCourses } from "./useQBankCourses";
 import { QBankCourse, QBankPaper, QBankQuestion } from "@/types/qbank.types";
 
@@ -180,14 +181,16 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
           </div>
         )}
 
-        {isUploadModalOpen && (
-          <UploadPaperModal
-            isOpen={isUploadModalOpen}
-            onClose={() => setIsUploadModalOpen(false)}
-            courses={courses}
-            username={username}
-          />
-        )}
+        <AnimatePresence>
+          {isUploadModalOpen && (
+            <UploadPaperModal
+              isOpen={isUploadModalOpen}
+              onClose={() => setIsUploadModalOpen(false)}
+              courses={courses}
+              username={username}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -310,19 +313,21 @@ export default function PapersArchiveTab({ allGradesData, marksData, username, s
         </div>
       )}
 
-      {isUploadModalOpen && (
-        <UploadPaperModal
-          isOpen={isUploadModalOpen}
-          onClose={() => {
-            setIsUploadModalOpen(false);
-            if (selectedCourse) {
-              handleSelectCourse(selectedCourse); // Refresh papers on close
-            }
-          }}
-          courses={courses}
-          username={username}
-        />
-      )}
+      <AnimatePresence>
+        {isUploadModalOpen && (
+          <UploadPaperModal
+            isOpen={isUploadModalOpen}
+            onClose={() => {
+              setIsUploadModalOpen(false);
+              if (selectedCourse) {
+                handleSelectCourse(selectedCourse); // Refresh papers on close
+              }
+            }}
+            courses={courses}
+            username={username}
+          />
+        )}
+      </AnimatePresence>
     </SubpageLayout>
   );
 }

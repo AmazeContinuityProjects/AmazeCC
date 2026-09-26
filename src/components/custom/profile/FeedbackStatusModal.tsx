@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Modal, Card, Badge } from "../shared";
+import { Card, Badge } from "../shared";
+import BottomSheet from "../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { api } from "@/lib/sync-engine";
 import { XCircle, CheckCircle, Clock, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
@@ -74,8 +76,18 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
   const totalRows = semesters.reduce((sum, s) => sum + s.rows.length, 0);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Feedback Status" maxWidth="max-w-2xl">
-      <div className="space-y-4">
+    <AnimatePresence>
+      {isOpen && (
+      <BottomSheet onClose={onClose} overlayId="feedback-status-sheet" maxWidth="max-w-2xl">
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+            Feedback Status
+          </h2>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+            Mid-semester and TEE feedback completion per course
+          </p>
+        </div>
         {loading && (
           <div className="space-y-3">
             <Skeleton className="h-8 w-48 rounded-lg" />
@@ -96,7 +108,7 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
           </div>
         )}
         {!loading && !error && semesters.length > 0 && (
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="space-y-3">
             {semesters.map((sem) => {
               const isExpanded = expanded[sem.label] ?? true;
               const done = sem.rows.filter((r: any) => (r.midSemester || "").toLowerCase().includes("given") || (r.teeSemester || "").toLowerCase().includes("given")).length;
@@ -151,6 +163,8 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
           </div>
         )}
       </div>
-    </Modal>
+      </BottomSheet>
+      )}
+    </AnimatePresence>
   );
 }

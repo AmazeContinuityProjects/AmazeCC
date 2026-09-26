@@ -1,7 +1,28 @@
 import { storage } from "../storage";
 import { credentialManager } from "./credential-manager";
-import { registerOp } from "./operation-registry";
+import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
+import { toEngineError } from "./errors";
+
+/**
+ * Run one request with its own start/done/error emits so the sync log shows
+ * per-module results instead of a single opaque parent-op line.
+ */
+async function trackedRequest<T>(
+  ctx: OpCtx,
+  opName: string,
+  request: () => Promise<T>
+): Promise<T> {
+  ctx.emit({ op: opName, phase: "start" });
+  try {
+    const result = await request();
+    ctx.emit({ op: opName, phase: "done" });
+    return result;
+  } catch (e) {
+    ctx.emit({ op: opName, phase: "error", error: toEngineError(e) });
+    throw e;
+  }
+}
 
 function persist(key: string, value: unknown): void {
   const bucket = (storage as any)[key];
@@ -44,15 +65,19 @@ registerOp({
     const calendarType = (args?.calendarType as string) || "ALL";
     const isHosteller = args?.isHosteller as boolean;
     const [gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes, profileImagesRes] = await Promise.all([
-      ctx.request("grades", { semesterId }, { auth: "vtop" }),
-      ctx.request("schedule", { semesterId }, { auth: "vtop" }),
-      isHosteller ? ctx.request("hostel", {}, { auth: "vtop" }) : Promise.resolve({}),
-      ctx.request("calendar", { type: calendarType, semesterId }, { auth: "vtop" }),
-      ctx.request("all-grades", {}, { auth: "vtop" }),
-      ctx
-        .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
-        .then(async (r: any) => (r?.success ? r : null))
-        .catch(() => null),
+      trackedRequest(ctx, "grades", () => ctx.request("grades", { semesterId }, { auth: "vtop" })),
+      trackedRequest(ctx, "schedule", () => ctx.request("schedule", { semesterId }, { auth: "vtop" })),
+      isHosteller
+        ? trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }))
+        : Promise.resolve({}),
+      trackedRequest(ctx, "calendar", () => ctx.request("calendar", { type: calendarType, semesterId }, { auth: "vtop" })),
+      trackedRequest(ctx, "all-grades", () => ctx.request("all-grades", {}, { auth: "vtop" })),
+      trackedRequest(ctx, "profile-images", () =>
+        ctx
+          .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
+          .then(async (r: any) => (r?.success ? r : null))
+          .catch(() => null),
+      ),
     ]);
     persist("grades", gradesRes);
     persist("schedule", scheduleRes);
