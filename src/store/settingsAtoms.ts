@@ -58,7 +58,15 @@ export type Settings = {
   pushQuietHoursStart?: string;
   pushQuietHoursEnd?: string;
   customVapidKey?: string;
+
+  // Tasks & Pomodoro Settings
+  tasksInlineOnHome?: boolean;
+  taskPomodoroFocus?: number;
+  taskPomodoroBreak?: number;
+  taskPomodoroRounds?: number;
+  taskDefaultReminderMinutes?: number;
 };
+
 
 export type settings = Settings;
 
@@ -117,6 +125,14 @@ export const defaultSettings: Settings = {
   pushQuietHoursStart: "22:00",
   pushQuietHoursEnd: "07:00",
   customVapidKey: "",
+
+  // Default Tasks Preferences
+  tasksInlineOnHome: true,
+  taskPomodoroFocus: 25,
+  taskPomodoroBreak: 5,
+  taskPomodoroRounds: 4,
+  taskDefaultReminderMinutes: 30,
 };
+
 
 export const settingsAtom = atom<Settings>(defaultSettings);

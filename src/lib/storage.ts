@@ -36,6 +36,8 @@ export const KEYS = {
   UNICC_NOTES_TRACKER: "uniCC_notes_tracker",
   NOTES_TRACKER: "notesTracker",
   CUSTOM_HOMEWORK: "customHomework",
+  TASKS: "tasks",
+  POMODORO_SESSIONS: "pomodoroSessions",
   GPA_GOAL: "uni_cc_gpa_goal",
   QCM_DATA: "qcmData",
   FRIENDS_SCHEDULES: "friends_schedules",
@@ -280,6 +282,16 @@ export const storage = {
     get: () => getItem<Record<string, unknown>>(KEYS.CUSTOM_HOMEWORK),
     set: (data: Record<string, unknown>) => setItem(KEYS.CUSTOM_HOMEWORK, data),
     remove: () => removeItem(KEYS.CUSTOM_HOMEWORK),
+  },
+  tasks: {
+    get: () => getItem<import("@/types/tasks").Task[]>(KEYS.TASKS),
+    set: (data: import("@/types/tasks").Task[]) => setItem(KEYS.TASKS, data),
+    remove: () => removeItem(KEYS.TASKS),
+  },
+  pomodoroSessions: {
+    get: () => getItem<import("@/types/tasks").PomodoroSession[]>(KEYS.POMODORO_SESSIONS),
+    set: (data: import("@/types/tasks").PomodoroSession[]) => setItem(KEYS.POMODORO_SESSIONS, data),
+    remove: () => removeItem(KEYS.POMODORO_SESSIONS),
   },
   friendsSchedules: {
     get: () => getItem<unknown>(KEYS.FRIENDS_SCHEDULES),

@@ -14,6 +14,7 @@ import {
   CalendarCheck,
   Layers,
   Sparkles,
+  CheckSquare,
 } from "lucide-react";
 
 interface ToolsHubProps {
@@ -29,8 +30,17 @@ export default function ToolsHub({
 
   const tools = [
     {
+      id: "tasks",
+      title: "Tasks & Study Schedule",
+      subtitle: "Homework, tests, week scheduling, pomodoro & LMS sync",
+      category: "academic",
+      icon: CheckSquare,
+      iconColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20",
+    },
+    {
       id: "attendance-predictor",
       title: "Attendance Predictor",
+
       subtitle: "Simulate attendance percentages and safe bunk margins",
       category: "academic",
       icon: CalendarCheck,

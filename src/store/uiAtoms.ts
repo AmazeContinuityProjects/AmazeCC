@@ -13,6 +13,14 @@ export const activeDayAtom = atom<string>("");
 
 export const commandPaletteOpenAtom = atom<boolean>(false);
 export const isShortcutsHelpOpenAtom = atom<boolean>(false);
+
+/**
+ * Set by the command palette's quick-add command; consumed by TasksTab to open
+ * the create sheet. `nonce` forces a re-fire when the same title is used twice.
+ */
+export const tasksQuickAddRequestAtom = atom<{ title: string; nonce: number } | null>(
+  null as unknown as { title: string; nonce: number }
+);
 export const isReloadingAtom = atom<boolean>(false);
 export const progressBarAtom = atom<number>(0);
 export const messageAtom = atom<string, [string | ((prev: string) => string)], void>(
