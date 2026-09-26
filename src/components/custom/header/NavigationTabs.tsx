@@ -18,6 +18,7 @@ import {
   BookOpen,
   Building,
   CalendarCheck,
+  CheckSquare,
   ChevronRight,
   Command,
   CreditCard,
@@ -588,6 +589,16 @@ export default function NavigationTabs({
         selectTab("tools");
         if (!activeToolsSubTab) setActiveToolsSubTab?.("overview");
         setShowToolsPanel(true);
+      },
+    },
+    {
+      id: "tasks",
+      label: "Tasks & Schedule",
+      icon: CheckSquare,
+      isActive: activeTab === "tools" && activeToolsSubTab === "tasks",
+      onSelect: () => {
+        selectTab("tools");
+        setActiveToolsSubTab?.("tasks");
       },
     },
     {

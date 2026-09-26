@@ -1319,7 +1319,28 @@ export default function ProfilePage({
             <option value="detailed">🃏 Detailed (Spacious Multi-line Card)</option>
           </select>
         </div>
+
+        {/* Tasks Placement on Home */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Home Tasks Placement
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Display task badges inline with timetable classes or in a dedicated section below
+            </p>
+          </div>
+          <select
+            value={settings?.tasksInlineOnHome !== false ? "inline" : "separate"}
+            onChange={(e) => updateSetting("tasksInlineOnHome", e.target.value === "inline")}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="inline">✨ Unified (Inline 3rd line on classes)</option>
+            <option value="separate">📑 Clean classes (Section below timetable)</option>
+          </select>
+        </div>
       </div>
+
 
       {/* Privacy & Visibility Toggles Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
@@ -1602,6 +1623,63 @@ export default function ProfilePage({
           <Switch checked={decimalValues} onCheckedChange={setDecimalValues} />
         </div>
       </div>
+
+      {/* Pomodoro Focus & Study Defaults */}
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
+        <div>
+          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+            Pomodoro Focus &amp; Study Settings
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Customize default work interval, break lengths, and rounds for study sessions
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+              Focus Duration (min)
+            </label>
+            <input
+              type="number"
+              min="5"
+              max="120"
+              value={settings?.taskPomodoroFocus || 25}
+              onChange={(e) => updateSetting("taskPomodoroFocus", Math.max(5, Number(e.target.value)))}
+              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+            />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+              Break Duration (min)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              value={settings?.taskPomodoroBreak || 5}
+              onChange={(e) => updateSetting("taskPomodoroBreak", Math.max(1, Number(e.target.value)))}
+              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+            />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+            <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+              Default Rounds
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="16"
+              value={settings?.taskPomodoroRounds || 4}
+              onChange={(e) => updateSetting("taskPomodoroRounds", Math.max(1, Number(e.target.value)))}
+              className="w-full text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 text-zinc-900 dark:text-white"
+            />
+          </div>
+        </div>
+      </div>
+
 
       {/* Residential & Hostel Card */}
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">

@@ -1011,7 +1011,7 @@ function DashboardContent({
                 <LeaveDisplay leaveData={hostelData.leaveHistory} handleHostelDetailsFetch={handleHostelDetailsFetch} />
               )}
               {HostelActiveSubTab === "payment" && (
-                <PaymentsTab loginToVTOP={loginToVTOP} />
+                <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
               )}
               {HostelActiveSubTab === "counselling" && (
                 <div className="space-y-4">
@@ -1061,15 +1061,15 @@ function DashboardContent({
             </div>
           )}
 
-          {activeTab === "payments" && (
-            <div className="animate-fadeIn">
-              <PaymentsTab loginToVTOP={loginToVTOP} />
-            </div>
-          )}
+              {activeTab === "payments" && (
+                <div className="animate-fadeIn">
+                  <PaymentsTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+                </div>
+              )}
 
           {activeTab === "libraries" && (
             <div className="animate-fadeIn">
-              <LibrariesTab loginToVTOP={loginToVTOP} />
+              <LibrariesTab loginToVTOP={loginToVTOP} onBack={onSystemBack} />
             </div>
           )}
 

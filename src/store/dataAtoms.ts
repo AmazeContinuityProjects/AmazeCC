@@ -2,6 +2,7 @@ import { atom } from "jotai";
 import { attendanceRes } from "@/types/data/attendance";
 import { AllGradesRes } from "@/types/data/allgrades";
 import type { OfficialOdResponse } from "@/types/data/od";
+import type { Task, PomodoroSession } from "@/types/tasks";
 
 export const attendanceDataAtom = atom<attendanceRes | null>({});
 export const marksDataAtom = atom<object>({});
@@ -22,3 +23,7 @@ export const moodleDataAtom = atom<any[]>([]);
 export const vitolDataAtom = atom<any[]>([]);
 export const registeredEventsAtom = atom<any[]>([]);
 export const eventHubEventsAtom = atom<any[]>([]);
+export const tasksAtom = atom<Task[]>([]);
+export const pomodoroSessionsAtom = atom<PomodoroSession[]>([]);
+export const focusingTaskIdAtom = atom<string | null>(null as unknown as string | null);
+

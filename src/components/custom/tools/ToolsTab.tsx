@@ -24,8 +24,10 @@ import CabShareTab from "../hostel/CabShare/CabShareTab";
 import QBankSubTabs from "../qbank/QBankSubTabs";
 import OverallAttendancePredictor from "../attendance/OverallAttendancePredictor";
 import MarksPredictorTab from "../exams/MarksPredictorTab";
+import TasksTab from "../tasks/TasksTab";
 
 const PapersArchiveTab = dynamic(() => import("../qbank/PapersArchiveTab"), {
+
   ssr: false,
 });
 const PureQBankTab = dynamic(() => import("../qbank/PureQBankTab"), {
@@ -162,7 +164,14 @@ export default function ToolsTab({
             <FFCSTimetableTab />
           </div>
         )}
+
+        {activeToolsSubTab === "tasks" && (
+          <div className="animate-fadeIn">
+            <TasksTab onBack={() => setActiveToolsSubTab("overview")} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

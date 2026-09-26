@@ -8,8 +8,12 @@ import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
   Grid3x3, CheckCircle2,
-  FileText as FileTextIcon, Sparkles
+  FileText as FileTextIcon, Sparkles, CheckSquare, Plus
 } from "lucide-react";
+import { useAtom } from "jotai";
+import { tasksAtom } from "@/store/dataAtoms";
+import { createTask } from "@/lib/tasksStorage";
+import TaskEditSheet from "../tasks/TaskEditSheet";
 import { AnimatePresence, m } from "framer-motion";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -18,6 +22,7 @@ import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
+
 
 // Dedicated whitespace between the heatmap card and the log section.
 // Nulls out the parent stack gap so the total separation is exactly its height.
@@ -82,8 +87,11 @@ export default function CourseDetailSubpage({
   const [ovCarouselPaused, setOvCarouselPaused] = useState(false);
   const [ovAttSlide, setOvAttSlide] = useState(0);
   const [ovAttPaused, setOvAttPaused] = useState(false);
+  const [tasks, setTasks] = useAtom(tasksAtom);
+  const [isTaskSheetOpen, setIsTaskSheetOpen] = useState(false);
 
   // Attendance log filter (shared by the Theory / Lab log pages)
+
   const [attFilter, setAttFilter] = useState("All");
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
   const [targetGrade, setTargetGrade] = useState("A");
@@ -1600,7 +1608,32 @@ export default function CourseDetailSubpage({
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </div>
               </button>
+              {/* Tasks & Homework */}
+              <div className="w-full py-3 px-4 flex items-center justify-between gap-3 text-left">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <CheckSquare className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
+                      Tasks &amp; Homework
+                    </h3>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                      {tasks.filter((t) => t.courseCode === selectedCode && t.status !== "done").length} pending task(s)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTaskSheetOpen(true)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Task</span>
+                </button>
+              </div>
             </div>
+
           </div>
         </div>
       )}
@@ -2174,6 +2207,19 @@ export default function CourseDetailSubpage({
               )}
         </div>
       )}
+
+      {/* Task Edit Sheet */}
+      <TaskEditSheet
+        isOpen={isTaskSheetOpen}
+        initialCourseCode={selectedCode}
+        initialComponent={isEmbedded ? "both" : "theory"}
+        onClose={() => setIsTaskSheetOpen(false)}
+        onSave={(draft) => {
+          const updated = createTask(draft);
+          setTasks(updated);
+        }}
+      />
     </div>
   );
 }
+

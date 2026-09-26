@@ -38,6 +38,12 @@ import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
 import TimetableGrid from "../attendance/TimetableGrid";
 import BottomSheet from "../shared/BottomSheet";
+import { useAtom } from "jotai";
+import { tasksAtom } from "@/store/dataAtoms";
+import { classTaskSummary, tasksForDay, isSameCalendarDay, isDueOnDay } from "@/lib/taskMatch";
+import TaskBadge from "../tasks/TaskBadge";
+import { KIND_CONFIG } from "../tasks/TaskCard";
+
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -139,6 +145,7 @@ export default function SimplifiedMobileHome({
   setODhoursIsOpen,
 }: SimplifiedMobileHomeProps) {
   const [isSpinning, setIsSpinning] = useState(false);
+  const [tasks] = useAtom(tasksAtom);
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
@@ -663,6 +670,11 @@ export default function SimplifiedMobileHome({
     return selectedDay;
   }, [selectedDayMeta, selectedDay]);
 
+  // The real current date, not the day being browsed. "…today" task labels and
+  // the red test tint are gated on this.
+  const viewedDayDate: Date | undefined = selectedDayMeta?.fullDate;
+  const isTodayView = Boolean(viewedDayDate) && isSameCalendarDay(viewedDayDate as Date, new Date());
+
   // Classes for the selected day (or day order override)
   const selectedDayClasses = useMemo(() => {
     return timetableMap[effectiveTimetableDay] || [];
@@ -1057,8 +1069,10 @@ export default function SimplifiedMobileHome({
             const isSelected = selectedDay === item.dayCode;
             const isToday = item.isToday;
             const count = timetableMap[item.detectedDayOrder || item.dayCode]?.length || 0;
+            const hasDayTasks = tasksForDay(item.dayCode as AttendanceDay, tasks).length > 0;
 
             return (
+
               <button
                 key={item.dayCode}
                 onClick={() => setSelectedDay(item.dayCode)}
@@ -1111,7 +1125,11 @@ export default function SimplifiedMobileHome({
                     : count > 0
                     ? `${count} cls`
                     : "Free"}
+                  {hasDayTasks && (
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 ml-1 shrink-0" title="Tasks scheduled" />
+                  )}
                 </span>
+
 
                 {/* Dot for today */}
                 {isToday && (
@@ -1323,13 +1341,44 @@ export default function SimplifiedMobileHome({
               const isCompleted = status === "completed";
               const isUpcoming = status === "upcoming";
 
+              const [startTimeStr, endTimeStr] = String(cls.time || "").split("-").map((t) => t.trim());
+              const clsTimeRange =
+                startTimeStr && endTimeStr
+                  ? {
+                      start: parseAttendanceTime(startTimeStr),
+                      end: parseAttendanceTime(endTimeStr),
+                    }
+                  : undefined;
+              const taskSummary = classTaskSummary(
+                tasks,
+                cls,
+                effectiveTimetableDay,
+                clsTimeRange,
+                {
+                  dayDate: viewedDayDate,
+                  // "…today" labels + the red tint are reserved for the real
+                  // current date; browsing another weekday stays generic.
+                  literalToday: isTodayView,
+                }
+              );
+              const showTaskBadgeInline =
+                settings?.tasksInlineOnHome !== false || taskSummary.total > 0;
+              // Red is reserved for a test sitting in today's session; every
+              // other linked-task state gets the softer amber treatment.
+              const taskBorderClass =
+                taskSummary.today.tests > 0 && taskSummary.today.sessionTotal > 0
+                  ? "border-red-400 dark:border-red-500/60 ring-1 ring-red-500/20"
+                  : taskSummary.total > 0
+                  ? "border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-500/20"
+                  : "";
+
               if (pillStyle === "compact") {
                 /* ── OPTION A: COMPACT 2-LINE PILL (HIGH DENSITY WITH PERCENTAGE ON RIGHT) ── */
                 return (
                   <div
                     key={`${cls.courseCode}-${cls.slotName}-${index}`}
                     onClick={() => handleCourseClick(cls.courseCode)}
-                    className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${
+                    className={`relative overflow-hidden rounded-2xl transition-all duration-200 cursor-pointer text-left border ${taskBorderClass} ${
                       isLive
                         ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                         : isCompleted
@@ -1337,6 +1386,7 @@ export default function SimplifiedMobileHome({
                         : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                     } hover:scale-[1.006] active:scale-[0.99]`}
                   >
+
                     {/* Live Progress Background Fill Bar */}
                     {isLive && (
                       <div
@@ -1402,7 +1452,21 @@ export default function SimplifiedMobileHome({
                             {bunkText}
                           </span>
                         </div>
+
+                        {/* Line 3: Task Badge if pending */}
+                        {showTaskBadgeInline && taskSummary.total > 0 && (
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <TaskBadge
+                              summary={taskSummary}
+                              onClick={() => {
+                                setActiveTab("tools");
+                                setActiveToolsSubTab?.("tasks");
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
+
 
                       {/* Right: Attendance Percentage & Ratio */}
                       <div className="text-right shrink-0 flex flex-col items-end justify-center pl-2">
@@ -1441,7 +1505,7 @@ export default function SimplifiedMobileHome({
                 <div
                   key={`${cls.courseCode}-${cls.slotName}-${index}`}
                   onClick={() => handleCourseClick(cls.courseCode)}
-                  className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${
+                  className={`relative overflow-hidden rounded-[24px] transition-all duration-300 cursor-pointer text-left border ${taskBorderClass} ${
                     isLive
                       ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                       : isCompleted
@@ -1449,6 +1513,7 @@ export default function SimplifiedMobileHome({
                       : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                   } hover:scale-[1.008] active:scale-[0.99]`}
                 >
+
                   
                   {/* Dynamic Progress Fill Bar */}
                   {isLive && (
@@ -1560,8 +1625,19 @@ export default function SimplifiedMobileHome({
                           />
                           {bunkText}
                         </span>
+
+                        {showTaskBadgeInline && taskSummary.total > 0 && (
+                          <TaskBadge
+                            summary={taskSummary}
+                            onClick={() => {
+                              setActiveTab("tools");
+                              setActiveToolsSubTab?.("tasks");
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
+
 
                     {/* Progress Bar for Ongoing Class */}
                     {isLive && (
@@ -1579,8 +1655,87 @@ export default function SimplifiedMobileHome({
           </div>
         )}
 
+        {/* ── TODAY'S TASKS SECTION (WHEN TASKSINLINEONHOME IS FALSE) ── */}
+        {settings?.tasksInlineOnHome === false && (() => {
+          // Chunked on this day, plus (on the real current date) tasks that are
+          // only due today — otherwise a Moodle DA is invisible in this mode.
+          const todayTasks = (() => {
+            const chunked = tasksForDay(effectiveTimetableDay, tasks);
+            if (!isTodayView || !viewedDayDate) return chunked;
+            const seen = new Set(chunked.map((t) => t.id));
+            const dueOnly = tasks.filter(
+              (t) =>
+                t.status !== "done" &&
+                !seen.has(t.id) &&
+                isDueOnDay(t.dueDate, viewedDayDate as Date)
+            );
+            return [...chunked, ...dueOnly];
+          })();
+          if (todayTasks.length === 0) return null;
+          return (
+            <div className="pt-2 space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-indigo-500" />
+                  <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+                    Today&apos;s Tasks &amp; Schedule
+                  </h3>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                    {todayTasks.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("tools");
+                    setActiveToolsSubTab?.("tasks");
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  View All Tasks
+                </button>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+                {todayTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      setActiveTab("tools");
+                      setActiveToolsSubTab?.("tasks");
+                    }}
+                    className="p-3.5 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span
+                          className={`text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded border ${
+                            (KIND_CONFIG[t.kind] || KIND_CONFIG.homework).badgeClass
+                          }`}
+                        >
+                          {(KIND_CONFIG[t.kind] || KIND_CONFIG.homework).label}
+                        </span>
+                        {t.courseCode && (
+                          <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                            {t.courseCode}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">
+                        {t.title}
+                      </h4>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── TIMETABLE & QUICK TOOLS BUTTONS (PLACED CLEANLY AFTER ALL CLASSES) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+
           <button
             onClick={() => setShowTimetableModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-800/60 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
