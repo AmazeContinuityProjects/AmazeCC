@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, X } from "lucide-react";
+import BottomSheet from "../../shared/BottomSheet";
 import { CustomCourseMock } from "@/lib/marksPredictorStorage";
 
 interface AddCustomCourseModalProps {
@@ -43,26 +44,20 @@ export default function AddCustomCourseModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[22px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-2xl space-y-4 overscroll-contain">
+    <BottomSheet onClose={onClose} overlayId="predictor-custom-course" maxWidth="max-w-md">
+      <div className="space-y-5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <Plus className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-black text-zinc-900 dark:text-white font-outfit">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
               Add Custom Subject
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="text-xs font-black uppercase tracking-wider text-zinc-400">
               Course Code
@@ -134,23 +129,23 @@ export default function AddCustomCourseModal({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-black transition-colors cursor-pointer"
+              className="px-4 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-black transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
+              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
             >
               Add Subject
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </BottomSheet>
   );
 }

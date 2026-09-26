@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@amazecontinuityprojects/amazeui";
 import NoContentFound from "../NoContentFound";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import FetchButton from "../shared/FetchButton";
 
 const normalizeGradesCategory = (rawCategory?: string | null) => {
@@ -24,17 +23,11 @@ const normalizeGradesCategory = (rawCategory?: string | null) => {
 };
 
 export default function GradesModal({ allGradesData, GradesData, onClose, handleFetchGrades, marksData, attendance }) {
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
-
+  // Body scroll-lock + system back handled by BottomSheet.
   return (
-    <Modal onClose={onClose} maxWidth="max-w-5xl" className="max-h-[90vh] overflow-y-auto">
+    <BottomSheet onClose={onClose} overlayId="grades-breakdown" maxWidth="max-w-5xl">
       <GradesDisplay allGradesData={allGradesData} data={GradesData} handleFetchGrades={handleFetchGrades} marksData={marksData} attendance={attendance} />
-    </Modal>
+    </BottomSheet>
   );
 }
 

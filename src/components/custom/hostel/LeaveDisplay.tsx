@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { RefreshCcw, Calendar, Info, PlusCircle, AlertCircle, Clock, FileText } from "lucide-react";
 import { Button } from "@amazecontinuityprojects/amazeui";
+import BottomSheet from "../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 
 interface LeaveDisplayProps {
   leaveData: any[];
@@ -287,16 +289,15 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
         </div>
       )}
 
-      {/* Apply Leave Modal simulation */}
+      {/* Apply Leave Sheet */}
+      <AnimatePresence>
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60  p-4">
-          <div className="bg-slate-900 border border-gray-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-scaleIn">
-            <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between bg-slate-950">
-              <h4 className="text-sm font-bold text-gray-100 uppercase tracking-wider">File Outing / Leave</h4>
-              <button onClick={() => setShowApplyModal(false)} className="text-gray-450 hover:text-white text-xs">Close</button>
+        <BottomSheet onClose={() => setShowApplyModal(false)} overlayId="hostel-apply-leave" maxWidth="max-w-md">
+            <div className="flex items-center justify-between gap-3 pb-1">
+              <h4 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider font-outfit">File Outing / Leave</h4>
             </div>
-            
-            <form onSubmit={handleApplySubmit} className="p-5 space-y-4 text-xs">
+
+            <form onSubmit={handleApplySubmit} className="space-y-4 text-xs pt-1">
               <div className="space-y-1">
                 <label className="font-semibold text-gray-300">Leave / Outing Type</label>
                 <select
@@ -359,14 +360,14 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
 
               <Button
                 type="submit"
-                className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-2 rounded-xl"
+                className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-3 rounded-xl"
               >
                 Submit Request
               </Button>
             </form>
-          </div>
-        </div>
+        </BottomSheet>
       )}
+      </AnimatePresence>
 
     </div>
   );

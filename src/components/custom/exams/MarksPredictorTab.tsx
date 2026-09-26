@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Sparkles } from "lucide-react";
 import SubpageLayout from "../shared/SubpageLayout";
+import { AnimatePresence } from "framer-motion";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 import CourseSelectorStrip, { EnrolledCourseItem } from "./marks-predictor/CourseSelectorStrip";
@@ -506,12 +507,16 @@ export default function MarksPredictorTab({
           </div>
         )}
 
-        {/* Add Custom Mock Course Modal */}
-        <AddCustomCourseModal
-          isOpen={isAddCustomOpen}
-          onClose={() => setIsAddCustomOpen(false)}
-          onAddCourse={handleAddCustomCourse}
-        />
+        {/* Add Custom Mock Course Sheet */}
+        <AnimatePresence>
+          {isAddCustomOpen && (
+            <AddCustomCourseModal
+              isOpen={isAddCustomOpen}
+              onClose={() => setIsAddCustomOpen(false)}
+              onAddCourse={handleAddCustomCourse}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </SubpageLayout>
   );

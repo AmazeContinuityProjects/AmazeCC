@@ -5,11 +5,11 @@ import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import { useEffect, useState } from "react";
 import { api, clearEventHubSession } from "@/lib/sync-engine";
 import { eventhubImageUrl, eventHubLoginHtml, EVENTHUB_BASE } from "@/lib/eventhub";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
+import BottomSheet from "../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 import SubpageLayout from "../shared/SubpageLayout";
 import ClubDetailsModal from "../more/ClubDetailsModal";
-import { useOverlayBack } from "@/lib/overlayStack";
 import { getSimilarity } from "@/lib/string-similarity";
 
 interface EventHubSubpageProps {
@@ -37,8 +37,7 @@ export default function EventHubSubpage({
   const [isRegistering, setIsRegistering] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("eventhub-status", modalOpen, () => setModalOpen(false));
+  // Status + PWA sheets register themselves for system back via BottomSheet.
   const [modalContent, setModalContent] = useState<{title: string, message: string}>({title: "", message: ""});
   const [pwaUrl, setPwaUrl] = useState<string | null>(null);
   const [pwaMode, setPwaMode] = useState<"pay" | "view" | "download" | null>(null);
@@ -478,68 +477,70 @@ export default function EventHubSubpage({
         })()}
       </div>
 
-      {/* Status Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md solid-card">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900  dark:text-white">
-              {modalContent.title}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600  dark:text-gray-300 mt-2">
-              {modalContent.message}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-end">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* PWA Mobile Fallback Modal */}
-      <Dialog open={!!pwaUrl} onOpenChange={(open) => !open && setPwaUrl(null)}>
-        <DialogContent className="sm:max-w-md bg-white  dark:bg-black border-gray-200  dark:border-gray-800 rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900  dark:text-white">Secure Access Required</DialogTitle>
-            <DialogDescription className="text-gray-600  dark:text-gray-400 mt-2">
-              Because of Mobile App security policies, accessing Event Hub securely requires two steps. 
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="bg-blue-50  dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100  dark:border-blue-900/30">
-              <h4 className="font-semibold text-blue-900  dark:text-blue-400 mb-1">Step 1: Authenticate</h4>
-              <p className="text-sm text-blue-700  dark:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
-              
-              <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
-                <input type="hidden" name="username" value={IDs?.VtopUsername} />
-                <input type="hidden" name="password" value={IDs?.VtopPassword} />
-                <input type="hidden" name="validateVitian" value="1" />
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                  Login to Event Hub
-                </Button>
-              </form>
-            </div>
-            
-            <div className="bg-gray-50  dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100  dark:border-gray-800">
-              <h4 className="font-semibold text-gray-900  dark:text-white mb-1">Step 2: Open Details</h4>
-              <p className="text-sm text-gray-500  dark:text-gray-400 mb-3">After completing Step 1, click here to proceed.</p>
-              <Button 
-                onClick={() => window.open(pwaUrl || "", "_blank")}
-                variant="outline" 
-                className="w-full border-gray-200  dark:border-gray-700 text-gray-700  dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 whitespace-normal h-auto py-3 text-center"
-              >
-                {pwaMode === "download" ? "Download Certificate / Receipt" : pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
+      {/* Status Sheet */}
+      <AnimatePresence>
+        {modalOpen && (
+          <BottomSheet onClose={() => setModalOpen(false)} overlayId="eventhub-status" maxWidth="max-w-md">
+            <div className="space-y-4 pt-1">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+                  {modalContent.title}
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                  {modalContent.message}
+                </p>
+              </div>
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} className="w-full py-3">
+                Close
               </Button>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPwaUrl(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white dark:hover:text-white">Cancel</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
+
+      {/* PWA Mobile Fallback Sheet */}
+      <AnimatePresence>
+        {!!pwaUrl && (
+          <BottomSheet onClose={() => setPwaUrl(null)} overlayId="eventhub-pwa" maxWidth="max-w-md">
+            <div className="space-y-4 pt-1">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">Secure Access Required</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                  Because of Mobile App security policies, accessing Event Hub securely requires two steps.
+                </p>
+              </div>
+
+              <div className="bg-blue-50  dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100  dark:border-blue-900/30">
+                <h4 className="font-bold text-blue-900  dark:text-blue-400 mb-1 text-sm">Step 1: Authenticate</h4>
+                <p className="text-xs text-blue-700  dark:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
+
+                <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
+                  <input type="hidden" name="username" value={IDs?.VtopUsername} />
+                  <input type="hidden" name="password" value={IDs?.VtopPassword} />
+                  <input type="hidden" name="validateVitian" value="1" />
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm py-3">
+                    Login to Event Hub
+                  </Button>
+                </form>
+              </div>
+
+              <div className="bg-zinc-50  dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/70  dark:border-zinc-800/70">
+                <h4 className="font-bold text-zinc-900  dark:text-white mb-1 text-sm">Step 2: Open Details</h4>
+                <p className="text-xs text-zinc-500  dark:text-zinc-400 mb-3">After completing Step 1, click here to proceed.</p>
+                <Button
+                  onClick={() => window.open(pwaUrl || "", "_blank")}
+                  variant="outline"
+                  className="w-full whitespace-normal h-auto py-3 text-center"
+                >
+                  {pwaMode === "download" ? "Download Certificate / Receipt" : pwaMode === "pay" ? "Proceed to Event Hub page for event, with payment options." : "View Event Details"}
+                </Button>
+              </div>
+
+              <Button variant="ghost" onClick={() => setPwaUrl(null)} className="w-full py-3">Cancel</Button>
+            </div>
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
       <ClubDetailsModal 
         isOpen={!!selectedClub} 

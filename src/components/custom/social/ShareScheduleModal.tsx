@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Zap
 } from "lucide-react";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import FetchButton from "../shared/FetchButton";
 import { exportScheduleCode, exportShareableLink } from "@/lib/socialUtils";
 
@@ -126,11 +126,11 @@ export default function ShareScheduleModal({
   };
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="text-left space-y-4">
-        
+    <BottomSheet onClose={onClose} overlayId="social-share" maxWidth="max-w-md">
+      <div className="text-left space-y-5 sm:space-y-6">
+
         {/* VIP Pass Header */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white shadow-md relative overflow-hidden flex items-center justify-between">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white shadow-md relative overflow-hidden flex items-center justify-between">
           <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex items-center gap-3 relative z-10">
@@ -172,7 +172,7 @@ export default function ShareScheduleModal({
             )}
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-950 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+          <div className="grid grid-cols-4 gap-2 p-1.5 bg-zinc-100 dark:bg-zinc-950 rounded-2xl border border-zinc-200/60 dark:border-zinc-800">
             {[
               { label: "⚡ 5 Min", min: 5 },
               { label: "⏱️ 15 Min", min: 15 },
@@ -183,7 +183,7 @@ export default function ShareScheduleModal({
                 key={item.min}
                 type="button"
                 onClick={() => setExpiryMinutes(item.min)}
-                className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                className={`py-2 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
                   expiryMinutes === item.min
                     ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
                     : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
@@ -196,11 +196,11 @@ export default function ShareScheduleModal({
         </div>
 
         {/* Tab Selector */}
-        <div className="flex w-full gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-950 p-1 border border-zinc-200/60 dark:border-zinc-800">
+        <div className="flex w-full gap-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-950 p-1.5 border border-zinc-200/60 dark:border-zinc-800">
           <button
             type="button"
             onClick={() => setActiveTab("link")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "link"
                 ? "bg-white text-indigo-600 shadow-2xs dark:bg-zinc-800 dark:text-indigo-400"
                 : "text-zinc-500 dark:text-zinc-400"
@@ -212,7 +212,7 @@ export default function ShareScheduleModal({
           <button
             type="button"
             onClick={() => setActiveTab("qr")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "qr"
                 ? "bg-white text-indigo-600 shadow-2xs dark:bg-zinc-800 dark:text-indigo-400"
                 : "text-zinc-500 dark:text-zinc-400"
@@ -224,7 +224,7 @@ export default function ShareScheduleModal({
           <button
             type="button"
             onClick={() => setActiveTab("code")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer ${
               activeTab === "code"
                 ? "bg-white text-indigo-600 shadow-2xs dark:bg-zinc-800 dark:text-indigo-400"
                 : "text-zinc-500 dark:text-zinc-400"
@@ -237,8 +237,8 @@ export default function ShareScheduleModal({
 
         {/* TAB 1: SHORT LINK */}
         {activeTab === "link" && (
-          <div className="space-y-3">
-            <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 rounded-2xl p-3.5">
+          <div className="space-y-4">
+            <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
                   {expiryMinutes > 0 ? `Temporary Share Link (${expiryMinutes} Min Expiry)` : "Permanent Share Link"}
@@ -259,15 +259,15 @@ export default function ShareScheduleModal({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <FetchButton onClick={handleCopyLink} className="justify-center py-2.5 text-xs font-bold">
+            <div className="grid grid-cols-2 gap-2.5">
+              <FetchButton onClick={handleCopyLink} className="justify-center py-3 text-xs font-bold">
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 {copiedLink ? "Copied!" : "Copy Link"}
               </FetchButton>
               <button
                 type="button"
                 onClick={handleWhatsAppShare}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 py-3 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs active:scale-[0.98]"
               >
                 <MessageSquare className="w-4 h-4" />
                 WhatsApp
@@ -278,9 +278,9 @@ export default function ShareScheduleModal({
 
         {/* TAB 2: QR PASS CARD */}
         {activeTab === "qr" && (
-          <div className="flex flex-col items-center justify-center p-4 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 rounded-2xl space-y-3">
-            <div ref={qrRef} className="bg-white p-4 rounded-2xl shadow-md border border-zinc-100 dark:border-zinc-800 relative">
-              <QRCodeSVG value={shareLink} size={160} level="M" />
+          <div className="flex flex-col items-center justify-center p-5 border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 rounded-2xl space-y-4">
+            <div ref={qrRef} className="bg-white p-5 rounded-2xl shadow-md border border-zinc-100 dark:border-zinc-800 relative">
+              <QRCodeSVG value={shareLink} size={192} level="M" />
             </div>
 
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 text-center font-medium max-w-[240px]">
@@ -310,8 +310,8 @@ export default function ShareScheduleModal({
 
         {/* TAB 3: RAW TOKEN CODE */}
         {activeTab === "code" && (
-          <div className="space-y-3">
-            <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 rounded-2xl p-3.5">
+          <div className="space-y-4">
+            <div className="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
                   Raw Token Code ({code.length} chars)
@@ -323,12 +323,12 @@ export default function ShareScheduleModal({
                   <RefreshCcw className="w-3 h-3" /> New Token
                 </button>
               </div>
-              <div className="max-h-[85px] overflow-y-auto text-xs font-mono text-zinc-800 dark:text-zinc-200 break-all select-all pr-1 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <div className="max-h-[120px] overflow-y-auto text-xs font-mono text-zinc-800 dark:text-zinc-200 break-all select-all pr-1 bg-white dark:bg-zinc-900 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
                 {code}
               </div>
             </div>
 
-            <FetchButton onClick={handleCopyCode} className="w-full justify-center py-2.5 text-xs font-bold">
+            <FetchButton onClick={handleCopyCode} className="w-full justify-center py-3 text-xs font-bold">
               {copiedCode ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               {copiedCode ? "Code Copied!" : "Copy Token Code"}
             </FetchButton>
@@ -336,6 +336,6 @@ export default function ShareScheduleModal({
         )}
 
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }

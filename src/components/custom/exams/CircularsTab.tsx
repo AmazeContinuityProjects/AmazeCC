@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import BottomSheet from "../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 import { RefreshCcw, FileText, ChevronRight, ChevronDown, FolderOpen, File, Download, X, Bell } from "lucide-react";
 
 interface Creds {
@@ -93,38 +95,32 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
 function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 " onClick={onClose} />
-      <div className="relative bg-white  dark:bg-gray-950 rounded-2xl shadow-2xl border border-gray-200  dark:border-gray-800 max-w-lg w-full mx-4 max-h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-200  dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-50  dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">New Circulars</h3>
-              <p className="text-xs text-gray-500  dark:text-gray-400">{circulars.length} new circular{circulars.length !== 1 ? "s" : ""} published</p>
-            </div>
+    <BottomSheet onClose={onClose} overlayId="new-circulars" maxWidth="max-w-lg">
+      <div className="flex flex-col min-h-0 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Bell className="w-5 h-5" />
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 dark:hover:bg-gray-800 transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
+          <div className="min-w-0">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">New Circulars</h3>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">{circulars.length} new circular{circulars.length !== 1 ? "s" : ""} published</p>
+          </div>
         </div>
-        <div className="overflow-y-auto p-5 space-y-2 flex-1">
+        <div className="space-y-2">
           {circulars.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50  dark:bg-gray-900/50">
+            <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60">
               <FileText className="w-4 h-4 shrink-0 text-blue-500" />
-              <span className="text-sm text-gray-700  dark:text-gray-300">{c.title}</span>
+              <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">{c.title}</span>
             </div>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-200  dark:border-gray-800 flex justify-end">
-          <button onClick={onClose} className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+        <div className="flex justify-end pt-1">
+          <button onClick={onClose} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-all cursor-pointer active:scale-95">
             Got it
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 
@@ -208,9 +204,11 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
         </button>
       }
     >
-      {newCirculars.length > 0 && (
-        <NewCircularsModal circulars={newCirculars} onClose={() => setNewCirculars([])} />
-      )}
+      <AnimatePresence>
+        {newCirculars.length > 0 && (
+          <NewCircularsModal circulars={newCirculars} onClose={() => setNewCirculars([])} />
+        )}
+      </AnimatePresence>
 
       {error && (
         <div className="p-4 text-sm text-red-600  dark:text-red-500 bg-red-50  dark:bg-red-900/20 rounded-2xl mb-4">{error}</div>

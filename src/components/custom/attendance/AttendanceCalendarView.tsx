@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { getDay } from "date-fns";
 import { AnimatePresence, m } from "framer-motion";
-import { CheckCircle2, FileText, X } from "lucide-react";
+import { CheckCircle2, FileText } from "lucide-react";
+import BottomSheet from "../shared/BottomSheet";
 
 export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false }) {
     const [activeIdx, setActiveIdx] = useState(0);
@@ -209,26 +210,16 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                 </AnimatePresence>
             </div>
 
-            {/* Individual Notes Modal for Overall Mode */}
+            {/* Individual Notes Sheet for Overall Mode */}
             <AnimatePresence>
                 {selectedOverallDate && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 " onClick={() => setSelectedOverallDate(null)}>
-                        <m.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-sm bg-white  dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200  dark:border-gray-800 overflow-hidden"
-                        >
-                            <div className="p-4 border-b border-gray-100  dark:border-gray-800 flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100">
+                    <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes" maxWidth="max-w-sm">
+                            <div className="flex items-center justify-between gap-3 pb-1">
+                                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
                                     {selectedOverallDate.date}
                                 </h3>
-                                <button onClick={() => setSelectedOverallDate(null)} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
-                                    <X size={20} />
-                                </button>
                             </div>
-                            <div className="p-4 max-h-96 overflow-y-auto space-y-3">
+                            <div className="space-y-3 pt-1">
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
                                     return (
@@ -252,8 +243,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                     );
                                 })}
                             </div>
-                        </m.div>
-                    </div>
+                    </BottomSheet>
                 )}
             </AnimatePresence>
         </div>

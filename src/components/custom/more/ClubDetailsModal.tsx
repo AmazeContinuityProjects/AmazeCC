@@ -1,8 +1,8 @@
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { X, Globe, Instagram, MessageCircle, Link as LinkIcon, User, Calendar, Star, Phone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { useOverlayBack } from "@/lib/overlayStack";
+import BottomSheet from "../shared/BottomSheet";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -16,8 +16,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
   const [landingPage, setLandingPage] = useState<any>(null);
   const [loadingLp, setLoadingLp] = useState(false);
 
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("club-details", isOpen, onClose);
+  // Sheet registers itself for system back via BottomSheet.
 
   useEffect(() => {
     if (isOpen && club?.club_id) {
@@ -43,22 +42,9 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
     <AnimatePresence>
       {isOpen && (
         <>
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
-          />
-          <m.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 z-[101] w-[95%] max-w-2xl max-h-[85vh] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800"
-          >
+          <BottomSheet onClose={onClose} overlayId="club-details" maxWidth="max-w-2xl">
             {/* Header */}
-            <div className="relative p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex items-start gap-4">
+            <div className="relative p-5 sm:p-6 border border-gray-200/70 dark:border-gray-800/80 rounded-2xl bg-gray-50/80 dark:bg-gray-800/40 flex items-start gap-4">
               {club.logo_url && (
                 <img src={club.logo_url} alt={`${club.club_name} Logo`} className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm" />
               )}
@@ -81,7 +67,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
+            <div className="p-5 sm:p-6 space-y-8 custom-scrollbar relative">
               
               {loadingLp && (
                 <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-10 flex items-center justify-center">
@@ -260,7 +246,7 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
               )}
 
             </div>
-          </m.div>
+          </BottomSheet>
         </>
       )}
     </AnimatePresence>

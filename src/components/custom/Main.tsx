@@ -28,9 +28,22 @@ import { CommandPalette } from "@/components/custom/shared";
 import LibrarySearchPalette from "./palette/LibrarySearchPalette";
 import EventSearchPalette from "./palette/EventSearchPalette";
 import SyncNotification from "@/components/custom/shared/SyncNotification";
+import BottomSheet from "@/components/custom/shared/BottomSheet";
 import { useTheme } from "next-themes";
 import { X, Keyboard, WifiOff } from "lucide-react";
 import { syncEngine, clearEventHubSession, api } from "@/lib/sync-engine";
+import {
+  openSyncSession,
+  ensureSyncSession,
+  appendSyncLine,
+  setSyncProgress,
+  bumpSyncProgress,
+  closeSyncSession,
+  dismissSyncSession,
+  useSyncSession,
+  formatSessionMessage,
+  handleEngineProgressEvent,
+} from "@/lib/sync-engine/sync-session";
 import { closeTopOverlayFromPop, useOverlayBack } from "@/lib/overlayStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
@@ -90,8 +103,21 @@ export default function LoginPage() {
 
   // Overlays dismiss via system back before screen navigation does
   useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));
-  useOverlayBack("shortcuts-help", isShortcutsHelpOpen, () => setIsShortcutsHelpOpen(false));
-  useOverlayBack("credential-editor", credEditorOpen, () => setCredEditorOpen(false));
+  // Credential editor + shortcuts sheet register themselves via BottomSheet.
+
+  // Engine op feed -> sync session, so the sheet logs what actually fetched
+  // (success or failure) per module instead of manual string appends.
+  const session = useSyncSession();
+  useEffect(() => {
+    return syncEngine.subscribe(handleEngineProgressEvent);
+  }, []);
+
+  // Mirror the session into the legacy atoms for LoginForm/ReloadModal and
+  // other existing readers.
+  useEffect(() => {
+    setMessage(formatSessionMessage(session.lines));
+    setProgressBar(session.progress);
+  }, [session, setMessage, setProgressBar]);
 
   useEffect(() => {
     const day = new Date().toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
@@ -393,20 +419,19 @@ export default function LoginPage() {
       setDemoMode(true);
       storage.demoMode.set(true);
       setIsReloading(true);
-      setProgressBar(10);
-      setMessage("Initializing Demo environment...");
-      
+      openSyncSession("Demo environment");
+
       const stages = [
-        { progress: 30, msg: "Initializing Demo environment...\n✅ Demo container ready" },
-        { progress: 60, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded" },
-        { progress: 85, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded" },
-        { progress: 100, msg: "Initializing Demo environment...\n✅ Demo container ready\n✅ Mock attendance & marks loaded\n✅ Mock grades & exam schedule loaded\n✅ Demo mode ready" }
+        { progress: 30, msg: "Demo container ready" },
+        { progress: 60, msg: "Mock attendance & marks loaded" },
+        { progress: 85, msg: "Mock grades & exam schedule loaded" },
+        { progress: 100, msg: "Demo mode ready" }
       ];
-      
+
       for (let i = 0; i < stages.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 300));
-        setProgressBar(stages[i].progress);
-        setMessage(stages[i].msg);
+        setSyncProgress(stages[i].progress);
+        appendSyncLine(stages[i].msg, "success");
       }
       
       setAttendanceData(demoData.attendance);
@@ -425,20 +450,20 @@ export default function LoginPage() {
       }
       setIsLoggedIn(true);
       setIsReloading(false);
+      closeSyncSession();
       return;
     }
 
-    const onProgress = (msg: string, delta: number) => {
-      if (msg) setMessage(prev => prev + "\n✅ " + msg);
-      if (delta) setProgressBar(prev => prev + delta);
-    };
-
     try {
+      // Open the session before any network work so credential-phase hangs
+      // and failures also land in the visible log instead of nowhere.
+      openSyncSession("VTOP Sync");
+      appendSyncLine("Verifying VTOP credentials…", "loading");
       const ids = loginIds ?? IDs;
       await syncEngine.login(ids as Ids, demoMode);
       storage.ids.set(ids as typeof IDs);
 
-      onProgress("Attendance/Marks fetched", 10);
+      // Engine op start/done/error events feed the session log automatically.
       const { attRes, marksRes } = await syncEngine.sync<any>("attendanceMarks", { semesterId: currSemesterID });
 
       setAttendanceAndOD(attRes);
@@ -454,12 +479,10 @@ export default function LoginPage() {
       const fetchedProfile = await syncEngine.sync<any>("studentProfile");
       if (fetchedProfile) {
         profileRes = fetchedProfile;
-        onProgress("Profile details fetched", 5);
       }
 
       const isHosteller = (profileRes as any)?.isHosteller ?? false;
 
-      onProgress("Core data fetched", 23);
       const coreData = await syncEngine.sync<any>("core", {
         semesterId: currSemesterID,
         calendarType: settings.calendarType,
@@ -472,8 +495,7 @@ export default function LoginPage() {
       sethostelData(coreData.hostelRes);
       setCalender(coreData.calendarRes);
 
-      setMessage(prev => prev + "\n✅ Core data loaded successfully! Redirecting...");
-      setProgressBar(100);
+      appendSyncLine("Core data loaded successfully", "success");
       setIsLoggedIn(true);
       setIsReloading(false);
 
@@ -481,7 +503,10 @@ export default function LoginPage() {
       tree.increment();
       saveActivityTree(tree);
 
-      // Defer non-critical/secondary data fetches to the background
+      // Defer non-critical/secondary data fetches to the background — kept in
+      // the same session so their results stay visible instead of logging
+      // nowhere. The sheet closes once they finish.
+      appendSyncLine("Starting background sync…", "info");
       (async () => {
         try {
           console.log("Starting background sync for non-critical data...");
@@ -497,8 +522,12 @@ export default function LoginPage() {
           await syncEngine.sync("bulk", { settings });
 
           console.log("Background sync completed successfully!");
+          appendSyncLine("Background sync completed", "success");
+          closeSyncSession();
         } catch (bgErr) {
           console.warn("Background sync failed:", bgErr);
+          appendSyncLine("Background sync had errors, continuing", "error");
+          closeSyncSession();
         }
       })();
 
@@ -513,24 +542,22 @@ export default function LoginPage() {
         (err.name === "TimeoutError" || /timed out/i.test(err.message));
       if (isAbort) {
         // User navigated away / request was cancelled — not a real login failure.
-        setMessage("⚠️ Login was cancelled. Please try again.");
-        setProgressBar(0);
+        appendSyncLine("Login was cancelled, please try again", "error");
+        setSyncProgress(0);
         setIsReloading(false);
+        closeSyncSession(4000, "error");
         throw err;
       }
       if (isTimeout) {
         reportError(err, { context: "handleLogin", level: "warn" });
-        setMessage(
-          "❌ Login timed out (server took too long). Please check your connection and try again."
-        );
+        appendSyncLine("Login timed out (server took too long), check your connection and try again", "error");
       } else {
         reportError(err, { context: "handleLogin" });
-        setMessage(
-          "❌ " + (err instanceof Error ? err.message : "Login failed")
-        );
+        appendSyncLine(err instanceof Error ? err.message : "Login failed", "error");
       }
-      setProgressBar(0);
+      setSyncProgress(0);
       setIsReloading(false);
+      closeSyncSession(4000, "error");
       if (err instanceof Error && /login failed|stopped retrying|event hub login failed/i.test(err.message)) {
         setCredEditorOpen(true);
       }
@@ -559,8 +586,7 @@ export default function LoginPage() {
         }
       }
 
-      setMessage(prev => prev + "\n✅ Transport data fetched");
-      setProgressBar(prev => prev + 5);
+      // Logged automatically via the engine op feed.
     } catch (err) {
       console.error("Failed to fetch transport data:", err);
     }
@@ -580,19 +606,18 @@ export default function LoginPage() {
     if (demoMode) {
       const demoData = await (await fetch('/data/demoData.json')).json();
       setIsReloading(true);
-      setProgressBar(10);
-      setMessage("Reloading demo environment...");
-      
+      openSyncSession("Demo environment");
+
       const stages = [
-        { progress: 40, msg: "Reloading demo environment...\n✅ Refreshed mock attendance" },
-        { progress: 70, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades" },
-        { progress: 100, msg: "Reloading demo environment...\n✅ Refreshed mock attendance\n✅ Refreshed mock grades\n✅ Demo refresh complete" }
+        { progress: 40, msg: "Refreshed mock attendance" },
+        { progress: 70, msg: "Refreshed mock grades" },
+        { progress: 100, msg: "Demo refresh complete" }
       ];
-      
+
       for (let i = 0; i < stages.length; i++) {
         await new Promise(resolve => setTimeout(resolve, 300));
-        setProgressBar(stages[i].progress);
-        setMessage(stages[i].msg);
+        setSyncProgress(stages[i].progress);
+        appendSyncLine(stages[i].msg, "success");
       }
       
       setAttendanceData(demoData.attendance);
@@ -615,19 +640,19 @@ export default function LoginPage() {
         storage.officialOd.set(demoSem, { ...DEMO_OFFICIAL_OD, semesterId: demoSem });
       } catch {}
       setIsReloading(false);
+      closeSyncSession();
       return;
     }
 
     setIsReloading(true);
-    setProgressBar(10);
-    setMessage("Reloading data...");
+    openSyncSession("Reloading data");
     localStorage.setItem("IDs", JSON.stringify(IDs));
 
     try {
       if ((settings as any).reloadAllData) {
         await handleLogin(activeSem);
         await fetchTransportData();
-        
+
         try {
           const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
           const allGradesData = JSON.parse(localStorage.getItem("allGrades") || "{}");
@@ -635,26 +660,25 @@ export default function LoginPage() {
         } catch (err) {
           console.error("Failed to sync past semesters on global reload", err);
         }
-        
+
+        closeSyncSession();
         return;
       }
 
       const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
 
-      const coreTask = api("attendance", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, semesterId: activeSem },
-      }).then((data: any) => {
-        const { attRes, marksRes } = data;
-        setAttendanceAndOD(attRes);
-        setMarksData(marksRes as object);
-        const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-        syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
-        localStorage.setItem("attendance", JSON.stringify(attRes));
-        localStorage.setItem("marks", JSON.stringify(marksRes));
-        setMessage(prev => prev + "\n✅ Attendance & Marks fetched");
-        setProgressBar(prev => prev + 30);
-      });
+      // Unified through the engine op so start/done/error emit into the
+      // session log (same shape as the raw call, plus retry semantics).
+      const coreTask = syncEngine
+        .sync<any>("attendanceMarks", { semesterId: activeSem })
+        .then(({ attRes, marksRes }: any) => {
+          setAttendanceAndOD(attRes);
+          setMarksData(marksRes as object);
+          const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+          syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
+          localStorage.setItem("attendance", JSON.stringify(attRes));
+          localStorage.setItem("marks", JSON.stringify(marksRes));
+        });
 
       const tasks: Promise<void>[] = [coreTask];
       
@@ -664,7 +688,7 @@ export default function LoginPage() {
             if (data?.events) {
               setRegisteredEvents(data.events);
               storage.registeredEvents.set(data.events);
-              setMessage(prev => prev + "\n✅ Registered events fetched");
+              appendSyncLine("Registered events fetched", "success");
             }
           })
           .catch(() => {})
@@ -674,7 +698,7 @@ export default function LoginPage() {
         api("events").then((events: any) => {
           if (Array.isArray(events) && events.length) {
             setEventHubEvents(events);
-            setMessage(prev => prev + `\n✅ ${events.length} EventHub events loaded`);
+            appendSyncLine(`${events.length} EventHub events loaded`, "success");
           }
         }).catch(() => {})
       );
@@ -703,8 +727,8 @@ export default function LoginPage() {
 
             setMoodleData(merged);
             localStorage.setItem("moodleData", JSON.stringify(merged));
-            setMessage(prev => prev + "\n✅ Moodle data fetched");
-            setProgressBar(prev => prev + 20);
+            appendSyncLine("Moodle data fetched", "success");
+            bumpSyncProgress(20);
           })()
         );
       }
@@ -744,11 +768,14 @@ export default function LoginPage() {
 
       // Primary data is ready — make the app interactive immediately (P2-15).
       // Secondary/cache-only data is fetched in the background so it no longer
-      // blocks the reload spinner.
-      setProgressBar(100);
+      // blocks the reload spinner. The session stays open so these lines land
+      // in the visible log instead of nowhere.
+      setSyncProgress(100);
+      appendSyncLine("Primary data ready", "success");
       setIsLoggedIn(true);
       setIsReloading(false);
 
+      appendSyncLine("Starting background sync…", "info");
       (async () => {
         try {
           // Fresher / EPT data
@@ -758,22 +785,22 @@ export default function LoginPage() {
           ]);
           if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
           if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
-          setMessage(prev => prev + "\n✅ Fresher / EPT data fetched");
+          appendSyncLine("Fresher / EPT data fetched", "success");
 
           // Bus routes
           const busesRes = await api("buses") as any;
           if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-          setMessage(prev => prev + "\n✅ Bus routes fetched");
+          appendSyncLine("Bus routes fetched", "success");
 
           // Library data
           const dueData = await api("library-due", { method: "POST", body: { cookies, authorizedID, csrf } }) as any;
           if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
-          setMessage(prev => prev + "\n✅ Library data fetched");
+          appendSyncLine("Library data fetched", "success");
 
-          // Official OD records (unified sync engine — atom + local storage)
+          // Official OD records (unified sync engine — atom + local storage,
+          // logged automatically via the engine op feed)
           try {
             await syncEngine.sync("officialOd", { semesterId: activeSem });
-            setMessage(prev => prev + "\n✅ Official OD records fetched");
           } catch {
             console.warn("Official OD sync failed");
           }
@@ -795,18 +822,21 @@ export default function LoginPage() {
                 .catch(() => {})
             )
           );
-          setMessage(prev => prev + "\n✅ All tab data cached");
+          appendSyncLine("All tab data cached", "success");
+          closeSyncSession();
         } catch (bgErr) {
           console.warn("Background data sync failed:", bgErr);
+          appendSyncLine("Background sync had errors, continuing", "error");
+          closeSyncSession();
         }
       })();
 
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Login failed")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "Login failed", "error");
+      setSyncProgress(0);
+      setIsReloading(false);
+      closeSyncSession(4000, "error");
     }
   }, [settings, config, demoMode, IDs, loginToVTOP, fetchTransportData, setAttendanceAndOD, handleLogin]);
 
@@ -901,18 +931,9 @@ export default function LoginPage() {
     setIsLoggedIn(true);
   }
 
-  const [showReloadBanner, setShowReloadBanner] = useState(false);
-
-  useEffect(() => {
-    if (isReloading) {
-      setShowReloadBanner(true);
-      return;
-    }
-
-    if (progressBar >= 100 || message.trim().startsWith("❌")) {
-      setShowReloadBanner(true);
-    }
-  }, [isReloading, message, progressBar]);
+  // Sync sheet visibility follows the sync session (not isReloading), so it
+  // reliably appears for every fetch phase and lingers on the final log.
+  const showReloadBanner = session.open;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -2247,17 +2268,20 @@ export default function LoginPage() {
           </m.div>
         )}
       </AnimatePresence>
-      {showReloadBanner && (
-        <SyncNotification
-          message={message}
-          progress={progressBar}
-          active={isReloading}
-          onDismiss={() => {
-            setShowReloadBanner(false);
-            if (isReloading) setIsReloading(false);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {showReloadBanner && (
+          <SyncNotification
+            message={formatSessionMessage(session.lines)}
+            progress={session.progress}
+            active={session.open}
+            outcome={session.outcome}
+            onDismiss={() => {
+              dismissSyncSession();
+              if (isReloading) setIsReloading(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {(!isLoggedIn && !demoMode) && (
         <>
@@ -2427,9 +2451,11 @@ export default function LoginPage() {
         commands={cmds}
         demoMode={demoMode || IDs.VtopUsername === "demo"}
       />
-      {isShortcutsHelpOpen && (
-        <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
-      )}
+      <AnimatePresence>
+        {isShortcutsHelpOpen && (
+          <GlobalShortcutsModal onClose={() => setIsShortcutsHelpOpen(false)} />
+        )}
+      </AnimatePresence>
         </m.div>
     </>
     </LazyMotion>
@@ -2437,6 +2463,7 @@ export default function LoginPage() {
 }
 
 function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
+  // Registered for system back via BottomSheet below.
   const categories = [
     {
       title: "Navigation",
@@ -2462,20 +2489,17 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs pointer-events-auto">
-      <div className="bg-white dark:bg-slate-950 rounded-2xl border border-gray-250 dark:border-gray-800 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-scaleIn">
-        <div className="p-4.5 border-b border-gray-150 dark:border-gray-800/80 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/30">
-          <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
+    <BottomSheet onClose={onClose} overlayId="shortcuts-help-sheet" maxWidth="max-w-lg">
+      <div className="flex flex-col min-h-0">
+        <div className="pb-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Keyboard className="w-5 h-5" />
+          </div>
+          <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
+            Keyboard Shortcuts
           </h3>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-900 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
-        <div className="p-5 overflow-y-auto max-h-[75vh] space-y-5">
+        <div className="space-y-5">
           {categories.map((cat, idx) => (
             <div key={idx} className="space-y-2">
               <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{cat.title}</h4>
@@ -2499,16 +2523,16 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <div className="p-3.5 border-t border-gray-150 dark:border-gray-800/80 bg-gray-50/50 dark:bg-slate-900/30 text-right">
-          <button 
+        <div className="pt-3 border-t border-zinc-200/70 dark:border-zinc-800/70 flex justify-end">
+          <button
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95"
           >
             Got it, thanks!
           </button>
         </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 

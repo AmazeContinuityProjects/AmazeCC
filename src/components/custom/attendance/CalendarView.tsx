@@ -12,8 +12,7 @@ import OverallTrackerSubpage from "./OverallTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import Badge from "../shared/Badge";
 import PageHeader from "../shared/PageHeader";
-import Modal from "../shared/Modal";
-import { useOverlayBack } from "@/lib/overlayStack";
+import BottomSheet from "../shared/BottomSheet";
 const CALENDAR_TYPES = {
     ALL: "General Semester",
     ALL02: "General Flexible",
@@ -73,7 +72,7 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
     const [showMoodleModal, setShowMoodleModal] = useState(false);
 
     // Overlays dismiss via system back before screen navigation does
-    useOverlayBack("moodle-connect", showMoodleModal, () => setShowMoodleModal(false));
+    // Moodle connect dialog registers itself for system back via BottomSheet.
 
     useEffect(() => {
         if (setIsSubpageOpen) {
@@ -1321,19 +1320,23 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             </section>
         </div>
 
-        <Modal
-            isOpen={showMoodleModal}
-            onClose={() => setShowMoodleModal(false)}
-            title="Connect Moodle"
-            maxWidth="max-w-md"
-        >
-            <div className="space-y-4">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Sign in once to sync assignments into the calendar.
-                </p>
-                <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
-            </div>
-        </Modal>
+        <AnimatePresence>
+            {showMoodleModal && (
+                <BottomSheet onClose={() => setShowMoodleModal(false)} overlayId="moodle-connect" maxWidth="max-w-md">
+                    <div className="space-y-5">
+                        <div>
+                            <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+                                Connect Moodle
+                            </h2>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                                Sign in once to sync assignments into the calendar.
+                            </p>
+                        </div>
+                        <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
+                    </div>
+                </BottomSheet>
+            )}
+        </AnimatePresence>
         
         <AnimatePresence>
             {showOverallTracker && (

@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { RefreshCcw, GraduationCap, Award, Calculator, Info } from "lucide-react";
 import NoContentFound from "../NoContentFound";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import FetchButton from "../shared/FetchButton";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
-import { useOverlayBack } from "@/lib/overlayStack";
+import { AnimatePresence } from "framer-motion";
 
 const GRADE_BADGE_CLASSES: Record<string, string> = {
   S: 'bg-emerald-50 text-emerald-700 border-emerald-500/10 dark:bg-emerald-950/30 dark:text-emerald-450',
@@ -73,7 +73,7 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
   const [openCourse, setOpenCourse] = useState<string | null>(null);
 
   // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("course-grades", openCourse !== null, () => setOpenCourse(null));
+  // Course detail sheet registers itself for system back via BottomSheet.
 
   const semesterData = data.grades[activeSem];
   const gpa = semesterData?.gpa || null;
@@ -281,8 +281,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                   </div>
                 </div>
 
+                <AnimatePresence>
                 {openCourse === course.courseId && (
-                  <Modal onClose={() => setOpenCourse(null)} maxWidth="max-w-2xl" className="max-h-[90vh] overflow-y-auto">
+                  <BottomSheet onClose={() => setOpenCourse(null)} overlayId="course-grades" maxWidth="max-w-2xl">
                     <h2 className="text-sm font-black text-zinc-850 dark:text-zinc-100 font-outfit mb-2">
                       {course.courseCode}
                     </h2>
@@ -344,8 +345,9 @@ export default function AllGradesDisplay({ data, handleAllGradesFetch, CGPA, att
                         No detailed component breakdown data available for this class record.
                       </p>
                     )}
-                  </Modal>
+                  </BottomSheet>
                 )}
+                </AnimatePresence>
               </div>
             );
           })}

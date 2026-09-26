@@ -1,5 +1,6 @@
 "use client";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import BottomSheet from "./shared/BottomSheet";
 import { X, ExternalLink, Bus, BookOpen, FileText, GraduationCap, MapPin, CalendarDays } from "lucide-react";
 
 
@@ -69,22 +70,10 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
   return (
     <AnimatePresence>
       {open && (
-        <m.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50  overflow-y-auto"
-          onClick={(e) => { if (e.target === e.currentTarget) onDismiss(); }}
-        >
-          <m.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-lg bg-white  dark:bg-black rounded-3xl shadow-2xl overflow-hidden border border-gray-200/50  dark:border-white/10"
-          >
+        <BottomSheet onClose={onDismiss} overlayId="fresher-welcome" maxWidth="max-w-lg">
+          <div className="flex flex-col min-h-0 space-y-6">
             {/* Header */}
-            <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 p-8 text-white">
+            <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 p-6 sm:p-8 text-white rounded-2xl overflow-hidden">
               <div className="absolute top-4 right-4">
                 <button onClick={onDismiss} className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
                   <X className="w-4 h-4" />
@@ -176,13 +165,13 @@ export default function FresherWelcomeModal({ open, onDismiss, username, friendl
               {/* Dismiss Button */}
               <button
                 onClick={onDismiss}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98]"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98] cursor-pointer"
               >
                 Got it, let&apos;s go!
               </button>
             </div>
-          </m.div>
-        </m.div>
+          </div>
+        </BottomSheet>
       )}
     </AnimatePresence>
   );

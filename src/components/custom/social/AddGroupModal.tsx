@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { UsersRound, Check, Search, CheckCheck, X } from "lucide-react";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import FetchButton from "../shared/FetchButton";
 import { Input } from "../shared/Input";
 import { Friend, FriendGroup, saveFriendGroup } from "@/lib/socialUtils";
@@ -56,22 +56,22 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
   };
 
   return (
-    <Modal onClose={onClose} maxWidth="max-w-md">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+    <BottomSheet onClose={onClose} overlayId="social-add-group" maxWidth="max-w-md">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
           <UsersRound className="w-5 h-5" />
         </div>
-        <div>
-          <h2 className="text-base font-extrabold text-foreground font-outfit">
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
             Create Study / Project Group
           </h2>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
             Group friends together to instantly check common free slots
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-5">
+      <form onSubmit={handleSave} className="space-y-6">
         <Input
           label="Group Name *"
           required
@@ -122,9 +122,9 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
             </div>
           )}
 
-          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <div className="max-h-[38vh] overflow-y-auto pr-0.5">
             {friends.length === 0 ? (
-              <div className="py-6 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl">
+              <div className="py-8 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl">
                 <p className="text-xs text-muted-foreground font-medium">
                   You need to add friends first before creating a group.
                 </p>
@@ -132,27 +132,28 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
             ) : filteredFriends.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">No friends found matching &quot;{searchQuery}&quot;</p>
             ) : (
-              filteredFriends.map((friend) => {
+              <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+              {filteredFriends.map((friend) => {
                 const isSelected = selectedIds.has(friend.id);
                 return (
                   <div
                     key={friend.id}
                     onClick={() => handleToggle(friend.id)}
-                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition-all ${
+                    className={`flex items-center justify-between gap-3 p-3.5 cursor-pointer transition-colors ${
                       isSelected
-                        ? "border-indigo-500 bg-indigo-500/10 dark:bg-indigo-950/40 shadow-2xs"
-                        : "border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-700"
+                        ? "bg-indigo-500/10 dark:bg-indigo-950/40"
+                        : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-xs"
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-xs shrink-0"
                         style={{ backgroundColor: friend.color || "#6366f1" }}
                       >
                         {friend.nickname.substring(0, 1).toUpperCase()}
                       </div>
-                      <div>
-                        <span className="font-bold text-sm text-foreground block leading-tight">
+                      <div className="min-w-0">
+                        <span className="font-bold text-sm text-foreground block leading-tight truncate">
                           {friend.nickname}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-mono">
@@ -160,39 +161,40 @@ export default function AddGroupModal({ friends, onClose, onAdd }: AddGroupModal
                         </span>
                       </div>
                     </div>
-                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
-                      isSelected 
-                        ? "bg-indigo-600 text-white shadow-xs" 
+                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+                      isSelected
+                        ? "bg-indigo-600 text-white shadow-xs"
                         : "border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950"
                     }`}>
                       {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </div>
                   </div>
                 );
-              })
+              })}
+              </div>
             )}
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2.5 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+            className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <FetchButton
             type="submit"
             variant="gradient"
-            className="flex-1 justify-center py-2.5"
+            className="flex-1 justify-center py-3"
             disabled={!name.trim() || selectedIds.size === 0}
           >
             Create Group ({selectedIds.size})
           </FetchButton>
         </div>
       </form>
-    </Modal>
+    </BottomSheet>
   );
 }
 

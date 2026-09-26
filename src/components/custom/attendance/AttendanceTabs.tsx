@@ -11,11 +11,11 @@ import AttendanceSubpage from "./AttendanceSubpage";
 import AttendanceSummary from "./AttendanceSummary";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import PageHeader from "../shared/PageHeader";
+import { AnimatePresence } from "framer-motion";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { useIsMobile } from "../shared";
-import { useOverlayBack } from "@/lib/overlayStack";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
@@ -53,10 +53,8 @@ export default function AttendanceTabs({
   const [showTimetable, setShowTimetable] = useState(false);
   const [showCommonFree, setShowCommonFree] = useState(false);
 
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("attendance-predictor", showPredictor, () => setShowPredictor(false));
-  useOverlayBack("attendance-timetable", showTimetable, () => setShowTimetable(false));
-  useOverlayBack("common-free-slots", showCommonFree, () => setShowCommonFree(false));
+  // Predictor/timetable/common-free dialogs register themselves for system
+  // back via BottomSheet; nothing to do here.
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
@@ -555,8 +553,9 @@ export default function AttendanceTabs({
       {/* Tab Help Footer */}
       <TabHelpFooter tabId="attendance" />
 
-      {showPredictor && (
-        <Modal onClose={() => setShowPredictor(false)} maxWidth="max-w-4xl" className="max-h-[95vh] overflow-y-auto">
+      <AnimatePresence>
+        {showPredictor && (
+          <BottomSheet onClose={() => setShowPredictor(false)} overlayId="attendance-predictor" maxWidth="max-w-4xl">
             <OverallAttendancePredictor
               attendanceData={data.attendance}
               analyzeCalendars={results}
@@ -564,21 +563,26 @@ export default function AttendanceTabs({
               impDates={impDates}
               isDayscholarWithBus={isDayscholarWithBus}
             />
-        </Modal>
-      )}
-      {showTimetable && (
-        <Modal onClose={() => setShowTimetable(false)} maxWidth="max-w-6xl" className="max-h-[95vh] overflow-y-auto">
+          </BottomSheet>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showTimetable && (
+          <BottomSheet onClose={() => setShowTimetable(false)} overlayId="attendance-timetable" maxWidth="max-w-6xl">
             <TimetableGrid attendance={data.attendance} />
-        </Modal>
-      )}
-      {showCommonFree && (
-        <CommonFreeSlotsModal
-          friends={dashboardFriends}
-          myAttendance={data.attendance}
-          groupName="Dashboard Friends"
-          onClose={() => setShowCommonFree(false)}
-        />
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showCommonFree && (
+          <CommonFreeSlotsModal
+            friends={dashboardFriends}
+            myAttendance={data.attendance}
+            groupName="Dashboard Friends"
+            onClose={() => setShowCommonFree(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

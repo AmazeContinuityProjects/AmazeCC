@@ -332,9 +332,12 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     </div>
                                                 }
                                                 badge={
-                                                    <button
+                                                    <span
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={(e) => toggleMasterNotes(d.date, d.missedClasses, e)}
-                                                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
+                                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleMasterNotes(d.date, d.missedClasses, e as any); }}
+                                                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                                                             allSecured
                                                                 ? "bg-emerald-50 border-emerald-200 text-emerald-700    dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
                                                                 : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -342,7 +345,7 @@ export default function OverallTrackerSubpage({ attendanceData, dayCardsMap, ana
                                                     >
                                                         {allSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
                                                         <span className="hidden sm:inline">{allSecured ? "All Secured" : "Get Notes"}</span>
-                                                    </button>
+                                                    </span>
                                                 }
                                             >
                                                 <div className="pl-6 border-l-2 border-gray-100  dark:border-gray-800 ml-1 space-y-3">

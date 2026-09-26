@@ -782,41 +782,51 @@ export default function SocialTab({ attendanceData, isDemo }: { attendanceData: 
       {/* Tab Help Footer */}
       <TabHelpFooter tabId="social" />
 
-      {/* Modals */}
-      {isShareModalOpen && (
-        <ShareScheduleModal
-          attendanceData={attendanceData}
-          onClose={() => setIsShareModalOpen(false)}
-        />
-      )}
-      {isAddModalOpen && (
-        <AddFriendModal
-          onClose={() => setIsAddModalOpen(false)}
-          onFriendAdded={loadData}
-        />
-      )}
-      {isAddGroupModalOpen && (
-        <AddGroupModal
-          friends={friends}
-          onClose={() => setIsAddGroupModalOpen(false)}
-          onAdd={loadData}
-        />
-      )}
-      {selectedFriend && (
-        <FriendTimetableModal
-          friend={selectedFriend}
-          onClose={() => setSelectedFriend(null)}
-          onUpdate={loadData}
-        />
-      )}
-      {selectedGroup && (
-        <CommonFreeSlotsModal
-          friends={selectedGroup.friends}
-          myAttendance={myAttendance}
-          groupName={selectedGroup.name}
-          onClose={() => setSelectedGroup(null)}
-        />
-      )}
+      {/* Bottom sheets (exit animations via AnimatePresence) */}
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <ShareScheduleModal
+            attendanceData={attendanceData}
+            onClose={() => setIsShareModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <AddFriendModal
+            onClose={() => setIsAddModalOpen(false)}
+            onFriendAdded={loadData}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isAddGroupModalOpen && (
+          <AddGroupModal
+            friends={friends}
+            onClose={() => setIsAddGroupModalOpen(false)}
+            onAdd={loadData}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedFriend && (
+          <FriendTimetableModal
+            friend={selectedFriend}
+            onClose={() => setSelectedFriend(null)}
+            onUpdate={loadData}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedGroup && (
+          <CommonFreeSlotsModal
+            friends={selectedGroup.friends}
+            myAttendance={myAttendance}
+            groupName={selectedGroup.name}
+            onClose={() => setSelectedGroup(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

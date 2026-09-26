@@ -37,8 +37,7 @@ import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility"
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
 import TimetableGrid from "../attendance/TimetableGrid";
-import Modal from "../shared/Modal";
-import { useOverlayBack } from "@/lib/overlayStack";
+import BottomSheet from "../shared/BottomSheet";
 
 interface SimplifiedMobileHomeProps {
   attendanceData: any;
@@ -145,8 +144,7 @@ export default function SimplifiedMobileHome({
   const [weekOffset, setWeekOffset] = useState(0);
   const [showTimetableModal, setShowTimetableModal] = useState(false);
 
-  // Overlays dismiss via system back before screen navigation does
-  useOverlayBack("home-timetable", showTimetableModal, () => setShowTimetableModal(false));
+  // Timetable sheet registers itself for system back via BottomSheet.
 
   const handleOpenFreeClassrooms = () => {
     setActiveTab("tools");
@@ -1600,11 +1598,12 @@ export default function SimplifiedMobileHome({
         </div>
       </div>
 
-      {/* Full Timetable Modal */}
+      {/* Full Timetable Sheet */}
+      <AnimatePresence>
       {showTimetableModal && (
-        <Modal onClose={() => setShowTimetableModal(false)} maxWidth="max-w-5xl" noPadding>
-          <div className="flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-zinc-900/90 rounded-t-3xl">
+        <BottomSheet onClose={() => setShowTimetableModal(false)} overlayId="home-timetable" maxWidth="max-w-5xl">
+          <div className="flex flex-col min-h-0">
+            <div className="p-4 sm:p-5 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
                   <CalendarIcon className="w-5 h-5" />
@@ -1642,12 +1641,13 @@ export default function SimplifiedMobileHome({
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-zinc-50/40 dark:bg-zinc-950/50">
+            <div className="p-4 sm:p-5">
               <TimetableGrid attendance={attendanceData?.attendance || []} />
             </div>
           </div>
-        </Modal>
+        </BottomSheet>
       )}
+      </AnimatePresence>
 
     </div>
   );

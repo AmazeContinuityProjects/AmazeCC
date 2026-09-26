@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { History, BookOpen, TrendingUp, Database, ChevronRight, Trophy, AlertTriangle, GraduationCap, FileCode, BookMarked, ScrollText, UserCheck, LayoutDashboard, Award, Percent, BookOpenCheck, Eye, EyeOff, Sparkles } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@amazecontinuityprojects/amazeui";
+import { AnimatePresence } from "framer-motion";
 import GradesModal from "./GradesModal";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
@@ -438,9 +439,11 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
         )}
       </section>
 
-      {isModalOpen && (
-        <GradesModal allGradesData={data} GradesData={gradesData} marksData={marksData} attendance={attendance} onClose={() => setIsModalOpen(false)} handleFetchGrades={handleFetchGrades} />
-      )}
+      <AnimatePresence>
+        {isModalOpen && (
+          <GradesModal allGradesData={data} GradesData={gradesData} marksData={marksData} attendance={attendance} onClose={() => setIsModalOpen(false)} handleFetchGrades={handleFetchGrades} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

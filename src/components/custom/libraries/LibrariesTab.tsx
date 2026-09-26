@@ -6,6 +6,8 @@ import { LoadingSpinner } from "../shared";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import { RefreshCcw, BookOpen, Search, ChevronLeft, ChevronRight, User, LogOut, Library } from "lucide-react";
 import { api } from "@/lib/sync-engine";
+import BottomSheet from "../shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 
 interface LibrariesTabProps {
   loginToVTOP: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
@@ -215,18 +217,13 @@ function BookSearch({ isDemo }: { isDemo?: boolean }) {
         </>
       )}
 
+      <AnimatePresence>
       {(detailBook || detailError) && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 " onClick={closeDetail}>
-          <div className="relative w-full sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white  dark:bg-gray-950 border-t sm:border border-gray-200  dark:border-gray-800 shadow-2xl p-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-gray-100  dark:border-gray-800 bg-white/90  dark:bg-gray-950/90 ">
-              <h2 className="text-base font-bold text-gray-900  dark:text-gray-100 truncate pr-4">{detailBook?.title || "Book Details"}</h2>
-              <button onClick={closeDetail} className="shrink-0 p-1.5 rounded-full bg-gray-100  dark:bg-gray-800 text-gray-500  dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+        <BottomSheet onClose={closeDetail} overlayId="library-book-detail" maxWidth="max-w-lg">
+            <div className="flex items-center justify-between gap-3 pb-1">
+              <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">{detailBook?.title || "Book Details"}</h2>
             </div>
-            <div className="p-5 sm:p-6 space-y-5">
+            <div className="space-y-5 pt-1">
               {detailError ? (
                 <div className="flex flex-col items-center py-6 text-center">
                   <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
@@ -276,9 +273,9 @@ function BookSearch({ isDemo }: { isDemo?: boolean }) {
                 </>
               )}
             </div>
-          </div>
-        </div>
+        </BottomSheet>
       )}
+      </AnimatePresence>
     </div>
   );
 }

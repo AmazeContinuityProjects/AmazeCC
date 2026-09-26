@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { UploadCloud, AlertCircle, Plus } from "lucide-react";
 import { api } from "@/lib/sync-engine";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import { Input, Select, Button } from "@amazecontinuityprojects/amazeui";
 import { QBankCourse } from "@/types/qbank.types";
 
@@ -63,17 +63,17 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
   };
 
   return (
-    <Modal onClose={onClose} noPadding>
+    <BottomSheet onClose={onClose} overlayId="qbank-upload" maxWidth="max-w-lg">
       {/* Header */}
-      <div className="flex justify-between items-center p-5 pr-12 border-b border-border/50">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Upload Past Paper Link</h2>
+      <div className="flex justify-between items-center gap-3 pb-1">
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">Upload Past Paper Link</h2>
           {isAdmin && <span className="inline-block mt-1 bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">Admin Mode</span>}
         </div>
       </div>
 
       {success ? (
-        <div className="p-10 text-center flex flex-col items-center">
+        <div className="py-8 text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-green-100  dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-4">
             <UploadCloud className="w-8 h-8" />
           </div>
@@ -83,7 +83,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
           </p>
         </div>
       ) : (
-        <form onSubmit={handleUpload} className="p-5 space-y-4">
+        <form onSubmit={handleUpload} className="space-y-5 pt-1">
             {error && (
               <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -205,7 +205,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
               <Button
                 type="submit"
                 disabled={!effectiveCourseCode || uploading}
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 py-3"
               >
                 {uploading ? (
                   <>
@@ -220,7 +220,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
               </Button>
             </div>
           </form>
-        )}
-    </Modal>
+      )}
+    </BottomSheet>
   );
 }

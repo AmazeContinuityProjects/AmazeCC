@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { syncEngine } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
+import BottomSheet from "./shared/BottomSheet";
+import { AnimatePresence } from "framer-motion";
 
 interface Props {
   open: boolean;
@@ -14,29 +16,6 @@ interface Props {
     MoodlePassword?: string;
   }) => void;
 }
-
-const overlay: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 300,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-  background: "rgba(0,0,0,0.6)",
-  backdropFilter: "blur(4px)",
-};
-
-const panel: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 420,
-  background: "var(--card, #fff)",
-  color: "var(--card-foreground, #0f172a)",
-  borderRadius: 16,
-  border: "1px solid rgba(125,125,125,0.25)",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-  padding: 20,
-};
 
 export default function CredentialEditorModal({ open, onClose, onSaved }: Props) {
   const stored = storage.ids.get();
@@ -74,8 +53,10 @@ export default function CredentialEditorModal({ open, onClose, onSaved }: Props)
   };
 
   return (
-    <div style={overlay} role="dialog" aria-modal="true" onClick={onClose}>
-      <div style={panel} onClick={(e) => e.stopPropagation()}>
+    <AnimatePresence>
+      {open && (
+        <BottomSheet onClose={onClose} overlayId="credential-editor-sheet" maxWidth="max-w-md">
+          <div role="dialog" aria-modal="true" className="pt-1">
         <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Edit credentials</h2>
         <p style={{ margin: "0 0 16px", fontSize: 13, opacity: 0.7 }}>
           Wrong password? Update it here. We verify once and stop if it fails, so VTOP won&apos;t lock your account.
@@ -112,8 +93,10 @@ export default function CredentialEditorModal({ open, onClose, onSaved }: Props)
             </button>
           </div>
         </form>
-      </div>
-    </div>
+          </div>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
   );
 }
 
