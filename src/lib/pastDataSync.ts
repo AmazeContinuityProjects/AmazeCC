@@ -1,4 +1,5 @@
 import { api } from "@/lib/sync-engine";
+import { appendSyncLine } from "@/lib/sync-engine/sync-session";
 
 export async function syncPastSemesters(allGradesData: any, creds: any): Promise<void> {
   if (!allGradesData?.grades || !creds) return;
@@ -12,9 +13,11 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
   
   if (pastSemesters.length === 0) return;
 
+  let fetched = 0;
+  let failed = 0;
   for (const semId of pastSemesters) {
     if (semId === "Current" || semId === "curriculum" || semId === "effectiveGrades") continue;
-    
+
     const attKey = `frozen_att_${semId}`;
     const marksKey = `frozen_marks_${semId}`;
 
@@ -40,11 +43,24 @@ export async function syncPastSemesters(allGradesData: any, creds: any): Promise
           if (data.marksRes?.courses) {
             localStorage.setItem(marksKey, JSON.stringify(data.marksRes));
           }
+          fetched++;
+        } else {
+          failed++;
         }
       } catch (err) {
         console.error(`Failed to fetch frozen data for ${semId}`, err);
+        failed++;
       }
     }
+  }
+
+  if (fetched > 0 || failed > 0) {
+    appendSyncLine(
+      failed > 0
+        ? `Past semester data synced (${fetched} ok, ${failed} failed)`
+        : `Past semester data synced (${fetched} semester${fetched === 1 ? "" : "s"})`,
+      failed > 0 ? "error" : "success"
+    );
   }
 }
 

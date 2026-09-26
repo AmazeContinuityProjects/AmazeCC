@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { UserPlus, Camera, QrCode, CameraOff, Link as LinkIcon, Clipboard, Focus, Check } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
-import Modal from "../shared/Modal";
+import BottomSheet from "../shared/BottomSheet";
 import FetchButton from "../shared/FetchButton";
 import { Textarea, Input } from "../shared/Input";
 import { importScheduleCode, saveFriend } from "@/lib/socialUtils";
@@ -40,12 +40,39 @@ export default function AddFriendModal({
     let cancelled = false;
     (async () => {
       try {
-        const scanner = new Html5Qrcode(SCANNER_ID);
+        // Native BarcodeDetector where available (hardware-accelerated,
+        // steadier decode pipeline), automatic zxing fallback otherwise.
+        const scanner = new Html5Qrcode(SCANNER_ID, {
+          verbose: false,
+          useBarCodeDetectorIfSupported: true,
+        });
         if (cancelled) return;
         scannerRef.current = scanner;
+        // Full custom stream (replaces library defaults): highest available
+        // resolution with continuous focus/exposure/white-balance so the
+        // viewfinder locks on fast and stays stable. Ideal (not exact)
+        // values keep low-end cameras working via graceful fallback.
+        const streamConstraints: any = {
+          facingMode: "environment",
+          width: { min: 640, ideal: 1920 },
+          height: { min: 480, ideal: 1080 },
+          frameRate: { ideal: 30 },
+          focusMode: "continuous",
+          exposureMode: "continuous",
+          whiteBalanceMode: "continuous",
+          advanced: [
+            { focusMode: "continuous" },
+            { exposureMode: "continuous" },
+            { whiteBalanceMode: "continuous" },
+          ],
+        };
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
+          {
+            fps: 15,
+            qrbox: { width: 260, height: 260 },
+            videoConstraints: streamConstraints,
+          },
           (decodedText) => {
             if (!cancelled) {
               setCode(decodedText);
@@ -55,6 +82,16 @@ export default function AddFriendModal({
           },
           () => {}
         );
+        if (cancelled) return;
+        // Best-effort refocus nudge: re-assert continuous AF/AE on the live
+        // track for devices that only partially applied the open constraints.
+        // Rejects on unsupported devices — safely ignored, stream keeps running.
+        try {
+          const refocus: any = {
+            advanced: [{ focusMode: "continuous", exposureMode: "continuous" }],
+          };
+          await scanner.applyVideoConstraints(refocus);
+        } catch {}
       } catch {
         if (!cancelled) {
           setError("Camera access denied or not available on this device.");
@@ -95,23 +132,23 @@ export default function AddFriendModal({
   };
 
   return (
-    <Modal onClose={() => { stopScanner(); onClose(); }} maxWidth="max-w-md">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+    <BottomSheet onClose={() => { stopScanner(); onClose(); }} overlayId="social-add-friend" maxWidth="max-w-md">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
           <UserPlus className="w-5 h-5" />
         </div>
-        <div>
-          <h2 className="text-base font-extrabold text-foreground font-outfit">
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
             Add Friend Schedule
           </h2>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
             Import schedule via shared link, raw code, or camera QR
           </p>
         </div>
       </div>
 
       {/* Tab Selector */}
-      <div className="flex w-full gap-1 rounded-2xl bg-zinc-100 dark:bg-zinc-950 p-1 mb-4 border border-zinc-200/50 dark:border-zinc-800/60">
+      <div className="flex w-full gap-1.5 rounded-2xl bg-zinc-100 dark:bg-zinc-950 p-1.5 mb-5 border border-zinc-200/50 dark:border-zinc-800/60">
         <button
           type="button"
           onClick={() => { stopScanner(); setActiveTab("text"); }}
@@ -138,7 +175,7 @@ export default function AddFriendModal({
         </button>
       </div>
 
-      <form onSubmit={handleAdd} className="space-y-4">
+      <form onSubmit={handleAdd} className="space-y-5">
         {activeTab === "text" ? (
           <div className="flex flex-col gap-2">
             <div className="relative">
@@ -148,7 +185,7 @@ export default function AddFriendModal({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="Paste share link (e.g. https://amazecc.app/#share=...) or raw code (v5|...)"
-                rows={3}
+                rows={4}
               />
               <button
                 type="button"
@@ -163,17 +200,17 @@ export default function AddFriendModal({
         ) : (
           <div className="flex flex-col gap-3">
             {!scanning ? (
-              <div className="flex flex-col items-center justify-center p-6 border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-br from-white to-zinc-50/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl text-center">
-                <div className="bg-indigo-50 dark:bg-indigo-950/40 p-3.5 rounded-2xl text-indigo-500 mb-2.5 shadow-2xs">
-                  <QrCode className="w-6 h-6 stroke-[1.8]" />
+              <div className="flex flex-col items-center justify-center p-8 border border-zinc-200/80 dark:border-zinc-800 bg-gradient-to-br from-white to-zinc-50/20 dark:from-zinc-900/60 dark:to-zinc-950/40 rounded-2xl text-center">
+                <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl text-indigo-500 mb-3 shadow-2xs">
+                  <QrCode className="w-7 h-7 stroke-[1.8]" />
                 </div>
-                <p className="text-xs text-muted-foreground max-w-[220px] mb-3.5 font-medium">
+                <p className="text-xs text-muted-foreground max-w-[240px] mb-4 font-medium">
                   Scan a friend&apos;s schedule QR card using your camera
                 </p>
                 <button
                   type="button"
                   onClick={() => setScanning(true)}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+                  className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                 >
                   Start Camera Scanner
                 </button>
@@ -213,20 +250,20 @@ export default function AddFriendModal({
           </p>
         )}
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2.5 pt-2">
           <button
             type="button"
             onClick={() => { stopScanner(); onClose(); }}
-            className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+            className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
           >
             Cancel
           </button>
-          <FetchButton type="submit" className="flex-1 justify-center py-2.5 font-bold" variant="gradient">
+          <FetchButton type="submit" className="flex-1 justify-center py-3 font-bold" variant="gradient">
             Add Friend
           </FetchButton>
         </div>
       </form>
-    </Modal>
+    </BottomSheet>
   );
 }
 

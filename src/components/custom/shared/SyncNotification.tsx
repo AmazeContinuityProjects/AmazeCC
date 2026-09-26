@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
+import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl } from "@/lib/fetch-utils";
 import { 
   Loader2, 
@@ -139,44 +140,25 @@ export default function SyncNotification({
   const strokeCircumference = 2 * Math.PI * strokeRadius;
   const strokeOffset = strokeCircumference - (Math.min(progress, 100) / 100) * strokeCircumference;
 
-  return (
-    <>
-      {/* Full screen backdrop overlay for expanded state */}
-      <AnimatePresence>
-        {!isMinimized && (
-          <m.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-[4px]"
-            onClick={() => setIsMinimized(true)}
-          />
-        )}
-      </AnimatePresence>
+  // Backdrop tap / swipe-down / system back only park the sync in the
+  // background pill — only the explicit X/Escape dismisses (cancels) it.
+  const minimizeToBackground = () => setIsMinimized(true);
 
-      {/* Unified animated card */}
-      <m.div
-        layout
-        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-        className={
-          isMinimized
-            ? "fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-[16px] p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
-            : "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-32px)] sm:w-[380px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] rounded-[24px] shadow-2xl overflow-hidden flex flex-col p-6 gap-4 font-sans select-none"
-        }
-        onClick={isMinimized ? () => setIsMinimized(false) : undefined}
-      >
-        <AnimatePresence mode="wait">
-          {isMinimized ? (
-            /* Collapsed view content */
+  return (
+    <AnimatePresence mode="wait">
+      {isMinimized ? (
+            /* Minimized background pill (unchanged) */
             <m.div
-              key="minimized-view"
+              key="sync-minimized"
+              layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-              className="flex items-center gap-3 w-full"
+              transition={{ type: "spring", stiffness: 450, damping: 35 }}
+              className="fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-[16px] p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
+              onClick={() => setIsMinimized(false)}
             >
+            <div className="flex items-center gap-3 w-full">
               {/* Circular progress SVG */}
               <div className="relative flex items-center justify-center shrink-0 w-8 h-8">
                 <svg className="w-8 h-8 -rotate-90">
@@ -234,17 +216,21 @@ export default function SyncNotification({
                   <X size={12} />
                 </button>
               </div>
+            </div>
             </m.div>
           ) : (
-            /* Extended view content */
-            <m.div
-              key="expanded-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-              className="flex flex-col gap-4 w-full relative"
+            /* Expanded view as a bottom sheet */
+            <BottomSheet
+              key="sync-expanded"
+              onClose={onDismiss}
+              overlayId="sync-progress"
+              maxWidth="max-w-md"
+              showClose={false}
+              onBackdropClick={minimizeToBackground}
+              onSwipeDown={minimizeToBackground}
+              onSystemBack={minimizeToBackground}
             >
+            <div className="flex flex-col gap-4 sm:gap-5 w-full relative">
               {/* Header controls */}
               <div className="absolute -top-1 -right-1 flex items-center gap-2 z-10">
                 {!hasSwitched && (
@@ -402,10 +388,9 @@ export default function SyncNotification({
                   </button>
                 </m.div>
               )}
-            </m.div>
+            </div>
+            </BottomSheet>
           )}
-        </AnimatePresence>
-      </m.div>
-    </>
+    </AnimatePresence>
   );
 }

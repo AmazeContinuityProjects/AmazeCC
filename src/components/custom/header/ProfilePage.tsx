@@ -274,6 +274,7 @@ export default function ProfilePage({
     setSettings((prev: any) => {
       const next = {
         ...prev,
+        syncAdditionalData: enable,
         syncExcRegistration: enable,
         syncMinorHonour: enable,
         syncCourseCompletion: enable,
@@ -1745,6 +1746,21 @@ export default function ProfilePage({
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sync Additional Bulk Data
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Master switch for background records: EXC, minor/honour and course completions
+              </p>
+            </div>
+            <Switch
+              checked={settings?.syncAdditionalData ?? true}
+              onCheckedChange={(val) => updateSetting("syncAdditionalData", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
                 Sync Extra-Curricular (EXC) Registration
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1769,6 +1785,21 @@ export default function ProfilePage({
             <Switch
               checked={settings?.syncMinorHonour ?? true}
               onCheckedChange={(val) => updateSetting("syncMinorHonour", val)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                Sync Course Completion Records
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Completed coursework and credit eligibility records
+              </p>
+            </div>
+            <Switch
+              checked={settings?.syncCourseCompletion ?? true}
+              onCheckedChange={(val) => updateSetting("syncCourseCompletion", val)}
             />
           </div>
 

@@ -73,6 +73,12 @@ import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor"
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { useMemo } from "react";
+import {
+  ensureSyncSession,
+  appendSyncLine,
+  setSyncProgress,
+  closeSyncSession,
+} from "@/lib/sync-engine/sync-session";
 
 function DashboardContent({
   demoMode = false,
@@ -408,6 +414,8 @@ function DashboardContent({
 
   const handleAllGradesFetch = async () => {
     setIsReloading(true);
+    ensureSyncSession("VTOP Sync");
+    appendSyncLine("Fetching all grades…", "loading");
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
@@ -415,12 +423,12 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf },
       }) as any;
-      setProgressBar((prev) => prev + 40);
+      setSyncProgress(40);
 
       setAllGradesData(AllGradesData);
       localStorage.setItem("allGrades", JSON.stringify(AllGradesData));
 
-      setMessage((prev) => prev + "\n🔄 Loading past semester data from cache...");
+      appendSyncLine("Loading past semester data from cache…", "info");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
 
       // Fetch missing past semesters and update cache
@@ -428,20 +436,22 @@ function DashboardContent({
         setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
       });
 
-      setMessage((prev) => prev + "\n✅ All grades reloaded successfully!");
-      setProgressBar(100);
+      appendSyncLine("All grades reloaded successfully", "success");
+      setSyncProgress(100);
       setIsReloading(false);
+      closeSyncSession();
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "All Grades fetch failed, check console.")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "All Grades fetch failed, check console.", "error");
+      setSyncProgress(0);
+      closeSyncSession(4000);
     }
   };
 
   const handleCalendarFetch = async (FncalendarType) => {
     setIsReloading(true);
+    ensureSyncSession("VTOP Sync");
+    appendSyncLine("Fetching academic calendar…", "loading");
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
@@ -449,27 +459,29 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf, type: FncalendarType || "ALL", semesterId: settings.currSemesterID },
       }) as any;
-      setProgressBar((prev) => prev + 40);
+      setSyncProgress(40);
 
       setCalender(CalenderRes);
       setSettings(prev => ({ ...prev, calendarType: FncalendarType || "ALL" }))
       localStorage.setItem("calender", JSON.stringify(CalenderRes));
       localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: FncalendarType }));
 
-      setMessage((prev) => prev + "\n✅ Calendar reloaded successfully!");
-      setProgressBar(100);
+      appendSyncLine("Calendar reloaded successfully", "success");
+      setSyncProgress(100);
       setIsReloading(false);
+      closeSyncSession();
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Calendar fetch failed, check console.")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "Calendar fetch failed, check console.", "error");
+      setSyncProgress(0);
+      closeSyncSession(4000);
     }
   };
 
   const handleFetchGrades = async () => {
     setIsReloading(true);
+    ensureSyncSession("VTOP Sync");
+    appendSyncLine("Fetching grades…", "loading");
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
@@ -477,25 +489,27 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf, semesterId: settings.currSemesterID },
       }) as any;
-      setProgressBar((prev) => prev + 40);
+      setSyncProgress(40);
 
       setGradesData(gradesData);
       localStorage.setItem("grades", JSON.stringify(gradesData));
 
-      setMessage((prev) => prev + "\n✅ Grades reloaded successfully!");
-      setProgressBar(100);
+      appendSyncLine("Grades reloaded successfully", "success");
+      setSyncProgress(100);
       setIsReloading(false);
+      closeSyncSession();
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Grades fetch failed, check console.")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "Grades fetch failed, check console.", "error");
+      setSyncProgress(0);
+      closeSyncSession(4000);
     }
   };
 
   const handleHostelDetailsFetch = async () => {
     setIsReloading(true);
+    ensureSyncSession("VTOP Sync");
+    appendSyncLine("Fetching hostel details…", "loading");
     try {
       const { cookies, authorizedID, csrf } = await loginToVTOP();
 
@@ -503,18 +517,18 @@ function DashboardContent({
         method: "POST",
         body: { cookies, authorizedID, csrf },
       }) as any;
-      setProgressBar((prev) => prev + 40);
+      setSyncProgress(40);
       sethostelData(HostelData);
       localStorage.setItem("hostel", JSON.stringify(HostelData));
-      setMessage((prev) => prev + "\n✅ Hostel details reloaded successfully!");
-      setProgressBar(100);
+      appendSyncLine("Hostel details reloaded successfully", "success");
+      setSyncProgress(100);
       setIsReloading(false);
+      closeSyncSession();
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Hostel details fetch failed, check console.")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "Hostel details fetch failed, check console.", "error");
+      setSyncProgress(0);
+      closeSyncSession(4000);
     }
   };
 
@@ -523,14 +537,15 @@ function DashboardContent({
   const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsReloading(true);
-    setProgressBar(20);
-    setMessage("Fetching Moodle data...");
+    ensureSyncSession("VTOP Sync");
+    appendSyncLine("Fetching Moodle data…", "loading");
+    setSyncProgress(20);
     try {
       const moodleData = await api("lms-data", {
         method: "POST",
         body: { username, pass },
       }) as any;
-      setProgressBar((prev) => prev + 40);
+      setSyncProgress(60);
 
       const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
 
@@ -545,15 +560,15 @@ function DashboardContent({
       setMoodleData(mergedData);
       localStorage.setItem("moodleData", JSON.stringify(mergedData));
 
-      setMessage((prev) => prev + "\n✅ Moodle Data fetched Successfully!");
-      setProgressBar(100);
+      appendSyncLine("Moodle data fetched successfully", "success");
+      setSyncProgress(100);
       setIsReloading(false);
+      closeSyncSession();
     } catch (err) {
       console.error(err);
-      setMessage(
-        "❌ " + (err instanceof Error ? err.message : "Moodle Data fetch failed, check console.")
-      );
-      setProgressBar(0);
+      appendSyncLine(err instanceof Error ? err.message : "Moodle Data fetch failed, check console.", "error");
+      setSyncProgress(0);
+      closeSyncSession(4000);
     }
   };
 
