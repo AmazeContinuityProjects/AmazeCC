@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { CheckCircle2, FileText } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 
-export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false }) {
+export default function AttendanceCalendarView({ analyzeCalendars, historyList, notesTracker, toggleNotes, courseCode, isOverall, toggleIndividualNote, isODTracker = false, compact = false }) {
     const [activeIdx, setActiveIdx] = useState(0);
     const [selectedOverallDate, setSelectedOverallDate] = useState(null);
 
@@ -54,6 +54,130 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
 
     if (safeCalendars.length === 0 || !monthData) {
         return <div className="p-8 text-center text-gray-500 dark:text-gray-400">No calendar data available for this semester.</div>;
+    }
+
+    // Compact mode: edge-to-edge squircle date grid. Dates carry their own
+    // coloured circle + mild neon tint — no status words, no per-day actions.
+    const statusTint = (status: string | undefined) => {
+        if (isODTracker) {
+            if (status === "valid od") return { bg: "bg-emerald-500/15 dark:bg-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" };
+            if (status === "wasted od") return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
+            if (status === "partial wasted od") return { bg: "bg-amber-500/15 dark:bg-amber-500/15", dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" };
+            return { bg: "", dot: "" };
+        }
+        if (status === "present") return { bg: "bg-emerald-500/15 dark:bg-emerald-500/15", dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" };
+        if (status === "absent") return { bg: "bg-red-500/15 dark:bg-red-500/15", dot: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" };
+        if (status === "on duty" || status === "partial od") return { bg: "bg-amber-500/15 dark:bg-amber-500/15", dot: "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" };
+        if (status && status.includes("half-day")) return { bg: "bg-orange-500/15 dark:bg-orange-500/15", dot: "bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.8)]" };
+        if (status === "partially absent") return { bg: "bg-rose-500/15 dark:bg-rose-500/15", dot: "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" };
+        return { bg: "", dot: "" };
+    };
+
+    if (compact) {
+        return (
+            <div className="w-full min-w-0 flex flex-col">
+                {/* Month Selector */}
+                <div className="w-full flex gap-1.5 pb-3 overflow-x-auto hide-scrollbar">
+                    {safeCalendars.map((cal, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setActiveIdx(idx)}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-all cursor-pointer shrink-0 ${idx === activeIdx
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400"
+                                }`}
+                        >
+                            {cal.month}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Compact date grid */}
+                <div className="w-full">
+                    <AnimatePresence mode="wait">
+                        <m.div
+                            key={activeIdx}
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full grid grid-cols-7 gap-1 text-center"
+                        >
+                            {weekdays.map((day) => (
+                                <div
+                                    key={day}
+                                    className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 py-1"
+                                >
+                                    {day.slice(0, 2)}
+                                </div>
+                            ))}
+
+                            {monthData.blanks.map((_, i) => (
+                                <div key={`blank-${i}`} className="aspect-square" />
+                            ))}
+
+                            {monthData.daysInMonth.map((dayInfo, i) => {
+                                const date = Number(dayInfo.date);
+                                const dataObj = monthData.historyMap[date];
+                                const tint = statusTint(dataObj?.status);
+                                return (
+                                    <div
+                                        key={date}
+                                        className={`aspect-square rounded-[12px] flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
+                                    >
+                                        <span className={`text-xs font-black font-outfit leading-none ${dataObj ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600"}`}>
+                                            {date}
+                                        </span>
+                                        {tint.dot ? (
+                                            <span className={`w-1.5 h-1.5 rounded-full ${tint.dot}`} />
+                                        ) : (
+                                            <span className="w-1.5 h-1.5" />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </m.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* Individual Notes Sheet for Overall Mode */}
+                <AnimatePresence>
+                    {selectedOverallDate && (
+                        <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes" maxWidth="max-w-sm">
+                            <div className="flex items-center justify-between gap-3 pb-1">
+                                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+                                    {selectedOverallDate.date}
+                                </h3>
+                            </div>
+                            <div className="space-y-3 pt-1">
+                                {selectedOverallDate.missedClasses.map((c, idx) => {
+                                    const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
+                                    return (
+                                        <div key={idx} className="flex items-center justify-between gap-4 bg-gray-50  dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100  dark:border-gray-800">
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-900  dark:text-gray-200">{c.courseTitle}</p>
+                                                <p className="text-xs text-gray-500 uppercase tracking-wider">{c.courseCode} • {c.status}</p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => toggleIndividualNote(selectedOverallDate.date, c.courseCode, e)}
+                                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 ${
+                                                    isSecured
+                                                        ? "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50    dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                                                }`}
+                                            >
+                                                {isSecured ? <CheckCircle2 size={14} /> : <FileText size={14} />}
+                                                {isSecured ? "Secured" : "Get Notes"}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </BottomSheet>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
     }
 
     return (

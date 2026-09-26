@@ -16,15 +16,12 @@ export default function CourseDashboard({
 }) {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [initialTab, setInitialTab] = useState("overview");
-  const [initialEmbeddedScope, setInitialEmbeddedScope] = useState<"theory" | "lab">("theory");
 
   useEffect(() => {
     // 1. Target from props
     if (targetCourseCode) {
-      const isLab = targetCourseCode.endsWith("(L)") || targetCourseCode.endsWith("(P)");
       const cleanCode = targetCourseCode.replace(/\([LPT]\)$/i, "").trim();
       setSelectedCode(cleanCode);
-      setInitialEmbeddedScope(isLab ? "lab" : "theory");
       if (targetTab) {
         setInitialTab(targetTab);
       }
@@ -46,10 +43,8 @@ export default function CourseDashboard({
             if (parsed.targetTab) tab = parsed.targetTab;
           } catch {}
         }
-        const isLab = code.endsWith("(L)") || code.endsWith("(P)");
         const cleanCode = code.replace(/\([LPT]\)$/i, "").trim();
         setSelectedCode(cleanCode);
-        setInitialEmbeddedScope(isLab ? "lab" : "theory");
         if (tab) {
           setInitialTab(tab);
         }
@@ -93,7 +88,6 @@ export default function CourseDashboard({
       isDayscholarWithBus={isDayscholarWithBus}
       selectedCode={selectedCode}
       initialTab={initialTab}
-      initialEmbeddedScope={initialEmbeddedScope}
       onBack={() => setSelectedCode(null)}
     />
   );
