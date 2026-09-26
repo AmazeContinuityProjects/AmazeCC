@@ -31,6 +31,28 @@ export function toEngineError(e: unknown): EngineError {
   return { kind: "unknown", message: e instanceof Error ? e.message : String(e) };
 }
 
+/**
+ * Backend errors sometimes arrive as HTTP 200 with `{ success: false }`.
+ * Treat those as failures so a broken module logs loudly instead of being
+ * persisted or displayed as if it were real data.
+ */
+export function assertApiSuccess(result: unknown, label: string): void {
+  if (
+    result &&
+    typeof result === "object" &&
+    (result as { success?: unknown }).success === false
+  ) {
+    const r = result as { message?: unknown; error?: unknown };
+    const detail =
+      typeof r.message === "string" && r.message
+        ? r.message
+        : typeof r.error === "string" && r.error
+          ? r.error
+          : "server returned an error";
+    throw new Error(`${label} failed: ${detail}`);
+  }
+}
+
 export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }

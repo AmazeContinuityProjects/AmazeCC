@@ -2,7 +2,7 @@ import { storage } from "../storage";
 import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
-import { toEngineError } from "./errors";
+import { toEngineError, assertApiSuccess } from "./errors";
 
 /**
  * Run one request with its own start/done/error emits so the sync log shows
@@ -22,6 +22,10 @@ async function trackedRequest<T>(
     ctx.emit({ op: opName, phase: "error", error: toEngineError(e) });
     throw e;
   }
+}
+
+function settledValue<T>(r: PromiseSettledResult<T>): T | null {
+  return r.status === "fulfilled" ? r.value : null;
 }
 
 function persist(key: string, value: unknown): void {
@@ -64,32 +68,65 @@ registerOp({
     const semesterId = args?.semesterId as string;
     const calendarType = (args?.calendarType as string) || "ALL";
     const isHosteller = args?.isHosteller as boolean;
-    const [gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes, profileImagesRes] = await Promise.all([
-      trackedRequest(ctx, "grades", () => ctx.request("grades", { semesterId }, { auth: "vtop" })),
-      trackedRequest(ctx, "schedule", () => ctx.request("schedule", { semesterId }, { auth: "vtop" })),
-      isHosteller
-        ? trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }))
-        : Promise.resolve({}),
-      trackedRequest(ctx, "calendar", () => ctx.request("calendar", { type: calendarType, semesterId }, { auth: "vtop" })),
-      trackedRequest(ctx, "all-grades", () => ctx.request("all-grades", {}, { auth: "vtop" })),
-      trackedRequest(ctx, "profile-images", () =>
-        ctx
-          .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
-          .then(async (r: any) => (r?.success ? r : null))
-          .catch(() => null),
-      ),
-    ]);
-    persist("grades", gradesRes);
-    persist("schedule", scheduleRes);
-    persist("hostel", hostelRes);
-    persist("calendar", calendarRes);
-    persist("allGrades", allGradesRes);
+    // Settle independently: one failing module must not take down the whole
+    // bundle, and failures already emitted their own child error lines above.
+    const [gradesSettled, scheduleSettled, hostelSettled, calendarSettled, allGradesSettled, profileImagesSettled] =
+      await Promise.allSettled([
+        trackedRequest(ctx, "grades", () =>
+          ctx
+            .request("grades", { semesterId }, { auth: "vtop" })
+            .then((r: any) => (assertApiSuccess(r, "Grades"), r)),
+        ),
+        trackedRequest(ctx, "schedule", () =>
+          ctx
+            .request("schedule", { semesterId }, { auth: "vtop" })
+            .then((r: any) => (assertApiSuccess(r, "Exam schedule"), r)),
+        ),
+        isHosteller
+          ? trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }))
+          : Promise.resolve({}),
+        trackedRequest(ctx, "calendar", () =>
+          ctx
+            .request("calendar", { type: calendarType, semesterId }, { auth: "vtop" })
+            .then((r: any) => (assertApiSuccess(r, "Academic calendar"), r)),
+        ),
+        trackedRequest(ctx, "all-grades", () =>
+          ctx
+            .request("all-grades", {}, { auth: "vtop" })
+            .then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
+        ),
+        trackedRequest(ctx, "profile-images", () =>
+          ctx
+            .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
+            .then(async (r: any) => (r?.success ? r : null))
+            .catch(() => null),
+        ),
+      ]);
+    const gradesRes = settledValue(gradesSettled);
+    const scheduleRes = settledValue(scheduleSettled);
+    const hostelRes = settledValue(hostelSettled);
+    const calendarRes = settledValue(calendarSettled);
+    const allGradesRes = settledValue(allGradesSettled);
+    const profileImagesRes = settledValue(profileImagesSettled);
+    // Never persist nulls over good cached data — a failed module keeps its
+    // last good cache while the log shows exactly what failed.
+    const persistIfPresent = (key: string, value: unknown) => {
+      if (value !== null && value !== undefined) persist(key, value);
+    };
+    persistIfPresent("grades", gradesRes);
+    persistIfPresent("schedule", scheduleRes);
+    persistIfPresent("hostel", hostelRes);
+    persistIfPresent("calendar", calendarRes);
+    persistIfPresent("allGrades", allGradesRes);
     if (profileImagesRes) persist("profileImages", profileImagesRes);
-    ctx.bridge.setAtom(dataAtoms.gradesDataAtom, gradesRes);
-    ctx.bridge.setAtom(dataAtoms.scheduleDataAtom, scheduleRes);
-    ctx.bridge.setAtom(dataAtoms.hostelDataAtom, hostelRes);
-    ctx.bridge.setAtom(dataAtoms.calendarDataAtom, calendarRes);
-    ctx.bridge.setAtom(dataAtoms.allGradesDataAtom, allGradesRes);
+    const setAtomIfPresent = (atom: unknown, value: unknown) => {
+      if (value !== null && value !== undefined) ctx.bridge.setAtom(atom, value);
+    };
+    setAtomIfPresent(dataAtoms.gradesDataAtom, gradesRes);
+    setAtomIfPresent(dataAtoms.scheduleDataAtom, scheduleRes);
+    setAtomIfPresent(dataAtoms.hostelDataAtom, hostelRes);
+    setAtomIfPresent(dataAtoms.calendarDataAtom, calendarRes);
+    setAtomIfPresent(dataAtoms.allGradesDataAtom, allGradesRes);
     return { gradesRes, scheduleRes, hostelRes, calendarRes, allGradesRes, profileImagesRes };
   },
 });

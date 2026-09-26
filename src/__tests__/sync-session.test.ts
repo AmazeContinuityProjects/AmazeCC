@@ -166,3 +166,27 @@ describe('engine progress feed', () => {
     expect(getSyncSessionSnapshot().lines.length).toBe(2);
   });
 });
+
+describe('assertApiSuccess', () => {
+  it('passes through healthy payloads untouched', async () => {
+    const { assertApiSuccess } = await import('../lib/sync-engine/errors');
+    expect(() => assertApiSuccess({ attendance: [] }, 'Attendance')).not.toThrow();
+    expect(() => assertApiSuccess([1, 2, 3], 'Moodle data')).not.toThrow();
+    expect(() => assertApiSuccess({ success: true }, 'Grades')).not.toThrow();
+    expect(() => assertApiSuccess(null, 'Grades')).not.toThrow();
+    expect(() => assertApiSuccess(undefined, 'Grades')).not.toThrow();
+  });
+
+  it('throws a labelled error on success:false payloads', async () => {
+    const { assertApiSuccess } = await import('../lib/sync-engine/errors');
+    expect(() => assertApiSuccess({ success: false, message: 'VTOP busy' }, 'Grades')).toThrow(
+      'Grades failed: VTOP busy'
+    );
+    expect(() => assertApiSuccess({ success: false, error: 'boom' }, 'Grades')).toThrow(
+      'Grades failed: boom'
+    );
+    expect(() => assertApiSuccess({ success: false }, 'Grades')).toThrow(
+      'Grades failed: server returned an error'
+    );
+  });
+});

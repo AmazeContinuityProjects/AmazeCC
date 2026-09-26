@@ -10,6 +10,14 @@ if (typeof window !== "undefined") {
 
 export let activeApiUrl = customUrlFromStorage || PRIMARY_API_URL;
 
+/**
+ * Whether there is a real, distinct backup gateway to show/switch to.
+ * Note: failover itself only needs BACKUP_API_URL to be non-empty.
+ */
+export function hasBackupApi(): boolean {
+  return Boolean(BACKUP_API_URL) && BACKUP_API_URL !== PRIMARY_API_URL;
+}
+
 export function getActiveApiUrl(): string {
   return activeApiUrl;
 }
@@ -154,12 +162,15 @@ export async function fetchWithFailover(
 
   try {
     const res = await originalFetch(prepareInput(targetUrl), init);
-    if (activeApiUrl === PRIMARY_API_URL && (res.status === 502 || res.status === 503 || res.status === 504)) {
+    if (
+      activeApiUrl === PRIMARY_API_URL &&
+      (res.status === 500 || res.status === 502 || res.status === 503 || res.status === 504)
+    ) {
       throw new Error(`Server error ${res.status}`);
     }
     return res;
   } catch (error: any) {
-    if (activeApiUrl === PRIMARY_API_URL) {
+    if (activeApiUrl === PRIMARY_API_URL && BACKUP_API_URL) {
       if (error.name === "AbortError" && init?.signal?.aborted) {
         throw error;
       }

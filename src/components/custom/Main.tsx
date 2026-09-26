@@ -689,9 +689,13 @@ export default function LoginPage() {
               setRegisteredEvents(data.events);
               storage.registeredEvents.set(data.events);
               appendSyncLine("Registered events fetched", "success");
+            } else {
+              appendSyncLine("Registered events unavailable (server error)", "error");
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            appendSyncLine("Registered events unavailable (server error)", "error");
+          })
       );
 
       tasks.push(
@@ -699,8 +703,12 @@ export default function LoginPage() {
           if (Array.isArray(events) && events.length) {
             setEventHubEvents(events);
             appendSyncLine(`${events.length} EventHub events loaded`, "success");
+          } else if ((events as any)?.success === false) {
+            appendSyncLine("EventHub events unavailable (server error)", "error");
           }
-        }).catch(() => {})
+        }).catch(() => {
+          appendSyncLine("EventHub events unavailable (server error)", "error");
+        })
       );
 
       const moodleUsername = IDs.MoodleUsername;
@@ -783,19 +791,31 @@ export default function LoginPage() {
             api("ept-schedule", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
             api("acknowledgement", { method: "POST", body: { cookies, authorizedID, csrf } }) as any,
           ]);
-          if (eptRes.success) localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
-          if (ackRes.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
-          appendSyncLine("Fresher / EPT data fetched", "success");
+          if (eptRes?.success) {
+            localStorage.setItem("cache_ept_schedule", JSON.stringify(eptRes));
+            appendSyncLine("Fresher / EPT data fetched", "success");
+          } else {
+            appendSyncLine("Fresher / EPT data unavailable (server error)", "error");
+          }
+          if (ackRes?.success) localStorage.setItem("cache_acknowledgement", JSON.stringify(ackRes));
 
           // Bus routes
           const busesRes = await api("buses") as any;
-          if (busesRes.success) localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
-          appendSyncLine("Bus routes fetched", "success");
+          if (busesRes?.success) {
+            localStorage.setItem("cache_buses", JSON.stringify(busesRes.buses));
+            appendSyncLine("Bus routes fetched", "success");
+          } else {
+            appendSyncLine("Bus routes unavailable (server error)", "error");
+          }
 
           // Library data
           const dueData = await api("library-due", { method: "POST", body: { cookies, authorizedID, csrf } }) as any;
-          if (dueData.success) localStorage.setItem("cache_library_due", JSON.stringify(dueData));
-          appendSyncLine("Library data fetched", "success");
+          if (dueData?.success) {
+            localStorage.setItem("cache_library_due", JSON.stringify(dueData));
+            appendSyncLine("Library data fetched", "success");
+          } else {
+            appendSyncLine("Library data unavailable (server error)", "error");
+          }
 
           // Official OD records (unified sync engine — atom + local storage,
           // logged automatically via the engine op feed)
@@ -811,18 +831,27 @@ export default function LoginPage() {
             "hostel-counselling",
             "credentials", "registration-schedule", "dayboarder", "bank-info",
           ];
+          let bulkFailed = 0;
           await Promise.allSettled(
             bulkEndpoints.map(path =>
               api(path, { method: "POST", body: { cookies, authorizedID, csrf } })
                 .then((data: any) => {
                   if (data && data.success !== false) {
                     localStorage.setItem("cache_" + path, JSON.stringify(data));
+                  } else {
+                    bulkFailed++;
                   }
                 })
-                .catch(() => {})
+                .catch(() => {
+                  bulkFailed++;
+                })
             )
           );
-          appendSyncLine("All tab data cached", "success");
+          if (bulkFailed > 0) {
+            appendSyncLine(`${bulkFailed} background record${bulkFailed === 1 ? "" : "s"} failed to cache (server error)`, "error");
+          } else {
+            appendSyncLine("All tab data cached", "success");
+          }
           closeSyncSession();
         } catch (bgErr) {
           console.warn("Background data sync failed:", bgErr);
