@@ -7,13 +7,11 @@ import { storage } from "@/lib/storage";
 import { DEMO_DUES } from "@/lib/libraries/demo";
 import { num, type LibraryDueResponse, type PatronTable } from "@/lib/libraries/koha";
 import {
-  CHIP,
   EMPTY_STATE,
   LIST_ROW,
   LIST_SHELL,
   SECTION_CHIP,
   TONE_BADGE,
-  TONE_TEXT,
 } from "@/lib/libraries/ui";
 
 interface DuesViewProps {

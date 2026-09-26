@@ -1,16 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAtom } from "jotai";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  SkipForward,
-  CheckCircle2,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { settingsAtom } from "@/store/settingsAtoms";
 import { pomodoroSessionsAtom } from "@/store/dataAtoms";
 import { logPomodoroSession } from "@/lib/tasksStorage";

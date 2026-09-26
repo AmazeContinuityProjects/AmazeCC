@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { AlertTriangle, Clock, Calendar, Plus } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { ATTENDANCE_DAYS, AttendanceDay } from "@/lib/attendanceTimetable";
 import { detectChunkOverlaps } from "@/lib/taskMatch";
-import type { Task, TaskKind, WeekChunk } from "@/types/tasks";
+import type { Task, WeekChunk } from "@/types/tasks";
 import { KIND_CONFIG } from "./TaskCard";
 
 interface TaskWeekViewProps {

@@ -1,5 +1,4 @@
 import { storage } from "./storage";
-import { parseAttendanceTime } from "./attendanceTimetable";
 import {
   sanitizeCourseCode,
   toMinutes,

@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useAtom } from "jotai";
 import {
-  Calendar,
   Clock,
   Plus,
   Trash2,
   Bell,
   Sparkles,
-  BookOpen,
   Timer,
   AlertCircle,
   Layers,

@@ -19,7 +19,6 @@ import DashboardContent from "./Dashboard";
 import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
 import config from "../../../config.json";
 import { attendanceRes, ODListItem, ODListRaw } from "@/types/data/attendance";
-import { AllGradesRes } from "@/types/data/allgrades";
 import { loadActivityTree, saveActivityTree } from "@/lib/activity-tree";
 import { migrateCustomHomework } from "@/lib/tasksStorage";
 import { useTaskReminderScheduler } from "./tasks/useTaskReminderScheduler";
@@ -36,7 +35,6 @@ import { X, Keyboard, WifiOff } from "lucide-react";
 import { syncEngine, clearEventHubSession, api } from "@/lib/sync-engine";
 import {
   openSyncSession,
-  ensureSyncSession,
   appendSyncLine,
   setSyncProgress,
   bumpSyncProgress,
@@ -93,7 +91,7 @@ export default function LoginPage() {
   const [progressBar, setProgressBar] = useAtom(progressBarAtom);
   const [moodleData, setMoodleData] = useAtom(moodleDataAtom);
   const [vitolData, setVitolData] = useAtom(vitolDataAtom);
-  const [tasks, setTasks] = useAtom(tasksAtom);
+  const setTasks = useSetAtom(tasksAtom);
   const setTasksQuickAddRequest = useSetAtom(tasksQuickAddRequestAtom);
   const [isAPIworking, setIsAPIworking] = useState<boolean>(false);
   const [demoMode, setDemoMode] = useAtom(demoModeAtom);

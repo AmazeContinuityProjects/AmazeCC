@@ -5,8 +5,6 @@ import { useAtom } from "jotai";
 import {
   CheckCircle2,
   Clock,
-  Sparkles,
-  BookOpen,
   ChevronDown,
   History,
   ArrowRight,
@@ -15,7 +13,6 @@ import { pomodoroSessionsAtom } from "@/store/dataAtoms";
 import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import PomodoroTimer from "./PomodoroTimer";
-import { KIND_CONFIG } from "./TaskCard";
 
 interface FocusPageProps {
   tasks: Task[];

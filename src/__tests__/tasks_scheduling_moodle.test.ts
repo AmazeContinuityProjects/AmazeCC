@@ -4,8 +4,6 @@ import {
   tasksForClassSession,
   tasksForDay,
   detectChunkOverlaps,
-  taskMatchesClass,
-  getComponentType,
   classTaskSummary,
   isDueOnDay,
   isSameCalendarDay,
@@ -21,7 +19,6 @@ import {
   previewMoodleImport,
   importMoodleTasks,
 } from "../lib/moodleImport";
-import { storage } from "../lib/storage";
 import type { Task } from "../types/tasks";
 
 class MemoryStorage implements Storage {

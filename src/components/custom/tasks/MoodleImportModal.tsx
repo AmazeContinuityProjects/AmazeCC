@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo } from "react";
 import { useAtom } from "jotai";
-import { Download, CheckCircle2, Clock, BookOpen, AlertCircle } from "lucide-react";
+import { Download, Clock, BookOpen } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { moodleDataAtom, tasksAtom } from "@/store/dataAtoms";
-import { previewMoodleImport, importMoodleTasks, MoodleAssignmentPreview } from "@/lib/moodleImport";
+import { previewMoodleImport, importMoodleTasks } from "@/lib/moodleImport";
 
 interface MoodleImportModalProps {
   isOpen: boolean;

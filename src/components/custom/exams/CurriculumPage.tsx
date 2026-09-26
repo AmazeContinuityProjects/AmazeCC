@@ -6,7 +6,6 @@ import {
   Search,
   X,
   RefreshCcw,
-  ChevronDown,
   ChevronRight,
   BookOpen,
   GraduationCap,

@@ -11,7 +11,6 @@ import {
   Edit2,
   Trash2,
   Timer,
-  ChevronRight,
   Layers,
 } from "lucide-react";
 import type { Task, TaskKind } from "@/types/tasks";

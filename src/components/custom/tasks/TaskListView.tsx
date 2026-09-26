@@ -8,11 +8,8 @@ import {
   CalendarDays,
   CalendarCheck,
   CheckCircle2,
-  Circle,
-  Plus,
 } from "lucide-react";
 import type { Task } from "@/types/tasks";
-import { isTaskOverdue } from "@/types/tasks";
 import TaskCard from "./TaskCard";
 
 interface TaskListViewProps {
