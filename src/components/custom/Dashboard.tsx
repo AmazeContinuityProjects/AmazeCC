@@ -9,6 +9,7 @@ import TestGradesContainer from "./exams/TestGradesContainer";
 import CurriculumPage from "./exams/CurriculumPage";
 import GPAPredictorTab from "./exams/GPAPredictorTab";
 import MarksPredictorTab from "./exams/MarksPredictorTab";
+import ExamSchedule from "./exams/ScheduleDisplay";
 import MessDisplay from "./hostel/MessDisplay";
 import LaundryDisplay from "./hostel/LaundryDisplay";
 import CalendarView from "./attendance/CalendarView";
@@ -29,7 +30,8 @@ import CourseDashboard from "./exams/CourseDashboard";
 import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
 import ToolsTab from "./tools/ToolsTab";
 import SubpageLayout from "./shared/SubpageLayout";
-import { RefreshCcw, Calendar, MapPin } from "lucide-react";
+import { RefreshCcw, Calendar, MapPin, WifiOff } from "lucide-react";
+import { useSyncTrigger } from "./shared/useSyncTrigger";
 import MoreTab from "./more/MoreTab";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
@@ -225,6 +227,19 @@ function DashboardContent({
   const touchEndY = useRef(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [currentIcon, setCurrentIcon] = useState(getAssetPath("/logo.png"));
+
+  const handleReloadClick = useCallback(async () => {
+    setIsSpinning(true);
+    await handleReloadRequest();
+    try {
+      const updatedGrades = JSON.parse(localStorage.getItem("allGrades") || "{}");
+      setPastSemesterData(loadFrozenPastSemesters(updatedGrades));
+    } catch (e) {}
+    setResetKey(k => k + 1);
+    setTimeout(() => setIsSpinning(false), 600);
+  }, [handleReloadRequest]);
+
+  const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleReloadClick);
 
   useEffect(() => {
     const updateIcon = () => {
@@ -705,20 +720,20 @@ function DashboardContent({
               </div>
             </div>
             <button
-              onClick={async () => {
-                setIsSpinning(true);
-                await handleReloadRequest();
-                try {
-                  const updatedGrades = JSON.parse(localStorage.getItem("allGrades") || "{}");
-                  setPastSemesterData(loadFrozenPastSemesters(updatedGrades));
-                } catch (e) {}
-                setResetKey(k => k + 1);
-                setTimeout(() => setIsSpinning(false), 600);
-              }}
-              className="p-2.5 rounded-full bg-info-surface text-info hover:bg-info-surface transition-colors shadow-sm"
-              title="Reload Data"
+              onClick={handleSyncClick}
+              className={`p-2.5 rounded-full transition-colors shadow-sm ${
+                isOffline
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                  : "bg-info-surface text-info hover:bg-info-surface"
+              }`}
+              title={isOffline ? "You're offline — tap for details" : "Reload Data"}
+              aria-label={isOffline ? "Offline — tap for details" : "Reload Data"}
             >
-              <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
+              {isOffline ? (
+                <WifiOff className="w-5 h-5" />
+              ) : (
+                <RefreshCcw className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
+              )}
             </button>
           </div>
           <CabShareMatchCard />
@@ -774,6 +789,8 @@ function DashboardContent({
                 <MobileHome
                   attendanceData={attendanceData}
                   marksData={marksData}
+                  scheduleData={ScheduleData}
+                  handleScheduleFetch={handleSyncClick}
                   hostelData={hostelData}
                   registeredEvents={registeredEvents}
                   moodleData={moodleData}
@@ -861,6 +878,8 @@ function DashboardContent({
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
                     setActiveAttendanceSubTab={setActiveAttendanceSubTab}
+                    setActiveTab={setActiveTab}
+                    setActiveSubTab={setActiveSubTab}
                   />
                 </div>
               )}
@@ -965,6 +984,15 @@ function DashboardContent({
                     <div className="h-36 w-full bg-slate-200 dark:bg-neutral-800 rounded-2xl animate-pulse" />
                   </div>
                 )
+              )}
+              {activeSubTab === "schedule" && (
+                <div className="animate-fadeIn">
+                  <ExamSchedule
+                    data={ScheduleData}
+                    handleScheduleFetch={handleSyncClick}
+                    onBack={() => setActiveSubTab("courses-simplified")}
+                  />
+                </div>
               )}
               {activeSubTab === "marks-predictor" && (
                 <div className="animate-fadeIn">

@@ -6,6 +6,11 @@ import { Download, Printer } from "lucide-react";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 import { useTheme } from "next-themes";
 import { TimetableGrid as AmazeUITimetableGrid, type AddedCourse, type TimetablePeriod } from '@amazecontinuityprojects/amazeui';
+// The one time parser. This file used to carry three private copies
+// (`toMinutes`, `minutesToTimeStr` and `fmt`) which agreed only by coincidence
+// with the two other implementations elsewhere in the app. See
+// docs/social-tt/09-schedule-math.md §4.
+import { toMinutes, minutesToTimeStr, fmt } from "@/lib/social/schedule";
 
 export default function TimetableVtop({ attendance }) {
     const captureRef = useRef<HTMLDivElement>(null);
@@ -60,37 +65,6 @@ export default function TimetableVtop({ attendance }) {
             setIsDownloading(false);
         }
     }, [themeBgColor]);
-
-    function toMinutes(t) {
-        if (!t) return 0;
-        const [hs = "0", ms = "0"] = String(t).split(":");
-        let h = parseInt(hs || "0", 10);
-        const m = parseInt(ms || "0", 10);
-        const isPM = h === 12 || (h >= 1 && h <= 7);
-        if (isPM && h !== 12) h += 12;
-        return h * 60 + m;
-    }
-
-    function minutesToTimeStr(mins) {
-        let h = Math.floor(mins / 60);
-        const m = mins % 60;
-        const ampm = h >= 12 ? "PM" : "AM";
-        if (h > 12) h -= 12;
-        if (h === 0) h = 12;
-        return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
-    }
-
-    function fmt(t) {
-        if (!t) return "";
-        const [hs = "0", ms = "0"] = String(t).split(":");
-        let h = parseInt(hs || "0", 10);
-        const m = parseInt(ms || "0", 10);
-        const isPM = h === 12 || (h >= 1 && h <= 7);
-        let disp = h;
-        if (!isPM && h === 0) disp = 12;
-        if (disp > 12) disp -= 12;
-        return `${disp}:${String(m).padStart(2, "0")} ${isPM ? "PM" : "AM"}`;
-    }
 
     function fmtRange(r) {
         if (!r) return null;

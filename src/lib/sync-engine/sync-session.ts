@@ -10,6 +10,9 @@ export interface SyncLogLine {
 
 export type SyncOutcome = "success" | "error" | null;
 
+/** Non-run reasons the sheet can be opened; drives a notice instead of progress. */
+export type SyncNotice = "offline" | null;
+
 interface SyncSessionState {
   open: boolean;
   title: string;
@@ -18,12 +21,14 @@ interface SyncSessionState {
   runId: number;
   /** Set when the run finishes; drives the success tick. Null while running. */
   outcome: SyncOutcome;
+  /** Set when the sheet was opened to report a condition, not a live run. */
+  notice: SyncNotice;
 }
 
 const MAX_LINES = 60;
 const DEFAULT_HOLD_MS = 2500;
 
-let state: SyncSessionState = { open: false, title: "", lines: [], progress: 0, runId: 0, outcome: null };
+let state: SyncSessionState = { open: false, title: "", lines: [], progress: 0, runId: 0, outcome: null, notice: null };
 const listeners = new Set<() => void>();
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 // Run dismissed by the user mid-flight: later events from the same run must
@@ -34,7 +39,7 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-export function openSyncSession(title: string) {
+export function openSyncSession(title: string, notice: SyncNotice = null) {
   if (closeTimer) {
     clearTimeout(closeTimer);
     closeTimer = null;
@@ -47,8 +52,17 @@ export function openSyncSession(title: string) {
     progress: 0,
     runId: state.runId + 1,
     outcome: null,
+    notice,
   };
   emit();
+}
+
+/**
+ * Open the sheet as a connectivity notice instead of a sync run: no request is
+ * fired, the sheet just explains the browser is offline and offers a retry.
+ */
+export function openOfflineSyncSession() {
+  openSyncSession("You're Offline", "offline");
 }
 
 /** Open only when no session is active (safe for concurrent flows). */
@@ -167,6 +181,7 @@ const OP_LABELS: Record<string, { label: string; delta: number }> = {
   buses: { label: "Bus routes", delta: 5 },
   bulk: { label: "Additional records cache", delta: 5 },
   lms: { label: "Moodle data", delta: 10 },
+  social: { label: "Friends & groups", delta: 5 },
 };
 
 /**

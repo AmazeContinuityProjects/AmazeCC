@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS social_timetables (
 -- The shared signed key. One row per pair, enforced structurally.
 CREATE TABLE IF NOT EXISTS social_grants (
   grant_id    TEXT PRIMARY KEY,
-  secret_hash TEXT NOT NULL,
+  secret_hash TEXT NOT NULL,                -- indexed lookup by presented secret
+  secret_enc  TEXT NOT NULL,                -- iv:tag:ciphertext, AES-256-GCM
   owner_a     TEXT NOT NULL,               -- always least(owner_a, owner_b)
   owner_b     TEXT NOT NULL,               -- always greatest(owner_a, owner_b)
   created_by  TEXT NOT NULL,
@@ -98,16 +99,18 @@ export type SocialCourse = {
   title: string;      // "Problem Solving Using Java"
   venue: string;      // "AB1-607B"
   ltpjc: string;      // "0 0 4 0 2.0" — raw from the "L T P J C" column
-  category: string;   // "Lab Only" | "Embedded Theory" | "Embedded Lab" — the
-                      // authoritative theory/lab discriminator
+  category: string;   // "University Core Courses" — a course taxonomy, NOT theory/lab
+  componentType: string; // "Lab Only" | "Embedded Theory" | "Online Course" | …
   classId: string;    // "CH2026270102069" — embeds the semester code
   faculty: string;
 };
 ```
 
-`ltpjc`, `category` and `classId` are the "course allocation" half of the derivation. They are stored so a future consumer can build a proper weekly grid without another VTOP scrape.
+`ltpjc`, `category`, `componentType` and `classId` are the "course allocation" half of the derivation, stored so a future consumer can build a proper weekly grid without another VTOP scrape.
 
-`category` is worth calling out. The existing parser infers theory-vs-lab from whether a *slot id* starts with `L` (`fetchTimeTable.ts`), which misclassifies `F1+TF1` — a theory-plus-tutorial slot belonging to an **Embedded Theory** course. The `Category` column states it directly, and it is already parsed correctly at `cells[4]`.
+**`category` and `componentType` are different fields from different columns, and that distinction matters.** `category` is the `Category` column — a course taxonomy (`University Core Courses`, `Open Elective Courses`, `Concentration (CON Basket)`, …). `componentType` comes from the parenthesised suffix of the `Course` cell and is the component marker (`Theory Only`, `Lab Only`, `Embedded Theory`, `Embedded Lab`, `Online Course`, `Soft Skill`). The two vocabularies are disjoint. The existing parser infers theory-vs-lab from whether a *slot id* starts with `L` (`fetchTimeTable.ts`), which misclassifies `F1+TF1` — a theory-plus-tutorial slot belonging to an **Embedded Theory** course. Use `componentType`.
+
+**One code, several rows.** A course is listed once per component, so a single `code` legitimately has multiple entries differing in `componentType`, `classId` and `venue` — 9 codes across 13 components on the probed account. `classId` is the dedupe key.
 
 `classId` embeds the semester code (`CH20262701` + `02069`), which the derivation uses as a post-fetch self-check: if the returned ids do not start with the resolved `semesterId`, the semester was wrong and the record is discarded.
 
@@ -162,7 +165,7 @@ export interface SocialTimetable {
 
 export interface SocialGrant {
   grantId: string;
-  secret: string;          // plaintext; only ever stored client-side
+  secret: string;          // plaintext; stored client-side, and server-side only as secret_enc
   peerHandle: string;
   peerName: string;
   visibility: SocialVisibility;

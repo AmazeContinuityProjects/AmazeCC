@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import BookCover from "./BookCover";
+import { ListSkeleton } from "../shared/primitives";
 import { DEMO_BOOKS, DEMO_DETAILS } from "@/lib/libraries/demo";
 import {
   PAGE_SIZE,
@@ -573,17 +574,7 @@ export default function CatalogSearch({
   const body = selectedBook ? (
     detailView
   ) : loading && !results.length ? (
-    <div className={LIST_SHELL}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className={`${LIST_ROW} pointer-events-none`}>
-          <div className="w-9 h-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-2/3 rounded bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-            <div className="h-2.5 w-1/3 rounded bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-          </div>
-        </div>
-      ))}
-    </div>
+    <ListSkeleton rows={5} leading="book" titleWidth="w-2/3" />
   ) : error ? (
     <div className={EMPTY_STATE}>
       <X className="w-7 h-7 text-red-400 mx-auto" />

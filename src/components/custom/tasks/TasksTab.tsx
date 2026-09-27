@@ -30,7 +30,13 @@ import { isDueOnDay } from "@/lib/taskMatch";
 import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import { isTaskOverdue } from "@/types/tasks";
-import BackButton from "../shared/BackButton";
+import {
+  InsightCarousel,
+  PageShell,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
+import { TILE } from "@/lib/uiTokens";
 import KanbanView from "./KanbanView";
 import TaskListView from "./TaskListView";
 import TaskWeekView from "./TaskWeekView";
@@ -64,8 +70,7 @@ const TONE_BADGE: Record<string, string> = {
   zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
 };
 
-const CARD_BASE =
-  "p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden";
+const CARD_BASE = `${TILE} min-h-36 sm:min-h-40`;
 
 const SEG_ACTIVE =
   "bg-indigo-600 text-white shadow-xs";
@@ -108,8 +113,6 @@ export default function TasksTab({
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>("all");
 
   // Carousel state
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
   // Initial load & migrate (Main hydrates at boot; this is a safety net so the
   // hub is never empty after a fresh mount)
@@ -259,60 +262,29 @@ export default function TasksTab({
     [todayTasks, overdueTasks.length, scheduledChunks, doneCount]
   );
 
-  useEffect(() => {
-    setSlideIndex(0);
-  }, [slides.length]);
-
-  useEffect(() => {
-    if (isCarouselPaused || slides.length <= 1) return;
-    const timer = setInterval(() => {
-      setSlideIndex((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [isCarouselPaused, slides.length]);
-
-  const slide = slides[slideIndex] || slides[0];
+  const carousel = useCarousel(slides.length);
+  const insightSlides = useMemo<InsightSlide[]>(
+    () =>
+      slides.map((s) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        tone: s.tone,
+        onClick: s.onClick,
+      })),
+    [slides]
+  );
   const openTone = overdueTasks.length > 0 ? "red" : openTasks.length > 0 ? "indigo" : "zinc";
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
-      {/* Active in-app notification banner */}
-      {activeNotification && (
-        <div className="p-4 rounded-[24px] bg-indigo-500 text-white shadow-md flex items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-2.5 text-xs font-black">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span>{activeNotification}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveNotification(null)}
-            className="text-xs font-bold underline cursor-pointer hover:opacity-80"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* ── HEADER (course page arrangement) ── */}
-      <div className="px-1">
-        {onBack && (
-          <div className="mb-5 flex">
-            <BackButton onClick={onBack} className="self-start" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1.5">
-            Tools · Tasks
-          </p>
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit">
-            Tasks &amp; Schedule
-          </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-            Timetable-linked study sessions, homework &amp; digital assignments
-          </p>
-        </div>
-      </div>
-
+    <PageShell
+      eyebrow="Tools · Tasks"
+      title="Tasks & Schedule"
+      subtitle="Timetable-linked study sessions, homework & digital assignments"
+      onBack={onBack}
+    >
       {/* ── ACTIONS ── */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
@@ -362,63 +334,13 @@ export default function TasksTab({
         </div>
 
         {/* CARD 2: ROTATING INSIGHT CAROUSEL */}
-        <div
-          onMouseEnter={() => setIsCarouselPaused(true)}
-          onMouseLeave={() => setIsCarouselPaused(false)}
-          onTouchStart={() => setIsCarouselPaused(true)}
-          onTouchEnd={() => setIsCarouselPaused(false)}
-          onClick={() => slide.onClick()}
-          className={`${CARD_BASE} transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-              {slide.title}
-            </span>
-            <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${TONE_BADGE[slide.tone]}`}
-            >
-              {slide.badge}
-            </span>
-          </div>
-          <AnimatePresence mode="wait">
-            <m.div
-              key={slide.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="my-auto py-1 min-w-0"
-            >
-              <span
-                className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${TONE_TEXT[slide.tone]}`}
-              >
-                {slide.headline}
-              </span>
-            </m.div>
-          </AnimatePresence>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {slide.subline}
-            </p>
-            {slides.length > 1 && (
-              <div className="flex items-center gap-1 shrink-0">
-                {slides.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSlideIndex(idx);
-                    }}
-                    aria-label={`Go to ${s.title}`}
-                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      slideIndex === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <InsightCarousel
+          slides={insightSlides}
+          carousel={carousel}
+          headlineSize="lg"
+          height="min-h-36 sm:min-h-40"
+          interactiveDots
+        />
       </div>
 
       {/* ── VIEW SEGMENTS + COURSE FILTER ── */}
@@ -580,6 +502,6 @@ export default function TasksTab({
         onClose={() => setIsMoodleModalOpen(false)}
         onImportComplete={() => {}}
       />
-    </div>
+    </PageShell>
   );
 }

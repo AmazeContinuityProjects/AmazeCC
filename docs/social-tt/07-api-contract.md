@@ -77,26 +77,29 @@ A `404 handle_not_found` is returned for a non-existent *and* an unpaired-but-va
 
 ---
 
-## `GET /api/social/timetable`
+## `POST /api/social/timetable`
 
-The read. Credentials go in a header, not the query string, so they stay out of logs.
+The read. **Not a `GET`.** The grant secret is a bearer credential, and a credential in a query string ends up in access logs, browser history and `Referer` headers. It travels in the JSON body instead, alongside the forwarded VTOP session.
 
-| Param | Notes |
+| Body field | Notes |
 |---|---|
-| `handle` | required |
+| `secret` | required; the shared grant secret |
+| `handle` | required; the peer to read. There is deliberately **no** `regNumber` parameter anywhere in this contract — that omission is the point. A valid secret authorises only the people named in that grant. |
 | `semester` | optional; defaults to the server's current semester |
 
-**Headers** — `Cookie` and the caller's session, forwarded. The read itself needs no VTOP call; the session is verified so the caller is a known student, not so the server can scrape on their behalf.
+**Session** — the VTOP session is required and verified, so the caller is a known student. The read itself needs no VTOP call; the session is checked so the server knows *who* is asking, not so it can scrape on their behalf.
 
-**Response 200** — as `identity`/`busyMap`/`courses` above, plus `visibility: "coarse" | "full"` and `stale: boolean` when `publishedAt` is over 14 days old.
+**Response 200** — `identity` (handle, displayName, semesterId, semesterLabel, publishedAt, slotmapVersion) · `visibility` · `stale` (true when `publishedAt` is over 14 days old) · `version` · `busyMap` · `courses`. `identity.owner_key` is **not** returned; the client keys peers by handle, so the internal pseudonym would only be one more correlatable identifier. On a `coarse` grant, `busyMap` keys are returned with every entry emptied, `courses` is `[]`, and the course detail is never serialised in the first place — the redaction happens server-side.
 
-**Errors** — `403 not_a_participant` (no grant, revoked, or expired) · `404 no_timetable_for_semester` · `401 vtop_session_expired`
+**Errors** — `403 grant_invalid` (unknown, revoked or expired secret) · `403 not_a_participant` (returned identically whether the caller or the target is outside the grant, so it is not an oracle) · `404 handle_not_found` · `404 no_timetable_for_semester` · `401 vtop_session_expired`
 
 ---
 
 ## `POST /api/social/grant/revoke`, `POST /api/social/grant/visibility`
 
-Both take `{ grantId, secret }`. Revoke sets `revoked_at`; visibility sets the `coarse`/`full` flag. Either participant may call either. Both are idempotent, and neither is a `GET` even though revoke is a state change with no body — a revocation that could be triggered by a prefetch or a link preview is not a revocation.
+Both take `{ grantId, secret }` plus the forwarded session. Revoke sets `revoked_at`; visibility sets the `coarse`/`full` flag. Either participant may call either. Both are idempotent, and neither is a `GET` even though revoke is a state change with no body — a revocation that could be triggered by a prefetch or a link preview is not a revocation.
+
+Re-pairing after a revoke is `POST /api/social/pair/claim` again. Because there is one row per pair, the claim **reactivates** that row with a new `grant_id` and a new secret rather than inserting a second one, so the previous secret is definitively dead.
 
 ---
 
@@ -106,9 +109,11 @@ Returns `{ semesterId, semesterLabel, resolvedAt }` from `app_config`, for the c
 
 ---
 
-## `GET /api/social/people` (optional)
+## `POST /api/social/people`
 
-`{ handle, since? }` → the caller's peers with publish state. Exists so the UI can render a peer list without making N timetable calls. Each entry is the same shape as `peers` in the sync response.
+`{ handle }` → `{ person: { handle, displayName, alreadyPaired } }`. Exact-match handle lookup, so the pairing UI can confirm a handle before claiming. **Not a `GET`**, so the handle does not land in access logs, and it requires a live session, so an unauthenticated caller cannot walk handles at all.
+
+There is deliberately **no name search**. A handle system that also answers "who is called Neha Patel" is a student directory, which is a different and much larger privacy decision than the one this feature makes. Enumeration is additionally bounded to 20/minute. `owner_key` is not returned.
 
 ---
 

@@ -19,16 +19,23 @@ Seven phases. Each is independently shippable and verifiable; none leaves the ap
 
 **Verify:** `npx tsc --noEmit`, `npx vitest run`, `npx next build --webpack`; API `pnpm lint && pnpm build`. The reg-reader fix alone will start firing the existing POST — which 404s until Phase 1, so either ship Phase 0 and 1 together or hold the reg fix. **They must not be split.**
 
-## Phase 1 — Server derivation
+## Phase 1 — Server derivation — **DONE**
 
 | Work | Where |
 |---|---|
-| `social_people` / `social_timetables` inline DDL | `AmazeCC-API/src/app/api/social/identity/sync/route.ts` |
-| VTOP identity → `owner_key`; semester resolution with the selected-then-validated fallback | same |
-| Slot-vocabulary validator over `config.json` | `AmazeCC-API/src/lib/socialVocabulary.ts` |
-| Header-name-based timetable parser (not index-based) | `AmazeCC-API/src/lib/socialTtable.ts` |
+| `social_people` / `social_timetables` inline DDL | `AmazeCC-API/src/lib/socialDb.ts` |
+| VTOP identity → `owner_key`; semester validated against the scraped list | `AmazeCC-API/src/app/api/social/identity/sync/route.ts` |
+| Slot-vocabulary loader, validator and `SLOTMAP_VERSION` | `AmazeCC-API/src/lib/socialVocabulary.ts` |
+| Header-name-based timetable parser (the `" - "` split) | `AmazeCC-API/src/lib/socialTimetable.ts` |
+| Semester list scrape + resolution | `AmazeCC-API/src/lib/socialSemester.ts` |
 | `maskUserID` for `owner_key` | reuses `src/lib/mask.ts` |
-| `ROUTE_TRACKER.md`, `docs/api/social.md`, overview row | both repos |
+| Synced the stale `config.json` | `AmazeCC-API/config.json` |
+
+**Verified** with 25 pure-logic checks and 28 end-to-end checks against a live VTOP session and the real database: `400` on missing credentials, `422` on an un-offered semester, `200` on the happy path, 32 valid `(day, slotId)` keys, 13 course components across 9 codes, real course codes, disjoint `category`/`componentType` vocabularies, `classId` prefix self-check, no reg-number echo, and `version` incrementing on republish with a stable handle.
+
+**Two bugs this phase caught:**
+- The `Category` column is a course taxonomy, not a component type. Fixed by splitting `category` from `componentType`.
+- The server's `config.json` had silently drifted from the frontend's. Synced, and now read through one module with a version hash.
 
 **Verify:** the probe output, then a `curl` against a local dev server with real credentials, asserting a stored row with a plausible busy map.
 
@@ -38,25 +45,134 @@ Seven phases. Each is independently shippable and verifiable; none leaves the ap
 
 `social_grants` DDL, secret minting, the read route, revoke, visibility. The mutual-pairing invariant (`least`/`greatest` + `UNIQUE`) lands here.
 
-**Verify:** pair two accounts, read both directions, revoke, confirm both directions die. Attempt a read with a valid secret for the wrong target — expect `403 not_a_participant`.
+**Verify:** pair two accounts, read both directions, revoke, confirm both directions die. Attempt a read with a valid secret for the wrong target — expect `403 not_a_participant`. **Done**, using a synthetic second student rather than a real account, since a live pairing needs two real students. All synthetic rows were removed afterwards.
 
-## Phase 3 — Client sync op
+**Status: implemented and verified.** Routes: `pair/claim`, `timetable`, `grant/revoke`, `grant/visibility`, `people`, `semester`. Libraries: `socialGrantSecret`, `socialGrantLogic`, `socialGrants`, `socialCaller`.
+
+Two design corrections were made during implementation, both recorded in [06-grants-and-pairing.md](./06-grants-and-pairing.md) §1a:
+
+- The secret is stored as `secret_hash` **and** `secret_enc` (AES-256-GCM), not hash-only. Hash-only made mutual pairing impossible, because the non-claiming partner could never be given the secret.
+- Re-pairing after a revoke reactivates the single row for the pair instead of inserting a second one, so `UNIQUE (owner_a, owner_b)` stays honest and the old secret is overwritten rather than merely shadowed. This one was caught by the E2E, not by review.
+
+## Phase 3 — Client sync op ✅
 
 The `social` op, `OP_LABELS` entry, **both** `Main.tsx` chains, the atoms, `useSocialData`, the debounced push. Client-side storage keys.
 
-**Verify:** the global Sync button shows "Friends & groups" and its line goes green; add a friend on device A and see them on device B after a sync.
+**Status: implemented and verified.** `registerOp({ name: "social" })` in
+`operations.ts`, `OP_LABELS.social = "Friends & groups"`, chain 1 (`Main.tsx:531`)
+and chain 2 (`Main.tsx:824`), `src/store/socialAtoms.ts`,
+`src/lib/social/useSocialData.ts`, and the grant/identity/timetable-cache keys in
+`src/lib/social/storage.ts`.
 
-## Phase 4 — Comparison
+Three things worth recording, because each is a trap rather than a task:
+
+- **The op must never throw.** Both chains `await` ops sequentially inside one
+  `try`, so a throw would skip `buses` and `bulk` in chain 1. It returns `null` on
+  every failure path and records the reason in `socialSyncStateAtom.lastError`
+  instead, so a failed push never reads as "you have no friends". Asserted in
+  `social-sync-op.test.ts`, not left to review.
+- **The demo guard needs `demoMode` in `args`, not just the username check.**
+  `credential-manager.ts:71-73` hands back `authorizedID: "DEMO123"` for *any*
+  username when `demoMode` is set, so checking `ids.VtopUsername === "demo"` alone
+  lets a real-username demo run 401 and put a bogus failure in the sheet.
+- **The two chains disagree on the semester variable's name** (`currSemesterID` vs
+  `activeSem`), so the op accepts `proposedSemesterId`, `semesterId` and `activeSem`
+  rather than silently reading the wrong one.
+
+`vitest.config.ts` gained the `@/` alias, which it never had — without it no module
+importing through the alias could be tested at all, so the new code was untestable
+by construction.
+
+**Verify:** the global Sync button shows "Friends & groups" and its line goes
+green — covered by a unit test on the label. The cross-repo contract is verified
+against the live API by `scripts/verify-client-contract.mts`, which asserts the real
+`identity/sync` response has exactly the keys `SocialSyncPayload` declares and no
+others. The device-A/device-B round trip still needs two real accounts and is the
+one item here that is not yet done.
+
+## Phase 4 — Comparison ✅
 
 `src/lib/social/schedule.ts` with `buildBusyMap`, `computeOverlap`, and one `toMinutes`. Collapse the three existing time parsers onto it.
 
-**Verify:** unit tests plus a manual pass where a known conflict is confirmed to register as a conflict.
+**Status: implemented and verified.** 64 new tests. The fabricated figure is gone:
+`SocialTab` no longer computes `70 + (seed % 25)` from a character hash.
 
-**This is the phase that removes the fabricated "% match".** The old figure is `70 + (seed % 25)` from a character hash — real numbers replace invented ones, and the friend row will visibly change.
+What the collapse found, which is the actual value of doing it:
 
-## Phase 5 — UI
+- The three parsers (`CommonFreeSlotsGrid`, `attendance/TimetableGrid`,
+  `attendanceTimetable`) differed at exactly one input, `h === 0`, and
+  `config.json` has no hour below 1 — so they agreed **by coincidence**, not by
+  design. Verified mechanically across all 164 slots; the equivalence is now a
+  test, so a vocabulary edit that breaks it fails loudly.
+- **The doc's own `computeOverlap` pseudocode was broken twice.** It iterated the
+  union of the two busy maps, so the "neither is busy" branch was unreachable
+  and `commonFreeSlots` was permanently 0; and it divided a free-slot count by a
+  busy-slot count, which can exceed 100%. Both corrected in §7 of
+  [09-schedule-math.md](./09-schedule-math.md), which now carries the shipped
+  implementation.
+- **Collapsing `getTodayAttendanceDay` introduced a real off-by-one**, caught by
+  the existing `attendanceTimetable.test.ts`: `DAYS` is MON-first (it mirrors
+  `config.slotMap`'s key order) while `Date.getDay()` is 0=Sunday, so indexing
+  one with the other shifted every day. `dayKeyForDate` owns that mapping now.
+- **The day-blind friend grid is fixed.** `CommonFreeSlotsGrid` ignored
+  `slot.day` and re-fanned each `slotId` across all seven days, so a legacy
+  friend with `{ day: "MON", slotId: "A1" }` showed busy on Monday *and* Wednesday
+  — which is every theory block. `busyMapFromClassSlots` respects the day.
 
-Token module, then landing + 4 subpages, then the grid, then the 5 modals. [11-ui-redesign.md](./11-ui-redesign.md).
+**Verify:** unit tests plus a manual pass where a known conflict is confirmed to
+register as a conflict. The manual pass is now a test
+("a known conflict registers as a conflict"): two VTOP-shaped timetables with a
+conflict planted in a known slot, asserting an identical week scores 0% and full
+shared hours, a one-slot overlap scores 83%, and a peer in a different block
+scores 100%.
+
+**One presentation trap is guarded explicitly.** A peer with no shared timetable
+makes every one of my slots clash-free, which the formula reports as a 100% match
+— arithmetically correct and completely misleading. `SocialTab` checks
+`classSlots.length === 0` first and renders "no timetable shared yet". Both halves
+are pinned by tests, so the guard cannot be quietly dropped.
+
+## Phase 5 — UI ✅
+
+Token module, then landing + 4 subpages, then the grid, then the modals. [11-ui-redesign.md](./11-ui-redesign.md).
+
+**Status: implemented.** `SocialTab.tsx` 832 → 417 lines, with 10 new extracted
+components: `rows.tsx`, `PeopleSubpage`, `PairsSubpage`, `FreeNowSubpage`,
+`CommonFreeGridSubpage`, `ShareHandleSheet`, `AddPeerSheet`, `PeerTimetableSheet`,
+plus the rewritten `CommonFreeSlotsGrid`. 762 lines of superseded modals deleted
+(`AddFriendModal`, `AddGroupModal`, `FriendTimetableModal`, `ShareScheduleModal`),
+all confirmed unreferenced first.
+
+The token promotion in §2 of the UI doc had **already happened** — `uiTokens.ts`
+exists and `libraries/ui.ts` is already a re-export shim. Only the two new tokens
+were missing: `TILE_INTERACTIVE` and `SEARCH_FIELD`, both added.
+
+### Deviations from the plan, and why
+
+- **No `PairPeerSheet`; groups are gone.** The plan assumed groups survive as a
+  client-side view over the grant list. Now that pairings live on the server, a
+  second client-side grouping would be a second source of truth that can disagree
+  with the first, so `PairsSubpage` lists grants directly. If grouping is wanted
+  it should be *derived* from that list, not stored beside it.
+- **`CommonFreeGridSubpage` instead of `CommonFreeSlotsSheet`.** The UI doc §5
+  lists Common Free Grid as a *subpage* and only mentions de-nesting the sheet, so
+  the subpage won.
+- **`CommonFreeSlotsModal` is kept, not deleted.** `AttendanceTabs.tsx` uses it
+  for the Dashboard's own friends list, which is still on the legacy model. Rather
+  than keep the old grid alive, the modal now adapts `Friend[]` → the new
+  `GridPeer[]` and the Dashboard picks up the day-aware fix for free.
+
+### The bug the grid tests caught
+
+The 7 × 12 projection initially indexed each day's slots by **time string alone**.
+But a theory slot and its paired lab run at the same time on the same day — Monday
+has both `A1` and `L1` at 08:00–08:50 — so both halves of a pair resolved to the
+same slot. The grid rendered **168 cells for 164 slots**, duplicating six pairs and
+dropping six slots entirely. Fixed by keying the index on time *and* half, using the
+`L` prefix. `src/__tests__/social-grid.test.ts` now pins the 164-slot coverage.
+
+**Verify:** tsc clean, lint clean, production build compiles, 278 tests pass
+(12 new for the projection and row helpers).
 
 ## Phase 6 — Legacy retirement
 
@@ -103,7 +219,7 @@ Codes in the wild are expiring anyway: `v6` carries an absolute expiry and the "
 | 1 | Route deleted; the app falls back to local-only, which is today's behaviour |
 | 2 | Route deleted; unused tables remain harmless |
 | 3 | Op removed from both chains; local-only |
-| 4 | Revert to local-only comparison |
+| 4 | Revert to local-only comparison. **Note:** the old figures were fabricated, so a rollback restores a visible lie rather than a correct one |
 | 5 | Old UI restored from git |
 | 6 | Irreversible — the legacy key is kept until the end of Phase 6 |
 

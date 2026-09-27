@@ -1,27 +1,37 @@
 import config from "../../config.json";
+import { DAYS, dayKeyForDate, slotRange, toMinutes } from "./social/schedule";
 
 export const ATTENDANCE_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
-export type AttendanceDay = (typeof ATTENDANCE_DAYS)[number];
+export type AttendanceDay = (typeof DAYS)[number];
 export type AttendanceDayCardsMap = Record<AttendanceDay, any[]>;
 
-export function parseAttendanceTime(timeStr: string) {
-  let [h, m] = timeStr.trim().split(":").map(Number);
-  if (h < 8) h += 12;
-  return h * 60 + (m || 0);
+/**
+ * Delegated to the one parser in `social/schedule.ts`.
+ *
+ * This used to carry its own rule, `if (h < 8) h += 12`, which is *not* the same
+ * rule as the two grid components' `isPM = h === 12 || (h >= 1 && h <= 7)`.
+ * They diverged only at `h === 0`, and `config.json` has no hour below 1, so all
+ * three agreed on the real vocabulary — agreement by coincidence, not by design.
+ *
+ * It is kept as a named export because four call sites
+ * (`ODTrackerSubpage.tsx`, `SimplifiedMobileHome.tsx`, `taskMatch.ts`, and the
+ * range helper below) import it, and renaming those is churn for no gain. The
+ * implementation is now shared rather than triplicated.
+ */
+export function parseAttendanceTime(timeStr: string): number {
+  return toMinutes(timeStr);
 }
 
 export function getAttendanceTimeRange(time: string) {
-  const [start, end] = time.split("-").map((t) => t.trim());
-  return {
-    start: parseAttendanceTime(start),
-    end: parseAttendanceTime(end),
-  };
+  return slotRange(time);
 }
 
 export function getTodayAttendanceDay(date = new Date()): AttendanceDay {
-  const days: AttendanceDay[] = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  return days[date.getDay()];
+  // NOT `DAYS[date.getDay()]`. `DAYS` is MON-first (it mirrors config.slotMap's
+  // key order) while `Date.getDay()` is 0=Sunday, so indexing one with the other
+  // silently shifts every day by one. `dayKeyForDate` owns that mapping.
+  return dayKeyForDate(date);
 }
 
 export function buildAttendanceDayCardsMap(

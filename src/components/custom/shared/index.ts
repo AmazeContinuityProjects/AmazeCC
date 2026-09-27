@@ -22,6 +22,8 @@ export { Input, Textarea, Select } from "@amazecontinuityprojects/amazeui";
 export { PageHeader } from "@amazecontinuityprojects/amazeui";
 export { EmptyState } from "@amazecontinuityprojects/amazeui";
 export { CommandPalette } from "./CommandPalette";
+// Page structure primitives (shell, header, subpages, surfaces, controls).
+export * from "./primitives";
 export { ErrorDiagnosticCard } from "@amazecontinuityprojects/amazeui";
 export { AboutSection } from "@amazecontinuityprojects/amazeui";
 export { SettingsPanel } from "@amazecontinuityprojects/amazeui";

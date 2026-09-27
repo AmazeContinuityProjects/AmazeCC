@@ -32,6 +32,7 @@ import {
   Settings,
   User,
   Wrench,
+  WifiOff,
   Calendar,
   Compass,
   Key,
@@ -74,6 +75,7 @@ import {
   SidebarExpandButton,
 } from "@amazecontinuityprojects/amazeui";
 import { AppLibrary, MobileBottomNav } from "@amazecontinuityprojects/amazeui";
+import { useSyncTrigger } from "../shared/useSyncTrigger";
 import config from "../../../../config.json";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
@@ -321,6 +323,8 @@ export default function NavigationTabs({
     await handleReloadRequest();
     window.setTimeout(() => setIsSpinning(false), 600);
   }, [handleReloadRequest]);
+
+  const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleReloadClick);
 
   const selectTab = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -1020,13 +1024,22 @@ export default function NavigationTabs({
             {isOpen && (
               <div className="flex items-center gap-0.5">
                 <button
-                  onClick={handleReloadClick}
-                  className={`relative group rounded-xl px-2.5 py-1.5 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-accent hover:text-sidebar-foreground hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase}`}
-                  title="Sync Data from VTOP"
-                  aria-label="Sync Data from VTOP"
+                  onClick={handleSyncClick}
+                  className={`relative group rounded-xl px-2.5 py-1.5 transition-all duration-300 hover:scale-105 flex items-center gap-1.5 text-xs font-bold ${navButtonBase} ${
+                    isOffline
+                      ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  }`}
+                  title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
+                  aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
+                  aria-live="polite"
                 >
-                  <RefreshCcw className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`} />
-                  <span>Sync</span>
+                  {isOffline ? (
+                    <WifiOff className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <RefreshCcw className={`h-3.5 w-3.5 transition-transform ${isSpinning ? "animate-spin text-indigo-500" : "group-hover:rotate-180 duration-500"}`} />
+                  )}
+                  <span>{isOffline ? "Offline" : "Sync"}</span>
                 </button>
                 <button
                   onClick={() => persistSidebarState(!settings.isSidebarCollapsed)}

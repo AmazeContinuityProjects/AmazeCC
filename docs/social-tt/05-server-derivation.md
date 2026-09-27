@@ -86,12 +86,31 @@ Note the separator is surrounded by whitespace in every observed sample, so a na
 const m = /^([A-Z0-9]+)\s+-\s+(.*?)\s*\(\s*([^)]+?)\s*\)$/.exec(cell2);
 const code = m?.[1];      // "BACSE102"
 const title = m?.[2];     // "Problem Solving Using Java"
-const type = m?.[3];      // "Lab Only" | "Embedded Theory" | "Embedded Lab"
+const componentType = m?.[3]; // "Lab Only" | "Embedded Theory" | "Embedded Lab"
 ```
 
-This is better than the existing `fetchTimeTable.ts`, which synthesises the code as `cells[2].split(" ")[0] + "(L)"` — that happens to recover `"BACSE102"` as the first token, then appends a component marker, producing a string like `"BACSE102(L)"` that is not a VTOP course code. Worse, it infers theory-vs-lab from `cells[7].startsWith("L")`, i.e. whether the *slot* begins with `L`. That is wrong for `F1+TF1` (a theory-plus-tutorial slot for an **Embedded Theory** course) and right only by accident for genuine lab slots.
+This is better than the existing `fetchTimeTable.ts`, which synthesises the code as `cells[2].split(" ")[0] + "(L)"` — that happens to recover `"BACSE102"` as the first token, then appends a component marker, producing `"BACSE102(L)"`, which is not a VTOP course code. Worse, it infers theory-vs-lab from `cells[7].startsWith("L")`, i.e. whether the *slot* begins with `L`. That is wrong for `F1+TF1` (a theory-plus-tutorial slot for an **Embedded Theory** course) and right only by accident for genuine lab slots.
 
-**The `Category` column (`Lab Only`, `Embedded Theory`, `Embedded Lab`) is the authoritative component discriminator** and is already parsed correctly at `cells[4]`. Use it.
+### `Category` is NOT the component type — a correction
+
+An earlier draft of this doc claimed the `Category` column was "the authoritative theory/lab discriminator". **That is wrong**, and the end-to-end test caught it: the column contains a *course taxonomy*, not a component marker.
+
+Observed against a real account, 13 course components:
+
+| Field | Source | Values seen |
+|---|---|---|
+| `category` | the `Category` column | `University Core Courses`, `Programme Core Courses`, `Open Elective Courses`, `Concentration (CON Basket)`, `University Core Courses (GENERAL Basket)`, `University Core Courses (GENERAL Basket) Programme Core Courses`, `University Core Courses (LANGUAGE Basket)` |
+| `componentType` | parenthesised suffix of the `Course` cell | `Theory Only`, `Lab Only`, `Embedded Theory`, `Embedded Lab`, `Online Course`, `Soft Skill` |
+
+The two vocabularies are **disjoint**, and the E2E test asserts that they stay disjoint so the columns can never be confused again. `componentType` is the theory/lab signal; note it is broader than theory-vs-lab, since `Online Course` and `Soft Skill` are neither.
+
+A course appears once per component, so one `code` legitimately has several rows with different `componentType`, `classId` and `venue` — 9 codes across 13 components on the probed account. `classId` is the dedupe key for that reason.
+
+### `"NIL"` is a real venue sentinel
+
+Not every enrolled component occupies a slot. An **Online Course** is listed with its `Slot/ Venue` cell effectively empty and its venue reported as the literal string `"NIL"`, and it therefore contributes **no** `busy_map` entries — which is correct, because a component with no slot is not in anyone's timetable.
+
+On the probed account, 12 of 13 components occupy slots and one (`ACFOC309`, `Online Course`) does not. The end-to-end test asserts that any course missing from the `busy_map` is only ever a slotless one, so a regression that silently dropped real slots would fail rather than pass quietly. Clients must likewise not treat a course with `venue === "NIL"` as a data error.
 
 ### `Class Id` embeds the semester
 
@@ -117,7 +136,7 @@ The same fan-out is what `CommonFreeSlotsGrid.tsx:68-80` already does — but it
 |---|---|---|
 | Global sync | `POST /api/social/identity/sync` | The explicit path. Runs in both hardcoded chains at `Main.tsx:519-541` and `Main.tsx:796-870` |
 | Debounced after own timetable changes | same | ~5s debounce, so adding a friend or switching semester is not a network round trip |
-| Peer read, if stale | `GET /api/social/timetable` | **Read-only. The server never re-derives on a read**, because it has no session for anyone but the caller |
+| Peer read, if stale | `POST /api/social/timetable` | **Read-only. The server never re-derives on a read**, because it has no session for anyone but the caller |
 
 A peer's record therefore only refreshes when *they* sync. This is the real trade-off of the design and it is surfaced rather than hidden: `lastPublishedAt` drives a staleness badge, and anything over 14 days is flagged explicitly. A peer who has stopped opening the app shows a stale badge, which is the honest answer — the alternative would be storing their session server-side, which was rejected.
 

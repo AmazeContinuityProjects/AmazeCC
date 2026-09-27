@@ -28,6 +28,14 @@ There is no cron or background job that stores timetables. `src/app/api/cron/` c
 
 **The server also cannot obtain one unaided.** It holds no VTOP credentials by design — every route forwards the caller's `cookies` + `csrf` and proxies. That is what makes the "client authenticates, server derives" model in [01-overview.md](./01-overview.md) necessary rather than merely convenient.
 
+### The two `config.json` copies had already drifted
+
+`AmazeCC-API/config.json` and `AmazeCC/config.json` are separate files with the same two keys (`semesterIDs`, `slotMap`). At the time of the audit the server's copy was **stale and missing data the client had**: it had no `S8B` or `S10B`, and its `S8`/`S10` were an hour off (`12:35-1:25` versus the client's `11:40-12:30`).
+
+Nothing detected it because the server's copy had **zero importers** — it was referenced only by the dead `src/lib/socialUtils.ts`, so no code path could notice. A stale server vocabulary would have rejected any weekend seminar slot at ingest as an unknown key.
+
+The copies are now synced and `src/lib/socialVocabulary.ts` is the single place on the server that reads it, which makes the divergence detectable. `SLOTMAP_VERSION` is a hash of the vocabulary, the client sends its own, and a mismatch is rejected. Any future change to the frontend `config.json` slot map must be copied in the same commit.
+
 ## 3. Backend: no per-student identity
 
 There is no students table. 43 tables were enumerated; none is a registry.

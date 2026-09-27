@@ -16,12 +16,28 @@ B enters it   ──> POST /api/social/pair/claim  { handle: "AMZ-4F7K-2Q9X" }
                             stored sorted: least(A,B), greatest(A,B)
                             secret = 32 random bytes, base64url
                             secret_hash = HMAC(SOCIAL_GRANT_SECRET_KEY, secret)
+                            secret_enc  = AES-256-GCM(SOCIAL_GRANT_SECRET_KEY, secret)
                             → returns { grantId, secret, peer: { handle, name, semesters } }
                     B stores the secret.
                     A learns about the grant on A's next sync and stores the same secret.
 ```
 
 Either party can then read the other's timetable by presenting the secret. That is the "common to both" property: it is not two tokens, it is one token that both sides hold, and possession of it is what authorises the read.
+
+## 1a. Why the secret is stored twice
+
+An earlier draft of this document specified storing **only** `secret_hash` and then also expected the server to return the plaintext to the *other* partner on their next sync. That is not implementable: a hash cannot be reversed, so the non-claiming partner could never obtain the shared secret and would be permanently unable to read the timetable they had just been granted.
+
+Since both sides must hold the secret, the server has to be able to recover it. So the row stores both:
+
+| Column | Purpose |
+|---|---|
+| `secret_hash` | Indexed lookup — "which grant is this secret?" |
+| `secret_enc` | `iv:tag:ciphertext`, AES-256-GCM, so the secret can be given back to a participant |
+
+The encryption key is derived from `SOCIAL_GRANT_SECRET_KEY` with a domain-separation label (`social-grant-secret/aes-256-gcm/v1`) so the AES key and the HMAC key are never the same bytes. `secret_enc` is decrypted on exactly one path, and only for a caller who is a participant of that grant.
+
+**What this does and does not buy.** A non-participant still cannot obtain a secret: every read path resolves the caller from the VTOP session and checks participation first. What it costs is that a database dump is no longer sufficient on its own — an attacker would also need the application key. Given the server already stores every timetable in plaintext, that is a marginal difference, and it is the right trade for mutual pairing working at all.
 
 ## 2. Read authorisation
 
@@ -45,8 +61,9 @@ if (!isParticipant(grant.row, target.owner_key)) → 403 not_a_participant
 Three properties fall out of this:
 
 - **The reader's own identity is never trusted from the request.** It is derived from the session, as everywhere else. Presenting a grant secret authorises *access to a peer*; it does not let you become someone else.
-- **A secret alone is not enough** — the target must be a participant of the grant the secret belongs to. A leaked secret exposes one specific peer to one specific person, not the whole graph.
+- **A secret alone is not enough** — the caller *and* the target must both be participants of the grant the secret belongs to. Both checks return the same 403 `not_a_participant` so a caller holding a foreign secret cannot use the response to probe who is paired with whom. A leaked secret therefore exposes one specific peer to one specific person, not the whole graph.
 - **Revocation is a single field.** `revoked_at` on one row kills both directions simultaneously, because both directions were that row.
+- **Re-pairing reactivates the row rather than adding one.** `UNIQUE (owner_a, owner_b)` means at most one grant per pair, ever, so a revoked grant is repaired in place: a new `grant_id`, a new secret hash and ciphertext, and `revoked_at` cleared. This is what guarantees the old secret is dead — its hash is overwritten, not merely shadowed.
 
 The lookup is a `secret_hash` index hit, so it does not depend on `least`/`greatest()` ordering at read time. The `UNIQUE (owner_a, owner_b)` constraint only guards writes.
 

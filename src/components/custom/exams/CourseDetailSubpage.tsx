@@ -1,9 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
 import { BackButton } from "../shared";
+import { EmptyPanel, InsightCarousel, ListShell, TitleBlock, useCarousel, type InsightSlide } from "../shared/primitives";
 import Badge from "../shared/Badge";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
+import { TILE, TILE_CARD } from "@/lib/uiTokens";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -65,6 +67,26 @@ interface CourseDetailSubpageProps {
   onBack: () => void;
 }
 
+/** Attendance status -> insight tone, so the tile colours itself. */
+const ATT_TONE: Record<string, string> = {
+  Safe: "emerald",
+  Warning: "amber",
+  "N/A": "zinc",
+  Critical: "red",
+};
+
+/**
+ * Exact value colours the hand-rolled attendance tile used. Deliberately not
+ * the shared `TONE_TEXT` (that one is amber-600/red-600, this was amber-500 /
+ * red-500) so the migration is colour-neutral.
+ */
+const ATT_VALUE_TEXT: Record<string, string> = {
+  emerald: "text-emerald-600 dark:text-emerald-400",
+  amber: "text-amber-500 dark:text-amber-400",
+  red: "text-red-500 dark:text-red-400",
+  zinc: "text-zinc-400 dark:text-zinc-500",
+};
+
 export default function CourseDetailSubpage({
   marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
   calendars, isDayscholarWithBus,
@@ -83,10 +105,6 @@ export default function CourseDetailSubpage({
   const [qcmData, setQcmData] = useState<any>(null);
   const [qcmLoading, setQcmLoading] = useState(false);
   const [qcmError, setQcmError] = useState("");
-  const [ovActiveSlide, setOvActiveSlide] = useState(0);
-  const [ovCarouselPaused, setOvCarouselPaused] = useState(false);
-  const [ovAttSlide, setOvAttSlide] = useState(0);
-  const [ovAttPaused, setOvAttPaused] = useState(false);
   const [tasks, setTasks] = useAtom(tasksAtom);
   const [isTaskSheetOpen, setIsTaskSheetOpen] = useState(false);
 
@@ -116,8 +134,10 @@ export default function CourseDetailSubpage({
 
   // Overview hero carousels: reset on course/tab change (auto-advance wired after marks helpers)
   useEffect(() => {
-    setOvActiveSlide(0); setOvAttSlide(0);
+    ovActiveCarousel.reset(); ovAttCarousel.reset();
     setInnerTab(initialTab || "overview");
+    // `reset` is a stable useCallback, so it is intentionally not a dep here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCode, initialTab]);
 
   // System back (incl. Android predictive back) walks the in-course hierarchy —
@@ -125,8 +145,8 @@ export default function CourseDetailSubpage({
   // history and landing on home. Mirrors the in-app BackButton order.
   useOverlayBack("course-subpage", innerTab === "overview", onBack);
   useOverlayBack("course-subpage-tab", innerTab !== "overview", () => {
-    setOvActiveSlide(0);
-    setOvAttSlide(0);
+    ovActiveCarousel.reset();
+    ovAttCarousel.reset();
     setInnerTab("overview");
   });
 
@@ -635,8 +655,8 @@ export default function CourseDetailSubpage({
   // Hierarchical back: subtab -> overview -> course list (never straight home)
   const handleBack = () => {
     if (innerTab !== "overview") {
-      setOvActiveSlide(0);
-      setOvAttSlide(0);
+      ovActiveCarousel.reset();
+      ovAttCarousel.reset();
       setInnerTab("overview");
       return;
     }
@@ -858,11 +878,6 @@ export default function CourseDetailSubpage({
     return slides;
   }, [selectedGroup, isSelectedPastSemester, selectedPastGrade, courseTotalString, courseStats, ovTheoryTotals, ovLabTotals, ovTheoryPct, ovLabPct]);
   const ovSlideCount = innerTab === "overview" && selectedCode ? ovMarksSlides.length : 0;
-  useEffect(() => {
-    if (ovCarouselPaused || ovSlideCount <= 1) return;
-    const t = setInterval(() => setOvActiveSlide((p) => (p + 1) % ovSlideCount), 5000);
-    return () => clearInterval(t);
-  }, [ovCarouselPaused, ovSlideCount]);
   // Attendance hero carousel slides (theory + lab rotate on their own, like the marks card)
   const ovAttSlides = useMemo(() => {
     const toSlide = (item: any, badge: string, badgeColor?: string) => {
@@ -887,16 +902,49 @@ export default function CourseDetailSubpage({
     return [toSlide(item, item ? (String(item.courseCode || "").endsWith("(L)") || String(item.courseCode || "").endsWith("(P)") ? "Lab" : "Theory") : "Theory")];
   }, [theoryAttItem, labAttItem, thresholdPct]);
   const ovAttSlideCount = innerTab === "overview" && selectedCode ? ovAttSlides.length : 0;
-  useEffect(() => {
-    if (ovAttPaused || ovAttSlideCount <= 1) return;
-    const t = setInterval(() => setOvAttSlide((p) => (p + 1) % ovAttSlideCount), 5000);
-    return () => clearInterval(t);
-  }, [ovAttPaused, ovAttSlideCount]);
-  const ovGo = (id: string) => {
-    setOvActiveSlide(0);
-    setInnerTab(id);
-    if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
-  };
+  const ovAttCarousel = useCarousel(ovAttSlideCount);
+  const ovActiveCarousel = useCarousel(ovSlideCount);
+  // Attendance status -> tone, so the tile colours itself instead of the
+  // caller hand-rolling a four-way class ternary.
+  const ovAttInsightSlides = useMemo<InsightSlide[]>(
+    () =>
+      ovAttSlides.map((s: any) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        // The tile's pill showed the attendance status, not Theory/Lab.
+        badge: s.status,
+        dotLabel: `${s.badge} attendance`,
+        valueClassName: ATT_VALUE_TEXT[ATT_TONE[s.status] ?? "red"],
+        tone: ATT_TONE[s.status],
+        onClick: () => setInnerTab(`${defaultAttScope}-log`),
+      })),
+    [ovAttSlides, defaultAttScope]
+  );
+  const ovGo = useCallback(
+    (id: string) => {
+      ovActiveCarousel.reset();
+      setInnerTab(id);
+      if (id === "plan" && !coursePlan && !planLoading) fetchCoursePlan();
+    },
+    [ovActiveCarousel.reset, setInnerTab, coursePlan, planLoading]
+  );
+  const ovMarksInsightSlides = useMemo<InsightSlide[]>(
+    () =>
+      ovMarksSlides.map((s: any) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        dotLabel: typeof s.title === "string" ? s.title : s.id,
+        badgeClassName: s.badgeColor,
+        valueClassName: s.headlineColor,
+        onClick: () => ovGo("marks"),
+      })),
+    [ovMarksSlides, ovGo]
+  );
   // Review-tab scope helpers: theory/lab plan + schedule stay separated.
   const reviewScopes: Array<"theory" | "lab"> = isEmbedded
     ? ["theory", "lab"]
@@ -1025,7 +1073,7 @@ export default function CourseDetailSubpage({
 
   const renderAttHeroes = (d: any) => (
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+      <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Attendance</span>
           <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${STATUS_BADGE[d.status]}`}>{d.status}</span>
@@ -1039,7 +1087,7 @@ export default function CourseDetailSubpage({
           {d.total > 0 ? `${d.attended}/${d.total} attended` : "No attendance data"}
         </p>
       </div>
-      <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+      <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Margin</span>
           <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE[d.marginTone]}`}>{d.status}</span>
@@ -1065,16 +1113,12 @@ export default function CourseDetailSubpage({
 
   const renderLogPage = (item: any, d: any, badge: "Theory" | "Lab") => {
     if (!item) {
-      return (
-        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No attendance data available for this course.</p>
-        </div>
-      );
+      return <EmptyPanel variant="dashed" title="No attendance data available for this course." />;
     }
     return (
       <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {renderAttHeroes(d)}
-        <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+        <div className={TILE_CARD}>
           <div className="flex items-center gap-2 px-1 mb-3">
             <Calendar className="w-4 h-4 text-indigo-500" />
             <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Calendar</h2>
@@ -1090,7 +1134,7 @@ export default function CourseDetailSubpage({
             compact
           />
         </div>
-        <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+        <div className={TILE_CARD}>
           <div className="flex items-center gap-2 px-1 mb-3">
             <Grid3x3 className="w-4 h-4 text-indigo-500" />
             <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Heatmap</h2>
@@ -1167,11 +1211,10 @@ export default function CourseDetailSubpage({
             </div>
           </div>
           {d.filteredHistory.length === 0 ? (
-            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No records under this filter.</p>
-            </div>
+        <EmptyPanel variant="dashed" title="No records under this filter." />
+
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+            <ListShell>
               {d.filteredHistory.map((h: any, i: number) => {
                 const st = h.status.toLowerCase();
                 const isPresent = st === "present";
@@ -1204,7 +1247,7 @@ export default function CourseDetailSubpage({
                   </div>
                 );
               })}
-            </div>
+            </ListShell>
           )}
         </div>
       </div>
@@ -1214,9 +1257,7 @@ export default function CourseDetailSubpage({
   const renderPredictorPage = (item: any, d: any, badge: "Theory" | "Lab") => {
     if (!item) {
       return (
-        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No attendance data available for this course.</p>
-        </div>
+        <EmptyPanel variant="dashed" title="No attendance data available for this course." />
       );
     }
     const blocks = milestoneBlocks(d).filter((b) => Array.isArray(b.data) && b.data.length > 0);
@@ -1234,13 +1275,12 @@ export default function CourseDetailSubpage({
             </div>
           </div>
           {blocks.length === 0 ? (
-            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">No upcoming milestones to simulate.</p>
-            </div>
+      <EmptyPanel variant="dashed" title="No upcoming milestones to simulate." />
+
           ) : (
             <div className="space-y-2.5">
               {blocks.map(({ key, label, data }) => (
-                <div key={key} className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+                <div key={key} className={TILE_CARD}>
                   <div className="flex items-center justify-between gap-2 px-1 mb-3">
                     <h3 className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
                       <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
@@ -1324,17 +1364,18 @@ export default function CourseDetailSubpage({
         <div className="mb-5 flex">
           <BackButton onClick={handleBack} className="self-start" />
         </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1.5">
-            Academics · {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current" ? formatSemesterName(selectedGroup.semesterSubId) : "Current Semester"}
-          </p>
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit">
-            {selectedCode}
-          </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-            {selectedGroup?.courseTitle || ""}
-          </p>
-        </div>
+        <TitleBlock
+          eyebrow={
+            <>
+              Academics &middot;{" "}
+              {selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current"
+                ? formatSemesterName(selectedGroup.semesterSubId)
+                : "Current Semester"}
+            </>
+          }
+          title={selectedCode}
+          subtitle={selectedGroup?.courseTitle || ""}
+        />
       </div>
 
       {error && (
@@ -1349,148 +1390,22 @@ export default function CourseDetailSubpage({
           {/* ── HERO STATS ── */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {/* CARD 1: ATTENDANCE CAROUSEL (theory + lab rotate on their own) */}
-          <div
-            onMouseEnter={() => setOvAttPaused(true)}
-            onMouseLeave={() => setOvAttPaused(false)}
-            onTouchStart={() => setOvAttPaused(true)}
-            onTouchEnd={() => setOvAttPaused(false)}
-            onClick={() => setInnerTab(`${defaultAttScope}-log`)}
-            className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden"
-          >
-            {(() => {
-              const slide = ovAttSlides[ovAttSlide] || ovAttSlides[0];
-              if (!slide) return null;
-              return (
-                <>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                      {slide.title}
-                    </span>
-                    <span
-                      className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${
-                        slide.status === "Safe"
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                          : slide.status === "Warning"
-                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                          : slide.status === "N/A"
-                          ? "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20"
-                          : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                      }`}
-                    >
-                      {slide.status}
-                    </span>
-                  </div>
-                  <AnimatePresence mode="wait">
-                    <m.div
-                      key={slide.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.2 }}
-                      className="my-auto py-1 min-w-0"
-                    >
-                      <span
-                        className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${
-                          slide.status === "Safe"
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : slide.status === "Warning"
-                            ? "text-amber-500 dark:text-amber-400"
-                            : slide.status === "N/A"
-                            ? "text-zinc-400 dark:text-zinc-500"
-                            : "text-red-500 dark:text-red-400"
-                        }`}
-                      >
-                        {slide.headline}
-                      </span>
-                    </m.div>
-                  </AnimatePresence>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                      {slide.subline}
-                    </p>
-                    {ovAttSlides.length > 1 && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        {ovAttSlides.map((s: any, idx: number) => (
-                          <button
-                            key={s.id}
-                            onClick={(e) => { e.stopPropagation(); setOvAttSlide(idx); }}
-                            aria-label={`Go to ${s.badge} attendance`}
-                            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                              ovAttSlide === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
+          <InsightCarousel
+            slides={ovAttInsightSlides}
+            carousel={ovAttCarousel}
+            height="min-h-36 sm:min-h-40"
+            ariaLabel="Attendance insights"
+          />
           
           {/* CARD 2: MARKS CAROUSEL (combined + theory + lab) */}
-          <div
-            onMouseEnter={() => setOvCarouselPaused(true)}
-            onMouseLeave={() => setOvCarouselPaused(false)}
-            onTouchStart={() => setOvCarouselPaused(true)}
-            onTouchEnd={() => setOvCarouselPaused(false)}
-            onClick={() => ovGo("marks")}
-            className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden"
-          >
-            {(() => {
-              const slide = ovMarksSlides[ovActiveSlide] || ovMarksSlides[0];
-              if (!slide) return null;
-              return (
-                <>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                      {slide.title}
-                    </span>
-                    <span
-                      className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                        slide.badgeColor || "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40"
-                      }`}
-                    >
-                      {slide.badge}
-                    </span>
-                  </div>
-                  <AnimatePresence mode="wait">
-                    <m.div
-                      key={slide.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.2 }}
-                      className="my-auto py-1 min-w-0"
-                    >
-                      <span className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${slide.headlineColor || "text-zinc-900 dark:text-white"}`}>
-                        {slide.headline}
-                      </span>
-                    </m.div>
-                  </AnimatePresence>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                      {slide.subline}
-                    </p>
-                    {ovMarksSlides.length > 1 && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        {ovMarksSlides.map((s: any, idx: number) => (
-                          <button
-                            key={s.id}
-                            onClick={(e) => { e.stopPropagation(); setOvActiveSlide(idx); }}
-                            aria-label={`Go to ${s.title}`}
-                            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                              ovActiveSlide === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
+          <InsightCarousel
+            slides={ovMarksInsightSlides}
+            carousel={ovActiveCarousel}
+            headlineSize="lg"
+            height="min-h-36 sm:min-h-40"
+            interactiveDots
+            ariaLabel="Marks insights"
+          />
           </div>
 
           {/* ── COURSE SECTIONS (joined grouped list) ── */}
@@ -1507,7 +1422,7 @@ export default function CourseDetailSubpage({
               </div>
             </div>
             {/* Joined grouped list: single shell, dividers, curves only on outer top/bottom */}
-            <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+            <ListShell>
               {/* Log + Predictor — split per component when embedded */}
               {isEmbedded && theoryAttItem && labAttItem ? (
                 <>
@@ -1632,7 +1547,7 @@ export default function CourseDetailSubpage({
                   <span>Add Task</span>
                 </button>
               </div>
-            </div>
+            </ListShell>
 
           </div>
         </div>
@@ -1645,7 +1560,7 @@ export default function CourseDetailSubpage({
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {isSelectedPastSemester && selectedPastGrade ? (
               <>
-                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Final Grade</span>
                     <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Final</span>
@@ -1655,7 +1570,7 @@ export default function CourseDetailSubpage({
                   </div>
                   <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">Published grade</p>
                 </div>
-                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Grading</span>
                     <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">System</span>
@@ -1670,7 +1585,7 @@ export default function CourseDetailSubpage({
               </>
             ) : (
               <>
-                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Total Score</span>
                     <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">Marks</span>
@@ -1680,7 +1595,7 @@ export default function CourseDetailSubpage({
                   </div>
                   <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">{courseTypeLabel}</p>
                 </div>
-                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-36 sm:min-h-40 text-left relative overflow-hidden">
+                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Projected</span>
                     <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">Forecast</span>
@@ -2035,7 +1950,7 @@ export default function CourseDetailSubpage({
           </div>
 
           {/* 4 ── QUALITY CIRCLE MEETING (QCM) */}
-          <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 sm:p-5 overflow-hidden">
+          <div className={TILE_CARD}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-500" />

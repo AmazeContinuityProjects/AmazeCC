@@ -13,6 +13,7 @@ import {
   SECTION_CHIP,
   TONE_BADGE,
 } from "@/lib/libraries/ui";
+import { ListSkeleton } from "../shared/primitives";
 
 interface DuesViewProps {
   creds: { cookies: string[]; authorizedID: string; csrf: string } | null;
@@ -134,18 +135,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
   const errorMsg = data?.messages?.error || data?.error;
 
   if (loading && !data) {
-    return (
-      <div className={LIST_SHELL}>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className={`${LIST_ROW} pointer-events-none`}>
-            <div className="flex-1 space-y-2">
-              <div className="h-3 w-1/2 rounded bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-              <div className="h-2.5 w-1/3 rounded bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <ListSkeleton rows={3} />;
   }
 
   if (error && !data) {

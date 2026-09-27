@@ -5,7 +5,17 @@ import { useAtom } from "jotai";
 import { officialOdDataAtom } from "@/store";
 import { AnimatePresence, m } from "framer-motion";
 import { Award, CheckCircle2, ChevronDown, Clock, FileText, ShieldAlert } from "lucide-react";
+import { cn } from "@amazecontinuityprojects/amazeui";
+import { TILE } from "@/lib/uiTokens";
+import { PageShell } from "../shared/primitives";
 import { BackButton } from "../shared";
+import {
+  EmptyPanel,
+  InsightCarousel,
+  SegmentedControl,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
 import { parseAttendanceTime } from "@/lib/attendanceTimetable";
 import config from "../../../../config.json";
 import OfficialOdSection from "./OfficialOdSection";
@@ -47,8 +57,6 @@ function normalizeTitle(title: string) {
 export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, currSemesterID, allGradesData }: ODTrackerSubpageProps) {
     const [filter, setFilter] = useState<StatusFilter>("all");
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
-    const [activeSlide, setActiveSlide] = useState(0);
-    const [isCarouselPaused, setIsCarouselPaused] = useState(false);
     const [engineOd] = useAtom(officialOdDataAtom);
 
     const officialRecords = useMemo(() => {
@@ -278,19 +286,20 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
         return slides;
     }, [officialTotalCount, matchedDaysCount, masterODHistory.length, validODsCount, wastedODsCount, recoveredODsCount]);
 
-    useEffect(() => {
-        if (isCarouselPaused || insightSlides.length <= 1) return;
-        const timer = setInterval(() => {
-            setActiveSlide((prev) => (prev + 1) % insightSlides.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, [isCarouselPaused, insightSlides.length]);
-
-    useEffect(() => {
-        setActiveSlide(0);
-    }, [insightSlides.length]);
-
-    const currentSlideData = insightSlides[activeSlide] || insightSlides[0];
+    const carousel = useCarousel(insightSlides.length);
+    const odInsightSlides = useMemo<InsightSlide[]>(
+        () =>
+            insightSlides.map((s) => ({
+                id: s.id,
+                label: s.title,
+                value: s.headline,
+                sub: s.subline,
+                badge: s.badge,
+                badgeClassName: s.badgeColor,
+                valueClassName: s.headlineColor,
+            })),
+        [insightSlides]
+    );
 
     const prettyDate = (dateStr: string) => {
         const d = new Date(dateStr);
@@ -299,31 +308,16 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
-
-            {/* ── HEADER ── */}
-            <div className="px-1">
-                {onBack && (
-                    <div className="mb-5 flex">
-                        <BackButton onClick={onBack} className="self-start" />
-                    </div>
-                )}
-                <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1.5">
-                        Attendance · On-Duty
-                    </p>
-                    <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit">
-                        On-Duty hours
-                    </h1>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-                        Approved leave, matched against VTOP records.
-                    </p>
-                </div>
-            </div>
-
+        <PageShell
+            selectable
+            eyebrow="Attendance · On-Duty"
+            title="On-Duty hours"
+            subtitle="Approved leave, matched against VTOP records."
+            onBack={onBack}
+        >
             {/* ── HERO STATS ── */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-32 sm:min-h-36 text-left relative overflow-hidden">
+                <div className={cn(TILE, "min-h-32 sm:min-h-36")}>
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">
                         Total OD
                     </span>
@@ -338,67 +332,11 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                     </p>
                 </div>
 
-                {currentSlideData && (
-                    <div
-                        onMouseEnter={() => setIsCarouselPaused(true)}
-                        onMouseLeave={() => setIsCarouselPaused(false)}
-                        onTouchStart={() => setIsCarouselPaused(true)}
-                        onTouchEnd={() => setIsCarouselPaused(false)}
-                        className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-32 sm:min-h-36 text-left relative overflow-hidden"
-                    >
-                        <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                                {currentSlideData.title}
-                            </span>
-                            <span
-                                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                                    currentSlideData.badgeColor || "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40"
-                                }`}
-                            >
-                                {currentSlideData.badge}
-                            </span>
-                        </div>
-
-                        <AnimatePresence mode="wait">
-                            <m.div
-                                key={currentSlideData.id}
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{ duration: 0.2 }}
-                                className="my-auto min-w-0"
-                            >
-                                <span
-                                    className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${
-                                        currentSlideData.headlineColor || "text-zinc-900 dark:text-white"
-                                    }`}
-                                >
-                                    {currentSlideData.headline}
-                                </span>
-                            </m.div>
-                        </AnimatePresence>
-
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                                {currentSlideData.subline}
-                            </p>
-                            {insightSlides.length > 1 && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                    {insightSlides.map((slide, idx) => (
-                                        <span
-                                            key={slide.id}
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                                activeSlide === idx
-                                                    ? "w-3 bg-indigo-500"
-                                                    : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+                <InsightCarousel
+                    slides={odInsightSlides}
+                    carousel={carousel}
+                    height="min-h-32 sm:min-h-36"
+                />
             </div>
 
             {/* ── WASTED-OD EXPLAINER ── */}
@@ -420,40 +358,29 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                         </span>
                     </div>
                     {wastedDaysCount > 0 && (
-                        <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
-                            {(["all", "valid", "wasted"] as StatusFilter[]).map((key) => (
-                                <button
-                                    key={key}
-                                    onClick={() => setFilter(key)}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${
-                                        filter === key
-                                            ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                    }`}
-                                >
-                                    {key}
-                                </button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            options={[
+                                { value: "all" as StatusFilter, label: "all" },
+                                { value: "valid", label: "valid" },
+                                { value: "wasted", label: "wasted" },
+                            ]}
+                            value={filter}
+                            onChange={setFilter}
+                            className="[&_button]:capitalize"
+                        />
                     )}
                 </div>
 
                 {visibleHistory.length === 0 ? (
-                    <div className="p-10 rounded-[32px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-4 shadow-2xs">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
-                            <Award className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
-                                {masterODHistory.length === 0 ? "No OD hours yet" : "Nothing under this filter"}
-                            </h3>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
-                                {masterODHistory.length === 0
-                                    ? "Approved On-Duty leave will appear here once your data syncs from VTOP."
-                                    : "Try a different filter to see the rest of your history."}
-                            </p>
-                        </div>
-                    </div>
+                    <EmptyPanel
+                        icon={<Award className="w-7 h-7" />}
+                        title={masterODHistory.length === 0 ? "No OD hours yet" : "Nothing under this filter"}
+                        description={
+                            masterODHistory.length === 0
+                                ? "Approved On-Duty leave will appear here once your data syncs from VTOP."
+                                : "Try a different filter to see the rest of your history."
+                        }
+                    />
                 ) : (
                     <div className="space-y-2.5">
                         {visibleHistory.map((d, i) => {
@@ -620,6 +547,6 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
             )}
 
             <TabHelpFooter tabId="attendance" />
-        </div>
+        </PageShell>
     );
 }

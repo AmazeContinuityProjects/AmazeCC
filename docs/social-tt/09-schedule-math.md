@@ -42,13 +42,19 @@ So `A1` is a valid key on two days at two different times. **A bare `slotId` is 
 
 ## 3. The grid's projection is complete — proven, not assumed
 
-`CommonFreeSlotsGrid.tsx` builds a 7 × 12 grid by deriving the column skeleton from **Monday only**, then projecting each Monday pair onto other days by matching time strings (`slotsMatchingTimes`, `:115-142`):
+`CommonFreeSlotsGrid.tsx` builds a 7 × 12 grid by deriving the column skeleton from **Monday only**, then projecting each Monday pair onto other days by matching time strings (`projectColumns`):
 
 1. Split Monday's slots into theory and lab by `slotId.startsWith("L")`, sort each by start time.
 2. Pair them index-wise into 12 `{ theory, lab }` columns.
-3. For each other day, find slots whose `time` string exactly matches the pair's theory or lab time; fall back to a ±7-minute tolerance on the start minute.
+3. For each other day, find the slot whose `time` string exactly matches the pair's theory or lab time; fall back to a ±7-minute tolerance on the start minute.
 
-Verified by simulating the algorithm against `config.json`: the exact-match path alone covers **every one of the 164 slots exactly once, with no gaps and no double-counting**, on all seven days.
+Verified by asserting the algorithm against `config.json`: the exact-match path alone covers **every one of the 164 slots exactly once, with no gaps and no double-counting**, on all seven days. `src/__tests__/social-grid.test.ts` re-checks this, because a `config.json` edit that broke it would silently move every cell in the grid.
+
+### The trap in step 3 that the test caught
+
+A theory slot and its paired lab run at the **same time on the same day**. Monday has both `A1` and `L1` at 08:00–08:50; Tuesday has both `B1` and `L7` there. Six time strings are shared this way on each of MON and TUE.
+
+So the projection index must be keyed by time **and half**, not by time alone. Keying on time alone resolves both halves of a pair to whichever slot was registered first, which produces a duplicate *and* drops the other slot from the grid entirely — 168 cells rendered for 164 slots. The `L` prefix is the only discriminator available, so it is what separates the two indexes.
 
 Two consequences:
 
@@ -63,9 +69,13 @@ const isPM = h === 12 || (h >= 1 && h <= 7);
 if (isPM && h !== 12) h += 12;
 ```
 
-The heuristic is: **1–7 are PM, 8+ are AM, 12 is PM.** It works on every `config.json` value because 8:00 is the earliest slot and 7:25 the latest. It is not a general time parser, and `attendanceTimetable.ts:8-12` uses a *different* rule (`if (h < 8) h += 12`) which happens to agree on this data and would not in general.
+The heuristic is: **1–7 are PM, 8+ are AM, 12 is PM.** It works on every `config.json` value because 8:00 is the earliest slot and 19:25 the latest. It is not a general time parser, and `attendanceTimetable.ts` used a *different* rule (`if (h < 8) h += 12`) which agreed on this data and would not in general.
 
-The new code parses times in exactly one place — `src/lib/social/schedule.ts` — and the two existing copies should be pointed at it. There is no need to keep three implementations that agree by coincidence.
+The two rules differ at exactly one input, `h = 0`. Verified mechanically over all 164 slots: the hours present are `{1..12}`, and no hour below 8 survives into 24-hour form, so the two rules are indistinguishable on the real vocabulary. That is not a reason to keep both — it is a reason the next vocabulary edit could silently diverge them.
+
+**Shipped:** `src/lib/social/schedule.ts` holds the only `toMinutes`, `minutesToTimeStr` and `fmt`. The two private grid copies and `attendanceTimetable.ts`'s rule are gone; the last one is kept as a *named export* that delegates, because four call sites import it (`ODTrackerSubpage.tsx`, `SimplifiedMobileHome.tsx`, `taskMatch.ts`, and its own range helper) and renaming those is churn for no gain.
+
+`toMinutesInvariant()` re-derives the assumption from the vocabulary — distinct hours, earliest start, latest end, and that every span is positive — so the "1-7 are PM" rule is checked rather than trusted, and the test suite asserts `earliest === 480` and `latest === 1165`.
 
 ## 5. Two defects this design eliminates
 
@@ -85,7 +95,7 @@ friend.classSlots.forEach((slot) => {
 
 For v5/v6 friends this is harmless, because those importers already emit one entry per `(day, slotId)` so the fan-out is idempotent. For v1/v2/v3/`amz-profile-` friends, where `day` is meaningful, it marks the friend busy on days they are not in class — and because every theory block exists on two days, this fires for all of them. A v2 friend with `slotId: "A1"`, `day: "MON"` is marked busy on Monday *and* Wednesday.
 
-Storing `(day, slotId)` explicitly removes the ambiguity, because there is nothing left to re-derive.
+**Shipped:** `busyMapFromClassSlots` in `src/lib/social/schedule.ts` respects `slot.day` and only falls back to fan-out when the day is missing or unrecognised, because then there is genuinely nothing to go on. `CommonFreeSlotsGrid.tsx` uses it. Storing `(day, slotId)` explicitly removes the ambiguity for new data, and this fixes the read path for old data.
 
 ### The unversioned wire format
 
@@ -133,49 +143,88 @@ Two flat sets in, a few derived figures out. Entirely client-side — two small 
 
 ```ts
 export interface OverlapMetrics {
-  commonFreeSlots: number;   // slots where neither is busy
+  commonFreeSlots: number;   // slots where NEITHER is busy
   commonFreeHours: number;   // the same, in hours
-  matchPct: number;          // % of the viewer's *class hours* the peer is also free
+  matchPct: number;          // of MY class hours, the % the peer is also free
   sharedClassHours: number;  // hours where both are busy
+  myClassHours: number;      // hours where I am busy
   firstCommonFreeSlot: string | null;
   freeNow: boolean;          // peer is free in the slot covering the current time
+  currentSlot: string | null;
 }
 ```
 
-`matchPct` is deliberately defined against **the viewer's class hours**, not against an absolute slot count. The old code used `totalPossibleSlots = 35` hardcoded against a 164-slot vocabulary (`SocialTab.tsx:233`), and before that it was not computed at all — `getOverlapMetrics` produced `70 + (seed % 25)` from a character hash of the reg number (`:234`), so every "% match" ever displayed was fabricated.
+`matchPct` is deliberately defined against **the viewer's own class hours**, not against an absolute slot count. The old code used `totalPossibleSlots = 35` hardcoded against a 164-slot vocabulary (`SocialTab.tsx:237`), and before that it was not computed at all — `getOverlapMetrics` produced `70 + (seed % 25)` from a character hash of the reg number (`:242`), so every "% match" ever displayed was fabricated.
+
+### Two corrections to the draft version of this function
+
+The first draft of this section had two bugs, both found by implementing it:
+
+1. **It iterated the union of the two busy maps.** Every key in that union is busy
+   for *someone*, so the `if (!mine[key] && !theirs[key])` branch was unreachable
+   and `commonFreeSlots` was permanently `0`. "Common free" is by definition a
+   slot neither person occupies, so the function has to walk the **whole
+   164-slot vocabulary**.
+2. **`matchPct` divided a free-slot count by a busy-slot count**
+   (`free / mineCount`). That is not a percentage of anything — with 100 free
+   slots and 30 busy ones it yields 333%.
+
+The shipped definition, in `src/lib/social/schedule.ts`:
 
 ```ts
-export function computeOverlap(mine: BusyMap, theirs: BusyMap, slotMap: SlotMap): OverlapMetrics {
-  const busy = new Set([...Object.keys(mine), ...Object.keys(theirs)]);
-  let shared = 0, free = 0, hours = 0, first: string | null = null;
+export function computeOverlap(
+  mine: BusyMap,
+  theirs: BusyMap,
+  map: SlotMap = slotMap,
+  now: Date = new Date(),
+): OverlapMetrics {
+  const myKeys = new Set(Object.keys(mine ?? {}));
+  let shared = 0, sharedMins = 0, free = 0, freeMins = 0;
+  let myMins = 0, clashFreeMins = 0, first: string | null = null;
 
-  for (const key of busy) {
-    const [day, slotId] = key.split(":");
-    const slot = slotMap[day]?.[slotId];
-    if (!slot) continue;                       // vocabulary drift: skip, do not guess
-    const span = toMinutes(slot.time.split("-")[1]) - toMinutes(slot.time.split("-")[0]);
+  for (const daySlots of orderedDays(map)) {        // week order, then start time
+    for (const { day, slotId } of daySlots) {
+      const key = slotKey(day, slotId);
+      const span = slotSpanMinutes(map[day][slotId].time);
+      const iAmBusy = myKeys.has(key);
+      const theyAreBusy = Boolean(theirs?.[key]);
 
-    if (mine[key] && theirs[key]) { shared++; continue; }
-    if (!mine[key] && !theirs[key]) {
-      free++; hours += span / 60;
-      if (!first) first = key;
+      if (iAmBusy) {
+        myMins += span;
+        if (!theyAreBusy) clashFreeMins += span;    // <- the honest "match"
+      }
+      if (iAmBusy && theyAreBusy) { shared++; sharedMins += span; continue; }
+      if (!iAmBusy && !theyAreBusy) {
+        free++; freeMins += span;
+        if (!first) first = key;
+      }
     }
   }
 
   return {
     commonFreeSlots: free,
-    commonFreeHours: Math.round(hours * 10) / 10,
-    matchPct: mineCount ? Math.round((free / mineCount) * 100) : 0,
-    sharedClassHours: shared,
+    commonFreeHours: Math.round((freeMins / 60) * 10) / 10,
+    matchPct: myMins > 0 ? Math.round((clashFreeMins / myMins) * 100) : 0,
+    sharedClassHours: Math.round((sharedMins / 60) * 10) / 10,
+    myClassHours: Math.round((myMins / 60) * 10) / 10,
     firstCommonFreeSlot: first,
-    freeNow: theirs[slotCoveringNow(slotMap)] === undefined,
+    freeNow: currentSlot ? !theirs?.[currentSlot] : true,
+    currentSlot,
   };
 }
 ```
 
-`freeNow` is a single dictionary lookup, so "Free Right Now" needs no precomputation. `slotCoveringNow` converts the current local time to a slot via the same `toMinutes` used everywhere else.
+`matchPct` is a share of a subset, so it is bounded to 0–100 by construction: 100 means "we are never in class at the same time", 0 means "we clash in every class hour I have". It is deliberately **not** symmetric — it answers "how much of *my* week is compatible with *them*", so the same pair scored from the other side gives a different number, and that is correct.
+
+`commonFreeSlots` is large by construction (~110 of 164 for a typical pair), because most of a week is free to everyone. The discriminating figures are `sharedClassHours` and `matchPct`.
 
 An unknown key is **skipped, not guessed**. If a `slotMap` edit ever leaves a stored key unresolvable, the honest outcome is that the slot is not counted — the alternative is an invented time.
+
+### A trap the metrics invite
+
+A peer with **no** shared timetable makes every one of my slots clash-free, which this formula reports as a 100% match. That is arithmetically correct and completely misleading, so `SocialTab` checks `classSlots.length === 0` first and renders "no timetable shared yet" rather than a flattering number. The underlying number is still 100; the guard is in the presentation layer, deliberately, and there is a test pinning both halves.
+
+`freeNow` is a single dictionary lookup, so "Free Right Now" needs no precomputation. `slotCoveringNow` converts the current local time to a slot via the same `toMinutes` used everywhere else, and returns `null` at the weekend or outside 08:00–19:25 — which is why `freeNow` is then trivially `true`.
 
 ## 8. Lunch
 

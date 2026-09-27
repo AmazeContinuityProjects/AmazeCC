@@ -13,11 +13,17 @@ src/lib/social/
   schedule.ts     toMinutes, fmt, DAYS, slotMap access, buildBusyMap, computeOverlap
   storage.ts      namespaced localStorage with no global mirror
   client.ts       api() calls for the routes in 07-api-contract.md
+  useSocialData.ts  shared atom-backed state + the debounced push
 src/store/socialAtoms.ts
-  socialIdentityAtom, socialPeersAtom, socialGrantsAtom, socialTimetableCacheAtom
-src/hooks/useSocialData.ts
-  single shared instance of friends/groups/activeScreen, replacing the double mount
+  socialIdentityAtom, socialPeersAtom, socialGrantsAtom,
+  socialOwnBusyMapAtom, socialOwnCoursesAtom, socialSyncStateAtom
 ```
+
+Note the path: the hook lives in `src/lib/social/`, not `src/hooks/`. This repo
+has no `src/hooks/` directory, and a hook inside a `lib/` folder is the existing
+convention — `useSync.ts` sits in `src/lib/sync-engine/`. The one place hooks do
+live is `src/components/custom/**/hooks/`, which is scoped to a single feature's
+components and so does not fit a cross-tab store.
 
 `computeOverlap` and `buildBusyMap` live here so the Social tab, the home page and `CommonFreeSlotsGrid` all use one implementation. There are currently **three** time parsers in the app (`CommonFreeSlotsGrid.tsx:17`, `TimetableGrid.tsx:64`, `attendanceTimetable.ts:8`) that agree only by coincidence — they are collapsed onto this one.
 
@@ -72,7 +78,6 @@ This is the step that is easy to get wrong, because the obvious place to add an 
 - `Main.tsx:796-870` — the reload background IIFE, next to the `officialOd` precedent at `:831-835`
 
 `BACKGROUND_OPS` in `index.ts:18` feeds `syncEngine.syncAll()`, and `syncAll` plus the `useSync` hook are **dead code** — nothing in `src/` imports `useSync`. Updating `BACKGROUND_OPS` alone would make the global Sync button silently never sync social.
-
 ### Debounced auto-push
 
 Mutations write local state immediately, mark dirty, and schedule a push:
@@ -81,17 +86,58 @@ Mutations write local state immediately, mark dirty, and schedule a push:
 const schedulePublish = debounce(() => { void syncEngine.sync("social"); }, 5000);
 ```
 
-This replaces the current behaviour where every single add/remove/toggle fired a **full cloud round trip** — `SocialTab.tsx:190` uploaded the entire friends array to flip one boolean.
+This replaces the current behaviour where every single add/remove/toggle fired a
+**full cloud round trip** — `SocialTab.tsx:190` uploaded the entire friends array to
+flip one boolean.
 
+The shipped version (`useSocialData.ts`) is a module-level timer rather than a
+per-component one, for two reasons: the timer has to survive the component that
+scheduled it unmounting, and if a push is already running when the timer fires the
+next one is **chained behind it** rather than dropped — otherwise a change made
+during a slow push would never reach the server. A rejected push is swallowed
+there, because `schedulePublish` is fire-and-forget and the failure is already
+recorded in `socialSyncStateAtom.lastError`.
 ### The double mount
 
 `SocialTab` is mounted by both `MoreTab.tsx:33` and `ToolsTab.tsx:134`, so there are two independent copies of the state and the sub-tab resets when switching between them. `useSocialData()` gives both mounts the same atom-backed state.
 
+**Scope note.** `useSocialData` currently backs the *server-derived* state — the
+handle, the peer list, the grant secrets, the user's own busy map. The legacy
+`Friend[]`/`FriendGroup[]` lists still live in `SocialTab`'s local `useState`,
+because they are local-only records with no server equivalent until Phase 6
+retires them. Migrating them to atoms without changing their semantics would be
+churn; the redesigned People subpage in Phase 5 replaces them outright.
+
 ## 3. `ctx.request` vs `api`
 
-`ctx.request(path, body?, opts?)` has **no `query` and no `parse` option** (`request-layer.ts:5-14`). The timetable read needs a query string, so it goes through `apiRequest` (imported as `api`), which does support `query` and `parse` but has **no retry**.
+**Correction from the original draft of this document:** it said the timetable read
+"needs a query string, so it goes through `apiRequest`". That is no longer true. The
+read was changed to `POST` with the grant secret in the **body** (see
+[07-api-contract.md](./07-api-contract.md)) precisely because a bearer credential in
+a query string ends up in access logs, browser history and `Referer` headers. With
+no query string, `ctx.request` is usable everywhere.
 
-Consequence: the read is issued with `api` and wrapped in its own retry if wanted, or issued with `ctx.request` by baking the query into the path (which the `buses` op does). Reads are idempotent, so a single `api` call without retry is acceptable; the push goes through `ctx.request` and gets retry plus in-flight dedupe.
+So the split is:
+
+| Call | Transport | Why |
+|---|---|---|
+| `identity/sync` (the push) | `ctx.request` | gets retry + in-flight dedupe |
+| `timetable`, `pair/claim`, `people`, `grant/*` | `api` | one-shot user actions; no retry wanted |
+| `semester` | `api` | `GET`, no credentials |
+
+`client.ts` uses `api` throughout because it is also called from the debounced
+auto-push, outside the sync engine. The op itself uses `ctx.request` directly.
+
+Two real traps in this area, both hit during implementation:
+
+- **`strictNullChecks` is off in this repo.** `atom<T | null>(null)` resolves to
+  jotai's *read-function* overload and yields a **read-only** atom. `socialAtoms.ts`
+  uses the `null as unknown as T` cast for the same reason `dataAtoms.ts:16-21` does.
+- **`stateBridge.setAtom` takes `unknown`.** A mismatched atom/value pair is
+  neither a compile error nor a runtime error — it is a silent no-op. The op writes
+  each atom explicitly rather than in a loop so a rename fails loudly in review.
+- **`vitest.config.ts` had no `@/` alias**, so no module importing through the
+  alias could be tested at all. It now mirrors `tsconfig.json`.
 
 ## 4. Storage
 
