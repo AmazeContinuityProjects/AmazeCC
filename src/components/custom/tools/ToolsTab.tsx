@@ -66,7 +66,7 @@ export default function ToolsTab({
   const setQBankSubTab = setActiveQBankSubTab || setInternalQBankSubTab;
 
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 pb-24 md:pb-8">
+    <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 md:pb-8">
       {/* Main View Router */}
       <div>
         {activeToolsSubTab === "overview" && (

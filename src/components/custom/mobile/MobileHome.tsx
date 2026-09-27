@@ -1533,7 +1533,7 @@ export default function MobileHome({
   };
 
   return (
-    <div className="w-full space-y-6 pb-24 md:pb-0 animate-in fade-in duration-300">
+    <div className="w-full space-y-6 md:pb-0 animate-in fade-in duration-300">
       
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">

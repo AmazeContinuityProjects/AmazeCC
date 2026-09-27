@@ -124,7 +124,7 @@ export default function ToolsHub({
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-5 pb-24 md:pb-8 animate-fadeIn text-left select-none">
+    <div className="w-full max-w-7xl mx-auto space-y-5 md:pb-8 animate-fadeIn text-left select-none">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

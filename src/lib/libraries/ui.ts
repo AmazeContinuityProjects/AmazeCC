@@ -24,7 +24,7 @@ export const ICON_BUTTON =
   "p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
 
 export const SEG_ACTIVE =
-  "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold";
+  "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 shadow-2xs font-extrabold";
 export const SEG_IDLE =
   "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200";
 
@@ -65,4 +65,4 @@ export const EMPTY_STATE =
   "p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center";
 
 export const FIELD_INPUT =
-  "w-full px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs";
+  "w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500";

@@ -20,7 +20,7 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
 }) {
 
   return (
-    <div className="animate-fadeIn w-full max-w-7xl mx-auto pb-24 md:pb-0">
+    <div className="animate-fadeIn w-full max-w-7xl mx-auto md:pb-0">
       <div className="mb-4 space-y-4">
         <PageHeader
           icon={<LayoutGrid className="h-5 w-5 text-blue-600 dark:text-blue-400" />}

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { m } from "framer-motion";
 import { X } from "lucide-react";
 import { useOverlayBack } from "@/lib/overlayStack";
+import { useKeyboardInset } from "@/lib/useKeyboardInset";
 
 interface BottomSheetProps {
   onClose: () => void;
@@ -14,6 +15,12 @@ interface BottomSheetProps {
   overlayId: string;
   children: React.ReactNode;
   className?: string;
+  /**
+   * Extra classes for the scrolling content wrapper. Use it to opt out of the
+   * default padding when the child needs full-bleed edges (e.g. a docked
+   * bottom bar). Defaults to "".
+   */
+  contentClassName?: string;
   /** Show the floating X button. Default true. */
   showClose?: boolean;
   /** Backdrop tap handler. Defaults to onClose. */
@@ -28,6 +35,16 @@ interface BottomSheetProps {
    * Defaults to true.
    */
   dismissable?: boolean;
+  /**
+   * Lift the sheet clear of the on-screen keyboard. Off by default: most
+   * sheets hold no focused text input, and an inert listener is cheaper than
+   * an unconditional layout subscription.
+   *
+   * Only needed on iOS, where the layout viewport does not shrink when the
+   * keyboard opens. Android Chrome uses `resizes-visual` by default, so its
+   * `dvh` already tracks the keyboard and the measured inset stays 0 there.
+   */
+  avoidKeyboard?: boolean;
 }
 
 /**
@@ -42,15 +59,20 @@ export default function BottomSheet({
   overlayId,
   children,
   className = "",
+  contentClassName = "",
   showClose = true,
   onBackdropClick,
   onSwipeDown,
   onSystemBack,
   dismissable = true,
+  avoidKeyboard = false,
 }: BottomSheetProps) {
   const handleBackdropClick = onBackdropClick ?? onClose;
   const handleSwipeDown = onSwipeDown ?? onClose;
   const handleSystemBack = onSystemBack ?? onClose;
+
+  const keyboardInset = useKeyboardInset(avoidKeyboard);
+  const lifted = avoidKeyboard && keyboardInset > 0;
 
   // Mounted = open: system back dismisses the topmost sheet first
   useOverlayBack(overlayId, dismissable, handleSystemBack);
@@ -114,6 +136,39 @@ export default function BottomSheet({
 
   if (!portalReady) return null;
 
+  // Grabber + scrolling content, optionally wrapped so the whole sheet can be
+  // translated up by the keyboard inset. The offset deliberately lives on an
+  // inner wrapper: the panel's own transform belongs to framer-motion and to
+  // the grabber drag, so writing the offset there would fight both.
+  const panelBody = (
+    <>
+      {/* Grabber + close */}
+      <div
+        className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+        onPointerDown={onGrabberPointerDown}
+        onPointerMove={onGrabberPointerMove}
+        onPointerUp={endGrabberDrag}
+        onPointerCancel={endGrabberDrag}
+      >
+        <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+        {showClose && dismissable && (
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-4 top-2 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <div
+        className={`overflow-y-auto px-4 sm:px-5 pb-5 sm:pb-6 pt-1 min-h-0 ${contentClassName}`}
+      >
+        {children}
+      </div>
+    </>
+  );
+
   return createPortal(
     <>
       <m.div
@@ -132,30 +187,38 @@ export default function BottomSheet({
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
         className={`fixed bottom-0 left-0 right-0 z-[60] w-full ${maxWidth} sm:mx-auto flex max-h-[92dvh] flex-col overflow-hidden bg-white dark:bg-zinc-950 rounded-t-[28px] sm:bottom-6 sm:rounded-[28px] border border-zinc-200/70 dark:border-zinc-800/80 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-        style={{ willChange: "transform", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        style={
+          {
+            willChange: "transform",
+            paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
+            // An explicit height (not min-height) so descendants can resolve
+            // against a definite box. Open: a comfortable sheet. With the
+            // keyboard up: exactly the region above it, since the sheet is
+            // bottom-anchored and then translated up by the same amount.
+            height: avoidKeyboard
+              ? lifted
+                ? `calc(100dvh - ${keyboardInset}px)`
+                : "70dvh"
+              : undefined,
+            // Published so descendants can zero out safe-area padding while the
+            // keyboard is up (the sheet has already been lifted clear of it).
+            "--sheet-kb-inset": `${keyboardInset}px`,
+          } as React.CSSProperties
+        }
       >
-        {/* Grabber + close */}
-        <div
-          className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-          onPointerDown={onGrabberPointerDown}
-          onPointerMove={onGrabberPointerMove}
-          onPointerUp={endGrabberDrag}
-          onPointerCancel={endGrabberDrag}
-        >
-          <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-          {showClose && dismissable && (
-            <button
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute right-4 top-2 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        <div className="overflow-y-auto px-4 sm:px-5 pb-5 sm:pb-6 pt-1 min-h-0">
-          {children}
-        </div>
+        {lifted ? (
+          <div
+            className="flex min-h-0 flex-1 flex-col"
+            style={{
+              transform: `translateY(-${keyboardInset}px)`,
+              willChange: "transform",
+            }}
+          >
+            {panelBody}
+          </div>
+        ) : (
+          panelBody
+        )}
       </m.div>
     </>,
     document.body

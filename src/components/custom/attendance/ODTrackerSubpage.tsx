@@ -299,7 +299,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300">
+        <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
 
             {/* ── HEADER ── */}
             <div className="px-1">

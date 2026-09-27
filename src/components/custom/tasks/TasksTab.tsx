@@ -275,7 +275,7 @@ export default function TasksTab({
   const openTone = overdueTasks.length > 0 ? "red" : openTasks.length > 0 ? "indigo" : "zinc";
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
       {/* Active in-app notification banner */}
       {activeNotification && (
         <div className="p-4 rounded-[24px] bg-indigo-500 text-white shadow-md flex items-center justify-between gap-3 animate-fadeIn">

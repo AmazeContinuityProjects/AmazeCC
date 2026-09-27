@@ -1587,7 +1587,7 @@ export default function CurriculumPage({
       : plannerList;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
       <TopBar inSubpage={screen !== "landing"} />
 
       {!hasAnyData ? (

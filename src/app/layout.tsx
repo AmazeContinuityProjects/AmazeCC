@@ -19,6 +19,10 @@ export const viewport: Viewport = {
   initialScale: 1.0,
   maximumScale: 1.0,
   userScalable: false,
+  // Without this every env(safe-area-inset-*) in the app resolves to 0px on
+  // iOS, so the bottom nav, sheets and docked bars can sit under the home
+  // indicator and the notch.
+  viewportFit: "cover",
 };
 
 const APP_NAME = "AmazeCC";

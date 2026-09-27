@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import BackButton from "../shared/BackButton";
+import BottomSheet from "../shared/BottomSheet";
 import CatalogSearch from "./CatalogSearch";
 import DuesView from "./DuesView";
 import { DEMO_PATRON_PAGES } from "@/lib/libraries/demo";
@@ -56,10 +57,13 @@ interface LibrariesTabProps {
   onBack?: () => void;
 }
 
-type Screen = "landing" | "catalog" | "account" | "dues";
+type Screen = "landing" | "account" | "dues";
+
+/** Catalog lives in a sheet, not a screen, but it still appears in the list. */
+type SectionId = Exclude<Screen, "landing"> | "catalog";
 
 interface SectionMeta {
-  id: Exclude<Screen, "landing">;
+  id: SectionId;
   title: string;
   desc: string;
   icon: React.ElementType;
@@ -354,6 +358,11 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   const [screen, setScreen] = useState<Screen>("landing");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Catalog is a bottom sheet rather than a screen: it is a focused task, and
+  // the sheet is portalled above the nav bar so no nav clearance is reserved.
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogSeed, setCatalogSeed] = useState("");
+
   // Catalog facts surfaced on the landing
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogQuery, setCatalogQuery] = useState("");
@@ -445,6 +454,14 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     setPatronPages(null);
   }, []);
 
+  const openCatalog = useCallback(
+    (reuseLastQuery = false) => {
+      setCatalogSeed(reuseLastQuery ? catalogQuery : "");
+      setCatalogOpen(true);
+    },
+    [catalogQuery]
+  );
+
   // ── derived headline figures ───────────────────────────────────────
   const chargeTotals = useMemo(
     () => computeDuesTotals(patronPages?.charges),
@@ -528,7 +545,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
         subline: catalogQuery ? `results for “${catalogQuery}”` : "catalog results",
         badge: "OPAC",
         tone: "sky",
-        onClick: () => setScreen("catalog"),
+        onClick: () => openCatalog(true),
       });
     }
 
@@ -541,6 +558,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     historyCount,
     catalogTotal,
     catalogQuery,
+    openCatalog,
   ]);
 
   useEffect(() => {
@@ -583,13 +601,13 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     } catch {}
   }, []);
 
-  const sectionCount = (id: Exclude<Screen, "landing">): number => {
+  const sectionCount = (id: SectionId): number => {
     if (id === "catalog") return catalogTotal;
     if (id === "account") return chargeCount + checkoutCount + historyCount;
     return duesOverdue;
   };
 
-  const sectionSuffix = (id: Exclude<Screen, "landing">): string => {
+  const sectionSuffix = (id: SectionId): string => {
     if (id === "catalog") return "results";
     if (id === "account") return "items";
     return "overdue";
@@ -739,7 +757,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setScreen(s.id)}
+                onClick={() => (s.id === "catalog" ? openCatalog() : setScreen(s.id))}
                 className={`${LIST_ROW} cursor-pointer`}
               >
                 <span
@@ -868,27 +886,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   );
 
   const subpage =
-    screen === "catalog" ? (
-      <div className="space-y-3">
-        <SectionHeader
-          icon={Search}
-          title="Catalog search"
-          count={catalogTotal || undefined}
-          right={
-            catalogQuery ? (
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 truncate max-w-[40%]">
-                “{catalogQuery}”
-              </span>
-            ) : undefined
-          }
-        />
-        <CatalogSearch
-          variant="page"
-          isDemo={isDemo}
-          onSearched={onCatalogSearched}
-        />
-      </div>
-    ) : screen === "account" ? (
+    screen === "account" ? (
       accountSubpage
     ) : (
       <div className="space-y-3">
@@ -921,10 +919,28 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       </div>
     );
 
+  const catalogSheet = (
+    <BottomSheet
+      overlayId="library-catalog"
+      maxWidth="max-w-2xl"
+      avoidKeyboard
+      contentClassName="pb-0"
+      onClose={() => setCatalogOpen(false)}
+    >
+      <CatalogSearch
+        variant="sheet"
+        isDemo={isDemo}
+        initialQuery={catalogSeed}
+        onSearched={onCatalogSearched}
+      />
+    </BottomSheet>
+  );
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
       <TopBar />
       {screen === "landing" ? landing : subpage}
+      <AnimatePresence>{catalogOpen && catalogSheet}</AnimatePresence>
     </div>
   );
 }

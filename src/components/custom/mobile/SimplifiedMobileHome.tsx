@@ -798,7 +798,7 @@ export default function SimplifiedMobileHome({
   const isHolidayOrOff = selectedDayMeta && selectedDayMeta.holidayInfo && !isExamDay;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
       
       {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
       <div className="flex items-start justify-between px-1">
