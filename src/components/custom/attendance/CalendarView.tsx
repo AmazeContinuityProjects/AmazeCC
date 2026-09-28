@@ -5,8 +5,8 @@ import NoContentFound from "../NoContentFound";
 import { RefreshCcw, Download, Calendar as CalendarIcon, ChevronRight, BookOpen, EyeOff, Plus, CheckCircle2, Award, FileText, ListChecks, GraduationCap } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import { AnimatePresence, m } from "framer-motion";
-import ExamsScheduleDisplay from "../exams/ScheduleDisplay";
 import { MoodleUserPassForm } from "../exams/MoodleDisplay";
+
 import config from "../../../../config.json";
 import OverallTrackerSubpage from "./OverallTrackerSubpage";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
@@ -58,7 +58,7 @@ function isInstructionalEvent(e) {
     return false;
 }
 
-export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, setActiveAttendanceSubTab }) {
+export default function CalendarView({ calendars, calendarType, handleCalendarFetch, moodleData, scheduleData, attendanceData, ODhoursData, setIsSubpageOpen, setMoodleData, handleFetchMoodle, IDs, setActiveAttendanceSubTab, setActiveTab, setActiveSubTab }) {
     
     const [homeworkTracker, setHomeworkTracker] = useState(() => {
         if (typeof window !== "undefined") {
@@ -453,12 +453,6 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
 
     const [selectedType, setSelectedType] = useState(calendarType || "ALL");
     const [selectedDay, setSelectedDay] = useState(null);
-    const [isSchedulePageOpen, setIsSchedulePageOpenInternal] = useState(false);
-
-    const toggleSchedulePage = (state) => {
-        setIsSchedulePageOpenInternal(state);
-        if(setIsSubpageOpen) setIsSubpageOpen(state);
-    }
 
     useEffect(() => {
         localStorage.setItem("calendar-active-index", String(activeIdx));
@@ -499,20 +493,6 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
             }
         }
     }, [safeCalendars]);
-
-    if(isSchedulePageOpen) {
-        return (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
-                <button 
-                    onClick={() => toggleSchedulePage(false)} 
-                    className="mb-4 text-blue-600  hover:underline flex items-center font-semibold dark:text-blue-400"
-                >
-                    &larr; Back to Calendar
-                </button>
-                <ExamsScheduleDisplay data={scheduleData} handleScheduleFetch={() => {}} />
-            </div>
-        )
-    }
 
     if (!safeCalendars.length) {
         return (
@@ -1277,7 +1257,10 @@ export default function CalendarView({ calendars, calendarType, handleCalendarFe
                             <h3 className="font-[family-name:var(--font-outfit)] text-xl font-black text-gray-900  dark:text-gray-100">Upcoming Exams</h3>
                         </div>
                         <button
-                            onClick={() => toggleSchedulePage(true)}
+                            onClick={() => {
+                                setActiveTab("academics");
+                                setActiveSubTab("schedule");
+                            }}
                             className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition-colors duration-150 hover:text-blue-700 dark:text-blue-400"
                         >
                             Schedule <ChevronRight size={16} />

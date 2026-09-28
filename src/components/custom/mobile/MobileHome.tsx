@@ -30,13 +30,16 @@ import {
   Shirt,
   Maximize2,
   Minimize2,
-  GripVertical
+  GripVertical,
+  WifiOff
 } from "lucide-react";
 import { AnimatePresence, Reorder, m } from "framer-motion";
 import { Switch } from "@amazecontinuityprojects/amazeui";
 import FreeClassroomsWidget from "./FreeClassroomsWidget";
 import TabHelpFooter from "../shared/TabHelpFooter";
+import { useSyncTrigger } from "../shared/useSyncTrigger";
 import { getTodayAttendanceClasses } from "@/lib/attendanceTimetable";
+import { buildExamRows } from "@/lib/examSchedule";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 
 interface MobileHomeProps {
@@ -375,6 +378,8 @@ export default function MobileHome({
     await handleReloadRequest();
     window.setTimeout(() => setIsSpinning(false), 600);
   }, [handleReloadRequest]);
+
+  const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
 
   const getGreeting = () => {
     const hr = new Date().getHours();
@@ -1288,54 +1293,21 @@ export default function MobileHome({
   };
 
   const renderExamScheduleWidget = () => {
-    const scheduleObj = scheduleData?.Schedule || scheduleData?.schedule;
-
-    const allExams = useMemo(() => {
-      if (!scheduleObj || typeof scheduleObj !== "object") return [];
-      const list: any[] = [];
-      Object.entries(scheduleObj).forEach(([examType, subjects]: [string, any]) => {
-        if (Array.isArray(subjects)) {
-          subjects.forEach((subj) => {
-            list.push({ ...subj, examType });
-          });
-        }
-      });
-
-      const parseDate = (dStr: string) => {
-        if (!dStr) return null;
-        const parts = dStr.split(/[-/]/);
-        if (parts.length === 3) {
-          let [d, m, y] = parts;
-          const dayNum = parseInt(d, 10);
-          if (isNaN(dayNum)) return null;
-          const yearNum = parseInt(y, 10);
-          if (isNaN(parseInt(m, 10))) {
-            const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-            const mIndex = monthNames.findIndex((x) => m.toLowerCase().startsWith(x));
-            if (mIndex === -1) return null;
-            return new Date(yearNum, mIndex, dayNum);
-          } else {
-            return new Date(yearNum, parseInt(m, 10) - 1, dayNum);
-          }
-        }
-        return new Date(dStr);
-      };
-
-      return list
-        .map((exam) => ({ ...exam, parsedDate: parseDate(exam.examDate) }))
-        .sort((a, b) => {
-          if (!a.parsedDate && !b.parsedDate) return 0;
-          if (!a.parsedDate) return 1;
-          if (!b.parsedDate) return -1;
-          return a.parsedDate.getTime() - b.parsedDate.getTime();
-        });
-    }, [scheduleObj]);
+    // Shared, time-aware exam rows: a paper that ended an hour ago is past,
+    // even though it is still "today". Judging by calendar day alone left
+    // finished exams sitting on the "Exam Today!" / "Next Exam" cards.
+    const allExams = buildExamRows(scheduleData?.Schedule || scheduleData?.schedule).map((r) => ({
+      ...r.raw,
+      examType: r.examType,
+      parsedDate: r.date,
+      state: r.state,
+    }));
 
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
 
-    const todayExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() === todayDate.getTime());
-    const upcomingExams = allExams.filter((e) => e.parsedDate && e.parsedDate.getTime() >= todayDate.getTime());
+    const todayExams = allExams.filter((e) => e.state === "today");
+    const upcomingExams = allExams.filter((e) => e.state !== "past");
     const nextExam = upcomingExams.length > 0 ? upcomingExams[0] : null;
 
     const calculateDaysLeft = (targetDate: Date) => {
@@ -1533,7 +1505,7 @@ export default function MobileHome({
   };
 
   return (
-    <div className="w-full space-y-6 pb-24 md:pb-0 animate-in fade-in duration-300">
+    <div className="w-full space-y-6 md:pb-0 animate-in fade-in duration-300">
       
       {/* ── HEADER & GREETING ── */}
       <div className="flex justify-between items-center px-1">
@@ -1572,12 +1544,21 @@ export default function MobileHome({
             <Sliders className="w-4 h-4" />
           </button>
           <button
-            onClick={handleRefresh}
-            className="px-3.5 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
-            title="Sync Data from VTOP"
+            onClick={handleSyncClick}
+            className={`px-3.5 py-2.5 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-bold ${
+              isOffline
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+                : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200 shadow-xs"
+            }`}
+            title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
+            aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
           >
-            <RefreshCcw className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
-            <span>Sync</span>
+            {isOffline ? (
+              <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <RefreshCcw className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+            )}
+            <span>{isOffline ? "Offline" : "Sync"}</span>
           </button>
         </div>
       </div>

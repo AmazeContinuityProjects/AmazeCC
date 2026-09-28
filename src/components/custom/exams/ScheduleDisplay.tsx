@@ -1,443 +1,453 @@
 "use client";
 
-import NoContentFound from "../NoContentFound";
-import { RefreshCcw, Download, Printer, ClipboardList } from "lucide-react";
-import { useEffect, useState, useRef, useCallback } from "react";
-import FetchButton from "../shared/FetchButton";
-import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { AnimatePresence, m } from "framer-motion";
+import {
+  CalendarX,
+  Check,
+  ChevronDown,
+  ClipboardList,
+  Download,
+  Loader2,
+  Printer,
+  RefreshCcw,
+  CalendarPlus,
+} from "lucide-react";
 import { useTheme } from "next-themes";
+import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { GHOST_BUTTON, SECTION_CHIP } from "@/lib/uiTokens";
+import {
+  buildExamRows,
+  nextExamLabel,
+  prettyDate,
+  seatLabel,
+  seriesTone,
+  shortDate,
+  type ExamRow,
+} from "@/lib/examSchedule";
+import {
+  PageShell,
+  IconButton,
+  GhostButton,
+  SegmentedControl,
+  SectionHeader,
+  StatTile,
+  ListShell,
+  ToneBadge,
+  ToneDot,
+  EmptyPanel,
+} from "../shared/primitives";
 
-export default function ExamSchedule({ data, handleScheduleFetch }) {
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+const ALL_TYPES = "__all__";
+/** Sentinel: every row expanded — used for PNG/print capture. */
+const EXPAND_ALL = "__all_rows__";
+/** Must outlast the 0.22s expand transition before the DOM is captured. */
+const EXPAND_SETTLE_MS = 280;
+
+/** Reporting time + the exam series' duration -> UTC bounds for the VEVENT. */
+function computeExamTimes(reportingTimeStr: string, examDateStr: string, examType: string) {
+  if (!reportingTimeStr || !examDateStr) return {};
+
+  const [day, monthStr, year] = examDateStr.split(/[-/]/);
+  const month = MONTHS.findIndex((m) => monthStr.toLowerCase().startsWith(m));
+
+  const match = reportingTimeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return {};
+  const [, hours, minutes, meridian] = match;
+  let h = parseInt(hours, 10);
+  const m = parseInt(minutes, 10);
+  if (meridian.toUpperCase() === "PM" && h !== 12) h += 12;
+  if (meridian.toUpperCase() === "AM" && h === 12) h = 0;
+
+  const start = new Date(parseInt(year, 10), month, parseInt(day, 10), h, m);
+
+  const upper = String(examType).toUpperCase();
+  const duration =
+    upper.includes("CAT") ? 1 * 60 + 45 : upper.includes("FAT") ? 3 * 60 + 30 : 0;
+
+  const end = new Date(start.getTime() + duration * 60000);
+
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+  return { startUTC: fmt(start), endUTC: fmt(end) };
+}
+
+function generateICSFile(subjects: any[], examType: string) {
+  const events = subjects
+    .filter((s) => s.reportingTime && s.examSession)
+    .map((subj) => {
+      const { startUTC, endUTC } = computeExamTimes(subj.reportingTime, subj.examDate, examType);
+      const uid = crypto.randomUUID();
+      const dtstamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+      return [
+        "BEGIN:VEVENT",
+        `SUMMARY:${subj.courseTitle} (${examType})`,
+        `DESCRIPTION:${subj.courseCode} — ${subj.reportingTime} @ ${subj.venue === "-" ? "TBA" : subj.venue}`,
+        `LOCATION:${subj.venue === "-" ? "TBA" : subj.venue}`,
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp}`,
+        `DTSTART:${startUTC}`,
+        `DTEND:${endUTC}`,
+        "END:VEVENT",
+      ].join("\n");
+    })
+    .join("\n\n");
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//AmazeCC//Schedule Export//EN",
+    events,
+    "END:VCALENDAR",
+  ].join("\n");
+
+  return URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+}
+
+export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any) {
   const scheduleObj = data?.Schedule || data?.schedule;
+  const semester = data?.semester;
+
   const captureRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState(ALL_TYPES);
+  const [copied, setCopied] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
   const { theme, resolvedTheme } = useTheme();
   const currentTheme = resolvedTheme || theme || "light";
   const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
   const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
   const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
-  const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
+  const themeHtmlClass =
+    typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
-  const allCourseCodes = scheduleObj
-    ? [...new Set(Object.values(scheduleObj).flat().map((s: any) => s.courseCode).filter(Boolean))]
-    : [];
+  useEffect(() => {
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
+  }, []);
 
-  const handleCopyCodes = useCallback(() => {
+  const examTypes = useMemo(
+    () => (scheduleObj && typeof scheduleObj === "object" ? Object.keys(scheduleObj) : []),
+    [scheduleObj]
+  );
+
+  const allRows = useMemo<ExamRow[]>(() => buildExamRows(scheduleObj), [scheduleObj]);
+
+  const visibleRows = useMemo(
+    () => (typeFilter === ALL_TYPES ? allRows : allRows.filter((r) => r.examType === typeFilter)),
+    [allRows, typeFilter]
+  );
+
+  const upcomingRows = useMemo(() => allRows.filter((r) => r.state !== "past"), [allRows]);
+  const todayCount = useMemo(() => allRows.filter((r) => r.state === "today").length, [allRows]);
+  const nextRow = upcomingRows[0] ?? null;
+
+  const allCourseCodes = useMemo(
+    () => [...new Set(allRows.map((r) => r.raw?.courseCode).filter(Boolean))] as string[],
+    [allRows]
+  );
+
+  const handleCopyCodes = useCallback(async () => {
     if (allCourseCodes.length === 0) return;
-    navigator.clipboard.writeText(allCourseCodes.join(", "));
+    try {
+      await navigator.clipboard.writeText(allCourseCodes.join(", "));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   }, [allCourseCodes]);
+
+  /**
+   * PNG/print capture the live DOM, and collapsed bodies are unmounted by
+   * AnimatePresence — so open every row, drop any active series filter, let the
+   * transition land, capture, then put the user's own view state back.
+   */
+  const withFullScheduleExpanded = useCallback(async (run: () => Promise<void> | void) => {
+    const restoreExpanded = expandedKey;
+    const restoreFilter = typeFilter;
+    setExpandedKey(EXPAND_ALL);
+    setTypeFilter(ALL_TYPES);
+    await new Promise((resolve) => setTimeout(resolve, EXPAND_SETTLE_MS));
+    try {
+      await run();
+    } finally {
+      setExpandedKey(restoreExpanded);
+      setTypeFilter(restoreFilter);
+    }
+  }, [expandedKey, typeFilter]);
 
   const handlePrint = useCallback(() => {
     if (!captureRef.current) return;
-    setIsDownloading(true);
-    try {
-      openTimetablePrintablePage(
-        captureRef.current.innerHTML,
-        "Exam Schedule",
-        themeHtmlClass,
-        themeBgColor,
-        themeTextColor
-      );
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [themeHtmlClass, themeBgColor, themeTextColor]);
+    withFullScheduleExpanded(() => {
+      try {
+        openTimetablePrintablePage(
+          captureRef.current!.innerHTML,
+          "Exam Schedule",
+          themeHtmlClass,
+          themeBgColor,
+          themeTextColor
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }, [withFullScheduleExpanded, themeHtmlClass, themeBgColor, themeTextColor]);
 
   const handleDownloadImage = useCallback(async () => {
     if (!captureRef.current) return;
-    setIsDownloading(true);
-    try {
-      await downloadTimetableImage(captureRef.current, "Exam_Schedule", themeBgColor, "png");
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [themeBgColor]);
+    await withFullScheduleExpanded(async () => {
+      setIsDownloading(true);
+      try {
+        await downloadTimetableImage(captureRef.current!, "Exam_Schedule", themeBgColor, "png");
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsDownloading(false);
+      }
+    });
+  }, [withFullScheduleExpanded, themeBgColor]);
+
+  const actions = (
+    <>
+      <IconButton onClick={handleScheduleFetch} title="Reload exam schedule">
+        <RefreshCcw className="w-4 h-4" />
+      </IconButton>
+      <IconButton
+        onClick={handleCopyCodes}
+        title="Copy all course codes"
+        disabled={allCourseCodes.length === 0}
+      >
+        <ClipboardList className="w-4 h-4" />
+      </IconButton>
+      <IconButton onClick={handleDownloadImage} title="Download as PNG" disabled={isDownloading}>
+        {isDownloading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+      </IconButton>
+      <IconButton onClick={handlePrint} title="Print / PDF" disabled={isDownloading}>
+        <Printer className="w-4 h-4" />
+      </IconButton>
+    </>
+  );
+
+  const shellProps = {
+    eyebrow: "Academics",
+    title: "Exam Schedule",
+    subtitle: semester ? `Session ${semester}` : undefined,
+    actions,
+    onBack,
+  };
 
   if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
     return (
-      <div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-          {/* Mobile View: Inline Center */}
-          <h1 className="md:hidden text-xl font-bold text-center text-gray-900  dark:text-gray-100">
-            Exam Schedule <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="ml-2 align-middle" />
-          </h1>
-
-          {/* Desktop View: Left Aligned Heading + Right Aligned Button */}
-          <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
-            Exam Schedule
-          </h1>
-          <div className="hidden md:flex items-center justify-end">
-            <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
-              <span className="text-sm">Reload</span>
-            </FetchButton>
-          </div>
-        </div>
-        <NoContentFound />
-      </div>
+      <PageShell {...shellProps}>
+        <EmptyPanel
+          icon={<CalendarX className="w-7 h-7" />}
+          title="No exam schedule yet"
+          description="Your CAT, FAT and lab timetables appear here once they are synced from VTOP."
+          action={
+            <GhostButton onClick={handleScheduleFetch}>
+              <RefreshCcw className="w-3.5 h-3.5" />
+              Sync now
+            </GhostButton>
+          }
+        />
+      </PageShell>
     );
-  };
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    setIsIOS(
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !window.MSStream
-    );
-  }, []);
-
-
-  const parseExamDate = (dateStr) => {
-    if (!dateStr) return null;
-    const parts = dateStr.split(/[-/]/);
-    if (parts.length === 3) {
-      let [d, m, y] = parts;
-      d = parseInt(d);
-      if (isNaN(d)) return null;
-
-      if (isNaN(m)) {
-        const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-        const mIndex = monthNames.findIndex((x) => x === m.toLowerCase().slice(0, 3));
-        if (mIndex === -1) return null;
-        return new Date(y, mIndex, d);
-      } else {
-        return new Date(y, m - 1, d);
-      }
-    }
-    return new Date(dateStr);
-  };
-
-  function computeExamTimes(reportingTimeStr, examDateStr, examType) {
-    if (!reportingTimeStr || !examDateStr) return {};
-
-    const [day, monthStr, year] = examDateStr.split(/[-/]/);
-    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-    const month = monthNames.findIndex(m => monthStr.toLowerCase().startsWith(m));
-
-    const [hours, minutes, meridian] = reportingTimeStr.match(/(\d+):(\d+)\s*(AM|PM)/i).slice(1);
-    let h = parseInt(hours);
-    let m = parseInt(minutes);
-    if (meridian.toUpperCase() === "PM" && h !== 12) h += 12;
-    if (meridian.toUpperCase() === "AM" && h === 12) h = 0;
-
-    const start = new Date(year, month, day, h, m);
-
-    const duration =
-      examType.toUpperCase().includes("CAT") ? 1 * 60 + 45 :
-        examType.toUpperCase().includes("FAT") ? 3 * 60 + 30 :
-          0;
-
-    const end = new Date(start.getTime() + duration * 60000);
-
-    const fmt = (d) =>
-      d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-    return {
-      startUTC: fmt(start),
-      endUTC: fmt(end),
-    };
   }
 
-
-  const generateICSFile = (subjects, examType) => {
-    const events = subjects
-      .filter((s) => s.reportingTime && s.examSession)
-      .map((subj) => {
-        const { startUTC, endUTC } = computeExamTimes(subj.reportingTime, subj.examDate, examType);
-        const uid = crypto.randomUUID();
-        const dtstamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-
-        return [
-          "BEGIN:VEVENT",
-          `SUMMARY:${subj.courseTitle} (${examType})`,
-          `DESCRIPTION:${subj.courseCode} — ${subj.reportingTime} @ ${subj.venue == "-" ? "TBA" : subj.venue}`,
-          `LOCATION:${subj.venue == "-" ? "TBA" : subj.venue}`,
-          `UID:${uid}`,
-          `DTSTAMP:${dtstamp}`,
-          `DTSTART:${startUTC}`,
-          `DTEND:${endUTC}`,
-          "END:VEVENT",
-        ].join("\n");
-      })
-      .join("\n\n");
-
-    const ics = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//AmazeCC//Schedule Export//EN",
-      events,
-      "END:VCALENDAR",
-    ].join("\n");
-
-
-    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-    return URL.createObjectURL(blob);
-  };
-
-  const todayExams = Object.entries(scheduleObj)
-    .flatMap(([examType, subjects]) =>
-      (subjects as any[]).filter((subj: any) => {
-        const examDate = parseExamDate(subj.examDate);
-        return examDate && examDate.getTime() === today.getTime();
-      }).map((subj: any) => ({ ...subj, examType }))
-    );
-
-  const compareExamDates = (left, right) => {
-    const leftDate = parseExamDate(left.examDate);
-    const rightDate = parseExamDate(right.examDate);
-
-    if (!leftDate && !rightDate) return 0;
-    if (!leftDate) return 1;
-    if (!rightDate) return -1;
-
-    const dateDiff = leftDate.getTime() - rightDate.getTime();
-    if (dateDiff !== 0) return dateDiff;
-
-    return `${left.examTime ?? ""} ${left.courseCode ?? ""}`.localeCompare(
-      `${right.examTime ?? ""} ${right.courseCode ?? ""}`
-    );
-  };
-
-  const sortedTodayExams = [...todayExams].sort(compareExamDates);
-
-
   return (
-    <div className="space-y-6 p-2">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-        {/* Mobile View: Inline Center */}
-        <div className="md:hidden flex items-center justify-between w-full mb-3">
-          <h1 className="text-xl font-bold text-gray-900  dark:text-gray-100">
-            Exam Schedule
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <button onClick={handleCopyCodes} disabled={allCourseCodes.length === 0} className="p-2 rounded-lg bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white transition-colors" title="Copy course codes">
-              <ClipboardList className="w-4 h-4" />
-            </button>
-            <button onClick={handleDownloadImage} disabled={isDownloading} className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors" title="Download PNG">
-              <Download className="w-4 h-4" />
-            </button>
-            <button onClick={handlePrint} disabled={isDownloading} className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white transition-colors" title="Print / PDF">
-              <Printer className="w-4 h-4" />
-            </button>
-            <FetchButton onClick={handleScheduleFetch} size="sm" icon={<RefreshCcw className="w-4 h-4" />} className="p-2" />
-          </div>
-        </div>
-
-        {/* Desktop View: Left Aligned Heading + Right Aligned Buttons */}
-        <h1 className="hidden md:block text-3xl font-bold text-left text-gray-900  dark:text-gray-100">
-          Exam Schedule
-        </h1>
-        <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={handleCopyCodes}
-            disabled={allCourseCodes.length === 0}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
-            title="Copy all course codes"
-          >
-            <ClipboardList className="w-4 h-4" /> <span className="text-sm">Copy Codes</span>
-          </button>
-          <button
-            onClick={handleDownloadImage}
-            disabled={isDownloading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
-          >
-            <Download className="w-4 h-4" /> <span className="text-sm">{isDownloading ? "..." : "PNG"}</span>
-          </button>
-          <button
-            onClick={handlePrint}
-            disabled={isDownloading}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-sm"
-          >
-            <Printer className="w-4 h-4" /> <span className="text-sm">{isDownloading ? "..." : "Print / PDF"}</span>
-          </button>
-          <FetchButton onClick={handleScheduleFetch} icon={<RefreshCcw className="w-4 h-4" />}>
-            <span className="text-sm">Reload</span>
-          </FetchButton>
-        </div>
+    <PageShell {...shellProps}>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatTile
+          label="Next exam"
+          tone={nextRow?.state === "today" ? "amber" : "emerald"}
+          badge={nextRow ? (nextRow.state === "today" ? "Today" : "Next") : undefined}
+          value={nextExamLabel(nextRow)}
+          sub={
+            nextRow ? `${nextRow.raw.courseCode} · ${prettyDate(nextRow.date)}` : "Nothing scheduled"
+          }
+        />
+        <StatTile
+          label="Exams left"
+          tone="neutral"
+          badge={todayCount > 0 ? `${todayCount} today` : undefined}
+          value={
+            <>
+              {upcomingRows.length}
+              <span className="text-base sm:text-lg font-extrabold text-zinc-400 dark:text-zinc-500 ml-1">
+                of {allRows.length}
+              </span>
+            </>
+          }
+          sub={`${examTypes.length} series`}
+        />
       </div>
 
       <div ref={captureRef}>
-      {sortedTodayExams.length > 0 && (
-        <div className="bg-green-100  dark:bg-green-800/40
-                  rounded-xl p-4 shadow mb-6 border border-green-300
-                   dark:border-green-700">
-
-          <div className="space-y-6">
-            {sortedTodayExams.map((exam, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-2 lg:grid-cols-3 gap-4
-                     bg-white/40  dark:bg-black/20
-                     p-4 rounded-lg border border-green-200
-                      dark:border-green-700/40"
-              >
-                <div>
-                  <p className="font-semibold">Course:</p>
-                  <p>{exam.courseCode} — {exam.courseTitle}</p>
-                </div>
-
-                <div>
-                  <p className="font-semibold">Exam Time:</p>
-                  <p>{exam.examTime}</p>
-                </div>
-
-                <div>
-                  <p className="font-semibold">Session:</p>
-                  <p>{exam.examSession}</p>
-                </div>
-
-                <div>
-                  <p className="font-semibold">Reporting Time:</p>
-                  <p>{exam.reportingTime}</p>
-                </div>
-
-                <div>
-                  <p className="font-semibold">Venue:</p>
-                  <p>{exam.venue}</p>
-                </div>
-
-                <div>
-                  <p className="font-semibold">Seat:</p>
-                  <p>{exam.seatLocation === "-" && exam.seatNo && exam.seatNo !== "-"
-                    ? calculateSeatLocation(exam.seatNo, exam.courseTitle)
-                    : exam.seatLocation}, #{exam.seatNo}</p>
-                </div>
-
-              </div>
-            ))}
+        {/* ── EXAM SERIES ── */}
+        {examTypes.length > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SegmentedControl
+              options={[{ value: ALL_TYPES, label: "All" }, ...examTypes.map((t) => ({ value: t, label: t }))]}
+              value={typeFilter}
+              onChange={setTypeFilter}
+            />
+            <span className={`${SECTION_CHIP} shrink-0`}>{visibleRows.length}</span>
           </div>
+        )}
+
+        <div className="space-y-6 sm:space-y-7">
+          {examTypes
+            .filter((examType) => typeFilter === ALL_TYPES || typeFilter === examType)
+            .map((examType) => {
+              const subjects = (scheduleObj as Record<string, any>)[examType];
+              if (!Array.isArray(subjects)) return null;
+              const rows = allRows.filter((r) => r.examType === examType);
+              const hasCalendarData = subjects.some((s: any) => s.examSession && s.reportingTime);
+              const tone = seriesTone(examType);
+
+              return (
+                <div key={examType} className="space-y-2.5">
+                  <SectionHeader
+                    leading={<ToneDot tone={tone} size="md" />}
+                    title={examType}
+                    count={rows.length}
+                    right={
+                      isIOS && hasCalendarData ? (
+                        <a
+                          href={generateICSFile(subjects, examType)}
+                          download={`${examType}_Schedule_iOS.ics`}
+                          title="Add to Calendar"
+                          aria-label={`Add ${examType} schedule to Calendar`}
+                          className={GHOST_BUTTON}
+                        >
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                          {/* Icon-only on phones, where the label is what
+                              collides with the series name. */}
+                          <span className="hidden sm:inline text-[11px] font-bold">
+                            Add to Calendar
+                          </span>
+                        </a>
+                      ) : undefined
+                    }
+                  />
+
+                  <ListShell>
+                    {rows.map((row) => {
+                      const subj = row.raw;
+                      const isOpen = expandedKey === EXPAND_ALL || expandedKey === row.key;
+
+                      return (
+                        <div key={row.key}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedKey(isOpen && expandedKey !== EXPAND_ALL ? null : row.key)
+                            }
+                            className="w-full relative py-3.5 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                          >
+                            {row.state === "past" ? (
+                              /* A tick reads faster than a faint dot for finished papers. */
+                              <Check
+                                className="w-4 h-4 text-zinc-400 dark:text-zinc-500 shrink-0"
+                                strokeWidth={2.5}
+                              />
+                            ) : (
+                              <ToneDot tone={row.state === "today" ? "amber" : "emerald"} />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`text-sm font-bold truncate font-outfit leading-tight ${
+                                  row.state === "past"
+                                    ? "text-zinc-400 dark:text-zinc-500 line-through"
+                                    : "text-zinc-900 dark:text-white"
+                                }`}
+                              >
+                                {subj.courseTitle || subj.courseCode}
+                              </p>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate">
+                                {subj.courseCode} · {shortDate(row.date)} ·{" "}
+                                {subj.examSession || "TBA"} · {subj.venue === "-" ? "TBA" : subj.venue}
+                              </p>
+                            </div>
+                            {/* Only "today" needs calling out — the tick and the
+                                strikethrough already carry past/upcoming. */}
+                            {row.state === "today" && (
+                              <ToneBadge tone="amber" size="sm">
+                                Today
+                              </ToneBadge>
+                            )}
+                            <ChevronDown
+                              className={`w-4 h-4 text-zinc-400 transition-transform duration-200 shrink-0 ${
+                                isOpen ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+
+                          <AnimatePresence initial={false}>
+                            {isOpen && (
+                              <m.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.22, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-4 pb-4 pt-2 space-y-2.5 border-t border-zinc-100 dark:border-zinc-800/80 mt-1.5">
+                                  <div className="grid grid-cols-2 gap-3.5">
+                                    {[
+                                      { label: "Date", value: subj.examDate || "TBA" },
+                                      { label: "Exam Time", value: subj.examTime || "TBA" },
+                                      { label: "Session", value: subj.examSession || "TBA" },
+                                      { label: "Reporting", value: subj.reportingTime || "TBA" },
+                                      { label: "Venue", value: subj.venue === "-" ? "TBA" : subj.venue || "TBA" },
+                                      { label: "Slot", value: subj.slot === "-" ? "TBA" : subj.slot || "TBA" },
+                                    ].map((field) => (
+                                      <div key={field.label} className="min-w-0">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                          {field.label}
+                                        </p>
+                                        <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate mt-0.5">
+                                          {field.value}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3 min-w-0 pt-1.5">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">
+                                      Seat
+                                    </p>
+                                    <p className="text-[12.5px] font-bold text-zinc-800 dark:text-zinc-100 truncate">
+                                      Loc: {seatLabel(subj) || "TBA"} · No: {subj.seatNo || "TBA"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </m.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </ListShell>
+                </div>
+              );
+            })}
         </div>
-      )}
 
-      {Object.entries(scheduleObj).map(([examType, subjects]: [string, any]) => {
-        const sortedSubjects = [...subjects].sort(compareExamDates);
-        const hasCalendarData = sortedSubjects.some((s) => s.examSession && s.reportingTime);
-        const icsUrl = hasCalendarData ? generateICSFile(sortedSubjects, examType) : null;
-
-        return (
-          <div
-            key={examType}
-            className="bg-slate-50  dark:bg-black shadow rounded-2xl p-4 dark:outline dark:outline-1 dark:outline-gray-800"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-blue-700  dark:text-white">
-                {examType}
-              </h2>
-
-              {hasCalendarData && isIOS && (
-                <div className="flex gap-2">
-                  <a
-                    href={icsUrl}
-                    download={`${examType}_Schedule_iOS.ics`}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1.5 rounded-md text-sm font-medium"
-                  >
-                    Add to Calendar
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
-              {sortedSubjects.map((subj, idx) => {
-                const examDate = parseExamDate(subj.examDate);
-                const isPast = examDate && examDate < today;
-                const isToday = examDate && examDate.getTime() === today.getTime();
-
-                let cardClass =
-                  "flex flex-col p-4 rounded-xl shadow-sm border transition-all ";
-
-                if (isPast) {
-                  cardClass += "bg-gray-100  dark:bg-gray-900/50 border-gray-200  dark:border-gray-800 opacity-60";
-                } else if (isToday) {
-                  cardClass += "bg-green-50  dark:bg-green-900/30 border-green-300  dark:border-green-800";
-                } else {
-                  cardClass += "bg-white  dark:bg-gray-900 border-gray-200  dark:border-gray-800 hover:shadow-md";
-                }
-
-                const finalSeatLocation = subj.seatLocation === "-" && subj.seatNo && subj.seatNo !== "-"
-                  ? calculateSeatLocation(subj.seatNo, subj.courseTitle)
-                  : subj.seatLocation;
-
-                return (
-                  <div key={idx} className={`stagger-enter ${cardClass}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className={`font-bold text-lg ${isPast ? 'text-gray-500  line-through' : 'text-blue-700  dark:text-blue-400'}`}>
-                          {subj.courseCode}
-                        </h3>
-                        <p className={`text-sm font-medium ${isPast ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {subj.courseTitle}
-                        </p>
-                      </div>
-                      {subj.slot && subj.slot !== "-" && (
-                        <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-md">
-                          Slot: {subj.slot}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-auto pt-3 border-t border-gray-100  dark:border-gray-800">
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Date & Time</p>
-                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
-                          {subj.examDate}<br/>{subj.examTime}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Venue</p>
-                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
-                          {subj.venue}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Session & Reporting</p>
-                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
-                          {subj.examSession}<br/>{subj.reportingTime}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Seat</p>
-                        <p className={`font-medium ${isPast ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
-                          Loc: {finalSeatLocation}<br/>No: {subj.seatNo}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+        {visibleRows.length === 0 && (
+          <EmptyPanel
+            icon={<CalendarX className="w-7 h-7" />}
+            title="Nothing under this filter"
+            description="Try a different exam series to see the rest of your timetable."
+          />
+        )}
       </div>
-    </div>
+    </PageShell>
   );
-}
-
-function calculateSeatLocation(seatNo: string, courseTitle: string): string {
-  const n = Number(seatNo);
-  if (isNaN(n) || n <= 0) return "-";
-  if (courseTitle.startsWith("Qualitative") || courseTitle.startsWith("Quantitative") || courseTitle.startsWith("French") || courseTitle.startsWith("German") || courseTitle.startsWith("Spanish") || courseTitle.startsWith("Japanese")) {
-    return "-";
-  }
-
-  const groupIndex = Math.floor((n - 1) / 18);
-  const C1 = groupIndex * 2 + 1;
-  const C2 = C1 + 1;
-
-  const pos = (n - 1) % 18;
-  const row = Math.floor(pos / 2) + 1;
-
-  const col = (pos % 2 === 0) ? C1 : C2;
-
-  return `R${row}C${col}`;
 }

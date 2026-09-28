@@ -17,7 +17,16 @@ import {
   User,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
-import BackButton from "../shared/BackButton";
+import BottomSheet from "../shared/BottomSheet";
+import {
+  IconButton,
+  InsightCarousel,
+  ListRowText,
+  PageShell,
+  SectionHeader,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
 import CatalogSearch from "./CatalogSearch";
 import DuesView from "./DuesView";
 import { DEMO_PATRON_PAGES } from "@/lib/libraries/demo";
@@ -35,7 +44,6 @@ import {
   CHIP,
   EMPTY_STATE,
   FIELD_INPUT,
-  ICON_BUTTON,
   LIST_ROW,
   LIST_SHELL,
   SECTION_CHIP,
@@ -56,10 +64,13 @@ interface LibrariesTabProps {
   onBack?: () => void;
 }
 
-type Screen = "landing" | "catalog" | "account" | "dues";
+type Screen = "landing" | "account" | "dues";
+
+/** Catalog lives in a sheet, not a screen, but it still appears in the list. */
+type SectionId = Exclude<Screen, "landing"> | "catalog";
 
 interface SectionMeta {
-  id: Exclude<Screen, "landing">;
+  id: SectionId;
   title: string;
   desc: string;
   icon: React.ElementType;
@@ -91,31 +102,6 @@ const SECTIONS: SectionMeta[] = [
 ];
 
 // ── shared bits ───────────────────────────────────────────────────────
-function SectionHeader({
-  icon: Icon,
-  title,
-  count,
-  right,
-}: {
-  icon: React.ElementType;
-  title: string;
-  count?: number;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 px-1">
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className="w-4 h-4 text-indigo-500 shrink-0" />
-        <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-          {title}
-        </h2>
-        {typeof count === "number" && <span className={SECTION_CHIP}>{count}</span>}
-      </div>
-      {right}
-    </div>
-  );
-}
-
 function countRows(page?: PatronPage): number {
   return (page?.tables || []).reduce((s, t) => s + (t.rows?.length || 0), 0);
 }
@@ -354,6 +340,11 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   const [screen, setScreen] = useState<Screen>("landing");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Catalog is a bottom sheet rather than a screen: it is a focused task, and
+  // the sheet is portalled above the nav bar so no nav clearance is reserved.
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogSeed, setCatalogSeed] = useState("");
+
   // Catalog facts surfaced on the landing
   const [catalogTotal, setCatalogTotal] = useState(0);
   const [catalogQuery, setCatalogQuery] = useState("");
@@ -445,6 +436,14 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     setPatronPages(null);
   }, []);
 
+  const openCatalog = useCallback(
+    (reuseLastQuery = false) => {
+      setCatalogSeed(reuseLastQuery ? catalogQuery : "");
+      setCatalogOpen(true);
+    },
+    [catalogQuery]
+  );
+
   // ── derived headline figures ───────────────────────────────────────
   const chargeTotals = useMemo(
     () => computeDuesTotals(patronPages?.charges),
@@ -454,9 +453,6 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   const checkoutCount = countRows(patronPages?.checkouts);
   const historyCount = countRows(patronPages?.history);
   const accountConnected = hasPatronData(patronPages);
-
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
   const slides = useMemo(() => {
     const list: {
@@ -528,7 +524,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
         subline: catalogQuery ? `results for “${catalogQuery}”` : "catalog results",
         badge: "OPAC",
         tone: "sky",
-        onClick: () => setScreen("catalog"),
+        onClick: () => openCatalog(true),
       });
     }
 
@@ -541,20 +537,23 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     historyCount,
     catalogTotal,
     catalogQuery,
+    openCatalog,
   ]);
 
-  useEffect(() => {
-    setSlideIndex(0);
-  }, [slides.length]);
-
-  useEffect(() => {
-    if (isCarouselPaused || slides.length <= 1) return;
-    const t = setInterval(() => setSlideIndex((p) => (p + 1) % slides.length), 5000);
-    return () => clearInterval(t);
-  }, [isCarouselPaused, slides.length]);
-
-  const slide = slides[slideIndex] || slides[0];
-  const slideTone = slide?.tone || "indigo";
+  const carousel = useCarousel(slides.length);
+  const insightSlides = useMemo<InsightSlide[]>(
+    () =>
+      slides.map((s) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        tone: s.tone || "indigo",
+        onClick: s.onClick,
+      })),
+    [slides]
+  );
   const duesTone = duesOverdue > 0 ? "red" : "amber";
 
   const onCatalogSearched = useCallback((total: number, query: string) => {
@@ -583,48 +582,19 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
     } catch {}
   }, []);
 
-  const sectionCount = (id: Exclude<Screen, "landing">): number => {
+  const sectionCount = (id: SectionId): number => {
     if (id === "catalog") return catalogTotal;
     if (id === "account") return chargeCount + checkoutCount + historyCount;
     return duesOverdue;
   };
 
-  const sectionSuffix = (id: Exclude<Screen, "landing">): string => {
+  const sectionSuffix = (id: SectionId): string => {
     if (id === "catalog") return "results";
     if (id === "account") return "items";
     return "overdue";
   };
 
   // ── chrome ─────────────────────────────────────────────────────────
-  const TopBar = () => (
-    <>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <BackButton
-          onClick={() => (screen === "landing" ? onBack?.() : setScreen("landing"))}
-          className="self-start"
-        />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={reload}
-            aria-label="Reload library data"
-            title="Reload library data"
-            className={ICON_BUTTON}
-          >
-            <RefreshCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-          Campus
-        </p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          Libraries
-        </h1>
-      </div>
-    </>
-  );
 
   // ── landing ────────────────────────────────────────────────────────
   const landing = (
@@ -664,60 +634,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
         </button>
 
         {/* Carousel */}
-        {slide && (
-          <div
-            onMouseEnter={() => setIsCarouselPaused(true)}
-            onMouseLeave={() => setIsCarouselPaused(false)}
-            onTouchStart={() => setIsCarouselPaused(true)}
-            onTouchEnd={() => setIsCarouselPaused(false)}
-            onClick={() => slide.onClick()}
-            className={`${TILE} h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`}
-          >
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                {slide.title}
-              </span>
-              <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${TONE_BADGE[slideTone]}`}
-              >
-                {slide.badge}
-              </span>
-            </div>
-            <AnimatePresence mode="wait">
-              <m.div
-                key={slide.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="my-auto min-w-0"
-              >
-                <span
-                  className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${TONE_TEXT[slideTone]}`}
-                >
-                  {slide.headline}
-                </span>
-              </m.div>
-            </AnimatePresence>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                {slide.subline}
-              </p>
-              {slides.length > 1 && (
-                <div className="flex items-center gap-1 shrink-0">
-                  {slides.map((s, i) => (
-                    <span
-                      key={s.id}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        slideIndex === i ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <InsightCarousel slides={insightSlides} carousel={carousel} />
       </div>
 
       {/* Sections */}
@@ -739,7 +656,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setScreen(s.id)}
+                onClick={() => (s.id === "catalog" ? openCatalog() : setScreen(s.id))}
                 className={`${LIST_ROW} cursor-pointer`}
               >
                 <span
@@ -747,14 +664,8 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                    {s.title}
-                  </p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {s.desc}
-                  </p>
-                </div>
+      <ListRowText title={s.title} subtitle={s.desc} />
+
                 {count > 0 && (
                   <span className={`${CHIP} shrink-0`}>
                     {count} {sectionSuffix(s.id)}
@@ -868,27 +779,7 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   );
 
   const subpage =
-    screen === "catalog" ? (
-      <div className="space-y-3">
-        <SectionHeader
-          icon={Search}
-          title="Catalog search"
-          count={catalogTotal || undefined}
-          right={
-            catalogQuery ? (
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 truncate max-w-[40%]">
-                “{catalogQuery}”
-              </span>
-            ) : undefined
-          }
-        />
-        <CatalogSearch
-          variant="page"
-          isDemo={isDemo}
-          onSearched={onCatalogSearched}
-        />
-      </div>
-    ) : screen === "account" ? (
+    screen === "account" ? (
       accountSubpage
     ) : (
       <div className="space-y-3">
@@ -921,10 +812,36 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
       </div>
     );
 
+  const catalogSheet = (
+    <BottomSheet
+      overlayId="library-catalog"
+      maxWidth="max-w-2xl"
+      avoidKeyboard
+      contentClassName="pb-0"
+      onClose={() => setCatalogOpen(false)}
+    >
+      <CatalogSearch
+        variant="sheet"
+        isDemo={isDemo}
+        initialQuery={catalogSeed}
+        onSearched={onCatalogSearched}
+      />
+    </BottomSheet>
+  );
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
-      <TopBar />
+    <PageShell
+      eyebrow="Campus"
+      title="Libraries"
+      onBack={() => (screen === "landing" ? onBack?.() : setScreen("landing"))}
+      actions={
+        <IconButton onClick={reload} title="Reload library data">
+          <RefreshCcw className="w-4 h-4" />
+        </IconButton>
+      }
+    >
       {screen === "landing" ? landing : subpage}
-    </div>
+      <AnimatePresence>{catalogOpen && catalogSheet}</AnimatePresence>
+    </PageShell>
   );
 }

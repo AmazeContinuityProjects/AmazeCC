@@ -27,7 +27,26 @@ class SyncEngine {
 
   async login(ids: Ids, demoMode = false): Promise<VtopCreds> {
     this.ids = ids;
-    return credentialManager.loginVtop(ids, { demoMode });
+    const creds = await credentialManager.loginVtop(ids, { demoMode });
+    // Published HERE rather than in a caller, because there is no single
+    // caller: `Main.tsx` calls `syncEngine.login` directly from four places
+    // (handleLogin, handleReloadRequest, and two branches), and `loginToVTOP` —
+    // which looked like the choke point — is only a prop handed to child
+    // components like BusFinder. Wiring the atom in `loginToVTOP` therefore left
+    // it permanently empty on the main login path.
+    //
+    // `stateBridge` uses the same default-store pattern, which is why this is
+    // safe without a jotai <Provider>.
+    if (typeof window !== "undefined") {
+      try {
+        const { getDefaultStore } = await import("jotai");
+        const { authorizedIDAtom } = await import("@/store/authAtoms");
+        getDefaultStore().set(authorizedIDAtom, creds.authorizedID ?? "");
+      } catch {
+        // Never fail a login over a cosmetic state publish.
+      }
+    }
+    return creds;
   }
 
   async loginEventHub(ids: Ids, demoMode = false): Promise<string> {
@@ -43,6 +62,19 @@ class SyncEngine {
   logout(): void {
     credentialManager.logout();
     this.ids = null;
+    // Cleared with the session, so the next person to log in on this browser is
+    // not gated on the previous one's authorizedID.
+    if (typeof window !== "undefined") {
+      void (async () => {
+        try {
+          const { getDefaultStore } = await import("jotai");
+          const { authorizedIDAtom } = await import("@/store/authAtoms");
+          getDefaultStore().set(authorizedIDAtom, "");
+        } catch {
+          /* never fail a logout over a cosmetic state publish */
+        }
+      })();
+    }
   }
 
   getVtopCreds(): VtopCreds {

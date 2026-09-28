@@ -10,11 +10,19 @@ import { useEffect, useState } from "react";
  * is the only mechanism that works on both iOS Safari and Android Chrome
  * without touching app-wide layout, and the app has no other keyboard
  * avoidance. Falls back to 0 on desktop and on browsers without the API.
+ *
+ * `enabled` exists so shared primitives can call this unconditionally (hooks
+ * must not be conditional) without attaching listeners on behalf of the many
+ * call sites that do not care about the keyboard at all.
  */
-export function useKeyboardInset(): number {
+export function useKeyboardInset(enabled = true): number {
   const [inset, setInset] = useState(0);
 
   useEffect(() => {
+    if (!enabled) {
+      setInset(0);
+      return;
+    }
     if (typeof window === "undefined") return;
 
     const vv = window.visualViewport;
@@ -46,7 +54,7 @@ export function useKeyboardInset(): number {
       vv.removeEventListener("scroll", measure);
       window.removeEventListener("orientationchange", measure);
     };
-  }, []);
+  }, [enabled]);
 
   return inset;
 }

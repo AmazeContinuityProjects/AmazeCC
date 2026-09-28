@@ -1,5 +1,25 @@
 import * as htmlToImage from "html-to-image";
 
+/**
+ * Marks an element as UI chrome — a view switcher, a "swipe to see more" hint —
+ * rather than timetable content, so it can be pulled out before a capture.
+ *
+ * Both export paths serialise the live DOM (`html-to-image` clones it, the
+ * printable page takes `innerHTML`), so a control that happens to sit inside
+ * the captured subtree would end up baked into a shared PNG. The timetable's
+ * view switcher is the first thing to need this.
+ */
+export const EXPORT_CHROME_ATTR = "data-export-chrome";
+
+/** `innerHTML` of `element` with every chrome subtree removed. */
+export function exportableHtml(element: HTMLElement): string {
+  const clone = element.cloneNode(true) as HTMLElement;
+  clone
+    .querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`)
+    .forEach((el) => el.remove());
+  return clone.innerHTML;
+}
+
 export async function downloadTimetableImage(
   element: HTMLElement,
   timetableName: string,
@@ -11,6 +31,14 @@ export async function downloadTimetableImage(
   const tableContainers = element.querySelectorAll(".overflow-x-auto");
   tableContainers.forEach((container) => {
     container.classList.remove("overflow-x-auto");
+  });
+
+  const chrome = Array.from(
+    element.querySelectorAll<HTMLElement>(`[${EXPORT_CHROME_ATTR}]`)
+  );
+  const chromeDisplay = chrome.map((el) => el.style.display);
+  chrome.forEach((el) => {
+    el.style.display = "none";
   });
 
   element.classList.add("flex", "flex-col", "w-max", "min-w-full");
@@ -55,6 +83,9 @@ export async function downloadTimetableImage(
     element.classList.remove("flex", "flex-col", "w-max", "min-w-full");
     tableContainers.forEach((container) => {
       container.classList.add("overflow-x-auto");
+    });
+    chrome.forEach((el, i) => {
+      el.style.display = chromeDisplay[i];
     });
   }
 }

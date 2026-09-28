@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import PageHeader from "../shared/PageHeader";
+import { EmptyPanel } from "../shared/primitives";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import {
   BookOpen,
@@ -821,21 +822,22 @@ export default function SimplifiedAcademicsPage({
               );
             })
           ) : (
-            <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-3">
-              <History className="w-8 h-8 text-zinc-400 mx-auto" />
-              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-                No archived course records found for earlier semesters.
-              </p>
-              {setActiveSubTab && (
-                <button
-                  onClick={() => setActiveSubTab("grades")}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  <span>View Grade History</span>
-                </button>
-              )}
-            </div>
+            <EmptyPanel
+              variant="dashed"
+              icon={<History className="w-8 h-8 text-zinc-400 mx-auto" />}
+              title="No archived course records found for earlier semesters."
+              action={
+                setActiveSubTab ? (
+                  <button
+                    onClick={() => setActiveSubTab("grades")}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    <span>View Grade History</span>
+                  </button>
+                ) : undefined
+              }
+            />
           )}
         </div>
       </div>
@@ -900,12 +902,11 @@ export default function SimplifiedAcademicsPage({
         {filteredCurrentCourses.length > 0 ? (
           filteredCurrentCourses.map(renderCoursePill)
         ) : (
-          <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
-            <BookOpen className="w-8 h-8 text-zinc-400 mx-auto" />
-            <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-              No courses found matching your search.
-            </p>
-          </div>
+          <EmptyPanel
+            variant="dashed"
+            icon={<BookOpen className="w-8 h-8 text-zinc-400 mx-auto" />}
+            title="No courses found matching your search."
+          />
         )}
       </div>
 

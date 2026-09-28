@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
+import type { SyncNotice } from "@/lib/sync-engine/sync-session";
 import { 
   Loader2, 
   RefreshCw, 
@@ -17,7 +18,8 @@ import {
   Maximize2,
   AlertCircle,
   Clock,
-  Info
+  Info,
+  WifiOff
 } from "lucide-react";
 
 interface SyncNotificationProps {
@@ -26,6 +28,10 @@ interface SyncNotificationProps {
   active: boolean;
   onDismiss: () => void;
   outcome?: "success" | "error" | null;
+  /** Non-run reason the sheet was opened; replaces the progress UI when set. */
+  notice?: SyncNotice;
+  /** Re-attempt the sync from the offline notice. */
+  onRetry?: () => void;
 }
 
 // Helper to clean emojis and determine status
@@ -86,7 +92,9 @@ export default function SyncNotification({
   progress,
   active,
   onDismiss,
-  outcome = null
+  outcome = null,
+  notice = null,
+  onRetry
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
@@ -94,9 +102,11 @@ export default function SyncNotification({
   const [copied, setCopied] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
 
+  const isOfflineNotice = notice === "offline";
+
   useEffect(() => {
     let timer: any;
-    if (active) {
+    if (active && !isOfflineNotice) {
       setShowBackupBtn(false);
       setHasSwitched(false);
       setCurrentActiveApi(getActiveApiUrl());
@@ -110,7 +120,7 @@ export default function SyncNotification({
       }, 6000);
     }
     return () => clearTimeout(timer);
-  }, [active, message]);
+  }, [active, message, isOfflineNotice]);
 
   // Reset minimized state when starting a new sync session
   useEffect(() => {
@@ -146,7 +156,9 @@ export default function SyncNotification({
 
   // Backdrop tap / swipe-down / system back only park the sync in the
   // background pill — only the explicit X/Escape dismisses (cancels) it.
+  // A notice has nothing to keep running, so it just closes.
   const minimizeToBackground = () => setIsMinimized(true);
+  const parkOrClose = isOfflineNotice ? onDismiss : minimizeToBackground;
 
   return (
     <AnimatePresence mode="wait">
@@ -230,14 +242,14 @@ export default function SyncNotification({
               overlayId="sync-progress"
               maxWidth="max-w-md"
               showClose={false}
-              onBackdropClick={minimizeToBackground}
-              onSwipeDown={minimizeToBackground}
-              onSystemBack={minimizeToBackground}
+              onBackdropClick={parkOrClose}
+              onSwipeDown={parkOrClose}
+              onSystemBack={parkOrClose}
             >
             <div className="flex flex-col gap-4 sm:gap-5 w-full relative">
               {/* Header controls */}
               <div className="absolute -top-1 -right-1 flex items-center gap-2 z-10">
-                {!hasSwitched && (
+                {!hasSwitched && !isOfflineNotice && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -261,9 +273,52 @@ export default function SyncNotification({
                 </button>
               </div>
 
-              {/* Success tick takes over the whole sheet; everything else
-                  disappears the moment it appears */}
-              {outcome === "success" ? (
+              {/* Connectivity notice: no request was fired, so the sheet
+                  explains the state and offers a retry instead of progress */}
+              {isOfflineNotice ? (
+                <m.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 240 }}
+                  className="flex flex-col items-center text-center py-8 px-4"
+                >
+                  <div className="w-16 h-16 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xl shadow-amber-500/30">
+                    <WifiOff className="w-8 h-8" strokeWidth={2.4} />
+                  </div>
+                  <h4 className="mt-4 text-base font-black text-zinc-900 dark:text-white font-outfit">
+                    You&apos;re Offline
+                  </h4>
+                  <p className="mt-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 max-w-[260px] leading-relaxed">
+                    No internet connection right now. Reconnect to the network, then sync again to pull the
+                    latest records from VTOP.
+                  </p>
+
+                  <div className="w-full flex items-center gap-2 mt-5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDismiss();
+                      }}
+                      className="flex-1 py-3 px-4 rounded-[12px] bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDismiss();
+                        onRetry?.();
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-[12px] bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/20"
+                    >
+                      <RefreshCw size={11} />
+                      <span>Try Again</span>
+                    </button>
+                  </div>
+                </m.div>
+              ) : outcome === "success" ? (
+                /* Success tick takes over the whole sheet; everything else
+                    disappears the moment it appears */
                 <m.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}

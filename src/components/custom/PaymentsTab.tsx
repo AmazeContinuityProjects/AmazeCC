@@ -16,8 +16,21 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import BackButton from "./shared/BackButton";
+import TabHelpFooter from "./shared/TabHelpFooter";
 import BottomSheet from "./shared/BottomSheet";
+import {
+  EmptyPanel,
+  IconButton,
+  InsightCarousel,
+  KeyValue,
+  ListRowText,
+  ListSkeleton,
+  ListShell,
+  PageShell,
+  useCarousel,
+  type InsightSlide,
+} from "./shared/primitives";
+import { LIST_SHELL, SECTION_CHIP, TILE } from "@/lib/uiTokens";
 import {
   PAYMENTS_KEYS,
   safeNum,
@@ -110,19 +123,12 @@ const TONE_BADGE: Record<string, string> = {
   zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
 };
 
-// Hero cards use the OD-hours sizing (a touch shorter than the course page)
-const CARD_BASE =
-  "p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between min-h-32 sm:min-h-36 text-left relative overflow-hidden";
+  // Hero cards use the OD-hours sizing (a touch shorter than the course page)
+  const CARD_BASE = `${TILE} min-h-32 sm:min-h-36`;
 
-/** One divided container for every row, like the attendance log / OD history. */
-const LIST_SHELL =
-  "overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60";
+  const LIST_ROW =
+    "w-full flex items-center justify-between gap-3 py-3 px-4 text-left";
 
-const LIST_ROW =
-  "w-full flex items-center justify-between gap-3 py-3 px-4 text-left";
-
-const SECTION_CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60";
 
 function readStored<T>(key: string, legacyKey: string): T | null {
   if (typeof window === "undefined") return null;
@@ -175,8 +181,6 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   const [listMode, setListMode] = useState<ListMode>("wallet");
 
   // Carousel state for the rotating stat card
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
   // Collapse concurrent logins into one. `loginVtop` only caches credentials
   // *after* a successful login, so parallel section loads would otherwise fire
@@ -350,19 +354,20 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
     return list;
   }, [balanceINR, balanceUSD, lastTxn, receiptList.length]);
 
-  useEffect(() => {
-    setSlideIndex(0);
-  }, [slides.length]);
-
-  useEffect(() => {
-    if (isCarouselPaused || slides.length <= 1) return;
-    const timer = setInterval(() => {
-      setSlideIndex((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [isCarouselPaused, slides.length]);
-
-  const slide = slides[slideIndex] || slides[0];
+  const carousel = useCarousel(slides.length);
+  const insightSlides = useMemo<InsightSlide[]>(
+    () =>
+      slides.map((s) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        tone: s.tone,
+        onClick: s.onClick,
+      })),
+    [slides]
+  );
 
   // ── Receipt detail sheet ────────────────────────────────────────────────
   const openReceiptDetail = useCallback(
@@ -397,18 +402,7 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   );
 
   const renderListSkeleton = (rows: number) => (
-    <div className={LIST_SHELL}>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className={`${LIST_ROW} pointer-events-none`}>
-          <Skeleton className="h-3 w-3 rounded-full" />
-          <div className="flex-1 space-y-1.5">
-            <Skeleton className="h-3 w-1/3 rounded" />
-            <Skeleton className="h-2.5 w-1/4 rounded" />
-          </div>
-          <Skeleton className="h-4 w-16 rounded" />
-        </div>
-      ))}
-    </div>
+    <ListSkeleton rows={rows} leading="dot" trailing titleWidth="w-1/3" subtitleWidth="w-1/4" />
   );
 
   // One flat ledger list: INR rows then USD, each tagged with its symbol
@@ -424,57 +418,28 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   }, [walletData]);
 
   const renderEmpty = (icon: React.ReactNode, title: string, description: string) => (
-    <div className="p-10 rounded-[32px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-4 shadow-2xs">
-      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
-        {icon}
-      </div>
-      <div>
-        <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">{title}</h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
-          {description}
-        </p>
-      </div>
-    </div>
+    <EmptyPanel icon={icon} title={title} description={description} />
   );
 
   /* ───────────────────────────────────────────────────────────────────────
      RENDER
   ─────────────────────────────────────────────────────────────────────── */
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
-      {/* ── HEADER (OD-hours arrangement: back, eyebrow, title, subtitle) ── */}
-      <div className="px-1">
-        {onBack && (
-          <div className="mb-5 flex">
-            <BackButton onClick={onBack} className="self-start" />
-          </div>
-        )}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1.5">
-              Campus · Payments
-            </p>
-            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit">
-              Payments &amp; Financials
-            </h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-              Dues, wallet ledger and official fee receipts
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={refreshAll}
-            disabled={anyLoading}
-            aria-label="Refresh payments from VTOP"
-            title="Refresh payments from VTOP"
-            className="p-2 rounded-full bg-white dark:bg-gray-900 shadow-sm border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-all duration-200 cursor-pointer disabled:opacity-50 shrink-0 mt-0.5"
-          >
-            <RefreshCcw className={`w-4 h-4 ${anyLoading ? "animate-spin text-indigo-500" : ""}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* ── HERO STATS: dues + rotating wallet/receipts carousel ── */}
+    <PageShell
+      eyebrow="Campus · Payments"
+      title="Payments & Financials"
+      subtitle="Dues, wallet ledger and official fee receipts"
+      onBack={onBack}
+      actions={
+        <IconButton
+          onClick={refreshAll}
+          title="Refresh payments from VTOP"
+          disabled={anyLoading}
+        >
+          <RefreshCcw className={`w-4 h-4 ${anyLoading ? "animate-spin text-indigo-500" : ""}`} />
+        </IconButton>
+      }
+    >
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {/* CARD 1: DUES */}
         <div className={CARD_BASE}>
@@ -550,63 +515,12 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
         </div>
 
         {/* CARD 2: ROTATING CAROUSEL */}
-        <div
-          onMouseEnter={() => setIsCarouselPaused(true)}
-          onMouseLeave={() => setIsCarouselPaused(false)}
-          onTouchStart={() => setIsCarouselPaused(true)}
-          onTouchEnd={() => setIsCarouselPaused(false)}
-          onClick={() => slide.onClick()}
-          className={`${CARD_BASE} transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-              {slide.title}
-            </span>
-            <span
-              className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${TONE_BADGE[slide.tone]}`}
-            >
-              {slide.badge}
-            </span>
-          </div>
-          <AnimatePresence mode="wait">
-            <m.div
-              key={slide.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="my-auto py-1 min-w-0"
-            >
-              <span
-                className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${TONE_TEXT[slide.tone]}`}
-              >
-                {slide.headline}
-              </span>
-            </m.div>
-          </AnimatePresence>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {slide.subline}
-            </p>
-            {slides.length > 1 && (
-              <div className="flex items-center gap-1 shrink-0">
-                {slides.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSlideIndex(idx);
-                    }}
-                    aria-label={`Go to ${s.title}`}
-                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      slideIndex === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <InsightCarousel
+          slides={insightSlides}
+          carousel={carousel}
+          height="min-h-32 sm:min-h-36"
+          interactiveDots
+        />
       </div>
 
       {/* ── LEDGER: one list, two sources (attendance-log composition) ── */}
@@ -739,14 +653,11 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
                   className={`${LIST_ROW} hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                      {r.receiptNumber}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                      {[r.date, r.campusCode].filter(Boolean).join(" · ")}
-                    </p>
-                  </div>
+                <ListRowText
+                  title={r.receiptNumber}
+                  subtitle={[r.date, r.campusCode].filter(Boolean).join(" · ")}
+                />
+
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="text-right">
                       <p className="font-black text-sm font-outfit text-zinc-900 dark:text-white leading-tight">
@@ -788,39 +699,23 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
-                    Amount
-                  </span>
-                  <span className="font-extrabold text-zinc-900 dark:text-white">
-                    {fmtAmt(openReceipt.amount)}
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
-                    Date
-                  </span>
-                  <span className="font-extrabold text-zinc-900 dark:text-white">
-                    {openReceipt.date || "—"}
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
-                    Campus
-                  </span>
-                  <span className="font-extrabold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-zinc-400" />
-                    {openReceipt.campusCode || "—"}
-                  </span>
-                </div>
-                <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
-                    Status
-                  </span>
-                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
-                    Settled
-                  </span>
-                </div>
+                <KeyValue label="Amount" value={fmtAmt(openReceipt.amount)} />
+                <KeyValue label="Date" value={openReceipt.date || "—"} />
+                <KeyValue
+                  label="Campus"
+                  valueClassName="flex items-center gap-1.5"
+                  value={
+                    <>
+                      <Building className="w-3.5 h-3.5 text-zinc-400" />
+                      {openReceipt.campusCode || "—"}
+                    </>
+                  }
+                />
+                <KeyValue
+                  label="Status"
+                  valueClassName="text-emerald-600 dark:text-emerald-400"
+                  value="Settled"
+                />
               </div>
 
               {openDetailLoading && (
@@ -880,6 +775,6 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
           </BottomSheet>
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 }

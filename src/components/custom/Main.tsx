@@ -10,10 +10,12 @@ import {
   activeMoreSubTabAtom, activeProfileSubTabAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
-  officialOdDataAtom, tasksAtom, tasksQuickAddRequestAtom,
+  officialOdDataAtom, tasksAtom, tasksQuickAddRequestAtom, isOfflineAtom,
+  authorizedIDAtom,
   defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
+import IntroSong from "@/lib/introSong/IntroSong";
 import CredentialEditorModal from "./CredentialEditorModal";
 import DashboardContent from "./Dashboard";
 import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
@@ -79,6 +81,7 @@ export default function LoginPage() {
   const setOfficialOdData = useSetAtom(officialOdDataAtom);
   const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+  const [authorizedID, setAuthorizedID] = useAtom(authorizedIDAtom);
   const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
   const [activeSubTab, setActiveSubTab] = useAtom(activeSubTabAtom);
   const [HostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
@@ -419,6 +422,7 @@ export default function LoginPage() {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
+    // `SyncEngine.login` publishes the authorizedID itself; see the note there.
     return syncEngine.login(IDs, demoMode);
   }, [IDs, demoMode]);
 
@@ -528,6 +532,11 @@ export default function LoginPage() {
           });
           await syncEngine.sync("fresher");
           await syncEngine.sync("buses");
+          // The op itself never throws, so it cannot skip the ops below it.
+          await syncEngine.sync("social", {
+            proposedSemesterId: currSemesterID,
+            demoMode,
+          });
           await syncEngine.sync("bulk", { settings });
 
           console.log("Background sync completed successfully!");
@@ -678,7 +687,7 @@ export default function LoginPage() {
 
       // Unified through the engine op so start/done/error emit into the
       // session log (same shape as the raw call, plus retry semantics).
-      const coreTask = syncEngine
+      const attendanceTask = syncEngine
         .sync<any>("attendanceMarks", { semesterId: activeSem })
         .then(({ attRes, marksRes }: any) => {
           setAttendanceAndOD(attRes);
@@ -689,8 +698,27 @@ export default function LoginPage() {
           localStorage.setItem("marks", JSON.stringify(marksRes));
         });
 
-      const tasks: Promise<void>[] = [coreTask];
-      
+      const tasks: Promise<void>[] = [attendanceTask];
+
+      // Core bundle: grades / exam schedule / hostel / calendar / all-grades.
+      // The exam schedule is only ever fetched as part of this op, so a reload
+      // that skips it leaves the schedule widgets on their boot-time cache.
+      // Each module settles on its own and writes its own atom + cache, so
+      // there is nothing to set here — and a failing module keeps the last
+      // good data instead of being overwritten with null.
+      const cachedProfile = storage.profile.get() as any;
+      tasks.push(
+        syncEngine
+          .sync<void>("core", {
+            semesterId: activeSem,
+            calendarType: settings.calendarType,
+            isHosteller: cachedProfile?.isHosteller ?? false,
+          })
+          .catch(() => {
+            appendSyncLine("Core data unavailable, keeping last synced records", "error");
+          })
+      );
+
       tasks.push(
         api("events/profile", { method: "POST", auth: "eventhub" })
           .then((data: any) => {
@@ -750,37 +778,6 @@ export default function LoginPage() {
         );
       }
 
-      // tasks.push(
-      //   (async () => {
-      //     const res = await fetch(`${API_BASE}/api/grades`, {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({ cookies, authorizedID, csrf, semesterId: settings.currSemesterID }),
-      //     });
-      //     const GradesData = await res.json();
-      //     setGradesData(GradesData);
-      //     localStorage.setItem("grades", JSON.stringify(GradesData));
-      //     setMessage(prev => prev + "\n✅ Grades data fetched");
-      //     setProgressBar(prev => prev + 20);
-      //   })()
-      // )
-
-      // tasks.push(
-      //   (async () => {
-      //     const res = await fetch(`${API_BASE}/api/schedule`, {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({ cookies: cookies, authorizedID, csrf, semesterId: settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2] }),
-      //     })
-      //     const scheduleData = await res.json();
-      //     setScheduleData(scheduleData);
-      //     localStorage.setItem("schedule", JSON.stringify(scheduleData));
-      //     setMessage(prev => prev + "\n✅ Schedule data fetched");
-      //     setProgressBar(prev => prev + 20);
-      //   })()
-      // )
-
-
       await Promise.all(tasks);
 
       // Primary data is ready — make the app interactive immediately (P2-15).
@@ -834,6 +831,19 @@ export default function LoginPage() {
             console.warn("Official OD sync failed");
           }
 
+          // Friends & groups. Server-derived: this pushes our own timetable
+          // and pulls peers + the grant secrets needed to read them. The op
+          // never throws, and it gets its own try/catch so a social failure
+          // cannot skip the bulk endpoints below or leave the sheet open.
+          try {
+            await syncEngine.sync("social", {
+              proposedSemesterId: activeSem,
+              demoMode,
+            });
+          } catch {
+            console.warn("Social sync failed");
+          }
+
           // All other VTOP-scoped endpoints (cached for GenericApiView)
           const bulkEndpoints = [
             "exc-registration", "minor-honour", "course-completion",
@@ -883,6 +893,9 @@ export default function LoginPage() {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
+    // Cleared so the next person to log in on this browser is gated on their own
+    // authorizedID rather than inheriting the previous one's.
+    setAuthorizedID("");
     clearEventHubSession();
 
     const keysToKeep = ["activityTree", "theme"];
@@ -910,7 +923,7 @@ export default function LoginPage() {
     setGradesData({});
     setScheduleData({});
     setMessage("");
-  }, [theme]);
+  }, [theme, setAuthorizedID]);
 
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
   const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
@@ -924,7 +937,7 @@ export default function LoginPage() {
     handleLogin().catch(() => {});
   };
 
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useAtom(isOfflineAtom);
 
   useEffect(() => {
     setIsOffline(!navigator.onLine);
@@ -1681,7 +1694,9 @@ export default function LoginPage() {
     // Event search is handled by the dedicated EventSearchPalette subpage.
 
     // ── Exam Schedule ──
-    const scheduleEntries = ScheduleData as Record<string, any[]>;
+    // The atom holds the raw API response, so the per-exam-type buckets live
+    // one level down under `Schedule` (lowercase key for older caches).
+    const scheduleEntries = (ScheduleData as any)?.Schedule || (ScheduleData as any)?.schedule;
     if (scheduleEntries && typeof scheduleEntries === "object") {
       Object.entries(scheduleEntries).forEach(([key, exams]) => {
         if (!Array.isArray(exams)) return;
@@ -1737,7 +1752,7 @@ export default function LoginPage() {
                 )}
               </div>
             ),
-            onSelect: () => { setActiveTab("academics"); setActiveSubTab("course-dashboard"); }
+            onSelect: () => { setActiveTab("academics"); setActiveSubTab("schedule"); }
           });
         });
       });
@@ -2155,11 +2170,15 @@ export default function LoginPage() {
       const profileRaw = localStorage.getItem("profile");
       if (profileRaw) {
         const p = JSON.parse(profileRaw);
-        if (p?.regNo) {
+        // The live profile (from /api/student → parseStudentProfile) uses
+        // `registerNo`; the demo profile uses `registerNumber`. This command
+        // used to read `p.regNo`, which is neither, so it never matched.
+        const profileReg = p?.registerNo || p?.registerNumber || p?.regNo || p?.regNumber;
+        if (profileReg) {
           result.push({
             id: "profile-regno",
-            label: `👤 Profile: ${p.regNo}`,
-            description: `${p.name || ""} · ${p.program || ""} · ${p.campus || ""}`,
+            label: `👤 Profile: ${profileReg}`,
+            description: `${p.name || p.studentName || ""} · ${p.program || ""} · ${p.campus || ""}`,
             icon: "👤",
             category: "Profile",
             detail: (
@@ -2169,8 +2188,8 @@ export default function LoginPage() {
                     <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{p.name || p.regNo}</p>
-                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{p.regNo}</p>
+                    <p className="text-sm font-bold text-gray-900  dark:text-white truncate">{p.name || p.studentName || profileReg}</p>
+                    <p className="text-[11px] text-gray-500  dark:text-gray-400">{profileReg}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -2276,8 +2295,12 @@ export default function LoginPage() {
   return (
     <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
     <>
+        {/* One-time intro song, gated on the VTOP authorizedID. Renders nothing
+            for anyone not on the allowlist, and not even an <audio> element for
+            them. Mounted at the root so it survives sub-tab navigation. */}
+        <IntroSong authorizedId={authorizedID} />
         <m.div
-          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
+          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-zinc-100 transition-colors"
         >
       <AnimatePresence>
         {isAPIworking && !isOffline && (
@@ -2317,6 +2340,10 @@ export default function LoginPage() {
             progress={session.progress}
             active={session.open}
             outcome={session.outcome}
+            notice={session.notice}
+            onRetry={() => {
+              handleReloadRequest();
+            }}
             onDismiss={() => {
               dismissSyncSession();
               if (isReloading) setIsReloading(false);
@@ -2411,9 +2438,6 @@ export default function LoginPage() {
             />
           ) : (
             <>
-              {isOffline && <div className="top-0 left-0 w-full bg-yellow-500 text-black text-center py-2 font-medium">
-                ⚠️ You're currently offline. Some features may not work.
-              </div>}
               {demoMode && <div className="top-0 left-0 w-full bg-blue-500 text-white text-center py-2 font-medium">
                 ℹ️ You are in Demo Mode. Data shown is for demonstration purposes only.
               </div>}

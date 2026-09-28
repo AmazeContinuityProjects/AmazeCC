@@ -21,7 +21,18 @@ import {
   Award,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
-import BackButton from "../shared/BackButton";
+import {
+  EmptyPanel,
+  IconButton,
+  InsightCarousel,
+  ListRowText,
+  PageShell,
+  SectionHeader,
+  SegmentedControl,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
+import { CHIP, LIST_ROW, LIST_SHELL, SECTION_CHIP, TILE } from "@/lib/uiTokens";
 import { storage } from "@/lib/storage";
 import {
   buildCategoryRows,
@@ -154,30 +165,9 @@ const VIEW_META: ViewMeta[] = [
   },
 ];
 
-// ── design tokens (shared with the courses / OD / home pages) ──────────
-const TILE =
-  "p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between text-left relative overflow-hidden";
-
-const LIST_SHELL =
-  "overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60";
-
-const LIST_ROW =
-  "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40";
-
-const CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60";
-
-const SECTION_CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60";
-
-const ICON_BUTTON =
-  "p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
-
-const SEG_ACTIVE =
-  "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold";
-const SEG_IDLE =
-  "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200";
-
+// ── design tokens ─────────────────────────────────────────────────────
+// The page surfaces used to be re-declared here, verbatim copies of the shared
+// tokens. They now come from one place, like every other page.
 
 
 // ── main component ──────────────────────────────────────────────────
@@ -638,10 +628,8 @@ export default function CurriculumPage({
   }, [effectiveGrades]);
 
   // ─ Landing carousel slides (each one lands somewhere real) ─
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
-
   const slides = useMemo(() => {
+
     const list: {
       id: string;
       title: string;
@@ -712,17 +700,23 @@ export default function CurriculumPage({
     setActiveSubTab,
   ]);
 
-  useEffect(() => {
-    setSlideIndex(0);
-  }, [slides.length]);
+  const carousel = useCarousel(slides.length);
+  const insightSlides = useMemo<InsightSlide[]>(
+    () =>
+      slides.map((s) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        badgeClassName: s.badgeClass,
+        valueClassName: s.tone,
+        blur: s.id === "cgpa" && isCgpaBlurred ? "blur-[5px]" : undefined,
+        onClick: s.onClick,
+      })),
+    [slides, isCgpaBlurred]
+  );
 
-  useEffect(() => {
-    if (isCarouselPaused || slides.length <= 1) return;
-    const t = setInterval(() => setSlideIndex((p) => (p + 1) % slides.length), 5000);
-    return () => clearInterval(t);
-  }, [isCarouselPaused, slides.length]);
-
-  const slide = slides[slideIndex] || slides[0];
 
   const hasAnyData =
     curriculum.length > 0 ||
@@ -730,54 +724,8 @@ export default function CurriculumPage({
     curricCategories.length > 0 ||
     (curricDetails?.length || 0) > 0;
 
-  // ─ Shared small pieces ───────────────────────────────────────────────
-  const IconButton = ({
-    onClick,
-    title,
-    children,
-    disabled,
-  }: {
-    onClick: () => void;
-    title: string;
-    children: React.ReactNode;
-    disabled?: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-label={title}
-      disabled={disabled}
-      className={`${ICON_BUTTON} disabled:opacity-50`}
-    >
-      {children}
-    </button>
-  );
-
-  const SectionHeader = ({
-    icon: Icon,
-    title,
-    count,
-    right,
-  }: {
-    icon: React.ElementType;
-    title: string;
-    count?: number;
-    right?: React.ReactNode;
-  }) => (
-    <div className="flex items-center justify-between gap-2 px-1">
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className="w-4 h-4 text-indigo-500 shrink-0" />
-        <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-          {title}
-        </h2>
-        {typeof count === "number" && <span className={SECTION_CHIP}>{count}</span>}
-      </div>
-      {right}
-    </div>
-  );
-
   const StatusPill = ({ status }: { status: CourseStatus }) => {
+
     if (status === "completed") {
       return (
         <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -837,11 +785,7 @@ export default function CurriculumPage({
       <SectionHeader icon={BookOpen} title="Credit baskets" count={categoryRows.length} />
 
       {categoryRows.length === 0 ? (
-        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-            Credit baskets appear once grades sync from VTOP.
-          </p>
-        </div>
+        <EmptyPanel variant="dashed" title="Credit baskets appear once grades sync from VTOP." />
       ) : (
         <div className={LIST_SHELL}>
           {categoryRows.map((cat) => {
@@ -1042,48 +986,42 @@ export default function CurriculumPage({
           )}
         </div>
 
-        <div className="flex items-center gap-1 p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs overflow-x-auto hide-scrollbar">
-          {(
-            [
-              { id: "all", label: "All" },
-              { id: "completed", label: "Done" },
-              { id: "in_progress", label: "Ongoing" },
-              { id: "remaining", label: "Left" },
-            ] as const
-          ).map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setStatusFilter(f.id)}
-              className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                statusFilter === f.id ? SEG_ACTIVE : SEG_IDLE
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          options={[
+            { value: "all", label: "All" },
+            { value: "completed", label: "Done" },
+            { value: "in_progress", label: "Ongoing" },
+            { value: "remaining", label: "Left" },
+          ] as const}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          grow
+          scroll
+        />
+
       </div>
 
       {catalogMatches.length === 0 ? (
-        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
-          <ListFilter className="w-7 h-7 text-zinc-400 mx-auto" />
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-            No courses match this filter.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchQuery("");
-              setStatusFilter("all");
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-          >
-            <RefreshCcw className="w-3 h-3" />
-            Reset filters
-          </button>
-        </div>
+        <EmptyPanel
+          variant="dashed"
+          icon={<ListFilter className="w-7 h-7 text-zinc-400 mx-auto" />}
+          title="No courses match this filter."
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+            >
+              <RefreshCcw className="w-3 h-3" />
+              Reset filters
+            </button>
+          }
+        />
       ) : q || statusFilter !== "all" ? (
+
         /* Searching: one flat list, never a forced-open accordion */
         <div className={LIST_SHELL}>
           {catalogMatches.map((c) => (
@@ -1181,11 +1119,8 @@ export default function CurriculumPage({
       />
 
       {completedGroups.length === 0 ? (
-        <div className="p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
-          <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-            No cleared courses yet.
-          </p>
-        </div>
+        <EmptyPanel variant="dashed" title="No cleared courses yet." />
+
       ) : (
         <div className="space-y-2.5">
           {completedGroups.map(([type, courses]) => {
@@ -1348,17 +1283,15 @@ export default function CurriculumPage({
   // ─ Page chrome ───────────────────────────────────────────────────────
   // Identical on the landing and on every section page: same back slot, same
   // action buttons, same eyebrow + title. Only the back target differs.
-  const TopBar = ({ inSubpage }: { inSubpage: boolean }) => (
-    <>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <BackButton
-          onClick={() =>
-            inSubpage ? setScreen("landing") : setActiveSubTab("courses-simplified")
-          }
-          className="self-start"
-        />
-
-        <div className="flex items-center gap-2">
+  const topBar = (inSubpage: boolean) => (
+    <PageShell
+      eyebrow="Academics"
+      title="Degree Curriculum"
+      onBack={() =>
+        inSubpage ? setScreen("landing") : setActiveSubTab("courses-simplified")
+      }
+      actions={
+        <>
           <IconButton onClick={() => void onSync()} title="Sync grades & curriculum">
             <RefreshCcw
               className={`w-4 h-4 ${isSyncing ? "animate-spin text-indigo-500" : ""}`}
@@ -1378,22 +1311,46 @@ export default function CurriculumPage({
           <IconButton onClick={toggleCgpaBlur} title="Blur grades">
             {isCgpaBlurred ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </IconButton>
-        </div>
-      </div>
+        </>
+      }
+    >
+      {inSubpage ? subpage : (
+        <>
+          {!hasAnyData ? (
+            <EmptyPanel
+              icon={<GraduationCap className="w-7 h-7" />}
+              title="No curriculum data yet"
+              description="Sync your grades from VTOP to see credit baskets, the course catalog and your degree planner."
+              action={
+                <button
+                  type="button"
+                  onClick={() => void onSync()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-colors cursor-pointer"
+                >
+                  <RefreshCcw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                  Load grades &amp; curriculum
+                </button>
+              }
+            />
+          ) : (
+            landing
+          )}
 
-      <div className="px-1">
-        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-          Academics
-        </p>
-        <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-          Degree Curriculum
-        </h1>
-      </div>
-    </>
+          {/* Inline footnote, OD-page style */}
+          {hasAnyData && (
+            <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+              Credit baskets, the catalog and your planner all read from the same VTOP sync -
+              one download keeps every section current.
+            </p>
+          )}
+        </>
+      )}
+    </PageShell>
   );
 
   // ─ Landing ───────────────────────────────────────────────────────────
   const landing = (
+
     <>
       {/* Two cards: credits + rotating insight carousel */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 px-1">
@@ -1430,62 +1387,8 @@ export default function CurriculumPage({
           </div>
         </button>
 
-        {slide && (
-          <div
-            onMouseEnter={() => setIsCarouselPaused(true)}
-            onMouseLeave={() => setIsCarouselPaused(false)}
-            onTouchStart={() => setIsCarouselPaused(true)}
-            onTouchEnd={() => setIsCarouselPaused(false)}
-            onClick={() => slide.onClick()}
-            className={`${TILE} h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`}
-          >
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                {slide.title}
-              </span>
-              <span
-                className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${slide.badgeClass}`}
-              >
-                {slide.badge}
-              </span>
-            </div>
-            <AnimatePresence mode="wait">
-              <m.div
-                key={slide.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="my-auto min-w-0"
-              >
-                <span
-                  className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight truncate block ${
-                    slide.tone || "text-zinc-900 dark:text-white"
-                  } ${slide.id === "cgpa" && isCgpaBlurred ? "blur-[5px] select-none" : ""}`}
-                >
-                  {slide.headline}
-                </span>
-              </m.div>
-            </AnimatePresence>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                {slide.subline}
-              </p>
-              {slides.length > 1 && (
-                <div className="flex items-center gap-1 shrink-0">
-                  {slides.map((s, idx) => (
-                    <span
-                      key={s.id}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        slideIndex === idx ? "w-3 bg-indigo-500" : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <InsightCarousel slides={insightSlides} carousel={carousel} />
+
       </div>
 
       {/* Single slim credits bar — same px-1 inset as the cards above */}
@@ -1556,14 +1459,8 @@ export default function CurriculumPage({
                 >
                   <Icon className="w-4.5 h-4.5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                    {v.title}
-                  </p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {v.desc}
-                  </p>
-                </div>
+              <ListRowText title={v.title} subtitle={v.desc} />
+
                 <span className={CHIP}>
                   {count} {suffix}
                 </span>
@@ -1586,48 +1483,5 @@ export default function CurriculumPage({
       ? completedList
       : plannerList;
 
-  return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300 text-left select-none">
-      <TopBar inSubpage={screen !== "landing"} />
-
-      {!hasAnyData ? (
-        <div className="p-10 rounded-[32px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-4 shadow-2xs">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
-            <GraduationCap className="w-7 h-7" />
-          </div>
-          <div>
-            <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
-              No curriculum data yet
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
-              Sync your grades from VTOP to see credit baskets, the course catalog and your
-              degree planner.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void onSync()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-colors cursor-pointer"
-          >
-            <RefreshCcw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-            Load grades &amp; curriculum
-          </button>
-        </div>
-      ) : screen === "landing" ? (
-        landing
-      ) : (
-        subpage
-      )}
-
-      {/* Inline footnote, OD-page style */}
-      {screen === "landing" && hasAnyData && (
-        <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-          Credit baskets, the catalog and your planner all read from the same VTOP sync —
-          one download keeps every section current.
-        </p>
-      )}
-    </div>
-  );
+  return topBar(screen !== "landing");
 }
-
-

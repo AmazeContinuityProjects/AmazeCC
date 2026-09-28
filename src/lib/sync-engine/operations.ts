@@ -3,6 +3,28 @@ import { credentialManager } from "./credential-manager";
 import { registerOp, type OpCtx } from "./operation-registry";
 import { dataAtoms } from "./state-bridge";
 import { toEngineError, assertApiSuccess } from "./errors";
+import {
+  clearPeerTimetables,
+  writeGrants,
+  writeIdentity,
+  writeOwnTimetable,
+} from "../social/storage";
+import type { SocialSyncPayload } from "../social/types";
+import {
+  socialGrantsAtom,
+  socialIdentityAtom,
+  socialOwnBusyMapAtom,
+  socialOwnCoursesAtom,
+  socialPeersAtom,
+  socialSyncStateAtom,
+} from "../../store/socialAtoms";
+
+/**
+ * The term the last successful social sync wrote. Module-level because the
+ * cache is global to the app, and comparing against the freshly-derived
+ * identity is how we notice the user switched semesters.
+ */
+let cachedSemester: string | null = null;
 
 /**
  * Run one request with its own start/done/error emits so the sync log shows
@@ -305,6 +327,91 @@ registerOp({
     try {
       return await ctx.request("lms-data", {}, { auth: "vtop", retry: { max: 0 } });
     } catch {
+      return null;
+    }
+  },
+});
+
+/**
+ * Social timetable sharing.
+ *
+ * This op pushes the caller's own derived state and pulls peers plus the grant
+ * secrets needed to read them. The server does all the deriving — see
+ * docs/social-tt/05-server-derivation.md.
+ *
+ * It is registered LAST on purpose, and it NEVER throws. Both `Main.tsx`
+ * background chains `await` ops sequentially inside a single `try`, so a throw
+ * here would skip every op after it (chain 1 still had `buses` and `bulk` to
+ * run). A social failure is a red line in the sheet, not a broken sync.
+ */
+registerOp({
+  name: "social",
+  auth: "vtop",
+  async run(ctx, args) {
+    // Demo mode hands back authorizedID "DEMO123" and no real session, so the
+    // route would 401 and put a bogus failure in the sheet. See
+    // credential-manager.ts:71-73.
+    const demoMode =
+      (args?.demoMode as boolean) ||
+      (ctx.ids.VtopUsername as string) === "demo" ||
+      (ctx.ids.VtopUsername as string) === "DEMO123";
+    if (demoMode) return null;
+
+    const semesterId =
+      (args?.proposedSemesterId as string) ||
+      (args?.semesterId as string) ||
+      (args?.activeSem as string) ||
+      "";
+
+    try {
+      const res = (await ctx.request(
+        "social/identity/sync",
+        semesterId ? { proposedSemesterId: semesterId } : {},
+        { auth: "vtop", retry: { max: 1 } }
+      )) as SocialSyncPayload | null;
+
+      if (!res || res.success === false || !res.identity) return null;
+
+      // The term changed, so every cached peer busy map is from a different
+      // schedule. Drop them before writing the new identity.
+      if (res.identity.semesterId && cachedSemester && res.identity.semesterId !== cachedSemester) {
+        clearPeerTimetables();
+      }
+      cachedSemester = res.identity.semesterId ?? cachedSemester;
+
+      writeIdentity(res.identity);
+      writeOwnTimetable({
+        busyMap: res.busyMap ?? {},
+        courses: res.courses ?? [],
+      });
+      // The server is authoritative about which pairings exist, so this is a
+      // full replace — a locally-orphaned secret would otherwise linger and
+      // keep being sent on reads that 403.
+      writeGrants(res.grantSecrets ?? []);
+
+      ctx.bridge.setAtom(socialIdentityAtom, res.identity);
+      ctx.bridge.setAtom(socialPeersAtom, res.peers ?? []);
+      ctx.bridge.setAtom(socialGrantsAtom, res.grantSecrets ?? []);
+      ctx.bridge.setAtom(socialOwnBusyMapAtom, res.busyMap ?? {});
+      ctx.bridge.setAtom(socialOwnCoursesAtom, res.courses ?? []);
+      ctx.bridge.setAtom(socialSyncStateAtom, {
+        version: res.version ?? 0,
+        lastSyncedAt: new Date().toISOString(),
+        lastError: null,
+        syncing: false,
+      });
+
+      return res;
+    } catch (e) {
+      // Deliberately swallowed. Keep the cached copy: a stale peer list beats an
+      // empty one, and a failed social push must not read as "you have no
+      // friends".
+      ctx.bridge.setAtom(socialSyncStateAtom, {
+        version: 0,
+        lastSyncedAt: null,
+        lastError: e instanceof Error ? e.message : String(e),
+        syncing: false,
+      });
       return null;
     }
   },

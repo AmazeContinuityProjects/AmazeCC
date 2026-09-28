@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   openSyncSession,
   ensureSyncSession,
+  openOfflineSyncSession,
   appendSyncLine,
   setSyncProgress,
   bumpSyncProgress,
@@ -108,6 +109,29 @@ describe('sync session lifecycle', () => {
     // Fresh runs reset the outcome.
     openSyncSession('VTOP Sync');
     expect(getSyncSessionSnapshot().outcome).toBe(null);
+  });
+});
+
+describe('offline notice', () => {
+  it('opens the sheet flagged as a notice rather than a run', () => {
+    openOfflineSyncSession();
+    const s = getSyncSessionSnapshot();
+    expect(s.open).toBe(true);
+    expect(s.notice).toBe('offline');
+    // No run finished, so the sheet must not claim success.
+    expect(s.outcome).toBe(null);
+  });
+
+  it('clears the notice once a real run starts', () => {
+    openOfflineSyncSession();
+    openSyncSession('VTOP Sync');
+    expect(getSyncSessionSnapshot().notice).toBe(null);
+  });
+
+  it('dismisses like any other session, without a hold timer', () => {
+    openOfflineSyncSession();
+    dismissSyncSession();
+    expect(isSyncSessionOpen()).toBe(false);
   });
 });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeCoverUrl } from "../components/custom/libraries/BookCover";
 import {
   PAGE_SIZE,
   computeDuesTotals,
@@ -186,5 +187,38 @@ describe("dues totals", () => {
     expect(hasPatronData({ charges: { tables: [] } })).toBe(false);
     expect(hasPatronData({ charges: { alerts: ["Overdue"] } })).toBe(true);
     expect(hasPatronData({ history: { tables: [{ headers: [], rows: [] }] } })).toBe(true);
+  });
+});
+
+describe("normalizeCoverUrl", () => {
+  it("passes an https URL through untouched", () => {
+    const url = "https://opac.example.edu/cgi-bin/koha/opac-image.pl";
+    expect(normalizeCoverUrl(url)).toBe(url);
+  });
+
+  it("upgrades http, which is dropped as mixed content on the https site", () => {
+    expect(normalizeCoverUrl("http://opac.example.edu/cover.jpg")).toBe(
+      "https://opac.example.edu/cover.jpg"
+    );
+  });
+
+  it("resolves a protocol-relative URL against https", () => {
+    expect(normalizeCoverUrl("//opac.example.edu/cover.jpg")).toBe(
+      "https://opac.example.edu/cover.jpg"
+    );
+  });
+
+  it("rejects missing, blank and non-absolute URLs so nothing 404s", () => {
+    expect(normalizeCoverUrl(undefined)).toBe("");
+    expect(normalizeCoverUrl(null)).toBe("");
+    expect(normalizeCoverUrl("")).toBe("");
+    expect(normalizeCoverUrl("   ")).toBe("");
+    expect(normalizeCoverUrl("/cgi-bin/koha/opac-image.pl?b=1")).toBe("");
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(normalizeCoverUrl("  https://opac.example.edu/c.jpg  ")).toBe(
+      "https://opac.example.edu/c.jpg"
+    );
   });
 });

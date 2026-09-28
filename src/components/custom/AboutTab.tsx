@@ -33,7 +33,7 @@ export default function AboutTab() {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6 pt-2 pb-24 md:pb-8 animate-fadeIn">
+    <div className="w-full max-w-3xl mx-auto space-y-6 pt-2 md:pb-8 animate-fadeIn">
       <div className="flex flex-col mb-6">
         <h2 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
           About & Resources

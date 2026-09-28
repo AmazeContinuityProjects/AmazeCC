@@ -29,15 +29,31 @@ import {
   Sun,
   CalendarOff,
   Building,
-  DoorOpen,
-} from "lucide-react";
+    DoorOpen,
+    WifiOff,
+    X,
+  } from "lucide-react";
+
 import { AnimatePresence, m } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
+import { buildExamRows } from "@/lib/examSchedule";
+import { cn } from "@amazecontinuityprojects/amazeui";
+import { TILE } from "@/lib/uiTokens";
 import TimetableGrid from "../attendance/TimetableGrid";
 import BottomSheet from "../shared/BottomSheet";
+import { useSyncTrigger } from "../shared/useSyncTrigger";
+import {
+  EmptyPanel,
+  IconButton,
+  InsightCarousel,
+  ListShell,
+  SegmentedControl,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
 import { useAtom } from "jotai";
 import { tasksAtom } from "@/store/dataAtoms";
 import { classTaskSummary, tasksForDay, isSameCalendarDay, isDueOnDay } from "@/lib/taskMatch";
@@ -171,8 +187,6 @@ export default function SimplifiedMobileHome({
   };
 
   // Carousel slide index for the dynamic secondary stat card
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
   // Determine current day of week
   const todayDayIndex = new Date().getDay();
@@ -238,6 +252,8 @@ export default function SimplifiedMobileHome({
     await handleReloadRequest();
     window.setTimeout(() => setIsSpinning(false), 600);
   }, [handleReloadRequest]);
+
+  const { isOffline, triggerSync: handleSyncClick } = useSyncTrigger(handleRefresh);
 
   const toggleDashboardMode = () => {
     const nextMode = (settings?.dashboardViewMode === "simplified" || !settings?.dashboardViewMode) ? "classic" : "simplified";
@@ -318,36 +334,24 @@ export default function SimplifiedMobileHome({
     }
   }, [calendarData]);
 
-  // Flattened exams schedule
-  const allExams = useMemo(() => {
-    const scheduleObj = ScheduleData?.Schedule || ScheduleData?.schedule;
-    if (!scheduleObj) return [];
-    const list: any[] = [];
-    Object.keys(scheduleObj).forEach((cat) => {
-      const items = scheduleObj[cat];
-      if (Array.isArray(items)) {
-        items.forEach((item) => list.push({ ...item, examCategory: cat }));
-      }
-    });
-    return list;
-  }, [ScheduleData]);
+  // Flattened exams schedule, with per-paper start/end resolved.
+  const scheduleRows = buildExamRows(ScheduleData?.Schedule || ScheduleData?.schedule);
 
-  // Next upcoming exam (Strictly future/today exams only; NEVER show past exams)
-  const nextUpcomingExam = useMemo(() => {
-    if (allExams.length === 0) return null;
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const allExams = useMemo(
+    () => scheduleRows.map((r) => ({ ...r.raw, examCategory: r.examType })),
+    [scheduleRows]
+  );
 
-    const futureExams = allExams
-      .map((ex) => {
-        const timestamp = parseExamDateTimestamp(ex.examDate);
-        return { ...ex, timestamp };
-      })
-      .filter((ex) => ex.timestamp >= startOfToday)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    return futureExams.length > 0 ? futureExams[0] : null;
-  }, [allExams]);
+  // Earliest paper that has NOT finished yet. Judged on the clock, not the
+  // calendar: a CAT that ended at 12:30 PM is done at 3 PM even though it is
+  // still "today", so it must not sit on this card. Recomputed every render
+  // (the insight carousel re-renders on a timer) rather than memoised on the
+  // schedule alone, so a card left open across an exam boundary stays honest.
+  const nextUpcomingExam = (() => {
+    const row = scheduleRows.find((r) => r.state !== "past");
+    if (!row) return null;
+    return { ...row.raw, examCategory: row.examType, examState: row.state };
+  })();
 
   // Next upcoming moodle deadline
   const nextMoodleDeadline = useMemo(() => {
@@ -483,14 +487,25 @@ export default function SimplifiedMobileHome({
     setGradesDisplayIsOpen,
   ]);
 
-  // Carousel auto-advance timer
-  useEffect(() => {
-    if (isCarouselPaused || insightSlides.length <= 1) return;
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % insightSlides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [isCarouselPaused, insightSlides.length]);
+  // Carousel auto-advance (state + timer live in the primitive)
+  const carousel = useCarousel(insightSlides.length);
+  const carouselSlides = useMemo<InsightSlide[]>(
+    () =>
+      insightSlides.map((s) => ({
+        id: s.id,
+        label: s.title,
+        value: s.headline,
+        sub: s.subline,
+        badge: s.badge,
+        badgeClassName: s.badgeColor,
+        blur:
+          s.id === "cgpa" && (settings?.CGPAHidden || settings?.blurGrades)
+            ? "blur-[5px]"
+            : undefined,
+        onClick: s.onClick,
+      })),
+    [insightSlides, settings?.CGPAHidden, settings?.blurGrades]
+  );
 
   // All weekly timetable cards map
   const timetableMap = useMemo(() => {
@@ -791,14 +806,13 @@ export default function SimplifiedMobileHome({
     return selectedDay;
   };
 
-  const currentSlideData = insightSlides[activeSlide] || insightSlides[0];
 
   // State checks for the active view
   const isExamDay = selectedDayMeta && selectedDayMeta.exams && selectedDayMeta.exams.length > 0;
   const isHolidayOrOff = selectedDayMeta && selectedDayMeta.holidayInfo && !isExamDay;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 pb-28 md:pb-8 animate-in fade-in duration-300">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
       
       {/* ── TOP APP BAR: AVATAR / ICON ABOVE GREETING & CONTROLS ── */}
       <div className="flex items-start justify-between px-1">
@@ -833,11 +847,23 @@ export default function SimplifiedMobileHome({
         <div className="flex items-center gap-2 pt-0.5">
           {/* Sync Button */}
           <button
-            onClick={handleRefresh}
-            className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
-            title="Sync Data from VTOP"
+            onClick={handleSyncClick}
+            className={`px-2.5 py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs flex items-center gap-1.5 text-xs font-bold ${
+              isOffline
+                ? "bg-amber-50 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200/70 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+                : "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+            }`}
+            title={isOffline ? "You're offline — tap for details" : "Sync Data from VTOP"}
+            aria-label={isOffline ? "Offline — tap for details" : "Sync Data from VTOP"}
           >
-            <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+            {isOffline ? (
+              <>
+                <WifiOff className="w-4 h-4 shrink-0" />
+                <span>Offline</span>
+              </>
+            ) : (
+              <RefreshCcw className={`w-4 h-4 ${isSpinning ? "animate-spin text-indigo-500" : ""}`} />
+            )}
           </button>
 
           {/* Spotlight Search */}
@@ -860,7 +886,7 @@ export default function SimplifiedMobileHome({
             setActiveTab("attendance");
             setActiveAttendanceSubTab("predictor");
           }}
-          className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-32 sm:h-36 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group relative overflow-hidden"
+          className={cn(TILE, "h-32 sm:h-36 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group")}
         >
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
@@ -902,73 +928,11 @@ export default function SimplifiedMobileHome({
         </div>
 
         {/* CARD 2: ROTATING DYNAMIC INSIGHT CAROUSEL (SPACIOUS & MINIMAL) */}
-        {insightSlides.length > 0 && (
-          <div
-            onMouseEnter={() => setIsCarouselPaused(true)}
-            onMouseLeave={() => setIsCarouselPaused(false)}
-            onTouchStart={() => setIsCarouselPaused(true)}
-            onTouchEnd={() => setIsCarouselPaused(false)}
-            onClick={() => currentSlideData.onClick()}
-            className="p-4 sm:p-5 rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-32 sm:h-36 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer relative overflow-hidden group"
-          >
-            {/* Header: Metric Title & Category Badge */}
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
-                {currentSlideData.title}
-              </span>
-              {currentSlideData.badge && (
-                <span
-                  className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                    currentSlideData.badgeColor || "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/40"
-                  }`}
-                >
-                  {currentSlideData.badge}
-                </span>
-              )}
-            </div>
-
-            {/* Slide Body */}
-            <AnimatePresence mode="wait">
-              <m.div
-                key={currentSlideData.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="my-auto min-w-0"
-              >
-                <span
-                  className={`text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight truncate block ${
-                    currentSlideData.id === "cgpa" && (settings?.CGPAHidden || settings?.blurGrades)
-                      ? "blur-[5px] select-none"
-                      : ""
-                  }`}
-                >
-                  {currentSlideData.headline}
-                </span>
-              </m.div>
-            </AnimatePresence>
-
-            {/* Footer with subline and dots */}
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                {currentSlideData.subline}
-              </p>
-              <div className="flex items-center gap-1 shrink-0">
-                {insightSlides.map((slide, idx) => (
-                  <span
-                    key={slide.id}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      activeSlide === idx
-                        ? "w-3 bg-indigo-500"
-                        : "w-1.5 bg-zinc-200 dark:bg-zinc-700"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <InsightCarousel
+          slides={carouselSlides}
+          carousel={carousel}
+          ariaLabel="Rotating insights"
+        />
       </div>
 
       {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
@@ -1031,32 +995,14 @@ export default function SimplifiedMobileHome({
 
             {/* Pill Style Selector (Compact 2-Line vs Detailed) */}
             {!isExamDay && !isHolidayOrOff && (
-              <div className="flex items-center p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
-                <button
-                  onClick={() => setPillStyle("compact")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    pillStyle === "compact"
-                      ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
-                  }`}
-                  title="2-Line Compact Pill View"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  <span className="hidden xs:inline">Compact</span>
-                </button>
-                <button
-                  onClick={() => setPillStyle("detailed")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    pillStyle === "detailed"
-                      ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
-                  }`}
-                  title="Spacious Detailed Card View"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span className="hidden xs:inline">Detailed</span>
-                </button>
-              </div>
+              <SegmentedControl
+                options={[
+                  { value: "compact" as const, label: "Compact", icon: <List className="w-3.5 h-3.5" />, title: "2-Line Compact Pill View" },
+                  { value: "detailed" as const, label: "Detailed", icon: <Layers className="w-3.5 h-3.5" />, title: "Spacious Detailed Card View" },
+                ]}
+                value={pillStyle}
+                onChange={setPillStyle}
+              />
             )}
           </div>
         </div>
@@ -1258,8 +1204,8 @@ export default function SimplifiedMobileHome({
                   </span>
                   <button
                     onClick={() => {
-                      setActiveTab("attendance");
-                      setActiveAttendanceSubTab("calendar");
+                      setActiveTab("academics");
+                      setActiveSubTab("schedule");
                     }}
                     className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
                   >
@@ -1271,30 +1217,25 @@ export default function SimplifiedMobileHome({
           </div>
         ) : isHolidayOrOff ? (
           /* ── VIEWPORT STATE 2: HOLIDAY / NON-INSTRUCTIONAL DAY (SPACIOUS & MINIMAL) ── */
-          <div className="p-10 rounded-[32px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-4 shadow-2xs">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-              <Sun className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
-                No classes today
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
-                {selectedDayMeta.holidayInfo} • Non-instructional day as per the official Academic Calendar.
-              </p>
-            </div>
-            <div className="pt-1">
-              <button
-                onClick={() => {
-                  setActiveTab("attendance");
-                  setActiveAttendanceSubTab("calendar");
-                }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
-              >
-                <CalendarIcon className="w-3.5 h-3.5" /> View Academic Calendar
-              </button>
-            </div>
-          </div>
+          <EmptyPanel
+            tone="amber"
+            icon={<Sun className="w-7 h-7" />}
+            title="No classes today"
+            description={`${selectedDayMeta.holidayInfo} • Non-instructional day as per the official Academic Calendar.`}
+            action={
+              <div className="pt-1">
+                <button
+                  onClick={() => {
+                    setActiveTab("attendance");
+                    setActiveAttendanceSubTab("calendar");
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
+                >
+                  <CalendarIcon className="w-3.5 h-3.5" /> View Academic Calendar
+                </button>
+              </div>
+            }
+          />
         ) : selectedDayClasses.length === 0 ? (
           /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
           <div className="p-8 rounded-[28px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
@@ -1696,7 +1637,7 @@ export default function SimplifiedMobileHome({
                 </button>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60">
+              <ListShell>
                 {todayTasks.map((t) => (
                   <div
                     key={t.id}
@@ -1728,7 +1669,7 @@ export default function SimplifiedMobileHome({
                     <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
                   </div>
                 ))}
-              </div>
+              </ListShell>
             </div>
           );
         })()}
@@ -1756,45 +1697,37 @@ export default function SimplifiedMobileHome({
       {/* Full Timetable Sheet */}
       <AnimatePresence>
       {showTimetableModal && (
-        <BottomSheet onClose={() => setShowTimetableModal(false)} overlayId="home-timetable" maxWidth="max-w-5xl">
+        <BottomSheet
+          onClose={() => setShowTimetableModal(false)}
+          overlayId="home-timetable"
+          maxWidth="max-w-5xl"
+          showClose={false}
+        >
           <div className="flex flex-col min-h-0">
             <div className="p-4 sm:p-5 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 shrink-0">
                   <CalendarIcon className="w-5 h-5" />
                 </div>
-                <div>
-                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
+                <div className="min-w-0">
+                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit truncate">
                     Full Weekly Timetable
                   </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                     Slot matrix, timeslots & classroom venues
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 mr-6">
-                <button
-                  onClick={() => {
-                    setShowTimetableModal(false);
-                    handleOpenFreeClassrooms();
-                  }}
-                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <DoorOpen className="w-3.5 h-3.5" />
-                  <span>Free Classrooms</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTimetableModal(false);
-                    setActiveTab("attendance");
-                    setActiveAttendanceSubTab("attendance");
-                  }}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Attendance Tab</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
+              {/*
+                The sheet's own floating X is off (`showClose={false}`) so the
+                close affordance lives in this box, next to the thing it closes.
+                "Free Classrooms" and "Attendance" are reachable from the home
+                screen, and links inside a dismissible overlay that only swap the
+                surface out from under it are a trap to tap by accident.
+              */}
+              <IconButton onClick={() => setShowTimetableModal(false)} title="Close timetable">
+                <X className="w-4 h-4" />
+              </IconButton>
             </div>
             <div className="p-4 sm:p-5">
               <TimetableGrid attendance={attendanceData?.attendance || []} />
