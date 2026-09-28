@@ -108,7 +108,58 @@ because they are local-only records with no server equivalent until Phase 6
 retires them. Migrating them to atoms without changing their semantics would be
 churn; the redesigned People subpage in Phase 5 replaces them outright.
 
-## 3. `ctx.request` vs `api`
+## 3. Session freshness: the 10-minute rule
+
+Every social route is called with `auth: "vtop"`, which means the request layer asks
+`CredentialManager` for cookies, a CSRF token and an `authorizedID` and merges them
+into the body. That cache used to have **no expiry**: it lived for the lifetime of the
+page and was `null` after a reload.
+
+Two failure modes followed, both of them silent:
+
+- **Aged session.** The user logs in, leaves the app open past the VTOP session
+  lifetime, opens Social and taps sync. The request goes out with dead cookies, the
+  server answers with an error envelope, and because `apiRequest` does not throw on a
+  non-2xx, `res.identity` is simply missing. The op returned `null`, so the page showed
+  stale data with no red line and no way to distinguish it from "nothing changed".
+- **No session.** After a reload the cache is `null`, so the request went out with no
+  credentials at all and looked identical to the case above.
+
+`VtopCreds` now carries `fetchedAt`, and `VTOP_SESSION_MAX_AGE_MS` is 10 minutes.
+Anything older is re-fetched through the sync engine before use. Ten minutes sits well
+inside the real server-side session lifetime, so this never logs in "too late"; the
+cost of being generous is a redundant captcha solve, and the cost of being stingy is a
+request that quietly returns nothing.
+
+Three details that are load-bearing:
+
+| Detail | Why |
+|---|---|
+| `ensureVtopSession` is **single-flight** | A login solves a captcha, so N callers noticing a stale session must not trigger N logins |
+| The in-flight marker is published **before** the login starts | The login's own request body-building re-enters `getCreds`. Assigning the IIFE's promise instead leaves the marker `null` for the whole synchronous phase of that IIFE — exactly when the re-entry happens |
+| `getCreds` returns the stale creds when a refresh is running | Attaching old cookies to the login request is harmless; awaiting the refresh from inside the refresh is a deadlock |
+
+A **missing** session is deliberately *not* repaired inside `getCreds`. Re-authenticating
+means solving a captcha, and that belongs to an explicit caller — the `social` op and
+`AddPeerSheet`'s handle lookup both call `ensureVtopSession()` — so a login is
+attributable rather than triggered as a side effect of an unrelated request.
+
+### Cross-device handle lookup
+
+Adding a handle on a second device resolves it **server-side** (`POST social/people`),
+so it was never a local-cache problem: the handle is looked up from `social_people` on
+the server. What broke it was the two cases above — the second device had no session, or
+one that had aged out, so the authenticated lookup came back as an indistinguishable
+`404 handle_not_found`, which reads as "your friend does not exist".
+
+`AddPeerSheet` now calls `ensureVtopSession()` before the lookup and reports an
+`AuthError` as "log in to VTOP first" rather than as an invalid handle.
+
+Note the server can only resolve a handle that has been **published**: the peer must
+have completed a social sync at least once, otherwise there is no row to look up. That
+is inherent to the design — nothing is written for someone who has never synced.
+
+## 4. `ctx.request` vs `api`
 
 **Correction from the original draft of this document:** it said the timetable read
 "needs a query string, so it goes through `apiRequest`". That is no longer true. The
@@ -139,7 +190,7 @@ Two real traps in this area, both hit during implementation:
 - **`vitest.config.ts` had no `@/` alias**, so no module importing through the
   alias could be tested at all. It now mirrors `tsconfig.json`.
 
-## 4. Storage
+## 5. Storage
 
 `socialUtils.ts` bypasses `src/lib/storage.ts` entirely, writes `localStorage` raw, and duplicates every write to a **global mirror key**:
 
@@ -166,7 +217,7 @@ New keys, going through `storage.ts` with a per-user namespace and **no global m
 
 Also fixed while here: `saveFriend` and friends have **no SSR guard**, unlike the getters, so they would throw in a server component. All new storage helpers guard.
 
-## 5. The identity bug, and the copy-forward migration
+## 6. The identity bug, and the copy-forward migration
 
 `getActiveUserRegNumber()` returns `""` today, which is why the sync POST never fires. Three separate readers are wrong:
 
@@ -180,7 +231,7 @@ The live shape comes from `/api/student` → `parseStudentProfile` and uses `reg
 
 **One-time migration.** Because the reg always resolved to `"VIT Student"`, everyone's friends were written to the bare `friends_schedules` key. Once a real reg resolves, the namespaced key is empty and the list would appear to vanish. The getters already fall back to the global key (`socialUtils.ts:577`), so nothing is lost — but on first successful derivation the global key is copied forward to the namespaced one, once, and the global mirror is then dropped.
 
-## 6. Comparison replaces fabrication
+## 7. Comparison replaces fabrication
 
 `SocialTab.tsx:230-240`:
 
@@ -193,7 +244,7 @@ const commonFreeHours = Math.max(3, Math.min(16, totalPossibleSlots - friendSlot
 
 Both figures are derived from a character sum. Replaced by `computeOverlap` over two real busy maps — see [09-schedule-math.md](./09-schedule-math.md) §7. The friend row then shows real common-free slots, and a zero is rendered as `—` rather than a fabricated 70%.
 
-## 7. UI defects fixed in passing
+## 8. UI defects fixed in passing
 
 - **Invalid nesting.** `SocialTab.tsx:596-645` puts `<span role="button">` inside a `<button>`. The friend row becomes a `<div>` with an inner `<button>` as the main tap target, matching the pattern already used in `AttendanceSubpage.tsx`.
 - **8 `alert()` and 2 `confirm()`** → inline validation and a confirm `BottomSheet`.
@@ -203,7 +254,7 @@ Both figures are derived from a character sum. Replaced by `computeOverlap` over
 - **Demo "Load Demo Data" lies.** `SocialTab.tsx:576-583` writes only to `useState`, so a refresh wipes it while the UI implies friends were added. It is now either persisted or clearly labelled as a preview.
 - **Seven near-identical empty states**, none matching the house `EMPTY_STATE` token → one.
 
-## 8. Tests
+## 9. Tests
 
 `src/__tests__/social.test.ts`:
 

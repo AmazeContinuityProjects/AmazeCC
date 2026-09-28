@@ -664,7 +664,11 @@ export default function NavigationTabs({
       icon: User,
       isActive: activeTab === "profile",
       onSelect: () => {
+        // "settings" is the category hub. Without this the sidebar inherited
+        // whatever section was last open and could re-open mid-section on a
+        // return visit, or land on Student Profile on a cold start.
         selectTab("profile");
+        setActiveProfileSubTab("settings");
       },
     },
     {
@@ -685,7 +689,7 @@ export default function NavigationTabs({
       },
       isActive: false,
     },
-  ], [activeTab, selectTab, handleLogOutRequest]);
+  ], [activeTab, selectTab, setActiveProfileSubTab, handleLogOutRequest]);
 
   const groups = useMemo<Group[]>(() => [
     { id: "study", label: "Study", icon: BookOpen, items: studyItems },
@@ -1680,10 +1684,10 @@ const AppLibraryPortal = memo(({
     { label: "Leave / Gatepass", group: "Hostel", icon: Compass, action: () => { selectTab("hostel"); setHostelActiveSubTab("leave"); } },
     { label: "Counselling", group: "Hostel", icon: User, action: () => { selectTab("hostel"); setHostelActiveSubTab("counselling"); } },
     
-    { label: "Settings & Profile", group: "Account", icon: User, action: () => { selectTab("profile"); } },
+    { label: "Settings & Profile", group: "Account", icon: User, action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
     { label: "About & Resources", group: "Account", icon: Info, action: () => { selectTab("about"); } },
     { label: "Logout", group: "Account", icon: Lock, action: () => { handleLogOutRequest(); } }
-  ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, handleLogOutRequest]);
+  ], [selectTab, setActiveAttendanceSubTab, setActiveToolsSubTab, setActiveSubTab, setHostelActiveSubTab, setActiveMoreSubTab, setActiveProfileSubTab, handleLogOutRequest]);
 
   const primaryGroups = useMemo(() => [
     {
@@ -1722,12 +1726,12 @@ const AppLibraryPortal = memo(({
     {
       name: "Account",
       items: [
-        { label: "Settings & Profile", icon: User, type: "link", action: () => { selectTab("profile"); } },
+        { label: "Settings & Profile", icon: User, type: "link", action: () => { selectTab("profile"); setActiveProfileSubTab("settings"); } },
         { label: "About & Resources", icon: Info, type: "link", action: () => { selectTab("about"); } },
         { label: "Logout", icon: Lock, type: "link", action: () => { handleLogOutRequest(); } }
       ]
     }
-  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveToolsSubTab, handleLogOutRequest]);
+  ], [selectTab, setActiveAttendanceSubTab, setMobilePanel, isHosteller, residentialStatus, setActiveMoreSubTab, setActiveToolsSubTab, setActiveProfileSubTab, handleLogOutRequest]);
 
   const academicsItemsMobile = useMemo(() => 
     allSearchableItems.filter(item => item.group === "Academics"),

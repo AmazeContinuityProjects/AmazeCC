@@ -17,11 +17,14 @@
  */
 
 import { useCallback, useState } from "react";
-import { Link2, Loader2, ShieldCheck, UserCheck, UserX } from "lucide-react";
+import { Camera, Link2, Loader2, ShieldCheck, UserCheck, UserX } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
+import ScanHandleSheet from "./ScanHandleSheet";
 import { FIELD_INPUT, TONE_BADGE } from "@/lib/libraries/ui";
 import { claimPair, lookupPerson, SocialApiError } from "@/lib/social/client";
 import { isSelfHandle, isValidHandle, normaliseHandle } from "@/lib/social/handle";
+import { credentialManager } from "@/lib/sync-engine/credential-manager";
+import { AuthError } from "@/lib/sync-engine/errors";
 import { useSocialData } from "@/lib/social/useSocialData";
 import type { SocialVisibility } from "@/lib/social/types";
 
@@ -42,6 +45,7 @@ export default function AddPeerSheet({
   /** Right shape, but no student has it. Kept apart from a format error. */
   const [notFound, setNotFound] = useState(false);
   const [foundName, setFoundName] = useState<string>("");
+  const [scanning, setScanning] = useState(false);
 
   const reset = useCallback(() => {
     setHandle("");
@@ -70,44 +74,68 @@ export default function AddPeerSheet({
    * "invalid handle" is how a real person gets told their friend's handle is
    * broken when the truth is that the API is down.
    */
+  const checkFor = useCallback(
+    async (raw: string) => {
+      const candidate = normaliseHandle(raw);
+      setError(null);
+      setNotFound(false);
+
+      if (myHandle && candidate === myHandle) {
+        setStage("idle");
+        return;
+      }
+      if (!isValidHandle(candidate)) {
+        setStage("idle");
+        setError("That does not look like a handle. It should be AMZ-XXXX-XXXX, like AMZ-7K2P-9RTW.");
+        return;
+      }
+
+      setStage("checking");
+      try {
+        // A second device resolves a handle through the server, not from a local
+        // cache, so this genuinely needs a live VTOP session — and the session may
+        // have aged out since the user last synced. Without this the lookup went
+        // out unauthenticated and came back as an indistinguishable 404, which
+        // reads as "your friend does not exist".
+        await credentialManager.ensureVtopSession();
+        const res = await lookupPerson(candidate);
+        setFoundName(res.person?.displayName || "");
+        setStage("ready");
+      } catch (err: unknown) {
+        setStage("idle");
+        if (err instanceof AuthError) {
+          // No session at all, or login was refused. Say so instead of implying
+          // the handle is wrong.
+          setError("Log in to VTOP first — pairing needs a live session.");
+        } else if (err instanceof SocialApiError) {
+          if (err.code === "handle_not_found") {
+            setNotFound(true);
+          } else if (err.code === "unexpected_response") {
+            setError(
+              "The server did not answer properly, so this handle is unverified. If you are pointed at production, the social routes only exist on the local API."
+            );
+          } else {
+            setError(err.detail || err.message);
+          }
+        } else {
+          setError("Could not reach the server. Check your connection and try again.");
+        }
+      }
+    },
+    [myHandle]
+  );
+
+  /**
+   * The field-driven entry point. Takes the handle as an argument rather than
+   * reading it off state, so a scan can look up the value it just decoded in the
+   * same tick — `setHandle` has not been applied yet at that point, and a
+   * `check()` that read `handle` would verify the previous, empty value.
+   */
   const check = useCallback(async () => {
     const candidate = normaliseHandle(handle);
     setHandle(candidate);
-    setError(null);
-    setNotFound(false);
-
-    if (myHandle && candidate === myHandle) {
-      setStage("idle");
-      return;
-    }
-    if (!isValidHandle(candidate)) {
-      setStage("idle");
-      setError("That does not look like a handle. It should be AMZ-XXXX-XXXX, like AMZ-7K2P-9RTW.");
-      return;
-    }
-
-    setStage("checking");
-    try {
-      const res = await lookupPerson(candidate);
-      setFoundName(res.person?.displayName || "");
-      setStage("ready");
-    } catch (err: unknown) {
-      setStage("idle");
-      if (err instanceof SocialApiError) {
-        if (err.code === "handle_not_found") {
-          setNotFound(true);
-        } else if (err.code === "unexpected_response") {
-          setError(
-            "The server did not answer properly, so this handle is unverified. If you are pointed at production, the social routes only exist on the local API."
-          );
-        } else {
-          setError(err.detail || err.message);
-        }
-      } else {
-        setError("Could not reach the server. Check your connection and try again.");
-      }
-    }
-  }, [handle, myHandle]);
+    await checkFor(candidate);
+  }, [handle, checkFor]);
 
   const claim = useCallback(async () => {
     if (!isValidHandle(handle)) return;
@@ -145,7 +173,13 @@ export default function AddPeerSheet({
   }, [handle, visibility, foundName, markDirty, onPaired, close]);
 
   return (
-    <BottomSheet onClose={close} overlayId="social-add-peer" maxWidth="max-w-md" avoidKeyboard>
+    // No `avoidKeyboard` here on purpose. This sheet is tall (input, two
+    // visibility cards, the mutuality disclosure, two buttons), so lifting it
+    // clear of the keyboard left a short scrolling box and the Pair button
+    // below the fold. Letting the keyboard win — the browser resizes the
+    // viewport and the content scrolls under it — is what the other 33 sheets
+    // do, and it is the behaviour that actually works on a phone.
+    <BottomSheet onClose={close} overlayId="social-add-peer" maxWidth="max-w-md">
       <div className="text-left space-y-5">
         <div className="flex items-center gap-3">
           <span className="w-10 h-10 rounded-2xl flex items-center justify-center border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -190,6 +224,16 @@ export default function AddPeerSheet({
             schedule.
           </p>
         </div>
+
+        {/* The other half of the exchange: read the QR they are showing. */}
+        <button
+          type="button"
+          onClick={() => setScanning(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/50 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/40 text-xs font-bold transition-colors cursor-pointer"
+        >
+          <Camera className="w-4 h-4" />
+          <span>Scan their QR instead</span>
+        </button>
 
         {stage === "checking" && (
           <p className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400">
@@ -313,6 +357,23 @@ export default function AddPeerSheet({
           </button>
         </div>
       </div>
+
+      {/* Nested, so system back closes the scanner before this sheet. */}
+      {scanning && (
+        <ScanHandleSheet
+          onClose={() => setScanning(false)}
+          onScanned={(scanned) => {
+            setScanning(false);
+            setHandle(scanned);
+            setNotFound(false);
+            setError(null);
+            setStage("idle");
+            // The scanner only accepts a well-formed handle, so this goes
+            // straight to the lookup the field would have triggered on blur.
+            void checkFor(scanned);
+          }}
+        />
+      )}
     </BottomSheet>
   );
 }

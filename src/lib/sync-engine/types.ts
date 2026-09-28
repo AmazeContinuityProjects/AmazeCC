@@ -10,6 +10,20 @@ export interface VtopCreds {
   cookies: string[];
   authorizedID: string;
   csrf: string;
+  /**
+   * When these were obtained, in epoch ms.
+   *
+   * The VTOP session is not durable — the server can invalidate the cookie jar at
+   * any time, and it expires on its own — so a cached set of cookies that looked
+   * fine an hour ago may now be rejected. Tracking the age lets
+   * `CredentialManager` re-authenticate before a request wastes a round trip on
+   * a session that is already dead.
+   *
+   * Optional so that a `VtopCreds` built without it (tests, the demo stub) is
+   * still assignable; a missing value is treated as stale, which is the safe
+   * direction.
+   */
+  fetchedAt?: number;
 }
 
 export type SyncPhase = "idle" | "start" | "done" | "error";
