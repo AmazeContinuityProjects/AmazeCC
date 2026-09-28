@@ -46,13 +46,14 @@ import {
   Lock,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button, Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Button, Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { useOverlayBack } from "@/lib/overlayStack";
 import {
   EmptyPanel,
   GhostButton,
   IconButton,
   KeyValue,
+  ListRowText,
   ListShell,
   PageShell,
   SectionHeader,
@@ -65,7 +66,9 @@ import {
   ToggleRow,
   ToneDot,
 } from "../shared/primitives";
-import { TILE, TILE_INTERACTIVE, TONE_BADGE, FIELD_INPUT } from "@/lib/uiTokens";
+// `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
+// grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
+import { LIST_ROW, TONE_BADGE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import Links from "./Links";
@@ -177,6 +180,26 @@ const COLOR_PALETTES = [
   { id: "custom", label: "Custom", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
 ];
 
+/**
+ * `"ALL0225-26"` -> `"FALLSEM 25-26"`.
+ *
+ * The semester `<select>` and the Academic row on the settings hub both need
+ * this, and they must not be allowed to disagree about what "FALLSEM" means.
+ * The id carries the term in its last two digits and the year in the middle, so
+ * a raw id is not a label a human can read at a glance.
+ */
+function semesterLabel(id?: string): string {
+  if (!id) return "—";
+  const term = id.endsWith("01")
+    ? "FALLSEM"
+    : id.endsWith("05")
+      ? "WINTERSEM"
+      : id.endsWith("07")
+        ? "SUMMERSEM"
+        : "TERM";
+  return `${term} ${id.slice(4, -4)}-${id.slice(6, -2)}`;
+}
+
 export default function ProfilePage({
   currSemesterID,
   setCurrSemesterID,
@@ -276,7 +299,10 @@ export default function ProfilePage({
   const [kohaPassword, setKohaPassword] = useState("");
   const [kohaSaved, setKohaSaved] = useState(false);
 
-  const { theme, setTheme } = useTheme();
+  // `resolvedTheme` is the theme actually rendered — `theme` is undefined until
+  // next-themes mounts, so reading it for a summary value would flash "Light"
+  // at a dark-mode user on every first paint.
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   const activePalette =
     settings?.colorPalette === "ocean" ? "neonPink" : settings?.colorPalette || "default";
@@ -714,6 +740,51 @@ export default function ProfilePage({
         s.id.toLowerCase().includes(q)
     );
   }, [availableSections, searchQuery]);
+
+  /**
+   * The one value that summarises each section, shown on the right of its hub
+   * row — the same slot the course overview fills with a grade or a test count.
+   *
+   * Without it a settings row is a label, a subtitle and a chevron, which says
+   * nothing about what is currently set. With it you can read the term, the
+   * theme, the sync cadence and the sign-in state without opening a section.
+   */
+  const sectionSummary = useMemo((): Record<SectionId, { value: string; tone?: "emerald" | "amber" | "red" }> => {
+    const sync = settings?.autoSyncInterval || "off";
+    return {
+      profile: { value: profileData?.branch || "—" },
+      credentials: isLoggedIn
+        ? { value: "Active", tone: "emerald" }
+        : { value: "Signed out", tone: "red" },
+      preferences: {
+        // A pinned "System" is worth showing as such rather than as the theme
+        // the OS happens to be in right now.
+        value: (theme ?? resolvedTheme) === "system"
+          ? "System"
+          : (resolvedTheme ?? theme) === "dark"
+            ? "Dark"
+            : "Light",
+      },
+      academic: { value: semesterLabel(currSemesterID) },
+      sync: {
+        value: sync === "off" ? "Manual" : sync === "15m" ? "15 min" : sync === "30m" ? "30 min" : "1 hour",
+      },
+      navigation: {
+        value: `${(settings?.pinnedNavTabs ?? []).length} pinned`,
+      },
+      advanced: { value: customApiInput ? "Custom API" : "Default API" },
+      about: { value: "v3.2.0" },
+    };
+  }, [
+    settings?.autoSyncInterval,
+    settings?.pinnedNavTabs,
+    isLoggedIn,
+    theme,
+    resolvedTheme,
+    currSemesterID,
+    profileData?.branch,
+    customApiInput,
+  ]);
 
   const credAccounts =
     credData?.credentials ||
@@ -1693,14 +1764,7 @@ export default function ProfilePage({
             >
               {config.semesterIDs?.map((id: string, index: number) => (
                 <option key={index} value={id}>
-                  {id.endsWith("01")
-                    ? "FALLSEM"
-                    : id.endsWith("05")
-                    ? "WINTERSEM"
-                    : id.endsWith("07")
-                    ? "SUMMERSEM"
-                    : "TERM"}{" "}
-                  {id.slice(4, -4)}-{id.slice(6, -2)}
+                  {semesterLabel(id)}
                 </option>
               ))}
             </select>
@@ -2596,31 +2660,55 @@ export default function ProfilePage({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {/* Rows, not tiles — the same `ListShell` / row / `ListRowText` /
+                  value + chevron shape the course sub-page's overview uses
+                  (`CourseDetailSubpage.tsx`). The 2-up tile grid this replaced
+                  forced a line-clamped subtitle per card, truncated every
+                  category name to three words on a phone, and had nowhere to put
+                  the current value. */}
+              <ListShell>
                 {filteredSections.map((sec) => {
                   const Icon = sec.icon;
+                  const summary = sectionSummary[sec.id];
                   return (
                     <button
                       key={sec.id}
                       type="button"
                       onClick={() => setActiveSection(sec.id)}
-                      className={`${TILE_INTERACTIVE} p-4 text-left`}
+                      className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
                     >
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${sec.iconBg} ${sec.iconColor}`}>
-                        <Icon className="w-4.5 h-4.5" />
+                      <div
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
+                      >
+                        <Icon className="w-5 h-5" />
                       </div>
-                      <div className="my-auto py-3 min-w-0">
-                        <p className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight">
-                          {sec.label}
-                        </p>
-                        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-snug mt-1 line-clamp-2">
-                          {sec.subtitle}
-                        </p>
+                      <ListRowText
+                        title={sec.label}
+                        subtitle={sec.subtitle}
+                        titleTag="h3"
+                        titleTooltip={sec.label}
+                      />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={cn(
+                            "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
+                            summary.tone === "emerald"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : summary.tone === "red"
+                                ? "text-red-600 dark:text-red-400"
+                                : summary.tone === "amber"
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-zinc-700 dark:text-zinc-200"
+                          )}
+                        >
+                          {summary.value}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-zinc-400" />
                       </div>
                     </button>
                   );
                 })}
-              </div>
+              </ListShell>
 
               {filteredSections.length === 0 ? (
                 <EmptyPanel

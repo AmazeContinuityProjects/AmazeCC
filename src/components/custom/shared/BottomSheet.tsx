@@ -24,19 +24,20 @@ interface BottomSheetProps {
   /** Show the floating X button. Default true. */
   showClose?: boolean;
   /**
-   * Where the panel sits.
+   * Where the panel sits horizontally.
    *
-   * `"bottom"` is the default drawer: anchored to the bottom edge, full width,
-   * swipe-down to dismiss. Correct for anything long or form-shaped, and every
+   * `"bottom"` is the default drawer: edge to edge, rounded at the top, swipe
+   * down to dismiss. Correct for anything long or form-shaped, and every
    * pre-existing caller relies on it.
    *
-   * `"center"` is a floating card, vertically and horizontally centred with a
-   * gutter, for short read-only detail about something the user just tapped.
-   * It has no drag handle — there is no edge to drag from — so the X moves to
-   * the top right of the card, and it enters by scaling rather than sliding up
-   * from below, which would read as a drawer.
+   * `"bottom-center"` is the same bottom-anchored panel with a gutter on each
+   * side and all four corners rounded, so it reads as a card that rose out of
+   * the bottom edge rather than a sheet that took over the page. For short
+   * read-only detail about something the user just tapped. It keeps the
+   * grabber and the slide-up entry — a pop from the bottom is the motion that
+   * connects it to the cell that summoned it.
    */
-  placement?: "bottom" | "center";
+  placement?: "bottom" | "bottom-center";
   /** Backdrop tap handler. Defaults to onClose. */
   onBackdropClick?: () => void;
   /** Swipe-down handler. Defaults to onClose. */
@@ -65,14 +66,15 @@ interface BottomSheetProps {
  * Overlay pane, in one of two shapes.
  *
  * `"bottom"` (the default) is a bottom-anchored drawer that maximises screen
- * estate: slides up on open, grabber + swipe-down + tap-outside + X + Escape +
- * predictive back all dismiss.
+ * estate: edge to edge, slides up on open, grabber + swipe-down + tap-outside +
+ * X + Escape + predictive back all dismiss.
  *
- * `"center"` is a floating card for short read-only detail — see `placement`.
- * Both shapes share one overlay-stack entry, one Escape handler, one scroll
- * lock and one body, so the two can never drift apart on dismissal.
+ * `"bottom-center"` is the same panel inset from both sides with all four
+ * corners rounded — a card that rises out of the bottom edge. See `placement`.
  *
- * Render inside an AnimatePresence for the exit animation to play.
+ * Both shapes share one overlay-stack entry, one Escape handler, one scroll lock
+ * and one body, so the two can never drift apart on dismissal. Render inside an
+ * AnimatePresence for the exit animation to play.
  */
 export default function BottomSheet({
   onClose,
@@ -158,31 +160,13 @@ export default function BottomSheet({
 
   if (!portalReady) return null;
 
-  const centered = placement === "center";
+  const centered = placement === "bottom-center";
 
-  // Same button both ways; only its positioning differs, because the drawer
-  // floats it over the grabber row while the card gives it a row of its own.
-  const closeButton = (position = "") =>
-    showClose &&
-    dismissable && (
-      <button
-        onClick={onClose}
-        aria-label="Close"
-        className={`p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer ${position}`.trim()}
-      >
-        <X className="w-4 h-4" />
-      </button>
-    );
-
-  /**
-   * Top chrome. A drawer leads with a drag handle centred on the top edge, with
-   * the X floating over its right end. A centred card has no edge to pull from,
-   * so the handle is dropped and the X gets a short right-aligned row of its own
-   * — which also means the content below never has to dodge an absolute button.
-   */
-  const chrome = centered ? (
-    <div className="flex w-full shrink-0 justify-end pt-3 pr-3">{closeButton()}</div>
-  ) : (
+  // One chrome row for both placements. The centred card keeps the grabber:
+  // it is still anchored to the bottom edge, so a handle there is honest and it
+  // is what makes swipe-down dismissal available. Only the panel's horizontal
+  // box and corner radius differ between the two.
+  const chrome = (
     <div
       className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
       onPointerDown={onGrabberPointerDown}
@@ -191,7 +175,15 @@ export default function BottomSheet({
       onPointerCancel={endGrabberDrag}
     >
       <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-      {closeButton("absolute right-4 top-2")}
+      {showClose && dismissable && (
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-2 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 
@@ -213,20 +205,47 @@ export default function BottomSheet({
   const surface =
     "flex flex-col overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200/70 dark:border-zinc-800/80";
 
-  const drawerPanel = (
+  // Shared by both placements: bottom-anchored, so both keep the safe-area
+  // inset and both slide up out of the bottom edge. The only difference is the
+  // horizontal box — a drawer runs edge to edge, a centred card does not.
+  const anchoredBottom =
+    "fixed bottom-0 left-0 right-0 z-[60] mx-auto sm:bottom-6 max-h-[88dvh] ";
+
+  const rawPanel = centered ? (
+    // A card, not a drawer: it stops short of both screen edges and rounds on
+    // every corner, so it reads as a panel the tap summoned rather than a sheet
+    // that took over the page. `w-[calc(100%-2rem)]` is what leaves the gutter —
+    // `w-full` with only a max-width would sit flush against the edges on a
+    // phone, which is the thing this placement exists to avoid.
     <m.div
       ref={panelRef}
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
-      className={`fixed bottom-0 left-0 right-0 z-[60] w-full ${maxWidth} sm:mx-auto max-h-[92dvh] ${surface} rounded-t-[28px] sm:bottom-6 sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
+      className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
       style={
         {
           willChange: "transform",
           paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-          // Published so descendants can zero out safe-area padding while the
-          // keyboard is up (the sheet has already been lifted clear of it).
+          "--sheet-kb-inset": `${keyboardInset}px`,
+        } as React.CSSProperties
+      }
+    >
+      {panelBody}
+    </m.div>
+  ) : (
+    <m.div
+      ref={panelRef}
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-[28px] sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
+      style={
+        {
+          willChange: "transform",
+          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
           "--sheet-kb-inset": `${keyboardInset}px`,
         } as React.CSSProperties
       }
@@ -235,39 +254,22 @@ export default function BottomSheet({
     </m.div>
   );
 
-  const centrePanel = (
-    // The positioning layer is a plain div rather than the panel itself: the
-    // panel's `transform` belongs to framer-motion, so centring with
-    // `-translate-x-1/2` on the panel would be overwritten on the first frame.
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
-      <m.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", damping: 28, stiffness: 320 }}
-        className={`pointer-events-auto relative w-full ${maxWidth} max-h-[88dvh] ${surface} rounded-[28px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] ${className}`}
-        style={{ willChange: "transform" }}
-      >
-        {panelBody}
-      </m.div>
+  // The keyboard offset lives on a wrapper rather than on the panel: the panel's
+  // own `transform` belongs to framer-motion and to the grabber drag, so
+  // writing the offset there would be overwritten on the next frame.
+  const panel = lifted ? (
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      style={{
+        transform: `translateY(-${keyboardInset}px)`,
+        willChange: "transform",
+      }}
+    >
+      {rawPanel}
     </div>
+  ) : (
+    rawPanel
   );
-
-  const panel = centered
-    ? centrePanel
-    : lifted
-      ? (
-          <div
-            className="flex min-h-0 flex-1 flex-col"
-            style={{
-              transform: `translateY(-${keyboardInset}px)`,
-              willChange: "transform",
-            }}
-          >
-            {drawerPanel}
-          </div>
-        )
-      : drawerPanel;
 
   return createPortal(
     <>

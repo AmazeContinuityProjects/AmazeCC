@@ -7,7 +7,17 @@ export const activeToolsSubTabAtom = atom<string>("overview");
 export const activeDayscholarSubTabAtom = atom<string>("finder");
 export const activeQBankSubTabAtom = atom<string>("archive");
 export const activeMoreSubTabAtom = atom<string>("social");
-export const activeProfileSubTabAtom = atom<string>("info");
+/**
+ * The settings screen is a hub of eight category sections, so the landing value
+ * is the hub's own id, `"settings"` — a section id (`"profile"`, `"preferences"`,
+ * …) means "open straight into that section".
+ *
+ * This was `"info"`, a legacy alias `ProfilePage` still maps to `"profile"`, so
+ * a cold start opened the Student Profile section instead of the hub. `"info"`
+ * is deliberately still *accepted* as input: persisted screen history keys of
+ * the form `profile:info` can still be restored.
+ */
+export const activeProfileSubTabAtom = atom<string>("settings");
 export const hostelActiveSubTabAtom = atom<string>("mess");
 export const activeDayAtom = atom<string>("");
 

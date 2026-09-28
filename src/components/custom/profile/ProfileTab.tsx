@@ -76,7 +76,10 @@ export default function ProfileTab(props: ProfileTabProps) {
         creds={creds}
         refreshKey={refreshKey}
         onReload={reload}
-        mode={activeProfileSubTab || "profile"}
+        // "settings" is the category hub. It was "profile", which is a section
+        // id, so an unset sub-tab skipped the hub and dropped the user straight
+        // into Student Profile.
+        mode={activeProfileSubTab || "settings"}
       />
     </div>
   );

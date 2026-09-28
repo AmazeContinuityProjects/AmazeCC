@@ -105,6 +105,16 @@ export interface SocialData {
   markDirty: () => void;
   /** The user's public handle, for the share sheet. */
   handle: string | null;
+  /**
+   * The last social-sync failure, or null.
+   *
+   * The sync op swallows its own errors on purpose (a failed social push must
+   * not break the rest of the chain), so this is the only signal the UI has. It
+   * was recorded on the atom all along and simply never read.
+   */
+  syncError: string | null;
+  /** True while a social push is in flight. */
+  syncing: boolean;
 }
 
 export function useSocialData(): SocialData {
@@ -113,6 +123,7 @@ export function useSocialData(): SocialData {
   const grants = useAtomValue(socialGrantsAtom);
   const ownBusyMap = useAtomValue(socialOwnBusyMapAtom);
   const ownCourses = useAtomValue(socialOwnCoursesAtom);
+  const syncState = useAtomValue(socialSyncStateAtom);
 
   const setIdentity = useSetAtom(socialIdentityAtom);
   const setGrants = useSetAtom(socialGrantsAtom);
@@ -155,6 +166,15 @@ export function useSocialData(): SocialData {
     ownCourses,
     markDirty,
     handle: identity?.handle ?? null,
+    /**
+     * The last social-sync failure, from `socialSyncStateAtom.lastError`.
+     *
+     * Exposed because the sync op deliberately swallows its own errors — a failed
+     * social push must not break the rest of the chain — so without this the only
+     * symptom is a social page that quietly shows stale data and no red line.
+     */
+    syncError: syncState?.lastError ?? null,
+    syncing: syncState?.syncing ?? false,
   };
 }
 

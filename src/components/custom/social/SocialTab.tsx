@@ -18,6 +18,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import {
+  AlertTriangle,
   CalendarRange,
   Clock,
   Link2,
@@ -64,7 +65,7 @@ export default function SocialTab({
   attendanceData: any;
   isDemo?: boolean;
 }) {
-  const { identity, peers, grants, ownBusyMap, handle, markDirty } = useSocialData();
+  const { identity, peers, grants, ownBusyMap, handle, markDirty, syncError } = useSocialData();
   const { peers: peerTimetables, loading: loadingPeers } = usePeerTimetables();
   const overlap = useOverlap(ownBusyMap, peerTimetables);
 
@@ -276,6 +277,24 @@ export default function SocialTab({
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300 text-left select-none">
+      {/*
+        The social sync op swallows its own errors so a failed push cannot break
+        the rest of the chain. That is right for the engine, but it left this page
+        showing stale data with no explanation at all. This is the only place the
+        failure surfaces, so it is deliberately above everything else.
+      */}
+      {syncError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-3 text-sm text-amber-800 dark:text-amber-300"
+        >
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-semibold leading-tight">Social sync failed</p>
+            <p className="text-xs opacity-85 break-words mt-0.5">{syncError}</p>
+          </div>
+        </div>
+      )}
       {screen === "landing" && (
         <>
           {/* Simplified Mobile Home's identity pattern. More and Tools already own

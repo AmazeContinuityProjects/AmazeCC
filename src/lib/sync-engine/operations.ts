@@ -357,6 +357,21 @@ registerOp({
       (ctx.ids.VtopUsername as string) === "DEMO123";
     if (demoMode) return null;
 
+    // This op used to fire its request with whatever happened to be in the
+    // credential manager, which is `null` after a page reload and a live set of
+    // cookies well past their useful life after sitting idle. Either way the
+    // request went out unauthenticated, the server answered with an error
+    // envelope, and `res.identity` was missing — so the op returned `null` and
+    // the social page silently showed stale data with no red line. Asking for a
+    // session first makes a login explicit, attributed to this op, and costed to
+    // one captcha solve.
+    try {
+      await credentialManager.ensureVtopSession({ demoMode });
+    } catch {
+      // Handled below: without a session the request cannot succeed, and the
+      // guard on `res.identity` keeps the op from writing anything.
+    }
+
     const semesterId =
       (args?.proposedSemesterId as string) ||
       (args?.semesterId as string) ||
@@ -370,7 +385,16 @@ registerOp({
         { auth: "vtop", retry: { max: 1 } }
       )) as SocialSyncPayload | null;
 
-      if (!res || res.success === false || !res.identity) return null;
+      if (!res || res.success === false || !res.identity) {
+        // Previously this returned `null` with nothing recorded, so an
+        // unauthenticated or rejected request left the social page showing
+        // stale data with no red line and no way to tell it apart from "nothing
+        // changed". Surface it as a real failure instead.
+        throw toEngineError(
+          (res as { message?: string } | null)?.message ||
+            "Social sync did not return an identity — the VTOP session may have expired."
+        );
+      }
 
       // The term changed, so every cached peer busy map is from a different
       // schedule. Drop them before writing the new identity.

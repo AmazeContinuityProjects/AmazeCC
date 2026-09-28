@@ -118,10 +118,11 @@ export default function SlotDetailSheet({
     <BottomSheet
       onClose={onClose}
       overlayId="timetable-slot-detail"
-      placement="center"
-      // Was max-w-sm, which capped the card at 384px and left a narrow strip
-      // down each side of a phone. A tapped cell is the whole context here, so
-      // the card takes the width it needs and only stops growing on a desktop.
+      // Bottom-anchored so it rises out of the edge the tapped cell sits on, but
+      // inset from both sides and rounded on all four corners so it reads as a
+      // card rather than a full-width sheet. `max-w-sm` used to cap it at 384px,
+      // which left a narrow strip down each side of a phone.
+      placement="bottom-center"
       maxWidth="max-w-md"
     >
       <div className="space-y-5 text-left">
