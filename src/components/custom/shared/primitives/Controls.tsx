@@ -120,3 +120,61 @@ export function SegmentedControl<T extends string>({
     </div>
   );
 }
+
+/**
+ * Horizontal choice pills.
+ *
+ * `SegmentedControl` is a filter for values you can all see at once; this is a
+ * picker for an ordered set that may run off the screen (months, categories,
+ * years). Four copies of this strip existed before it was named: the old
+ * calendar page and both modes of `AttendanceCalendarView`.
+ *
+ * Scrolls horizontally on overflow rather than wrapping, because an ordered
+ * picker that reflows into two rows stops reading as a sequence. `options` is
+ * `{ value, label }` and nothing else — the caller only supplies text.
+ */
+export function ChipTabs<T extends string>({
+  options,
+  value,
+  onChange,
+  size = "md",
+  className = "",
+}: {
+  options: readonly { value: T; label: ReactNode; title?: string }[];
+  value: T;
+  onChange: (value: NoInfer<T>) => void;
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  const sizing = size === "sm" ? "text-[10px] px-2.5 py-1" : "text-[11px] px-3 py-1.5";
+
+  return (
+    <div
+      role="tablist"
+      className={`flex w-full items-center gap-1.5 overflow-x-auto hide-scrollbar ${className}`.trim()}
+    >
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            title={opt.title}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-xl font-black transition-all cursor-pointer",
+              sizing,
+              active
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

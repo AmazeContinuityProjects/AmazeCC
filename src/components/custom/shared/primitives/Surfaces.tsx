@@ -46,6 +46,11 @@ export function SectionHeader({
  * `height` is pinned rather than a min-height on purpose: with three stacked
  * lines a min-height lets the content grow into the tile's own padding and
  * collide. The default matches the other pages' 32/36 rhythm.
+ *
+ * Constant by design — a tile is a measurement that does not change under the
+ * reader. A set of values worth rotating through is an `InsightCarousel`, and
+ * something that navigates belongs in a section header as an action, not here.
+ * The calendar page tried all three in one row and none of them read.
  */
 export function StatTile({
   label,

@@ -59,6 +59,68 @@ export function ToneDot({
 }
 
 /**
+ * Tone dot + label, in one pill.
+ *
+ * This is `ToneBadge` with a leading dot, and it exists because the same
+ * `inline-flex gap-1.5 rounded-full border uppercase` string with six different
+ * hand-written tone class lists was pasted into every event row of the old
+ * calendar. The tone map is already the single source of colour
+ * (`TONE_BADGE`); this just adds the dot and the dot's colour so a caller
+ * supplies text and a tone name, nothing else.
+ */
+export function DotPill({
+  tone = "zinc",
+  children,
+  size = "sm",
+  className = "",
+}: {
+  tone?: string;
+  children: ReactNode;
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  const sizing = size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[10px] sm:text-[11px] px-2 py-0.5";
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-bold uppercase tracking-wide whitespace-nowrap ${
+        TONE_BADGE[tone] ?? TONE_BADGE.zinc
+      } ${sizing} ${className}`.trim()}
+    >
+      <ToneDot tone={tone} size="sm" />
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Tone key: a row of dots with labels, for reading a colour-coded surface.
+ *
+ * Takes the pairs and nothing else — the caller does not restate `ToneDot`'s
+ * box, colour or sizing for each entry.
+ */
+export function ToneLegend({
+  items,
+  className = "",
+}: {
+  items: readonly { tone: string; label: ReactNode }[];
+  className?: string;
+}) {
+  if (!items.length) return null;
+  return (
+    <div
+      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 ${className}`.trim()}
+    >
+      {items.map((item) => (
+        <span key={item.label as string} className="inline-flex items-center gap-1.5">
+          <ToneDot tone={item.tone} size="md" />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Empty state.
  *
  * Two flavours: a bordered card with a tinted icon tile (the app's house

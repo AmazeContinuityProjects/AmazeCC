@@ -40,19 +40,29 @@ beforeAll(installLocalStorage);
 beforeEach(() => window.localStorage.clear());
 
 describe("the allowlist", () => {
-  it("holds the two authorizedIDs and the one reg number", () => {
+  it("holds the two authorizedIDs and the two reg numbers", () => {
     // Split by namespace because VTOP's `authorizedID` and the profile's
     // `applicationNumber` are different identifiers that never map to each
     // other — see gate.ts.
+    //
+    // The reg numbers used to be one comma-joined entry, `"20626703,2025001264"`,
+    // which can never match a real `applicationNumber`. They are two entries
+    // now, and this expectation is the thing that noticed.
     expect(INTRO_SONG_ALLOWED_AUTHORIZED_IDS).toEqual(["25BLC1081", "25MID1139"]);
-    expect(INTRO_SONG_ALLOWED_REG_NUMBERS).toEqual(["20626703"]);
-    expect(INTRO_SONG_ALLOWED_IDS).toEqual(["25BLC1081", "25MID1139", "20626703"]);
+    expect(INTRO_SONG_ALLOWED_REG_NUMBERS).toEqual(["20626703", "2025001264"]);
+    expect(INTRO_SONG_ALLOWED_IDS).toEqual([
+      "25BLC1081",
+      "25MID1139",
+      "20626703",
+      "2025001264",
+    ]);
   });
 
   it("matches either identifier", () => {
     expect(isAllowedIdentifier("25BLC1081", null)).toBe(true);
     expect(isAllowedIdentifier("25MID1139", null)).toBe(true);
     expect(isAllowedIdentifier(null, "20626703")).toBe(true);
+    expect(isAllowedIdentifier(null, "2025001264")).toBe(true);
   });
 
   it("normalises case and surrounding whitespace", () => {

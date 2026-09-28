@@ -36,6 +36,7 @@ import {
 
 import { AnimatePresence, m } from "framer-motion";
 import { buildAttendanceDayCardsMap, AttendanceDay, ATTENDANCE_DAYS, parseAttendanceTime } from "@/lib/attendanceTimetable";
+import { summariseAttendance } from "@/lib/attendanceSummary";
 import { shouldShowGpa, shouldShowProfilePhoto } from "@/lib/settingsVisibility";
 import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
 import { getAssetPath } from "@/lib/utils";
@@ -284,25 +285,12 @@ export default function SimplifiedMobileHome({
     .slice(0, 2)
     .toUpperCase();
 
-  // Overall attendance calculation
-  const overallAttendance = useMemo(() => {
-    if (!attendanceData?.attendance || attendanceData.attendance.length === 0) {
-      return { percentage: 0, attended: 0, total: 0, status: "N/A" };
-    }
-    let totalClasses = 0;
-    let attendedClasses = 0;
-    attendanceData.attendance.forEach((a: any) => {
-      totalClasses += Number(a.totalClasses || 0);
-      attendedClasses += Number(a.attendedClasses || 0);
-    });
-    const percentage = totalClasses > 0 ? (attendedClasses / totalClasses) * 100 : 0;
-    return {
-      percentage,
-      attended: attendedClasses,
-      total: totalClasses,
-      status: percentage >= targetAttendancePct + 5 ? "Safe" : percentage >= targetAttendancePct ? "Warning" : "Critical",
-    };
-  }, [attendanceData, targetAttendancePct]);
+  // Overall attendance — the app's one formula, shared with the calendar page so
+  // two screens can never show different percentages for the same student.
+  const overallAttendance = useMemo(
+    () => summariseAttendance(attendanceData?.attendance, targetAttendancePct),
+    [attendanceData, targetAttendancePct]
+  );
 
   // Approved OD Hours
   const totalODHours = useMemo(() => {

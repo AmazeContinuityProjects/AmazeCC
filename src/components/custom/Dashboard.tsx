@@ -12,7 +12,7 @@ import MarksPredictorTab from "./exams/MarksPredictorTab";
 import ExamSchedule from "./exams/ScheduleDisplay";
 import MessDisplay from "./hostel/MessDisplay";
 import LaundryDisplay from "./hostel/LaundryDisplay";
-import CalendarView from "./attendance/CalendarView";
+import CalendarSubpage from "./attendance/CalendarSubpage";
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import LeaveDisplay from "./hostel/LeaveDisplay";
 import HostelOverview from "./hostel/HostelOverview";
@@ -865,7 +865,7 @@ function DashboardContent({
 
               {activeAttendanceSubTab === "calendar" && (
                 <div className="animate-fadeIn">
-                  <CalendarView
+                  <CalendarSubpage
                     calendars={calendarData?.calendars}
                     calendarType={settings.calendarType}
                     handleCalendarFetch={handleCalendarFetch}
@@ -873,13 +873,12 @@ function DashboardContent({
                     scheduleData={ScheduleData}
                     attendanceData={attendanceData}
                     ODhoursData={ODhoursData}
-                    setIsSubpageOpen={setIsSubpageOpen}
-                    setMoodleData={setMoodleData}
                     handleFetchMoodle={handleFetchMoodle}
                     IDs={IDs}
-                    setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                    setActiveTab={setActiveTab}
-                    setActiveSubTab={setActiveSubTab}
+                    currSemesterID={settings.currSemesterID}
+                    targetAttendance={settings.targetAttendance}
+                    onOpenCirculars={() => setActiveAttendanceSubTab("circulars")}
+                    onBack={onSystemBack}
                   />
                 </div>
               )}
