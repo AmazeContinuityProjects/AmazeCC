@@ -102,6 +102,23 @@ function setString(key: string, value: string): void {
   } catch { /* silently fail */ }
 }
 
+export interface EventHubSession {
+  /**
+   * The value `/api/events/login` returns, which is a compound cookie fragment —
+   * `"<id>"` or `"<id>; cookiesession1=<c>"` — not a bare session id. The API
+   * rebuilds a `Cookie` header from it, so it is stored verbatim.
+   */
+  id: string;
+  /**
+   * When this was obtained, in epoch ms.
+   *
+   * EventHub sessions expire server-side and nothing tells the client, so without
+   * a timestamp a stale session is reused forever and every request 401s. A
+   * session older than `VTOP_SESSION_MAX_AGE_MS` is re-fetched instead.
+   */
+  fetchedAt: number;
+}
+
 export const storage = {
   attendance: {
     get: () => getItem<attendanceRes>(KEYS.ATTENDANCE),
@@ -174,8 +191,8 @@ export const storage = {
     remove: () => removeItem(KEYS.DEMO_MODE),
   },
   eventHubSession: {
-    get: () => getString(KEYS.EVENT_HUB_SESSION),
-    set: (val: string) => setString(KEYS.EVENT_HUB_SESSION, val),
+    get: () => getItem<EventHubSession>(KEYS.EVENT_HUB_SESSION),
+    set: (val: EventHubSession) => setItem(KEYS.EVENT_HUB_SESSION, val),
     remove: () => removeItem(KEYS.EVENT_HUB_SESSION),
   },
   moodleData: {

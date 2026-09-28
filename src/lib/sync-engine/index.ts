@@ -98,6 +98,30 @@ class SyncEngine {
     }
   }
 
+  /**
+   * Make sure there is a live VTOP session, then run the social sync.
+   *
+   * This is what the Social page's sync button calls. The two steps are kept
+   * together deliberately: the social routes are all `auth: "vtop"`, and without
+   * a session they fail in a way that is indistinguishable from "no friends"
+   * (the op swallows its error into `lastError`). Logging in first makes the
+   * button do the one thing the user actually asked for.
+   */
+  async syncSocial(args: Record<string, unknown> = {}): Promise<unknown> {
+    // `this.ids` is normally set by `login`, but the Social page can be opened
+    // before that resolves, so fall back to the persisted credentials rather
+    // than failing with "not logged in".
+    if (!this.ids) {
+      const stored = storage.ids.get();
+      if (!stored?.VtopUsername) {
+        throw new Error("Add your VTOP credentials first — social sync needs an account.");
+      }
+      this.ids = stored;
+    }
+    await credentialManager.ensureVtopSession();
+    return this.sync("social", args);
+  }
+
   async syncAll(opts: SyncAllOptions): Promise<void> {
     this.ensureIds();
     await this.sync("attendanceMarks", { semesterId: opts.semesterId });

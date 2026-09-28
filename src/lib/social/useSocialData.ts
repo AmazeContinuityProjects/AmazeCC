@@ -20,11 +20,13 @@ import {
   socialOwnCoursesAtom,
   socialPeersAtom,
   socialSyncStateAtom,
+  activeRegNumberAtom,
 } from "@/store/socialAtoms";
 import {
   readGrants,
   readIdentity,
   readOwnTimetable,
+  readPeers,
   migrateLegacyStore,
 } from "./storage";
 import { getActiveRegNumber } from "./identity";
@@ -114,6 +116,8 @@ export interface SocialData {
    */
   syncError: string | null;
   /** True while a social push is in flight. */
+  /** Epoch ISO of the last successful social push, or null. */
+  lastSyncedAt: string | null;
   syncing: boolean;
 }
 
@@ -127,6 +131,7 @@ export function useSocialData(): SocialData {
 
   const setIdentity = useSetAtom(socialIdentityAtom);
   const setGrants = useSetAtom(socialGrantsAtom);
+  const setPeers = useSetAtom(socialPeersAtom);
   const setOwnBusyMap = useSetAtom(socialOwnBusyMapAtom);
   const setOwnCourses = useSetAtom(socialOwnCoursesAtom);
 
@@ -140,9 +145,16 @@ export function useSocialData(): SocialData {
 
   // Hydrate from the cache once per reg number so the first paint has data
   // instead of an empty grid. The sync op overwrites this with server truth.
+  //
+  // `reg` is reactive, which is the whole point. It used to be read from
+  // `localStorage` inside the effect, whose dependencies were all stable
+  // setters — so the effect ran exactly once, bailed when the profile had not
+  // arrived yet, and never ran again. On a first session the profile is written
+  // by the sync engine a beat after mount, so the page stayed empty.
+  const publishedReg = useAtomValue(activeRegNumberAtom);
+  const reg = publishedReg || getActiveRegNumber();
   const hydratedFor = useRef<string | null>(null);
   useEffect(() => {
-    const reg = getActiveRegNumber();
     if (!reg || hydratedFor.current === reg) return;
     hydratedFor.current = reg;
 
@@ -151,12 +163,17 @@ export function useSocialData(): SocialData {
     if (cachedIdentity) setIdentity(cachedIdentity);
     const cachedGrants = readGrants<StoredGrant>(reg);
     if (cachedGrants.length) setGrants(cachedGrants);
+    // Restores the handles, which is what makes the per-handle timetable cache
+    // reachable. Without it `usePeerTimetables` had an empty `peers` list to seed
+    // from and could not find cached data even though it was on disk.
+    const cachedPeers = readPeers<SocialPeer>(reg);
+    if (cachedPeers.length) setPeers(cachedPeers);
     const cachedOwn = readOwnTimetable<OwnTimetable>(reg);
     if (cachedOwn) {
       setOwnBusyMap(cachedOwn.busyMap ?? {});
       setOwnCourses(cachedOwn.courses ?? []);
     }
-  }, [setIdentity, setGrants, setOwnBusyMap, setOwnCourses]);
+  }, [reg, setIdentity, setGrants, setPeers, setOwnBusyMap, setOwnCourses]);
 
   return {
     identity,
@@ -175,6 +192,7 @@ export function useSocialData(): SocialData {
      */
     syncError: syncState?.lastError ?? null,
     syncing: syncState?.syncing ?? false,
+    lastSyncedAt: syncState?.lastSyncedAt ?? null,
   };
 }
 

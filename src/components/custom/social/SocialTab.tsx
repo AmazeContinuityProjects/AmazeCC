@@ -23,6 +23,7 @@ import {
   Clock,
   Link2,
   Plus,
+  RefreshCw,
   Share2,
   Users,
 } from "lucide-react";
@@ -52,11 +53,14 @@ import ShareHandleSheet from "./ShareHandleSheet";
 import AddPeerSheet from "./AddPeerSheet";
 import PeerTimetableSheet from "./PeerTimetableSheet";
 import { useSocialData } from "@/lib/social/useSocialData";
-import { useOverlap, usePeerTimetables } from "@/lib/social/usePeerTimetables";
+import { useOverlap, usePeerTimetables, relativePublished } from "@/lib/social/usePeerTimetables";
+import { syncEngine } from "@/lib/sync-engine";
 import { slotCoveringNow } from "@/lib/social/schedule";
-import { STALE_AFTER_DAYS } from "@/lib/social/types";
+import { STALE_AFTER_DAYS, type BusyMap } from "@/lib/social/types";
+import { useSocialGroups } from "@/lib/social/useSocialGroups";
+import GroupsSubpage from "./GroupsSubpage";
 
-type Screen = "landing" | "people" | "pairs" | "freeNow" | "grid";
+type Screen = "landing" | "people" | "pairs" | "freeNow" | "grid" | "groups";
 
 export default function SocialTab({
   attendanceData,
@@ -65,14 +69,65 @@ export default function SocialTab({
   attendanceData: any;
   isDemo?: boolean;
 }) {
-  const { identity, peers, grants, ownBusyMap, handle, markDirty, syncError } = useSocialData();
+  const {
+    identity,
+    peers,
+    grants,
+    ownBusyMap,
+    handle,
+    markDirty,
+    syncError,
+    lastSyncedAt,
+    syncing: syncingInFlight,
+  } = useSocialData();
   const { peers: peerTimetables, loading: loadingPeers } = usePeerTimetables();
   const overlap = useOverlap(ownBusyMap, peerTimetables);
+
+  // Only the count is needed here, and only to label the carousel card. The
+  // group maths live in the hook, so there is no second implementation to drift.
+  const groupCount = useSocialGroups({
+    ownBusyMap,
+    knownHandles: useMemo(() => peerTimetables.map((p) => p.handle), [peerTimetables]),
+    busyByHandle: useMemo(() => {
+      const m = new Map<string, BusyMap>();
+      for (const p of peerTimetables) if (p.loaded) m.set(p.handle, p.busyMap);
+      return m;
+    }, [peerTimetables]),
+  }).groups.length;
 
   const [screen, setScreen] = useState<Screen>("landing");
   const [shareOpen, setShareOpen] = useState(false);
   const [addPeerOpen, setAddPeerOpen] = useState(false);
   const [openPeer, setOpenPeer] = useState<string | null>(null);
+  const [syncingNow, setSyncingNow] = useState(false);
+  /** Set when a manual sync fails, so the inline status can say so. */
+  const [syncFailed, setSyncFailed] = useState(false);
+
+  /** True while either a background push or the manual button is in flight. */
+  const syncing = syncingNow || syncingInFlight;
+
+  /**
+   * Log in if needed, then sync.
+   *
+   * The two steps are one action for the user because the social routes are all
+   * authenticated with a VTOP session. Errors are left to the op, which records
+   * them in `socialSyncStateAtom.lastError` and is rendered above — so this only
+   * has to flip the local spinner and remember that it failed.
+   */
+  const onSyncNow = useCallback(async () => {
+    if (syncing) return;
+    setSyncingNow(true);
+    setSyncFailed(false);
+    try {
+      await syncEngine.syncSocial({ semesterId: identity?.semesterId });
+    } catch {
+      setSyncFailed(true);
+    } finally {
+      setSyncingNow(false);
+    }
+  }, [syncing, identity?.semesterId]);
+
+  const relativeSynced = lastSyncedAt ? relativePublished(lastSyncedAt) : "";
 
   /* ── derived figures ─────────────────────────────────────────────── */
 
@@ -146,6 +201,19 @@ export default function SocialTab({
     });
 
     list.push({
+      id: "groups",
+      title: "Groups",
+      headline: String(groupCount),
+      subline:
+        groupCount === 0
+          ? "group people you are paired with"
+          : "common free slots per group",
+      badge: groupCount === 0 ? "None" : String(groupCount),
+      tone: groupCount === 0 ? "zinc" : "indigo",
+      onClick: () => setScreen("groups"),
+    });
+
+    list.push({
       id: "sync",
       title: "Last sync",
       headline: identity ? relativeSync.replace("Last synced ", "") : "Never",
@@ -155,7 +223,16 @@ export default function SocialTab({
     });
 
     return list;
-  }, [currentSlot, freeNowHandles, grants.length, identity, relativeSync, syncBadge.label, myStale]);
+  }, [
+    currentSlot,
+    freeNowHandles,
+    grants.length,
+    groupCount,
+    identity,
+    relativeSync,
+    syncBadge.label,
+    myStale,
+  ]);
 
   const carousel = useCarousel(slides.length);
   const insightSlides = useMemo<InsightSlide[]>(
@@ -271,6 +348,8 @@ export default function SocialTab({
       <PairsSubpage onBack={() => setScreen("landing")} onAddPeer={() => setAddPeerOpen(true)} />
     ) : screen === "freeNow" ? (
       <FreeNowSubpage onBack={() => setScreen("landing")} onOpenPeer={openPeerSheet} />
+    ) : screen === "groups" ? (
+      <GroupsSubpage onBack={() => setScreen("landing")} />
     ) : (
       <CommonFreeGridSubpage onBack={() => setScreen("landing")} onOpenPeer={openPeerSheet} />
     );
@@ -339,6 +418,40 @@ export default function SocialTab({
             <span className={`${CHIP} font-mono tracking-widest`}>{myHandle}</span>
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium truncate">
               {hasPublished ? "your handle" : "sync to publish your week"}
+            </span>
+          </div>
+
+          {/*
+            An explicit sync. Every social route is `auth: "vtop"`, so without a
+            live session the op can fail in a way that reads as "you have no
+            friends". This does the login and the sync together, and says what
+            happened either way.
+          */}
+          <div className="flex items-center gap-2.5 px-1">
+            <button
+              type="button"
+              onClick={onSyncNow}
+              disabled={syncing}
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 dark:border-zinc-700 px-3 py-1.5 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
+              {syncing ? "Syncing…" : "Sync now"}
+            </button>
+            <span
+              className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate"
+              role="status"
+              aria-live="polite"
+            >
+              {syncing
+                ? "logging in and refreshing"
+                : syncFailed || syncError
+                  ? "last attempt failed"
+                  : lastSyncedAt
+                    ? `synced ${relativeSynced}`
+                    : "not synced yet"}
             </span>
           </div>
         </>

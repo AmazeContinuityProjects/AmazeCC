@@ -340,7 +340,7 @@ const EMPTY_METRICS: OverlapMetrics = {
 /** Each day's slots in start-time order, so "first" means chronologically first. */
 const orderedDayCache = new WeakMap<SlotMap, { day: Day; slotId: string; start: number }[][]>();
 
-function orderedDays(map: SlotMap): { day: Day; slotId: string; start: number }[][] {
+export function orderedDays(map: SlotMap): { day: Day; slotId: string; start: number }[][] {
   const cached = orderedDayCache.get(map);
   if (cached) return cached;
   const built = DAYS.map((day) =>
@@ -415,6 +415,144 @@ export function computeOverlap(
     myClassHours: Math.round((myMins / 60) * 10) / 10,
     firstCommonFreeSlot: first,
     freeNow: currentSlot ? !theirs?.[currentSlot] : true,
+    currentSlot,
+  };
+}
+
+/**
+ * How a set of people relates to the viewer's week.
+ *
+ * ## Why AND and not OR
+ *
+ * A slot counts as common free only when it is free for the viewer **and every
+ * member**, because that is what makes a slot usable to everyone at once. OR
+ * would answer a different question — "is anyone free", which is the opposite of
+ * what a shared slot is for, and it would make a large group look more
+ * constrained than a small one purely because more people can veto a slot.
+ */
+export interface GroupOverlapMetrics {
+  /** Members whose timetable was actually available. */
+  memberCount: number;
+  /**
+   * Members whose timetable has not loaded yet.
+   *
+   * Excluded from the figures rather than treated as free. A peer with no data
+   * has not been shown to be free, so counting them would inflate the result.
+   */
+  pendingCount: number;
+  /** Slots free for the viewer and for every member. */
+  commonFreeSlots: number;
+  commonFreeHours: number;
+  /** Slots where the viewer and every member are all in class. */
+  allClashSlots: number;
+  /**
+   * Of the viewer's class hours, the mean share of members who are also free.
+   *
+   * The honest group analogue of `matchPct`: requiring *every* member to be free
+   * would make any group of three or more score near zero and stop
+   * discriminating between them.
+   */
+  groupMatchPct: number;
+  myClassHours: number;
+  firstCommonFreeSlot: string | null;
+  /** Everyone in the group is free in the current slot. */
+  freeNow: boolean;
+  currentSlot: string | null;
+}
+
+/**
+ * Compare the viewer against a whole group at once.
+ *
+ * An empty group, or one where nothing has loaded, reports zeros rather than
+ * vacuous truth: with no members, "free for everyone" is true for all 164 slots,
+ * which would render a group of nobody as having a completely free week.
+ */
+export function computeGroupOverlap(
+  mine: BusyMap,
+  memberMaps: BusyMap[],
+  map: SlotMap = slotMap,
+  now: Date = new Date()
+): GroupOverlapMetrics {
+  const currentSlot = slotCoveringNow(now);
+  const empty: GroupOverlapMetrics = {
+    memberCount: 0,
+    pendingCount: 0,
+    commonFreeSlots: 0,
+    commonFreeHours: 0,
+    allClashSlots: 0,
+    groupMatchPct: 0,
+    myClassHours: 0,
+    firstCommonFreeSlot: null,
+    freeNow: false,
+    currentSlot,
+  };
+  if (!memberMaps.length) return empty;
+
+  const myKeys = new Set(Object.keys(mine ?? {}));
+  // Per member, the set of their busy keys, so membership is a key lookup.
+  const theirsKeys = memberMaps.map((m) => new Set(Object.keys(m ?? {})));
+
+  let free = 0;
+  let freeMins = 0;
+  let allClash = 0;
+  let myMins = 0;
+  let first: string | null = null;
+  // Summed per viewer-class-slot, then divided, so long classes do not outweigh
+  // short ones in the mean.
+  let freeMemberSlotMins = 0;
+  let totalMemberSlotMins = 0;
+
+  for (const daySlots of orderedDays(map)) {
+    for (const { day, slotId } of daySlots) {
+      const key = slotKey(day, slotId);
+      const span = slotSpanMinutes(map[day]![slotId].time);
+      const iAmBusy = myKeys.has(key);
+
+      let allFree = true;
+      let busyCount = 0;
+      for (const keys of theirsKeys) {
+        if (keys.has(key)) {
+          busyCount += 1;
+          allFree = false;
+        }
+      }
+      const allBusy = busyCount === theirsKeys.length;
+
+      if (iAmBusy) {
+        myMins += span;
+        // Weight by class length so a 3-hour lab is worth three 1-hour lectures.
+        freeMemberSlotMins += span * (theirsKeys.length - busyCount);
+        totalMemberSlotMins += span * theirsKeys.length;
+        if (allBusy) allClash += 1;
+      }
+
+      // `allFree`, NOT `!allBusy`. The latter asks "is the viewer free and is
+      // *someone* free", which a single never-busy member satisfies for the
+      // entire week — so a group containing one person with no classes reported
+      // 163 free slots while ignoring everyone else entirely.
+      if (!iAmBusy && allFree) {
+        free += 1;
+        freeMins += span;
+        if (!first) first = key;
+      }
+    }
+  }
+
+  return {
+    memberCount: memberMaps.length,
+    pendingCount: 0,
+    commonFreeSlots: free,
+    commonFreeHours: Math.round((freeMins / 60) * 10) / 10,
+    allClashSlots: allClash,
+    groupMatchPct:
+      totalMemberSlotMins > 0
+        ? Math.round((freeMemberSlotMins / totalMemberSlotMins) * 100)
+        : 0,
+    myClassHours: Math.round((myMins / 60) * 10) / 10,
+    firstCommonFreeSlot: first,
+    freeNow: currentSlot
+      ? theirsKeys.every((keys) => !keys.has(currentSlot))
+      : true,
     currentSlot,
   };
 }

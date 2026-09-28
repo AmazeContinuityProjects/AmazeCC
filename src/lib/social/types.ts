@@ -107,6 +107,28 @@ export interface SocialGrant {
   semesters: string[];
 }
 
+/**
+ * A user-defined subset of the people you already have a grant with.
+ *
+ * Groups are **client-side only** and deliberately so. The server knows about
+ * pairs and nothing else, and a group adds no new relationship: every member is
+ * someone the user is already paired with and whose timetable they can already
+ * read. So there is nothing to consent to, nothing to sync, and no API change —
+ * a group is a local filter over existing data.
+ *
+ * Handles are stored rather than row indexes because a handle is the stable
+ * identifier; an index would break the moment the peer list changed order.
+ */
+export interface SocialGroup {
+  id: string;
+  name: string;
+  /** Handles of the peers in this group. Always a subset of known peers. */
+  handles: string[];
+  createdAt: number;
+}
+
+export const GROUP_NAME_MAX = 40;
+
 export interface SocialPeer {
   handle: string;
   name: string;

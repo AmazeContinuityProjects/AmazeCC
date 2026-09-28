@@ -231,3 +231,49 @@ A peer with **no** shared timetable makes every one of my slots clash-free, whic
 Lunch is a **visual spacer, not a slot.** `LUNCH_START_MIN` is `toMinutes("1:20")` = 800, and the split lands at the first Monday pair whose earlier of {theory, lab} starts at or after 800 — index 6, giving 6 before and 6 after.
 
 Note the resulting edge case: `MON.S11` runs 12:35–1:25 and is classified *before* lunch by a 25-minute margin. The display layer keeps this behaviour so the grid looks the same; the data layer does not care, because lunch has no representation in the busy map at all.
+
+---
+
+## 9. Groups
+
+`computeGroupOverlap(mine, memberMaps, ...)` compares the viewer against a whole
+group. It is **not** a loop over `computeOverlap`, because the per-slot rule has to
+change with group size.
+
+**A common-free slot is free for the viewer AND every member.** The natural
+translation of "busy" into AND is `allBusy`, and the free test is then
+`!allBusy` — which is wrong, and was wrong in the first implementation of this
+function. It asks "is the viewer free and is *someone* free", so a group
+containing one person with no classes at all satisfied it for 164 slots and the
+rest of the group was silently ignored. The test asserts the 163/162 pair
+specifically because that is where the two rules diverge; reintroducing `!allBusy`
+makes it fail with `expected 163 to be 162`.
+
+OR would also be wrong in a different way: every additional member can only veto a
+slot, so a large group would read as more constrained than a small one purely
+because it has more people.
+
+**`groupMatchPct` is a mean, not a gate.** Requiring *all* members to be free
+during the viewer's class hours makes any group of three or more score near zero
+and stop discriminating between groups at all. So the figure is the mean share of
+members free across the viewer's class hours — 100 means every member is
+compatible, 0 means every member clashes everywhere. Class lengths are used as
+weights, so a 3-hour lab counts as three 1-hour lectures.
+
+**Unknown is not free.** `useSocialGroups` passes only *loaded* timetables to the
+function and reports the rest as `pending`. A peer with no data has not been shown
+to be free, and counting them would inflate every figure.
+
+**An empty group reports zeros.** With no members, "free for all" is vacuously
+true for all 164 slots, so a group of nobody would render as a completely open
+week. `computeGroupOverlap(mine, [])` returns zeros instead.
+
+Groups are **client-side only** (`social_groups_v1_<reg>`). A group introduces no
+new relationship: every member is someone the user already holds a grant for, so
+their timetable is already readable. There is nothing to consent to and nothing to
+sync, and no API change.
+
+`handles` is treated as a set of *candidates*, never as truth. A pairing can be
+revoked, so `pruneHandles` drops handles that are no longer known peers, and a
+group that loses all of them is reported `empty` rather than deleted — hiding it
+would make a revoke look like a deletion.

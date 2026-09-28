@@ -26,7 +26,16 @@ export const VTOP_SESSION_MAX_AGE_MS = 10 * 60 * 1000;
  */
 class CredentialManager {
   private vtop: VtopCreds | null = null;
-  private eventHub: string | null = storage.eventHubSession.get() ?? null;
+  private eventHub: string | null = null;
+  /**
+   * When `this.eventHub` was obtained.
+   *
+   * EventHub sessions expire server-side with no signal to the client, so this
+   * is what stops a session from days ago being reused forever — which showed up
+   * as a permanent `401` from `/api/events/profile` while the credentials were
+   * perfectly valid. Same rule as VTOP.
+   */
+  private eventHubFetchedAt = 0;
   private failedVtop: FailedPair | null = null;
   private failedEventHub: FailedPair | null = null;
   private backoffVtopUntil = 0;
@@ -40,9 +49,19 @@ class CredentialManager {
    * same promise instead.
    */
   private refreshingVtop: Promise<VtopCreds> | null = null;
+  /** Same single-flight guard as `refreshingVtop`, for the EventHub session. */
+  private refreshingEventHub: Promise<string> | null = null;
 
   constructor() {
     setAuthProvider((domain) => this.getCreds(domain));
+    // Restored from disk, along with when it was minted. A session stored by an
+    // older build has no timestamp and is treated as stale, which costs one
+    // login and is the safe direction.
+    const stored = storage.eventHubSession.get();
+    if (stored?.id) {
+      this.eventHub = stored.id;
+      this.eventHubFetchedAt = stored.fetchedAt ?? 0;
+    }
   }
 
   /** True when there is no session, or the one we hold is older than the limit. */
@@ -101,6 +120,45 @@ class CredentialManager {
         // Identity-checked so a `clearCache()` mid-flight cannot be undone by
         // this late teardown.
         if (this.refreshingVtop === gate) this.refreshingVtop = null;
+      });
+
+    return gate;
+  }
+
+  /** True when the EventHub session is missing or older than the limit. */
+  private isEventHubStale(): boolean {
+    if (!this.eventHub) return true;
+    if (!this.eventHubFetchedAt) return true;
+    return Date.now() - this.eventHubFetchedAt >= VTOP_SESSION_MAX_AGE_MS;
+  }
+
+  /**
+   * Return a usable EventHub session, logging in again if the cached one has
+   * expired.
+   *
+   * Single-flight for the same reason as VTOP: a login is a network round trip
+   * and concurrent callers must not each start one.
+   */
+  async ensureEventHubSession(
+    ids: Ids,
+    opts: { demoMode?: boolean } = {}
+  ): Promise<string> {
+    if (opts.demoMode || ids.VtopUsername === "demo") return "";
+    if (this.refreshingEventHub) return this.refreshingEventHub;
+    if (this.eventHub && !this.isEventHubStale()) return this.eventHub;
+
+    let settle!: (id: string) => void;
+    let fail!: (reason: unknown) => void;
+    const gate = new Promise<string>((res, rej) => {
+      settle = res;
+      fail = rej;
+    });
+    this.refreshingEventHub = gate;
+
+    void this.loginEventHub(ids, { demoMode: opts.demoMode, forceNew: true })
+      .then(settle, fail)
+      .finally(() => {
+        if (this.refreshingEventHub === gate) this.refreshingEventHub = null;
       });
 
     return gate;
@@ -246,7 +304,8 @@ class CredentialManager {
     }
 
     this.eventHub = res.jsessionid;
-    storage.eventHubSession.set(res.jsessionid);
+    this.eventHubFetchedAt = Date.now();
+    storage.eventHubSession.set({ id: res.jsessionid, fetchedAt: this.eventHubFetchedAt });
     this.failedEventHub = null;
     return this.eventHub;
   }
@@ -292,10 +351,14 @@ class CredentialManager {
     // `ensureVtopSession` await that hang forever — the manager would be wedged
     // with no way back short of a reload.
     this.refreshingVtop = null;
+    this.refreshingEventHub = null;
+    this.eventHubFetchedAt = 0;
   }
 
   clearEventHub(): void {
     this.eventHub = null;
+    this.eventHubFetchedAt = 0;
+    this.refreshingEventHub = null;
     this.failedEventHub = null;
     this.backoffEventHubUntil = 0;
     storage.eventHubSession.remove();

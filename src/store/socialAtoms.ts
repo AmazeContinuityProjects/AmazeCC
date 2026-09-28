@@ -27,6 +27,22 @@ export const socialGrantsAtom = atom<StoredGrant[]>([]);
 export const socialOwnBusyMapAtom = atom<BusyMap>({});
 export const socialOwnCoursesAtom = atom<SocialCourse[]>([]);
 
+/**
+ * Which account's cached social data to read, published once it is knowable.
+ *
+ * Every social storage key is namespaced by reg number, and the reg number
+ * comes from `localStorage["profile"]` — which the sync engine writes *asynchronously*.
+ * A component that read it during the first render would see "" and, with no
+ * reactive source to wait on, would never look again. That left the social page
+ * empty until something else forced a remount.
+ *
+ * So the reg number is published here instead, and readers depend on this atom.
+ * It starts empty and is filled by the `studentProfile` op once the profile
+ * lands; readers fall back to a direct read, so a reload that already has a
+ * cached profile still hydrates on the first paint.
+ */
+export const activeRegNumberAtom = atom<string>("");
+
 export type SocialSyncState = {
   /** Server's own version counter for the current term. */
   version: number;

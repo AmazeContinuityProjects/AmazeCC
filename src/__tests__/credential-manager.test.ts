@@ -254,3 +254,83 @@ describe("getCreds", () => {
     expect(loginCount()).toBe(0);
   });
 });
+
+describe("EventHub session freshness", () => {
+  const IDS_EH = { ...IDS };
+  let ehCalls = 0;
+
+  beforeEach(() => {
+    ehCalls = 0;
+    requestMock.mockImplementation(async (path: string) => {
+      if (path === "events/login") {
+        ehCalls += 1;
+        // The compound form the real route returns.
+        return { success: true, jsessionid: `SID${ehCalls}; cookiesession1=CS${ehCalls}` };
+      }
+      return {};
+    });
+  });
+
+  it("logs in when there is no session", async () => {
+    const s = await credentialManager.ensureEventHubSession(IDS_EH);
+    expect(ehCalls).toBe(1);
+    expect(s).toContain("SID1");
+  });
+
+  it("reuses a session younger than 10 minutes", async () => {
+    await credentialManager.ensureEventHubSession(IDS_EH);
+    vi.setSystemTime(new Date(Date.now() + VTOP_SESSION_MAX_AGE_MS - 1000));
+    await credentialManager.ensureEventHubSession(IDS_EH);
+    expect(ehCalls).toBe(1);
+  });
+
+  it("re-logs-in once the session passes 10 minutes", async () => {
+    const first = await credentialManager.ensureEventHubSession(IDS_EH);
+    vi.setSystemTime(new Date(Date.now() + VTOP_SESSION_MAX_AGE_MS + 1));
+    const second = await credentialManager.ensureEventHubSession(IDS_EH);
+    expect(ehCalls).toBe(2);
+    expect(second).not.toBe(first);
+  });
+
+  it("shares one login between concurrent callers", async () => {
+    requestMock.mockImplementation(async (path: string) => {
+      if (path === "events/login") {
+        ehCalls += 1;
+        await new Promise((r) => setTimeout(r, 40));
+        return { success: true, jsessionid: `SID${ehCalls}` };
+      }
+      return {};
+    });
+    await Promise.all([
+      credentialManager.ensureEventHubSession(IDS_EH),
+      credentialManager.ensureEventHubSession(IDS_EH),
+      credentialManager.ensureEventHubSession(IDS_EH),
+    ]);
+    expect(ehCalls).toBe(1);
+  });
+
+  it("persists the session with a timestamp, not as a bare string", async () => {
+    await credentialManager.ensureEventHubSession(IDS_EH);
+    const stored = storage.eventHubSession.get();
+    // A bare string is the old shape; without a timestamp the session could
+    // never be aged out, which is what caused the permanent 401.
+    expect(typeof stored).toBe("object");
+    expect(stored?.id).toContain("SID1");
+    expect(stored?.fetchedAt).toBeGreaterThan(0);
+  });
+
+  it("treats a session stored without a timestamp as stale", async () => {
+    storage.eventHubSession.set({ id: "OLDSESSION", fetchedAt: 0 } as never);
+    // Force the manager to re-read storage the way a page load would.
+    credentialManager.clearEventHub();
+    const s = await credentialManager.ensureEventHubSession(IDS_EH);
+    expect(ehCalls).toBe(1);
+    expect(s).toContain("SID1");
+  });
+
+  it("returns empty in demo mode without logging in", async () => {
+    const s = await credentialManager.ensureEventHubSession(IDS, { demoMode: true });
+    expect(s).toBe("");
+    expect(ehCalls).toBe(0);
+  });
+});

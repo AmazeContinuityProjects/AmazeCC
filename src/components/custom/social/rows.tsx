@@ -13,7 +13,7 @@
  */
 
 import React from "react";
-import { ChevronRight, Eye, EyeOff, Trash2 } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, Pencil, Trash2, Users } from "lucide-react";
 import {
   CHIP,
   LIST_ROW,
@@ -234,6 +234,98 @@ export function FreeNowRow({
       />
       <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
     </button>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Group
+ * ------------------------------------------------------------------ */
+
+/**
+ * One group, with its common-free headline.
+ *
+ * The count is the figure that matters, so it is tone-mapped: a group you have
+ * never met in person scores worse than one you see often, which is the whole
+ * point of grouping people.
+ */
+export function GroupRow({
+  name,
+  memberCount,
+  pendingCount,
+  commonFreeHours,
+  matchPct,
+  empty,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  name: string;
+  memberCount: number;
+  /** Members still loading, so the figures are provisional. */
+  pendingCount?: number;
+  commonFreeHours?: number;
+  matchPct?: number;
+  empty?: boolean;
+  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const tone = empty ? "zinc" : matchPct === undefined ? "zinc" : matchPct >= 70 ? "emerald" : matchPct >= 40 ? "amber" : "red";
+
+  return (
+    <div className={LIST_ROW}>
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={empty}
+        className="contents text-left disabled:cursor-default"
+      >
+        <Avatar name={name} tone={tone}>
+          <Users className="w-4 h-4" />
+        </Avatar>
+        <ListRowText
+          title={name}
+          subtitle={
+            empty
+              ? "no members left"
+              : `${memberCount} ${memberCount === 1 ? "person" : "people"}${
+                  pendingCount ? ` · ${pendingCount} loading` : ""
+                }`
+          }
+        />
+        {!empty && commonFreeHours !== undefined && (
+          <span className="text-right shrink-0">
+            <span className={`block text-sm font-black font-outfit ${TONE_TEXT[tone] ?? ""}`}>
+              {commonFreeHours}h
+            </span>
+            <span className="block text-[9px] font-extrabold uppercase text-zinc-400 dark:text-zinc-500 leading-none">
+              common
+            </span>
+          </span>
+        )}
+        <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+      </button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={onEdit}
+          title="Choose members"
+          aria-label={`Choose members of ${name}`}
+          className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          title="Delete this group"
+          aria-label={`Delete group ${name}`}
+          className="p-2 rounded-xl bg-zinc-100 hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-950/40 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 transition-all active:scale-95 cursor-pointer shadow-2xs"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
