@@ -8,8 +8,11 @@ import {
   writeGrants,
   writeIdentity,
   writeOwnTimetable,
+  writePeers,
 } from "../social/storage";
 import type { SocialSyncPayload } from "../social/types";
+import { getActiveRegNumber } from "../social/identity";
+import { activeRegNumberAtom } from "../../store/socialAtoms";
 import {
   socialGrantsAtom,
   socialIdentityAtom,
@@ -182,6 +185,11 @@ registerOp({
       const data = await ctx.request("student", {}, { auth: "vtop", retry: { max: 0 } });
       if (data?.profile) {
         persist("profile", data.profile);
+        // Now that the profile exists, publish the reg number it resolves to.
+        // Every social storage key is namespaced by it, and components that
+        // read it during their first render saw "" and had no reactive way to
+        // retry — leaving the social page empty until a remount.
+        ctx.bridge.setAtom(activeRegNumberAtom, getActiveRegNumber());
         return data.profile;
       }
     } catch {
@@ -258,8 +266,20 @@ registerOp({
   async run(ctx, args) {
     const ids = ctx.ids;
     const demoMode = args?.demoMode as boolean;
+    // Surfaced to the progress bus instead of being swallowed, so a 401 shows as
+    // a failed op rather than as "you have no events".
+    let session: string;
     try {
-      const jsessionid = await credentialManager.loginEventHub(ids, { demoMode });
+      // `ensureEventHubSession`, not `loginEventHub`: the latter returns a cached
+      // session with no age check, so an expired one was reused forever and every
+      // `/api/events/profile` call 401'd while the credentials were fine.
+      session = await credentialManager.ensureEventHubSession(ids, { demoMode });
+    } catch (e) {
+      ctx.emit({ op: "events", phase: "error", error: toEngineError(e) });
+      return { registeredEvents: [], eventHubEvents: [] };
+    }
+    try {
+      const jsessionid = session;
       const [eventsRes, publicEvents] = await Promise.all([
         (async () => {
           if (!jsessionid) return { events: [] };
@@ -268,6 +288,11 @@ registerOp({
         })(),
         ctx.request("events", undefined, { method: "GET", auth: "none", retry: { max: 0 } }).catch(() => []),
       ]);
+      // A 401 here means the session was rejected after we obtained it, so the
+      // cached copy is now known-bad and must not be handed back next time.
+      if ((eventsRes as { error?: string } | null)?.error) {
+        credentialManager.clearEventHub();
+      }
       if (eventsRes?.events) persist("registeredEvents", eventsRes.events);
       ctx.bridge.setAtom(dataAtoms.registeredEventsAtom, eventsRes?.events || []);
       ctx.bridge.setAtom(dataAtoms.eventHubEventsAtom, publicEvents || []);
@@ -404,6 +429,12 @@ registerOp({
       cachedSemester = res.identity.semesterId ?? cachedSemester;
 
       writeIdentity(res.identity);
+      // The peer list is cached too. It used to exist only inside
+      // `socialPeersAtom`, which nothing but this op writes, so a reload started
+      // with an empty list even though every per-handle timetable was still on
+      // disk — the Pairs subpage showed the tokens while the friend data stayed
+      // blank, and only a resync fixed it.
+      writePeers(res.peers ?? []);
       writeOwnTimetable({
         busyMap: res.busyMap ?? {},
         courses: res.courses ?? [],

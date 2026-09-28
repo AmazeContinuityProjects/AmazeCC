@@ -24,6 +24,7 @@
  */
 
 import { getActiveRegNumber } from "./identity";
+import type { SocialGroup } from "./types";
 
 /** Legacy un-namespaced keys. Read-only from here on. */
 export const LEGACY_FRIENDS_KEY = "friends_schedules";
@@ -162,6 +163,32 @@ function peerTimetableKey(reg: string, handle: string): string {
   return `social_peer_tt_v1_${reg}_${handle}`;
 }
 
+/**
+ * The peer list itself, separate from each peer's timetable.
+ *
+ * Without this the list exists only inside `socialPeersAtom`, which is written
+ * by exactly one place — the `social` sync op. So after a reload the list was
+ * empty until a network sync repopulated it, even though every per-handle
+ * timetable was sitting on disk. The grants still loaded, so the Pairs subpage
+ * listed the pairings while the friend data stayed blank, and the only cure was
+ * a resync. Persisting the list makes a reload self-sufficient.
+ */
+export function peersKey(reg: string): string {
+  return `social_peers_v1_${reg}`;
+}
+
+/**
+ * User-defined groups, stored locally.
+ *
+ * Not synced: a group is a local arrangement of pairings the server already
+ * knows about, so there is nothing for the server to hold. Deliberately separate
+ * from the legacy `groups` key, which held a different shape during the
+ * pre-server-derived design.
+ */
+export function groupsKeyV1(reg: string): string {
+  return `social_groups_v1_${reg}`;
+}
+
 function readJson<T>(key: string): T | null {
   const raw = safeGet(key);
   if (!raw) return null;
@@ -203,6 +230,54 @@ export function writeIdentity<T>(value: T, reg?: string): boolean {
   if (!resolved) return false;
   safeSet(identityKey(resolved), JSON.stringify(value));
   return true;
+}
+
+/**
+ * The peer list, replaced wholesale like `grants` because the server is
+ * authoritative about who the user is paired with.
+ */
+export function readPeers<T>(reg?: string): T[] {
+  const resolved = reg || getActiveRegNumber();
+  if (!resolved) return [];
+  return readJson<T[]>(peersKey(resolved)) ?? [];
+}
+
+export function writePeers<T>(value: T[], reg?: string): boolean {
+  const resolved = reg || getActiveRegNumber();
+  if (!resolved) return false;
+  safeSet(peersKey(resolved), JSON.stringify(value));
+  return true;
+}
+
+/** Local groups. Returns an empty list, not a throw, on corrupt data. */
+export function readGroups(reg?: string): SocialGroup[] {
+  const resolved = reg || getActiveRegNumber();
+  if (!resolved) return [];
+  const raw = readJson<unknown>(groupsKeyV1(resolved));
+  if (!Array.isArray(raw)) return [];
+  // Validated rather than cast: this blob is user-editable and survives schema
+  // drift, so a member missing `handles` would throw inside the group maths.
+  return raw.filter(isGroup);
+}
+
+export function writeGroups(value: SocialGroup[], reg?: string): boolean {
+  const resolved = reg || getActiveRegNumber();
+  if (!resolved) return false;
+  safeSet(groupsKeyV1(resolved), JSON.stringify(value));
+  return true;
+}
+
+function isGroup(v: unknown): v is SocialGroup {
+  if (!v || typeof v !== "object") return false;
+  const g = v as Record<string, unknown>;
+  return (
+    typeof g.id === "string" &&
+    g.id.length > 0 &&
+    typeof g.name === "string" &&
+    Array.isArray(g.handles) &&
+    g.handles.every((h) => typeof h === "string") &&
+    typeof g.createdAt === "number"
+  );
 }
 
 /**
@@ -266,13 +341,15 @@ export function _resetForTests(reg: string): void {
     if (k && k.startsWith(peerPrefix)) doomed.push(k);
   }
   for (const k of [
-    friendsKey(reg),
-    groupsKey(reg),
-    grantsKey(reg),
-    identityKey(reg),
-    identityKey(reg) + "_tt",
-    `${MIGRATED_FLAG}_${reg}`,
-    ...doomed,
+      friendsKey(reg),
+      groupsKey(reg),
+      grantsKey(reg),
+      identityKey(reg),
+      identityKey(reg) + "_tt",
+      peersKey(reg),
+      groupsKeyV1(reg),
+      `${MIGRATED_FLAG}_${reg}`,
+      ...doomed,
   ]) {
     try {
       window.localStorage.removeItem(k);
