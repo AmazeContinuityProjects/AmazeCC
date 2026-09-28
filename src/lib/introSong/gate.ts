@@ -90,7 +90,7 @@ export const INTRO_SONG_ALLOWED_AUTHORIZED_IDS: readonly string[] = [
 ] as const;
 
 /** Matched against `getActiveRegNumber()` — i.e. the profile `applicationNumber`. */
-export const INTRO_SONG_ALLOWED_REG_NUMBERS: readonly string[] = ["20626703"] as const;
+export const INTRO_SONG_ALLOWED_REG_NUMBERS: readonly string[] = ["20626703,2025001264"] as const;
 
 /** Union, for display in the diagnostic log only. Never used for matching. */
 export const INTRO_SONG_ALLOWED_IDS: readonly string[] = [
