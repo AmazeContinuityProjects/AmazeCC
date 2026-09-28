@@ -1,399 +1,346 @@
 "use client";
 
-import config from "../../../../config.json";
-import { useRef, useCallback, useState } from "react";
+/**
+ * The attendance timetable sheet.
+ *
+ * Derives a `theoryPeriods` / `labPeriods` skeleton out of `config.json` and
+ * hands it to the common `TimetableView`, which decides between the vertical
+ * mobile heatmap and the full horizontal grid. This file owns only the two
+ * things that are genuinely attendance-specific: the VTOP-to-courses conversion
+ * (with its stable per-course colours) and the export buttons.
+ *
+ * ## What was removed
+ *
+ * The previous version carried a second, never-called copy of the grid
+ * (`renderTraditionalGrid`), a `grid[day][slot]` matrix that only that copy
+ * read, six unused class-name constants, an unused `fmtRange`, an unused
+ * `buildCell`, and a `beforeLunch` / `afterLunch` split computed and thrown
+ * away. All of it is now the one shared component.
+ *
+ * The period projection itself is unchanged and is still the one place the
+ * day-scoped `slotMap` is walked directly: Monday supplies the skeleton, every
+ * other day is projected onto it by matching **time strings**, with a ±7 minute
+ * start-time fallback.
+ */
+
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Download, Printer } from "lucide-react";
-import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import type { AddedCourse, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import config from "../../../../config.json";
+import {
+  downloadTimetableImage,
+  exportableHtml,
+  openTimetablePrintablePage,
+} from "@/lib/exportTimetable";
 import { useTheme } from "next-themes";
-import { TimetableGrid as AmazeUITimetableGrid, type AddedCourse, type TimetablePeriod } from '@amazecontinuityprojects/amazeui';
+import { TimetableView, type AttendanceTone } from "../timetable";
 // The one time parser. This file used to carry three private copies
 // (`toMinutes`, `minutesToTimeStr` and `fmt`) which agreed only by coincidence
 // with the two other implementations elsewhere in the app. See
 // docs/social-tt/09-schedule-math.md §4.
-import { toMinutes, minutesToTimeStr, fmt } from "@/lib/social/schedule";
+import { toMinutes } from "@/lib/social/schedule";
 
-export default function TimetableVtop({ attendance }) {
-    const captureRef = useRef<HTMLDivElement>(null);
-    const [isDownloading, setIsDownloading] = useState(false);
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-    const { theme, resolvedTheme } = useTheme();
-    const currentTheme = resolvedTheme || theme || "light";
-    const rootStyles = typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
-    const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
-    const themeTextColor = rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
-    const themeHtmlClass = typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
+/**
+ * One colour per course code, assigned on first appearance and then memoised in
+ * `colorMap` so every row of the same course shares a fill. The other two
+ * timetables assign by array position, which reshuffles when a course is
+ * removed.
+ */
+const ATT_COLORS = [
+  "bg-blue-600", "bg-purple-600", "bg-emerald-500", "bg-red-600",
+  "bg-amber-500", "bg-pink-500", "bg-indigo-600", "bg-teal-500",
+  "bg-cyan-600", "bg-fuchsia-500", "bg-lime-500", "bg-rose-600",
+];
 
-    const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-    const slotMap = config.slotMap || {};
+function convertToAddedCourses(data: any[]): AddedCourse[] {
+  const colorMap: Record<string, string> = {};
+  let colorIdx = 0;
+  return (data || []).map((c: any) => {
+    const code = c.courseCode || "";
+    if (!colorMap[code]) colorMap[code] = ATT_COLORS[colorIdx++ % ATT_COLORS.length];
+    return {
+      id: `att-${code}`,
+      code,
+      title: c.courseTitle || "",
+      slots: String(c.slotName || "")
+        .split("+")
+        .map((s: string) => s.trim())
+        .filter(Boolean),
+      faculty: c.faculty || "",
+      venue: c.slotVenue || "",
+      credits: c.credits || "0",
+      type: c.courseType || "",
+      color: colorMap[code],
+    };
+  });
+}
 
+export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  const { theme, resolvedTheme } = useTheme();
+  const currentTheme = resolvedTheme || theme || "light";
+  const rootStyles =
+    typeof window === "undefined" ? null : getComputedStyle(document.documentElement);
+  const themeBgColor = rootStyles?.getPropertyValue("--background").trim() || "#ffffff";
+  const themeTextColor =
+    rootStyles?.getPropertyValue("--text-primary").trim() || "#111827";
+  const themeHtmlClass =
+    typeof document === "undefined" ? currentTheme : document.documentElement.className || currentTheme;
 
-    const handlePrint = useCallback(() => {
-        if (!captureRef.current) return;
-        setIsDownloading(true);
-        try {
-            const el = captureRef.current;
-            const originalOverflow = el.style.overflowX;
-            el.style.overflowX = "visible";
-            el.classList.add("w-max", "min-w-full");
+  const slotMap = useMemo(() => config.slotMap || {}, []);
 
-            openTimetablePrintablePage(
-                el.innerHTML,
-                "Timetable",
-                themeHtmlClass,
-                themeBgColor,
-                themeTextColor
-            );
+  const handlePrint = useCallback(() => {
+    if (!captureRef.current) return;
+    setIsDownloading(true);
+    try {
+      const el = captureRef.current;
+      const originalOverflow = el.style.overflowX;
+      el.style.overflowX = "visible";
+      el.classList.add("w-max", "min-w-full");
 
-            el.style.overflowX = originalOverflow;
-            el.classList.remove("w-max", "min-w-full");
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsDownloading(false);
-        }
-    }, [themeHtmlClass, themeBgColor, themeTextColor]);
+      openTimetablePrintablePage(
+        exportableHtml(el),
+        "Timetable",
+        themeHtmlClass,
+        themeBgColor,
+        themeTextColor
+      );
 
-    const handleDownloadImage = useCallback(async () => {
-        if (!captureRef.current) return;
-        setIsDownloading(true);
-        try {
-            await downloadTimetableImage(captureRef.current, "Timetable", themeBgColor, "png");
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsDownloading(false);
-        }
-    }, [themeBgColor]);
-
-    function fmtRange(r) {
-        if (!r) return null;
-        const [s, e] = r.split("-");
-        return (
-            <div className="flex flex-col text-[10px] leading-tight">
-                <span>{fmt(s)}</span>
-                <span className="text-[8px] opacity-60">to</span>
-                <span>{fmt(e)}</span>
-            </div>
-        );
+      el.style.overflowX = originalOverflow;
+      el.classList.remove("w-max", "min-w-full");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloading(false);
     }
+  }, [themeHtmlClass, themeBgColor, themeTextColor]);
 
-    // Build grid data for weekly matrix
-    const grid = {};
-    days.forEach((d) => (grid[d] = {}));
-    (attendance || []).forEach((course) => {
-        const slots = String(course.slotName || "")
-            .split("+")
-            .map((s) => s.trim())
-            .filter(Boolean);
+  const handleDownloadImage = useCallback(async () => {
+    if (!captureRef.current) return;
+    setIsDownloading(true);
+    try {
+      await downloadTimetableImage(captureRef.current, "Timetable", themeBgColor, "png");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [themeBgColor]);
 
-        slots.forEach((slot) => {
-            days.forEach((day) => {
-                if (slotMap[day]?.[slot]) {
-                    grid[day][slot] = {
-                        title: course.courseTitle || "",
-                        code: course.courseCode || ""
-                    };
-                }
-            });
-        });
+  /* ---------------------------------------------------------------- *
+   * Period skeleton
+   * ---------------------------------------------------------------- */
+
+  const { theoryPeriods, labPeriods } = useMemo(() => {
+    const mon = slotMap["MON"] || {};
+
+    const theory: { slot: string; time: string; start: number }[] = [];
+    const lab: { slot: string; time: string; start: number }[] = [];
+    Object.keys(mon).forEach((slot) => {
+      const time = mon[slot]?.time;
+      if (!time) return;
+      const entry = { slot, time, start: toMinutes(time.split("-")[0]) };
+      // `L` is the only lab discriminator anywhere in the codebase.
+      if (slot.startsWith("L")) lab.push(entry);
+      else theory.push(entry);
     });
+    theory.sort((a, b) => a.start - b.start);
+    lab.sort((a, b) => a.start - b.start);
 
-    const monTheory = [];
-    const monLab = [];
+    /** Every day's slot ids that sit at the same times as this Monday pair. */
+    const slotsMatchingTimes = (day: string, pair: (typeof theory)[number] | undefined, isLab: boolean) => {
+      if (!pair) return undefined;
+      const wanted = toMinutes(pair.time.split("-")[0]);
+      const daySlots = slotMap[day] || {};
 
-    Object.keys(slotMap["MON"] || {}).forEach((slot) => {
-        const time = slotMap["MON"][slot]?.time;
-        if (!time) return;
-        const start = toMinutes(time.split("-")[0]);
-        if (slot.startsWith("L")) monLab.push({ slot, time, start });
-        else monTheory.push({ slot, time, start });
-    });
+      const byTime = Object.keys(daySlots).filter(
+        (s) =>
+          !s.startsWith("L") === !isLab &&
+          daySlots[s]?.time?.replace(/\s+/g, "") === pair.time.replace(/\s+/g, "")
+      );
+      if (byTime.length > 0) return byTime[0];
 
-    monTheory.sort((a, b) => a.start - b.start);
-    monLab.sort((a, b) => a.start - b.start);
+      // A safety net for a rounding difference in a future config edit.
+      const byStart = Object.keys(daySlots).find((s) => {
+        if (s.startsWith("L") !== isLab) return false;
+        const time = daySlots[s]?.time;
+        if (!time) return false;
+        return Math.abs(toMinutes(time.split("-")[0]) - wanted) <= 7;
+      });
+      return byStart;
+    };
 
-    const maxPairs = Math.max(monTheory.length, monLab.length);
-    const mergedPairs = Array.from({ length: maxPairs }).map((_, i) => ({
-        theory: monTheory[i] || null,
-        lab: monLab[i] || null,
+    const pairs = Array.from({ length: Math.max(theory.length, lab.length) }, (_, i) => ({
+      theory: theory[i] || null,
+      lab: lab[i] || null,
     }));
 
-    const LUNCH_START_MIN = toMinutes("1:20");
-    let insertIndex = mergedPairs.findIndex((p) => {
-        const start = Math.min(
-            p.theory ? p.theory.start : Infinity,
-            p.lab ? p.lab.start : Infinity
-        );
-        return start >= LUNCH_START_MIN;
-    });
-    if (insertIndex === -1) insertIndex = mergedPairs.length;
-
-    const beforeLunch = mergedPairs.slice(0, insertIndex);
-    const afterLunch = mergedPairs.slice(insertIndex);
-
-    function slotsMatchingTimes(day, pair) {
-        const times = new Set();
-        if (pair.theory?.time) times.add(pair.theory.time);
-        if (pair.lab?.time) times.add(pair.lab.time);
-
-        const out = [];
-        Object.keys(slotMap[day] || {}).forEach((s) => {
-            const t = slotMap[day][s]?.time;
-            if (times.has(t)) out.push(s);
+    const build = (isLab: boolean): TimetablePeriod[] =>
+      pairs.map((pair) => {
+        const entry = isLab ? pair.lab : pair.theory;
+        if (!entry) return { start: "", end: "", days: {} };
+        const [start, end] = entry.time.split("-");
+        const days: Record<string, string> = {};
+        DAYS.forEach((d) => {
+          const match = slotsMatchingTimes(d, entry, isLab);
+          if (match) days[d.toLowerCase()] = match;
         });
-
-        if (out.length === 0) {
-            const wanted = [];
-            if (pair.theory?.time)
-                wanted.push(toMinutes(pair.theory.time.split("-")[0]));
-            if (pair.lab?.time)
-                wanted.push(toMinutes(pair.lab.time.split("-")[0]));
-
-            Object.keys(slotMap[day] || {}).forEach((s) => {
-                const t = slotMap[day][s]?.time;
-                if (!t) return;
-                const st = toMinutes(t.split("-")[0]);
-                if (wanted.some((ws) => Math.abs(st - ws) <= 7)) out.push(s);
-            });
-        }
-
-        return [...new Set(out)];
-    }
-
-    function buildCell(day, pair) {
-        const matched = slotsMatchingTimes(day, pair);
-        const slotsNow = matched.length
-            ? matched
-            : [pair.theory?.slot, pair.lab?.slot].filter(Boolean);
-
-        const unique = [...new Set(slotsNow)];
-
-        let title = "";
-        let code = "";
-        for (const s of unique) {
-            if (grid[day]?.[s]) {
-                title = grid[day][s].title || "";
-                code = grid[day][s].code || "";
-                if (code) break;
-            }
-        }
-
-        return { slotLabel: unique.join(" / "), title, code };
-    }
-
-    const neon = "bg-emerald-500/15 border-emerald-500/35 text-gray-900 dark:text-white";
-    const normal = "bg-white  dark:bg-[#030507] text-gray-900  dark:text-gray-100";
-
-    const headerClass =
-        "border px-0.5 py-1 bg-[#eef2ff]  dark:bg-[#04070a] w-[70px] min-w-[70px] max-w-[70px] text-[9px] text-gray-900  dark:text-gray-100 font-semibold truncate";
-    const lunchHeaderClass =
-        "border px-0.5 py-1 bg-gray-300  dark:bg-[#0b1a22] w-[36px] min-w-[36px] max-w-[36px] text-[9px] font-semibold text-gray-900  dark:text-gray-100 truncate";
-    const cellBase =
-        "border px-0.5 py-1 w-[70px] min-w-[70px] max-w-[70px] h-[52px] text-[9px] truncate overflow-hidden";
-
-    const uniqueCourses = (attendance || []).filter((c, i, arr) => arr.findIndex(x => x.courseCode === c.courseCode) === i);
-
-
-
-    const ATT_COLORS = [
-      "bg-blue-600", "bg-purple-600", "bg-emerald-500", "bg-red-600",
-      "bg-amber-500", "bg-pink-500", "bg-indigo-600", "bg-teal-500",
-      "bg-cyan-600", "bg-fuchsia-500", "bg-lime-500", "bg-rose-600",
-    ];
-
-    function convertToAddedCourses(data: any[]): AddedCourse[] {
-      const colorMap: Record<string, string> = {};
-      let colorIdx = 0;
-      return (data || []).map((c: any) => {
-        const code = c.courseCode || '';
-        if (!colorMap[code]) colorMap[code] = ATT_COLORS[colorIdx++ % ATT_COLORS.length];
-        return {
-          id: `att-${code}`,
-          code,
-          title: c.courseTitle || '',
-          slots: (c.slotName || '').split('+').map((s: string) => s.trim()).filter(Boolean),
-          faculty: c.faculty || '',
-          venue: c.slotVenue || '',
-          credits: c.credits || '0',
-          type: c.courseType || '',
-          color: colorMap[code],
-        };
+        return { start, end, days };
       });
-    }
 
-    const addedCourses = convertToAddedCourses(attendance);
-    const attDaysList = days.map(d => ({ id: d.toLowerCase(), name: d }));
+    return { theoryPeriods: build(false), labPeriods: build(true) };
+  }, [slotMap]);
 
-    function buildPeriodForPair(pair: any, isLab: boolean): TimetablePeriod {
-      const entry = isLab ? pair.lab : pair.theory;
-      if (!entry) return { start: '', end: '', days: {} };
-      const [start, end] = entry.time.split('-');
-      const daysMap: Record<string, string> = {};
-      for (const d of days) {
-        const matched = slotsMatchingTimes(d, pair);
-        const match = matched.find((s: string) => isLab ? s.startsWith('L') : !s.startsWith('L'));
-        if (match) daysMap[d.toLowerCase()] = match;
-      }
-      return { start, end, days: daysMap };
-    }
+  const addedCourses = useMemo(() => convertToAddedCourses(attendance || []), [attendance]);
 
-    const amazeTheoryPeriods = mergedPairs.map(p => buildPeriodForPair(p, false));
-    const amazeLabPeriods = mergedPairs.map(p => buildPeriodForPair(p, true));
+  const uniqueCourses = useMemo(
+    () => (attendance || []).filter((c: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.courseCode === c.courseCode) === i),
+    [attendance]
+  );
 
-    const renderTraditionalGrid = () => (
-        <div className="space-y-4">
-            <AmazeUITimetableGrid
-              courses={addedCourses}
-              theoryPeriods={amazeTheoryPeriods}
-              labPeriods={amazeLabPeriods}
-              days={attDaysList}
-              title=""
-              showLegend={false}
-            />
-            {uniqueCourses.length > 0 && (
-                <div className="bg-white  dark:bg-[#03070e] border border-gray-200  dark:border-gray-800/80 rounded-xl overflow-hidden shadow-sm">
-                    <div className="flex items-center justify-between px-4 py-3 bg-gray-55  dark:bg-[#04070a] border-b border-gray-200  dark:border-gray-800/80">
-                        <h3 className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Course Reference</h3>
-                    </div>
-                    <table className="w-full text-sm text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50  dark:bg-[#050a15] border-b border-gray-150 dark:border-gray-800">
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Course</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Type</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Slots</th>
-                                <th className="py-2 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Venue</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100  dark:divide-gray-800/40">
-                            {uniqueCourses.map((c, i) => (
-                                <tr key={i} className="bg-white  dark:bg-[#030507] hover:bg-gray-55 dark:hover:bg-[#0a1825] transition-colors">
-                                    <td className="py-2 px-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white bg-blue-600 dark:bg-blue-850 shrink-0">{c.courseCode}</span>
-                                            <span className="text-gray-900 dark:text-gray-100 text-xs font-semibold">{c.courseTitle}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-2 px-4">
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                                            {c.courseType || (String(c.slotName || "").startsWith("L") ? "Lab" : "Theory")}
-                                        </span>
-                                    </td>
-                                    <td className="py-2 px-4 text-xs text-gray-700 dark:text-gray-300">{c.faculty}</td>
-                                    <td className="py-2 px-4">
-                                        <div className="flex flex-wrap gap-1">
-                                            {(c.slotName || "").split("+").map((s, si) => (
-                                                <span key={si} className="bg-gray-100 dark:bg-[#0d1f2e] border border-gray-250/60 dark:border-gray-800 text-[9px] px-1 py-0.5 rounded font-semibold">{s.trim()}</span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="py-2 px-4 text-xs text-gray-700 dark:text-gray-300 max-w-[120px] truncate">{c.slotVenue || "-"}</td>
-                                </tr>
+  /** Feeds the vertical cell sheet, which the planner has no equivalent of. */
+  const attendanceByCourse = useMemo(() => {
+    const map: Record<string, AttendanceTone> = {};
+    (attendance || []).forEach((c: any) => {
+      const pct = parseInt(c.attendancePercentage);
+      if (!Number.isFinite(pct)) return;
+      // Same thresholds as `lib/attendanceTimetable.ts`.
+      map[c.courseCode] = {
+        percentage: String(pct),
+        cls: pct < 50 ? "low" : pct < 75 ? "medium" : "high",
+      };
+    });
+    return map;
+  }, [attendance]);
+
+  return (
+    <div className="flex w-full flex-col gap-4">
+      {/* Top Header */}
+      <div className="flex flex-col justify-between gap-3 border-b border-gray-150 pb-3 sm:flex-row sm:items-center dark:border-gray-800">
+        <div>
+          <h2 className="font-outfit text-lg font-black text-gray-900 dark:text-gray-100">
+            Class Schedule
+          </h2>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+            View course slots, venues, and export the full grid.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleDownloadImage}
+            disabled={isDownloading}
+            className="cursor-pointer rounded-lg bg-emerald-600 p-2 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            title="Download PNG"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handlePrint}
+            disabled={isDownloading}
+            className="cursor-pointer rounded-lg bg-indigo-600 p-2 text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            title="Print / PDF"
+          >
+            <Printer className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Timetable Contents — captureRef spans the grid and the reference table,
+          and the view switcher inside TimetableView is marked export chrome. */}
+      <div ref={captureRef} className="w-full max-w-full space-y-6">
+        <TimetableView
+          courses={addedCourses}
+          theoryPeriods={theoryPeriods}
+          labPeriods={labPeriods}
+          days={DAYS.map((d) => ({ id: d.toLowerCase(), name: d }))}
+          attendanceByCourse={attendanceByCourse}
+          className="w-full"
+        />
+
+        {/* Course Reference Section */}
+        {uniqueCourses.length > 0 && (
+          <div className="overflow-hidden rounded-[16px] border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800/80 dark:bg-zinc-900">
+              <h3 className="font-outfit text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Course Reference
+              </h3>
+            </div>
+            <div className="scrollbar-thin w-full overflow-x-auto">
+              <table className="w-full min-w-[700px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-150 bg-gray-50 dark:border-gray-800 dark:bg-zinc-950">
+                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Course
+                    </th>
+                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Type
+                    </th>
+                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Faculty
+                    </th>
+                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Slots
+                    </th>
+                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                      Venue
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/40">
+                  {uniqueCourses.map((c: any, i: number) => (
+                    <tr
+                      key={`${c.courseCode}-${i}`}
+                      className="bg-white transition-colors hover:bg-gray-55 dark:bg-[#030507] dark:hover:bg-[#0a1825]"
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="shrink-0 rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-blue-800">
+                            {c.courseCode}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {c.courseTitle}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                          {c.courseType ||
+                            (String(c.slotName || "").startsWith("L") ? "Lab" : "Theory")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">
+                        {c.faculty}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-wrap gap-1">
+                          {String(c.slotName || "")
+                            .split("+")
+                            .map((s: string, si: number) => (
+                              <span
+                                key={si}
+                                className="rounded border border-gray-250/60 bg-gray-100 px-1 py-0.5 text-[9px] font-semibold dark:border-gray-800 dark:bg-[#0d1f2e]"
+                              >
+                                {s.trim()}
+                              </span>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
-    );
-
-    return (
-        <div className="flex flex-col gap-4 w-full">
-            {/* Top Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 dark:border-gray-800 pb-3">
-                <div>
-                    <h2 className="text-lg font-black text-gray-900 dark:text-gray-100 font-outfit">
-                        Class Schedule
-                    </h2>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                        View course slots, venues, and export the full grid.
-                    </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-1.5">
-                    <button
-                        onClick={handleDownloadImage}
-                        disabled={isDownloading}
-                        className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                        title="Download PNG"
-                    >
-                        <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        disabled={isDownloading}
-                        className="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                        title="Print / PDF"
-                    >
-                        <Printer className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Timetable Contents */}
-            <div ref={captureRef} className="space-y-6 w-full max-w-full">
-                {/* Timetable grid */}
-                <div className="w-full max-w-full">
-                    <AmazeUITimetableGrid
-                      courses={addedCourses}
-                      theoryPeriods={amazeTheoryPeriods}
-                      labPeriods={amazeLabPeriods}
-                      days={attDaysList}
-                      title=""
-                      showLegend={false}
-                    />
-                </div>
-
-                {/* Course Reference Section */}
-                {uniqueCourses.length > 0 && (
-                    <div className="bg-white dark:bg-[#03070e] border border-gray-200 dark:border-gray-800/80 rounded-[16px] overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-800/80">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 font-outfit">Course Reference</h3>
                         </div>
-                        <div className="w-full overflow-x-auto scrollbar-thin">
-                            <table className="w-full text-sm text-left border-collapse min-w-[700px]">
-                                <thead>
-                                    <tr className="bg-gray-50 dark:bg-zinc-950 border-b border-gray-150 dark:border-gray-800">
-                                        <th className="py-2.5 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Course</th>
-                                        <th className="py-2.5 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Type</th>
-                                        <th className="py-2.5 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
-                                        <th className="py-2.5 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Slots</th>
-                                        <th className="py-2.5 px-4 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Venue</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/40">
-                                    {uniqueCourses.map((c, i) => (
-                                        <tr key={i} className="bg-white dark:bg-[#030507] hover:bg-gray-55 dark:hover:bg-[#0a1825] transition-colors">
-                                            <td className="py-2.5 px-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white bg-blue-600 dark:bg-blue-800 shrink-0">{c.courseCode}</span>
-                                                    <span className="text-gray-900 dark:text-white text-xs font-semibold">{c.courseTitle}</span>
-                                                </div>
-                                            </td>
-                                            <td className="py-2.5 px-4">
-                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                                                    {c.courseType || (String(c.slotName || "").startsWith("L") ? "Lab" : "Theory")}
-                                                </span>
-                                            </td>
-                                            <td className="py-2.5 px-4 text-xs text-gray-700 dark:text-gray-300">{c.faculty}</td>
-                                            <td className="py-2.5 px-4">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {(c.slotName || "").split("+").map((s, si) => (
-                                                        <span key={si} className="bg-gray-100 dark:bg-[#0d1f2e] border border-gray-250/60 dark:border-gray-800 text-[9px] px-1 py-0.5 rounded font-semibold">{s.trim()}</span>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className="py-2.5 px-4 text-xs text-gray-700 dark:text-gray-300 max-w-[120px] truncate">{c.slotVenue || "-"}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                      </td>
+                      <td className="max-w-[120px] truncate px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300">
+                        {c.slotVenue || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-        </div>
-    );
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

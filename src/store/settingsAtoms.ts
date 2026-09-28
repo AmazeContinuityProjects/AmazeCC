@@ -36,6 +36,17 @@ export type Settings = {
   smartMessFilter?: boolean;
   dashboardViewMode?: "simplified" | "classic";
   timetablePillStyle?: "compact" | "detailed";
+  /**
+   * Which timetable grid to draw. "auto" means vertical under 768px (the
+   * mobile heatmap) and the full horizontal grid above it.
+   */
+  timetableViewMode?: "auto" | "vertical" | "horizontal";
+  /**
+   * How much the vertical grid puts in a cell. "compact" shows the slot only and
+   * sizes the table to the viewport; "full" adds the course code and scrolls
+   * sideways when seven days will not fit.
+   */
+  timetableCellDensity?: "full" | "compact";
   interfaceChosen?: boolean;
   defaultLandingTab?: "home" | "attendance" | "academics";
 
@@ -105,6 +116,8 @@ export const defaultSettings: Settings = {
   smartMessFilter: false,
   dashboardViewMode: "simplified",
   timetablePillStyle: "compact",
+  timetableViewMode: "auto",
+  timetableCellDensity: "full",
 
   // Default Push Notification Preferences
   pushNotificationsEnabled: true,

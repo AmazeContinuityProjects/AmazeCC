@@ -11,9 +11,11 @@ import {
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
   officialOdDataAtom, tasksAtom, tasksQuickAddRequestAtom, isOfflineAtom,
+  authorizedIDAtom,
   defaultSettings, defaultIDs, settings
 } from "@/store";
 import LoginForm from "./LoginForm";
+import IntroSong from "@/lib/introSong/IntroSong";
 import CredentialEditorModal from "./CredentialEditorModal";
 import DashboardContent from "./Dashboard";
 import AmazeOnboardingFlow from "./onboarding/AmazeOnboardingFlow";
@@ -79,6 +81,7 @@ export default function LoginPage() {
   const setOfficialOdData = useSetAtom(officialOdDataAtom);
   const [ODhoursIsOpen, setODhoursIsOpen] = useAtom(odHoursIsOpenAtom);
   const [isLoggedIn, setIsLoggedIn] = useAtom(isLoggedInAtom);
+  const [authorizedID, setAuthorizedID] = useAtom(authorizedIDAtom);
   const [GradesDisplayIsOpen, setGradesDisplayIsOpen] = useAtom(gradesDisplayIsOpenAtom);
   const [activeSubTab, setActiveSubTab] = useAtom(activeSubTabAtom);
   const [HostelActiveSubTab, setHostelActiveSubTab] = useAtom(hostelActiveSubTabAtom);
@@ -419,6 +422,7 @@ export default function LoginPage() {
     if (demoMode || IDs.VtopUsername === "demo") {
       return { cookies: [], authorizedID: "DEMO123", csrf: "" };
     }
+    // `SyncEngine.login` publishes the authorizedID itself; see the note there.
     return syncEngine.login(IDs, demoMode);
   }, [IDs, demoMode]);
 
@@ -889,6 +893,9 @@ export default function LoginPage() {
     setIsLoggedIn(false);
     setIDs(defaultIDs);
     setDemoMode(false);
+    // Cleared so the next person to log in on this browser is gated on their own
+    // authorizedID rather than inheriting the previous one's.
+    setAuthorizedID("");
     clearEventHubSession();
 
     const keysToKeep = ["activityTree", "theme"];
@@ -916,7 +923,7 @@ export default function LoginPage() {
     setGradesData({});
     setScheduleData({});
     setMessage("");
-  }, [theme]);
+  }, [theme, setAuthorizedID]);
 
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
   const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
@@ -2288,8 +2295,12 @@ export default function LoginPage() {
   return (
     <LazyMotion features={() => import("framer-motion").then((mod) => mod.domMax)}>
     <>
+        {/* One-time intro song, gated on the VTOP authorizedID. Renders nothing
+            for anyone not on the allowlist, and not even an <audio> element for
+            them. Mounted at the root so it survives sub-tab navigation. */}
+        <IntroSong authorizedId={authorizedID} />
         <m.div
-          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-gray-100 transition-colors"
+          className="min-h-screen bg-gray-50  dark:bg-black flex flex-col text-gray-900  dark:text-zinc-100 transition-colors"
         >
       <AnimatePresence>
         {isAPIworking && !isOffline && (

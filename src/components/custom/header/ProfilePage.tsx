@@ -46,7 +46,26 @@ import {
   Lock,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Button, Switch, Skeleton } from "@amazecontinuityprojects/amazeui";
+import { Button, Skeleton } from "@amazecontinuityprojects/amazeui";
+import { useOverlayBack } from "@/lib/overlayStack";
+import {
+  EmptyPanel,
+  GhostButton,
+  IconButton,
+  KeyValue,
+  ListShell,
+  PageShell,
+  SectionHeader,
+  SegmentedControl,
+  SelectField,
+  SettingRow,
+  StatTile,
+  Switch,
+  TitleBlock,
+  ToggleRow,
+  ToneDot,
+} from "../shared/primitives";
+import { TILE, TILE_INTERACTIVE, TONE_BADGE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import Links from "./Links";
@@ -194,12 +213,18 @@ export default function ProfilePage({
   onOpenShortcutsHelp,
 }: any) {
   const isMobile = useIsMobile();
-  const [activeDesktopSection, setActiveDesktopSection] = useState<SectionId>(
-    mode === "info" ? "profile" : mode === "credentials" ? "credentials" : "profile"
-  );
-  const [activeMobileSubmenu, setActiveMobileSubmenu] = useState<SectionId | null>(
-    mode === "info" ? "profile" : mode === "credentials" ? "credentials" : null
-  );
+  // One navigation state for both breakpoints. `null` is the category hub;
+  // anything else is that section's page. `mode` is the profile screen's
+  // history key, so it decides whether we arrive deep-linked on a section
+  // (credentials, from the app library) or on the hub.
+  const initialSection: SectionId | null =
+    mode === "credentials" || mode === "profile" || mode === "info" ? mode === "info" ? "profile" : mode : null;
+  const [activeSection, setActiveSection] = useState<SectionId | null>(initialSection);
+
+  // System back (incl. Android predictive back) walks section -> hub, and only
+  // then falls through to Main's screen history — same order as the in-app
+  // BackButton in PageShell.
+  useOverlayBack("profile-section", activeSection !== null, () => setActiveSection(null));
 
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
@@ -712,6 +737,88 @@ export default function ProfilePage({
   // 1. Student Info Section
   const renderProfileContent = () => (
     <div className="space-y-6">
+      {/* Identity header. This was the page-level "Top Profile Summary Header
+          Card" that sat above every settings screen — a photo, a name, a branch,
+          a residential badge, two quick actions and the search field, all of it
+          repeated over Appearance, Academic, Sync, Advanced and About.
+
+          It belonged here. The name is also editable here, the photo obeys the
+          same `showProfilePhoto` privacy switch, and the Shortcuts / Sign Out
+          buttons it carried already exist on the settings hub — so removing it
+          lost no action, only the repetition. */}
+      <div className="relative p-5 sm:p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs bg-white dark:bg-zinc-900/80">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+          {displayProfileImage && profileData?.image ? (
+            <img
+              src={profileData.image}
+              alt="Profile"
+              className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
+              {friendlyName ? friendlyName[0].toUpperCase() : (username || "A")[0].toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={tempFriendlyName}
+                  onChange={(e) => setTempFriendlyName(e.target.value)}
+                  placeholder="Preferred name..."
+                  className="px-3 py-1.5 text-sm font-bold border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setFriendlyName(tempFriendlyName);
+                      setIsEditingName(false);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setFriendlyName(tempFriendlyName);
+                    setIsEditingName(false);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 h-auto rounded-xl"
+                >
+                  Save
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                  {friendlyName || username || "Student"}
+                </h1>
+                <button
+                  onClick={() => setIsEditingName(true)}
+                  className="p-1 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
+                  title="Edit Preferred Name"
+                  aria-label="Edit preferred name"
+                >
+                  <Edit3 size={14} />
+                </button>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 font-mono text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
+                {username}
+              </span>
+              {profileData?.branch && (
+                <span className="truncate max-w-[200px] sm:max-w-none">{profileData.branch}</span>
+              )}
+              {profileData?.isHosteller !== undefined && (
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
+                  {profileData.isHosteller ? "Hosteller" : "Day Scholar"}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {creds && (
         <>
           <div className="space-y-3">
@@ -1317,6 +1424,49 @@ export default function ProfilePage({
           >
             <option value="compact">📋 Compact (2-Line Info + Percentage on Right)</option>
             <option value="detailed">🃏 Detailed (Spacious Multi-line Card)</option>
+          </select>
+        </div>
+
+        {/* Timetable Grid Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Timetable Grid Layout
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Auto uses the vertical day-by-time heatmap on phones and the full
+              grid on larger screens
+            </p>
+          </div>
+          <select
+            value={settings?.timetableViewMode || "auto"}
+            onChange={(e) => updateSetting("timetableViewMode", e.target.value)}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="auto">✨ Auto (Recommended)</option>
+            <option value="vertical">📱 Vertical Heatmap (Days × Times)</option>
+            <option value="horizontal">📊 Full Grid (Days × Periods)</option>
+          </select>
+        </div>
+
+        {/* Vertical Grid Cell Density */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Vertical Grid Cell Density
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Compact shows the slot only and fits the whole week on screen
+              without swiping
+            </p>
+          </div>
+          <select
+            value={settings?.timetableCellDensity || "full"}
+            onChange={(e) => updateSetting("timetableCellDensity", e.target.value)}
+            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
+          >
+            <option value="full">📋 Full (Slot + Course Code)</option>
+            <option value="compact">🔹 Compact (Slot Only, Fits Screen)</option>
           </select>
         </div>
 
@@ -2398,101 +2548,23 @@ export default function ProfilePage({
         </Modal>
       )}
 
-      {/* Top Profile Summary Header Card */}
-      <div className="pt-4 pb-6 mb-6">
-        <div className="relative p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-white/90 to-zinc-50/80 dark:from-zinc-900/90 dark:to-zinc-950/80 border border-zinc-200/80 dark:border-zinc-800 shadow-sm backdrop-blur-xl">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-            <div className="flex items-center gap-4 min-w-0">
-              {displayProfileImage && profileData?.image ? (
-                <img
-                  src={profileData.image}
-                  alt="Profile"
-                  className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover shadow-sm ring-2 ring-indigo-500/20 border border-zinc-200 dark:border-zinc-800 shrink-0"
-                />
-              ) : (
-                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
-                  {friendlyName ? friendlyName[0].toUpperCase() : (username || "A")[0].toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0">
-                {isEditingName ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={tempFriendlyName}
-                      onChange={(e) => setTempFriendlyName(e.target.value)}
-                      placeholder="Preferred name..."
-                      className="px-3 py-1.5 text-sm font-bold border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setFriendlyName(tempFriendlyName);
-                          setIsEditingName(false);
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setFriendlyName(tempFriendlyName);
-                        setIsEditingName(false);
-                      }}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 h-auto rounded-xl"
-                    >
-                      Save
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-                      {friendlyName || username || "Student"}
-                    </h1>
-                    <button
-                      onClick={() => setIsEditingName(true)}
-                      className="p-1 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
-                      title="Edit Preferred Name"
-                    >
-                      <Edit3 size={14} />
-                    </button>
-                  </div>
-                )}
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 font-mono text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                    {username}
-                  </span>
-                  {profileData?.branch && (
-                    <span className="truncate max-w-[200px] sm:max-w-none">{profileData.branch}</span>
-                  )}
-                  {profileData?.isHosteller !== undefined && (
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold text-[11px]">
-                      {profileData.isHosteller ? "Hosteller" : "Day Scholar"}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions in Header */}
-            <div className="hidden sm:flex items-center gap-2 shrink-0">
-              <button
-                onClick={onOpenShortcutsHelp}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-indigo-400 shadow-2xs transition-all cursor-pointer"
-              >
-                <Keyboard size={14} className="text-indigo-500" />
-                <span>Shortcuts</span>
-              </button>
-              <button
-                onClick={handleLogOutRequest}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-50/70 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 hover:bg-red-100 transition-all cursor-pointer"
-              >
-                <LogOut size={14} />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Settings Search Bar */}
-          <div className="relative mt-4 pt-4 border-t border-zinc-150 dark:border-zinc-800/80">
+      {/* ── Settings: one hub → section flow for every breakpoint ──────────
+          `activeSection === null` is the category hub; otherwise the section's
+          own PageShell, whose BackButton returns here. System back does the
+          same via the overlay stack, so the two never disagree. */}
+      {activeSection === null ? (
+        <PageShell
+          eyebrow="Settings"
+          title="Settings"
+          subtitle="Categories, appearance, sync and account"
+        >
+          {/* Search lives here, on the hub, and only here.
+              It drives `filteredSections`, which is read exclusively by the two
+              branches below — a section page renders `getSectionContent` and
+              never consults it. While this field sat in the page-level header it
+              appeared over every section too, where typing into it appeared to do
+              nothing. */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
             <input
               type="text"
@@ -2504,203 +2576,96 @@ export default function ProfilePage({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 text-xs"
               >
                 <X size={14} />
               </button>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          DESKTOP VIEW: Split Rail & Spacious Content
-      ───────────────────────────────────────────────────────────── */}
-      <div className="hidden md:flex gap-8 items-start">
-        {/* Left Navigation Rail */}
-        <aside className="sticky top-6 w-60 shrink-0 flex flex-col gap-1.5">
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 px-3 mb-1">
-            Settings Menu
-          </span>
-          {filteredSections.map((sec) => {
-            const Icon = sec.icon;
-            const isActive = activeDesktopSection === sec.id;
-
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveDesktopSection(sec.id)}
-                className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20 font-black"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                <div
-                  className={`p-1.5 rounded-lg ${
-                    isActive ? "bg-white/20 text-white" : `${sec.iconBg} ${sec.iconColor}`
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                </div>
-                <span className="flex-1 truncate">{sec.label}</span>
-                <ChevronRight
-                  className={`w-3.5 h-3.5 transition-transform ${
-                    isActive ? "opacity-100 translate-x-0.5" : "opacity-40"
-                  }`}
-                />
-              </button>
-            );
-          })}
-
-          <div className="pt-3 mt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
-            <button
-              onClick={handleLogOutRequest}
-              className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all text-left cursor-pointer"
-            >
-              <div className="p-1.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
-                <LogOut className="w-4 h-4" />
-              </div>
-              <span className="flex-1 truncate">Sign Out</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* Right Settings Content */}
-        <main className="flex-1 w-full min-w-0 space-y-6">
+          {/* Cross-section search results, as the desktop rail used to do */}
           {searchQuery.trim() ? (
             <div className="space-y-8">
               {filteredSections.map((sec) => (
                 <div key={sec.id} className="space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-zinc-200 dark:border-zinc-800">
-                    <sec.icon className={`w-4 h-4 ${sec.iconColor}`} />
-                    <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit uppercase tracking-wider">
-                      {sec.label}
-                    </h2>
-                  </div>
+                  <SectionHeader icon={sec.icon} title={sec.label} />
                   {getSectionContent(sec.id)}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                    {SECTIONS.find((s) => s.id === activeDesktopSection)?.label}
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {SECTIONS.find((s) => s.id === activeDesktopSection)?.subtitle}
-                  </p>
-                </div>
-              </div>
-              {getSectionContent(activeDesktopSection)}
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          MOBILE VIEW: Nested Submenus (Zero Collapsible Clutter)
-      ───────────────────────────────────────────────────────────── */}
-      <div className="block md:hidden">
-        <AnimatePresence mode="wait">
-          {/* LEVEL 1: Settings Hub Menu */}
-          {activeMobileSubmenu === null ? (
-            <m.div
-              key="mobile-hub"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.18 }}
-              className="space-y-3"
-            >
-              <div className="px-1 pb-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  Settings Categories
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {filteredSections.map((sec) => {
                   const Icon = sec.icon;
                   return (
                     <button
                       key={sec.id}
-                      onClick={() => setActiveMobileSubmenu(sec.id)}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 active:scale-[0.98] transition-all text-left cursor-pointer"
+                      type="button"
+                      onClick={() => setActiveSection(sec.id)}
+                      className={`${TILE_INTERACTIVE} p-4 text-left`}
                     >
-                      <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                        <div className={`p-2.5 rounded-xl shrink-0 ${sec.iconBg} ${sec.iconColor}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit truncate">
-                            {sec.label}
-                          </h3>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                            {sec.subtitle}
-                          </p>
-                        </div>
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${sec.iconBg} ${sec.iconColor}`}>
+                        <Icon className="w-4.5 h-4.5" />
                       </div>
-                      <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                      <div className="my-auto py-3 min-w-0">
+                        <p className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight">
+                          {sec.label}
+                        </p>
+                        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-snug mt-1 line-clamp-2">
+                          {sec.subtitle}
+                        </p>
+                      </div>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Mobile Hub Quick Actions */}
-              <div className="pt-4 space-y-2">
-                <button
-                  onClick={onOpenShortcutsHelp}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Keyboard size={16} className="text-indigo-500" />
-                  <span>Keyboard Hotkeys & Shortcuts</span>
-                </button>
+              {filteredSections.length === 0 ? (
+                <EmptyPanel
+                  icon={<Search className="w-7 h-7" />}
+                  title="No settings match"
+                  description={`Nothing matches "${searchQuery}". Try a different word.`}
+                />
+              ) : null}
 
+              {/* Quick actions */}
+              <div className="space-y-2">
+                <GhostButton
+                  onClick={onOpenShortcutsHelp}
+                  className="w-full justify-center py-2.5"
+                >
+                  <Keyboard size={14} className="text-indigo-500" />
+                  <span>Keyboard Hotkeys &amp; Shortcuts</span>
+                </GhostButton>
                 <button
                   onClick={handleLogOutRequest}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-xs font-bold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} />
                   <span>Sign Out of Account</span>
                 </button>
               </div>
-            </m.div>
-          ) : (
-            /* LEVEL 2: Focused Category Sub-Page */
-            <m.div
-              key="mobile-submenu"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.18 }}
-              className="space-y-4"
-            >
-              {/* Back Button Navigation Header */}
-              <div className="sticky top-2 z-20 flex items-center justify-between p-3 rounded-2xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/80 dark:border-zinc-800 shadow-xs backdrop-blur-md">
-                <button
-                  onClick={() => setActiveMobileSubmenu(null)}
-                  className="flex items-center gap-1.5 text-xs font-black text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Settings</span>
-                </button>
-
-                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit truncate">
-                  {SECTIONS.find((s) => s.id === activeMobileSubmenu)?.label}
-                </span>
-
-                <div className="w-12" />
-              </div>
-
-              {/* Sub-page Settings Content */}
-              <div className="pt-1">{getSectionContent(activeMobileSubmenu)}</div>
-            </m.div>
+            </>
           )}
-        </AnimatePresence>
-      </div>
+        </PageShell>
+      ) : (() => {
+        const sec = SECTIONS.find((s) => s.id === activeSection);
+        if (!sec) return null;
+        return (
+          <PageShell
+            eyebrow="Settings"
+            title={sec.label}
+            subtitle={sec.subtitle}
+            onBack={() => setActiveSection(null)}
+          >
+            <div key={activeSection} className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              {getSectionContent(activeSection)}
+            </div>
+          </PageShell>
+        );
+      })()}
 
       <TabHelpFooter tabId="settings" />
     </div>

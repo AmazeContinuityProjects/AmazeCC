@@ -23,6 +23,20 @@ interface BottomSheetProps {
   contentClassName?: string;
   /** Show the floating X button. Default true. */
   showClose?: boolean;
+  /**
+   * Where the panel sits.
+   *
+   * `"bottom"` is the default drawer: anchored to the bottom edge, full width,
+   * swipe-down to dismiss. Correct for anything long or form-shaped, and every
+   * pre-existing caller relies on it.
+   *
+   * `"center"` is a floating card, vertically and horizontally centred with a
+   * gutter, for short read-only detail about something the user just tapped.
+   * It has no drag handle — there is no edge to drag from — so the X moves to
+   * the top right of the card, and it enters by scaling rather than sliding up
+   * from below, which would read as a drawer.
+   */
+  placement?: "bottom" | "center";
   /** Backdrop tap handler. Defaults to onClose. */
   onBackdropClick?: () => void;
   /** Swipe-down handler. Defaults to onClose. */
@@ -48,10 +62,17 @@ interface BottomSheetProps {
 }
 
 /**
- * Bottom-anchored overlay pane (App Library style) that maximises screen
- * estate: slides up on open, grabber + swipe-down + tap-outside + X +
- * Escape + predictive back all dismiss. Render inside an AnimatePresence
- * for the exit animation to play.
+ * Overlay pane, in one of two shapes.
+ *
+ * `"bottom"` (the default) is a bottom-anchored drawer that maximises screen
+ * estate: slides up on open, grabber + swipe-down + tap-outside + X + Escape +
+ * predictive back all dismiss.
+ *
+ * `"center"` is a floating card for short read-only detail — see `placement`.
+ * Both shapes share one overlay-stack entry, one Escape handler, one scroll
+ * lock and one body, so the two can never drift apart on dismissal.
+ *
+ * Render inside an AnimatePresence for the exit animation to play.
  */
 export default function BottomSheet({
   onClose,
@@ -61,6 +82,7 @@ export default function BottomSheet({
   className = "",
   contentClassName = "",
   showClose = true,
+  placement = "bottom",
   onBackdropClick,
   onSwipeDown,
   onSystemBack,
@@ -136,31 +158,50 @@ export default function BottomSheet({
 
   if (!portalReady) return null;
 
-  // Grabber + scrolling content, optionally wrapped so the whole sheet can be
-  // translated up by the keyboard inset. The offset deliberately lives on an
-  // inner wrapper: the panel's own transform belongs to framer-motion and to
-  // the grabber drag, so writing the offset there would fight both.
+  const centered = placement === "center";
+
+  // Same button both ways; only its positioning differs, because the drawer
+  // floats it over the grabber row while the card gives it a row of its own.
+  const closeButton = (position = "") =>
+    showClose &&
+    dismissable && (
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        className={`p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer ${position}`.trim()}
+      >
+        <X className="w-4 h-4" />
+      </button>
+    );
+
+  /**
+   * Top chrome. A drawer leads with a drag handle centred on the top edge, with
+   * the X floating over its right end. A centred card has no edge to pull from,
+   * so the handle is dropped and the X gets a short right-aligned row of its own
+   * — which also means the content below never has to dodge an absolute button.
+   */
+  const chrome = centered ? (
+    <div className="flex w-full shrink-0 justify-end pt-3 pr-3">{closeButton()}</div>
+  ) : (
+    <div
+      className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+      onPointerDown={onGrabberPointerDown}
+      onPointerMove={onGrabberPointerMove}
+      onPointerUp={endGrabberDrag}
+      onPointerCancel={endGrabberDrag}
+    >
+      <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+      {closeButton("absolute right-4 top-2")}
+    </div>
+  );
+
+  // Chrome + scrolling content, optionally wrapped by the caller so the whole
+  // sheet can be translated up by the keyboard inset. That offset deliberately
+  // lives on an inner wrapper: the panel's own transform belongs to framer-motion
+  // and to the grabber drag, so writing the offset there would fight both.
   const panelBody = (
     <>
-      {/* Grabber + close */}
-      <div
-        className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-        onPointerDown={onGrabberPointerDown}
-        onPointerMove={onGrabberPointerMove}
-        onPointerUp={endGrabberDrag}
-        onPointerCancel={endGrabberDrag}
-      >
-        <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-        {showClose && dismissable && (
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute right-4 top-2 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+      {chrome}
       <div
         className={`overflow-y-auto px-4 sm:px-5 pb-5 sm:pb-6 pt-1 min-h-0 ${contentClassName}`}
       >
@@ -168,6 +209,65 @@ export default function BottomSheet({
       </div>
     </>
   );
+
+  const surface =
+    "flex flex-col overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200/70 dark:border-zinc-800/80";
+
+  const drawerPanel = (
+    <m.div
+      ref={panelRef}
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      className={`fixed bottom-0 left-0 right-0 z-[60] w-full ${maxWidth} sm:mx-auto max-h-[92dvh] ${surface} rounded-t-[28px] sm:bottom-6 sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
+      style={
+        {
+          willChange: "transform",
+          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
+          // Published so descendants can zero out safe-area padding while the
+          // keyboard is up (the sheet has already been lifted clear of it).
+          "--sheet-kb-inset": `${keyboardInset}px`,
+        } as React.CSSProperties
+      }
+    >
+      {panelBody}
+    </m.div>
+  );
+
+  const centrePanel = (
+    // The positioning layer is a plain div rather than the panel itself: the
+    // panel's `transform` belongs to framer-motion, so centring with
+    // `-translate-x-1/2` on the panel would be overwritten on the first frame.
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+      <m.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+        className={`pointer-events-auto relative w-full ${maxWidth} max-h-[88dvh] ${surface} rounded-[28px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] ${className}`}
+        style={{ willChange: "transform" }}
+      >
+        {panelBody}
+      </m.div>
+    </div>
+  );
+
+  const panel = centered
+    ? centrePanel
+    : lifted
+      ? (
+          <div
+            className="flex min-h-0 flex-1 flex-col"
+            style={{
+              transform: `translateY(-${keyboardInset}px)`,
+              willChange: "transform",
+            }}
+          >
+            {drawerPanel}
+          </div>
+        )
+      : drawerPanel;
 
   return createPortal(
     <>
@@ -180,46 +280,7 @@ export default function BottomSheet({
         className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs"
         style={{ willChange: "opacity" }}
       />
-      <m.div
-        ref={panelRef}
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
-        className={`fixed bottom-0 left-0 right-0 z-[60] w-full ${maxWidth} sm:mx-auto flex max-h-[92dvh] flex-col overflow-hidden bg-white dark:bg-zinc-950 rounded-t-[28px] sm:bottom-6 sm:rounded-[28px] border border-zinc-200/70 dark:border-zinc-800/80 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-        style={
-          {
-            willChange: "transform",
-            paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-            // An explicit height (not min-height) so descendants can resolve
-            // against a definite box. Open: a comfortable sheet. With the
-            // keyboard up: exactly the region above it, since the sheet is
-            // bottom-anchored and then translated up by the same amount.
-            height: avoidKeyboard
-              ? lifted
-                ? `calc(100dvh - ${keyboardInset}px)`
-                : "70dvh"
-              : undefined,
-            // Published so descendants can zero out safe-area padding while the
-            // keyboard is up (the sheet has already been lifted clear of it).
-            "--sheet-kb-inset": `${keyboardInset}px`,
-          } as React.CSSProperties
-        }
-      >
-        {lifted ? (
-          <div
-            className="flex min-h-0 flex-1 flex-col"
-            style={{
-              transform: `translateY(-${keyboardInset}px)`,
-              willChange: "transform",
-            }}
-          >
-            {panelBody}
-          </div>
-        ) : (
-          panelBody
-        )}
-      </m.div>
+      {panel}
     </>,
     document.body
   );
