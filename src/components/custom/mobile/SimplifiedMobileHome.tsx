@@ -188,9 +188,7 @@ export default function SimplifiedMobileHome({
   // Timetable sheet registers itself for system back via BottomSheet.
 
   const handleOpenFreeClassrooms = () => {
-    setActiveTab("tools");
-    setActiveToolsSubTab?.("free-class");
-    setActiveSubTab?.("free-class");
+    setActiveTab("free-class");
   };
 
   const handleCourseClick = (courseCode: string) => {
@@ -964,12 +962,29 @@ export default function SimplifiedMobileHome({
       {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
       <div className="space-y-4 text-left">
         
-        {/* Calendar Header: Week Navigation (left) & Display Controls (right) */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+        {/* Calendar Header: Week Navigation (left) & Display Controls (right)
+
+            `gap-2` and `flex-wrap` are load-bearing on this row, not polish. It
+            has two children at opposite ends of the width, and the left one
+            grows and shrinks with the state: a month range, two chevrons, and
+            the Today chip whenever you are off today — which is exactly the
+            state the exam-schedule viewport below is showing. With no gap and
+            no wrap, the left group ran its last child straight into the
+            Compact/Detailed control, and on a 360px phone both were still
+            "half visible" rather than one of them obviously having won.
+
+            `min-w-0` on the left, plus `truncate` on the date, is what lets the
+            month range shorten ("Nov - Dec 2025" → "…") instead of shoving the
+            filter off the edge. The filter itself is `shrink-0` because its
+            segments are `whitespace-nowrap`: squeezed, they would overflow their
+            own pill rather than shorten, so refusing to shrink is the honest
+            answer and `ml-auto` keeps it right-aligned when it wraps to a line
+            of its own. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <CalendarDays className="w-4 h-4 text-indigo-500 shrink-0" />
+              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
                 {calendarWeekHeader}
               </h2>
             </div>
@@ -977,7 +992,7 @@ export default function SimplifiedMobileHome({
             {/* Week navigation arrows. The strip itself is swipeable too; these
                 stay because a chevron is the one affordance that works with a
                 keyboard and a screen reader without a gesture. */}
-            <div className="flex items-center gap-1 ml-1">
+            <div className="flex items-center gap-1 ml-1 shrink-0">
               <button
                 onClick={() => goToWeek(weekOffset - 1, -1)}
                 className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
@@ -1029,7 +1044,7 @@ export default function SimplifiedMobileHome({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             {/* No deep link to the full academic calendar here any more. The
                 strip is the home page's calendar now, and a second "open the
                 calendar" button pointing at a month grid of the same data

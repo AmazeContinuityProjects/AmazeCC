@@ -289,7 +289,17 @@ export default function ExamSchedule({ data, handleScheduleFetch, onBack }: any)
         />
       </div>
 
-      <div ref={captureRef}>
+      {/* `space-y-4` is what separates the filter strip from the first series
+          header, and it has to be here rather than on either child. The list
+          below carries `space-y-6`, which margins every child *except the
+          first* — so the topmost `SectionHeader` gets nothing — and the filter
+          row has no bottom margin of its own. The two sat flush, and because
+          the shell spaces `captureRef` by 1.5rem from the stat tiles, the
+          filter read as part of them and the header as an overlap.
+
+          1rem rather than the list's 1.5rem: the filter is a control strip
+          governing the list underneath it, not another section of it. */}
+      <div ref={captureRef} className="space-y-4">
         {/* ── EXAM SERIES ── */}
         {examTypes.length > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-2">

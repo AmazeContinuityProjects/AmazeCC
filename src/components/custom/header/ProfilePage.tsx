@@ -61,10 +61,12 @@ import {
   SelectField,
   SettingRow,
   StatTile,
+  SubpageScreen,
   Switch,
   TitleBlock,
   ToggleRow,
   ToneDot,
+  useSubpageStack,
 } from "../shared/primitives";
 // `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
 // grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
@@ -74,7 +76,7 @@ import config from "../../../../config.json";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
 import quickLinks from "../../../data/quickLinks.json";
-import DataPage from "../footer/DataPage";
+import LocalStorageSubpage from "../footer/LocalStorageSubpage";
 import { IconToggle } from "../Toggle";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
@@ -103,6 +105,30 @@ export interface SectionConfig {
   iconBg: string;
   iconColor: string;
 }
+
+/**
+ * The settings screens: the category hub, then one per section.
+ *
+ * Module scope so the array is referentially stable — `useSubpageStack` keeps
+ * `screens` in a `useMemo`, and a list rebuilt on every render would make the
+ * stack's identity churn with it.
+ */
+type SettingsScreen = "hub" | SectionId | "storage";
+
+/**
+ * Screens that are a drill-down inside a section rather than a section of their
+ * own. They are in the back-stack — so `back()` from one lands on the section
+ * it was opened from — but they are not in `SECTIONS`, so the hub does not list
+ * them as categories. `storage` is the only one so far; it used to be a
+ * full-screen overlay with its own header and close button, which meant a
+ * second copy of the chrome and a back stack of exactly one entry.
+ */
+const DRILLDOWNS: Record<Exclude<SettingsScreen, "hub" | SectionId>, { label: string; subtitle: string }> = {
+  storage: {
+    label: "Local Storage",
+    subtitle: "Every key this browser is holding for the app",
+  },
+};
 
 export const SECTIONS: SectionConfig[] = [
   {
@@ -169,6 +195,20 @@ export const SECTIONS: SectionConfig[] = [
     iconBg: "bg-cyan-500/10 dark:bg-cyan-500/20",
     iconColor: "text-cyan-600 dark:text-cyan-400",
   },
+];
+
+/**
+ * The hub first, then one screen per section in the order they are listed, then
+ * the drill-downs.
+ *
+ * The order *is* the back stack: `useSubpageStack.back()` walks one entry back,
+ * so a drill-down listed after its section pops to that section, which is the
+ * only thing that is true about where it was opened from.
+ */
+const SETTINGS_SCREENS: readonly SettingsScreen[] = [
+  "hub",
+  ...SECTIONS.map((s) => s.id),
+  ...(Object.keys(DRILLDOWNS) as (keyof typeof DRILLDOWNS)[]),
 ];
 
 const COLOR_PALETTES = [
@@ -242,12 +282,32 @@ export default function ProfilePage({
   // (credentials, from the app library) or on the hub.
   const initialSection: SectionId | null =
     mode === "credentials" || mode === "profile" || mode === "info" ? mode === "info" ? "profile" : mode : null;
-  const [activeSection, setActiveSection] = useState<SectionId | null>(initialSection);
+
+  /**
+   * The hub and its sections are a subpage flow, so they use the shared
+   * `useSubpageStack` rather than a bare `useState`. That primitive exists for
+   * exactly this shape and had no callers; hand-rolling it here meant the
+   * screen list, the "am I at the root" test and the pop-to-previous behaviour
+   * were each re-decided, and the settings page was the only drill-down in the
+   * app not built on it.
+   *
+   * `activeSection` stays derived below so the rest of this 3,000-line file
+   * keeps reading `null` for "on the hub" without caring that the hub is now
+   * named rather than absent. It is typed as "a screen that is not the hub" —
+   * which includes the drill-downs, since they are reached the same way and
+   * the header has to title them exactly as it titles a section.
+   */
+  const screens = useSubpageStack<SettingsScreen>({
+    screens: SETTINGS_SCREENS,
+    initial: initialSection ?? "hub",
+  });
+  const activeSection: Exclude<SettingsScreen, "hub"> | null =
+    screens.screen === "hub" ? null : screens.screen;
 
   // System back (incl. Android predictive back) walks section -> hub, and only
   // then falls through to Main's screen history — same order as the in-app
   // BackButton in PageShell.
-  useOverlayBack("profile-section", activeSection !== null, () => setActiveSection(null));
+  useOverlayBack("profile-section", !screens.isRoot, screens.back);
 
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
   const [appIcon, setAppIcon] = useState<string>("default");
@@ -274,8 +334,6 @@ export default function ProfilePage({
     onCardClick?.(id);
   };
 
-  const [showStoragePage, setShowStoragePage] = useState<boolean>(false);
-  const [storageData, setStorageData] = useState<Record<string, string | null>>({});
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
 
@@ -380,27 +438,6 @@ export default function ProfilePage({
     setCustomApiInput("");
     setCustomApiUrl("");
     alert("API endpoint reset to default. Please refresh the application.");
-  };
-
-  const openStoragePage = () => {
-    const data: Record<string, string> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      const value = localStorage.getItem(key);
-      if (value !== null) data[key] = value;
-    }
-    setStorageData(data);
-    setShowStoragePage(true);
-  };
-
-  const handleDeleteItem = (key: string) => {
-    localStorage.removeItem(key);
-    setStorageData((prev) => {
-      const updated = { ...prev };
-      delete updated[key];
-      return updated;
-    });
   };
 
   const handleResetCache = () => {
@@ -2213,10 +2250,13 @@ export default function ProfilePage({
   const renderAdvancedContent = () => (
     <div className="space-y-6">
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-150 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
-        {/* Local Storage Database */}
-        <div
-          onClick={openStoragePage}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+        {/* Local Storage — a drill-down, so it pushes a screen on the settings
+            stack and inherits this page's header and back button, rather than
+            opening an overlay with a second copy of both. */}
+        <button
+          type="button"
+          onClick={() => screens.go("storage")}
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
@@ -2232,7 +2272,7 @@ export default function ProfilePage({
             </div>
           </div>
           <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-        </div>
+        </button>
 
         {/* Custom API Endpoint */}
         <div className="p-4 space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
@@ -2578,15 +2618,26 @@ export default function ProfilePage({
   ───────────────────────────────────────────────────────────── */
 
   return (
-    <div className="w-full pb-16 px-3 sm:px-6 md:px-8 max-w-6xl mx-auto">
+    /*
+     * This wrapper exists only to host the overlay modals below, and to clear
+     * the mobile bottom nav. It deliberately carries no horizontal padding and
+     * no max-width.
+     *
+     * It used to be `px-3 sm:px-6 md:px-8 max-w-6xl mx-auto`, wrapped around a
+     * `PageShell` that is *already* `max-w-4xl mx-auto` — so the settings
+     * content was inset twice: once by the wrapper's own padding, and again by
+     * centring a narrower column inside a wider capped one. Every other page
+     * in the app (Event Hub, Club Hub, Free Classrooms) is mounted with no
+     * padding and no width cap, and lets `PageShell` own the column, so this
+     * now does too.
+     *
+     * `pb-16 md:pb-0` is the same single-source idea vertically: `PageShell`
+     * already supplies `md:pb-8`, so the wrapper only adds clearance where
+     * `PageShell` has none — on a phone, where the bottom nav would otherwise
+     * sit over the last row.
+     */
+    <div className="w-full pb-16 md:pb-0">
       {/* Footer Modals */}
-      {showStoragePage && isLoggedIn && (
-        <DataPage
-          handleClose={() => setShowStoragePage(false)}
-          handleDeleteItem={handleDeleteItem}
-          storageData={storageData}
-        />
-      )}
       {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
       {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
 
@@ -2613,21 +2664,42 @@ export default function ProfilePage({
       )}
 
       {/* ── Settings: one hub → section flow for every breakpoint ──────────
-          `activeSection === null` is the category hub; otherwise the section's
-          own PageShell, whose BackButton returns here. System back does the
-          same via the overlay stack, so the two never disagree. */}
-      {activeSection === null ? (
-        <PageShell
-          eyebrow="Settings"
-          title="Settings"
-          subtitle="Categories, appearance, sync and account"
-        >
-          {/* Search lives here, on the hub, and only here.
-              It drives `filteredSections`, which is read exclusively by the two
-              branches below — a section page renders `getSectionContent` and
-              never consults it. While this field sat in the page-level header it
-              appeared over every section too, where typing into it appeared to do
-              nothing. */}
+          One `PageShell` for the whole flow, so the header — eyebrow, title,
+          subtitle, back button — is described in one place and a section is
+          genuinely a subpage of this page rather than a sibling screen with a
+          second copy of the same chrome. `onBack` is only passed off the hub,
+          which is what makes the back button appear at all. System back walks
+          the same way via the overlay stack, so the two cannot disagree. */}
+      {/* The section on show, or null on the hub. Looked up once so the header
+          below does not repeat the same `find` for its title and its subtitle. */}
+      {(() => {
+        // Sections and drill-downs both title the header, so the lookup has to
+        // span both. Doing it once here is what stops the header below repeating
+        // the same two `find`s.
+        const sec = activeSection ? SECTIONS.find((s) => s.id === activeSection) : null;
+        const drill = activeSection && !sec ? DRILLDOWNS[activeSection] : undefined;
+        return (
+          <PageShell
+            eyebrow="Settings"
+            title={sec?.label ?? drill?.label ?? "Settings"}
+            subtitle={
+              sec
+                ? sec.subtitle
+                : drill
+                  ? drill.subtitle
+                  : "Categories, appearance, sync and account"
+            }
+            onBack={screens.canGoBack ? screens.back : undefined}
+          >
+            <SubpageScreen id={screens.screen}>
+              {activeSection === null ? (
+                <>
+                  {/* Search lives here, on the hub, and only here. It drives
+                      `filteredSections`, which is read exclusively by the hub
+                      branch — a section renders `getSectionContent` and never
+                      consults it. While this field sat in the page-level header
+                      it appeared over every section too, where typing into it
+                      appeared to do nothing. */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -2674,7 +2746,7 @@ export default function ProfilePage({
                     <button
                       key={sec.id}
                       type="button"
-                      onClick={() => setActiveSection(sec.id)}
+                      onClick={() => screens.go(sec.id)}
                       className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
                     >
                       <div
@@ -2737,28 +2809,20 @@ export default function ProfilePage({
               </div>
             </>
           )}
-        </PageShell>
-      ) : (() => {
-        const sec = SECTIONS.find((s) => s.id === activeSection);
-        if (!sec) return null;
-        return (
-          <PageShell
-            eyebrow="Settings"
-            title={sec.label}
-            subtitle={sec.subtitle}
-            onBack={() => setActiveSection(null)}
-          >
-            <div key={activeSection} className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              {getSectionContent(activeSection)}
-            </div>
+                </>
+              ) : activeSection === "storage" ? (
+                <LocalStorageSubpage />
+              ) : (
+                getSectionContent(activeSection)
+              )}
+            </SubpageScreen>
           </PageShell>
         );
       })()}
-
-      <TabHelpFooter tabId="settings" />
     </div>
   );
 }
+
 
 function RegistrationModalContent({ creds, onClose }: { creds: any; onClose: () => void }) {
   const [loading, setLoading] = useState(true);

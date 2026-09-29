@@ -1373,7 +1373,7 @@ export default function LoginPage() {
       { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
-      { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("free-class"); } },
+      { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Campus", onSelect: () => { setActiveTab("free-class"); } },
       { id: "events", label: "Event Hub", description: "Registered events & campus activities", icon: "🎉", category: "Campus", onSelect: () => { setActiveTab("events"); } },
       { id: "clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "Campus", onSelect: () => { setActiveTab("clubs"); } },
     { id: "community", label: "Community Feed", description: "Announcements from clubs & chapters", icon: "📣", category: "Campus", onSelect: () => { setActiveTab("community"); } },
