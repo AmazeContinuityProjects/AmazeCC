@@ -5,6 +5,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import type { CarouselState } from "./useCarousel";
+import { useHorizontalSwipe } from "./useHorizontalSwipe";
 
 /**
  * The rotating "insight" tile.
@@ -20,22 +21,13 @@ import type { CarouselState } from "./useCarousel";
  * Every instance is swipeable, because a card that moves on its own but cannot
  * be moved by hand is a card you have to wait out. Drag left or right, on a
  * touch screen or a mouse, and it advances; the dots and the arrow keys do the
- * same thing for anyone not dragging.
+ * same thing for anyone not dragging. The gesture itself lives in
+ * `useHorizontalSwipe` — the home page's week strip is the second surface that
+ * needed it — so this file is down to the tile's own markup.
  *
- * Three details make it feel like a carousel rather than a scroll container:
- *
- *  - `touch-action: pan-y`. The tile claims horizontal panning and leaves
- *    vertical to the page, so a swipe never steals a scroll. This is why the
- *    gesture works at all — without it the browser has already decided the
- *    touch is a scroll by the time `pointermove` fires.
- *  - an axis check. A drag commits to horizontal only once it has travelled
- *    further sideways than vertically, so a slightly diagonal scroll stays a
- *    scroll.
- *  - click suppression. A swipe that ends over a clickable slide would
- *    otherwise fire that slide's `onClick` on top of navigating, which is how a
- *    "swipe for the next course" turns into "open a course page you did not
- *    ask for". The click is swallowed once per gesture, in the capture phase, so
- *    it never reaches the slide's own handler.
+ * The one thing that is still tile-specific is the pause: a drag must not be
+ * undone by the autoplay tick that happens to land under the finger, and the
+ * tile is the one surface here with autoplay. Hence `onActiveChange`.
  */
 
 const LABEL =
@@ -50,13 +42,6 @@ const HEADLINE: Record<string, string> = {
 };
 const DOT_ACTIVE = "w-3 bg-indigo-500";
 const DOT_IDLE = "w-1.5 bg-zinc-200 dark:bg-zinc-700";
-
-/** Shorter than this is a tap, not a swipe — under it, nothing should move. */
-const SWIPE_MIN_PX = 40;
-/** Travel before a drag commits to an axis. Absorbs hand tremor. */
-const DRAG_SLOP_PX = 8;
-/** How far sideways must beat vertical for a drag to count as a swipe. */
-const AXIS_BIAS = 1.2;
 
 export interface InsightSlide {
   id: string;
@@ -84,16 +69,6 @@ export interface InsightSlide {
   dotLabel?: string;
 }
 
-interface Gesture {
-  active: boolean;
-  pointerId: number;
-  x: number;
-  y: number;
-  horizontal: boolean;
-}
-
-const IDLE_GESTURE: Gesture = { active: false, pointerId: -1, x: 0, y: 0, horizontal: false };
-
 export function InsightCarousel({
   slides,
   carousel,
@@ -117,102 +92,35 @@ export function InsightCarousel({
   ariaLabel?: string;
   className?: string;
 }) {
-  const gesture = useRef<Gesture>({ ...IDLE_GESTURE });
-  // Set when a gesture navigated, so the click the browser synthesises on
-  // pointerup is swallowed instead of opening a slide.
-  const swallowClick = useRef(false);
   // Tracked separately from `paused` so that letting go of a touch while the
   // pointer is still over the tile does not resume autoplay underneath a
   // mouse cursor that is deliberately hovering.
   const hovering = useRef(false);
+
+  // Before the empty guard: a hook that is called conditionally loses its ref
+  // and silently stops working the first time the slide list empties.
+  const swipeable = slides.length > 1;
+  const swipe = useHorizontalSwipe({
+    enabled: swipeable,
+    onNext: carousel.next,
+    onPrev: carousel.prev,
+    onActiveChange: (active) => {
+      if (active) carousel.setPaused(true);
+      else carousel.setPaused(pauseOnHover && hovering.current);
+    },
+  });
 
   if (slides.length === 0) return null;
 
   const slide = slides[carousel.index] ?? slides[0];
   const clickable = slides.some((s) => s.onClick);
   const slideClickable = !!slide.onClick;
-  const swipeable = slides.length > 1;
 
   const tone = slide.tone;
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
       ? "text-zinc-900 dark:text-white"
       : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
-
-  const resume = () => carousel.setPaused(pauseOnHover && hovering.current);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (!swipeable) return;
-    // A right-click or a second finger is not a swipe.
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    gesture.current = {
-      active: true,
-      pointerId: e.pointerId,
-      x: e.clientX,
-      y: e.clientY,
-      horizontal: false,
-    };
-    carousel.setPaused(true);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    const g = gesture.current;
-    if (!g.active || e.pointerId !== g.pointerId) return;
-    const dx = e.clientX - g.x;
-    const dy = e.clientY - g.y;
-    if (!g.horizontal) {
-      if (Math.abs(dx) < DRAG_SLOP_PX) return;
-      // Still ambiguous until the horizontal lead is clear.
-      if (Math.abs(dx) < Math.abs(dy) * AXIS_BIAS) return;
-      g.horizontal = true;
-    }
-    // `touch-action: pan-y` has already promised the browser we own the
-    // horizontal axis, so this only has to stop text selection on a mouse drag.
-    if (e.cancelable) e.preventDefault();
-  };
-
-  const endGesture = (e: React.PointerEvent) => {
-    const g = gesture.current;
-    if (!g.active || e.pointerId !== g.pointerId) return;
-    const dx = e.clientX - g.x;
-    const dy = e.clientY - g.y;
-    const wasHorizontal = g.horizontal;
-    gesture.current = { ...IDLE_GESTURE };
-    resume();
-
-    if (!wasHorizontal) return;
-    if (Math.abs(dx) < SWIPE_MIN_PX) return;
-    if (Math.abs(dx) <= Math.abs(dy) * AXIS_BIAS) return;
-
-    if (dx < 0) carousel.next();
-    else carousel.prev();
-    swallowClick.current = true;
-    // Disarm shortly after. A pointer that comes up *off* the tile synthesises
-    // no click at all, and a guard that stayed armed would eat the user's next
-    // real tap — making the card look broken rather than guarded. The window
-    // only has to outlast the click the same gesture produces.
-    window.setTimeout(() => {
-      swallowClick.current = false;
-    }, 400);
-  };
-
-  const onClickCapture = (e: React.MouseEvent) => {
-    if (!swallowClick.current) return;
-    swallowClick.current = false;
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!swipeable) return;
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      carousel.next();
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      carousel.prev();
-    }
-  };
 
   // The tile is a div, not a button: `interactiveDots` needs real sibling
   // buttons and a button-inside-button is invalid HTML (and swallows the dot
@@ -227,7 +135,7 @@ export function InsightCarousel({
           "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer",
         !slideClickable && "cursor-default",
         // Ours to pan horizontally; the page keeps its own vertical scroll.
-        swipeable && "touch-pan-y select-none",
+        swipe.className,
         className
       )}
       onMouseEnter={() => {
@@ -239,12 +147,7 @@ export function InsightCarousel({
         hovering.current = false;
         carousel.setPaused(false);
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endGesture}
-      onPointerCancel={endGesture}
-      onClickCapture={onClickCapture}
-      onKeyDown={onKeyDown}
+      {...swipe.handlers}
     >
       {clickable ? (
         <button

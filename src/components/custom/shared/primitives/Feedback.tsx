@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { TONE_BADGE, EMPTY_STATE } from "@/lib/uiTokens";
 
 /**
@@ -117,6 +117,56 @@ export function ToneLegend({
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * A user's photo, at list-row size.
+ *
+ * Only for "this is *my* event" rows — a registration the user made for
+ * themselves, where the picture answers "is this mine?" faster than any label.
+ * It is not a user avatar in general: anything showing someone else's face
+ * would be a different decision, with a different privacy default.
+ *
+ * Renders nothing without `src`, rather than a placeholder. The caller gates the
+ * URL on the user's own photo-visibility setting, so an absent `src` is the
+ * normal case for a user who turned that off, and a grey silhouette in every
+ * EventHub row would read as a broken image rather than a choice.
+ */
+export function AvatarDot({
+  src,
+  name,
+  className = "",
+}: {
+  src?: string;
+  /** Used for the alt text, and to derive initials if the image fails. */
+  name?: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+
+  const initials = String(name ?? "")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    // `next/image` cannot be used here: the photo comes from whatever host
+    // VTOP served it from, which is not in `remotePatterns`, and the site is a
+    // static export with unoptimized images. Same reasoning as `BookCover`.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name ? `${name}'s registered event` : "Your registered event"}
+      onError={() => setFailed(true)}
+      loading="lazy"
+      decoding="async"
+      className={`h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10 ${className}`.trim()}
+      data-initials={initials}
+    />
   );
 }
 

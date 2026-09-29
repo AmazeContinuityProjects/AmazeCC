@@ -544,7 +544,6 @@ export default function AmazeOnboardingFlow({
                             setActiveSubTab={() => {}}
                             setHostelActiveSubTab={() => {}}
                             setActiveAttendanceSubTab={() => {}}
-                            setActiveMoreSubTab={() => {}}
                             setActiveProfileSubTab={() => {}}
                             handleReloadRequest={handleReloadRequest}
                             onOpenCommandPalette={onOpenCommandPalette}
@@ -571,7 +570,6 @@ export default function AmazeOnboardingFlow({
                             setActiveSubTab={() => {}}
                             setHostelActiveSubTab={() => {}}
                             setActiveAttendanceSubTab={() => {}}
-                            setActiveMoreSubTab={() => {}}
                             setActiveProfileSubTab={() => {}}
                             handleReloadRequest={handleReloadRequest}
                             onOpenCommandPalette={onOpenCommandPalette}

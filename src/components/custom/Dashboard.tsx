@@ -60,6 +60,9 @@ const PureQBankTab = dynamic(() => import("./qbank/PureQBankTab"), {
 import QBankSubTabs from "./qbank/QBankSubTabs";
 import PaymentsTab from "./PaymentsTab";
 import LibrariesTab from "./libraries/LibrariesTab";
+import EventHubTab from "./events/EventHubTab";
+import ClubHubTab from "./clubs/ClubHubTab";
+import CommunityFeed from "./clubs/CommunityFeed";
 import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
 import CircularsTab from "./exams/CircularsTab";
@@ -365,7 +368,7 @@ function DashboardContent({
     }
   }, [activeTab, loadTransportData]);
 
-  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "more", "profile"];
+  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -801,7 +804,6 @@ function DashboardContent({
                   setActiveSubTab={setActiveSubTab}
                   setHostelActiveSubTab={setHostelActiveSubTab}
                   setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                  setActiveMoreSubTab={setActiveMoreSubTab}
                   setActiveProfileSubTab={setActiveProfileSubTab}
                   handleReloadRequest={handleReloadRequest}
                   onOpenCommandPalette={onOpenCommandPalette}
@@ -822,7 +824,6 @@ function DashboardContent({
                   setActiveSubTab={setActiveSubTab}
                   setHostelActiveSubTab={setHostelActiveSubTab}
                   setActiveAttendanceSubTab={setActiveAttendanceSubTab}
-                  setActiveMoreSubTab={setActiveMoreSubTab}
                   setActiveProfileSubTab={setActiveProfileSubTab}
                   setActiveToolsSubTab={setActiveToolsSubTab}
                   handleReloadRequest={handleReloadRequest}
@@ -878,6 +879,18 @@ function DashboardContent({
                     currSemesterID={settings.currSemesterID}
                     targetAttendance={settings.targetAttendance}
                     onOpenCirculars={() => setActiveAttendanceSubTab("circulars")}
+                    onOpenCourse={(courseCode) => {
+                      // The same target mechanism `CourseDashboard` already reads,
+                      // and the one the other attendance screens use. It lands on
+                      // the course's overview, which is that course's own page and
+                      // already carries its marks and attendance as carousels.
+                      // `"attendance"` looks like the obvious value but is a
+                      // legacy deep-link that remaps to a log *inside* the
+                      // overview, not a page of its own.
+                      setCourseDashboardTarget({ courseCode, targetTab: "overview" });
+                      setActiveTab("academics");
+                      setActiveSubTab("course-dashboard");
+                    }}
                     onBack={onSystemBack}
                   />
                 </div>
@@ -1100,6 +1113,30 @@ function DashboardContent({
             </div>
           )}
 
+          {activeTab === "events" && (
+            <div className="animate-fadeIn">
+              <EventHubTab
+                IDs={IDs}
+                onBack={onSystemBack}
+                setIsSubpageOpen={setIsSubpageOpen}
+                registeredEvents={registeredEvents}
+                setRegisteredEvents={setRegisteredEvents}
+              />
+            </div>
+          )}
+
+          {activeTab === "clubs" && (
+            <div className="animate-fadeIn">
+              <ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+            </div>
+          )}
+
+          {activeTab === "community" && (
+            <div className="animate-fadeIn">
+              <CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+            </div>
+          )}
+
           {activeTab === "more" && (
             <div className="animate-fadeIn">
               <MoreTab
@@ -1110,8 +1147,6 @@ function DashboardContent({
                 loginToVTOP={loginToVTOP}
                 isSubpageOpen={isSubpageOpen}
                 setIsSubpageOpen={setIsSubpageOpen}
-                registeredEvents={registeredEvents}
-                setRegisteredEvents={setRegisteredEvents}
               />
             </div>
           )}

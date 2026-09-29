@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   activeMonthIndex,
+  assessmentsOn,
   buildAttendanceByDate,
   buildAttendanceLog,
   buildEnrichedCalendars,
   dateKey,
   daysLeft,
+  dayHeadline,
   dayMarkers,
   examsOn,
   filterLog,
@@ -17,6 +19,7 @@ import {
   milestonesOn,
   parseCalendarMonth,
   parseDayDate,
+  primaryEventOn,
   relativeDayLabel,
   statusForClass,
   summariseOd,
@@ -971,6 +974,596 @@ describe("class-free days", () => {
     expect(hasClasses(taught)).toBe(true);
   });
 });
+
+describe("dayHeadline", () => {
+  /**
+   * A holiday that also carries something else on the same date - the case the
+   * rule exists for. A published holiday and a club event are two entries in
+   * `day.events` and one thing in the reader's day.
+   */
+  const holidayWithClub = () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            {
+              date: 15,
+              events: [
+                { type: "Holiday", text: "Holiday", category: "Independence Day" },
+                { type: "Other", text: "Vibrance 2026", category: "Robotics Club workshop" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    return august.days.find((d) => d.date === 15)!;
+  };
+
+  it("leads with the holiday, not the club event that shares its date", () => {
+    const day = holidayWithClub();
+    const { kind, events } = dayHeadline(day);
+    expect(kind).toBe("holiday");
+    expect(events).toHaveLength(1);
+    expect(events[0].title).toBe("Independence Day");
+  });
+
+  it("gives the same answer the day sheet would", () => {
+    // The sheet and the Upcoming list both route through this. If they ever
+    // diverge the sheet says "holiday" while the list says "club workshop" for
+    // one date, which reads as a data bug rather than a rule.
+    const day = holidayWithClub();
+    expect(primaryEventOn(day)).toBe(dayHeadline(day).events[0]);
+    expect(primaryEventOn(day)!.kind).toBe("holiday");
+  });
+
+  it("leads with a milestone that owns its papers, whatever else is on the day", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            {
+              date: 20,
+              events: [
+                { type: "Other", text: "CAT - II", category: "Working day" },
+                { type: "Other", text: "Vibrance 2026", category: "Club social" },
+              ],
+            },
+          ],
+        },
+      ],
+      schedule: {
+        Schedule: {
+          "CAT - II": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", examTime: "9:00 AM to 10:00 AM", venue: "Room 204" },
+            { courseCode: "25BLC1082", courseTitle: "Physics", examDate: "2026-08-20", examTime: "11:00 AM to 12:00 PM", venue: "Room 204" },
+          ],
+        },
+      },
+    });
+    const day = august.days.find((d) => d.date === 20)!;
+
+    expect(dayHeadline(day).kind).toBe("milestone");
+    // Canonicalised, so the row's kind label and the milestone agree on one
+    // spelling even though the calendar wrote "CAT - II" and the schedule key
+    // was free to write anything else.
+    expect(primaryEventOn(day)!.title).toBe("CAT II");
+    // The subjects have to survive, or the row can only say which exam it is.
+    expect(dayHeadline(day).events[0].papers!.map((p) => p.title)).toEqual(["Biology", "Physics"]);
+  });
+
+  it("leads with an assessment milestone even when no paper has arrived for it", () => {
+    // The exam schedule may not be fetched yet, or may file the papers under a
+    // name the fold could not match. Either way the calendar said this is a CAT
+    // day, and the other two rules already believe it — if this did not, the
+    // sheet would show a timetable for a day that has no classes.
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 20, events: [{ type: "Other", text: "CAT - II", category: "Working day" }] }],
+        },
+      ],
+    });
+    const day = august.days.find((d) => d.date === 20)!;
+
+    expect(dayHeadline(day).kind).toBe("milestone");
+    expect(primaryEventOn(day)!.title).toBe("CAT II");
+    // The three rules agree, which is the whole point.
+    expect(isExamDay(day)).toBe(true);
+    expect(hasClasses(day)).toBe(false);
+  });
+
+  it("does not let a boundary milestone claim a teaching day", () => {
+    // An LID is the last day you *attend*, so it must not make the day an exam
+    // day and blank the timetable on the one date it is needed most.
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            { date: 10, events: [{ type: "Other", text: "LID FOR THEORY CLASSES", category: "Working day" }] },
+          ],
+        },
+      ],
+    });
+    const day = august.days.find((d) => d.date === 10)!;
+
+    expect(isExamDay(day)).toBe(false);
+    expect(hasClasses(day)).toBe(true);
+    // And so it is not the headline: the timetable is what belongs there.
+    expect(dayHeadline(day).kind).toBe("schedule");
+  });
+
+  it("leads with the papers when no milestone claims them", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [{ month: "August 2026", year: 2026, days: [{ date: 28, events: [] }] }],
+      schedule: {
+        Schedule: {
+          FAT: [
+            { courseCode: "25CS1101", courseTitle: "Data Structures", examDate: "2026-08-28", examTime: "2:00 PM to 3:00 PM", venue: "Hall A" },
+          ],
+        },
+      },
+    });
+    const day = august.days.find((d) => d.date === 28)!;
+
+    expect(dayHeadline(day).kind).toBe("exam");
+    expect(dayHeadline(day).events.map((e) => e.title)).toEqual(["Data Structures"]);
+  });
+
+  it("reports an ordinary teaching day as having no headline", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            { date: 5, events: [{ type: "Instructional Day", text: "Instructional Day", category: "Working day" }] },
+          ],
+        },
+      ],
+    });
+    const day = august.days.find((d) => d.date === 5)!;
+
+    expect(dayHeadline(day).kind).toBe("schedule");
+    expect(primaryEventOn(day)).toBeUndefined();
+  });
+
+  it("treats a non-instructional day as open, and says so", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            { date: 12, events: [{ type: "Non Instructional Day", text: "No Instructional Day", category: "Vibrance 2026" }] },
+          ],
+        },
+      ],
+    });
+    const day = august.days.find((d) => d.date === 12)!;
+
+    expect(dayHeadline(day).kind).toBe("nonInstructional");
+    expect(isCollegeOpen(day)).toBe(true);
+  });
+
+  // --- the regression guard for leaving the model alone ---------------------
+  //
+  // Grouping is a presentation rule, so it must not be able to change what a day
+  // *means*. A club event sharing a holiday's date is exactly the case where a
+  // careless fold would make a closed day look like a teaching day.
+
+  it("does not let a club event on a holiday make it a teaching day", () => {
+    const day = holidayWithClub();
+    expect(day.dayType).toBe("holiday");
+    expect(hasClasses(day)).toBe(false);
+    expect(isCollegeOpen(day)).toBe(false);
+    expect(isExamDay(day)).toBe(false);
+  });
+
+  it("keeps both tones on the grid when a club event shares a holiday", () => {
+    // Folding the club event into the holiday must not erase it from the cell
+    // either, or the grid would lose the only signal that something was on.
+    const markers = dayMarkers(holidayWithClub());
+    expect(markers).toContain("red");
+  });
+
+  it("leaves a holiday's own day type alone when a task falls on it", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 15, events: [{ type: "Holiday", text: "Holiday", category: "Independence Day" }] }],
+        },
+      ],
+      tasks: [
+        { id: "t1", title: "Maths assignment", dueDate: "2026-08-15", status: "pending" } as Task,
+      ],
+    });
+    const day = august.days.find((d) => d.date === 15)!;
+
+    // The holiday still heads the day...
+    expect(dayHeadline(day).kind).toBe("holiday");
+    // ...and the task is still an event on it, not absorbed into the holiday.
+    const task = day.events.find((e) => e.taskId === "t1");
+    expect(task).toBeDefined();
+    expect(task!.kind).toBe("assignment");
+  });
+});
+describe("two milestones on one date", () => {
+  /** A date the academic calendar marks with the given milestone texts. */
+  const withMilestones = (texts: string[], schedule?: any) =>
+    buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 20, events: texts.map((text) => ({ type: "Other", text, category: "Working day" })) }],
+        },
+      ],
+      schedule,
+    })[0].days.find((d) => d.date === 20)!;
+
+  const milestones = (day: any) => day.events.filter((e: any) => e.kind === "milestone");
+
+  it("shows the one the exam schedule has data for", () => {
+    // VTOP puts a CAT I row and a CAT II row on the same date around a combined
+    // test block. The schedule knows which one happened, because it has to name
+    // a room and a seat.
+    const day = withMilestones(
+      ["CAT - I", "CAT - II"],
+      {
+        Schedule: {
+          "CAT - II": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+        },
+      }
+    );
+
+    expect(milestones(day)).toHaveLength(1);
+    expect(milestones(day)[0].title).toBe("CAT II");
+    expect(milestones(day)[0].papers!.map((p: any) => p.title)).toEqual(["Biology"]);
+  });
+
+  it("keeps the CAT whose series the schedule spelled differently", () => {
+    // The override is by *data*, not by name. "CAT2" has to win over the
+    // calendar's "CAT - I" row just as readily.
+    const day = withMilestones(
+      ["CAT - I", "CAT - II"],
+      {
+        Schedule: {
+          CAT2: [
+            { courseCode: "25BLC1081", courseTitle: "Physics", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+        },
+      }
+    );
+
+    expect(milestones(day)).toHaveLength(1);
+    expect(milestones(day)[0].title).toBe("CAT II");
+  });
+
+  it("keeps both when the schedule has papers for both", () => {
+    // Two confirmed exams on one date is two real things, not a duplicate.
+    const day = withMilestones(
+      ["CAT - I", "CAT - II"],
+      {
+        Schedule: {
+          "CAT - I": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+          "CAT - II": [
+            { courseCode: "25BLC1082", courseTitle: "Physics", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+        },
+      }
+    );
+
+    expect(milestones(day).map((m: any) => m.title)).toEqual(["CAT I", "CAT II"]);
+  });
+
+  it("keeps both when the schedule says nothing, because there is no authority", () => {
+    // Dropping one here would be inventing a date. The college published two
+    // assessments for this date and no schedule to contradict either.
+    const day = withMilestones(["CAT - I", "CAT - II"]);
+
+    expect(milestones(day).map((m: any) => m.title)).toEqual(["CAT I", "CAT II"]);
+  });
+
+  it("leaves a lone milestone alone", () => {
+    const day = withMilestones(["CAT - I"], {
+      Schedule: {
+        "CAT - I": [
+          { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+        ],
+      },
+    });
+
+    expect(milestones(day)).toHaveLength(1);
+    expect(milestones(day)[0].papers).toHaveLength(1);
+  });
+
+  it("never drops an LID, which is a boundary and not a rival", () => {
+    // An LID shares the `milestone` kind but is the opposite claim: the last day
+    // you attend. It must survive the collapse or the timetable disappears on
+    // the one day it matters most.
+    const day = withMilestones(["CAT - I", "LID FOR THEORY CLASSES"], {
+      Schedule: {
+        "CAT - I": [
+          { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+        ],
+      },
+    });
+
+    expect(milestones(day).map((m: any) => m.title).sort()).toEqual(["CAT I", "LID — Theory"]);
+  });
+
+  it("still reports the day as an exam day, whatever it kept", () => {
+    const day = withMilestones(["CAT - I", "CAT - II"], {
+      Schedule: {
+        "CAT - II": [
+          { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+        ],
+      },
+    });
+
+    expect(dayHeadline(day).kind).toBe("milestone");
+    expect(isExamDay(day)).toBe(true);
+    expect(hasClasses(day)).toBe(false);
+    expect(examsOn(day)).toHaveLength(1);
+  });
+});
+
+describe("assessmentsOn", () => {
+  it("gathers a milestone and a paper that did not match it into one group", () => {
+    // The two systems disagreeing is the normal case, not an edge case: the
+    // calendar publishes "CAT - II" and the schedule's key for the same papers
+    // can be spelled anything at all. A reader should see one assessment, not a
+    // headline plus a stray second heading.
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 20, events: [{ type: "Other", text: "CAT - II", category: "Working day" }] }],
+        },
+      ],
+      schedule: {
+        Schedule: {
+          // A series the milestone does not claim, deliberately.
+          "Final Assessment": [
+            { courseCode: "25CS1101", courseTitle: "Data Structures", examDate: "2026-08-20", venue: "Hall A" },
+          ],
+          "CAT - II": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+        },
+      },
+    });
+    const day = august.days.find((d) => d.date === 20)!;
+
+    const group = assessmentsOn(day);
+    expect(group.map((e) => e.kind).sort()).toEqual(["exam", "milestone"]);
+    // The milestone leads, whatever priority alone would have said.
+    expect(group[0].kind).toBe("milestone");
+  });
+
+  it("leaves a paper nested under its own milestone rather than duplicating it", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 20, events: [{ type: "Other", text: "CAT - II", category: "Working day" }] }],
+        },
+      ],
+      schedule: {
+        Schedule: {
+          "CAT - II": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-20", venue: "AB1-101" },
+            { courseCode: "25BLC1082", courseTitle: "Physics", examDate: "2026-08-20", venue: "AB1-101" },
+          ],
+        },
+      },
+    });
+    const day = august.days.find((d) => d.date === 20)!;
+
+    // Two papers, one milestone: the group is the milestone, still carrying both.
+    expect(assessmentsOn(day)).toHaveLength(1);
+    expect(assessmentsOn(day)[0].papers).toHaveLength(2);
+  });
+
+  it("is empty on an ordinary day, so it never claims a teaching day is an exam day", () => {
+    const [august] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 5, events: [{ type: "Instructional Day", text: "Instructional Day", category: "Working day" }] }],
+        },
+      ],
+    });
+    const day = august.days.find((d) => d.date === 5)!;
+
+    expect(assessmentsOn(day)).toEqual([]);
+    expect(hasClasses(day)).toBe(true);
+  });
+
+  it("excludes a holiday, which is a different kind of day", () => {
+    const day = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            { date: 15, events: [{ type: "Holiday", text: "Holiday", category: "Independence Day" }] },
+          ],
+        },
+      ],
+    })[0].days.find((d) => d.date === 15)!;
+
+    expect(assessmentsOn(day)).toEqual([]);
+    expect(dayHeadline(day).kind).toBe("holiday");
+  });
+});
+
+describe("EventHub registrations on the calendar", () => {
+  const august = (registrations: any[], profileImageUrl?: string) =>
+    buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [
+            { date: 22, events: [{ type: "Instructional Day", text: "Instructional Day", category: "Working day" }] },
+          ],
+        },
+      ],
+      registeredEvents: registrations,
+      profileImageUrl,
+    })[0];
+
+  it("puts a registration on its date, with the time and venue", () => {
+    const day = august([
+      { name: "Robotics Club Workshop", date: "2026-08-22", time: "4:00 PM", venue: "AB1-204", eid: "9" },
+    ]).days.find((d) => d.date === 22)!;
+
+    const ev = day.events.find((e) => e.kind === "event")!;
+    expect(ev.title).toBe("Robotics Club Workshop");
+    expect(ev.detail).toBe("4:00 PM · AB1-204");
+    expect(ev.eventhubId).toBe("9");
+  });
+
+  it("leaves other dates alone", () => {
+    const day = august([
+      { name: "Robotics Club Workshop", date: "2026-08-29", time: "4:00 PM" },
+    ]).days.find((d) => d.date === 22)!;
+
+    expect(day.events.filter((e) => e.kind === "event")).toHaveLength(0);
+  });
+
+  it("carries the profile photo on the event so the row can show it", () => {
+    const day = august([{ name: "Vibrance", date: "2026-08-22" }], "https://cdn.test/me.jpg").days.find(
+      (d) => d.date === 22
+    )!;
+
+    expect(day.events.find((e) => e.kind === "event")!.avatarUrl).toBe("https://cdn.test/me.jpg");
+  });
+
+  it("omits the photo entirely when the caller gated it off", () => {
+    // The gate runs before the model is built, so a user who turned their photo
+    // off has no URL anywhere downstream — not hidden, absent.
+    const day = august([{ name: "Vibrance", date: "2026-08-22" }]).days.find((d) => d.date === 22)!;
+
+    expect(day.events.find((e) => e.kind === "event")!.avatarUrl).toBeUndefined();
+  });
+
+  it("keeps a free registration, which carries no payment status", () => {
+    // EventHub omits `paymentStatus` for a free event. Dropping those would
+    // lose every club signup, which is most of what people register for.
+    const day = august([{ name: "Free Talk", date: "2026-08-22" }]).days.find((d) => d.date === 22)!;
+
+    expect(day.events.filter((e) => e.kind === "event")).toHaveLength(1);
+  });
+
+  it("skips a registration whose payment has not gone through", () => {
+    // EventHub records the form before the money moves, so a pending payment
+    // is not something the user is going to turn up to.
+    const day = august([{ name: "Paid Workshop", date: "2026-08-22", paymentStatus: "PENDING" }]).days.find(
+      (d) => d.date === 22
+    )!;
+
+    expect(day.events.filter((e) => e.kind === "event")).toHaveLength(0);
+  });
+
+  it("accepts the payment spellings EventHub actually uses", () => {
+    ["Paid", "FREE", "Payment Success"].forEach((paymentStatus) => {
+      const day = august([{ name: "Event X", date: "2026-08-22", paymentStatus }]).days.find(
+        (d) => d.date === 22
+      )!;
+      expect(day.events.filter((e) => e.kind === "event")).toHaveLength(1);
+    });
+  });
+
+  it("never lets a registration outrank the college's own events", () => {
+    // `event` has the lowest priority of any kind, so on a CAT day the exam
+    // still leads and the workshop rides underneath it.
+    const [month] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "August 2026",
+          year: 2026,
+          days: [{ date: 22, events: [{ type: "Other", text: "CAT - II", category: "Working day" }] }],
+        },
+      ],
+      schedule: {
+        Schedule: {
+          "CAT - II": [
+            { courseCode: "25BLC1081", courseTitle: "Biology", examDate: "2026-08-22", venue: "AB1-101" },
+          ],
+        },
+      },
+      registeredEvents: [{ name: "Vibrance", date: "2026-08-22" }],
+    });
+    const day = month.days.find((d) => d.date === 22)!;
+
+    expect(dayHeadline(day).kind).toBe("milestone");
+    const kinds = day.events.filter((e) => e.kind !== "class" && e.kind !== "working").map((e) => e.kind);
+    expect(kinds.indexOf("event")).toBeGreaterThan(kinds.indexOf("milestone"));
+  });
+
+  it("does not turn a teaching day into something else", () => {
+    const day = august([{ name: "Robotics Club Workshop", date: "2026-08-22" }]).days.find(
+      (d) => d.date === 22
+    )!;
+
+    expect(day.dayType).toBe("instructional");
+    expect(hasClasses(day)).toBe(true);
+    expect(isExamDay(day)).toBe(false);
+    expect(isCollegeOpen(day)).toBe(true);
+  });
+
+  it("lands on the right day for the YYYY-MM-DD format EventHub sends", () => {
+    // The confirmed wire format, and worth pinning properly: `parseDayDate` also
+    // tolerates a locale string, so reading the wrong format would not fail
+    // loudly, it would just quietly drop every registration off the calendar.
+    const [october] = buildEnrichedCalendars({
+      calendars: [
+        {
+          month: "October 2026",
+          year: 2026,
+          days: [{ date: 7, events: [{ type: "Instructional Day", text: "Instructional Day", category: "Working day" }] }],
+        },
+      ],
+      registeredEvents: [{ name: "Vibrance 2026", date: "2026-10-07", time: "5:00 PM" }],
+    });
+
+    const day = october.days.find((d) => d.date === 7)!;
+    expect(day.dateKey).toBe("2026-10-07");
+    const ev = day.events.find((e) => e.kind === "event")!;
+    expect(ev.title).toBe("Vibrance 2026");
+    expect(ev.detail).toBe("5:00 PM");
+  });
+
+  it("ignores a registration with no usable date", () => {
+    const day = august([
+      { name: "Mystery Event", date: "" },
+      { name: "Mystery Event 2" },
+    ]).days.find((d) => d.date === 22)!;
+
+    expect(day.events.filter((e) => e.kind === "event")).toHaveLength(0);
+  });
+});
+
 describe("activeMonthIndex", () => {
   const months = buildEnrichedCalendars({
     calendars: [

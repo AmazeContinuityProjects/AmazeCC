@@ -2,12 +2,10 @@
 import MoreSubTabs from "./MoreSubTabs";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
 import SocialTab from "../social/SocialTab";
-import EventHubTab from "../events/EventHubTab";
-import ClubHubTab from "./ClubHubTab";
 import PageHeader from "../shared/PageHeader";
 import { LayoutGrid } from "lucide-react";
 
-export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMoreSubTab, IDs, loginToVTOP, isSubpageOpen, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: {
+export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMoreSubTab, IDs, loginToVTOP, isSubpageOpen, setIsSubpageOpen }: {
   attendanceData: any;
   activeMoreSubTab: string;
   setActiveMoreSubTab: (tab: string) => void;
@@ -15,8 +13,6 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
   loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   isSubpageOpen?: boolean;
   setIsSubpageOpen?: (isOpen: boolean) => void;
-  registeredEvents: any[];
-  setRegisteredEvents: (events: any[]) => void;
 }) {
 
   return (
@@ -32,8 +28,6 @@ export default function MoreTab({ attendanceData, activeMoreSubTab, setActiveMor
       <div>
         {activeMoreSubTab === "social" && <SocialTab attendanceData={attendanceData} isDemo={IDs?.VtopUsername === "demo"} />}
         {activeMoreSubTab === "ffcs" && <FFCSTimetableTab />}
-        {activeMoreSubTab === "events" && <EventHubTab IDs={IDs} setIsSubpageOpen={setIsSubpageOpen} registeredEvents={registeredEvents} setRegisteredEvents={setRegisteredEvents} />}
-        {activeMoreSubTab === "clubs" && <ClubHubTab IDs={IDs} loginToVTOP={loginToVTOP} />}
       </div>
     </div>
   );

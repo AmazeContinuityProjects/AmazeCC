@@ -19,10 +19,11 @@ export { default as TitleBlock, type TitleBlockProps, type TitleTag } from "./Ti
 export { useSubpageStack, SubpageScreen, type SubpageStack, type SubpageStackOptions } from "./Subpage";
 export { ListSkeleton } from "./ListSkeleton";
 export { useCarousel, type CarouselState } from "./useCarousel";
+export { useHorizontalSwipe, type HorizontalSwipe } from "./useHorizontalSwipe";
 export { InsightCarousel, type InsightSlide } from "./InsightCarousel";
 export { SectionHeader, StatTile, ListShell, ListRowText, KeyValue } from "./Surfaces";
 export { IconButton, GhostButton, SegmentedControl, ChipTabs } from "./Controls";
-export { ToneBadge, ToneDot, DotPill, ToneLegend, EmptyPanel } from "./Feedback";
+export { ToneBadge, ToneDot, DotPill, ToneLegend, EmptyPanel, AvatarDot } from "./Feedback";
 export { default as Switch, type SwitchProps } from "./Switch";
 export { default as SettingRow, type SettingRowProps } from "./SettingRow";
 export { default as ToggleRow } from "./ToggleRow";

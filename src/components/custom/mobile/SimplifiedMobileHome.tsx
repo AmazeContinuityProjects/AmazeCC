@@ -25,7 +25,6 @@ import {
   Utensils,
   BookOpen,
   CalendarDays,
-  ExternalLink,
   Sun,
   CalendarOff,
   Building,
@@ -53,11 +52,21 @@ import {
   ListShell,
   SegmentedControl,
   useCarousel,
+  useHorizontalSwipe,
   type InsightSlide,
 } from "../shared/primitives";
 import { useAtom } from "jotai";
 import { tasksAtom } from "@/store/dataAtoms";
 import { classTaskSummary, tasksForDay, isSameCalendarDay, isDueOnDay } from "@/lib/taskMatch";
+import {
+  SELECTED_RING,
+  TODAY_INK,
+  TODAY_RING,
+  WEEK_STRIP_TINT,
+  weekStripExamNote,
+  weekStripFlavour,
+  weekStripTitle,
+} from "@/lib/weekStrip";
 import TaskBadge from "../tasks/TaskBadge";
 import { KIND_CONFIG } from "../tasks/TaskCard";
 
@@ -77,7 +86,6 @@ interface SimplifiedMobileHomeProps {
   setActiveSubTab: (tab: string) => void;
   setHostelActiveSubTab?: (tab: string) => void;
   setActiveAttendanceSubTab: (tab: string) => void;
-  setActiveMoreSubTab?: (tab: string) => void;
   setActiveProfileSubTab?: (tab: string) => void;
   setActiveToolsSubTab?: (tab: string) => void;
   handleReloadRequest: () => Promise<void>;
@@ -166,6 +174,15 @@ export default function SimplifiedMobileHome({
   const [cachedProfile, setCachedProfile] = useState<any>(profileDataProp || null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
+  /**
+   * Which edge the visible week slid in from.
+   *
+   * Set by `goToWeek` and nowhere else, in the same batch as `weekOffset`, so
+   * the entering week is already animating the right way on its first frame.
+   * Two pieces of state that each remember "how we got here" and are updated
+   * separately is the bug that makes a carousel animate backwards.
+   */
+  const [weekSlideDir, setWeekSlideDir] = useState<1 | -1>(1);
   const [showTimetableModal, setShowTimetableModal] = useState(false);
 
   // Timetable sheet registers itself for system back via BottomSheet.
@@ -195,6 +212,27 @@ export default function SimplifiedMobileHome({
   const todayDayCode: AttendanceDay = dayNames[todayDayIndex];
   
   const [selectedDay, setSelectedDay] = useState<AttendanceDay>(todayDayCode);
+
+  /**
+   * The only way the visible week changes.
+   *
+   * Three callers used to write `setWeekOffset` directly — the two chevrons, the
+   * "This Week" reset, and now a swipe — and only two of them could know which
+   * way the strip was travelling. Routing them all through here means the
+   * animation direction is derived from the change, not remembered alongside
+   * it.
+   */
+  const goToWeek = useCallback((next: number, dir: 1 | -1) => {
+    setWeekSlideDir(dir);
+    setWeekOffset(next);
+  }, []);
+
+  /** A drag across the strip pages it, exactly as the chevrons do. */
+  const weekSwipe = useHorizontalSwipe({
+    onNext: () => goToWeek(weekOffset + 1, 1),
+    onPrev: () => goToWeek(weekOffset - 1, -1),
+  });
+
   const [satOverride, setSatOverride] = useState<string>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -926,7 +964,7 @@ export default function SimplifiedMobileHome({
       {/* ── TIMETABLE & INTEGRATED ACADEMIC CALENDAR SECTION ── */}
       <div className="space-y-4 text-left">
         
-        {/* Calendar Header: Month, Navigation & Link to Full Calendar Page */}
+        {/* Calendar Header: Week Navigation (left) & Display Controls (right) */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
@@ -936,50 +974,68 @@ export default function SimplifiedMobileHome({
               </h2>
             </div>
 
-            {/* Week navigation arrows */}
+            {/* Week navigation arrows. The strip itself is swipeable too; these
+                stay because a chevron is the one affordance that works with a
+                keyboard and a screen reader without a gesture. */}
             <div className="flex items-center gap-1 ml-1">
               <button
-                onClick={() => setWeekOffset((prev) => prev - 1)}
+                onClick={() => goToWeek(weekOffset - 1, -1)}
                 className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
                 title="Previous Week"
+                aria-label="Previous Week"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => setWeekOffset((prev) => prev + 1)}
+                onClick={() => goToWeek(weekOffset + 1, 1)}
                 className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer"
                 title="Next Week"
+                aria-label="Next Week"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
-              {weekOffset !== 0 && (
+              {/* "Today" — the way back, from wherever the selection is.
+
+                  This started life as a "This Week" chip that only appeared
+                  when the week had been paged away from, and it already did
+                  the whole job: reset the week *and* select today. What it got
+                  wrong was showing up. Gating it on `weekOffset !== 0` alone
+                  meant that picking a different day on the current week — by
+                  far the more common way to wander off today — hid the only
+                  control that undid it, and the page then offered no way home
+                  at all. So the condition is "you are not on today", and the
+                  two things this page used to offer separately are one chip.
+
+                  It is named after the day rather than the week because that is
+                  what the user is going back to. The week comes along because
+                  there is no version of this that is only half a reset: a bare
+                  `setSelectedDay(today)` while a browsed week is showing would
+                  select *this* week's Tuesday on a week that has no Tuesday on
+                  it, and the highlight would land on nothing. */}
+              {(weekOffset !== 0 || selectedDay !== todayDayCode) && (
                 <button
                   onClick={() => {
-                    setWeekOffset(0);
+                    // Direction from wherever the user currently is, so the
+                    // reset slides the same way a swipe from that week would.
+                    if (weekOffset !== 0) goToWeek(0, 0 < weekOffset ? 1 : -1);
                     setSelectedDay(todayDayCode);
                   }}
                   className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 ml-1 cursor-pointer"
+                  title="Back to today"
                 >
-                  This Week
+                  Today
                 </button>
               )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Deep link button: Open Full Academic Calendar Page */}
-            <button
-              onClick={() => {
-                setActiveTab("attendance");
-                setActiveAttendanceSubTab("calendar");
-              }}
-              className="hidden sm:flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/30 px-2.5 py-1.5 rounded-xl cursor-pointer transition-all shadow-2xs"
-              title="Open Full Calendar Page"
-            >
-              <CalendarIcon className="w-3.5 h-3.5" />
-              <span>Full Calendar</span>
-              <ExternalLink className="w-3 h-3 opacity-70" />
-            </button>
+            {/* No deep link to the full academic calendar here any more. The
+                strip is the home page's calendar now, and a second "open the
+                calendar" button pointing at a month grid of the same data
+                asked the user to choose between two views of one thing. The
+                link survives on small screens, on the selected-day row below,
+                where it is the only route to it. */}
 
             {/* Pill Style Selector (Compact 2-Line vs Detailed) */}
             {!isExamDay && !isHolidayOrOff && (
@@ -997,81 +1053,98 @@ export default function SimplifiedMobileHome({
 
 
 
-        {/* ── INTEGRATED CALENDAR WEEK ROW (DATES + DAYS + EXAMS + HOLIDAYS) ── */}
-        <div className="grid grid-cols-7 gap-1.5 p-1.5 rounded-2xl bg-zinc-100/90 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/70 shadow-2xs">
-          {weekDays.map((item) => {
-            const isSelected = selectedDay === item.dayCode;
-            const isToday = item.isToday;
-            const count = timetableMap[item.detectedDayOrder || item.dayCode]?.length || 0;
-            const hasDayTasks = tasksForDay(item.dayCode as AttendanceDay, tasks).length > 0;
+        {/* ── INTEGRATED CALENDAR WEEK ROW ──
+            Seven circles, one per day, each tinted by what kind of day it is.
+            The day kind used to be a pill that spelled it out (`Exam` / `Off` /
+            `3 cls`), which at this size was an eight-pixel smudge competing with
+            the date for the same band. The words now live in the title and the
+            sub-header below; the circle only says "there is something here".
 
-            return (
+            The circles sit straight on the page — the `rounded-2xl bg-zinc-100`
+            plate they used to be pinned to is gone, so every one of them draws
+            its own fill and its own hairline (`WEEK_STRIP_TINT`). That is what
+            the negative space is for: a row of discs with room around the
+            numbers instead of five badges crammed against each other.
 
-              <button
-                key={item.dayCode}
-                onClick={() => setSelectedDay(item.dayCode)}
-                className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative cursor-pointer ${
-                  isSelected
-                    ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-white shadow-xs font-black ring-1 ring-indigo-500/20"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 font-semibold"
-                }`}
-              >
-                {/* Weekday Code */}
-                <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
-                  {item.dayCode}
-                </span>
+            `data-prevent-swipe` is load-bearing. `Dashboard` decides a
+            horizontal drag means "change tab" by looking at the element the
+            touch *ended* on, and a drag that starts on a circle and ends on the
+            padding between two circles would otherwise flip the dashboard out
+            from under the strip. Circles are exempt already (they are buttons);
+            this container covers the rest. */}
+        <div
+          data-prevent-swipe="true"
+          role="group"
+          aria-label="Week"
+          {...weekSwipe.handlers}
+          className={cn("w-full", weekSwipe.className)}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={weekOffset}
+              initial={{ opacity: 0, x: weekSlideDir * 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: weekSlideDir * -28 }}
+              transition={{ duration: 0.2 }}
+              // Tracks are equal so the gaps stay even, but each circle is
+              // capped: 7 x 46px already fills a 390px phone, and on a desktop
+              // this is a 900px column where a stretched circle would be a
+              // swimming pool. `justify-self` parks the capped circle in the
+              // middle of its track.
+              className="grid grid-cols-7 gap-0.5 sm:gap-1.5"
+            >
+              {weekDays.map((item) => {
+                const isSelected = selectedDay === item.dayCode;
+                const count = timetableMap[item.detectedDayOrder || item.dayCode]?.length || 0;
+                const flavour = weekStripFlavour(item);
+                const tint = WEEK_STRIP_TINT[flavour];
+                // Today keeps its green number only when nothing more
+                // important is going on that day. An exam outranks "it is
+                // Tuesday" for attention, and the emerald ring still marks it.
+                const ink =
+                  flavour === "teaching" && item.isToday && !isSelected
+                    ? TODAY_INK
+                    : tint.ink;
+                const title = weekStripTitle(item, count);
 
-                {/* Real Calendar Date Number */}
-                <span
-                  className={`text-base sm:text-lg font-black font-outfit tracking-tight leading-tight my-0.5 ${
-                    isSelected
-                      ? "text-indigo-600 dark:text-indigo-300 scale-105"
-                      : isToday
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-zinc-800 dark:text-zinc-200"
-                  }`}
-                >
-                  {item.dayNumber}
-                </span>
-
-                {/* Status / Exam / Holiday / Class Count Badge */}
-                <span
-                  className={`text-[8.5px] px-1.5 py-0.2 rounded-full font-bold leading-tight ${
-                    item.hasExam
-                      ? "bg-red-500 text-white font-extrabold"
-                      : item.holidayInfo
-                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                      : item.detectedDayOrder
-                      ? "bg-indigo-500/20 text-indigo-700 dark:text-indigo-300"
-                      : isSelected
-                      ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
-                      : count > 0
-                      ? "text-zinc-500 dark:text-zinc-400"
-                      : "text-zinc-300 dark:text-zinc-600"
-                  }`}
-                >
-                  {item.hasExam
-                    ? "Exam"
-                    : item.holidayInfo
-                    ? "Off"
-                    : item.detectedDayOrder
-                    ? `${item.detectedDayOrder}`
-                    : count > 0
-                    ? `${count} cls`
-                    : "Free"}
-                  {hasDayTasks && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 ml-1 shrink-0" title="Tasks scheduled" />
-                  )}
-                </span>
-
-
-                {/* Dot for today */}
-                {isToday && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 absolute -top-0.5 right-1.5 shadow-xs" title="Today" />
-                )}
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    key={item.dayCode}
+                    type="button"
+                    onClick={() => setSelectedDay(item.dayCode)}
+                    title={title}
+                    aria-label={`${title}${weekStripExamNote(item.exams.length)}`}
+                    // A circle navigates, it does not toggle: `aria-current`
+                    // is the honest annotation, and the selection ring is
+                    // visual only.
+                    aria-current={item.isToday ? "date" : undefined}
+                    className={cn(
+                      "w-full max-w-[46px] aspect-square justify-self-center rounded-full border flex flex-col items-center justify-center gap-1 transition-all duration-150 cursor-pointer active:scale-95",
+                      tint.fill,
+                      tint.edge,
+                      isSelected
+                        ? cn(SELECTED_RING, "scale-105")
+                        : item.isToday
+                          ? TODAY_RING
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                    )}
+                  >
+                    <span className="text-[8.5px] font-bold uppercase tracking-wider leading-none text-zinc-400 dark:text-zinc-500">
+                      {item.dayCode}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[15px] font-black font-outfit leading-none",
+                        ink
+                      )}
+                    >
+                      {item.dayNumber}
+                    </span>
+                  </button>
+                );
+              })}
+            </m.div>
+          </AnimatePresence>
         </div>
 
         {/* Selected Day Sub-Header */}
@@ -1090,14 +1163,6 @@ export default function SimplifiedMobileHome({
           </div>
 
           <div className="flex items-center gap-2">
-            {selectedDay !== todayDayCode && weekOffset === 0 && (
-              <button
-                onClick={() => setSelectedDay(todayDayCode)}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 px-3 py-1 rounded-xl transition-all active:scale-95 cursor-pointer shadow-2xs"
-              >
-                Jump to Today
-              </button>
-            )}
             <button
               onClick={() => {
                 setActiveTab("attendance");

@@ -1,12 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  INTRO_SONG_ALLOWED_AUTHORIZED_IDS,
+  INTRO_SONG_ALLOWED_APPLICATION_NUMBERS,
   INTRO_SONG_ALLOWED_REG_NUMBERS,
   INTRO_SONG_ALLOWED_IDS,
   INTRO_SONG_KEY,
   INTRO_SONG_SRC,
   INTRO_SONG_START_SECONDS,
   clearIntroSongFlag,
+  getCachedRegisterNumber,
+  getIntroSongRegisterNumber,
   hasPlayedIntroSong,
   isAllowedAuthorizedId,
   isAllowedIdentifier,
@@ -40,16 +42,18 @@ beforeAll(installLocalStorage);
 beforeEach(() => window.localStorage.clear());
 
 describe("the allowlist", () => {
-  it("holds the two authorizedIDs and the two reg numbers", () => {
-    // Split by namespace because VTOP's `authorizedID` and the profile's
-    // `applicationNumber` are different identifiers that never map to each
-    // other — see gate.ts.
+  it("holds register numbers and application numbers as separate lists", () => {
+    // `25BLC1081` is a **registerNo** and `20626703` is an
+    // **applicationNumber** — two identifiers for one person that the codebase
+    // both calls a "reg number". The allowlist is the register numbers; the
+    // application numbers are kept so a client that only ever resolved that one
+    // is not locked out.
     //
-    // The reg numbers used to be one comma-joined entry, `"20626703,2025001264"`,
-    // which can never match a real `applicationNumber`. They are two entries
-    // now, and this expectation is the thing that noticed.
-    expect(INTRO_SONG_ALLOWED_AUTHORIZED_IDS).toEqual(["25BLC1081", "25MID1139"]);
-    expect(INTRO_SONG_ALLOWED_REG_NUMBERS).toEqual(["20626703", "2025001264"]);
+    // The application numbers used to be one comma-joined entry,
+    // `"20626703,2025001264"`, which can never match a real value. They are two
+    // entries now, and this expectation is the thing that noticed.
+    expect(INTRO_SONG_ALLOWED_REG_NUMBERS).toEqual(["25BLC1081", "25MID1139"]);
+    expect(INTRO_SONG_ALLOWED_APPLICATION_NUMBERS).toEqual(["20626703", "2025001264"]);
     expect(INTRO_SONG_ALLOWED_IDS).toEqual([
       "25BLC1081",
       "25MID1139",
@@ -70,12 +74,14 @@ describe("the allowlist", () => {
     expect(isAllowedRegNumber(" 20626703 ")).toBe(true);
   });
 
-  it("does not accept a reg number as an authorizedID", () => {
-    // The namespaces are genuinely disjoint, so a 20626703 session value must
-    // NOT pass the authorizedID check. It still lets the person in via the reg
-    // number, but the two lists must not silently bleed together.
+  it("treats a register number as a register number wherever it arrives", () => {
+    // A student's `authorizedID` is their register number, so the same value
+    // passing both checks is correct, not the namespace bleed the old test
+    // asserted. What must still hold is that an application number is not a
+    // register number.
+    expect(isAllowedRegNumber("25BLC1081")).toBe(true);
+    expect(isAllowedAuthorizedId("25BLC1081")).toBe(true);
     expect(isAllowedAuthorizedId("20626703")).toBe(false);
-    expect(isAllowedRegNumber("25BLC1081")).toBe(false);
   });
 
   it("refuses everyone else", () => {
@@ -90,6 +96,74 @@ describe("the allowlist", () => {
     expect(isAllowedIdentifier(null, null)).toBe(false);
     expect(isAllowedIdentifier(undefined, undefined)).toBe(false);
     expect(isAllowedIdentifier("   ", "  ")).toBe(false);
+  });
+});
+
+describe("reading registerNo from the payments cache", () => {
+  const cachePayments = (value: unknown) =>
+    window.localStorage.setItem("cache_payments", JSON.stringify(value));
+
+  it("reads the registerNo the VTOP payments payload carries", () => {
+    cachePayments({ studentInfo: { registerNo: "25BLC1081", studentName: "Someone" } });
+    expect(getCachedRegisterNumber()).toBe("25BLC1081");
+  });
+
+  it("lets the person in when nothing else identified them", () => {
+    // This is the case the whole change exists for: no session, no profile row,
+    // and the register number sitting in the payments cache.
+    cachePayments({ studentInfo: { registerNo: "25BLC1081" } });
+    expect(isAllowedIdentifier(null, null)).toBe(true);
+  });
+
+  it("reads it off the bare object too", () => {
+    // The two payments caches in this app are not written by the same code.
+    cachePayments({ registerNo: "25BLC1081" });
+    expect(getCachedRegisterNumber()).toBe("25BLC1081");
+  });
+
+  it("tolerates the other spellings the field has gone by", () => {
+    // The payments *type* in this repo declares `registerNumber`, so a rename in
+    // either direction must not silently stop the song.
+    cachePayments({ studentInfo: { registerNumber: "25BLC1081" } });
+    expect(getCachedRegisterNumber()).toBe("25BLC1081");
+  });
+
+  it("trims, and ignores a blank value rather than returning it", () => {
+    cachePayments({ studentInfo: { registerNo: "  25BLC1081  " } });
+    expect(getCachedRegisterNumber()).toBe("25BLC1081");
+
+    cachePayments({ studentInfo: { registerNo: "   " } });
+    expect(getCachedRegisterNumber()).toBeNull();
+  });
+
+  it("returns null for a missing, empty or corrupt cache", () => {
+    expect(getCachedRegisterNumber()).toBeNull();
+
+    cachePayments({});
+    expect(getCachedRegisterNumber()).toBeNull();
+
+    window.localStorage.setItem("cache_payments", "{not json");
+    expect(getCachedRegisterNumber()).toBeNull();
+
+    cachePayments({ studentInfo: { registerNo: 12345 } });
+    expect(getCachedRegisterNumber()).toBeNull();
+  });
+
+  it("prefers the cached registerNo over the profile's application number", () => {
+    // The whole point. `getActiveRegNumber()` ends its fallback chain at
+    // `applicationNumber`, so a profile with no `REGISTER NO` row returns a
+    // *different identifier* rather than nothing — and matching that against a
+    // register-number allowlist fails silently.
+    window.localStorage.setItem("profile", JSON.stringify({ applicationNumber: "20626022" }));
+    cachePayments({ studentInfo: { registerNo: "25BLC1081" } });
+
+    expect(getIntroSongRegisterNumber()).toBe("25BLC1081");
+  });
+
+  it("falls back to the profile when payments have not synced", () => {
+    // A student who has never opened the Payments tab must still be identified.
+    window.localStorage.setItem("profile", JSON.stringify({ registerNo: "25BLC1081" }));
+    expect(getIntroSongRegisterNumber()).toBe("25BLC1081");
   });
 });
 

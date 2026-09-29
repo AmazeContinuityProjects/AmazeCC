@@ -44,6 +44,12 @@ export interface PageShellProps {
   onBack?: () => void;
   layout?: PageHeaderLayout;
   /**
+   * Let the title wrap instead of truncating. For pages whose title is user
+   * data (an event name, a course title) rather than a fixed noun, a one-line
+   * ellipsis throws away the thing the reader came for.
+   */
+  wrap?: boolean;
+  /**
    * Most pages block text selection (`select-none`) because they are dense
    * stat surfaces. Set this on pages that were not doing that, so adopting the
    * shell does not quietly make their copy unselectable.
@@ -61,12 +67,13 @@ export default function PageShell({
   actions,
   onBack,
   layout = "actions-above",
+  wrap = false,
   selectable = false,
   className = "",
   children,
 }: PageShellProps) {
   const shell = selectable ? `${SHELL_BASE} select-text` : `${SHELL_BASE} select-none`;
-  const titleBlock = <TitleBlock eyebrow={eyebrow} title={title} subtitle={subtitle} />;
+  const titleBlock = <TitleBlock eyebrow={eyebrow} title={title} subtitle={subtitle} wrap={wrap} />;
 
   // Back is always far left, the action cluster always far right and
   // shrink-0, so a long title can truncate but never squeeze a button.

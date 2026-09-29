@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarOff,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Download,
   ExternalLink,
@@ -18,14 +19,15 @@ import {
 } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
-import { EmptyPanel, GhostButton, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot, DotPill } from "../shared/primitives";
+import { AvatarDot, EmptyPanel, GhostButton, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot, DotPill } from "../shared/primitives";
 import { dayKeyForDate, minutesToTimeStr, slotRange } from "@/lib/social/schedule";
 import type { AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import {
+  dayHeadline,
+  assessmentsOn,
   examsOn,
   formatDayHeading,
   hasClasses,
-  holidaysOn,
   kindLabel,
   statusForClass,
   todayKey,
@@ -98,6 +100,7 @@ export default function DayDetailSheet({
   notes,
   isMoodleConnected,
   onConnectMoodle,
+  onOpenCourse,
 }: {
   day: CalendarDayModel | null;
   onClose: () => void;
@@ -109,6 +112,12 @@ export default function DayDetailSheet({
   notes: DaySheetNotes;
   isMoodleConnected: boolean;
   onConnectMoodle: () => void;
+  /**
+   * Open a course's own page. Optional, because the sheet is also mounted where
+   * no navigation is wired up, and a row that looks tappable but does nothing
+   * is worse than a row that does not.
+   */
+  onOpenCourse?: (courseCode: string) => void;
 }) {
   const isToday = day ? day.dateKey === todayKey() : false;
 
@@ -144,40 +153,38 @@ export default function DayDetailSheet({
   const occupying = useMemo(() => {
     if (!day) return { kind: "schedule" as const, events: [] as CalendarDayEvent[], note: "" };
 
-    const owner = day.events.find(
-      (e) => e.kind === "milestone" && (e.papers?.length ?? 0) > 0
-    );
-    if (owner) {
-      return {
-        kind: "milestone" as const,
-        events: [owner],
-        note: `${owner.papers!.length} paper${owner.papers!.length === 1 ? "" : "s"} · no regular classes on an exam day.`,
-      };
-    }
+    // The precedence is `dayHeadline`'s, shared with the Upcoming list so the
+    // two can never name different headline events for the same date. Only the
+    // note is this sheet's, because it is a sentence about the day and not
+    // about the rule.
+    const { kind } = dayHeadline(day);
 
-    const papers = examsOn(day);
-    if (papers.length > 0) {
+    // On an assessment day the whole assessment is one section. `dayHeadline`
+    // names the leader; `assessmentsOn` collects the rest, so a paper whose
+    // series did not match the milestone — a FAT on the same day, or a schedule
+    // key spelled nothing like the calendar's — lands beside it instead of
+    // opening a second "Exams" heading further down.
+    const events =
+      kind === "exam" || kind === "milestone" ? assessmentsOn(day) : dayHeadline(day).events;
+
+    if (kind === "milestone") {
+      const papers = events[0]?.papers?.length ?? 0;
       return {
-        kind: "exam" as const,
-        events: papers,
-        note: "No regular classes on an exam day.",
+        kind,
+        events,
+        note: `${papers} paper${papers === 1 ? "" : "s"} · no regular classes on an exam day.`,
       };
     }
-    if (day.dayType === "nonInstructional") {
-      return {
-        kind: "nonInstructional" as const,
-        events: holidaysOn(day),
-        note: "No classes today — the college is open.",
-      };
+    if (kind === "exam") {
+      return { kind, events, note: "No regular classes on an exam day." };
     }
-    if (day.dayType === "holiday") {
-      return {
-        kind: "holiday" as const,
-        events: holidaysOn(day),
-        note: "No classes — the college is closed.",
-      };
+    if (kind === "nonInstructional") {
+      return { kind, events, note: "No classes today — the college is open." };
     }
-    return { kind: "schedule" as const, events: [] as CalendarDayEvent[], note: "" };
+    if (kind === "holiday") {
+      return { kind, events, note: "No classes — the college is closed." };
+    }
+    return { kind, events, note: "" };
   }, [day]);
 
   const grouped = useMemo(() => {
@@ -260,9 +267,22 @@ export default function DayDetailSheet({
                   const { start, end } = slotRange(cls.time);
                   const status = statusForClass(attendanceByDate, day.dateKey, cls.courseCode);
                   const isLab = String(cls.slotName ?? "").startsWith("L");
+                  // A course with no code has no page to open, so it stays a
+                  // plain row rather than a button that does nothing.
+                  const canOpen = Boolean(onOpenCourse && cls.courseCode);
 
                   return (
-                    <div key={`${cls.slotName}-${cls.courseCode}`} className="flex items-center gap-3 py-3 px-4">
+                    <button
+                      key={`${cls.slotName}-${cls.courseCode}`}
+                      type="button"
+                      disabled={!canOpen}
+                      onClick={() => onOpenCourse?.(cls.courseCode)}
+                      className={`flex w-full items-center gap-3 py-3 px-4 text-left ${
+                        canOpen
+                          ? "transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/50 dark:hover:bg-white/[0.03]"
+                          : "cursor-default"
+                      }`}
+                    >
                       <span
                         className={cn(
                           "w-1.5 h-1.5 rounded-full shrink-0",
@@ -289,7 +309,12 @@ export default function DayDetailSheet({
                       ) : (
                         <ToneBadge tone="zinc">Scheduled</ToneBadge>
                       )}
-                    </div>
+                      {/* The same affordance the Upcoming rows use, so a
+                          tappable row looks the same wherever it appears. */}
+                      {canOpen ? (
+                        <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600" />
+                      ) : null}
+                    </button>
                   );
                 })}
               </ListShell>
@@ -298,13 +323,20 @@ export default function DayDetailSheet({
         ) : (
           <EventSection
             title={
-              occupying.kind === "milestone"
-                ? occupying.events[0]?.title ?? "Exam"
-                : occupying.kind === "exam"
-                  ? "Exams"
-                  : occupying.kind === "holiday"
-                    ? "Holiday"
-                    : "College"
+              /*
+               * A section heading names the *category*, never the event. The row
+               * below already says "CAT II" under a "Milestone" pill, so a
+               * heading repeating it printed the same name twice and read as two
+               * tests where there was one — the single most-repeated bug on this
+               * sheet. The pill carries the kind; the heading carries the group.
+               */
+              occupying.kind === "milestone" || occupying.kind === "exam"
+                ? occupying.events.length === 1
+                  ? "Exam"
+                  : "Exams"
+                : occupying.kind === "holiday"
+                  ? "Holiday"
+                  : "College"
             }
             icon={
               occupying.kind === "holiday" || occupying.kind === "nonInstructional"
@@ -557,6 +589,10 @@ function EventRow({ event }: { event: CalendarDayEvent }) {
   return (
     <div className="flex items-center gap-3 py-3 px-4">
       <DotPill tone={event.tone}>{kindLabel(event.kind)}</DotPill>
+      {/* Only events the user registered for carry a photo, and only when their
+          photo-visibility setting allows it — both decided before the event was
+          built, so there is nothing to check here. */}
+      <AvatarDot src={event.avatarUrl} />
       <div className="min-w-0 flex-1">
         <ListRowText
           title={event.title}

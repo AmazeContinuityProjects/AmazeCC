@@ -1,24 +1,196 @@
 "use client";
-import { useState, useEffect } from "react";
-import { api, clearEventHubSession } from "@/lib/sync-engine";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, clearEventHubSession, eventHubRequest } from "@/lib/sync-engine";
+import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
-import { eventhubImageUrl } from "@/lib/eventhub";
-import { Calendar, MapPin, IndianRupee, Users, Tag, X, FileText, Clock, User, Award, RefreshCcw } from "lucide-react";
+import {
+  eventDateLabel,
+  eventhubImageUrl,
+  daysUntil,
+  isFreeEvent,
+  isRegistrationPaid,
+  summariseEvents,
+} from "@/lib/eventhub";
+import { Calendar, CalendarOff, ChevronRight, RefreshCcw, Search, SearchX, Ticket, X } from "lucide-react";
 import { m } from "framer-motion";
+import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
 import EventHubSubpage from "./EventHubSubpage";
-import SearchInput from "../shared/SearchInput";
-import EmptyState from "../shared/EmptyState";
-import { LoadingSpinner } from "../shared";
 import TabHelpFooter from "../shared/TabHelpFooter";
+import {
+  ChipTabs,
+  DotPill,
+  EmptyPanel,
+  GhostButton,
+  IconButton,
+  InsightCarousel,
+  PageShell,
+  SegmentedControl,
+  SectionHeader,
+  StatTile,
+  ToneBadge,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
 
-import { Button } from "@amazecontinuityprojects/amazeui";
+/** Demo fixture for the registered-events view, mirroring `fetchEvents`. */
+const DEMO_REGISTERED = [
+  {
+    eid: "evt-002",
+    title: "RoboSoccer Workshop",
+    eligibility: "Open to all branches",
+    type: "Robotics Workshop",
+    date: "2026-07-22",
+    location: "MG Block Lab 202",
+    price: "Paid",
+    registeredDetails: {
+      paymentStatus: "Paid (Online)",
+      orderId: "ORD-920194",
+      registrationDate: "2026-06-20",
+      certificateEligible: "Yes",
+      attendanceStatus: "Attended",
+    },
+  },
+];
 
-export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, setRegisteredEvents }: { 
-  IDs: any, 
-  setIsSubpageOpen?: (isOpen: boolean) => void,
-  registeredEvents?: any[],
-  setRegisteredEvents?: (events: any[]) => void
+/** "Free", or the fee as written. A blank price is free — see `isFreeEvent`. */
+function priceLabel(event: any): string {
+  const price = String(event?.price ?? "").trim();
+  if (!price || isFreeEvent(event)) return "Free";
+  return price;
+}
+
+function countdownLabel(days: number): string {
+  if (days === 0) return "Happening today";
+  if (days === 1) return "Tomorrow";
+  if (days > 1) return `In ${days} days`;
+  return `${Math.abs(days)} days ago`;
+}
+
+/** Payment state of a registration. Neutral when Event Hub sent no status at all. */
+function PaymentPill({ details }: { details?: any }) {
+  if (!details) return null;
+  const status = String(details.paymentStatus ?? "").trim();
+  if (!status) return <ToneBadge tone="zinc">Registered</ToneBadge>;
+  return <ToneBadge tone={isRegistrationPaid(details) ? "emerald" : "amber"}>{status}</ToneBadge>;
+}
+
+/** How soon the event is. Renders nothing when the date is unreadable. */
+function DateChip({ event }: { event: any }) {
+  if (event?.isPastEvent) return <ToneBadge tone="zinc">Past</ToneBadge>;
+  const days = daysUntil(event?.date);
+  if (days === null) return null;
+  if (days < 0) return <ToneBadge tone="zinc">Ended</ToneBadge>;
+  if (days === 0) return <ToneBadge tone="emerald">Today</ToneBadge>;
+  if (days === 1) return <ToneBadge tone="emerald">Tomorrow</ToneBadge>;
+  if (days <= 7) return <ToneBadge tone="sky">{days}d left</ToneBadge>;
+  return null;
+}
+
+/** Hide a poster that 404s rather than leaving a broken-image icon in the tile. */
+function hideBrokenImage(e: React.SyntheticEvent<HTMLImageElement>) {
+  (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+}
+
+/**
+ * Placeholder for the event grid.
+ *
+ * Shaped like the cards it stands in for — a poster block over a title and a
+ * line of text — because `ListSkeleton`'s text rows would resolve into cards of
+ * a completely different shape the moment the data landed.
+ */
+function CardSkeletonGrid({ count }: { count: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={cn(TILE_CARD, "pointer-events-none")}>
+          <Skeleton className="mb-3.5 w-full h-40 rounded-2xl" />
+          <Skeleton className="h-3.5 w-4/5 rounded" />
+          <Skeleton className="mt-2 h-3 w-1/2 rounded" />
+          <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center gap-2">
+            <Skeleton className="h-4 w-12 rounded" />
+            <Skeleton className="h-4 w-14 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Poster-led card. The list runs down the page, so this is the only event
+ * layout: one poster to a card, at whatever width the grid column gives it.
+ */
+function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) {
+  return (
+    <m.div
+      whileTap={{ scale: 0.99 }}
+      onClick={() => onOpen(event)}
+      className="h-full cursor-pointer"
+    >
+      <div className={cn(TILE_CARD, "h-full flex flex-col")}>
+        {/* Posters vary wildly in shape, so the frame takes the poster's own
+            height rather than cropping it to a fixed ratio. */}
+        <div className="mb-3.5 w-full overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+          <img
+            src={eventhubImageUrl(event.eid)}
+            alt=""
+            loading="lazy"
+            className="w-full h-auto object-contain"
+            onError={hideBrokenImage}
+          />
+        </div>
+
+        <h3
+          className="font-bold text-sm text-zinc-900 dark:text-white font-outfit leading-tight line-clamp-2"
+          title={event.title}
+        >
+          {event.title}
+        </h3>
+
+        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+          <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+          <span className="truncate">{eventDateLabel(event.date)}</span>
+          {event.time ? (
+            <>
+              <span className="text-zinc-300 dark:text-zinc-700 shrink-0">&bull;</span>
+              <span className="truncate">{event.time}</span>
+            </>
+          ) : null}
+        </p>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <DateChip event={event} />
+          <PaymentPill details={event.registeredDetails} />
+          {event.type ? <DotPill tone="violet">{event.type}</DotPill> : null}
+          {event.eligibility ? <DotPill tone="sky">{event.eligibility}</DotPill> : null}
+        </div>
+
+        <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+            {priceLabel(event)}
+          </span>
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+            Details
+            <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+      </div>
+    </m.div>
+  );
+}
+
+export default function EventHubTab({
+  IDs,
+  onBack,
+  setIsSubpageOpen,
+  registeredEvents,
+  setRegisteredEvents,
+}: {
+  IDs: any;
+  onBack?: () => void;
+  setIsSubpageOpen?: (isOpen: boolean) => void;
+  registeredEvents?: any[];
+  setRegisteredEvents?: (events: any[]) => void;
 }) {
   const [events, setEvents] = useState<EventHubEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -43,7 +215,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
   const fetchEvents = async () => {
     setLoading(true);
     if (IDs?.VtopUsername === "demo") {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       setEvents([
         {
           eid: "evt-001",
@@ -77,7 +249,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     }
     try {
       const data: EventHubEvent[] = (await api("events")) as EventHubEvent[];
-      
+
       // Deduplicate by eid
       const uniqueEventsMap = new Map<string, EventHubEvent>();
       data.forEach(event => {
@@ -111,22 +283,22 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
         } else {
           // If not in active events, construct a past event
           const regEv = registeredEvents?.find(e => e.name === pendingEventName);
-          openPreview({ 
-            eid: regEv?.orderId || "unknown", 
-            title: pendingEventName, 
+          openPreview({
+            eid: regEv?.orderId || "unknown",
+            title: pendingEventName,
             isPastEvent: true,
-            registeredDetails: regEv 
+            registeredDetails: regEv
           } as any);
         }
       }
     }
   }, [events, registeredEvents]);
 
-  const openPreview = async (event: EventHubEvent) => {
+  const openPreview = useCallback(async (event: EventHubEvent) => {
     setSelectedEvent(event);
     setPreviewData(null);
     setPreviewError("");
-    
+
     if (event.isPastEvent) {
       setPreviewError("Details are no longer available for this event since it has already concluded or its registration period has ended.");
       setPreviewLoading(false);
@@ -152,9 +324,10 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     }
 
     try {
-      const data = (await api("events/preview", {
-        method: "POST",
-        body: { eid: event.eid, username: IDs.VtopUsername, password: IDs.VtopPassword },
+      const data = (await eventHubRequest(IDs, "events/preview", {
+        eid: event.eid,
+        username: IDs.VtopUsername,
+        password: IDs.VtopPassword,
       })) as EventHubPreview;
       setPreviewData(data);
     } catch (err: any) {
@@ -163,102 +336,140 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     } finally {
       setPreviewLoading(false);
     }
-  };
+  }, [IDs]);
 
   const closePreview = () => {
     setSelectedEvent(null);
     setPreviewData(null);
   };
 
-  const fetchRegisteredEvents = async () => {
-    if (viewMode === "registered") {
-      setViewMode("all");
-      return;
-    }
+  /**
+   * Registrations are fetched the first time the view is opened, not on every
+   * visit — the sync engine already hydrates `registeredEvents` in most
+   * sessions, and re-hitting `events/profile` each time the user glanced back
+   * would spend an Event Hub session for nothing.
+   */
+  const registeredRequestedRef = useRef(false);
+  useEffect(() => {
+    if (viewMode !== "registered" || registeredRequestedRef.current) return;
+    registeredRequestedRef.current = true;
 
     if (!IDs?.VtopUsername || !IDs?.VtopPassword) {
-      setRegisteredError("Please save your VTOP credentials in the settings first.");
-      setViewMode("registered");
+      setRegisteredError("Save your VTOP credentials in Settings to see your registrations.");
       return;
     }
+    if (registeredEvents && registeredEvents.length > 0) return;
 
-    if (registeredEvents && registeredEvents.length > 0) {
-      setViewMode("registered");
-    } else {
-      setLoadingRegistered(true);
-      setViewMode("registered");
-    }
-
-    if (IDs?.VtopUsername === "demo") {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const mockReg = [
-        {
-          eid: "evt-002",
-          title: "RoboSoccer Workshop",
-          eligibility: "Open to all branches",
-          type: "Robotics Workshop",
-          date: "2026-07-22",
-          location: "MG Block Lab 202",
-          price: "Paid",
-          registeredDetails: {
-            paymentStatus: "Paid (Online)",
-            orderId: "ORD-920194",
-            registrationDate: "2026-06-20",
-            certificateEligible: "Yes",
-            attendanceStatus: "Attended"
-          }
-        }
-      ];
-      setRegisteredEvents(mockReg);
-      setLoadingRegistered(false);
-      return;
-    }
-
+    let cancelled = false;
+    setLoadingRegistered(true);
     setRegisteredError("");
-    try {
-      const data = (await api("events/profile", {
-        method: "POST",
-        body: { username: IDs.VtopUsername, password: IDs.VtopPassword },
-      })) as any;
-      if (setRegisteredEvents) {
-        setRegisteredEvents(data.events || []);
-        localStorage.setItem("registeredEvents", JSON.stringify(data.events || []));
+
+    (async () => {
+      if (IDs.VtopUsername === "demo") {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        if (!cancelled) setRegisteredEvents?.(DEMO_REGISTERED);
+        return;
       }
-    } catch (err: any) {
-      setRegisteredError(err.message || "An error occurred");
-      clearEventHubSession();
-    } finally {
-      setLoadingRegistered(false);
+      try {
+        const data = (await eventHubRequest(IDs, "events/profile", {
+          username: IDs.VtopUsername,
+          password: IDs.VtopPassword,
+        })) as any;
+        const list = data.events || [];
+        setRegisteredEvents?.(list);
+        localStorage.setItem("registeredEvents", JSON.stringify(list));
+      } catch (err: any) {
+        if (!cancelled) setRegisteredError(err.message || "An error occurred");
+        clearEventHubSession();
+      } finally {
+        if (!cancelled) setLoadingRegistered(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, IDs, registeredEvents, setRegisteredEvents]);
+
+  const summary = useMemo(
+    () => summariseEvents(events, registeredEvents ?? []),
+    [events, registeredEvents]
+  );
+
+  /**
+   * The rotating second hero tile, built the same way the OD hours page builds
+   * its own: one measurement per slide, and a slide that has nothing to say is
+   * left out rather than shown as a zero.
+   */
+  const insightSlides = useMemo<InsightSlide[]>(() => {
+    const slides: InsightSlide[] = [
+      {
+        id: "live",
+        label: "Open now",
+        value: summary.total,
+        sub: `Across ${summary.categories} ${summary.categories === 1 ? "category" : "categories"}`,
+        badge: "Live",
+        tone: "indigo",
+      },
+    ];
+
+    if (summary.total > 0) {
+      slides.push({
+        id: "free",
+        label: "Free to enter",
+        value: summary.free,
+        sub: "No entry fee",
+        badge: "Free",
+        tone: "emerald",
+      });
     }
-  };
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton key={i} className="h-48 w-full rounded-2xl" />
-        ))}
-      </div>
-    );
-  }
+    // Null means no event had a date we could read, which is not the same as
+    // "nothing this week" — so the slide is skipped entirely in that case.
+    if (summary.thisWeek !== null) {
+      slides.push({
+        id: "week",
+        label: "Next 7 days",
+        value: summary.thisWeek,
+        sub: "Starting within a week",
+        badge: "7d",
+        tone: "sky",
+      });
+    }
 
-  if (error) {
-    return (
-      <div className="text-center p-8 bg-red-50  dark:bg-red-900/10 text-red-600 rounded-2xl">
-        <p>{error}</p>
-        <button 
-          onClick={fetchEvents}
-          className="mt-4 px-4 py-2 bg-red-100  dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg hover:bg-red-200 transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
+    if (summary.next) {
+      const { event, days } = summary.next;
+      slides.push({
+        id: "next",
+        label: "Next up",
+        value: event.title,
+        sub: countdownLabel(days),
+        badge: event.type || "Event",
+        tone: "violet",
+        onClick: () => openPreview(event as EventHubEvent),
+      });
+    }
+
+    if (summary.unpaid > 0) {
+      slides.push({
+        id: "due",
+        label: "Payment due",
+        value: summary.unpaid,
+        sub: "Registered, not settled",
+        badge: "Due",
+        tone: "amber",
+        onClick: () => setViewMode("registered"),
+      });
+    }
+
+    return slides;
+  }, [summary, openPreview]);
+
+  const carousel = useCarousel(insightSlides.length);
 
   if (selectedEvent) {
     return (
-      <EventHubSubpage 
+      <EventHubSubpage
         selectedEvent={selectedEvent}
         previewData={previewData}
         previewLoading={previewLoading}
@@ -279,7 +490,7 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
     return matchesSearch && matchesType;
   });
 
-  const displayEvents = viewMode === "registered" 
+  const displayEvents = viewMode === "registered"
     ? (registeredEvents || []).map(re => {
         const matched = events.find(e => e.title === re.name);
         return matched ? { ...matched, registeredDetails: re } : {
@@ -298,152 +509,166 @@ export default function EventHubTab({ IDs, setIsSubpageOpen, registeredEvents, s
       })
     : filteredEvents;
 
-  return (
-    <m.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-8"
-    >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900  dark:text-white leading-tight">
-            {viewMode === "registered" ? "My Registered Events" : "All Events at VIT"}
-          </h2>
-          <p className="text-sm text-gray-500  dark:text-gray-400 mt-1">
-            {viewMode === "registered" ? "Manage your registrations, payments, and certificates." : "Discover and register for clubs, chapters, and technical events."}
-          </p>
-        </div>
-        
-        <div className="flex flex-row items-center gap-3">
-          <button
-            onClick={fetchEvents}
-            className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center justify-center cursor-pointer shrink-0"
-            title="Reload Events List"
-          >
-            <RefreshCcw className="w-4 h-4" />
-          </button>
-          
-          <button
-            onClick={fetchRegisteredEvents}
-            className={`px-4 py-2 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
-              viewMode === "registered" 
-                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
-                : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            {viewMode === "registered" ? "View All Events" : "Registered Events"}
-          </button>
-          
-          {viewMode === "all" && (
-            <>
-              <SearchInput placeholder="Search events..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full sm:w-64" />
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="px-4 py-2 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              >
-                {types.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </>
-          )}
-        </div>
-      </div>
+  const isRegisteredView = viewMode === "registered";
 
-      {loadingRegistered && viewMode === "registered" ? (
-        <div className="flex justify-center items-center py-24">
-          <LoadingSpinner size="lg" />
+  return (
+    <PageShell
+      onBack={onBack}
+      eyebrow="Event Hub"
+      title="Event Hub"
+      subtitle="Clubs, chapters and technical events at VIT."
+      actions={
+        <IconButton title="Reload events" onClick={fetchEvents}>
+          <RefreshCcw className={loading ? "animate-spin" : ""} />
+        </IconButton>
+      }
+      selectable
+    >
+      {/* ── HERO STATS ── */}
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
+          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
         </div>
-      ) : registeredError && viewMode === "registered" ? (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-center border border-red-200 dark:border-red-900/50">
-          {registeredError}
+      ) : error ? null : (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setViewMode("registered")}
+              className="w-full text-left cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.98]"
+              title="Show my registrations"
+            >
+              <StatTile
+                label="Registered"
+                value={(registeredEvents || []).length}
+                sub={`${summary.unpaid > 0 ? `${summary.unpaid} awaiting payment` : "All payments settled"}`}
+                badge={summary.unpaid > 0 ? `${summary.unpaid} due` : "Paid"}
+                tone={summary.unpaid > 0 ? "amber" : "emerald"}
+              />
+            </button>
+
+            <InsightCarousel
+              slides={insightSlides}
+              carousel={carousel}
+              height="h-32 sm:h-36"
+              ariaLabel="Event insights"
+            />
+          </div>
+
+          <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+            A blank fee means the event is free to enter. Registration and payment run on the
+            official Event Hub portal — tap any card for the full details.
+          </p>
+        </>
+      )}
+
+      {/* ── LIST ── */}
+      {error ? (
+        <EmptyPanel
+          tone="red"
+          icon={<CalendarOff className="w-7 h-7" />}
+          title="Couldn't reach Event Hub"
+          description={error}
+          action={
+            <GhostButton onClick={fetchEvents}>
+              <RefreshCcw className="w-3.5 h-3.5" />
+              Try again
+            </GhostButton>
+          }
+        />
+      ) : loading ? (
+        <CardSkeletonGrid count={6} />
+      ) : loadingRegistered && isRegisteredView ? (
+        <CardSkeletonGrid count={3} />
+      ) : registeredError && isRegisteredView ? (
+        <div
+          className={cn(
+            TILE_CARD,
+            "flex items-center gap-3 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25"
+          )}
+        >
+          <CalendarOff className="w-4 h-4 shrink-0" />
+          <span className="min-w-0">{registeredError}</span>
         </div>
       ) : displayEvents.length === 0 ? (
-        <EmptyState
-          title={viewMode === "registered" ? "You haven't registered for any events yet." : "No events found matching your criteria."}
-          className="py-12 bg-gray-50  dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-200  dark:border-gray-800"
+        <EmptyPanel
+          tone={isRegisteredView ? "sky" : "indigo"}
+          icon={isRegisteredView ? <Ticket className="w-7 h-7" /> : <SearchX className="w-7 h-7" />}
+          title={
+            isRegisteredView
+              ? "You haven't registered for anything yet"
+              : "No events match your filters"
+          }
+          description={
+            isRegisteredView
+              ? "Registrations you make here or on the Event Hub portal will show up in this list, with their payment status and certificates."
+              : "Try a different search term, or clear the category filter to see everything that's open."
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {displayEvents.map((event: any) => (
-            <m.div
-              key={event.eid}
-              whileHover={{ y: -4 }}
-              className="bg-white  dark:bg-black rounded-3xl p-5 shadow-sm border border-gray-100  dark:border-gray-800 cursor-pointer flex flex-col justify-between h-full"
-              onClick={() => openPreview(event)}
-            >
-              <div className="mb-4 aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
-                <img
-                  src={eventhubImageUrl(event.eid)}
-                  alt={event.title}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }}
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-lg text-gray-900  dark:text-white leading-tight">
-                    {event.title}
-                  </h3>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                   {event.registeredDetails ? (
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      (event.registeredDetails.paymentStatus || "").toLowerCase().includes('paid') || (event.registeredDetails.paymentStatus || "").toLowerCase().includes('free')
-                        ? 'bg-green-100 text-green-800   dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-orange-100 text-orange-800   dark:bg-orange-900/40 dark:text-orange-300'
-                    }`}>
-                      {event.registeredDetails.paymentStatus || "Registered"}
-                    </span>
-                  ) : null}
-                  {event.eligibility && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700   dark:bg-blue-900/20 dark:text-blue-300">
-                      <Users className="w-3 h-3" /> {event.eligibility}
-                    </span>
-                  )}
-                  {event.type && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700   dark:bg-purple-900/20 dark:text-purple-300">
-                      <Tag className="w-3 h-3" /> {event.type}
-                    </span>
-                  )}
-                </div>
+        <div className="space-y-4">
+          <SectionHeader
+            icon={isRegisteredView ? Ticket : Calendar}
+            title={isRegisteredView ? "My Registrations" : "All Events"}
+            count={displayEvents.length}
+            right={
+              <SegmentedControl
+                options={[
+                  { value: "all" as const, label: "All" },
+                  { value: "registered" as const, label: "Registered" },
+                ]}
+                value={viewMode}
+                onChange={setViewMode}
+              />
+            }
+          />
 
-                <div className="space-y-2 text-sm text-gray-600  dark:text-gray-400">
-                  {event.date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" /> {event.date}
-                    </div>
-                  )}
-                  {event.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" /> {event.location}
-                    </div>
-                  )}
-                  {event.price && (
-                    <div className="flex items-center gap-2">
-                      <IndianRupee className="w-4 h-4" /> {event.price}
-                    </div>
-                  )}
-                </div>
+          {!isRegisteredView && (
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search events..."
+                  aria-label="Search events"
+                  className={cn(SEARCH_FIELD, "pl-10 pr-10")}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              
-              <div className="mt-5 pt-4 border-t border-gray-100  dark:border-gray-800">
-                <span className="text-blue-600  dark:text-blue-400 font-medium text-sm hover:underline">
-                  View Details &rarr;
-                </span>
-              </div>
-            </m.div>
-          ))}
+
+              {types.length > 2 && (
+                <ChipTabs
+                  options={types.map((type) => ({ value: type, label: type }))}
+                  value={selectedType}
+                  onChange={setSelectedType}
+                  size="sm"
+                />
+              )}
+            </div>
+          )}
+
+          {/* One column on a phone, filling out as the window widens. The list
+              always runs down the page — never sideways. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {displayEvents.map((event: any) => (
+              <EventCard key={event.eid} event={event} onOpen={openPreview} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Tab Help Footer */}
       <TabHelpFooter tabId="events" />
-
-    </m.div>
+    </PageShell>
   );
 }

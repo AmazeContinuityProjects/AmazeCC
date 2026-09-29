@@ -3,6 +3,7 @@ import { canonicalSeriesName, sameSeries } from "./examSeries";
 import { isDueOnDay } from "./taskMatch";
 import type { CalendarInput } from "@/types/data/semTT";
 import type { Task } from "@/types/tasks";
+import type { EventHubRegistration } from "@/types/data/eventhub";
 
 /**
  * The academic-calendar day model.
@@ -118,6 +119,18 @@ export type CalendarDayEvent = {
   hours?: number;
   /** The task this came from, when it came from the task store. */
   taskId?: string;
+  /**
+   * The user's own photo, for events they registered for themselves.
+   *
+   * Deliberately absent by default. The caller resolves it and only passes it
+   * when `shouldShowProfilePhoto` allows, so a photo the user turned off never
+   * reaches the model — and everything downstream of the model is
+   * export-shaped, so a field that got in here once would be one refactor away
+   * from a shared calendar file.
+   */
+  avatarUrl?: string;
+  /** The EventHub id, so a row can deep-link back to the registration. */
+  eventhubId?: string;
   raw?: any;
 };
 
@@ -464,6 +477,36 @@ export function milestonesOn(day: CalendarDayModel): CalendarDayEvent[] {
 }
 
 /**
+ * Everything on a day that is an assessment, as one list.
+ *
+ * The academic calendar and the exam schedule are two systems writing the same
+ * news: one says "CAT - II is on the 12th", the other says "Biology, 9am,
+ * Room 204, on the 12th". `foldPapersIntoMilestones` joins them when the series
+ * names match, and a reader should never have to know which system won. So a
+ * day with a milestone *and* a paper whose series did not match — a FAT landing
+ * on the same day, or a schedule key spelled nothing like the calendar's — is
+ * still one assessment, and belongs in one place rather than as a headline plus
+ * a separate section further down the sheet.
+ *
+ * Milestones lead the order. A milestone is the day's announcement and a loose
+ * paper is the detail, and that holds whichever of the two sorts first by
+ * `priority` on its own.
+ *
+ * Distinct from `examsOn`, which answers "does this day have a paper" and so
+ * flattens the folded ones out of their parents. This one is for display and
+ * must not flatten anything.
+ */
+export function assessmentsOn(day: CalendarDayModel): CalendarDayEvent[] {
+  return day.events
+    .filter((e) => e.kind === "exam" || e.kind === "milestone")
+    .sort((a, b) => {
+      const aLead = a.kind === "milestone" ? 0 : 1;
+      const bLead = b.kind === "milestone" ? 0 : 1;
+      return aLead - bLead || a.priority - b.priority || a.title.localeCompare(b.title);
+    });
+}
+
+/**
  * Fold a milestone's papers into the milestone.
  *
  * The academic calendar says a milestone happens; the exam schedule says which
@@ -475,6 +518,25 @@ export function milestonesOn(day: CalendarDayModel): CalendarDayEvent[] {
  *
  * Papers that match no milestone stay at the top level; a FAT paper with no
  * milestone entry on the calendar is still an event.
+ *
+ * It also settles two milestones competing for one date, which is the other way
+ * this arrives. VTOP will put a "CAT - I" row and a "CAT - II" row on the *same*
+ * date — around a combined test block the calendar marks the surrounding dates
+ * and the reader sees two tests where the schedule has one. The exam schedule is
+ * the authority on which of them actually happened, because it is the system
+ * that has to name a room and a seat. So once papers have been folded in, a
+ * milestone that owns some has been confirmed, and a rival assessment with none
+ * has not — the rival goes.
+ *
+ * Two constraints keep this from eating real information:
+ *
+ *  - if *no* milestone owns papers there is no authority to appeal to, so
+ *    nothing is dropped. Two CATs on one date with no schedule data is two
+ *    things the college said, and guessing between them would be inventing a
+ *    date.
+ *  - only assessments are dropped. An LID is not a rival, it is a separate
+ *    claim about the last day of instruction, and it is not an "assessment" even
+ *    though it shares the `milestone` kind.
  */
 function foldPapersIntoMilestones(events: CalendarDayEvent[]): CalendarDayEvent[] {
   const milestones = events.filter((e) => e.kind === "milestone");
@@ -489,8 +551,16 @@ function foldPapersIntoMilestones(events: CalendarDayEvent[]): CalendarDayEvent[
     return mine.length ? { ...m, papers: mine } : m;
   });
 
+  // The schedule has spoken. Every milestone carrying papers is confirmed; an
+  // assessment with no papers beside a confirmed one is the calendar's noise.
+  const confirmed = folded.filter((m) => (m.papers?.length ?? 0) > 0);
+  const kept =
+    confirmed.length === 0
+      ? folded
+      : folded.filter((m) => (m.papers?.length ?? 0) > 0 || m.classesRun === true);
+
   return [
-    ...folded,
+    ...kept,
     ...events.filter((e) => e.kind !== "exam" && e.kind !== "milestone"),
     ...exams.filter((e) => !claimed.has(e)),
   ];
@@ -499,6 +569,68 @@ function foldPapersIntoMilestones(events: CalendarDayEvent[]): CalendarDayEvent[
 /** The holidays written on a day. */
 export function holidaysOn(day: CalendarDayModel): CalendarDayEvent[] {
   return day.events.filter((e) => e.kind === "holiday");
+}
+
+/** What a day is "about" — the slot its sheet leads with. */
+export type DayHeadlineKind = "milestone" | "exam" | "nonInstructional" | "holiday" | "schedule";
+
+export type DayHeadline = {
+  kind: DayHeadlineKind;
+  /**
+   * Every event in that slot, not just one. A milestone that owns its papers
+   * leads with itself; a day carrying three loose papers leads with all three,
+   * because a reader wants the list and not the first entry of it.
+   */
+  events: CalendarDayEvent[];
+};
+
+/**
+ * Which events a day is about.
+ *
+ * A day can carry a dozen things at once - a holiday, a club workshop, three
+ * CAT papers - and they are not peers. One of them is the day's headline and
+ * the rest are footnotes to it, so both the day sheet and the Upcoming list
+ * have to agree on which is which. If they picked independently they would
+ * drift, and the sheet would say "CAT II" while Upcoming said "Robotics Club"
+ * for the same date, which reads as a bug in the data rather than in the rule.
+ *
+ * So the rule lives here once. The order is a claim about consequence, not
+ * about importance: an assessment cancels the timetable, a holiday cancels the
+ * college, and an event is what is left over.
+ */
+export function dayHeadline(day: CalendarDayModel): DayHeadline {
+  // A milestone that already owns its papers speaks for itself.
+  const owner = day.events.find((e) => e.kind === "milestone" && (e.papers?.length ?? 0) > 0);
+  if (owner) return { kind: "milestone", events: [owner] };
+
+  // An assessment milestone with no papers attached is still a milestone the
+  // college published. The exam schedule may simply not have been fetched yet,
+  // or may file the papers under a name the fold could not match — and either
+  // way the day has no classes, which `hasClasses` and `isExamDay` already say
+  // by looking at `classesRun`. If this did not lead, the sheet would show a
+  // timetable for a day that has none, and the three rules would disagree.
+  const assessment = day.events.find((e) => e.kind === "milestone" && e.classesRun === false);
+  if (assessment) return { kind: "milestone", events: [assessment] };
+
+  // Papers with no milestone to fold under still head the day: no classes run.
+  const papers = examsOn(day);
+  if (papers.length) return { kind: "exam", events: papers };
+
+  if (day.dayType === "nonInstructional") return { kind: "nonInstructional", events: holidaysOn(day) };
+  if (day.dayType === "holiday") return { kind: "holiday", events: holidaysOn(day) };
+
+  return { kind: "schedule", events: [] };
+}
+
+/**
+ * The single event that stands for a day, for callers that can only show one.
+ *
+ * `dayHeadline` can return a list - three loose papers are three entries in the
+ * day's slot - but Upcoming shows one row per date. The first entry stands in,
+ * and the rest ride along as extras.
+ */
+export function primaryEventOn(day: CalendarDayModel): CalendarDayEvent | undefined {
+  return dayHeadline(day).events[0];
 }
 
 /**
@@ -1018,6 +1150,22 @@ export type CalendarSources = {
   tasks?: Task[];
   /** `wastedODsTracker` from localStorage, for OD status inside the day. */
   odTracker?: Record<string, any>;
+  /**
+   * EventHub registrations, from `registeredEventsAtom`.
+   *
+   * The only source in here the user created rather than the college
+   * publishing, which is why its events can carry `avatarUrl`: these are things
+   * *you* signed up for, so your own picture is a fair marker for them.
+   */
+  registeredEvents?: EventHubRegistration[];
+  /**
+   * The user's profile photo, already gated by `shouldShowProfilePhoto`.
+   *
+   * Resolved by the caller and passed in rather than read here, so the privacy
+   * decision stays in one place and this module never has to know the
+   * setting exists.
+   */
+  profileImageUrl?: string;
 };
 
 function asCalendarArray(calendars: any): CalendarInput[] {
@@ -1178,6 +1326,60 @@ function taskEventsFor(tasks: Task[], fullDate: Date) {
 }
 
 /**
+ * Whether a registration is one the user is actually going to.
+ *
+ * EventHub records a registration when the form is submitted, and for a paid
+ * event that is *before* the money moves. Listing a pending payment in a section
+ * called "Upcoming" would tell the user to turn up to something they have not
+ * bought, and the "pay now" button they need is on the EventHub page, not here.
+ *
+ * A free event has no `paymentStatus` at all, so absent means "nothing to pay"
+ * and is treated as confirmed. Dropping those would silently lose every club
+ * signup on the list, which is the bulk of what the user registered for.
+ */
+function isRegistrationConfirmed(r: EventHubRegistration): boolean {
+  const status = String(r.paymentStatus ?? "").toLowerCase();
+  if (!status) return true;
+  return ["paid", "free", "success", "confirmed"].some((word) => status.includes(word));
+}
+
+/**
+ * EventHub registrations on one date, as calendar events.
+ *
+ * The last source in, and the only one the user authored: a club workshop they
+ * signed up for is a real commitment on a real date, and it belongs on the same
+ * calendar as the exam that is the reason they cannot attend it. It is `kind:
+ * "event"`, which already had a tone, a label and a low priority, so it never
+ * outranks a holiday or a CAT on the same day — it rides underneath them.
+ */
+function eventhubEventsFor(
+  registrations: EventHubRegistration[] | undefined,
+  profileImageUrl: string | undefined,
+  year: number,
+  monthIndex: number,
+  date: number
+) {
+  const out: CalendarDayEvent[] = [];
+  (registrations ?? []).forEach((r) => {
+    const d = parseDayDate(r.date);
+    if (!isValidDay(d) || !isSameDay(d, year, monthIndex, date)) return;
+    if (!isRegistrationConfirmed(r)) return;
+
+    out.push(
+      makeEvent({
+        kind: "event",
+        title: (r.name || "").trim() || KIND_LABEL.event,
+        detail: [r.time, r.venue].filter(Boolean).join(" · ") || undefined,
+        avatarUrl: profileImageUrl,
+        eventhubId: r.eid,
+        raw: r,
+      })
+    );
+  });
+  return out;
+}
+
+/**
  * Classify a day.
  *
  * `published` is the important input: a date the calendar lists with no events
@@ -1218,13 +1420,23 @@ function decideDayType(
  *
  * Every source that can put something on a day is folded in here — the VTOP
  * academic calendar, the exam schedule, Moodle deadlines, recorded attendance,
- * OD records and the task store — so the grid, the log, the day sheet and the
- * `.ics` export all read the same objects instead of each re-deriving events
- * from raw payloads. That is the whole reason the old page's day panel and its
- * grid could disagree about what a day contained.
+ * OD records, the task store and the user's own EventHub registrations — so the
+ * grid, the log, the day sheet and the `.ics` export all read the same objects
+ * instead of each re-deriving events from raw payloads. That is the whole reason
+ * the old page's day panel and its grid could disagree about what a day
+ * contained.
  */
 export function buildEnrichedCalendars(sources: CalendarSources): CalendarMonthModel[] {
-  const { moodle = [], schedule, attendance = [], od, tasks = [], odTracker = {} } = sources;
+  const {
+    moodle = [],
+    schedule,
+    attendance = [],
+    od,
+    tasks = [],
+    odTracker = {},
+    registeredEvents = [],
+    profileImageUrl,
+  } = sources;
   const attendanceByDate = buildAttendanceByDate(attendance);
 
   return asCalendarArray(sources.calendars)
@@ -1273,6 +1485,7 @@ export function buildEnrichedCalendars(sources: CalendarSources): CalendarMonthM
           ...moodleEventsFor(moodle, year, monthIndex, date),
           ...taskEventsFor(tasks, fullDate),
           ...odEventsFor(od, odTracker, year, monthIndex, date),
+          ...eventhubEventsFor(registeredEvents, profileImageUrl, year, monthIndex, date),
           ...classEventsFor(dayRecord),
           ...calendarEvents,
         ].sort((a, b) => a.priority - b.priority || a.title.localeCompare(b.title));

@@ -6,6 +6,7 @@ import { storage } from "../storage";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
 export { apiRequest as api } from "./request-layer";
+import { apiRequest } from "./request-layer";
 
 export interface SyncAllOptions {
   semesterId: string;
@@ -161,4 +162,74 @@ export function loginToEventHub(ids: Ids, demoMode = false): Promise<string> {
 
 export function getVtopCreds(): VtopCreds {
   return syncEngine.getVtopCreds();
+}
+
+/**
+ * Raised by `eventHubRequest` when an Event Hub route answers with an error.
+ *
+ * Carries the route's own `reason` where it sent one (`session_expired`,
+ * `invalid_credentials`, `missing_credentials`) so a caller can tell "your
+ * session died, try again" from "these credentials are wrong", which are very
+ * different things to show a user.
+ */
+export class EventHubError extends Error {
+  readonly reason?: string;
+  constructor(message: string, reason?: string) {
+    super(message);
+    this.name = "EventHubError";
+    this.reason = reason;
+  }
+}
+
+/**
+ * Call an Event Hub route with the cached session attached.
+ *
+ * The three things a raw `api("events/…", { auth: "none" })` call gets wrong,
+ * and why this exists:
+ *
+ *  - **No session.** Every Event Hub route falls back to logging in from
+ *    `username`/`password` when `jsessionid` is absent, so an action like
+ *    1-Click Register spent a full login round trip to VIT (with TLS
+ *    verification disabled server-side) before doing any work. `ensureEventHubSession`
+ *    hands over the session the sync engine already holds.
+ *  - **No expiry recovery.** With a session attached the routes can *tell* us
+ *    the session died — they answer `401` with `reauthenticate: true` — and we
+ *    drop the dead one and try once more. That signal is unreachable when we
+ *    never send a session, so a stale cache was invisible to the client.
+ *  - **Silent failure.** `apiRequest` returns the parsed body for any status,
+ *    so a `400`/`500` arrives as data. Every Event Hub route puts its failure
+ *    in an `error` field, so that is treated as a throw here — otherwise a
+ *    failed registration is a button press with no visible result at all.
+ */
+export async function eventHubRequest<T = any>(
+  ids: Ids,
+  path: string,
+  body: Record<string, unknown> = {},
+  opts: { method?: "GET" | "POST" } = {},
+): Promise<T> {
+  const demoMode = ids?.VtopUsername === "demo";
+  const hasBody = Object.keys(body).length > 0;
+
+  const send = async (): Promise<any> => {
+    // `ensureEventHubSession`, not `loginEventHub`: the latter returns a cached
+    // session with no age check, so an expired one would be reused forever.
+    const jsessionid = demoMode ? "" : await credentialManager.ensureEventHubSession(ids, { demoMode });
+    return apiRequest(path, {
+      method: opts.method ?? (hasBody ? "POST" : "GET"),
+      body: hasBody ? { ...body, ...(jsessionid ? { jsessionid } : {}) } : undefined,
+      // The session is already in the body, so the layer must not add another.
+      auth: "none",
+    });
+  };
+
+  const first = await send();
+  // One retry, and only one: a session that keeps coming back marked dead is a
+  // problem to report, not to keep retrying against.
+  const res = first?.reauthenticate
+    ? (credentialManager.clearEventHub(), await send())
+    : first;
+  if (res?.error) {
+    throw new EventHubError(String(res.error), res.reason);
+  }
+  return res as T;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import {
   BookOpen,
   Calendar as CalendarIcon,
@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
+  AvatarDot,
   EmptyPanel,
   GhostButton,
   IconButton,
@@ -42,6 +43,7 @@ import {
   buildAttendanceLog,
   buildEnrichedCalendars,
   CALENDAR_TYPES,
+  dayHeadline,
   examsOn,
   filterLog,
   findDay,
@@ -52,13 +54,18 @@ import {
   synthesiseDay,
   todayKey,
   type AttendanceLogRow,
+  type CalendarDayEvent,
   type CalendarDayModel,
   type CalendarTypeKey,
-  type EventKind,
   type LogFilter,
 } from "@/lib/calendarDay";
+import { canonicalSeriesName } from "@/lib/examSeries";
 import { cycleTaskStatus, createTask, migrateCustomHomework } from "@/lib/tasksStorage";
-import { tasksAtom } from "@/store/dataAtoms";
+import { registeredEventsAtom, tasksAtom } from "@/store/dataAtoms";
+import { settingsAtom } from "@/store/settingsAtoms";
+import { shouldShowProfilePhoto } from "@/lib/settingsVisibility";
+import { storage } from "@/lib/storage";
+import type { EventHubRegistration } from "@/types/data/eventhub";
 import { formatSemesterName } from "../exams/courseHelpers";
 import MonthGrid from "./MonthGrid";
 import DayDetailSheet from "./DayDetailSheet";
@@ -104,6 +111,75 @@ const CALENDAR_OPTIONS = (Object.keys(CALENDAR_TYPES) as CalendarTypeKey[]).map(
  */
 const LAB_VALUE = "text-emerald-600 dark:text-emerald-400";
 
+/** A row in the Upcoming list — one date, and everything happening on it. */
+type UpcomingItem = {
+  /** Unique across the list, and stable enough to key a React list on. */
+  id: string;
+  /** Kept so the row can open the day it describes. */
+  day: CalendarDayModel;
+  tone: string;
+  /** The subjects on an exam day, otherwise the headline event's own title. */
+  title: string;
+  /**
+   * Set when the row is something the user registered for. The picture answers
+   * "is this mine?" faster than the word "event" does, and it is the user's own
+   * photo, already gated on their photo-visibility setting by the time it gets
+   * here.
+   */
+  avatarUrl?: string;
+  /** The event's own `detail`, when the title is not already the subject list. */
+  subtitle?: string;
+  /** One entry per other event on the same date. */
+  lines: { title: string; avatarUrl?: string; eventhubId?: string }[];
+  /** How many papers, when and where, or whether the college is shut. */
+  stats?: string;
+  /** The right-hand label. The series name on an exam, else the kind. */
+  kindText: string;
+  when: Date;
+};
+
+/**
+ * When and where an exam day's papers sit, and how many there are.
+ *
+ * A paper's `detail` is packed as `series · time · venue` by `examEventsFor`.
+ * The series is already this row's kind label on the right, so repeating it
+ * here would say the same word twice and leave the two facts the reader cannot
+ * get anywhere else on the row — when, and which room — crowded off the end.
+ */
+function paperStatsLine(papers: CalendarDayEvent[]): string {
+  const times: string[] = [];
+  const venues: string[] = [];
+  papers.forEach((p) => {
+    const tail = (p.detail ?? "")
+      .split("·")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(1);
+    if (tail[0]) times.push(tail[0]);
+    if (tail[1]) venues.push(tail[1]);
+  });
+
+  const bits = [`${papers.length} paper${papers.length === 1 ? "" : "s"}`];
+  const time = [...new Set(times)].join(" & ");
+  const venue = [...new Set(venues)].join(", ");
+  if (time) bits.push(time);
+  if (venue) bits.push(venue);
+  return bits.join(" · ");
+}
+
+/**
+ * Whether the college is open, for a row whose title does not already say.
+ *
+ * "Nothing scheduled" and "you are expected in" are different days, and a
+ * holiday that also carries a club workshop is exactly the row where a reader
+ * needs to be told which one they are looking at.
+ */
+function dayStatsLine(day: CalendarDayModel): string | undefined {
+  if (day.dayType === "holiday") return "College closed";
+  if (day.dayType === "nonInstructional") return "College open · no classes";
+  return undefined;
+}
+
 export default function CalendarSubpage({
   calendars,
   calendarType = "ALL",
@@ -118,6 +194,7 @@ export default function CalendarSubpage({
   targetAttendance = 75,
   onBack,
   onOpenCirculars,
+  onOpenCourse,
 }: {
   calendars?: any;
   calendarType?: CalendarTypeKey;
@@ -132,9 +209,17 @@ export default function CalendarSubpage({
   targetAttendance?: number;
   onBack: () => void;
   onOpenCirculars: () => void;
+  /**
+   * Open a course's own page from a timetable row. Optional — when it is absent
+   * the schedule rows render as plain text rather than as buttons that do
+   * nothing.
+   */
+  onOpenCourse?: (courseCode: string) => void;
 }) {
   const [tasks, setTasks] = useAtom(tasksAtom);
   const [type, setType] = useState<CalendarTypeKey>(calendarType);
+  const registeredEvents = useAtomValue(registeredEventsAtom);
+  const settings = useAtomValue(settingsAtom);
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [filter, setFilter] = useState<LogFilter>("all");
@@ -169,6 +254,26 @@ export default function CalendarSubpage({
     [attendanceList]
   );
 
+  /**
+   * The user's photo, for the rows that are events they registered for.
+   *
+   * The three-field fallback is copied from the home screens on purpose: the
+   * VTOP profile endpoint has spelled this field three different ways over the
+   * years and a rename there should not silently blank every avatar in the app.
+   *
+   * The visibility gate is applied *here*, before the URL reaches
+   * `buildEnrichedCalendars`, rather than at each render site. The model is
+   * export-shaped — the day sheet writes it to `.ics` — so a photo that got into
+   * the model while the setting was on would have no later chance to notice the
+   * user switching it off.
+   */
+  const profileName = settings?.friendlyName || IDs?.VtopUsername || "You";
+  const profileImageUrl = useMemo(() => {
+    if (!shouldShowProfilePhoto(settings)) return undefined;
+    const profile = storage.profile.get() as any;
+    return profile?.image || profile?.photo || profile?.photoBase64 || undefined;
+  }, [settings]);
+
   const months = useMemo(
     () =>
       buildEnrichedCalendars({
@@ -178,8 +283,19 @@ export default function CalendarSubpage({
         attendance: attendanceList,
         od: ODhoursData,
         tasks,
+        registeredEvents: registeredEvents as EventHubRegistration[],
+        profileImageUrl,
       }),
-    [calendars, moodleData, scheduleData, attendanceList, ODhoursData, tasks]
+    [
+      calendars,
+      moodleData,
+      scheduleData,
+      attendanceList,
+      ODhoursData,
+      tasks,
+      registeredEvents,
+      profileImageUrl,
+    ]
   );
 
   // Open on the month you are in, or the next one to start. `null` means the
@@ -347,7 +463,7 @@ export default function CalendarSubpage({
   }, [months]);
 
   /**
-   * Everything still to come, in one chronological list.
+   * Everything still to come, in one chronological list, one row per date.
    *
    * Deliberately not just exams and assignments. The old version of this page
    * had separate cards for "Upcoming Exams" and "Upcoming Tasks" and no place at
@@ -356,35 +472,84 @@ export default function CalendarSubpage({
    * show. Milestones, holidays, on-duty and the unclassified leftovers all land
    * in this one list, each carrying its own tone, and one date-order answers
    * "what is coming" without the user checking four places.
+   *
+   * One row per *date* rather than per event, because a date can carry a
+   * holiday and a club event and three papers at once, and rendering those as
+   * five separate rows is what made the list feel like noise. The date leads and
+   * the rest of it rides underneath. Deadlines are the exception and keep a row
+   * each — see the comment where they are pushed.
    */
   const upcoming = useMemo(() => {
     const now = new Date();
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const items: Array<{
-      id: string;
-      kind: EventKind;
-      title: string;
-      detail: string;
-      tone: string;
-      when: Date;
-    }> = [];
+    const items: UpcomingItem[] = [];
 
     months.forEach((month) => {
       month.days.forEach((day) => {
         if (day.fullDate.getTime() < midnight.getTime()) return;
+
+        // A deadline is an obligation, not a description of the day. Folding
+        // one under "Republic Day" would bury the thing that actually costs
+        // marks, so a task or a Moodle deadline keeps a row of its own even on
+        // a date a holiday or a CAT already owns.
         day.events.forEach((event) => {
-          // `class` and `working` are the grid's background state, not news.
-          if (event.kind === "class" || event.kind === "working") return;
+          if (event.kind !== "assignment") return;
           items.push({
-            id: `${day.dateKey}-${event.kind}-${event.title}`,
-            kind: event.kind,
-            title: event.title,
-            detail: [event.detail, event.courseCode].filter(Boolean).join(" · "),
+            id: `${day.dateKey}-due-${event.taskId ?? event.title}`,
+            day,
             tone: event.tone,
-            // An exam or a milestone is on the day itself; a deadline can be
-            // later in it.
+            title: event.title,
+            subtitle: [event.detail, event.courseCode].filter(Boolean).join(" · ") || undefined,
+            lines: [],
+            stats: undefined,
+            kindText: kindLabel(event.kind),
             when: event.dueAt ?? day.fullDate,
           });
+        });
+
+        const dated = day.events.filter(
+          (e) => e.kind !== "class" && e.kind !== "working" && e.kind !== "assignment"
+        );
+        if (!dated.length) return;
+
+        // The same precedence the day sheet leads with, so the sheet and this
+        // list can never name different events for one date. It comes back
+        // empty on an ordinary teaching day that happens to carry an OD or a
+        // club event, and dropping that would lose the event, so fall back to
+        // the highest-priority thing on the day.
+        const { kind: headlineKind, events: headlineEvents } = dayHeadline(day);
+        const headline = headlineEvents[0] ?? dated[0];
+
+        // The subjects this row stands for: the papers of a milestone that owns
+        // them, or every loose paper when the paper slot is the headline.
+        const subjects =
+          headlineKind === "milestone"
+            ? headlineEvents[0]?.papers ?? []
+            : headlineKind === "exam"
+              ? headlineEvents
+              : [];
+        const hasSubjects = subjects.length > 0;
+
+        items.push({
+          id: `${day.dateKey}-day-${headlineKind}`,
+          day,
+          tone: headline.tone,
+          // The subjects, not "CAT II". The series is already the kind label on
+          // the right of the row, and a row that only says which exam it is
+          // does not tell the reader which papers they have to sit.
+          title: hasSubjects ? subjects.map((p) => p.title).join(" · ") : headline.title,
+          avatarUrl: headline.avatarUrl,
+          subtitle: hasSubjects ? undefined : headline.detail,
+          // One line per extra, so a holiday and the club event on it read as
+          // two things happening rather than one sentence run together.
+          lines: dated
+            .filter((e) => e !== headline && !subjects.includes(e))
+            .map((e) => ({ title: e.title, avatarUrl: e.avatarUrl, eventhubId: e.eventhubId })),
+          stats: hasSubjects ? paperStatsLine(subjects) : dayStatsLine(day),
+          kindText: hasSubjects
+            ? canonicalSeriesName(subjects[0].series ?? headline.title)
+            : kindLabel(headline.kind),
+          when: headline.dueAt ?? day.fullDate,
         });
       });
     });
@@ -624,8 +789,10 @@ export default function CalendarSubpage({
       {/* ── Upcoming ──
           One date-ordered list of everything still to come — exams, deadlines,
           milestones (CAT, LID, Mid Term Test), holidays, on-duty and whatever
-          else the college published that this app has no category for. Each row
-          keeps its own tone, so the kind reads without reading the title. */}
+          else the college published that this app has no category for. One row
+          per date, so a holiday and the club event on it read as one day rather
+          than two rows. Each row keeps its own tone, so the kind reads without
+          reading the title. */}
       <section className="space-y-2.5">
         <SectionHeader icon={Sparkles} title="Upcoming" count={upcoming.length} />
         {upcoming.length === 0 ? (
@@ -633,31 +800,67 @@ export default function CalendarSubpage({
         ) : (
           <ListShell>
             {upcoming.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 py-3 px-4">
+              /* The whole row is the hit target. A small affordance in the
+                 corner would mean aiming at it, and these are the rows a user
+                 scans fastest — the whole point is to get from "CAT II is
+                 coming" to the day's detail in one press. */
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => openDay(item.day)}
+                className="flex w-full items-start gap-3 py-3 px-4 text-left transition-colors hover:bg-zinc-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500/50 dark:hover:bg-white/[0.03]"
+              >
                 {/* A dot, not a pill, and on the title's line rather than the
                     row's centre. The pill was the widest thing on the row and
                     it said something the dot already says in colour, so it
                     pushed the title — the part worth reading — off the line. */}
                 <ToneDot tone={item.tone} size="md" className="mt-[7px]" />
                 <div className="min-w-0 flex-1">
-                  <ListRowText
-                    title={item.title}
-                    titleTag="h4"
-                    subtitle={item.detail}
-                    right={
-                      <span className="flex items-center gap-2">
-                        {/* The kind moves to the right in small type rather than
-                            disappearing: the dot carries it at a glance, the
-                            word makes it unambiguous. */}
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                          {kindLabel(item.kind)}
-                        </span>
-                        <ToneBadge tone={item.tone}>{relativeDayLabel(item.when)}</ToneBadge>
-                      </span>
-                    }
-                  />
+                  <div className="flex items-center gap-2">
+                    <AvatarDot src={item.avatarUrl} name={profileName} />
+                    <div className="min-w-0 flex-1">
+                      <ListRowText
+                        title={item.title}
+                        titleTag="h4"
+                        subtitle={item.subtitle}
+                        right={
+                          <span className="flex items-center gap-2">
+                            {/* The kind moves to the right in small type rather than
+                                disappearing: the dot carries it at a glance, the
+                                word makes it unambiguous. On an exam day this is the
+                                series name, so the title can be the subjects. */}
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                              {item.kindText}
+                            </span>
+                            <ToneBadge tone={item.tone}>{relativeDayLabel(item.when)}</ToneBadge>
+                          </span>
+                        }
+                      />
+                    </div>
+                  </div>
+                  {/* Anything else happening on the same date, one per line so
+                      each stays readable instead of running together. */}
+                  {item.lines.length > 0 && (
+                    <ul className="mt-1.5 space-y-1">
+                      {item.lines.map((line, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400"
+                        >
+                          <AvatarDot src={line.avatarUrl} name={profileName} />
+                          <span className="truncate">{line.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {item.stats && (
+                    <p className="mt-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                      {item.stats}
+                    </p>
+                  )}
                 </div>
-              </div>
+                <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 dark:text-zinc-600 mt-0.5" />
+              </button>
             ))}
           </ListShell>
         )}
@@ -716,6 +919,7 @@ export default function CalendarSubpage({
           }}
           isMoodleConnected={isMoodleConnected}
           onConnectMoodle={() => setMoodleOpen(true)}
+          onOpenCourse={onOpenCourse}
         />
       ) : null}
 
