@@ -233,6 +233,47 @@ describe("week strip", () => {
   });
 });
 
+describe("the header row's layout", () => {
+  /** The row that holds the week navigation and the pill-style filter. */
+  const headerRow = () =>
+    screen.getByTitle("Next Week").closest("div.flex.flex-wrap") as HTMLElement;
+
+  it("keeps a gap and a wrap between the navigation and the filter", () => {
+    // The row grew a `Today` chip every time the selection left today — which
+    // is exactly when the exam viewport below is on screen. With `justify-between`
+    // and no gap, that chip ran into the Compact/Detailed control instead of
+    // the row wrapping.
+    renderHome();
+    fireEvent.click(within(strip()).getByTitle("Fri 2 Oct · No classes"));
+
+    const row = headerRow();
+    expect(row.className).toContain("gap-2");
+    expect(row.className).toContain("flex-wrap");
+  });
+
+  it("lets the date shorten rather than shoving the filter off the edge", () => {
+    // "Nov - Dec 2025" is a wide, unbreakable-ish string in a row with two
+    // other children. Without `min-w-0` it cannot shrink, so it pushes.
+    renderHome();
+    const name = screen.getByText("Sep - Oct 2026");
+    expect(name.className).toContain("truncate");
+    expect(name.parentElement?.className).toContain("min-w-0");
+  });
+
+  it("refuses to squeeze the filter, and keeps it right-aligned if it wraps", () => {
+    // Its segments are `whitespace-nowrap`, so a squeezed control would
+    // overflow its own pill rather than shorten. (The filter is suppressed on
+    // an exam or holiday day, and this fixture's today is an exam day, so
+    // select an ordinary one first.)
+    renderHome();
+    fireEvent.click(within(strip()).getByTitle("Fri 2 Oct · No classes"));
+
+    const filter = screen.getByTitle("2-Line Compact Pill View");
+    const group = filter.closest("div.shrink-0") as HTMLElement;
+    expect(group.className).toContain("ml-auto");
+  });
+});
+
 describe("the Today chip", () => {
   const selected = () =>
     within(strip())
