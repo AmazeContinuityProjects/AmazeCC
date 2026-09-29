@@ -188,9 +188,7 @@ export default function SimplifiedMobileHome({
   // Timetable sheet registers itself for system back via BottomSheet.
 
   const handleOpenFreeClassrooms = () => {
-    setActiveTab("tools");
-    setActiveToolsSubTab?.("free-class");
-    setActiveSubTab?.("free-class");
+    setActiveTab("free-class");
   };
 
   const handleCourseClick = (courseCode: string) => {

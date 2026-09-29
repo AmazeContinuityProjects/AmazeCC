@@ -115,6 +115,7 @@ function getTabIdFromLabel(label: string): string | null {
   if (lower === "my courses & marks" || lower === "my courses" || lower === "academics overview" || lower === "course dashboard" || lower === "academics") return "academics";
   if (lower === "hostel payments" || lower === "payments") return "payments";
   if (lower === "libraries" || lower === "question bank") return "libraries";
+  if (lower === "free classrooms" || lower === "free classroom" || lower === "free-class") return "free-class";
   if (lower === "event hub" || lower === "events hub" || lower === "events") return "events";
   if (lower === "club hub" || lower === "clubs") return "clubs";
   if (lower === "community feed" || lower === "community" || lower === "announcements") return "community";
@@ -261,7 +262,7 @@ export default function NavigationTabs({
       setShowHostelPanel(false);
       if (activeTab === "home" || activeTab === "attendance") {
         setExpandedGroup("study");
-      } else if (["payments", "libraries", "events", "clubs", "community", "transport", "cabshare"].includes(activeTab)) {
+      } else if (["payments", "libraries", "events", "clubs", "community", "free-class", "transport", "cabshare"].includes(activeTab)) {
         setExpandedGroup("campus");
       } else if (activeTab === "more") {
         setExpandedGroup("tools");
@@ -358,6 +359,7 @@ export default function NavigationTabs({
     events: { icon: <Calendar className="h-5 w-5 stroke-[2]" />, label: "Event Hub" },
     clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
     community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
+    "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
     cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
     transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
     more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
@@ -550,6 +552,17 @@ export default function NavigationTabs({
         isActive: activeTab === "community",
         onSelect: () => selectTab("community"),
       },
+      {
+        id: "free-class",
+        label: "Free Classrooms",
+        icon: DoorOpen,
+        // Reachable as its own tab and as a Tools sub-tab, so the rail lights up
+        // for both. The same shape Cab Share uses.
+        isActive:
+          activeTab === "free-class" ||
+          (activeTab === "tools" && activeToolsSubTab === "free-class"),
+        onSelect: () => selectTab("free-class"),
+      },
     ];
 
     if (isHosteller === true || residentialStatus === "hosteller") {
@@ -568,7 +581,7 @@ export default function NavigationTabs({
     }
 
     return items;
-  }, [activeTab, isHosteller, residentialStatus, selectTab, HostelActiveSubTab, setHostelActiveSubTab]);
+  }, [activeTab, activeToolsSubTab, isHosteller, residentialStatus, selectTab, HostelActiveSubTab, setHostelActiveSubTab]);
 
   const toolsItems = useMemo<NavItem[]>(() => [
     {
@@ -653,16 +666,9 @@ export default function NavigationTabs({
         setActiveToolsSubTab?.("cabshare");
       },
     },
-    {
-      id: "free-class",
-      label: "Free Classrooms",
-      icon: DoorOpen,
-      isActive: activeTab === "tools" && activeToolsSubTab === "free-class",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("free-class");
-      },
-    },
+    // Free Classrooms is a top-level tab now, so it lives in the Campus group
+    // rather than here. `toolsSubItems` still lists it below, so it is
+    // reachable from the Tools flyout too.
   ], [activeTab, activeMoreSubTab, activeToolsSubTab, selectTab, setActiveToolsSubTab]);
 
   const accountItems = useMemo<NavItem[]>(() => [
@@ -756,6 +762,14 @@ export default function NavigationTabs({
         icon: Rss,
         isActive: activeTab === "community",
         onSelect: () => { selectTab("community"); }
+      },
+      "free-class": {
+        label: "Free Classrooms",
+        icon: DoorOpen,
+        isActive:
+          activeTab === "free-class" ||
+          (activeTab === "tools" && activeToolsSubTab === "free-class"),
+        onSelect: () => { selectTab("free-class"); }
       },
       cabshare: {
         label: "Cab Share",
@@ -1368,7 +1382,7 @@ export default function NavigationTabs({
                 const isActive = group.id === "study"
                   ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
                   : group.id === "campus"
-                  ? ["payments", "libraries", "events", "clubs", "community", "hostel", "transport"].includes(activeTab)
+                  ? ["payments", "libraries", "events", "clubs", "community", "free-class", "hostel", "transport"].includes(activeTab)
                   : group.id === "tools"
                   ? activeTab === "more"
                   : activeTab === "profile";
@@ -1703,7 +1717,7 @@ const AppLibraryPortal = memo(({
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
     { label: "CGPA Predictor", group: "Tools", icon: TrendingUp, action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
-    { label: "Free Classrooms", group: "Tools", icon: DoorOpen, action: () => { selectTab("tools"); setActiveToolsSubTab?.("free-class"); } },
+    { label: "Free Classrooms", group: "Campus", icon: DoorOpen, action: () => { selectTab("free-class"); } },
     
     { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
     { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
@@ -1748,7 +1762,7 @@ const AppLibraryPortal = memo(({
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
         { label: "CGPA Predictor", icon: TrendingUp, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
         { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
-        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("free-class"); } },
+        { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
       ]
     },
     {
@@ -2060,6 +2074,7 @@ const AppLibraryPortal = memo(({
             { id: "academics", label: "Academics" },
             { id: "payments", label: "Payments" },
             { id: "libraries", label: "Libraries" },
+            { id: "free-class", label: "Free Classrooms" },
             { id: "events", label: "Event Hub" },
             { id: "clubs", label: "Club Hub" },
             { id: "community", label: "Announcements" },

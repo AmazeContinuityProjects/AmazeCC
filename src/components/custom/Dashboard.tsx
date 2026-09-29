@@ -368,7 +368,7 @@ function DashboardContent({
     }
   }, [activeTab, loadTransportData]);
 
-  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "more", "profile"];
+  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "free-class", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -1134,6 +1134,12 @@ function DashboardContent({
           {activeTab === "community" && (
             <div className="animate-fadeIn">
               <CommunityFeed IDs={IDs} loginToVTOP={loginToVTOP} onBack={onSystemBack} />
+            </div>
+          )}
+
+          {activeTab === "free-class" && (
+            <div className="animate-fadeIn">
+              <FreeClassroomsTab onBack={onSystemBack} />
             </div>
           )}
 

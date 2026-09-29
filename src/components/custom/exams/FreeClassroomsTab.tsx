@@ -1,130 +1,264 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import SubpageLayout from "../shared/SubpageLayout";
-import BottomSheet from "../shared/BottomSheet";
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
+import { OptionPicker } from "@amazecontinuityprojects/amazeui";
+import { m } from "framer-motion";
 import {
-  Search,
-  Clock,
-  CalendarDays,
   Building2,
-  Sparkles,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   Copy,
   DoorOpen,
-  Laptop,
-  BookOpen,
-  ChevronRight,
-  CheckCircle2,
-  XCircle,
+  RefreshCcw,
+  Search,
+  X,
+  Zap,
 } from "lucide-react";
 
-import type { ParsedCourse } from "../exams/FFCS/types";
+import { LIST_ROW, SEARCH_FIELD, TILE_CARD, TONE_BADGE } from "@/lib/uiTokens";
+import {
+  DAYS_OF_WEEK,
+  DAY_LABELS,
+  bestPeriod,
+  blockAvailability,
+  buildDayIndex,
+  buildPeriodSlots,
+  freeRoomsForPeriod,
+  freeRoomsForRun,
+  positionLabel,
+  parseCourseRows,
+  resolveNow,
+  resolvePeriods,
+  type DayId,
+  type DayIndex,
+  type FreeRoomCourse,
+  type FreeRooms,
+  type PeriodOption,
+} from "@/lib/freeClassrooms";
+import BottomSheet from "../shared/BottomSheet";
+import {
+  ChipTabs,
+  DotPill,
+  EmptyPanel,
+  GhostButton,
+  IconButton,
+  InsightCarousel,
+  ListRowText,
+  ListShell,
+  ListSkeleton,
+  PageShell,
+  SectionHeader,
+  SegmentedControl,
+  StatTile,
+  ToneBadge,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
 
-// Campus Schemas
 import chennaiSchema from "@/data/campus/chennai.json";
-import apSchema from "@/data/campus/ap.json";
-import bhopalSchema from "@/data/campus/bhopal.json";
 
-const CAMPUS_SCHEMAS: Record<string, any> = {
-  chennai: chennaiSchema,
-  ap: apSchema,
-  bhopal: bhopalSchema,
+/**
+ * Free Classrooms.
+ *
+ * The answers all come from `lib/freeClassrooms.ts`; this is the surface. Three
+ * things are worth saying about how it is arranged.
+ *
+ * **One accent.** Emerald means free, everywhere. Indigo marks a classroom and
+ * cyan a lab, and only ever as small badges or chip tints. The page used to run
+ * emerald, teal, indigo, cyan and rose across four separate control strips, plus
+ * a gradient header with a blurred blob behind it.
+ *
+ * **Two questions, two sections.** "When" is day and period. "Rooms" is what
+ * came back. They are separate because they fail separately and are used
+ * separately — nobody changes the day while hunting for a room number.
+ *
+ * **The block is the unit, not the room.** There are 239 rooms and 65 of them
+ * are in AB3. A block card shows its occupancy bar and the first dozen rooms,
+ * then a count for the rest, because a card listing all 65 is a wall rather
+ * than a list.
+ */
+
+const SCHEMA = chennaiSchema as any;
+
+/** Rooms shown per block before the rest are hidden behind a count. */
+const ROW_CAP = 12;
+
+/** How many consecutive periods the "free for the next N" answer spans. */
+const RUN_LENGTH = 3;
+
+const roomNumber = (code: string) => {
+  const dash = code.indexOf("-");
+  return dash >= 0 ? code.slice(dash + 1) : code;
 };
 
-const GLOBAL_CAMPUS = "chennai";
-
-const DAYS_OF_WEEK = [
-  { id: "mon", label: "Monday", short: "Mon" },
-  { id: "tue", label: "Tuesday", short: "Tue" },
-  { id: "wed", label: "Wednesday", short: "Wed" },
-  { id: "thu", label: "Thursday", short: "Thu" },
-  { id: "fri", label: "Friday", short: "Fri" },
-];
-
-const timeToMinutes = (timeStr: string) => {
-  if (!timeStr) return 0;
-  const [time, period] = timeStr.trim().split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-};
-
-export default function FreeClassroomsTab({
-  setActiveSubTab,
+/**
+ * A room chip with two targets.
+ *
+ * The number copies, the chevron opens the schedule. They are separate buttons
+ * rather than one because the two intents are genuinely different — you copy a
+ * code to walk there, you open a schedule to check whether it stays free — and
+ * folding them into one gesture makes the common one a guess.
+ */
+function RoomChip({
+  code,
+  kind,
+  onCopy,
+  onInspect,
+  copied,
 }: {
-  setActiveSubTab?: (tab: string) => void;
+  code: string;
+  kind: "theory" | "lab";
+  onCopy: (code: string) => void;
+  onInspect: (code: string) => void;
+  copied: boolean;
 }) {
-  const [courses, setCourses] = useState<ParsedCourse[]>([]);
+  const lab = kind === "lab";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-xl border overflow-hidden transition-colors",
+        lab
+          ? "bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-400/40"
+          : "bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-400/40"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onCopy(code)}
+        title={`Copy ${code}`}
+        className={cn(
+          "px-2.5 py-1.5 text-xs font-bold font-outfit tabular-nums transition-colors cursor-pointer inline-flex items-center gap-1",
+          lab
+            ? "text-cyan-700 dark:text-cyan-300"
+            : "text-indigo-700 dark:text-indigo-300"
+        )}
+      >
+        {roomNumber(code)}
+        {copied && <Check className="w-3 h-3 text-emerald-500" />}
+      </button>
+      <button
+        type="button"
+        onClick={() => onInspect(code)}
+        title={`Schedule for ${code}`}
+        aria-label={`View the schedule for ${code}`}
+        className={cn(
+          "px-1.5 py-1.5 border-l cursor-pointer transition-colors",
+          lab
+            ? "border-cyan-500/20 text-cyan-500/70 hover:text-cyan-600 hover:bg-cyan-500/10"
+            : "border-indigo-500/20 text-indigo-500/70 hover:text-indigo-600 hover:bg-indigo-500/10"
+        )}
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </span>
+  );
+}
+
+/**
+ * The five weekdays.
+ *
+ * Shared by the page and the room inspector, because the two answer the same
+ * question at different scopes and should not be able to disagree about it —
+ * including about which day is today, which is why `today` is passed in rather
+ * than recomputed.
+ */
+function DayPicker({
+  value,
+  onChange,
+  today,
+  compact = false,
+}: {
+  value: DayId;
+  onChange: (d: DayId) => void;
+  today: DayId;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Day of week"
+      className="grid grid-cols-5 gap-1.5 p-1.5 rounded-2xl bg-zinc-100/90 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800/70"
+    >
+      {DAYS_OF_WEEK.map((d) => {
+        const selected = value === d;
+        const isToday = today === d;
+        return (
+          <button
+            key={d}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(d)}
+            title={`${DAY_LABELS[d].full}${isToday ? " — today" : ""}`}
+            className={cn(
+              "flex flex-col items-center justify-center rounded-xl transition-all cursor-pointer",
+              compact ? "gap-0 py-1.5 px-1" : "gap-0.5 py-2 px-1",
+              selected
+                ? "bg-white dark:bg-zinc-800 shadow-xs"
+                : "hover:bg-white/60 dark:hover:bg-zinc-800/50"
+            )}
+          >
+            <span
+              className={cn(
+                "font-black uppercase tracking-wide",
+                compact ? "text-[10px]" : "text-[11px]",
+                selected
+                  ? "text-indigo-600 dark:text-indigo-300"
+                  : isToday
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-zinc-500 dark:text-zinc-400"
+              )}
+            >
+              {DAY_LABELS[d].short}
+            </span>
+            {isToday && (
+              <span
+                className={cn(
+                  "rounded-full",
+                  compact ? "w-1 h-1" : "w-1.5 h-1.5",
+                  selected ? "bg-emerald-500" : "bg-emerald-500/70"
+                )}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
+  const [courses, setCourses] = useState<FreeRoomCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters & State
-  const [selectedCampus] = useState<string>(GLOBAL_CAMPUS);
-  const [selectedDay, setSelectedDay] = useState<string>("mon");
-  const [selectedTime, setSelectedTime] = useState<string>("");
-  const [selectedBlock, setSelectedBlock] = useState<string>("All");
-  const [venueTypeFilter, setVenueTypeFilter] = useState<"all" | "theory" | "lab">("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [day, setDay] = useState<DayId>("mon");
+  const [periodKey, setPeriodKey] = useState("");
+  const [kindFilter, setKindFilter] = useState<"all" | "theory" | "lab">("all");
+  const [blockFilter, setBlockFilter] = useState("All");
+  const [query, setQuery] = useState("");
+  /** When set, the list is narrowed to rooms free across a run of periods. */
+  const [runOnly, setRunOnly] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // Room Inspector sheet (registers itself for system back via BottomSheet)
   const [inspectedRoom, setInspectedRoom] = useState<string | null>(null);
-  const [copiedRoom, setCopiedRoom] = useState<string | null>(null);
+  const [inspectDay, setInspectDay] = useState<DayId>("mon");
+  const [copied, setCopied] = useState<string | null>(null);
 
-  const schema = CAMPUS_SCHEMAS[selectedCampus] || chennaiSchema;
-
-  // Extract all valid time periods from schema
-  const timePeriods = useMemo(() => {
-    const periods: string[] = [];
-    schema.theory.forEach((p: any) => {
-      if (!p.lunch && p.start && p.end) {
-        periods.push(`${p.start} - ${p.end}`);
-      }
-    });
-    return periods;
-  }, [schema]);
-
-  // Determine current active slot right now
-  const getCurrentSlotInfo = useCallback(() => {
-    const now = new Date();
-    const dayIndex = now.getDay();
-    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    const todayStr = days[dayIndex];
-
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    let currentPeriod = "";
-
-    schema.theory.forEach((p: any) => {
-      if (!p.lunch && p.start && p.end) {
-        const startMins = timeToMinutes(p.start);
-        const endMins = timeToMinutes(p.end);
-        if (nowMinutes >= startMins - 10 && nowMinutes <= endMins) {
-          currentPeriod = `${p.start} - ${p.end}`;
-        }
-      }
-    });
-
-    return {
-      todayStr: dayIndex >= 1 && dayIndex <= 5 ? todayStr : "mon",
-      currentPeriod: currentPeriod || timePeriods[0] || "",
-      isLiveTime: !!currentPeriod && dayIndex >= 1 && dayIndex <= 5,
-    };
-  }, [schema, timePeriods]);
-
-  // Autofill current day and time on mount
+  // Ticks so "Free right now" cannot sit there claiming to be live hours after
+  // the fact. A minute is the finest granularity that means anything here.
+  const [tick, setTick] = useState(() => new Date());
   useEffect(() => {
-    const { todayStr, currentPeriod } = getCurrentSlotInfo();
-    setSelectedDay(todayStr);
-    if (currentPeriod) {
-      setSelectedTime(currentPeriod);
-    }
-  }, [getCurrentSlotInfo]);
+    const t = setInterval(() => setTick(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
-  // Load Course Data (with cache fallback)
-  const loadCoursesData = useCallback(async (forceReload = false) => {
+  /* ── data ─────────────────────────────────────────────────────────────── */
+
+  const load = useCallback(async (forceReload = false) => {
     setLoading(true);
     setError(null);
 
@@ -132,49 +266,34 @@ export default function FreeClassroomsTab({
       try {
         const cached = localStorage.getItem("ffcs_raw_courses");
         if (cached) {
-          const parsedCached = JSON.parse(cached);
-          if (parsedCached && parsedCached.length > 0) {
-            setCourses(parsedCached);
+          const parsed = JSON.parse(cached);
+          if (parsed?.length) {
+            setCourses(parsed);
             setLoading(false);
             return;
           }
         }
-      } catch (e) {}
+      } catch {}
     }
 
     try {
       const XLSX = await import("xlsx");
       const response = await fetch("/ffcs/ffcsReport.csv");
       if (!response.ok) throw new Error("Failed to load campus timetable records");
-      const arrayBuffer = await response.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
+      const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+        workbook.Sheets[workbook.SheetNames[0]]
+      );
 
-      const parsed: ParsedCourse[] = jsonData
-        .map((row: any) => {
-          const cleanRow: any = {};
-          for (const k in row) {
-            const cleanKey = k.replace(/^\uFEFF/, "").trim().toUpperCase();
-            cleanRow[cleanKey] = row[k];
-          }
-          return {
-            CODE: String(cleanRow.CODE || cleanRow["COURSE CODE"] || cleanRow.COURSE_CODE || "").trim(),
-            TITLE: String(cleanRow.TITLE || cleanRow["COURSE TITLE"] || cleanRow.COURSE_TITLE || "").trim(),
-            TYPE: String(cleanRow.TYPE || "").trim(),
-            CREDITS: String(cleanRow.CREDITS || "0").trim(),
-            ROOM: String(cleanRow.ROOM || cleanRow.VENUE || "").trim(),
-            SLOT: String(cleanRow.SLOT || "").trim(),
-            FACULTY: String(cleanRow.FACULTY || "").trim(),
-          };
-        })
-        .filter((c) => c.CODE);
+      // Header normalisation (the BOM, the CODE/VENUE aliases) lives in the
+      // lib and is tested there. Doing it inline here once shipped a mangled
+      // byte-order mark that silently dropped every course in the report.
+      const parsed = parseCourseRows(rows);
 
       setCourses(parsed);
       try {
         localStorage.setItem("ffcs_raw_courses", JSON.stringify(parsed));
-      } catch (e) {}
+      } catch {}
     } catch (err: any) {
       setError(err.message || "Failed to load timetable data");
     } finally {
@@ -183,716 +302,675 @@ export default function FreeClassroomsTab({
   }, []);
 
   useEffect(() => {
-    loadCoursesData();
-  }, [loadCoursesData]);
+    load();
+  }, [load]);
 
-  // Set to Right Now
-  const handleJumpToNow = () => {
-    const { todayStr, currentPeriod } = getCurrentSlotInfo();
-    setSelectedDay(todayStr);
-    setSelectedTime(currentPeriod || timePeriods[0] || "");
-  };
+  /* ── the day ──────────────────────────────────────────────────────────── */
 
-  // Compute free rooms by block for the selected day and time slot
-  const freeVenuesByBlock = useMemo(() => {
-    if (!selectedTime || !selectedDay || courses.length === 0) return {};
-
-    const [reqStart, reqEnd] = selectedTime.split(" - ");
-    const targetSlots = new Set<string>();
-
-    const theoryPeriod = schema.theory.find((p: any) => p.start === reqStart && p.end === reqEnd);
-    if (theoryPeriod && theoryPeriod.days && theoryPeriod.days[selectedDay]) {
-      targetSlots.add(theoryPeriod.days[selectedDay]);
+  /**
+   * Every weekday indexed, built together.
+   *
+   * One index per day rather than one for the day on screen, because the room
+   * inspector browses the week: "is AB1-101 free on Thursday?" is a fair
+   * question to ask of a room you just tapped, and rebuilding 2,357 rows for
+   * every day the finger passes over is not.
+   *
+   * Five passes over the report is a few thousand operations, once, when the
+   * data arrives. After that a day switch is a map read.
+   */
+  const week = useMemo(() => {
+    const map = new Map<
+      DayId,
+      { periods: PeriodOption[]; slots: Map<string, Set<string>>; index: DayIndex }
+    >();
+    for (const d of DAYS_OF_WEEK) {
+      const periods = resolvePeriods(SCHEMA, d);
+      const slots = buildPeriodSlots(periods);
+      map.set(d, { periods, slots, index: buildDayIndex(courses, periods, slots) });
     }
+    return map;
+  }, [courses]);
 
-    const labPeriod = schema.lab.find((p: any) => p.start === reqStart && p.end === reqEnd);
-    if (labPeriod && labPeriod.days && labPeriod.days[selectedDay]) {
-      targetSlots.add(labPeriod.days[selectedDay]);
-    }
+  // Falls back rather than asserting: a bad `day` should not blank the page.
+  const shown = week.get(day) ?? week.get("mon")!;
+  const periods = shown.periods;
+  const periodSlots = shown.slots;
+  const index = shown.index;
 
-    if (targetSlots.size === 0) return {};
+  const now = useMemo(() => resolveNow(periods, tick), [periods, tick]);
 
-    const roomTypes = new Map<string, { theory: number; lab: number }>();
-    const allRooms = new Set<string>();
-    const occupiedRooms = new Set<string>();
+  /**
+   * What the picker is actually showing.
+   *
+   * The effect below is what normally settles `periodKey`, but it runs after
+   * paint — so on the first frame of the page `periodKey` is still `""` and the
+   * dropdown would flash its "Select…" placeholder. Reading through this keeps
+   * that frame honest without waiting for an effect.
+   */
+  const activePeriodKey = periodKey || periods[0]?.key || "";
 
-    courses.forEach((course) => {
-      const room = course.ROOM.toUpperCase();
-      if (!room || room === "NIL" || room === "UNK-UNK" || room.includes("ONLINE") || room === "N/A") return;
+  const periodIndex = Math.max(
+    0,
+    periods.findIndex((p) => p.key === activePeriodKey)
+  );
 
-      allRooms.add(room);
+  /**
+   * Read out of the memo rather than off `now` directly, so the effect below
+   * can depend on a string. `now` is rebuilt on every clock tick, and a
+   * dependency on the object would re-run that effect once a minute for no
+   * reason.
+   */
+  const livePeriodKey = now.period?.key ?? "";
 
-      if (!roomTypes.has(room)) roomTypes.set(room, { theory: 0, lab: 0 });
-      const t = course.TYPE.toUpperCase();
-      if (t.includes("LA") || t === "LO" || course.SLOT.toUpperCase().includes("L")) {
-        roomTypes.get(room)!.lab++;
-      } else {
-        roomTypes.get(room)!.theory++;
-      }
+  // Land on something real: today's period when it is live, otherwise the
+  // first period of the day rather than an empty list.
+  useEffect(() => {
+    const next = now.isLive && livePeriodKey ? livePeriodKey : periods[0]?.key || "";
+    setPeriodKey((current) => (periods.some((p) => p.key === current) ? current : next));
+    setRunOnly(false);
+    setExpanded({});
+  }, [periods, now.isLive, livePeriodKey]);
 
-      const courseSlots = course.SLOT.split("+").map((s) => s.trim().toUpperCase());
-      const isOccupied = [...targetSlots].some((ts) => courseSlots.includes(ts.toUpperCase()));
-      if (isOccupied) {
-        occupiedRooms.add(room);
-      }
-    });
+  /**
+   * The run of periods the "free for the next N" answer covers. It starts at
+   * the live period when there is one, because that is the question a person
+   * standing in a corridor is actually asking.
+   */
+  const runKeys = useMemo(() => {
+    const liveNow = now.isLive && day === now.day && !!livePeriodKey;
+    const from = liveNow
+      ? periods.find((p) => p.key === livePeriodKey)?.startMinutes ?? 0
+      : periods[periodIndex]?.startMinutes ?? 0;
+    return periods
+      .filter((p) => p.startMinutes >= from)
+      .slice(0, RUN_LENGTH)
+      .map((p) => p.key);
+  }, [periods, periodIndex, now, day, livePeriodKey]);
 
-    const freeRooms = [...allRooms].filter((r) => !occupiedRooms.has(r));
+  const runFree = useMemo(
+    () => freeRoomsForRun(index, runKeys),
+    [index, runKeys]
+  );
 
-    // Group by block (e.g. "AB5-208" -> "AB5")
-    const grouped: Record<string, { theory: string[]; lab: string[] }> = {};
-    freeRooms.forEach((room) => {
-      const parts = room.split("-");
-      const block = parts.length > 1 ? parts[0] : "Other";
-      if (!grouped[block]) grouped[block] = { theory: [], lab: [] };
+  const free: FreeRooms = useMemo(
+    () => (runOnly ? runFree : freeRoomsForPeriod(index, activePeriodKey)),
+    [runOnly, runFree, index, activePeriodKey]
+  );
 
-      const counts = roomTypes.get(room)!;
-      const type = counts.lab > counts.theory ? "lab" : "theory";
+  const metrics = useMemo(
+    () => ({
+      total: free.rooms.length,
+      theory: free.theory.length,
+      lab: free.lab.length,
+      blocks: blockAvailability(index, free).length,
+    }),
+    [free, index]
+  );
 
-      grouped[block][type].push(room);
-    });
+  /* ── hero ─────────────────────────────────────────────────────────────── */
 
-    // Sort rooms inside blocks
-    Object.keys(grouped).forEach((block) => {
-      grouped[block].theory.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-      grouped[block].lab.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    });
-
-    return grouped;
-  }, [courses, selectedTime, selectedDay, schema]);
-
-  // Overall metric totals
-  const metrics = useMemo(() => {
-    let totalFree = 0;
-    let totalTheory = 0;
-    let totalLab = 0;
-
-    Object.values(freeVenuesByBlock).forEach(({ theory, lab }) => {
-      totalTheory += theory.length;
-      totalLab += lab.length;
-      totalFree += theory.length + lab.length;
-    });
-
-    return { totalFree, totalTheory, totalLab };
-  }, [freeVenuesByBlock]);
-
-  // Filtered blocks and rooms based on UI options
-  const displayBlocks = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const blocks = Object.keys(freeVenuesByBlock).sort();
-
-    const filtered: Array<{
-      block: string;
-      theory: string[];
-      lab: string[];
-      totalCount: number;
-    }> = [];
-
-    blocks.forEach((block) => {
-      if (selectedBlock !== "All" && block !== selectedBlock) return;
-
-      let blockTheory = freeVenuesByBlock[block].theory;
-      let blockLab = freeVenuesByBlock[block].lab;
-
-      if (venueTypeFilter === "theory") blockLab = [];
-      if (venueTypeFilter === "lab") blockTheory = [];
-
-      if (query) {
-        blockTheory = blockTheory.filter((r) => r.toLowerCase().includes(query));
-        blockLab = blockLab.filter((r) => r.toLowerCase().includes(query));
-      }
-
-      const totalCount = blockTheory.length + blockLab.length;
-      if (totalCount > 0) {
-        filtered.push({
-          block,
-          theory: blockTheory,
-          lab: blockLab,
-          totalCount,
-        });
-      }
-    });
-
-    return filtered;
-  }, [freeVenuesByBlock, selectedBlock, venueTypeFilter, searchQuery]);
-
-  // Handle Copy room code
-  const handleCopyRoom = (e: React.MouseEvent, room: string) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(room);
-    setCopiedRoom(room);
-    setTimeout(() => setCopiedRoom(null), 2000);
-  };
-
-  // Inspect Room Full Daily Schedule
-  const inspectedRoomSchedule = useMemo(() => {
-    if (!inspectedRoom || courses.length === 0) return [];
-
-    const roomUpper = inspectedRoom.toUpperCase();
-    const roomCourses = courses.filter((c) => c.ROOM.toUpperCase() === roomUpper);
-
-    return timePeriods.map((period) => {
-      const [reqStart, reqEnd] = period.split(" - ");
-      const targetSlots = new Set<string>();
-
-      const theoryPeriod = schema.theory.find((p: any) => p.start === reqStart && p.end === reqEnd);
-      if (theoryPeriod?.days?.[selectedDay]) {
-        targetSlots.add(theoryPeriod.days[selectedDay]);
-      }
-
-      const labPeriod = schema.lab.find((p: any) => p.start === reqStart && p.end === reqEnd);
-      if (labPeriod?.days?.[selectedDay]) {
-        targetSlots.add(labPeriod.days[selectedDay]);
-      }
-
-      const occupyingCourse = roomCourses.find((c) => {
-        const cSlots = c.SLOT.split("+").map((s) => s.trim().toUpperCase());
-        return [...targetSlots].some((ts) => cSlots.includes(ts.toUpperCase()));
+  const insightSlides = useMemo<InsightSlide[]>(() => {
+    const slides: InsightSlide[] = [];
+    if (metrics.theory > 0) {
+      slides.push({
+        id: "theory",
+        label: "Classrooms",
+        value: metrics.theory,
+        sub: "Lecture halls free now",
+        badge: "Rooms",
+        tone: "indigo",
       });
+    }
+    if (metrics.lab > 0) {
+      slides.push({
+        id: "lab",
+        label: "Laboratories",
+        value: metrics.lab,
+        sub: "With benches free now",
+        badge: "Labs",
+        tone: "sky",
+      });
+    }
+    const best = bestPeriod(index);
+    if (best) {
+      slides.push({
+        id: "best",
+        label: "Emptiest period",
+        value: best.free,
+        sub: best.period.label,
+        badge: "Best",
+        tone: "violet",
+        onClick: () => {
+          setRunOnly(false);
+          setPeriodKey(best.period.key);
+        },
+      });
+    }
+    if (runFree.rooms.length > 0) {
+      slides.push({
+        id: "run",
+        label: `Free for ${RUN_LENGTH} periods`,
+        value: runFree.rooms.length,
+        sub: `From ${periods[periodIndex]?.label ?? "now"} onward`,
+        badge: "Stay",
+        tone: "emerald",
+        onClick: () => {
+          setRunOnly((v) => !v);
+          setBlockFilter("All");
+          setQuery("");
+        },
+      });
+    }
+    return slides;
+  }, [metrics, index, runFree, periods, periodIndex]);
 
+  const carousel = useCarousel(insightSlides.length, 8000);
+
+  /* ── list ─────────────────────────────────────────────────────────────── */
+
+  const visibleBlocks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return blockAvailability(index, free)
+      .filter((b) => blockFilter === "All" || b.block === blockFilter)
+      .map((b) => {
+        const match = (code: string) => !q || code.toLowerCase().includes(q);
+        const theory = b.freeTheory.filter(match);
+        const lab = b.freeLab.filter(match);
+        return { ...b, theory, lab, free: theory.length + lab.length };
+      })
+      .filter((b) => b.free > 0);
+  }, [index, free, blockFilter, query]);
+
+  const blockTabs = useMemo(
+    () => [
+      { value: "All", label: "All blocks" },
+      ...blockAvailability(index, free).map((b) => ({
+        value: b.block,
+        label: `${b.block} · ${b.free}`,
+      })),
+    ],
+    [index, free]
+  );
+
+  const handleCopy = useCallback((code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopied(code);
+    setTimeout(() => setCopied((c) => (c === code ? null : c)), 1800);
+  }, []);
+
+  const jumpToNow = useCallback(() => {
+    const target = now.isLive && now.period ? now.period : periods[0];
+    if (!target) return;
+    setDay(now.day);
+    setPeriodKey(target.key);
+    setRunOnly(false);
+  }, [now, periods]);
+
+  /* ── inspector ────────────────────────────────────────────────────────── */
+
+  /**
+   * The timeline for the room, on the day the *sheet* is looking at.
+   *
+   * `inspectDay` is the sheet's own day, deliberately not the page's: checking
+   * whether a room is free on Thursday is a question about the room, and
+   * answering it should not yank the free-room list out from under you. It
+   * re-syncs whenever the sheet opens, so it always starts on the day you are
+   * actually looking at.
+   */
+  const inspect = week.get(inspectDay) ?? shown;
+  const timeline = useMemo(() => {
+    if (!inspectedRoom) return [];
+    const inRoom = inspect.index.courses.get(inspectedRoom) ?? [];
+    return inspect.periods.map((p) => {
+      const slots = inspect.slots.get(p.key) ?? new Set<string>();
+      const occupying = inRoom.find((c) =>
+        String(c.SLOT ?? "")
+          .split("+")
+          .map((s) => s.trim().toUpperCase())
+          .some((s) => slots.has(s))
+      );
       return {
-        period,
-        isFree: !occupyingCourse,
-        course: occupyingCourse || null,
-        isSelectedSlot: period === selectedTime,
+        period: p,
+        course: occupying ?? null,
+        // Only meaningful on the day the page is also showing, so browsing the
+        // week does not claim a period is "selected" that the list is not on.
+        isSelected: inspectDay === day && p.key === activePeriodKey,
       };
     });
-  }, [inspectedRoom, courses, timePeriods, schema, selectedDay, selectedTime]);
+  }, [inspectedRoom, inspect, inspectDay, day, activePeriodKey]);
 
-  const liveInfo = getCurrentSlotInfo();
-  const isCurrentSlotActive =
-    liveInfo.isLiveTime && selectedDay === liveInfo.todayStr && selectedTime === liveInfo.currentPeriod;
+  // Re-sync the sheet's day to the page's whenever the sheet opens, so it
+  // never starts on a day you did not choose.
+  useEffect(() => {
+    if (inspectedRoom) setInspectDay(day);
+  }, [inspectedRoom, day]);
+
+  const isLiveSlot = now.isLive && day === now.day && activePeriodKey === livePeriodKey;
+
+  /* ── render ───────────────────────────────────────────────────────────── */
 
   return (
-    <SubpageLayout
-      title="Free Classrooms"
-      onBack={() => setActiveSubTab && setActiveSubTab("overview")}
+    <PageShell
+      onBack={onBack}
+      eyebrow="Free Classrooms"
+      title="Find an empty room"
+      subtitle="Every room on campus, checked against the FFCS timetable."
+      actions={
+        <IconButton title="Reload timetable" onClick={() => load(true)}>
+          <RefreshCcw className={loading ? "animate-spin" : ""} />
+        </IconButton>
+      }
+      selectable
     >
-      <div className="w-full max-w-6xl mx-auto space-y-4 sm:space-y-6 text-left overflow-x-hidden">
-        
-        {/* ═══════════════════════════════════════════════════════
-            1. HERO & LIVE STATUS BANNER (FLUID & COMPACT ON MOBILE)
-           ═══════════════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-indigo-500/5 border border-emerald-500/20 p-4 sm:p-6 shadow-xs">
-          <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shadow-2xs">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Spot Finder</span>
-                </span>
-
-                {isCurrentSlotActive ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>Real-Time</span>
-                  </span>
-                ) : (
-                  <button
-                    onClick={handleJumpToNow}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-95"
-                  >
-                    <Clock className="w-3 h-3 text-indigo-500" />
-                    <span>Jump to Right Now</span>
-                  </button>
-                )}
-              </div>
-
-              <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white font-outfit tracking-tight leading-tight">
-                Find an Empty Classroom or Lab
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
-                Scan campus blocks to find unoccupied study spaces and computer labs.
-              </p>
-            </div>
-
-            {/* Quick Metrics Cards (Fluid 3-Columns on Mobile) */}
-            <div className="grid grid-cols-3 gap-2 shrink-0 w-full md:w-auto">
-              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-emerald-500/20 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-outfit">
-                  Total
-                </span>
-                <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white">
-                  {loading ? "..." : metrics.totalFree}
-                </span>
-                <span className="text-[8.5px] sm:text-[9px] text-gray-400 dark:text-gray-500 font-semibold">Free</span>
-              </div>
-
-              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-gray-200/80 dark:border-zinc-800 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-outfit">
-                  Theory
-                </span>
-                <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white">
-                  {loading ? "..." : metrics.totalTheory}
-                </span>
-                <span className="text-[8.5px] sm:text-[9px] text-gray-400 dark:text-gray-500 font-semibold">Classrooms</span>
-              </div>
-
-              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-gray-200/80 dark:border-zinc-800 shadow-xs flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 font-outfit">
-                  Labs
-                </span>
-                <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white">
-                  {loading ? "..." : metrics.totalLab}
-                </span>
-                <span className="text-[8.5px] sm:text-[9px] text-gray-400 dark:text-gray-500 font-semibold">Practical</span>
-              </div>
-            </div>
-          </div>
+      {/* ── HERO ── */}
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
+          <Skeleton className="h-32 sm:h-36 rounded-[24px]" />
         </div>
-
-        {/* ═══════════════════════════════════════════════════════
-            2. INTERACTIVE CONTROLS & OPTION EXPLORER
-           ═══════════════════════════════════════════════════════ */}
-        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-zinc-900 border border-gray-200/90 dark:border-zinc-800 shadow-xs space-y-4">
-          
-          {/* Day Selector Pills (Responsive Text & Spacing) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs px-0.5">
-              <span className="font-extrabold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[10px] sm:text-[11px] flex items-center gap-1.5">
-                <CalendarDays className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Day of Week</span>
-              </span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">
-                Timetable Order
-              </span>
-            </div>
-
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {DAYS_OF_WEEK.map((day) => {
-                const isSelected = selectedDay === day.id;
-                const isToday = liveInfo.todayStr === day.id;
-
-                return (
-                  <button
-                    key={day.id}
-                    onClick={() => setSelectedDay(day.id)}
-                    className={`py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-black transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 active:scale-95 shadow-2xs ${
-                      isSelected
-                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                        : "bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-zinc-700/60"
-                    }`}
-                  >
-                    <span className="sm:hidden">{day.short}</span>
-                    <span className="hidden sm:inline">{day.label}</span>
-                    {isToday && (
-                      <span
-                        className={`text-[7.5px] sm:text-[8px] font-extrabold uppercase px-1 rounded-full ${
-                          isSelected
-                            ? "bg-white/25 text-white"
-                            : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                        }`}
-                      >
-                        Today
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Time Slot Horizontal Chips */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs px-0.5">
-              <span className="font-extrabold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[10px] sm:text-[11px] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Time Period</span>
-              </span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold truncate max-w-[150px] text-right">
-                Slot: <strong className="text-gray-700 dark:text-gray-200">{selectedTime || "None"}</strong>
-              </span>
-            </div>
-
-            <div className="flex overflow-x-auto pb-1 gap-1.5 sm:gap-2 hide-scrollbar snap-x snap-mandatory">
-              {timePeriods.map((period) => {
-                const isSelected = selectedTime === period;
-                const isNow = liveInfo.isLiveTime && period === liveInfo.currentPeriod && selectedDay === liveInfo.todayStr;
-
-                return (
-                  <button
-                    key={period}
-                    onClick={() => setSelectedTime(period)}
-                    className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 snap-start flex items-center gap-1.5 active:scale-95 shadow-2xs ${
-                      isSelected
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-extrabold"
-                        : "bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-zinc-700/60"
-                    }`}
-                  >
-                    {isNow && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                    <span>{period}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Filter Bar: Venue Type Toggle + Search Box + Block Pills */}
-          <div className="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              
-              {/* Venue Type Segmented Control (Fluid on Mobile) */}
-              <div className="grid grid-cols-3 sm:flex items-center p-1 bg-gray-100 dark:bg-zinc-800 rounded-xl sm:rounded-2xl border border-gray-200/60 dark:border-zinc-700/60 text-xs shrink-0">
-                <button
-                  onClick={() => setVenueTypeFilter("all")}
-                  className={`px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer text-center ${
-                    venueTypeFilter === "all"
-                      ? "bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-2xs font-extrabold"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  All ({metrics.totalFree})
-                </button>
-                <button
-                  onClick={() => setVenueTypeFilter("theory")}
-                  className={`px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer text-center ${
-                    venueTypeFilter === "theory"
-                      ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  Theory ({metrics.totalTheory})
-                </button>
-                <button
-                  onClick={() => setVenueTypeFilter("lab")}
-                  className={`px-2 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer text-center ${
-                    venueTypeFilter === "lab"
-                      ? "bg-white dark:bg-zinc-900 text-cyan-600 dark:text-cyan-400 shadow-2xs font-extrabold"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  }`}
-                >
-                  Labs ({metrics.totalLab})
-                </button>
-              </div>
-
-              {/* Search Box */}
-              <div className="relative flex-1 w-full min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter room e.g. 208, AB5-302..."
-                  className="w-full pl-8 pr-7 py-1.5 sm:py-2 text-xs text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-zinc-800/80 rounded-xl border border-gray-200/80 dark:border-zinc-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-2xs"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Block Selector Pills */}
-            <div className="flex overflow-x-auto pb-1 gap-1.5 hide-scrollbar">
-              <button
-                onClick={() => setSelectedBlock("All")}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                  selectedBlock === "All"
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-extrabold shadow-2xs"
-                    : "bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300"
-                }`}
-              >
-                All Blocks
-              </button>
-              {Object.keys(freeVenuesByBlock)
-                .sort()
-                .map((block) => {
-                  const isSelected = selectedBlock === block;
-                  const count =
-                    (freeVenuesByBlock[block].theory.length || 0) +
-                    (freeVenuesByBlock[block].lab.length || 0);
-
-                  return (
-                    <button
-                      key={block}
-                      onClick={() => setSelectedBlock(block)}
-                      className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-                        isSelected
-                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-extrabold shadow-2xs"
-                          : "bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300"
-                      }`}
-                    >
-                      <span>{block}</span>
-                      <span
-                        className={`text-[9.5px] px-1.5 py-0.2 rounded-md ${
-                          isSelected
-                            ? "bg-white/20 dark:bg-black/20 text-white dark:text-black font-extrabold"
-                            : "bg-gray-200/80 dark:bg-zinc-700 text-gray-500 dark:text-gray-400"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════
-            3. FREE VENUES RESULTS DISPLAY
-           ═══════════════════════════════════════════════════════ */}
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-32 w-full rounded-2xl" />
-            <Skeleton className="h-32 w-full rounded-2xl" />
-          </div>
-        ) : error ? (
-          <div className="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center space-y-2.5">
-            <XCircle className="w-7 h-7 text-rose-500 mx-auto" />
-            <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400">{error}</p>
+      ) : error ? null : (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <button
-              onClick={() => loadCoursesData(true)}
-              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+              type="button"
+              onClick={jumpToNow}
+              title="Jump to the current period"
+              className="w-full text-left cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.98]"
             >
-              Retry Loading
+              <StatTile
+                label="Free now"
+                value={metrics.total}
+                sub={`${metrics.blocks} ${metrics.blocks === 1 ? "block" : "blocks"} with space`}
+                badge={isLiveSlot ? "Live" : "Selected"}
+                tone={isLiveSlot ? "emerald" : "indigo"}
+              />
             </button>
+            <InsightCarousel
+              slides={insightSlides}
+              carousel={carousel}
+              height="h-32 sm:h-36"
+              ariaLabel="Availability insights"
+            />
           </div>
-        ) : displayBlocks.length === 0 ? (
-          <div className="py-14 text-center rounded-2xl border border-dashed border-gray-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30 space-y-2.5 px-4">
-            <DoorOpen className="w-10 h-10 text-gray-400 opacity-40 mx-auto" />
-            <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200">
-              No Free Classrooms Found
-            </h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 max-w-sm mx-auto">
-              All registered classrooms in this building are currently occupied for this time slot.
-            </p>
-            <div className="flex justify-center gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setSelectedBlock("All");
-                  setVenueTypeFilter("all");
-                  setSearchQuery("");
-                }}
-                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
-              >
-                Reset Filters
-              </button>
-            </div>
+
+          <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+            {isLiveSlot
+              ? "Live: this is the period running now. A room is free when no course is booked into it for this slot — tap any room number to copy it, or its arrow to see the whole day."
+              : "Not the current period, so these are the rooms free for the time you picked. Tap the headline to jump back to now."}
+          </p>
+        </>
+      )}
+
+      {/* ── WHEN ── */}
+      {!loading && !error && (
+        <div className="space-y-4">
+          <SectionHeader
+            icon={Clock}
+            title="When"
+            right={
+              isLiveSlot ? (
+                <ToneBadge tone="emerald">Right now</ToneBadge>
+              ) : (
+                <GhostButton onClick={jumpToNow} title="Jump to the current period">
+                  <Zap className="w-3.5 h-3.5" />
+                  Now
+                </GhostButton>
+              )
+            }
+          />
+
+          {/* Day. Five short options, so a segmented control; today is ringed
+              and emerald because "today" is a different fact from "selected". */}
+          <DayPicker value={day} onChange={setDay} today={now.day} />
+
+          {/* Period. A stepper for stepping and the amazeui dropdown for jumping —
+              twelve periods is too many to scan and too many to scroll. */}
+          <div className="flex items-center gap-2">
+            <IconButton
+              title="Previous period"
+              onClick={() => setPeriodKey(periods[Math.max(0, periodIndex - 1)]?.key ?? activePeriodKey)}
+              className={cn(periodIndex === 0 && "opacity-40 pointer-events-none")}
+            >
+              <ChevronLeft />
+            </IconButton>
+
+            <OptionPicker
+              value={activePeriodKey}
+              onChange={setPeriodKey}
+              options={periods.map((p) => ({ value: p.key, label: p.label }))}
+              searchable={false}
+              // amazeui hard-codes the trigger's own chrome, so the size is
+              // corrected through the wrapper — react-native-web renders it as
+              // the wrapper's first child, and pinning to `:first-child` keeps a
+              // change off the mobile modal, which is also a child div.
+              className="flex-1 [&>div:first-child]:h-11 [&>div:first-child]:rounded-xl [&>div:first-child]:px-3.5 [&>div:first-child]:text-sm [&>div:first-child]:font-bold [&>div:first-child]:font-outfit"
+            />
+
+            <IconButton
+              title="Next period"
+              onClick={() =>
+                setPeriodKey(periods[Math.min(periods.length - 1, periodIndex + 1)]?.key ?? activePeriodKey)
+              }
+              className={cn(
+                periodIndex === periods.length - 1 && "opacity-40 pointer-events-none"
+              )}
+            >
+              <ChevronRight />
+            </IconButton>
+
+            <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tabular-nums shrink-0 hidden xs:inline">
+              {positionLabel(periodIndex, periods.length)}
+            </span>
           </div>
-        ) : (
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-between text-xs px-0.5 text-gray-500 dark:text-gray-400">
-              <span className="font-semibold text-[10.5px] sm:text-[11px] truncate">
-                {displayBlocks.reduce((acc, b) => acc + b.totalCount, 0)} available rooms across {displayBlocks.length} blocks
-              </span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden sm:inline">
-                Tap any room to view full day schedule
-              </span>
-            </div>
+        </div>
+      )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-              {displayBlocks.map(({ block, theory, lab, totalCount }) => (
-                <div
-                  key={block}
-                  className="rounded-2xl sm:rounded-3xl border border-gray-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-4 sm:p-5 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between space-y-3.5 text-left"
-                >
-                  {/* Block Header */}
-                  <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 dark:border-zinc-800/80">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white font-outfit">
-                          {block} Block
-                        </h3>
-                        <p className="text-[9.5px] sm:text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                          Academic Building
-                        </p>
-                      </div>
-                    </div>
+      {/* ── ROOMS ── */}
+      {error ? (
+        <EmptyPanel
+          tone="red"
+          icon={<DoorOpen className="w-7 h-7" />}
+          title="Couldn't load the timetable"
+          description={error}
+          action={
+            <GhostButton onClick={() => load(true)}>
+              <RefreshCcw className="w-3.5 h-3.5" />
+              Try again
+            </GhostButton>
+          }
+        />
+      ) : loading ? (
+        <ListSkeleton rows={6} leading="dot" />
+      ) : (
+        <div className="space-y-4">
+          <SectionHeader
+            icon={Building2}
+            title="Rooms"
+            count={visibleBlocks.reduce((n, b) => n + b.free, 0)}
+            right={
+              <SegmentedControl
+                options={[
+                  { value: "all" as const, label: `All (${metrics.total})` },
+                  { value: "theory" as const, label: `Rooms (${metrics.theory})` },
+                  { value: "lab" as const, label: `Labs (${metrics.lab})` },
+                ]}
+                value={kindFilter}
+                onChange={setKindFilter}
+              />
+            }
+          />
 
-                    <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40">
-                      {totalCount} Free
-                    </span>
-                  </div>
-
-                  {/* Classrooms List */}
-                  <div className="space-y-3 flex-1">
-                    {/* Theory Classrooms */}
-                    {theory.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                          <BookOpen className="w-3 h-3 text-indigo-500" />
-                          <span>Classrooms ({theory.length})</span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                          {theory.map((room) => {
-                            const shortRoom = room.includes("-") ? room.split("-")[1] : room;
-                            return (
-                              <button
-                                key={room}
-                                onClick={() => setInspectedRoom(room)}
-                                className="group relative px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gray-50 hover:bg-indigo-50 dark:bg-zinc-800/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 hover:border-indigo-300 dark:border-zinc-700/80 dark:hover:border-indigo-800/60 text-xs font-bold text-gray-800 hover:text-indigo-600 dark:text-gray-200 dark:hover:text-indigo-300 transition-all cursor-pointer active:scale-95 shadow-2xs flex items-center gap-1"
-                                title={`Click to view schedule for ${room}`}
-                              >
-                                <span>{shortRoom}</span>
-                                <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-indigo-500 transition-all hidden xs:inline" />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Labs */}
-                    {lab.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                          <Laptop className="w-3 h-3 text-cyan-500" />
-                          <span>Laboratories ({lab.length})</span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                          {lab.map((room) => {
-                            const shortRoom = room.includes("-") ? room.split("-")[1] : room;
-                            return (
-                              <button
-                                key={room}
-                                onClick={() => setInspectedRoom(room)}
-                                className="group relative px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-cyan-50/50 hover:bg-cyan-100/60 dark:bg-cyan-950/20 dark:hover:bg-cyan-950/40 border border-cyan-200/60 hover:border-cyan-300 dark:border-cyan-800/50 text-xs font-bold text-cyan-800 dark:text-cyan-300 transition-all cursor-pointer active:scale-95 shadow-2xs flex items-center gap-1"
-                                title={`Click to view schedule for ${room}`}
-                              >
-                                <span>{shortRoom}</span>
-                                <span className="text-[7.5px] sm:text-[8px] font-black uppercase px-1 rounded bg-cyan-200/60 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300">
-                                  Lab
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════
-            4. ROOM SCHEDULE TIMELINE INSPECTOR MODAL (FLUID ON MOBILE)
-           ═══════════════════════════════════════════════════════ */}
-        <AnimatePresence>
-        {inspectedRoom && (
-          <BottomSheet onClose={() => setInspectedRoom(null)} overlayId="room-inspector" maxWidth="max-w-xl">
-            <div className="flex flex-col min-h-0 text-left">
-              {/* Sheet Header */}
-              <div className="p-4 sm:p-5 border border-gray-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-50/80 to-indigo-50/50 dark:from-zinc-900 dark:to-zinc-900">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0">
-                    <DoorOpen className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h2 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white font-outfit truncate">
-                        Room {inspectedRoom}
-                      </h2>
-                      <button
-                        onClick={(e) => handleCopyRoom(e, inspectedRoom)}
-                        className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
-                        title="Copy Room Code"
-                      >
-                        {copiedRoom === inspectedRoom ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
-                      Schedule • {DAYS_OF_WEEK.find((d) => d.id === selectedDay)?.label}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="shrink-0 pr-6">
-                  <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300">
-                    {inspectedRoomSchedule.filter((s) => s.isFree).length}/{inspectedRoomSchedule.length} Free
-                  </span>
-                </div>
-              </div>
-
-              {/* Timeline Schedule Body */}
-              <div className="p-3.5 sm:p-5 space-y-2">
-                <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 font-semibold px-0.5 uppercase tracking-wider">
-                  Hourly Slot Timeline
-                </p>
-
-                <div className="space-y-1.5 sm:space-y-2">
-                  {inspectedRoomSchedule.map((slot, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-2 sm:gap-3 text-xs ${
-                        slot.isSelectedSlot
-                          ? "ring-2 ring-emerald-500/40 border-emerald-500/60 bg-emerald-50/50 dark:bg-emerald-950/30"
-                          : slot.isFree
-                          ? "bg-white dark:bg-zinc-900 border-gray-200/80 dark:border-zinc-800"
-                          : "bg-gray-100/70 dark:bg-zinc-900/40 border-gray-200/50 dark:border-zinc-800/50 opacity-80"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                        <div className="flex items-center gap-1 font-mono font-bold text-gray-600 dark:text-gray-300 shrink-0 text-[10px] sm:text-[11px]">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          <span>{slot.period}</span>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          {slot.isFree ? (
-                            <span className="inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-black text-emerald-600 dark:text-emerald-400">
-                              <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              <span>Free & Available</span>
-                            </span>
-                          ) : (
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-800 dark:text-gray-200 truncate text-[11px] sm:text-xs">
-                                {slot.course?.TITLE || slot.course?.CODE || "Occupied"}
-                              </p>
-                              {slot.course?.FACULTY && (
-                                <p className="text-[9.5px] sm:text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                                  Faculty: {slot.course.FACULTY}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        {slot.isSelectedSlot && (
-                          <span className="text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-2xs">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sheet Footer */}
-              <div className="pt-1 flex justify-end">
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filter rooms, e.g. 208 or AB5…"
+                aria-label="Filter rooms"
+                className={cn(SEARCH_FIELD, "pl-10 pr-10")}
+              />
+              {query && (
                 <button
-                  onClick={() => setInspectedRoom(null)}
-                  className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Clear filter"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
-                  Close
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              </div>
+              )}
             </div>
-          </BottomSheet>
-        )}
-        </AnimatePresence>
 
-      </div>
-    </SubpageLayout>
+            <div className="flex items-center gap-2 flex-wrap">
+              {runOnly && (
+                <button
+                  type="button"
+                  onClick={() => setRunOnly(false)}
+                  className={cn(TONE_BADGE.emerald, "cursor-pointer hover:opacity-80")}
+                  title="Stop filtering to the multi-period run"
+                >
+                  Free for {RUN_LENGTH} periods ✕
+                </button>
+              )}
+            </div>
+
+            {blockTabs.length > 2 && (
+              <ChipTabs
+                options={blockTabs}
+                value={blockFilter}
+                onChange={setBlockFilter}
+                size="sm"
+              />
+            )}
+          </div>
+
+          {visibleBlocks.length === 0 ? (
+            <EmptyPanel
+              icon={<DoorOpen className="w-7 h-7" />}
+              title="Nothing free here"
+              description={
+                blockFilter === "All"
+                  ? "Every room on campus is taken for this period. Try another time — the emptiest period of the day is on the tile above."
+                  : `No rooms free in ${blockFilter} for this period. Try "All blocks", or another time.`
+              }
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  {blockFilter !== "All" && (
+                    <GhostButton onClick={() => setBlockFilter("All")}>All blocks</GhostButton>
+                  )}
+                  <GhostButton onClick={jumpToNow}>
+                    <Zap className="w-3.5 h-3.5" />
+                    Jump to now
+                  </GhostButton>
+                </div>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {visibleBlocks.map((block) => {
+                const rooms = [
+                  ...(kindFilter === "lab" ? [] : block.theory),
+                  ...(kindFilter === "theory" ? [] : block.lab),
+                ];
+                const shown = expanded[block.block] ? rooms : rooms.slice(0, ROW_CAP);
+                const hidden = rooms.length - shown.length;
+                const pct = block.total > 0 ? Math.round((block.free / block.total) * 100) : 0;
+
+                return (
+                  <div key={block.block} className={cn(TILE_CARD, "space-y-3.5")}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                          <Building2 className="w-4.5 h-4.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                            {block.block} Block
+                          </h3>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium tabular-nums">
+                            {block.free} of {block.total} free
+                          </p>
+                        </div>
+                      </div>
+                      <ToneBadge tone={block.free >= 20 ? "emerald" : block.free >= 5 ? "amber" : "zinc"}>
+                        {pct}%
+                      </ToneBadge>
+                    </div>
+
+                    {/* How empty the block is — the question you pick a block by. */}
+                    <div className="h-1.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                      <m.div
+                        className="h-full rounded-full bg-emerald-500"
+                        initial={false}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {shown.map((code) => (
+                        <RoomChip
+                          key={code}
+                          code={code}
+                          kind={index.rooms.get(code)?.kind ?? "theory"}
+                          onCopy={handleCopy}
+                          onInspect={setInspectedRoom}
+                          copied={copied === code}
+                        />
+                      ))}
+                    </div>
+
+                    {hidden > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded((e) => ({ ...e, [block.block]: true }))}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        +{hidden} more in {block.block}
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {expanded[block.block] && rooms.length > ROW_CAP && (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded((e) => ({ ...e, [block.block]: false }))}
+                        className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 hover:underline cursor-pointer"
+                      >
+                        Show fewer
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ROOM INSPECTOR ── */}
+      {inspectedRoom && (
+        <BottomSheet
+          onClose={() => setInspectedRoom(null)}
+          overlayId="room-inspector"
+          maxWidth="max-w-xl"
+        >
+          <div className="space-y-4 text-left">
+            <div className={cn(TILE_CARD, "flex items-center justify-between gap-3")}>
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  <DoorOpen className="w-5 h-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+                    {inspectedRoom}
+                  </h2>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                    {DAY_LABELS[inspectDay].full} ·{" "}
+                    {timeline.filter((t) => !t.course).length}/{timeline.length} free
+                  </p>
+                </div>
+              </div>
+              <GhostButton
+                onClick={() => handleCopy(inspectedRoom)}
+                title="Copy room code"
+                className="shrink-0"
+              >
+                {copied === inspectedRoom ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </GhostButton>
+            </div>
+
+            {/* The room's own week. Scoped to the sheet: browsing days here
+                answers "when is this room free?" without moving the list. */}
+            <DayPicker value={inspectDay} onChange={setInspectDay} today={now.day} compact />
+
+            {inspectDay !== day && (
+              <button
+                type="button"
+                onClick={() => setDay(inspectDay)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                Show {DAY_LABELS[inspectDay].full} in the list
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <ListShell>
+              {timeline.map(({ period, course, isSelected }) => (
+                <ListRow
+                  key={`${inspectDay}-${period.key}`}
+                  icon={<Clock className="w-4 h-4" />}
+                  title={period.label}
+                  subtitle={
+                    course
+                      ? `${course.TITLE || course.CODE}${course.FACULTY ? ` · ${course.FACULTY}` : ""}`
+                      : "Free and available"
+                  }
+                  tone={course ? "zinc" : "emerald"}
+                  badge={course ? "Taken" : "Free"}
+                  selected={isSelected}
+                  // Takes the list to this day and period together, so
+                  // "it's free Thursday 2 PM" turns into the list of rooms
+                  // that are free Thursday 2 PM.
+                  onClick={() => {
+                    setDay(inspectDay);
+                    setPeriodKey(period.key);
+                  }}
+                />
+              ))}
+            </ListShell>
+          </div>
+        </BottomSheet>
+      )}
+    </PageShell>
+  );
+}
+
+/** One line of the room's day, in the course-subpage row shape. */
+function ListRow({
+  icon,
+  title,
+  subtitle,
+  tone,
+  badge,
+  selected,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  tone: string;
+  badge: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        LIST_ROW,
+        "gap-3 cursor-pointer",
+        selected && "bg-indigo-50/60 dark:bg-indigo-950/20"
+      )}
+    >
+      <span
+        className={cn(
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
+          tone === "emerald"
+            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200/60 dark:border-zinc-700/60 text-zinc-500 dark:text-zinc-400"
+        )}
+      >
+        {icon}
+      </span>
+      <ListRowText title={title} subtitle={subtitle} />
+      {selected && <DotPill tone="indigo">Selected</DotPill>}
+      <ToneBadge tone={tone}>{badge}</ToneBadge>
+    </button>
   );
 }

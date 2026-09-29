@@ -146,7 +146,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "free-class" && (
           <div className="animate-fadeIn">
-            <FreeClassroomsTab setActiveSubTab={setActiveToolsSubTab} />
+            <FreeClassroomsTab onBack={() => setActiveToolsSubTab("overview")} />
           </div>
         )}
 
