@@ -187,7 +187,16 @@ export async function apiRequest(path: string, opts: ApiOptions = {}): Promise<a
       body = opts.body;
       headers["Content-Type"] = headers["Content-Type"] || "application/x-www-form-urlencoded";
     } else {
-      const creds = authProvider ? await authProvider(auth === "eventhub" ? "eventhub" : "vtop") : null;
+      // Only ask the credential manager for something when this request is
+      // actually authenticated. Fetching creds for an `auth: "none"` post was
+      // pure waste — neither branch below uses them — but not free waste:
+      // `getCreds("vtop")` re-authenticates when its session is stale, and a
+      // VTOP re-auth solves a captcha. So an unauthenticated EventHub action
+      // could block for the length of a captcha solve before it was even sent.
+      const creds =
+        (auth === "vtop" || auth === "eventhub") && authProvider
+          ? await authProvider(auth)
+          : null;
       const merged: Record<string, unknown> = { ...(opts.body as Record<string, unknown>) };
       if (auth === "vtop" && creds) {
         if (creds.cookies) merged.cookies = creds.cookies;

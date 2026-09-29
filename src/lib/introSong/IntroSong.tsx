@@ -22,11 +22,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getActiveRegNumber } from "@/lib/social/identity";
 import {
   INTRO_SONG_SRC,
   INTRO_SONG_START_SECONDS,
   INTRO_SONG_ALLOWED_IDS,
+  getIntroSongRegisterNumber,
   hasPlayedIntroSong,
   isAllowedIdentifier,
   markIntroSongPlayed,
@@ -67,10 +67,11 @@ export default function IntroSong({ authorizedId }: { authorizedId?: string | nu
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // The reg number comes from the cached profile, so it is available before any
-  // login — unlike `authorizedID`, which only exists once a session is up. Either
-  // one being on the allowlist is enough.
-  const regNumber = getActiveRegNumber();
+  // One number for the allowlist *and* the flag key. Resolving them separately
+  // is how a song that was allowed by the payments cache ends up with its flag
+  // written under a profile value, and so replays on every visit for exactly the
+  // people it was working for.
+  const regNumber = getIntroSongRegisterNumber();
   const allowed = isAllowedIdentifier(authorizedId, regNumber);
 
   // This feature is invisible by design: a non-allowlisted user gets no

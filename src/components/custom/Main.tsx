@@ -1029,8 +1029,7 @@ export default function LoginPage() {
           setActiveTab("attendance");
         } else if (key === "e") {
           e.preventDefault();
-          setActiveTab("more");
-          setActiveMoreSubTab("events");
+          setActiveTab("events");
         } else if (key === "l") {
           e.preventDefault();
           setActiveTab("libraries");
@@ -1375,8 +1374,9 @@ export default function LoginPage() {
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
       { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("free-class"); } },
-      { id: "more-events", label: "Events Hub", description: "Registered events & activities", icon: "🎉", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("events"); } },
-      { id: "more-clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "More", onSelect: () => { setActiveTab("more"); setActiveMoreSubTab("clubs"); } },
+      { id: "events", label: "Event Hub", description: "Registered events & campus activities", icon: "🎉", category: "Campus", onSelect: () => { setActiveTab("events"); } },
+      { id: "clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "Campus", onSelect: () => { setActiveTab("clubs"); } },
+    { id: "community", label: "Community Feed", description: "Announcements from clubs & chapters", icon: "📣", category: "Campus", onSelect: () => { setActiveTab("community"); } },
       { id: "more-schedules", label: "FFCS Planner", description: "Plan and compare schedules", icon: "🗓️", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("ffcs"); } },
     );
 

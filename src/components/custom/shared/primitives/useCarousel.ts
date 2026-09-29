@@ -12,6 +12,11 @@ import { useCallback, useEffect, useState } from "react";
 export function useCarousel(count: number, autoplayMs = 5000) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // Bumped on manual navigation so the autoplay window restarts. Without it the
+  // interval is keyed only to `count`, and a swipe 200ms before a tick gets
+  // undone by that tick — the card appears to snap back under your finger,
+  // which reads as the gesture not registering at all.
+  const [manual, setManual] = useState(0);
 
   // A narrowed filter (or fresh data) can leave the index past the end.
   useEffect(() => {
@@ -22,15 +27,21 @@ export function useCarousel(count: number, autoplayMs = 5000) {
     if (paused || count < 2 || autoplayMs <= 0) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % count), autoplayMs);
     return () => clearInterval(timer);
-  }, [paused, count, autoplayMs]);
+  }, [paused, count, autoplayMs, manual]);
 
   const go = useCallback(
-    (next: number) => setIndex(((next % count) + count) % count),
+    (next: number) => {
+      setIndex(((next % count) + count) % count);
+      setManual((m) => m + 1);
+    },
     [count]
   );
 
   // Callers use this when navigating away and back, to start at slide 0 again.
-  const reset = useCallback(() => setIndex(0), []);
+  const reset = useCallback(() => {
+    setIndex(0);
+    setManual((m) => m + 1);
+  }, []);
 
   return {
     index: count === 0 ? 0 : Math.min(index, count - 1),

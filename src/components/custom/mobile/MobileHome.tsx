@@ -59,7 +59,6 @@ interface MobileHomeProps {
   setActiveSubTab: (tab: string) => void;
   setHostelActiveSubTab: (tab: string) => void;
   setActiveAttendanceSubTab: (tab: string) => void;
-  setActiveMoreSubTab: (tab: string) => void;
   setActiveProfileSubTab: (tab: string) => void;
   handleReloadRequest: () => Promise<void>;
   onOpenCommandPalette: () => void;
@@ -107,7 +106,6 @@ export default function MobileHome({
   setActiveSubTab,
   setHostelActiveSubTab,
   setActiveAttendanceSubTab,
-  setActiveMoreSubTab,
   setActiveProfileSubTab,
   handleReloadRequest,
   onOpenCommandPalette,
@@ -1107,7 +1105,7 @@ export default function MobileHome({
           {registeredEvents.map((ev: any, idx: number) => (
             <div 
               key={idx}
-              onClick={() => { setActiveTab("more"); setActiveMoreSubTab("events"); }}
+              onClick={() => { setActiveTab("events"); }}
               className="min-w-[75vw] snap-center p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/95 dark:hover:bg-zinc-900/85 cursor-pointer md:min-w-0"
             >
               <h4 className="font-bold text-sm text-zinc-850 dark:text-white truncate text-left">{ev.name}</h4>

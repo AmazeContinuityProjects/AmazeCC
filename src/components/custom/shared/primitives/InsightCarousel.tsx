@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import { TILE, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import type { CarouselState } from "./useCarousel";
+import { useHorizontalSwipe } from "./useHorizontalSwipe";
 
 /**
  * The rotating "insight" tile.
@@ -14,6 +15,19 @@ import type { CarouselState } from "./useCarousel";
  * cross-fade between slides and the dot indicator were character-identical in
  * all eight — what differed was the headline size, whether the tile was
  * clickable, and whether the dots were buttons.
+ *
+ * ## Swiping
+ *
+ * Every instance is swipeable, because a card that moves on its own but cannot
+ * be moved by hand is a card you have to wait out. Drag left or right, on a
+ * touch screen or a mouse, and it advances; the dots and the arrow keys do the
+ * same thing for anyone not dragging. The gesture itself lives in
+ * `useHorizontalSwipe` — the home page's week strip is the second surface that
+ * needed it — so this file is down to the tile's own markup.
+ *
+ * The one thing that is still tile-specific is the pause: a drag must not be
+ * undone by the autoplay tick that happens to land under the finger, and the
+ * tile is the one surface here with autoplay. Hence `onActiveChange`.
  */
 
 const LABEL =
@@ -78,6 +92,24 @@ export function InsightCarousel({
   ariaLabel?: string;
   className?: string;
 }) {
+  // Tracked separately from `paused` so that letting go of a touch while the
+  // pointer is still over the tile does not resume autoplay underneath a
+  // mouse cursor that is deliberately hovering.
+  const hovering = useRef(false);
+
+  // Before the empty guard: a hook that is called conditionally loses its ref
+  // and silently stops working the first time the slide list empties.
+  const swipeable = slides.length > 1;
+  const swipe = useHorizontalSwipe({
+    enabled: swipeable,
+    onNext: carousel.next,
+    onPrev: carousel.prev,
+    onActiveChange: (active) => {
+      if (active) carousel.setPaused(true);
+      else carousel.setPaused(pauseOnHover && hovering.current);
+    },
+  });
+
   if (slides.length === 0) return null;
 
   const slide = slides[carousel.index] ?? slides[0];
@@ -89,16 +121,6 @@ export function InsightCarousel({
     !tone || tone === "neutral" || tone === "default"
       ? "text-zinc-900 dark:text-white"
       : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
-
-  const hoverProps =
-    slideClickable && pauseOnHover
-      ? {
-          onMouseEnter: () => carousel.setPaused(true),
-          onMouseLeave: () => carousel.setPaused(false),
-          onTouchStart: () => carousel.setPaused(true),
-          onTouchEnd: () => carousel.setPaused(false),
-        }
-      : {};
 
   // The tile is a div, not a button: `interactiveDots` needs real sibling
   // buttons and a button-inside-button is invalid HTML (and swallows the dot
@@ -112,9 +134,20 @@ export function InsightCarousel({
         slideClickable &&
           "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer",
         !slideClickable && "cursor-default",
+        // Ours to pan horizontally; the page keeps its own vertical scroll.
+        swipe.className,
         className
       )}
-      {...hoverProps}
+      onMouseEnter={() => {
+        if (!pauseOnHover || !swipeable) return;
+        hovering.current = true;
+        carousel.setPaused(true);
+      }}
+      onMouseLeave={() => {
+        hovering.current = false;
+        carousel.setPaused(false);
+      }}
+      {...swipe.handlers}
     >
       {clickable ? (
         <button

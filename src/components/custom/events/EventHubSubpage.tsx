@@ -1,15 +1,28 @@
-import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import InfoRow from "../shared/InfoRow";
-import { Calendar, MapPin, IndianRupee, Users, Tag, FileText, Clock, User, Award } from "lucide-react";
-import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
-import { useEffect, useState } from "react";
-import { api, clearEventHubSession } from "@/lib/sync-engine";
-import { eventhubImageUrl, eventHubLoginHtml, EVENTHUB_BASE } from "@/lib/eventhub";
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { Button } from "@amazecontinuityprojects/amazeui";
+import {
+  Calendar,
+  MapPin,
+  IndianRupee,
+  Users,
+  Tag,
+  FileText,
+  Clock,
+  User,
+  Award,
+  ExternalLink,
+  Ticket,
+} from "lucide-react";
+import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
+import { api, clearEventHubSession, eventHubRequest, EventHubError } from "@/lib/sync-engine";
+import { eventDateLabel, eventhubImageUrl, eventHubLoginHtml, EVENTHUB_BASE, isRegistrationPaid } from "@/lib/eventhub";
 import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence } from "framer-motion";
-import SubpageLayout from "../shared/SubpageLayout";
-import ClubDetailsModal from "../more/ClubDetailsModal";
+import ClubDetailsModal from "../clubs/ClubDetailsModal";
+import { KeyValue, PageShell, ToneBadge } from "../shared/primitives";
+import { TILE_CARD } from "@/lib/uiTokens";
 import { getSimilarity } from "@/lib/string-similarity";
 
 interface EventHubSubpageProps {
@@ -21,6 +34,55 @@ interface EventHubSubpageProps {
   setIsSubpageOpen?: (isOpen: boolean) => void;
   IDs?: any;
   registeredEvents?: any[];
+}
+
+/** Primary / secondary action surfaces, in the app's zinc + indigo dialect. */
+const ACTION_PRIMARY =
+  "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-xs active:scale-[0.98] transition-all cursor-pointer disabled:bg-indigo-400 disabled:cursor-not-allowed whitespace-nowrap";
+const ACTION_TONE: Record<string, string> = {
+  amber:
+    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+  emerald:
+    "inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 font-bold text-sm whitespace-nowrap cursor-not-allowed",
+  violet:
+    "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+  zinc: "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold text-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap",
+};
+/** Event Hub publishes a timing field under one of these names. */
+const TIME_KEYS = ["time", "timing", "slot", "schedule", "duration"];
+
+/** Which icon a preview field's name asks for. */
+function metaIcon(key: string) {
+  const k = key.toLowerCase();
+  if (k.includes("date")) return Calendar;
+  if (k.includes("venue") || k.includes("location")) return MapPin;
+  if (k.includes("fee") || k.includes("price")) return IndianRupee;
+  if (k.includes("time") || TIME_KEYS.includes(k)) return Clock;
+  if (k.includes("participant") || k.includes("eligib")) return Users;
+  if (k.includes("conducted") || k.includes("organis") || k.includes("organiz") || k.includes(" by")) return User;
+  if (k.includes("type") || k.includes("category")) return Tag;
+  return FileText;
+}
+
+/** Whether a preview field names the organiser, who is then worth matching. */
+function isOrganiserKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k.includes("conducted") || k.includes("organis") || k.includes("organiz");
+}
+
+/**
+ * The "Conducted By" value is free text, so it is matched against the club
+ * directory rather than trusted. The organiser then opens a real card instead
+ * of a string of unverified initials.
+ */
+function findMatchingClub(clubs: any[], value?: string) {
+  if (!value || clubs.length === 0) return null;
+  for (const club of clubs) {
+    if (getSimilarity(value, club.club_name) > 0.8 || (club.club_id && getSimilarity(value, club.club_id) > 0.8)) {
+      return club;
+    }
+  }
+  return null;
 }
 
 export default function EventHubSubpage({
@@ -167,9 +229,10 @@ export default function EventHubSubpage({
     }
 
     try {
-      const data = (await api("events/register", {
-        method: "POST",
-        body: { eid: selectedEvent.eid, username: IDs.VtopUsername, password: IDs.VtopPassword },
+      const data = (await eventHubRequest(IDs, "events/register", {
+        eid: selectedEvent.eid,
+        username: IDs.VtopUsername,
+        password: IDs.VtopPassword,
       })) as any;
 
       if (data.status === "success") {
@@ -191,291 +254,349 @@ export default function EventHubSubpage({
           setModalContent({ title: "Popup Blocked", message: "Please allow popups to proceed to the payment gateway." });
           setModalOpen(true);
         }
+      } else {
+        // Every known outcome above is a `status` the route chose deliberately.
+        // Reaching here means it answered 200 with something we do not
+        // recognise, and staying silent would leave the button looking inert —
+        // which is exactly how a rejected registration presented itself before.
+        setModalContent({
+          title: "Registration Failed",
+          message:
+            data?.message ||
+            data?.error ||
+            "Event Hub accepted the request but did not confirm a registration. Open the event in Event Hub to check its status.",
+        });
+        setModalOpen(true);
       }
     } catch (err: any) {
-      setModalContent({ title: "Error", message: "An error occurred: " + err.message });
-      clearEventHubSession();
+      setModalContent({ title: "Registration Failed", message: err.message });
+      // `eventHubRequest` already retried once on a dead session, so a failure
+      // here that names credentials is worth discarding the session over; one
+      // that does not (a 500 from Event Hub) is not, and clearing would only
+      // throw away a working one.
+      if (err instanceof EventHubError && (err.reason === "invalid_credentials" || err.reason === "session_expired")) {
+        clearEventHubSession();
+      }
       setModalOpen(true);
     } finally {
       setIsRegistering(false);
     }
   };
 
-  return (
-    <SubpageLayout title={selectedEvent.title} onBack={onClose} className="max-w-6xl xl:max-w-7xl mx-auto">
-      <div className="bg-white  dark:bg-black rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100  dark:border-gray-800">
-        {selectedEvent.eligibility && (
-          <div className="flex justify-end mb-6">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700   dark:bg-blue-900/20 dark:text-blue-300">
-              <Users className="w-4 h-4" /> {selectedEvent.eligibility}
+  const handlePayNow = async () => {
+    const registrationDetails = registeredEvents?.find(e => e.name === selectedEvent.title) || selectedEvent.registeredDetails;
+    const linkToPay = registrationDetails.payNowLink || `/EventHub/showPaymentTC/${registrationDetails.orderId}/`;
+    setIsRegistering(true);
+    if (IDs?.VtopUsername === "demo") {
+      await new Promise(resolve => setTimeout(resolve, 650));
+      setModalContent({ title: "Payment Successful", message: "Mock transaction of ₹150 processed successfully through offline sandbox!" });
+      setModalOpen(true);
+      setIsRegistering(false);
+      return;
+    }
+    try {
+      const data = (await eventHubRequest(IDs, "events/paynow", {
+        username: IDs.VtopUsername,
+        password: IDs.VtopPassword,
+        url: linkToPay
+      })) as any;
+      if (data.status === "payment_required" || data.status === "redirect") {
+        window.open(data.url, "_blank");
+      } else if (data.status === "payment_form") {
+        if (isMobilePWA() && data.tcUrl) {
+          setPwaUrl(data.tcUrl);
+          setPwaMode("pay");
+          return;
+        }
+        const win = window.open("", "_blank");
+        if (win) {
+          win.document.write(data.html);
+          if (data.tcUrl) {
+            // Wait 3.5 seconds for the Event Hub login to finish in the new tab,
+            // then redirect that same tab to the TC page.
+            setTimeout(() => {
+              try {
+                win.location.href = data.tcUrl;
+              } catch (e) {
+                console.error("Failed to redirect popup cross-origin", e);
+              }
+            }, 3500);
+          }
+        } else {
+          setModalContent({ title: "Popup Blocked", message: "Please allow popups to proceed to the payment gateway." });
+          setModalOpen(true);
+        }
+      } else {
+        // `eventHubRequest` already throws on an `error` body, so arriving here
+        // is an unrecognised 200. Say so rather than closing the spinner and
+        // leaving the user to wonder whether they were charged.
+        setModalContent({
+          title: "Payment Failed",
+          message:
+            data?.message ||
+            "Event Hub did not return a payment page. Check your pending dues before trying again.",
+        });
+        setModalOpen(true);
+      }
+    } catch (err: any) {
+      setModalContent({ title: "Payment Failed", message: err.message });
+      if (err instanceof EventHubError && (err.reason === "invalid_credentials" || err.reason === "session_expired")) {
+        clearEventHubSession();
+      }
+      setModalOpen(true);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  /**
+   * Event Hub's preview fields, minus the two it renders elsewhere, resolved to
+   * an icon and (where the field names an organiser) a matched club.
+   */
+  const metaCells = useMemo(() => {
+    if (!previewData?.metaDetails) return [];
+    return Object.entries(previewData.metaDetails)
+      .filter(([key]) => !key.includes("Name") && !key.includes("Description"))
+      .map(([key, value]) => ({
+        key,
+        value,
+        Icon: metaIcon(key),
+        club: isOrganiserKey(key) ? findMatchingClub(clubsList, value) : null,
+      }));
+  }, [previewData, clubsList]);
+
+  const registrationDetails =
+    registeredEvents?.find(e => e.name === selectedEvent.title) || selectedEvent.registeredDetails;
+  const isUnpaid = !!registrationDetails && !isRegistrationPaid(registrationDetails);
+
+  const renderActionButtons = () => (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit">Ready to join?</h3>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
+            Registration and payments are handled securely on the official portal.
+          </p>
+        </div>
+
+        {registrationDetails ? (
+          isUnpaid ? (
+            <button type="button" onClick={handlePayNow} disabled={isRegistering} className={ACTION_TONE.amber}>
+              {isRegistering ? "Processing..." : "Pay Now"}
+            </button>
+          ) : (
+            <span className={cn(ACTION_TONE.emerald, "cursor-not-allowed")}>
+              <Ticket className="w-4 h-4" />
+              Registered
             </span>
-          </div>
+          )
+        ) : (
+          <button type="button" onClick={handleOneClickRegister} disabled={isRegistering} className={ACTION_PRIMARY}>
+            {isRegistering ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                1-Click Register
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </>
+            )}
+          </button>
         )}
+      </div>
 
-        {/* Action Buttons extracted to a function to render in multiple places */}
-        {(() => {
-          const renderActionButtons = () => {
-            return (
-              <div className="pt-8 border-t border-gray-100  dark:border-gray-800/50 flex flex-col xl:flex-row gap-4 items-center justify-between">
-                <div>
-                  <h4 className="font-semibold text-gray-900  dark:text-white">Ready to join?</h4>
-                  <p className="text-sm text-gray-500  dark:text-gray-400">Registration and payments are handled securely on the official portal.</p>
-                </div>
-                  {/* Conditional Registration/Payment Button */}
-                  {(() => {
-                    const registrationDetails = registeredEvents?.find(e => e.name === selectedEvent.title) || selectedEvent.registeredDetails;
-                    if (registrationDetails) {
-                      const payStatus = registrationDetails.paymentStatus || "";
-                      const isUnpaid = !payStatus.toLowerCase().includes('paid') && !payStatus.toLowerCase().includes('free') && !payStatus.toLowerCase().includes('success');
-                      
-                      return (
-                        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                          {isUnpaid ? (
-                            <button 
-                              onClick={async () => {
-                                const linkToPay = registrationDetails.payNowLink || `/EventHub/showPaymentTC/${registrationDetails.orderId}/`;
-                                setIsRegistering(true);
-                                if (IDs?.VtopUsername === "demo") {
-                                  await new Promise(resolve => setTimeout(resolve, 650));
-                                  setModalContent({ title: "Payment Successful", message: "Mock transaction of ₹150 processed successfully through offline sandbox!" });
-                                  setModalOpen(true);
-                                  setIsRegistering(false);
-                                  return;
-                                }
-                                try {
-                                  const data = (await api("events/paynow", {
-                                    method: "POST",
-                                    body: {
-                                      username: IDs.VtopUsername,
-                                      password: IDs.VtopPassword,
-                                      url: linkToPay
-                                    }
-                                  })) as any;
-                                  if (data.status === "payment_required" || data.status === "redirect") {
-                                    window.open(data.url, "_blank");
-                                  } else if (data.status === "payment_form") {
-                                    if (isMobilePWA() && data.tcUrl) {
-                                      setPwaUrl(data.tcUrl);
-                                      setPwaMode("pay");
-                                      return;
-                                    }
-                                    const win = window.open("", "_blank");
-                                    if (win) {
-                                      win.document.write(data.html);
-                                      if (data.tcUrl) {
-                                        // Wait 3.5 seconds for the Event Hub login to finish in the new tab, 
-                                        // then redirect that same tab to the TC page. 
-                                        setTimeout(() => {
-                                          try {
-                                            win.location.href = data.tcUrl;
-                                          } catch (e) {
-                                            console.error("Failed to redirect popup cross-origin", e);
-                                          }
-                                        }, 3500);
-                                      }
-                                    } else {
-                                      setModalContent({ title: "Popup Blocked", message: "Please allow popups to proceed to the payment gateway." });
-                                      setModalOpen(true);
-                                    }
-                                  } else if (data.error) {
-                                    setModalContent({ title: "Error", message: data.error });
-                                    setModalOpen(true);
-                                  }
-                                } catch (err: any) {
-                                  setModalContent({ title: "Error", message: err.message });
-                                  clearEventHubSession();
-                                  setModalOpen(true);
-                                } finally {
-                                  setIsRegistering(false);
-                                }
-                              }}
-                              disabled={isRegistering}
-                              className="w-full xl:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl transition-colors shadow-sm text-center flex items-center justify-center gap-2 whitespace-nowrap"
-                            >
-                              {isRegistering ? "Processing..." : "Pay Now"}
-                            </button>
-                          ) : (
-                            <button 
-                              disabled
-                              className="w-full xl:w-auto px-8 py-3 bg-green-100 text-green-700   dark:bg-green-900/30 dark:text-green-400 font-medium rounded-xl text-center flex items-center justify-center gap-2 whitespace-nowrap cursor-not-allowed"
-                            >
-                              Registered
-                            </button>
-                          )}
-                          
-                          {registrationDetails.certificateLink && (
-                            <button onClick={() => handleSecureDownload(registrationDetails.certificateLink, true)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-purple-100 text-purple-700   dark:bg-purple-900/30 dark:text-purple-300 font-medium rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
-                              {isRegistering ? "Wait..." : <><Award className="w-4 h-4" /> Certificate</>}
-                            </button>
-                          )}
-                          {registrationDetails.receiptLink && (
-                            <button onClick={() => handleSecureDownload(registrationDetails.receiptLink, false)} disabled={isRegistering} className="w-full xl:w-auto px-6 py-3 bg-gray-200 text-gray-700   dark:bg-gray-800 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors text-center flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
-                              {isRegistering ? "Wait..." : <><FileText className="w-4 h-4" /> Receipt</>}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    }
+      {(registrationDetails?.certificateLink || registrationDetails?.receiptLink) && (
+        <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+          {registrationDetails.certificateLink && (
+            <button
+              type="button"
+              onClick={() => handleSecureDownload(registrationDetails.certificateLink, true)}
+              disabled={isRegistering}
+              className={ACTION_TONE.violet}
+            >
+              <Award className="w-4 h-4" />
+              Certificate
+            </button>
+          )}
+          {registrationDetails.receiptLink && (
+            <button
+              type="button"
+              onClick={() => handleSecureDownload(registrationDetails.receiptLink, false)}
+              disabled={isRegistering}
+              className={ACTION_TONE.zinc}
+            >
+              <FileText className="w-4 h-4" />
+              Receipt
+            </button>
+          )}
+        </div>
+      )}
 
-                    // Not registered, show 1-Click Register
-                    return (
-                      <button 
-                        onClick={handleOneClickRegister}
-                        disabled={isRegistering}
-                        className="w-full xl:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl transition-colors shadow-sm text-center flex items-center justify-center gap-2 whitespace-nowrap"
-                      >
-                        {isRegistering ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            1-Click Register
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </>
-                        )}
-                      </button>
-                    );
-                  })()}
+      <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+        <button type="button" onClick={handleOpenInEventHub} disabled={isRegistering} className={cn(ACTION_TONE.zinc, "w-full sm:w-auto")}>
+          Open in Event Hub
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 
-                  {/* Fallback Auto-Login Button */}
-                  <div className="w-full xl:w-auto shrink-0">
-                    <button 
-                      onClick={handleOpenInEventHub}
-                      disabled={isRegistering}
-                      className="w-full xl:w-auto px-8 py-3 bg-gray-100 hover:bg-gray-200  dark:hover:bg-slate-600 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700  dark:text-gray-200 font-medium rounded-xl transition-colors text-center flex items-center justify-center gap-2 whitespace-nowrap"
+  const subtitle = [
+    selectedEvent.date ? eventDateLabel(selectedEvent.date) : "",
+    selectedEvent.time || selectedEvent.location,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <PageShell
+      onBack={onClose}
+      eyebrow={
+        <span className="flex items-center gap-2">
+          <span>
+            Event Hub
+            {selectedEvent.type && selectedEvent.type !== "Registered" ? ` · ${selectedEvent.type}` : ""}
+          </span>
+          {selectedEvent.isPastEvent ? <ToneBadge tone="zinc">Past</ToneBadge> : null}
+        </span>
+      }
+      title={selectedEvent.title}
+      subtitle={subtitle || undefined}
+      wrap
+    >
+      {/* ── POSTER ── */}
+      {selectedEvent.eid && (
+        <div className={cn(TILE_CARD, "p-0 overflow-hidden")}>
+          {/* The poster is shown at its own aspect ratio — cropped fest art
+              loses the date and the fee, which are the two things on it. */}
+          <div className="w-full bg-zinc-100 dark:bg-zinc-800">
+            <img
+              src={eventhubImageUrl(selectedEvent.eid)}
+              alt={selectedEvent.title}
+              loading="lazy"
+              className="w-full h-auto object-contain"
+            />
+          </div>
+        </div>
+      )}
+
+      {previewLoading ? (
+        <div className={cn(TILE_CARD, "space-y-3")}>
+          <Skeleton className="w-full h-3 rounded" />
+          <Skeleton className="w-5/6 h-3 rounded" />
+          <Skeleton className="w-2/3 h-3 rounded" />
+        </div>
+      ) : previewError ? (
+        <div className="space-y-6">
+          <div className={cn(TILE_CARD, "p-5 text-sm font-semibold text-red-600 dark:text-red-400 border-red-500/25")}>
+            <p>{previewError}</p>
+            {!selectedEvent.isPastEvent && (
+              <p className="text-[11px] mt-2 font-medium opacity-80">
+                Make sure your VTOP credentials are correct, as Event Hub requires them for authentication.
+              </p>
+            )}
+          </div>
+          {renderActionButtons()}
+        </div>
+      ) : previewData ? (
+        <div className="space-y-6">
+          {/* ── META GRID ── */}
+          {metaCells.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {metaCells.map(({ key, value, Icon, club }) =>
+                club ? (
+                  <div
+                    key={key}
+                    className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1 mb-1.5">
+                      <Icon className="w-3 h-3" />
+                      Organized by
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClub(club)}
+                      className="inline-flex items-center gap-1.5 max-w-full text-left text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 px-2.5 py-1.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors cursor-pointer"
                     >
-                      Open in Event Hub
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                      <Award className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{club.club_name}</span>
                     </button>
                   </div>
-              </div>
-            );
-          };
-
-          return (
-            <>
-
-        {previewLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="w-full aspect-video rounded-2xl" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/6" />
-          </div>
-        ) : previewError ? (
-          <div className="space-y-6">
-            <div className="text-center p-8 bg-red-50  dark:bg-red-900/10 text-red-600 rounded-2xl">
-              <p>{previewError}</p>
-              {!selectedEvent.isPastEvent && (
-                <p className="text-sm mt-2 opacity-80">Make sure your VTOP credentials are correct, as Event Hub requires them for authentication.</p>
-              )}
-            </div>
-            {renderActionButtons()}
-          </div>
-        ) : previewData ? (
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Left Column: Image */}
-            {selectedEvent.eid && (
-              <div className="md:w-5/12 lg:w-1/3 shrink-0">
-                <div className="rounded-2xl overflow-hidden bg-gray-50  dark:bg-gray-900 flex justify-center border border-gray-100  dark:border-gray-800 md:sticky md:top-8">
-                  <img 
-                    src={eventhubImageUrl(selectedEvent.eid)} 
-                    alt={selectedEvent.title}
-                    className="w-full h-auto object-contain"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Right Column: Details */}
-            <div className={`space-y-8 ${selectedEvent.eid ? 'md:w-7/12 lg:w-2/3' : 'w-full'}`}>
-              {previewData.metaDetails && Object.keys(previewData.metaDetails).length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(previewData.metaDetails).map(([key, value]) => {
-                    // Skip Event Name and Event Description as they are displayed elsewhere
-                    if (key.includes('Name') || key.includes('Description')) return null;
-                    
-                    let Icon = FileText;
-                    if (key.includes('Date')) Icon = Calendar;
-                    else if (key.includes('Venue') || key.includes('Location')) Icon = MapPin;
-                    else if (key.includes('Fee') || key.includes('Price')) Icon = IndianRupee;
-                    else if (key.includes('Time')) Icon = Clock;
-                    else if (key.includes('Participant')) Icon = Users;
-                    else if (key.includes('Conducted') || key.includes('By')) Icon = User;
-
-                    let matchedClub = null;
-                    if (key.includes('Conducted') || key.includes('By')) {
-                      Icon = User;
-                      if (clubsList.length > 0 && value) {
-                        for (const club of clubsList) {
-                          if (getSimilarity(value, club.club_name) > 0.8 || (club.club_id && getSimilarity(value, club.club_id) > 0.8)) {
-                            matchedClub = club;
-                            break;
-                          }
-                        }
-                      }
+                ) : (
+                  <KeyValue
+                    key={key}
+                    label={
+                      <span className="flex items-center gap-1">
+                        <Icon className="w-3 h-3" />
+                        {key}
+                      </span>
                     }
-
-                    return (
-                      <div key={key} className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50 flex flex-col justify-center">
-                        {matchedClub ? (
-                          <div className="flex flex-col gap-1.5">
-                            <span className="text-xs text-gray-500 flex items-center gap-1.5 font-medium uppercase tracking-wider"><Icon className="w-3.5 h-3.5" /> Organized By</span>
-                            <button onClick={() => setSelectedClub(matchedClub)} className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left leading-tight bg-blue-50/50 dark:bg-blue-900/20 py-1.5 px-2.5 rounded-lg border border-blue-100 dark:border-blue-800/50 flex items-center gap-1.5 w-fit">
-                              <Award className="w-4 h-4 shrink-0" />
-                              {matchedClub.club_name}
-                            </button>
-                          </div>
-                        ) : (
-                          <InfoRow icon={<Icon className="w-4 h-4" />}>{key}: {value}</InfoRow>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
-                    <InfoRow icon={<Calendar className="w-4 h-4" />}>Date: {selectedEvent.date}</InfoRow>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
-                    <InfoRow icon={<MapPin className="w-4 h-4" />}>Location: {selectedEvent.location}</InfoRow>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
-                    <InfoRow icon={<IndianRupee className="w-4 h-4" />}>Price: {selectedEvent.price || "Free"}</InfoRow>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-gray-50  dark:bg-gray-900/50 border border-gray-100  dark:border-gray-800/50">
-                    <InfoRow icon={<Tag className="w-4 h-4" />}>Type: {selectedEvent.type}</InfoRow>
-                  </div>
-                </div>
+                    value={value}
+                  />
+                )
               )}
-
-              <div className="prose dark:prose-invert max-w-none">
-                <h3 className="font-bold text-xl mb-4 text-gray-900  dark:text-white">About this Event</h3>
-                <p className="text-gray-700  dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {previewData.description || "No description provided."}
-                </p>
-              </div>
-
-              {renderActionButtons()}
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5">
+              <KeyValue
+                label={
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Date
+                  </span>
+                }
+                value={eventDateLabel(selectedEvent.date)}
+              />
+              <KeyValue
+                label={
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    Location
+                  </span>
+                }
+                value={selectedEvent.location || "TBA"}
+              />
+              <KeyValue
+                label={
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="w-3 h-3" />
+                    Price
+                  </span>
+                }
+                value={selectedEvent.price || "Free"}
+              />
+              <KeyValue
+                label={
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    Type
+                  </span>
+                }
+                value={selectedEvent.type || "Event"}
+              />
+            </div>
+          )}
+
+          {/* ── ABOUT ── */}
+          <div className={cn(TILE_CARD, "space-y-2.5")}>
+            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              About this event
+            </h2>
+            <p className="text-[13px] text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {previewData.description || "No description provided."}
+            </p>
           </div>
-        ) : null}
-        
-        {/* End IIFE for renderActionButtons scope */}
-        </>
-        );
-        })()}
-      </div>
+
+          {renderActionButtons()}
+        </div>
+      ) : null}
 
       {/* Status Sheet */}
       <AnimatePresence>
@@ -510,23 +631,23 @@ export default function EventHubSubpage({
                 </p>
               </div>
 
-              <div className="bg-blue-50  dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100  dark:border-blue-900/30">
-                <h4 className="font-bold text-blue-900  dark:text-blue-400 mb-1 text-sm">Step 1: Authenticate</h4>
-                <p className="text-xs text-blue-700  dark:text-blue-500 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
+              <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-sm">Step 1: Authenticate</h4>
+                <p className="text-xs text-indigo-700 dark:text-indigo-400 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>
 
                 <form action="https://eventhubcc.vit.ac.in/EventHub/mainDashboard" method="POST" target="_blank">
                   <input type="hidden" name="username" value={IDs?.VtopUsername} />
                   <input type="hidden" name="password" value={IDs?.VtopPassword} />
                   <input type="hidden" name="validateVitian" value="1" />
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm py-3">
+                  <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm py-3">
                     Login to Event Hub
                   </Button>
                 </form>
               </div>
 
-              <div className="bg-zinc-50  dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/70  dark:border-zinc-800/70">
-                <h4 className="font-bold text-zinc-900  dark:text-white mb-1 text-sm">Step 2: Open Details</h4>
-                <p className="text-xs text-zinc-500  dark:text-zinc-400 mb-3">After completing Step 1, click here to proceed.</p>
+              <div className="bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/70">
+                <h4 className="font-bold text-zinc-900 dark:text-white mb-1 text-sm">Step 2: Open Details</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">After completing Step 1, click here to proceed.</p>
                 <Button
                   onClick={() => window.open(pwaUrl || "", "_blank")}
                   variant="outline"
@@ -542,11 +663,11 @@ export default function EventHubSubpage({
         )}
       </AnimatePresence>
 
-      <ClubDetailsModal 
-        isOpen={!!selectedClub} 
-        onClose={() => setSelectedClub(null)} 
-        club={selectedClub} 
+      <ClubDetailsModal
+        isOpen={!!selectedClub}
+        onClose={() => setSelectedClub(null)}
+        club={selectedClub}
       />
-    </SubpageLayout>
+    </PageShell>
   );
 }
