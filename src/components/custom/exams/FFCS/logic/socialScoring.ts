@@ -1,18 +1,15 @@
 import { AddedCourse } from "../types";
+import { DAYS } from "../constants";
 import { timeToMinutes } from "../utils";
+import { expandSlotSpellings } from "@/lib/slots";
 
 export const getFreeHalfDaysList = (slots: Set<string>, schema: any): string[] => {
   const freeHalfDays: string[] = [];
   const theoryPeriods = (schema.theory as any[]).filter(p => !p.lunch);
   const labPeriods = (schema.lab as any[]).filter(p => !p.lunch);
-  
-  const DAYS = [
-    { id: "monday", label: "MON" },
-    { id: "tuesday", label: "TUE" },
-    { id: "wednesday", label: "WED" },
-    { id: "thursday", label: "THU" },
-    { id: "friday", label: "FRI" },
-  ];
+  // A law course's "A" has to answer to the schema's "A1", or every law course
+  // reads as never happening and both timetables score a perfect 10.
+  const owned = expandSlotSpellings(slots);
 
   DAYS.forEach(day => {
     let morningOccupied = false;
@@ -24,8 +21,8 @@ export const getFreeHalfDaysList = (slots: Set<string>, schema: any): string[] =
       const isMorning = timeToMinutes(p.start as string) < timeToMinutes("2:00 PM");
 
       let slotOccupied = false;
-      if (tSlot && slots.has(tSlot)) slotOccupied = true;
-      if (lSlot && slots.has(lSlot)) slotOccupied = true;
+      if (tSlot && owned.has(tSlot)) slotOccupied = true;
+      if (lSlot && owned.has(lSlot)) slotOccupied = true;
 
       if (slotOccupied) {
         if (isMorning) morningOccupied = true;

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from '../../types';
 import { getBatchColorClass } from '@/lib/utils';
+import { expandSlotSpellings, hasSlot, slotSpellings } from '@/lib/slots';
 import { generateTimetablesAsync } from '../../logic/generator';
 import SearchInput from "../../../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
@@ -77,11 +78,15 @@ export function AutoGeneratorModal({
 
   const getPeriodsForSlot = (slot: string) => {
     const matched: { day: string; startMin: number; endMin: number }[] = [];
+    // Both spellings of a period: a law course's "A" is the schema's "A1", and
+    // a lookup that misses it reports no periods at all — which is what
+    // disarms the clash test and the morning/evening filters below.
+    const wanted = new Set(slotSpellings(slot));
     theoryPeriods.forEach(p => {
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slot)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matched.push({ day, startMin: timeToMinutes(p.start), endMin: timeToMinutes(p.end) });
         }
       });
@@ -90,7 +95,7 @@ export function AutoGeneratorModal({
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slot)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matched.push({ day, startMin: timeToMinutes(p.start), endMin: timeToMinutes(p.end) });
         }
       });
@@ -228,11 +233,12 @@ export function AutoGeneratorModal({
           options = options.filter(opt => {
             const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
             return slots.every(slot => {
+              const wanted = new Set(slotSpellings(slot));
               const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
               const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
               
-              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).includes(slot));
-              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).includes(slot));
+              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).some(s => slotSpellings(s).some(x => wanted.has(x))));
+              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).some(s => slotSpellings(s).some(x => wanted.has(x))));
               const p = tPeriod || lPeriod;
               
               if (!p || !p.start || !p.end) return true; // ignore slots without specific times
@@ -338,7 +344,7 @@ export function AutoGeneratorModal({
           const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[] = [];
           const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[] = [];
 
-          const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
+          const mySlots = expandSlotSpellings(mappedCourses.flatMap(c => c.slots));
 
           DAYS.forEach(day => {
             let morningOccupied = false;
@@ -359,7 +365,7 @@ export function AutoGeneratorModal({
               
               if (tSlot && mySlots.has(tSlot)) {
                 slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(tSlot));
+                const c = mappedCourses.find(mc => hasSlot(mc.slots, tSlot));
                 if (c) {
                   venue = c.venue;
                   courseTitle = c.title;
@@ -370,7 +376,7 @@ export function AutoGeneratorModal({
                 }
               } else if (lSlot && mySlots.has(lSlot)) {
                 slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(lSlot));
+                const c = mappedCourses.find(mc => hasSlot(mc.slots, lSlot));
                 if (c) {
                   venue = c.venue;
                   courseTitle = c.title;

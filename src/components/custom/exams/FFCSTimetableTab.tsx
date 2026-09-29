@@ -30,6 +30,7 @@ export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
+import { expandSlotSpellings, hasSlot, slotSpellings } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass } from "@/lib/utils";
 import { TimetableView } from "../timetable";
@@ -124,6 +125,10 @@ const getFreeHalfDaysList = (slots: Set<string>): string[] => {
   const freeHalfDays: string[] = [];
   const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
   const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
+  // The schema hands out "A1" and a law course says "A". Compared literally,
+  // nothing a law student takes ever registers, and the answer is the maximum
+  // score — ten free half-days for a timetable that is full every morning.
+  const owned = expandSlotSpellings(slots);
 
   DAYS.forEach(day => {
     let morningOccupied = false;
@@ -135,8 +140,8 @@ const getFreeHalfDaysList = (slots: Set<string>): string[] => {
       const isMorning = timeToMinutes(p.start as string) < timeToMinutes("2:00 PM");
 
       let slotOccupied = false;
-      if (tSlot && slots.has(tSlot)) slotOccupied = true;
-      if (lSlot && slots.has(lSlot)) slotOccupied = true;
+      if (tSlot && owned.has(tSlot)) slotOccupied = true;
+      if (lSlot && owned.has(lSlot)) slotOccupied = true;
 
       if (slotOccupied) {
         if (isMorning) morningOccupied = true;
@@ -199,13 +204,18 @@ export const calculatePairwiseSocialScore = (myCourses: AddedCourse[], friendCou
 const getPeriodsForSlotOuter = (slotName: string) => {
   const matchedPeriods: { day: string, startMin: number, endMin: number }[] = [];
   const schema = getTimetableSchema();
-  
+  // Law courses name their morning periods "A" where the schema says "A1", so a
+  // literal comparison answers "no periods at all" for every TLAW row — which
+  // silently disarms clash detection, the morning/evening filters and the
+  // generator's backtracking. Both spellings have to be accepted.
+  const wanted = new Set(slotSpellings(slotName));
+
   if (schema.theory) {
     (schema.theory as any[]).forEach((p) => {
       if (!p.days || !p.start || !p.end || p.lunch) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slotName)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string) });
         }
       });
@@ -217,7 +227,7 @@ const getPeriodsForSlotOuter = (slotName: string) => {
       if (!p.days || !p.start || !p.end || p.lunch) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slotName)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string) });
         }
       });
@@ -736,12 +746,15 @@ export default function FFCSTimetableTab() {
 
   const getPeriodsForSlot = (slotName: string) => {
     const matchedPeriods: { day: string, startMin: number, endMin: number, type: 'theory' | 'lab', pIdx: number }[] = [];
+    // Both spellings, as in getPeriodsForSlotOuter — a law slot that resolves
+    // to no period is a law course the clash checker cannot see.
+    const wanted = new Set(slotSpellings(slotName));
     
     theoryPeriods.forEach((p, pIdx) => {
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slotName)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string), type: 'theory', pIdx });
         }
       });
@@ -751,7 +764,7 @@ export default function FFCSTimetableTab() {
       if (!p.days || !p.start || !p.end) return;
       Object.entries(p.days).forEach(([day, s]) => {
         const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slotName)) {
+        if (slotsInPeriod.some(x => wanted.has(x))) {
           matchedPeriods.push({ day, startMin: timeToMinutes(p.start as string), endMin: timeToMinutes(p.end as string), type: 'lab', pIdx });
         }
       });
@@ -786,7 +799,7 @@ export default function FFCSTimetableTab() {
   };
 
   const getCourseForSlot = (slotName: string) => {
-    return courses.find(c => c.slots.includes(slotName));
+    return courses.find(c => hasSlot(c.slots, slotName));
   };
 
   // Unique Courses with their associated types
@@ -918,11 +931,12 @@ export default function FFCSTimetableTab() {
           options = options.filter(opt => {
             const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
             return slots.every(slot => {
+              const wanted = new Set(slotSpellings(slot));
               const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
               const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
               
-              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).includes(slot));
-              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).includes(slot));
+              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).some(s => slotSpellings(s).some(x => wanted.has(x))));
+              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).some(s => slotSpellings(s).some(x => wanted.has(x))));
               const p = tPeriod || lPeriod;
               
               if (!p || !p.start || !p.end) return true; // ignore slots without specific times
@@ -1027,7 +1041,7 @@ export default function FFCSTimetableTab() {
           const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[] = [];
           const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[] = [];
 
-          const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
+          const mySlots = expandSlotSpellings(mappedCourses.flatMap(c => c.slots));
 
           DAYS.forEach(day => {
             let morningOccupied = false;
@@ -1048,7 +1062,7 @@ export default function FFCSTimetableTab() {
               
               if (tSlot && mySlots.has(tSlot)) {
                 slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(tSlot));
+                const c = mappedCourses.find(mc => hasSlot(mc.slots, tSlot));
                 if (c) {
                   venue = c.venue;
                   courseTitle = c.title;
@@ -1059,7 +1073,7 @@ export default function FFCSTimetableTab() {
                 }
               } else if (lSlot && mySlots.has(lSlot)) {
                 slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(lSlot));
+                const c = mappedCourses.find(mc => hasSlot(mc.slots, lSlot));
                 if (c) {
                   venue = c.venue;
                   courseTitle = c.title;

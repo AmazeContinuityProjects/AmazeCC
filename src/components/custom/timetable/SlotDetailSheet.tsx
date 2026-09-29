@@ -29,6 +29,7 @@ import {
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, TONE_BADGE, TONE_TEXT } from "@/lib/libraries/ui";
+import { hasSlot } from "@/lib/slots";
 // A leaf module (its only import is a campus JSON), so depending on it from a
 // shared component costs nothing and avoids a third copy of the type maps.
 import { defaultColor, typeColors, typeLabels } from "../exams/FFCS/constants";
@@ -151,7 +152,7 @@ export default function SlotDetailSheet({
               key={slot}
               className={cn(
                 CHIP,
-                blockedSlots?.has(slot)
+                blockedSlots && hasSlot(blockedSlots, slot)
                   ? "border-red-500/30 text-red-600 dark:text-red-400 line-through"
                   : "border-zinc-200/60"
               )}
@@ -282,7 +283,7 @@ export default function SlotDetailSheet({
           <Section icon={EyeOff} label="Availability">
             <div className="flex flex-wrap gap-1.5">
               {cell.slots.map((slot) => {
-                const isBlocked = blockedSlots?.has(slot);
+                const isBlocked = blockedSlots ? hasSlot(blockedSlots, slot) : false;
                 return (
                   <button
                     key={slot}

@@ -1,15 +1,9 @@
 import { AddedCourse } from "../types";
+import { DAYS } from "../constants";
 import { timeToMinutes } from "../utils";
+import { expandSlotSpellings, hasSlot } from "@/lib/slots";
 
 export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) => {
-  const DAYS = [
-    { id: "monday", label: "MON" },
-    { id: "tuesday", label: "TUE" },
-    { id: "wednesday", label: "WED" },
-    { id: "thursday", label: "THU" },
-    { id: "friday", label: "FRI" },
-  ];
-
   let freeHalfDays = 0;
   let totalGapMinutes = 0;
   let isFridayFree = true;
@@ -20,7 +14,10 @@ export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) =
   const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[] = [];
   const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[] = [];
 
-  const mySlots = new Set(courses.flatMap(c => c.slots));
+  // Both spellings: the schema says "A1" and a law course says "A", so a literal
+  // match leaves every law course invisible and reports a timetable that is full
+  // every morning as having ten free half-days.
+  const mySlots = expandSlotSpellings(courses.flatMap(c => c.slots));
   const theoryPeriods = (schema.theory as any[]).filter(p => !p.lunch);
   const labPeriods = (schema.lab as any[]).filter(p => !p.lunch);
 
@@ -43,7 +40,7 @@ export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) =
       
       if (tSlot && mySlots.has(tSlot)) {
         slotOccupied = true;
-        const c = courses.find(mc => mc.slots.includes(tSlot));
+        const c = courses.find(mc => hasSlot(mc.slots, tSlot));
         if (c) {
           venue = c.venue;
           courseTitle = c.title;
@@ -54,7 +51,7 @@ export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) =
         }
       } else if (lSlot && mySlots.has(lSlot)) {
         slotOccupied = true;
-        const c = courses.find(mc => mc.slots.includes(lSlot));
+        const c = courses.find(mc => hasSlot(mc.slots, lSlot));
         if (c) {
           venue = c.venue;
           courseTitle = c.title;
@@ -67,8 +64,8 @@ export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) =
       }
 
       if (slotOccupied) {
-        if (day.id === 'monday') isMondayFree = false;
-        if (day.id === 'friday') isFridayFree = false;
+        if (day.id === 'mon') isMondayFree = false;
+        if (day.id === 'fri') isFridayFree = false;
 
         if (isMorning) morningOccupied = true;
         else eveningOccupied = true;
@@ -123,7 +120,7 @@ export const calculateTimetableMetrics = (courses: AddedCourse[], schema: any) =
             toClass: `${curr.code} (${curr.title})`,
             fromTime: prev.endTime,
             toTime: curr.startTime,
-            day: day.label,
+            day: day.id.toUpperCase(),
             fromBlock: prevBlock,
             toBlock: currBlock
           });

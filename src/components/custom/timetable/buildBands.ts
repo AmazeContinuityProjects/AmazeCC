@@ -54,6 +54,7 @@ import type {
   TimetablePeriod,
 } from "@amazecontinuityprojects/amazeui";
 import { fmt, toMinutes, dayKeyForDate } from "@/lib/social/schedule";
+import { hasSlot } from "@/lib/slots";
 
 /**
  * Tolerance for gluing two adjacent slots of the same course into one cell.
@@ -308,28 +309,51 @@ export function buildVerticalGrid({
       );
 
       const runSlots = run?.slots ?? [];
-      const slots = runSlots.length > 0 ? runSlots : bandSlots;
+      /**
+       * What to *show*, which is not always the schema's id.
+       *
+       * A law course is booked `A+TA+TAA` where the schema calls those periods
+       * `A1`/`TA1`/`TAA1`, so printing the schema's id would put "A1" in a
+       * student's cell for a course their own timetable spells "A". Prefer the
+       * id the course actually carries, and fall back to the schema's when the
+       * two are the same string — which is every course that is not a law one.
+       *
+       * This is also what makes blocking work: the planner filters its options
+       * by the slot on the course, so a blocked `A` has to be a `A` here for
+       * `onToggleBlockSlot` to record something that can match.
+       */
+      const shownRunSlots = run
+        ? run.slots.map((s) => run.course.slots.find((own) => hasSlot([own], s)) ?? s)
+        : [];
+      const slots = shownRunSlots.length > 0 ? shownRunSlots : bandSlots;
       const label =
-        runSlots.length > 0 ? runSlots.join("+") : bandSlots.join(" / ");
+        shownRunSlots.length > 0 ? shownRunSlots.join("+") : bandSlots.join(" / ");
       // "L1+L2+L3" cannot survive a 40px column, so the compact density reads
       // "L1 +2": the first slot plus how many more the run holds. The full list
       // is always in the tap sheet.
       const shortLabel =
-        runSlots.length > 1 ? `${runSlots[0]} +${runSlots.length - 1}` : label;
+        shownRunSlots.length > 1
+          ? `${shownRunSlots[0]} +${shownRunSlots.length - 1}`
+          : label;
 
       // A run is a *display* merge of one course's slots, so it is only fully
       // ruled out when every one of them is. A free cell is a single slot as far
       // as the planner is concerned, so any single blocked slot hatches it —
       // which is also what the horizontal grid does.
+      //
+      // Read through `hasSlot` because a blocked slot may be recorded in either
+      // spelling: a law student blocks "A" and an engineering one blocks "A1",
+      // and both mean the same period.
+      const isBlocked = (s: string) => hasSlot(blockedSlots ?? [], s);
       const blocked =
         slots.length > 0 &&
         (runSlots.length > 0
-          ? runSlots.every((s) => blockedSlots?.has(s))
-          : bandSlots.some((s) => blockedSlots?.has(s)));
+          ? runSlots.every(isBlocked)
+          : bandSlots.some(isBlocked));
       const partiallyBlocked =
         runSlots.length > 0 &&
         !blocked &&
-        runSlots.some((s) => blockedSlots?.has(s));
+        runSlots.some(isBlocked);
 
       const inGap =
         band.hasTime &&
@@ -435,7 +459,7 @@ function buildRuns(
       continue;
     }
 
-    const course = courses.find((c) => c.slots.includes(slotId));
+    const course = courses.find((c) => hasSlot(c.slots, slotId));
     if (!course) {
       // Free bands never start or extend a run.
       open = null;

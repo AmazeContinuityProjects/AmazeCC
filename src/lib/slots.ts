@@ -19,11 +19,77 @@
  * law student's timetable as ten free half-days.
  */
 
+/** One period from `src/data/campus/*.json`. */
+export interface SchemaPeriod {
+  start?: string;
+  end?: string;
+  lunch?: boolean;
+  days?: Record<string, string>;
+}
+
+export interface CampusSchema {
+  theory?: SchemaPeriod[];
+  lab?: SchemaPeriod[];
+}
+
+export const DAYS_OF_WEEK = ["mon", "tue", "wed", "thu", "fri"] as const;
+export type DayId = (typeof DAYS_OF_WEEK)[number];
+
+/**
+ * `"8:00 AM"` → 480. Returns null for anything unreadable so a bad schema
+ * entry drops out of a lookup instead of sorting to the front of it.
+ *
+ * Null rather than `0` is load-bearing: the old copy in `freeClassrooms` had a
+ * `FFCS/utils.ts` twin that returned `0` for a missing time, which is midnight,
+ * and a period that silently became midnight was a period that silently
+ * disappeared from every day walk. The one implementation here rejects instead.
+ */
+export function timeToMinutes(time: string): number | null {
+  const match = String(time ?? "")
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = (match[3] || "").toUpperCase();
+  if (hours > 23 || minutes > 59) return null;
+
+  if (period === "PM" && hours !== 12) hours += 12;
+  else if (period === "AM" && hours === 12) hours = 0;
+  else if (!period) return null; // A 24h time is not in this schema.
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * `"08:00 AM"` → `"8:00am"`, `"8:00 AM"` → `"8:00am"`. The normalisation that
+ * makes lab and theory agree.
+ *
+ * The minutes have to survive: the two 8 o'clock periods in the Chennai schema
+ * are `8:00–8:50` and `8:55–9:45`, and dropping them would collapse both into
+ * one key.
+ */
+function normaliseTime(time: string): string {
+  const total = timeToMinutes(time);
+  if (total === null) return String(time ?? "").trim().toLowerCase().replace(/\s+/g, "");
+  const hours24 = Math.floor(total / 60) % 24;
+  const mm = total % 60;
+  const suffix = hours24 < 12 ? "am" : "pm";
+  const h12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  return `${h12}:${String(mm).padStart(2, "0")}${suffix}`;
+}
+
+/** The identity of a period, independent of zero-padding. */
+export function periodKey(start: string, end: string): string {
+  return `${normaliseTime(start)}-${normaliseTime(end)}`;
+}
+
 /**
  * The two law slots the Chennai grid spells with an `S` id rather than a letter.
  *
  * The law grid runs a third period after `TAA`/`TBB`/`TCC`/`TDD`, and the last
- * two of them do not fall on a 11:40 period — they are the two 12:35 periods
+ * two of them do not fall on an 11:40 period — they are the two 12:35 periods
  * the schema gives an `S` id. Stated rather than derived because there is
  * nothing in the schema to derive it *from*: `S11` and `S15` are just two
  * strings, and the link to `TEE`/`TFF` is knowledge about the law timetable.

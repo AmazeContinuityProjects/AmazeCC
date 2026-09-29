@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 
 import type { ParsedCourse } from "../exams/FFCS/types";
+import { slotSpellings } from "@/lib/slots";
 
 
 // Import schemas
@@ -157,7 +158,10 @@ export default function FreeClassroomsWidget() {
 
     const theoryPeriod = schema.theory.find((p: any) => p.start === reqStart && p.end === reqEnd);
     if (theoryPeriod && theoryPeriod.days && theoryPeriod.days[selectedDay]) {
-      targetSlots.add(theoryPeriod.days[selectedDay]);
+      // Law courses are booked "A+TA+TAA", with no period number, so the law
+      // school's morning slots would never match the schema's "A1"/"TA1"/"TAA1"
+      // and every AB5 room would read as free. See `slotSpellings`.
+      slotSpellings(theoryPeriod.days[selectedDay]).forEach((s) => targetSlots.add(s));
     }
 
     const labPeriod = schema.lab.find((p: any) => p.start === reqStart && p.end === reqEnd);

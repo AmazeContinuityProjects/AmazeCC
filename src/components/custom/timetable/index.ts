@@ -1,6 +1,7 @@
 export { default as TimetableView } from "./TimetableView";
 export type { TimetableViewProps } from "./TimetableView";
 export { default as VerticalTimetableGrid } from "./VerticalTimetableGrid";
+export { default as HorizontalTimetableGrid } from "./HorizontalTimetableGrid";
 export { default as SlotDetailSheet } from "./SlotDetailSheet";
 export type { AttendanceTone } from "./SlotDetailSheet";
 export {
