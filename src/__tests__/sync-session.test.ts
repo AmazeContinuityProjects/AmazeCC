@@ -191,6 +191,70 @@ describe('engine progress feed', () => {
   });
 });
 
+describe('routing visibility in the log', () => {
+  it('names the server that answered, and the endpoint it was for', async () => {
+    const { emitUniccLogEvent } = await import('../lib/unicc-fallback');
+    openSyncSession('VTOP Sync');
+
+    emitUniccLogEvent({ type: 'unicc_served', path: 'attendance' });
+    emitUniccLogEvent({ type: 'unicc_served', path: 'all-grades' });
+
+    const texts = getSyncSessionSnapshot().lines.map((l) => l.text);
+    // The op lines already say what was fetched; this is the part that says who.
+    expect(texts).toContain('attendance served by UniCC API');
+    expect(texts).toContain('all-grades served by UniCC API');
+  });
+
+  it('says so when AmazeCC failed and UniCC took over', async () => {
+    const { emitUniccLogEvent } = await import('../lib/unicc-fallback');
+    openSyncSession('VTOP Sync');
+
+    emitUniccLogEvent({ type: 'fell_back_to_unicc', path: 'grades' });
+    emitUniccLogEvent({ type: 'unicc_served', path: 'grades' });
+
+    const lines = getSyncSessionSnapshot().lines;
+    expect(lines.some((l) => l.text === 'AmazeCC API failed — falling back to UniCC for grades')).toBe(true);
+    expect(lines.some((l) => l.text === 'grades served by UniCC API')).toBe(true);
+  });
+
+  it('says so when UniCC was asked and could not answer', async () => {
+    const { emitUniccLogEvent } = await import('../lib/unicc-fallback');
+    openSyncSession('VTOP Sync');
+
+    emitUniccLogEvent({ type: 'unicc_unavailable', path: 'hostel' });
+
+    expect(getSyncSessionSnapshot().lines.some((l) =>
+      l.text === 'UniCC API could not answer hostel details — using AmazeCC API'
+    )).toBe(true);
+  });
+
+  it('uses readable names for the endpoints a student would recognise', async () => {
+    const { emitUniccLogEvent } = await import('../lib/unicc-fallback');
+    openSyncSession('VTOP Sync');
+
+    emitUniccLogEvent({ type: 'unicc_served', path: 'login' });
+    emitUniccLogEvent({ type: 'unicc_served', path: 'lms-data' });
+
+    const texts = getSyncSessionSnapshot().lines.map((l) => l.text);
+    // "login" and "lms-data" are internal names; the log is not an API reference.
+    expect(texts).toContain('sign-in served by UniCC API');
+    expect(texts).toContain('Moodle data served by UniCC API');
+  });
+
+  it('records nothing when no session is open', async () => {
+    const { emitUniccLogEvent } = await import('../lib/unicc-fallback');
+    dismissSyncSession();
+    closeSyncSession(0);
+    vi.runAllTimers();
+
+    emitUniccLogEvent({ type: 'unicc_served', path: 'attendance' });
+
+    // Requests also fire outside a visible run (the boot health check, a
+    // background reload); none of that should resurrect a closed sheet.
+    expect(isSyncSessionOpen()).toBe(false);
+  });
+});
+
 describe('assertApiSuccess', () => {
   it('passes through healthy payloads untouched', async () => {
     const { assertApiSuccess } = await import('../lib/sync-engine/errors');

@@ -182,6 +182,227 @@ export function isUniccHost(url: string): boolean {
 }
 
 /**
+ * Which server the user has asked us to talk to first.
+ *
+ * `amazecc` (the default) is the behaviour that has always existed: AmazeCC
+ * first, and UniCC only if every AmazeCC host has already failed. `unicc` is an
+ * explicit opt-in that puts UniCC *first*, which is what a student actually
+ * wants when the AmazeCC API is blocked on their network or down for their
+ * region — waiting out two AmazeCC timeouts before the first useful request is
+ * a poor experience, and this skips them.
+ *
+ * ## "Prefer UniCC" does not mean "only UniCC"
+ *
+ * UniCC implements nine of the routes the app calls. There is no honest version
+ * of "use UniCC" that also returns the bus route, hostel counselling, library
+ * dues, the student profile, the wallet or social sync, because those endpoints
+ * simply do not exist there. So this is a routing *preference*: UniCC answers
+ * what it can, AmazeCC answers the rest, and AmazeCC is still the fallback if
+ * UniCC is down. The UI says so rather than implying a switch that cannot
+ * deliver on the promise.
+ *
+ * ## A rejected password still ends the chain
+ *
+ * Choosing UniCC does not buy a second attempt at VTOP. UniCC and AmazeCC both
+ * log in against real VTOP against real credentials, and VTOP locks an account
+ * after repeated failures, so a `401` from UniCC is returned to the caller
+ * untouched and never re-tried against AmazeCC. The opt-in changes which server
+ * is asked *first*; it does not weaken the one-attempt rule.
+ */
+export type UniccTarget = "amazecc" | "unicc";
+
+const TARGET_STORAGE_KEY = "amazecc_unicc_target";
+
+function readStoredTarget(): UniccTarget {
+  if (typeof window === "undefined") return "amazecc";
+  try {
+    // Default to AmazeCC. Opting in sends credentials to a third-party server,
+    // so it has to be a deliberate act, never something a stale value can do.
+    return window.localStorage.getItem(TARGET_STORAGE_KEY) === "unicc" ? "unicc" : "amazecc";
+  } catch {
+    return "amazecc";
+  }
+}
+
+let uniccTarget: UniccTarget = readStoredTarget();
+const targetListeners = new Set<() => void>();
+
+export function getUniccTarget(): UniccTarget {
+  return uniccTarget;
+}
+
+export function isUniccPreferred(): boolean {
+  return uniccTarget === "unicc";
+}
+
+export function setUniccTarget(next: UniccTarget): void {
+  if (next === uniccTarget) return;
+  uniccTarget = next;
+  if (typeof window !== "undefined") {
+    try {
+      if (next === "unicc") window.localStorage.setItem(TARGET_STORAGE_KEY, "unicc");
+      else window.localStorage.removeItem(TARGET_STORAGE_KEY);
+    } catch {
+      // Storage can be unavailable (private mode, quota). The in-memory value
+      // still applies for this session, which is the part that matters.
+    }
+  }
+  targetListeners.forEach((l) => l());
+}
+
+export function subscribeUniccTarget(listener: () => void): () => void {
+  targetListeners.add(listener);
+  return () => void targetListeners.delete(listener);
+}
+
+/**
+ * Who is actually answering, and what UniCC has done this session.
+ *
+ * The point of this is visibility. A student who chose UniCC deserves to know
+ * whether it is genuinely serving their data, and a student on the default
+ * AmazeCC target deserves to know when it silently did the work anyway — that
+ * used to be invisible, which is how a third party ending up in the request path
+ * goes unnoticed.
+ *
+ * `lastServer` is what the UI leads with, because "which API is serving" is a
+ * question about *right now* rather than about totals. It is updated on every
+ * request either server answers, so it cannot go stale while a sync is running
+ * and cannot go on claiming UniCC is serving after it has handed back to AmazeCC.
+ *
+ * `unsupported` counts requests that were *not* sent to UniCC because it has no
+ * such route. While a student is opted in to UniCC, those are answered by
+ * AmazeCC, and counting them is the honest way to show that the preference has
+ * limits rather than letting the UI imply everything came from UniCC.
+ */
+export interface UniccActivity {
+  /** Requests UniCC answered successfully. */
+  served: number;
+  /** Requests UniCC was asked and could not answer. */
+  failed: number;
+  /** Requests that went to AmazeCC because UniCC has no such route. */
+  unsupported: number;
+  lastPath: string | null;
+  lastAt: number;
+  lastOutcome: "served" | "failed" | "unsupported" | null;
+  /** Which server answered the most recent request. */
+  lastServer: "amazecc" | "unicc" | null;
+}
+
+function emptyActivity(): UniccActivity {
+  return {
+    served: 0,
+    failed: 0,
+    unsupported: 0,
+    lastPath: null,
+    lastAt: 0,
+    lastOutcome: null,
+    lastServer: null,
+  };
+}
+
+let activity: UniccActivity = emptyActivity();
+const activityListeners = new Set<() => void>();
+
+export function getUniccActivity(): UniccActivity {
+  return activity;
+}
+
+export function subscribeUniccActivity(listener: () => void): () => void {
+  activityListeners.add(listener);
+  return () => void activityListeners.delete(listener);
+}
+
+function record(
+  path: string,
+  outcome: UniccActivity["lastOutcome"],
+  server: "amazecc" | "unicc"
+): void {
+  activity = {
+    ...activity,
+    served: activity.served + (outcome === "served" ? 1 : 0),
+    failed: activity.failed + (outcome === "failed" ? 1 : 0),
+    unsupported: activity.unsupported + (outcome === "unsupported" ? 1 : 0),
+    lastPath: path,
+    lastAt: Date.now(),
+    lastOutcome: outcome,
+    lastServer: server,
+  };
+  activityListeners.forEach((l) => l());
+}
+
+export function noteUniccServed(path: string): void {
+  record(path, "served", "unicc");
+}
+
+export function noteUniccFailed(path: string): void {
+  record(path, "failed", "unicc");
+}
+
+export function noteUniccUnsupported(path: string): void {
+  record(path, "unsupported", "amazecc");
+}
+
+/**
+ * An AmazeCC host answered.
+ *
+ * Recorded for every successful AmazeCC response rather than only the ones where
+ * UniCC was skipped, so "which API is serving" tracks the latest real request.
+ * Deliberately does not touch the counters: a request that never involved UniCC
+ * is not a UniCC statistic, and inflating `served` here would make the sync log
+ * claim a hand-off that never happened.
+ */
+export function noteAmazeccServing(path: string): void {
+  activity = {
+    ...activity,
+    lastPath: path,
+    lastAt: Date.now(),
+    lastServer: "amazecc",
+  };
+  activityListeners.forEach((l) => l());
+}
+
+/**
+ * Notable routing events, for the sync log.
+ *
+ * Separate from {@link UniccActivity} on purpose. The counters answer "who is
+ * serving right now"; this answers "what happened", and only for the things a
+ * student would want explained — a third party taking over, or being unable to.
+ * Logging every routine AmazeCC request would bury the two lines that matter.
+ *
+ * An event stream rather than diffed counters: it cannot be thrown off by a
+ * counter reset between sessions, and it carries the route that caused it.
+ */
+export type UniccLogEvent =
+  /** UniCC answered a request. */
+  | { type: "unicc_served"; path: string }
+  /** An AmazeCC host failed and the request is going to UniCC instead. */
+  | { type: "fell_back_to_unicc"; path: string }
+  /** UniCC was asked, could not answer, and AmazeCC is being used instead. */
+  | { type: "unicc_unavailable"; path: string };
+
+const logListeners = new Set<(e: UniccLogEvent) => void>();
+
+export function subscribeUniccLogEvents(listener: (e: UniccLogEvent) => void): () => void {
+  logListeners.add(listener);
+  return () => void logListeners.delete(listener);
+}
+
+export function emitUniccLogEvent(e: UniccLogEvent): void {
+  logListeners.forEach((l) => l(e));
+}
+
+/** For tests, and for starting a fresh sync session's tally. */
+export function resetUniccActivity(): void {
+  activity = emptyActivity();
+  activityListeners.forEach((l) => l());
+}
+
+/** The bare route name, for display. `"all-grades"`, not the full URL. */
+export function uniccRouteName(urlOrPath: string): string {
+  return uniccPathFor(urlOrPath) ?? new URL(urlOrPath, "https://placeholder.invalid").pathname.replace(/^\/+/, "").replace(/^api\//, "");
+}
+
+/**
  * How long to wait on UniCC.
  *
  * UniCC solves the VTOP captcha server-side, so a successful login takes as long

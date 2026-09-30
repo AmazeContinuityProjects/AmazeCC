@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { ProgressEvent } from "./types";
+import { subscribeUniccLogEvents } from "../unicc-fallback";
 
 export type SyncLineStatus = "success" | "error" | "pending" | "info" | "loading";
 
@@ -183,6 +184,46 @@ const OP_LABELS: Record<string, { label: string; delta: number }> = {
   lms: { label: "Moodle data", delta: 10 },
   social: { label: "Friends & groups", delta: 5 },
 };
+
+/** Routes the request layer can hand to UniCC, in the words the log uses. */
+const UNICC_ROUTE_LABELS: Record<string, string> = {
+  login: "sign-in",
+  attendance: "attendance",
+  grades: "grades",
+  "all-grades": "all-grades",
+  calendar: "academic calendar",
+  schedule: "exam schedule",
+  hostel: "hostel details",
+  "lms-data": "Moodle data",
+  "vitol-data": "VITOL data",
+};
+
+const routeLabel = (path: string) => UNICC_ROUTE_LABELS[path] ?? path;
+
+/**
+ * Say, per request, who answered it and when the other server was skipped.
+ *
+ * The op lines say *what* was fetched; this says *who fetched it*. Without it a
+ * third party can end up serving a student's whole login and the log looks
+ * identical to a normal one — which is the invisibility that made the earlier
+ * origin-swap bug so easy to miss.
+ *
+ * Only the interesting transitions are logged. A request AmazeCC answers with no
+ * trouble produces no line, because the op line already covers it; emitting one
+ * per routine request would bury the two a student actually needs to see.
+ *
+ * `appendSyncLine` no-ops when no session is open, so nothing is recorded
+ * outside a visible run.
+ */
+subscribeUniccLogEvents((e) => {
+  if (e.type === "unicc_served") {
+    appendSyncLine(`${routeLabel(e.path)} served by UniCC API`, "info");
+  } else if (e.type === "fell_back_to_unicc") {
+    appendSyncLine(`AmazeCC API failed — falling back to UniCC for ${routeLabel(e.path)}`, "error");
+  } else {
+    appendSyncLine(`UniCC API could not answer ${routeLabel(e.path)} — using AmazeCC API`, "error");
+  }
+});
 
 /**
  * Feed a raw engine progress event into the session so the log reflects

@@ -1,4 +1,14 @@
-import { isUniccHost, uniccUrlFor } from "./unicc-fallback";
+import {
+  emitUniccLogEvent,
+  isUniccHost,
+  isUniccPreferred,
+  noteAmazeccServing,
+  noteUniccFailed,
+  noteUniccServed,
+  noteUniccUnsupported,
+  uniccRouteName,
+  uniccUrlFor,
+} from "./unicc-fallback";
 
 export const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 export const BACKUP_API_URL = process.env.NEXT_PUBLIC_BACKUP_API_URL || "https://api.amazecc.com";
@@ -177,18 +187,82 @@ async function attemptUnicc(
 ): Promise<Response> {
   const uniccUrl = uniccUrlFor(urlStr);
   if (uniccUrl) {
+    const route = uniccRouteName(uniccUrl);
+    // Every AmazeCC host has already failed by the time this runs, so this is
+    // the hand-off the user needs to be told about — not a silent rescue.
+    emitUniccLogEvent({ type: "fell_back_to_unicc", path: route });
     try {
       console.log(`Retrying request with UniCC: ${uniccUrl}`);
       const res = await originalFetch(prepareInput(uniccUrl), init);
       if (isFailoverStatus(res.status)) {
         throw new Error(`Server error ${res.status}`);
       }
+      if (res.ok) {
+        noteUniccServed(route);
+        emitUniccLogEvent({ type: "unicc_served", path: route });
+      }
       return res;
     } catch (uniccError) {
       console.error(`UniCC fallback also failed:`, uniccError);
+      noteUniccFailed(route);
     }
   }
   throw lastError;
+}
+
+/**
+ * The user's chosen target, tried ahead of the AmazeCC chain.
+ *
+ * Only reached when the user has explicitly opted in to UniCC, and only for the
+ * routes it implements. Everything else is counted and left to AmazeCC, because
+ * a preference cannot conjure an endpoint that does not exist there.
+ *
+ * A `401` is returned as-is rather than thrown, which is the whole reason this
+ * function must not be written as "try UniCC, catch, try AmazeCC": a catch-all
+ * would re-send the same wrong password to a second host that authenticates
+ * against the same real VTOP, and that is how an account gets locked. Returning
+ * the response lets `request()` turn it into an `AuthError` and stop.
+ */
+async function tryPreferredUnicc(
+  urlStr: string,
+  init: RequestInit | undefined,
+  prepareInput: (newUrl: string) => RequestInfo | URL
+): Promise<Response | null> {
+  const uniccUrl = uniccUrlFor(urlStr);
+  if (!uniccUrl) {
+    // No UniCC route for this one. Recorded so the sync sheet can say plainly
+    // that this part of the data came from AmazeCC rather than implying the
+    // whole sync was on UniCC.
+    if (isUniccPreferred()) noteUniccUnsupported(uniccRouteName(urlStr));
+    return null;
+  }
+
+  const route = uniccRouteName(uniccUrl);
+  try {
+    console.log(`Opted in to UniCC: ${uniccUrl}`);
+    const res = await originalFetch(prepareInput(uniccUrl), init);
+    if (isFailoverStatus(res.status)) {
+      // UniCC is up but broken for this route — an outage, not a verdict on the
+      // credentials, so it is safe to carry on to AmazeCC.
+      noteUniccFailed(route);
+      emitUniccLogEvent({ type: "unicc_unavailable", path: route });
+      console.warn(`UniCC returned ${res.status} for ${uniccUrl}. Trying AmazeCC instead.`);
+      return null;
+    }
+    // A 4xx is a real answer but it is not data. Counting a rejected password
+    // as "UniCC served your data" would put a success badge on the exact moment
+    // the user most needs to be told the login failed.
+    if (res.ok) {
+      noteUniccServed(route);
+      emitUniccLogEvent({ type: "unicc_served", path: route });
+    }
+    return res;
+  } catch (err) {
+    noteUniccFailed(route);
+    emitUniccLogEvent({ type: "unicc_unavailable", path: route });
+    console.warn(`Opted-in UniCC attempt failed for ${uniccUrl}. Trying AmazeCC instead.`, err);
+    return null;
+  }
 }
 
 export async function fetchWithFailover(
@@ -257,11 +331,21 @@ export async function fetchWithFailover(
     }
   };
 
+  // The user picked UniCC as their target server: ask it first, for the routes
+  // it implements, and carry on to the AmazeCC chain if it cannot answer. This
+  // is the only thing that makes the login screen's opt-in do anything — every
+  // internal request, background sync included, arrives through this function.
+  if (isUniccPreferred()) {
+    const preferred = await tryPreferredUnicc(urlStr, init, prepareInput);
+    if (preferred) return preferred;
+  }
+
   try {
     const res = await originalFetch(prepareInput(targetUrl), init);
     if (isFailoverStatus(res.status)) {
       throw new Error(`Server error ${res.status}`);
     }
+    if (res.ok) noteAmazeccServing(uniccRouteName(urlStr));
     return res;
   } catch (error: any) {
     // Whether the primary or the backup was active, a genuine failure is handled
@@ -282,7 +366,10 @@ export async function fetchWithFailover(
         console.warn(`Backup API call failed (${urlStr}). Retrying primary. Error:`, error);
         setActiveApiUrl(PRIMARY_API_URL);
         try {
-          return await originalFetch(prepareInput(urlStr), init);
+          const recovered = await originalFetch(prepareInput(urlStr), init);
+          if (isFailoverStatus(recovered.status)) throw new Error(`Server error ${recovered.status}`);
+          if (recovered.ok) noteAmazeccServing(uniccRouteName(urlStr));
+          return recovered;
         } catch (primaryError) {
           console.error(`Primary API call also failed:`, primaryError);
           return attemptUnicc(urlStr, input, init, prepareInput, primaryError);
@@ -301,6 +388,7 @@ export async function fetchWithFailover(
           // an error page as if it were data and skip the UniCC hop.
           throw new Error(`Server error ${backupRes.status}`);
         }
+        if (backupRes.ok) noteAmazeccServing(uniccRouteName(urlStr));
         return backupRes;
       } catch (backupError) {
         console.error(`Backup API call also failed:`, backupError);
