@@ -201,7 +201,7 @@ const FacultyCard = ({
       {/* Card Footer toggle cue */}
       <div 
         onClick={() => setExpanded((v) => !v)}
-        className="px-4 py-2 bg-gray-50/70 dark:bg-zinc-900/90 border-t border-gray-100 dark:border-zinc-800/80 text-[10px] font-bold text-gray-400 dark:text-gray-500 flex items-center justify-between cursor-pointer hover:bg-gray-100/70 dark:hover:bg-zinc-850 transition-colors"
+        className="px-4 py-2 bg-gray-50/70 dark:bg-zinc-900/90 border-t border-gray-100 dark:border-zinc-800/80 text-[10px] font-bold text-gray-400 dark:text-gray-500 flex items-center justify-between cursor-pointer hover:bg-gray-100/70 dark:hover:bg-zinc-800 transition-colors"
       >
         <span>{expanded ? "Show less" : "Click to view full details"}</span>
         <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
@@ -370,7 +370,7 @@ export default function FacultyInfoTab({
               className="space-y-6"
             >
               {/* Hero Banner */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 text-left relative overflow-hidden">
+              <div className="p-6 rounded-[24px] bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 text-left relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="flex items-start gap-4">
                   <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-md shrink-0">
@@ -570,7 +570,7 @@ export default function FacultyInfoTab({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30">
+                    <div className="flex flex-col items-center justify-center py-20 text-center rounded-[24px] border border-dashed border-gray-200 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30">
                       <User className="w-12 h-12 mb-3 text-gray-400 opacity-50" />
                       <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
                         {searchTerm

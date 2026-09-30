@@ -28,7 +28,7 @@ export function SectionHeader({
     <div className={`flex items-center justify-between gap-2 px-1 ${className}`.trim()}>
       <div className="flex items-center gap-2 min-w-0">
         {leading ?? (Icon ? <Icon className="w-4 h-4 text-indigo-500 shrink-0" /> : null)}
-        <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
+        <h2 className="text-sm font-black text-text-heading font-outfit tracking-tight truncate">
           {title}
         </h2>
         {typeof count === "number" ? (
@@ -75,13 +75,13 @@ export function StatTile({
   // toned-down grey, so an uncoloured tile does not look disabled.
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
-      ? "text-zinc-900 dark:text-white"
-      : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
+      ? "text-text-heading"
+      : TONE_TEXT[tone] ?? "text-text-heading";
 
   return (
     <div className={`${TILE} ${height} ${className}`.trim()}>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate">
           {label}
         </span>
         {badge ? (
@@ -105,7 +105,7 @@ export function StatTile({
 
       {sub ? (
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
+          <p className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
             {sub}
           </p>
         </div>
@@ -126,9 +126,9 @@ export function ListShell({
 }
 
 const ROW_TITLE =
-  "font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight";
+  "font-bold text-sm text-text-heading truncate font-outfit leading-tight";
 const ROW_SUBTITLE =
-  "text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate";
+  "text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate";
 
 /**
  * The title + muted subtitle block that sits inside a list row.
@@ -188,12 +188,12 @@ export function KeyValue({
 }) {
   return (
     <div
-      className={`p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 ${className}`.trim()}
+      className={`p-3 rounded-2xl bg-surface-secondary dark:bg-background/50 border border-border-muted/60 dark:border-border ${className}`.trim()}
     >
-      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-0.5">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-0.5">
         {label}
       </span>
-      <span className={`font-extrabold text-zinc-900 dark:text-white ${valueClassName}`.trim()}>
+      <span className={`font-extrabold text-text-heading ${valueClassName}`.trim()}>
         {value}
       </span>
     </div>

@@ -19,7 +19,7 @@ import { ListRowText } from "./Surfaces";
 const ROW_BASE =
   "flex items-center justify-between gap-4 px-4 py-4 min-h-[4.5rem] transition-colors";
 const ROW_TAPPABLE =
-  "w-full text-left cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
+  "w-full text-left cursor-pointer hover:bg-surface-secondary/70 dark:hover:bg-surface-hover/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
 const ROW_STACKED =
   "flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4";
 

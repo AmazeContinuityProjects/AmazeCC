@@ -1052,7 +1052,7 @@ export default function ProfilePage({
                 .map(([label, val]) => (
                   <div
                     key={String(label)}
-                    className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850 space-y-1"
+                    className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 space-y-1"
                   >
                     <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                       {String(label)}
@@ -1067,7 +1067,7 @@ export default function ProfilePage({
         )}
 
         {(profileData?.currentAddress || profileData?.permanentAddress) && (
-          <div className="space-y-4 border-t border-zinc-150 dark:border-zinc-800/80 pt-5">
+          <div className="space-y-4 border-t border-zinc-100 dark:border-zinc-800/80 pt-5">
             <div>
               <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
                 Address Records
@@ -1171,7 +1171,7 @@ export default function ProfilePage({
                   key={idx}
                   className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs"
                 >
-                  <div className="flex items-center gap-3 pb-3 border-b border-zinc-150 dark:border-zinc-800/80">
+                  <div className="flex items-center gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
                     <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
                       <User className="w-4 h-4" />
                     </div>
@@ -1183,7 +1183,7 @@ export default function ProfilePage({
                   </div>
 
                   <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                           Username
@@ -1205,7 +1205,7 @@ export default function ProfilePage({
                     </div>
 
                     {pass && (
-                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
                         <div className="min-w-0 flex-1">
                           <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                             Password
@@ -1442,7 +1442,7 @@ export default function ProfilePage({
         </h3>
 
         {/* Theme Mode Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Theme Mode</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1474,7 +1474,7 @@ export default function ProfilePage({
         </div>
 
         {/* Dashboard Layout Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Dashboard Layout</p>
@@ -1516,7 +1516,7 @@ export default function ProfilePage({
         </div>
 
         {/* Timetable Pill Style */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Timetable Class Density
@@ -1536,7 +1536,7 @@ export default function ProfilePage({
         </div>
 
         {/* Timetable Grid Layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Timetable Grid Layout
@@ -1558,7 +1558,7 @@ export default function ProfilePage({
         </div>
 
         {/* Vertical Grid Cell Density */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Vertical Grid Cell Density
@@ -1579,7 +1579,7 @@ export default function ProfilePage({
         </div>
 
         {/* Tasks Placement on Home */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Home Tasks Placement
@@ -1606,7 +1606,7 @@ export default function ProfilePage({
           Privacy & Visibility
         </h3>
 
-        <div className="divide-y divide-zinc-150 dark:divide-zinc-800/60">
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
@@ -1786,7 +1786,7 @@ export default function ProfilePage({
         </h3>
 
         {/* Active Semester Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Active Semester</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1816,7 +1816,7 @@ export default function ProfilePage({
         </div>
 
         {/* Academic Calendar Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Academic Calendar</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1840,7 +1840,7 @@ export default function ProfilePage({
         </div>
 
         {/* Target Attendance Threshold */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Target Attendance Goal
@@ -1887,7 +1887,7 @@ export default function ProfilePage({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
             <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Focus Duration (min)
             </label>
@@ -1901,7 +1901,7 @@ export default function ProfilePage({
             />
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
             <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Break Duration (min)
             </label>
@@ -1915,7 +1915,7 @@ export default function ProfilePage({
             />
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+          <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
             <label className="block text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-1">
               Default Rounds
             </label>
@@ -1938,7 +1938,7 @@ export default function ProfilePage({
           Residential Status & Mess
         </h3>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Hostel vs Day Scholar</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1973,7 +1973,7 @@ export default function ProfilePage({
         </div>
 
         {residentialStatus === "dayscholar" && (
-          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850 cursor-pointer">
+          <label className="flex items-center gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 cursor-pointer">
             <input
               type="checkbox"
               checked={isDayscholarWithBus}
@@ -2008,7 +2008,7 @@ export default function ProfilePage({
   const renderSyncContent = () => (
     <div className="space-y-6">
       <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-150 dark:border-zinc-800/80 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 pb-4">
           <div>
             <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
               Data Synchronization Policies
@@ -2034,7 +2034,7 @@ export default function ProfilePage({
         </div>
 
         {/* Background Sync Frequency */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Background Auto-Refresh Frequency
@@ -2056,7 +2056,7 @@ export default function ProfilePage({
         </div>
 
         {/* Sync Toggles List */}
-        <div className="divide-y divide-zinc-150 dark:divide-zinc-800/60">
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
           <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
@@ -2218,7 +2218,7 @@ export default function ProfilePage({
           })}
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-zinc-150 dark:border-zinc-800/80">
+        <div className="flex items-center justify-between py-3 border-t border-zinc-100 dark:border-zinc-800/80">
           <div>
             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
               Compact Mobile Header
@@ -2249,14 +2249,14 @@ export default function ProfilePage({
   // 6. Advanced & System Section
   const renderAdvancedContent = () => (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-150 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
         {/* Local Storage — a drill-down, so it pushes a screen on the settings
             stack and inherits this page's header and back button, rather than
             opening an overlay with a second copy of both. */}
         <button
           type="button"
           onClick={() => screens.go("storage")}
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
@@ -2317,7 +2317,7 @@ export default function ProfilePage({
         {/* Backup Settings */}
         <div
           onClick={handleExportSettings}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -2338,7 +2338,7 @@ export default function ProfilePage({
         {/* Restore Settings */}
         <div
           onClick={handleImportSettings}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
@@ -2359,7 +2359,7 @@ export default function ProfilePage({
         {/* Keyboard Shortcuts */}
         <div
           onClick={onOpenShortcutsHelp}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -2437,31 +2437,31 @@ export default function ProfilePage({
           </p>
         </div>
 
-        <div className="w-full max-w-sm grid grid-cols-2 gap-3 text-xs text-left pt-3 border-t border-zinc-150 dark:border-zinc-800/60">
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-850">
+        <div className="w-full max-w-sm grid grid-cols-2 gap-3 text-xs text-left pt-3 border-t border-zinc-100 dark:border-zinc-800/60">
+          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-800">
             <span className="text-zinc-400 font-semibold block text-[10px]">Version</span>
             <span className="font-bold text-zinc-800 dark:text-zinc-200">v3.2.0</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-850">
+          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-800">
             <span className="text-zinc-400 font-semibold block text-[10px]">Build Number</span>
             <span className="font-bold text-zinc-800 dark:text-zinc-200">2026.0816</span>
           </div>
         </div>
 
-        <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 tracking-widest uppercase pt-2 border-t border-zinc-150 dark:border-zinc-850/60 w-full">
+        <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 tracking-widest uppercase pt-2 border-t border-zinc-100 dark:border-zinc-800/60 w-full">
           Crafted with care by Amaze Continuity Projects
         </p>
       </div>
 
       {/* Community & Useful Links List */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-150 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
         {quickLinks.importantLinks.map((link) => (
           <a
             key={link.id}
             href={link.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors"
+            className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
           >
             <div className="flex items-center gap-3.5 min-w-0 pr-4">
               <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -2483,7 +2483,7 @@ export default function ProfilePage({
         {/* Changelog */}
         <div
           onClick={() => setShowChangelog(true)}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
@@ -2504,7 +2504,7 @@ export default function ProfilePage({
         {/* Hall of Fame */}
         <div
           onClick={() => setShowHallOfFame(true)}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
@@ -2527,7 +2527,7 @@ export default function ProfilePage({
           href="https://github.com/AmazeContinuityProjects/AmazeCC/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 shrink-0">
@@ -2548,7 +2548,7 @@ export default function ProfilePage({
         {/* Privacy Policy */}
         <div
           onClick={() => window.open("/privacy", "_blank")}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -2569,7 +2569,7 @@ export default function ProfilePage({
         {/* Terms of Service */}
         <div
           onClick={() => window.open("/terms", "_blank")}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5 min-w-0 pr-4">
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">

@@ -1,14 +1,11 @@
 import { AddedCourse, ParsedCourse } from "./types";
-import timetableSchema from "@/data/campus/chennai.json";
 
-export const timeToMinutes = (timeStr: string) => {
-  if (!timeStr) return 0;
-  const [time, period] = timeStr.trim().split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-};
+/**
+ * `timeToMinutes` used to live here too, returning `0` for anything it could not
+ * read — which is midnight, so a period with a bad time became a period at the
+ * start of the day rather than a period that was skipped. `lib/slots` has the
+ * one that returns null instead, and this copy is gone.
+ */
 
 export const isCourseFullyAdded = (code: string, requiredTypes: string[], addedCourses: AddedCourse[]) => {
   const addedForCode = addedCourses.filter(c => c.code === code);

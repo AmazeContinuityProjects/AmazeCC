@@ -976,7 +976,7 @@ export default function NavigationTabs({
     return (
       <>
         {/* Sleek Floating Pill Bottom Navigation Bar (Icon-Only on Mobile) */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-55 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[26px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-55 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
@@ -994,7 +994,7 @@ export default function NavigationTabs({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute inset-1 rounded-[18px] bg-info-surface/90 dark:bg-info/10 z-0"
+                    className="absolute inset-1 rounded-2xl bg-info-surface/90 dark:bg-info/10 z-0"
                     transition={{ duration: 0.15, ease: "easeOut" }}
                   />
                 )}
@@ -1007,7 +1007,7 @@ export default function NavigationTabs({
                     className={`p-1.5 transition-colors duration-200 ${
                       isActive 
                         ? "text-info" 
-                        : "text-zinc-400 dark:text-zinc-555 hover:text-zinc-655 dark:hover:text-zinc-300"
+                        : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
                     }`}
                   >
                     {item.icon}
@@ -1830,11 +1830,11 @@ const AppLibraryPortal = memo(({
       {librarySearchQuery ? (
         filteredSearchItems.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-555">No modules found matching "{librarySearchQuery}"</p>
+            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">No modules found matching "{librarySearchQuery}"</p>
           </div>
         ) : (
           <div className="space-y-2">
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555">Search Results</h3>
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Search Results</h3>
             <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
               {filteredSearchItems.map(item => {
                 const Icon = item.icon;
@@ -1846,7 +1846,7 @@ const AppLibraryPortal = memo(({
                 return (
                   <div
                     key={item.label}
-                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                   >
                     <button
                       onClick={() => { item.action(); onClose(); }}
@@ -1857,7 +1857,7 @@ const AppLibraryPortal = memo(({
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{item.label}</span>
-                        <span className="text-[9px] text-zinc-400 dark:text-zinc-555 font-medium">{item.group} category</span>
+                        <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">{item.group} category</span>
                       </div>
                     </button>
 
@@ -1873,7 +1873,7 @@ const AppLibraryPortal = memo(({
                             ? "bg-indigo-50 border-indigo-200 text-indigo-655 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
                             : atLimit
                               ? "opacity-20 cursor-not-allowed"
-                              : "border-transparent text-zinc-300 dark:text-zinc-555 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                              : "border-transparent text-zinc-300 dark:text-zinc-500 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
                         }`}
                         title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
                       >
@@ -1889,7 +1889,7 @@ const AppLibraryPortal = memo(({
       ) : mobilePanel === "primary" ? (
         primaryGroups.map(group => (
           <div key={group.name} className="space-y-2">
-            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555">{group.name}</h3>
+            <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">{group.name}</h3>
             <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
               {group.items.map(item => {
                 const Icon = item.icon;
@@ -1902,7 +1902,7 @@ const AppLibraryPortal = memo(({
                 return (
                   <div
                     key={item.label}
-                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                    className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                   >
                     <button
                       onClick={() => { item.action(); if (!isPanelTrigger) onClose(); }}
@@ -1937,7 +1937,7 @@ const AppLibraryPortal = memo(({
                             ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
                             : atLimit
                               ? "opacity-20 cursor-not-allowed"
-                              : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                              : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
                         }`}
                         title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
                       >
@@ -1966,7 +1966,7 @@ const AppLibraryPortal = memo(({
               return (
                 <div
                   key={item.label}
-                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                 >
                   <button
                     onClick={() => { item.action(); onClose(); }}
@@ -1977,7 +1977,7 @@ const AppLibraryPortal = memo(({
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-medium font-outfit">Academics Tracker</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Academics Tracker</span>
                     </div>
                   </button>
 
@@ -1993,7 +1993,7 @@ const AppLibraryPortal = memo(({
                           ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
                           : atLimit
                             ? "opacity-20 cursor-not-allowed"
-                            : "border-transparent text-zinc-300 dark:text-zinc-650 hover:text-zinc-655 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                            : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
                       }`}
                       title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
                     >
@@ -2019,7 +2019,7 @@ const AppLibraryPortal = memo(({
               return (
                 <div
                   key={item.label}
-                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-55/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
+                  className="group/item relative flex min-h-[60px] w-full items-center justify-between rounded-2xl border border-zinc-200/50 bg-gradient-to-br from-white to-zinc-50/20 p-3 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40"
                 >
                   <button
                     onClick={() => { item.action(); onClose(); }}
@@ -2030,7 +2030,7 @@ const AppLibraryPortal = memo(({
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="truncate text-xs font-bold leading-tight text-zinc-800 dark:text-zinc-200">{cleanLabel}</span>
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-550 font-medium font-outfit">Hostel Hub</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium font-outfit">Hostel Hub</span>
                     </div>
                   </button>
 
@@ -2046,7 +2046,7 @@ const AppLibraryPortal = memo(({
                           ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/50 dark:text-indigo-400"
                           : atLimit
                             ? "opacity-20 cursor-not-allowed"
-                            : "border-transparent text-zinc-300 dark:text-zinc-655 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
+                            : "border-transparent text-zinc-300 dark:text-zinc-600 hover:text-zinc-400 hover:border-zinc-200 dark:hover:border-zinc-800"
                       }`}
                       title={isPinned ? "Unpin from bottom bar" : "Pin to bottom bar"}
                     >
@@ -2063,7 +2063,7 @@ const AppLibraryPortal = memo(({
       {/* Quick Customize Pinned Tabs Block */}
       <div className="shrink-0 space-y-3 border-t border-zinc-200/50 bg-zinc-50/80 px-5 py-4 dark:border-zinc-800/50 dark:bg-black/60 rounded-t-[20px] mt-4">
         <div className="flex items-center justify-between">
-          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-550 font-outfit">Quick Pin tabs (Max 4)</h4>
+          <h4 className="px-0.5 text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-outfit">Quick Pin tabs (Max 4)</h4>
           <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase">
             {(settings?.pinnedNavTabs ?? []).length}/4 selected
           </span>

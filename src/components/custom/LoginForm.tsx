@@ -562,7 +562,7 @@ export default function LoginForm({
                       whileInView={{ opacity: 1, y: 0, scale: 1 }}
                       viewport={{ once: true, amount: 0.05 }}
                       transition={{ duration: 0.45, delay: (idx % 3) * 0.07, ease: "easeOut" }}
-                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-white/[0.08] p-6 rounded-3xl flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
+                      className="bg-white border border-slate-200/80 hover:border-indigo-500/40 dark:bg-[#050814]/70 dark:border-white/[0.08] p-6 rounded-[24px] flex flex-col justify-between hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 h-full group"
                     >
                       <div className="space-y-3">
                         <div className={`p-2.5 w-fit rounded-2xl ${feat.iconColor} bg-slate-100 dark:bg-neutral-900 group-hover:scale-110 transition-transform duration-300`}>
@@ -616,7 +616,7 @@ export default function LoginForm({
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, amount: 0.05 }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-white/[0.08] p-6 rounded-3xl space-y-4 shadow-xl"
+                  className="lg:col-span-5 bg-white border border-slate-200 dark:bg-neutral-950 dark:border-white/[0.08] p-6 rounded-[24px] space-y-4 shadow-xl"
                 >
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-900 pb-3">
                     <div>
@@ -701,7 +701,7 @@ export default function LoginForm({
               </m.div>
 
               {/* Showcase Skeletons (Emojis replaced with Lucide Icons) */}
-              <div className="relative max-w-4xl mx-auto h-[450px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100/40 dark:border-neutral-900 dark:bg-[#050711]/50 p-6 md:p-8 flex items-center justify-center shadow-md dark:shadow-xl">
+              <div className="relative max-w-4xl mx-auto h-[450px] overflow-hidden rounded-[24px] border border-slate-200 bg-slate-100/40 dark:border-neutral-900 dark:bg-[#050711]/50 p-6 md:p-8 flex items-center justify-center shadow-md dark:shadow-xl">
                 
                 {/* Desktop layout skeleton card */}
                 <m.div 
@@ -755,7 +755,7 @@ export default function LoginForm({
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-                  className="absolute md:right-6 md:bottom-6 left-1/2 md:left-auto top-1/2 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 w-52 h-80 bg-white border-4 border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 rounded-3xl shadow-2xl p-4 overflow-hidden md:rotate-3 transition-transform duration-500 hover:rotate-0"
+                  className="absolute md:right-6 md:bottom-6 left-1/2 md:left-auto top-1/2 md:top-auto -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 w-52 h-80 bg-white border-4 border-slate-200 dark:bg-neutral-950 dark:border-neutral-800 rounded-[24px] shadow-2xl p-4 overflow-hidden md:rotate-3 transition-transform duration-500 hover:rotate-0"
                 >
                   <div className="w-12 h-4 bg-slate-100 dark:bg-neutral-850 rounded-full mx-auto mb-4" />
                   <div className="space-y-4 select-none">
@@ -954,7 +954,7 @@ export default function LoginForm({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
               
               {/* Security column (Left side) */}
-              <div className="lg:col-span-5 bg-slate-100 border border-slate-200 dark:bg-[#050814]/40 dark:border-neutral-900 p-6 rounded-3xl flex flex-col justify-between space-y-6">
+              <div className="lg:col-span-5 bg-slate-100 border border-slate-200 dark:bg-[#050814]/40 dark:border-neutral-900 p-6 rounded-[24px] flex flex-col justify-between space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-[family-name:var(--font-outfit)]">Security & Privacy</h3>
                   <div className="space-y-4 text-left">
@@ -988,9 +988,9 @@ export default function LoginForm({
               </div>
 
               {/* Login form fields column (Right side) */}
-              <div className="lg:col-span-7 bg-white border border-slate-200 dark:bg-[#050814]/60 dark:border-neutral-900 backdrop-blur-2xl rounded-3xl p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+              <div className="lg:col-span-7 bg-white border border-slate-200 dark:bg-[#050814]/60 dark:border-neutral-900 backdrop-blur-2xl rounded-[24px] p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden">
                 {isLoading && (
-                  <div className="absolute inset-0 bg-white/85 dark:bg-[#050814]/95 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center z-20 space-y-4 animate-fadeIn">
+                  <div className="absolute inset-0 bg-white/85 dark:bg-[#050814]/95 backdrop-blur-md rounded-[24px] flex flex-col items-center justify-center z-20 space-y-4 animate-fadeIn">
                     <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                       <Loader2 className="w-8 h-8 animate-spin" />
                     </div>

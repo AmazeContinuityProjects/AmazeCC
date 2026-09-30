@@ -138,7 +138,7 @@ export default function TaskListView({
             </div>
 
             {grp.tasks.length === 0 ? (
-              <div className="py-4 px-4 rounded-2xl bg-zinc-50/60 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-850 text-xs font-medium text-zinc-400 text-center">
+              <div className="py-4 px-4 rounded-2xl bg-zinc-50/60 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 text-xs font-medium text-zinc-400 text-center">
                 No tasks {grp.title.toLowerCase()}
               </div>
             ) : (

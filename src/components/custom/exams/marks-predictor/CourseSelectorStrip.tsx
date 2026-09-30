@@ -33,7 +33,7 @@ export default function CourseSelectorStrip({
   onOpenAddCustomCourse,
 }: CourseSelectorStripProps) {
   return (
-    <div className="w-full max-w-full overflow-hidden flex flex-col gap-2.5 bg-white/80 dark:bg-zinc-900/70 p-2.5 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div className="w-full max-w-full overflow-hidden flex flex-col gap-2.5 bg-white/80 dark:bg-zinc-900/70 p-2.5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
       {/* Pills row — horizontally scrollable, never forces viewport overflow */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-1 px-1 min-w-0">
         <button

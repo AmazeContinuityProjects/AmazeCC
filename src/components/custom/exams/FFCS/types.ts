@@ -1,3 +1,17 @@
+/**
+ * The scoring contract comes from `lib/timetableMetrics` rather than being
+ * written out here.
+ *
+ * It was hand-declared, and the hand-declaration had drifted: a producer in a
+ * worker filled in six of the nine fields — omitting `gapsPerDay`, naming the
+ * long-weekend flag `longWeekend` where this said `isLongWeekend`, and skipping
+ * `bestFriendMatches` — and TypeScript did not notice, because that producer's
+ * return type was inferred at an unannotated call site rather than checked
+ * against this one. Deriving it makes that a compile error instead.
+ */
+export type { TimetableMetrics } from "@/lib/timetableMetrics";
+import type { TimetableMetrics } from "@/lib/timetableMetrics";
+
 export interface GenCourseSelection {
   code: string;
   offerings: string[];
@@ -53,17 +67,7 @@ export type TimetableState = {
   id: string;
   name: string;
   courses: AddedCourse[];
-  metrics?: {
-    halfDays: number;
-    gaps: number;
-    gapsPerDay: Record<string, number>;
-    gapDetails?: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[];
-    buildingDashes: number;
-    dashDetails?: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[];
-    socialScore: number;
-    bestFriendMatches: string[];
-    isLongWeekend: boolean;
-  };
+  metrics?: TimetableMetrics;
   variants?: TimetableState[];
 };
 

@@ -39,6 +39,7 @@
  */
 
 import {
+  DAYS_OF_WEEK,
   periodKey,
   slotSpellings,
   timeToMinutes,
@@ -53,7 +54,7 @@ import {
  * answer. Re-exported so this module's own importers — `FreeClassroomsTab.tsx`
  * and `__tests__/freeClassrooms.test.ts` — keep working unchanged.
  */
-export { periodKey, timeToMinutes };
+export { DAYS_OF_WEEK, periodKey, timeToMinutes };
 export type { CampusSchema, DayId, SchemaPeriod };
 
 /** A row of the FFCS report. Only the fields this model reads. */
@@ -160,50 +161,9 @@ export function parseCourseRows(rows: readonly Record<string, unknown>[]): FreeR
 
 /* ── time ──────────────────────────────────────────────────────────────── */
 
-/**
- * `"8:00 AM"` → 480. Returns null for anything unreadable so a bad schema
- * entry drops out of the period list instead of sorting to the front of it.
- */
-export function timeToMinutes(time: string): number | null {
-  const match = String(time ?? "")
-    .trim()
-    .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) return null;
-
-  let hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const period = (match[3] || "").toUpperCase();
-  if (hours > 23 || minutes > 59) return null;
-
-  if (period === "PM" && hours !== 12) hours += 12;
-  else if (period === "AM" && hours === 12) hours = 0;
-  else if (!period) return null; // A 24h time is not in this schema.
-
-  return hours * 60 + minutes;
-}
-
-/**
- * `"08:00 AM"` → `"8:00am"`, `"8:00 AM"` → `"8:00am"`. The normalisation that
- * makes lab and theory agree.
- *
- * The minutes have to survive: the two 8 o'clock periods in the Chennai schema
- * are `8:00–8:50` and `8:55–9:45`, and dropping them would collapse both into
- * one key.
- */
-function normaliseTime(time: string): string {
-  const total = timeToMinutes(time);
-  if (total === null) return String(time ?? "").trim().toLowerCase().replace(/\s+/g, "");
-  const hours24 = Math.floor(total / 60) % 24;
-  const mm = total % 60;
-  const suffix = hours24 < 12 ? "am" : "pm";
-  const h12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  return `${h12}:${String(mm).padStart(2, "0")}${suffix}`;
-}
-
-/** The identity of a period, independent of zero-padding. */
-export function periodKey(start: string, end: string): string {
-  return `${normaliseTime(start)}-${normaliseTime(end)}`;
-}
+/* `timeToMinutes` and `periodKey` now live in `./slots` and are re-exported
+   above. This module kept its own copies for as long as the free-classroom page
+   was the only thing that asked. */
 
 /** `480` → `"8:00 AM"`, for building a display label from a slot. */
 function formatClock(minutes: number): string {

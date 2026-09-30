@@ -123,7 +123,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                                 return (
                                     <div
                                         key={date}
-                                        className={`aspect-square rounded-[12px] flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
+                                        className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${tint.bg}`}
                                     >
                                         <span className={`text-xs font-black font-outfit leading-none ${dataObj ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600"}`}>
                                             {date}

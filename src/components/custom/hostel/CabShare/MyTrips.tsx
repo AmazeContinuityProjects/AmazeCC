@@ -92,12 +92,12 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
             icon={<Inbox className="h-10 w-10" />}
             title="No posted rides"
             description="Post a ride when you are booking a cab and want to split the trip."
-            className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
+            className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
           />
         ) : (
           <div className="space-y-4">
             {myTrips.map(trip => (
-              <article key={trip.trip_id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black">
+              <article key={trip.trip_id} className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <h4 className="flex items-center gap-2 text-base font-black text-gray-950 dark:text-white">
@@ -175,12 +175,12 @@ export default function MyTrips({ cabShareUser }: { cabShareUser: any }) {
             icon={<Send className="h-10 w-10" />}
             title="No ride requests"
             description="Requested rides will show their approval status and host contact details here."
-            className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
+            className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
           />
         ) : (
           <div className="space-y-4">
             {joinedTrips.map(trip => (
-              <article key={trip.trip_id} className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black sm:flex-row sm:items-center sm:justify-between">
+              <article key={trip.trip_id} className="flex flex-col gap-4 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                     <h4 className="flex items-center gap-2 text-base font-black text-gray-950 dark:text-white">
                       <MapPin className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /> <span className="truncate">{trip.from_hub_name || trip.from_hub_id ? `${trip.from_hub_name || `Hub #${trip.from_hub_id}`} → ` : ''}{trip.hub_name}</span>

@@ -199,7 +199,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       <PageHeader
         icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
         title="Academics Hub"
-        meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300">Student OS</Badge>}
+        meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-50/20 text-zinc-600 dark:text-zinc-300">Student OS</Badge>}
         actions={
           <button
             onClick={() => setActiveSubTab("course-dashboard")}
@@ -231,7 +231,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-[1.15fr_0.85fr]">
         <button
           onClick={() => { setActiveSubTab("course-dashboard"); window.scrollTo(0, 0); }}
-          className="group rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 p-6 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 relative overflow-hidden"
+          className="group rounded-[24px] border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-50/20 p-6 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 relative overflow-hidden"
         >
           {/* Subtle glowing ring background */}
           <div className="absolute -right-20 -top-20 w-48 h-48 rounded-full bg-indigo-500/5 blur-3xl group-hover:bg-indigo-500/8 transition-all duration-300" />
@@ -265,7 +265,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             ["Attendance", avgAttendance ? `${avgAttendance}%` : "-", Percent, "text-indigo-500", false],
             ["Credits", `${creditsEarned.toFixed(0)}/${requiredCredits.toFixed(0)}`, GraduationCap, "text-purple-500", false],
           ].map(([label, value, Icon, color, isCgpa]: any) => (
-            <div key={label} className="rounded-3xl border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 p-4.5 shadow-2xs dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 flex flex-col justify-between min-w-0 relative">
+            <div key={label} className="rounded-[24px] border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-50/20 p-4.5 shadow-2xs dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 flex flex-col justify-between min-w-0 relative">
               <div className="flex justify-between items-center">
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${color}`} />
                 {isCgpa && (
@@ -276,13 +276,13 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               </div>
               <div className="mt-4">
                 <p className={`text-lg xs:text-xl sm:text-2xl font-black truncate leading-none text-zinc-900 dark:text-zinc-100 transition-all duration-300 ${isCgpa && isCgpaBlurred ? "blur-[5px] select-none hover:blur-none" : ""}`} title={value}>{value}</p>
-                <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-555 truncate">{label}</p>
+                <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 truncate">{label}</p>
               </div>
             </div>
           ))}
 
           {/* Academic progress bar summary */}
-          <div className="col-span-3 rounded-3xl border border-indigo-500/10 bg-indigo-50/10 dark:bg-indigo-950/5 p-5 shadow-3xs flex flex-col justify-between">
+          <div className="col-span-3 rounded-[24px] border border-indigo-500/10 bg-indigo-50/10 dark:bg-indigo-950/5 p-5 shadow-3xs flex flex-col justify-between">
             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Degree Progress</p>
             <div className="mt-3.5 space-y-3">
               {[
@@ -315,7 +315,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
               <button
                 key={card.id}
                 onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
-                className={`group rounded-3xl border p-5 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] cursor-pointer flex flex-col justify-between h-full bg-white dark:bg-black/40 ${card.bg}`}
+                className={`group rounded-[24px] border p-5 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] cursor-pointer flex flex-col justify-between h-full bg-white dark:bg-black/40 ${card.bg}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-3">
@@ -351,7 +351,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
             <button
               key={card.id}
               onClick={() => { setActiveSubTab(card.id); window.scrollTo(0, 0); }}
-              className={`group flex items-center gap-3.5 rounded-2xl border border-zinc-200/50 bg-white/70 p-4 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] dark:border-zinc-850 dark:bg-zinc-950/20 ${card.bg}`}
+              className={`group flex items-center gap-3.5 rounded-2xl border border-zinc-200/50 bg-white/70 p-4 text-left shadow-2xs hover:shadow-xs transition-all duration-300 active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-950/20 ${card.bg}`}
             >
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-3xs dark:bg-zinc-900 ${card.color}`}>
                 <card.icon className="h-4.5 w-4.5 stroke-[2]" />
@@ -360,7 +360,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                 <p className="truncate text-xs font-black text-zinc-800 dark:text-zinc-100 group-hover:text-indigo-500 transition-colors">{card.title}</p>
                 <p className="truncate text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mt-0.5">{card.description}</p>
               </div>
-              <ChevronRight className="h-3.5 w-3.5 text-zinc-350 opacity-40 group-hover:opacity-100 transition-transform group-hover:translate-x-0.5 shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 text-zinc-300 opacity-40 group-hover:opacity-100 transition-transform group-hover:translate-x-0.5 shrink-0" />
             </button>
           ))}
         </div>
@@ -369,7 +369,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
       {/* Chart Section */}
       <section className="mt-2">
         {hideMobileHeader && (
-          <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl shadow-2xs mb-6">
+          <Card className="bg-white dark:bg-black border border-zinc-200/50 dark:border-zinc-800/80 rounded-[24px] shadow-2xs mb-6">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-lg font-black uppercase text-zinc-800 dark:text-zinc-100 tracking-wider">Overall<br/>Performance</h2>
@@ -395,7 +395,7 @@ export default function AcademicsHub({ setActiveSubTab, data, marksData, gradesD
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-xs font-black text-zinc-800 dark:text-zinc-100">{degreeCompletePercent.toFixed(0)}%</span>
-                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-black uppercase leading-none mt-0.5">Earned</span>
+                    <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-black uppercase leading-none mt-0.5">Earned</span>
                   </div>
                 </div>
               </div>

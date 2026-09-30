@@ -5,8 +5,8 @@ import { api } from "@/lib/sync-engine";
 import { Loader2, Car, Shield, AlertCircle, KeyRound, Phone, UserRound } from "lucide-react";
 import { readJsonResponse } from "./cabShareFallback";
 
-const panelClass = "rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black";
-const sidePanelClass = "rounded-3xl border border-black/10 bg-gray-50 p-6 dark:border-white/10 dark:bg-white/[0.03]";
+const panelClass = "rounded-[24px] border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black";
+const sidePanelClass = "rounded-[24px] border border-black/10 bg-gray-50 p-6 dark:border-white/10 dark:bg-white/[0.03]";
 const inputClass = "cabshare-input w-full rounded-2xl border border-black/10 bg-white px-4 py-3 pl-11 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:focus:border-blue-500";
 
 export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: boolean, onAuthSuccess: (user: any) => void }) {

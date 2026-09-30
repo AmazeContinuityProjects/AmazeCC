@@ -161,7 +161,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black sm:p-6">
+      <section className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black sm:p-6">
         <div className="mb-4 flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
             <Route className="h-5 w-5" />
@@ -233,7 +233,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="flex justify-center rounded-3xl border border-gray-200 bg-white py-16 shadow-sm dark:border-white/10 dark:bg-black">
+          <div className="flex justify-center rounded-[24px] border border-gray-200 bg-white py-16 shadow-sm dark:border-white/10 dark:bg-black">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : trips.length === 0 ? (
@@ -242,7 +242,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
               icon={<Search className="h-10 w-10" />}
               title="No active rides found"
               description="Create an alert for this hub and date so you know when someone posts a matching ride."
-              className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
+              className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
               action={
               <button 
                 onClick={handleAlertMe}
@@ -257,12 +257,12 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
               icon={<MapPin className="h-10 w-10" />}
               title="Search for available rides"
               description="Choose a hub and date to see students travelling around the same time."
-              className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
+              className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
             />
           )
         ) : (
           trips.map(trip => (
-            <article key={trip.trip_id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black">
+            <article key={trip.trip_id} className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0 space-y-3">
                   <div className="flex items-center gap-3">

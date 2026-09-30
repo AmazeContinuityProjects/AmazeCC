@@ -1,5 +1,8 @@
 # 05 — Deletions (Phase 4)
 
+**Status: done.** The three files below are deleted, and `utils.timeToMinutes` went with
+them. [08 — What actually shipped](./08-what-shipped.md) records what else went.
+
 ## Verified dead
 
 Each confirmed by exhaustive grep across `src/`, not by inspection.

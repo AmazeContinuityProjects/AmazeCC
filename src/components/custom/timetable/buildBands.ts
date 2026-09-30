@@ -54,7 +54,7 @@ import type {
   TimetablePeriod,
 } from "@amazecontinuityprojects/amazeui";
 import { fmt, toMinutes, dayKeyForDate } from "@/lib/social/schedule";
-import { hasSlot } from "@/lib/slots";
+import { courseInPeriod, hasSlot, ownSlotSpelling } from "@/lib/slots";
 
 /**
  * Tolerance for gluing two adjacent slots of the same course into one cell.
@@ -323,7 +323,7 @@ export function buildVerticalGrid({
        * `onToggleBlockSlot` to record something that can match.
        */
       const shownRunSlots = run
-        ? run.slots.map((s) => run.course.slots.find((own) => hasSlot([own], s)) ?? s)
+        ? run.slots.map((s) => ownSlotSpelling([run.course], s))
         : [];
       const slots = shownRunSlots.length > 0 ? shownRunSlots : bandSlots;
       const label =
@@ -459,7 +459,7 @@ function buildRuns(
       continue;
     }
 
-    const course = courses.find((c) => hasSlot(c.slots, slotId));
+    const course = courseInPeriod(courses, slotId);
     if (!course) {
       // Free bands never start or extend a run.
       open = null;

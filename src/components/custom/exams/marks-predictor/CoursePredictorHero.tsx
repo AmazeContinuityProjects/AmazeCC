@@ -48,7 +48,7 @@ export default function CoursePredictorHero({
   const lostPercent = Math.min(100 - (scoredPercent + pendingPercent), Math.max(0, pointsLostScaled));
 
   return (
-    <div className="w-full max-w-full overflow-hidden rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs p-3.5 sm:p-4 space-y-3.5">
+    <div className="w-full max-w-full overflow-hidden rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs p-3.5 sm:p-4 space-y-3.5">
       {/* Header — simple row like SimplifiedAcademicsPage */}
       <div className="flex flex-col gap-3 min-w-0">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -94,7 +94,7 @@ export default function CoursePredictorHero({
 
       {/* Stats — stays 2 columns on mobile, same as SimplifiedAcademicsPage insight cards, no wide lg:grid */}
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="flex flex-col justify-between p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
+        <div className="flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 truncate">
               Max Possible
@@ -116,7 +116,7 @@ export default function CoursePredictorHero({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
+        <div className="flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 truncate">
               Points Lost
@@ -155,7 +155,7 @@ export default function CoursePredictorHero({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
+        <div className="flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 truncate">
               Secured
@@ -177,7 +177,7 @@ export default function CoursePredictorHero({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
+        <div className="flex flex-col justify-between p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-3xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 truncate">
               Est. Grade

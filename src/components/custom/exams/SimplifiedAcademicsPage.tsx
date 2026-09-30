@@ -649,7 +649,7 @@ export default function SimplifiedAcademicsPage({
       <div
         key={course.courseCode}
         onClick={() => handleCourseClick(course.courseCode)}
-        className="rounded-[22px] sm:rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-200 cursor-pointer overflow-hidden p-3.5 sm:p-4 flex items-center justify-between gap-3 group select-none text-left"
+        className="rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-200 cursor-pointer overflow-hidden p-3.5 sm:p-4 flex items-center justify-between gap-3 group select-none text-left"
       >
         {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -915,7 +915,7 @@ export default function SimplifiedAcademicsPage({
         {/* Marks Predictor Featured Hero Card */}
         <button
           onClick={() => setActiveSubTab?.("marks-predictor")}
-          className="w-full p-4 rounded-[22px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          className="w-full p-4 rounded-[24px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -941,7 +941,7 @@ export default function SimplifiedAcademicsPage({
           {/* Degree Curriculum Card */}
           <button
             onClick={() => setActiveSubTab?.("curriculum")}
-            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+            className="w-full p-4 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -965,7 +965,7 @@ export default function SimplifiedAcademicsPage({
           {/* Grade History Card */}
           <button
             onClick={() => setActiveSubTab?.("grades")}
-            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-purple-500/40 dark:hover:border-purple-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+            className="w-full p-4 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-purple-500/40 dark:hover:border-purple-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
@@ -998,7 +998,7 @@ export default function SimplifiedAcademicsPage({
               setShowPastSemestersView(true);
             }
           }}
-          className="w-full p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          className="w-full p-3.5 sm:p-4 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">

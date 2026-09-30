@@ -171,7 +171,7 @@ export default function SyncNotification({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              className="fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-[16px] p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
+              className="fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
               onClick={() => setIsMinimized(false)}
             >
             <div className="flex items-center gap-3 w-full">
@@ -299,7 +299,7 @@ export default function SyncNotification({
                         e.stopPropagation();
                         onDismiss();
                       }}
-                      className="flex-1 py-3 px-4 rounded-[12px] bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                      className="flex-1 py-3 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
                     >
                       Dismiss
                     </button>
@@ -309,7 +309,7 @@ export default function SyncNotification({
                         onDismiss();
                         onRetry?.();
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-[12px] bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/20"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/20"
                     >
                       <RefreshCw size={11} />
                       <span>Try Again</span>
@@ -360,7 +360,7 @@ export default function SyncNotification({
                   </div>
 
                   {/* Target server indicator */}
-                  <div className="flex items-center justify-between bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200/60 dark:border-[var(--border-muted)] p-3 rounded-[12px] gap-2">
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200/60 dark:border-[var(--border-muted)] p-3 rounded-xl gap-2">
                     <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold">Target Server:</span>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-white dark:bg-[var(--surface)] border border-slate-200/60 dark:border-zinc-800 text-slate-600 dark:text-gray-300">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
@@ -369,7 +369,7 @@ export default function SyncNotification({
                   </div>
 
                   {/* Custom styled progress indicator */}
-                  <div className="w-full space-y-2 bg-slate-50 dark:bg-[var(--surface-secondary)] p-4 rounded-[16px] border border-slate-200/50 dark:border-[var(--border-muted)] shadow-sm">
+                  <div className="w-full space-y-2 bg-slate-50 dark:bg-[var(--surface-secondary)] p-4 rounded-2xl border border-slate-200/50 dark:border-[var(--border-muted)] shadow-sm">
                     <div className="flex justify-between items-baseline text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-gray-500">
                       <span>Transfer Rate</span>
                       <span className="text-blue-600 dark:text-blue-400 font-extrabold">{Math.min(100, Math.round(progress))}%</span>
@@ -384,7 +384,7 @@ export default function SyncNotification({
                   </div>
 
                   {/* Status Message Log Container */}
-                  <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[12px] p-3.5 max-h-[120px] overflow-y-auto text-[10.5px] space-y-2 text-slate-700 dark:text-gray-300 font-sans scrollbar-none">
+                  <div className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 max-h-[120px] overflow-y-auto text-[10.5px] space-y-2 text-slate-700 dark:text-gray-300 font-sans scrollbar-none">
                     <AnimatePresence initial={false}>
                       {logLines.map((line, idx) => {
                         const isLast = idx === logLines.length - 1;
@@ -421,7 +421,7 @@ export default function SyncNotification({
                             e.stopPropagation();
                             handleSwitchToBackup();
                           }}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[12px] bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
                         >
                           <RefreshCw size={11} className="animate-spin text-amber-500" style={{ animationDuration: '3s' }} />
                           <span>Slow network? Use Backup API</span>
@@ -450,7 +450,7 @@ export default function SyncNotification({
                   </div>
 
                   {/* Copyable URL box */}
-                  <div className="flex items-center gap-2 w-full bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-[var(--border-muted)] rounded-[12px] p-2.5 pr-1.5 select-none">
+                  <div className="flex items-center gap-2 w-full bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200 dark:border-[var(--border-muted)] rounded-xl p-2.5 pr-1.5 select-none">
                     <Globe size={12} className="text-slate-400 dark:text-gray-500 shrink-0" />
                     <span className="text-[9px] text-slate-600 dark:text-gray-400 font-mono truncate text-left flex-1 font-bold">
                       {BACKUP_API_URL}
@@ -471,7 +471,7 @@ export default function SyncNotification({
                       e.stopPropagation();
                       onDismiss();
                     }}
-                    className="w-full py-3 px-4 mt-1 rounded-[12px] bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-blue-500/10"
+                    className="w-full py-3 px-4 mt-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-blue-500/10"
                   >
                     Dismiss & Try Again
                   </button>

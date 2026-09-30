@@ -40,7 +40,7 @@ import {
   type GapDetail,
   type TimetablePeriod,
 } from "@amazecontinuityprojects/amazeui";
-import { expandSlotSpellings, hasSlot } from "@/lib/slots";
+import { expandSlotSpellings, ownSlotSpelling } from "@/lib/slots";
 
 const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "mon", name: "Monday" },
@@ -49,16 +49,6 @@ const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "thu", name: "Thursday" },
   { id: "fri", name: "Friday" },
 ];
-
-/** The id the course itself uses for a period, or the schema's if it agrees. */
-function ownSpelling(
-  courses: readonly AddedCourse[],
-  schemaSlot: string
-): string {
-  const course = courses.find((c) => hasSlot(c.slots, schemaSlot));
-  if (!course) return schemaSlot;
-  return course.slots.find((own) => hasSlot([own], schemaSlot)) ?? schemaSlot;
-}
 
 /**
  * Re-spell every slot a course occupies.
@@ -81,7 +71,7 @@ function respell(
     for (const day of days) {
       const slot = period.days[day.id];
       if (!slot) continue;
-      const own = ownSpelling(courses, slot);
+      const own = ownSlotSpelling(courses, slot);
       if (own !== slot) {
         next[day.id] = own;
         changed = true;

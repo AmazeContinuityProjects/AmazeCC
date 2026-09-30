@@ -264,7 +264,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
 
         {/* Course Reference Section */}
         {uniqueCourses.length > 0 && (
-          <div className="overflow-hidden rounded-[16px] border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800/80 dark:bg-[#03070e]">
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800/80 dark:bg-zinc-900">
               <h3 className="font-outfit text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Course Reference

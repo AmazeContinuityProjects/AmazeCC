@@ -14,7 +14,7 @@ import SettingRow from "./SettingRow";
  */
 
 const SELECT =
-  "w-full appearance-none bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800 rounded-xl pl-3 pr-9 py-3 text-sm font-bold text-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
+  "w-full appearance-none bg-surface-secondary dark:bg-background/50 border border-border-muted/60 dark:border-border rounded-xl pl-3 pr-9 py-3 text-sm font-bold text-text-heading dark:text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -53,7 +53,7 @@ export default function SelectField<T extends string>({
         ))}
       </select>
       <ChevronDown
-        className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+        className="w-4 h-4 text-text-muted dark:text-text-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
         aria-hidden
       />
     </div>

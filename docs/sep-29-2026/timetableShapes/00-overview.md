@@ -1,8 +1,9 @@
 # Timetable shapes — unification plan
 
 **Date:** 2026-09-29
-**Status:** planned, not started
-**Baseline:** 811 tests passing across 45 files
+**Status:** **shipped** — all five phases done, `test` / `typecheck` / `lint` / `build` green
+**Baseline:** 811 tests across 45 files → **now 854 across 46**
+**Deviations from the plan:** four, all recorded in [08 — What actually shipped](./08-what-shipped.md)
 
 ## What this is
 
@@ -24,6 +25,7 @@ how many there were, and how two of them had already rotted.
 | 05 | [Deletions](./05-deletions.md) | Dead code and what it was quietly costing us (Phase 4) |
 | 06 | [Tests](./06-tests.md) | What gets added, and the test that would have caught all of it (Phase 5) |
 | 07 | [Law-slot fix: landed](./07-law-slot-landed.md) | The part already implemented and awaiting commit |
+| 08 | [What actually shipped](./08-what-shipped.md) | The four places the build disagreed with the plan, and what was done instead |
 
 ## Locked decisions
 
@@ -33,39 +35,30 @@ how many there were, and how two of them had already rotted.
 | Generator host | One pure function, run in a web worker |
 | Worker module type | `{ type: 'module' }` — **requires Safari 15+ (2021)** |
 | `metrics.gaps` unit | **Minutes** everywhere |
-| Compactness sort weight | `((MAX_WEEKLY_GAP_MIN - gaps) / 60 * 5)`, `MAX_WEEKLY_GAP_MIN = 1200` |
+| Compactness sort weight | `((MAX_WEEKLY_GAP_MIN - gaps) / 60) * 5`, `MAX_WEEKLY_GAP_MIN = 1200` |
 | `TimetableState.metrics` | All fields **required**, derived from `TimetableMetrics` |
 | Build failure | **Stop and report.** No webpack workarounds attempted |
 
 ## Phases
 
-| Phase | Work | Independently testable |
-|-------|------|------------------------|
-| 1 | Move schema/time primitives into `src/lib/slots.ts`; add `periodsForSlot`, `slotsOverlap`, `courseInPeriod`, `ownSlotSpelling` | yes |
-| 2 | Add `dayOccupancy`, `freeHalfDays`, `timetableMetrics`, `pairwiseSocialScore`, `sortTimetables`, `formatHours`; rewire all callers | yes |
-| 3 | Extract pure `generateTimetables`; reduce the worker to a bridge; both UIs go through it | yes |
-| 4 | Delete 3 dead files + `utils.timeToMinutes` | yes |
-| 5 | Tests, then `test` / `typecheck` / `lint` / `build` | — |
+| Phase | Work | Status |
+|-------|------|--------|
+| 1 | Move schema/time primitives into `src/lib/slots.ts`; add `periodsForSlot`, `slotsOverlap`, `courseInPeriod`, `ownSlotSpelling` | done — 8 call sites rewired, all 5 duplicate lookups gone |
+| 2 | Add `src/lib/timetableMetrics.ts`; rewire callers, derive `types.ts`, `formatHours` at the display sites | done — 4 duplicate day walks and 3 sort comparators gone |
+| 3 | Extract pure `generateTimetables`; reduce the worker to a bridge; both UIs go through it | done — both inline generators deleted, ~500 lines |
+| 4 | Delete 3 dead files, `utils.timeToMinutes`, and the locals orphaned by Phase 3 | done |
+| 5 | Tests, then `test` / `typecheck` / `lint` / `build` | done |
 
-Each phase typechecks and tests on its own, so a failure is always attributable to the
-phase it landed in.
+## The abort condition, resolved
 
-## Abort condition
+`next.config.mjs` sets `output: 'export'`, and `new Worker(new URL(...))` under a
+static export had **never been exercised by this build** — the only importer of the
+worker was dead code, so the file had sat in the repo un-bundled.
 
-`next.config.mjs` sets `output: 'export'`. `new Worker(new URL(...))` under a static
-export normally works with webpack 5, **but this build has never done it** — the only
-importer of the worker has been dead code, so the file has sat in the repo un-bundled
-since it was written.
-
-If `npm run build` cannot bundle the worker, **stop and report the exact error.** The
-pure function from Phase 3 survives that outcome, and falling back to main-thread
-execution is a one-line change at the two call sites. What must not happen is guessing at
-a webpack workaround.
-
-## Net effect
-
-Roughly **−600 lines**, one source of truth for every slot/period/metrics question, and
-generation that no longer blocks the UI thread.
+It turned out to work. `npm run build` succeeds, webpack emits the solver as
+`out/_next/static/chunks/999.*.js`, and the page chunk instantiates it with
+`new Worker(r.tu(new URL(r.p + r.u(999), ...)))`. The abort condition did not fire,
+so no fallback was needed.
 
 ## One correction worth carrying forward
 

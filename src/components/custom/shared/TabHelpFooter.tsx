@@ -312,7 +312,7 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
       {isOpen && (
         <BottomSheet onClose={() => setIsOpen(false)} overlayId={`tab-help-${tabId}`} maxWidth="max-w-lg">
           <div className="text-left space-y-5">
-            <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-3">
+            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
                   <HelpCircle className="w-5 h-5" />
@@ -366,7 +366,7 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
               ))}
             </div>
 
-            <div className="pt-3 border-t border-zinc-150 dark:border-zinc-800">
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <button
                 onClick={() => setIsOpen(false)}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-[0.98]"

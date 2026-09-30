@@ -509,7 +509,7 @@ export default function AmazeOnboardingFlow({
                 style={{
                   aspectRatio: `${viewportRatio}`,
                 }}
-                className="h-[52vh] sm:h-[58vh] max-h-[600px] max-w-[88vw] rounded-[36px] sm:rounded-[40px] border-2 border-zinc-800/90 bg-zinc-900/95 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col relative text-left ring-1 ring-white/10"
+                className="h-[52vh] sm:h-[58vh] max-h-[600px] max-w-[88vw] rounded-[32px] sm:rounded-[40px] border-2 border-zinc-800/90 bg-zinc-900/95 backdrop-blur-2xl shadow-2xl overflow-hidden flex flex-col relative text-left ring-1 ring-white/10"
               >
                 {/* Scaled Preview Inner Body (Fluid 100% / 0.65 scale to prevent right-edge overflow) */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 scrollbar-thin scrollbar-thumb-zinc-700 select-none">

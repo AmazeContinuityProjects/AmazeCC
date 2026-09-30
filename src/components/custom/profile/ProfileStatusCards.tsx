@@ -138,7 +138,7 @@ export default function ProfileStatusCards({
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="p-4 sm:p-5 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 shadow-2xs space-y-3"
+            className="p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 shadow-2xs space-y-3"
           >
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-2xl" />
@@ -240,7 +240,7 @@ export default function ProfileStatusCards({
             type="button"
             disabled={!isClickable}
             onClick={() => isClickable && onCardClick(card.id)}
-            className={`p-4 sm:p-5 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 shadow-2xs transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
+            className={`p-4 sm:p-5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 shadow-2xs transition-all duration-200 flex items-center justify-between gap-3.5 group select-none text-left w-full ${
               isClickable
                 ? "hover:bg-white dark:hover:bg-zinc-900 hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 cursor-pointer"
                 : "cursor-default"

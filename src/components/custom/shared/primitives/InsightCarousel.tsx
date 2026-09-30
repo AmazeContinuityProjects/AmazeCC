@@ -31,17 +31,17 @@ import { useHorizontalSwipe } from "./useHorizontalSwipe";
  */
 
 const LABEL =
-  "text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate";
+  "text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate";
 const BADGE =
   "text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0";
 const SUBLINE =
-  "text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate";
+  "text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate";
 const HEADLINE: Record<string, string> = {
   sm: "text-2xl sm:text-3xl leading-tight",
   lg: "text-3xl sm:text-4xl leading-none",
 };
 const DOT_ACTIVE = "w-3 bg-indigo-500";
-const DOT_IDLE = "w-1.5 bg-zinc-200 dark:bg-zinc-700";
+const DOT_IDLE = "w-1.5 bg-border-muted dark:bg-surface-hover";
 
 export interface InsightSlide {
   id: string;
@@ -119,8 +119,8 @@ export function InsightCarousel({
   const tone = slide.tone;
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
-      ? "text-zinc-900 dark:text-white"
-      : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
+      ? "text-text-heading"
+      : TONE_TEXT[tone] ?? "text-text-heading";
 
   // The tile is a div, not a button: `interactiveDots` needs real sibling
   // buttons and a button-inside-button is invalid HTML (and swallows the dot
@@ -156,7 +156,7 @@ export function InsightCarousel({
           disabled={!slideClickable}
           aria-label={ariaLabel}
           tabIndex={slideClickable ? 0 : -1}
-          className="absolute inset-0 z-0 rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500 focus-visible:ring-inset"
+          className="absolute inset-0 z-0 rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary focus-visible:ring-inset"
         />
       ) : null}
 
@@ -220,7 +220,7 @@ export function InsightCarousel({
                       (typeof s.label === "string" ? s.label : `slide ${i + 1}`)
                     }`}
                     className={cn(
-                      "h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500",
+                      "h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong dark:focus-visible:ring-text-secondary",
                       i === carousel.index ? DOT_ACTIVE : DOT_IDLE
                     )}
                   />

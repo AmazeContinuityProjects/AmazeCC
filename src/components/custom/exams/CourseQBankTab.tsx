@@ -264,7 +264,7 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                 href={p.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col p-5 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative flex flex-col p-5 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-2xl rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
                 <div className="flex items-start gap-4 mb-4 relative z-10">

@@ -603,7 +603,7 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* ── INTERACTIVE CALENDAR SIMULATOR SECTION ── */}
-      <div className="rounded-3xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4">
+      <div className="rounded-[24px] border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4">
         {/* Calendar Header & Month Switcher */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -762,7 +762,7 @@ export default function OverallAttendancePredictor({
 
         {/* Course Cards Grid */}
         {filteredCourses.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200/60 bg-white/60 dark:border-gray-800/60 dark:bg-zinc-900/40 p-10 text-center space-y-2">
+          <div className="rounded-[24px] border border-gray-200/60 bg-white/60 dark:border-gray-800/60 dark:bg-zinc-900/40 p-10 text-center space-y-2">
             <BookOpen className="w-8 h-8 text-gray-300 dark:text-zinc-600 mx-auto" />
             <p className="text-sm font-bold text-gray-500 dark:text-zinc-400">No courses match your filter</p>
           </div>
@@ -777,7 +777,7 @@ export default function OverallAttendancePredictor({
               return (
                 <div
                   key={course.courseCode}
-                  className="rounded-3xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4 hover:border-blue-500/30 transition-all flex flex-col justify-between"
+                  className="rounded-[24px] border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4 hover:border-blue-500/30 transition-all flex flex-col justify-between"
                 >
                   {/* Top: Code, Title & Badges */}
                   <div>
@@ -937,7 +937,7 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* ── SMART ATTENDANCE ADVISOR & EXAM LOCK RULES ── */}
-      <div className="rounded-3xl border border-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20 p-5 shadow-sm space-y-3">
+      <div className="rounded-[24px] border border-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20 p-5 shadow-sm space-y-3">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-200 font-outfit">

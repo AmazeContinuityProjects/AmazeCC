@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
-import { AvatarDot, EmptyPanel, GhostButton, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot, DotPill } from "../shared/primitives";
+import { AvatarDot, DotPill, EmptyPanel, GhostButton, IconButton, IconLink, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot } from "../shared/primitives";
 import { dayKeyForDate, minutesToTimeStr, slotRange } from "@/lib/social/schedule";
 import type { AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import {
@@ -383,29 +383,25 @@ export default function DayDetailSheet({
                         right={
                           <span className="flex items-center gap-1.5">
                             {event.url ? (
-                              <a
+                              <IconLink
                                 href={event.url}
-                                target="_blank"
-                                rel="noreferrer"
                                 title="Open in Moodle"
-                                aria-label={`Open ${event.title} in Moodle`}
-                                className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 transition-all active:scale-95"
+                                ariaLabel={`Open ${event.title} in Moodle`}
+                                className="p-2"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                              </IconLink>
                             ) : null}
                             {event.taskId ? (
                               // Only a task-store entry can be cycled; a Moodle
                               // deadline is marked done in Moodle, not here.
-                              <button
-                                type="button"
+                              <IconButton
                                 onClick={() => onCycleTask(event.taskId!)}
                                 title="Cycle status"
-                                aria-label={`Change status of ${event.title}`}
-                                className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 transition-all active:scale-95"
+                                className="p-2"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                              </button>
+                              </IconButton>
                             ) : null}
                           </span>
                         }
@@ -600,16 +596,14 @@ function EventRow({ event }: { event: CalendarDayEvent }) {
           subtitle={event.detail}
           right={
             event.url ? (
-              <a
+              <IconLink
                 href={event.url}
-                target="_blank"
-                rel="noreferrer"
                 title="Open in Moodle"
-                aria-label={`Open ${event.title} in Moodle`}
-                className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 transition-all active:scale-95"
+                ariaLabel={`Open ${event.title} in Moodle`}
+                className="p-2"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              </IconLink>
             ) : null
           }
         />

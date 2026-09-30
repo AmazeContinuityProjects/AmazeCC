@@ -196,3 +196,163 @@ export function hasSlot(slots: Iterable<string>, slot: string): boolean {
   }
   return false;
 }
+
+/** The minimum a course has to carry to be worth asking about a period. */
+export interface SlottedCourse {
+  slots: readonly string[];
+}
+
+/**
+ * The course running in a period, or null.
+ *
+ * This is the inverse of `periodsForSlot` and it exists because the question
+ * arrives both ways. `periodsForSlot` serves a caller that has a course and
+ * wants to know when it runs; this serves the grid, which is holding a period
+ * and needs to know what goes in the cell.
+ *
+ * The first match wins, which is what every grid did already. Two courses on the
+ * same slot is a data situation the report allows and no view has ever
+ * disambiguated.
+ */
+export function courseInPeriod<T extends SlottedCourse>(
+  courses: readonly T[],
+  schemaSlot: string
+): T | null {
+  for (const course of courses) {
+    if (hasSlot(course.slots, schemaSlot)) return course;
+  }
+  return null;
+}
+
+/**
+ * The spelling a course uses for a period, for a view that has to *print* it.
+ *
+ * Returns the schema's own id when the course agrees with it, which is every
+ * course that is not a law one — so this is a no-op on a normal timetable and a
+ * cell reads `A` rather than `A1` for a law course booked `A`.
+ *
+ * Printing matters for more than looks. The planner blocks a slot by tapping its
+ * cell, and the generator filters its options by the slot on the *course*, so a
+ * view that printed the schema's id recorded something that could never match.
+ */
+export function ownSlotSpelling<T extends SlottedCourse>(
+  courses: readonly T[],
+  schemaSlot: string
+): string {
+  const course = courseInPeriod(courses, schemaSlot);
+  if (!course) return schemaSlot;
+  return course.slots.find((own) => hasSlot([own], schemaSlot)) ?? schemaSlot;
+}
+
+/* ── looking periods up in the schema ───────────────────────────────────── */
+
+/** One period of one day, as the schema writes it and as the clock reads it. */
+export interface SlotPeriod {
+  day: DayId;
+  /** The schema's own clock string, e.g. `"08:00 AM"`. The iCal export needs this. */
+  start: string;
+  end: string;
+  /** Minutes since midnight. Null only when the schema string is unreadable. */
+  startMin: number;
+  endMin: number;
+  type: "theory" | "lab";
+  /** Index within its own list, which is how theory and lab stay paired. */
+  index: number;
+}
+
+/**
+ * Where the morning ends.
+ *
+ * Everything in a day before this is a morning half-day, everything from it on is
+ * an evening one. Written down as one constant because it was a magic `2:00 PM`
+ * in three separate copies of the day walk, and the copy that got it subtly wrong
+ * would have changed which half-days a timetable was credited with.
+ */
+export const MORNING_BEFORE_MIN = 840;
+
+/**
+ * Every period a slot id names, under either spelling.
+ *
+ * This is the one lookup. It replaced five: two in `FFCSTimetableTab`, one in
+ * `AutoGeneratorModal`, one in `exportIcal`, and a sixth in a `courseProcessor`
+ * that nothing imported and which read a `schema.timetable[].periods[].slots`
+ * shape that exists nowhere in this repository.
+ *
+ * The return carries the raw clock strings *and* the minutes because the callers
+ * genuinely disagree: the calendar export needs `"08:00 AM"` to write a DTSTART,
+ * and the generator needs `480` to test two periods for overlap.
+ *
+ * A slot id can name more than one period — `A1` is Monday 8:00 *and* Wednesday
+ * 8:55 — so this returns an array and callers that assume one result per day are
+ * the ones that were wrong.
+ */
+export function periodsForSlot(schema: CampusSchema, slot: string): SlotPeriod[] {
+  const wanted = new Set(slotSpellings(slot));
+  if (!wanted.size) return [];
+
+  const found: SlotPeriod[] = [];
+
+  const collect = (periods: SchemaPeriod[] | undefined, type: "theory" | "lab") => {
+    periods?.forEach((period, index) => {
+      // A lunch marker is a spacer with no times, not a period.
+      if (period?.lunch || !period.start || !period.end || !period.days) return;
+      // A schema entry can list several slots for one day, joined by "/" — the
+      // iCal export assumed as much. So can a day hold more than one match.
+      for (const [day, slotStr] of Object.entries(period.days)) {
+        if (!slotStr) continue;
+        const ids = String(slotStr)
+          .split(/[/+]/)
+          .map((s) => normalise(s))
+          .filter(Boolean);
+        if (!ids.some((id) => wanted.has(id))) continue;
+        if (!isDayId(day)) continue;
+        const startMin = timeToMinutes(period.start);
+        const endMin = timeToMinutes(period.end);
+        // An unreadable time makes the period unusable rather than midnight.
+        if (startMin === null || endMin === null) continue;
+        found.push({ day, start: period.start, end: period.end, startMin, endMin, type, index });
+      }
+    });
+  };
+
+  collect(schema.theory, "theory");
+  collect(schema.lab, "lab");
+  return found;
+}
+
+function isDayId(day: string): day is DayId {
+  return (DAYS_OF_WEEK as readonly string[]).includes(day);
+}
+
+/**
+ * Do a theory booking and a lab booking land on the clock at the same time?
+ *
+ * Used when combining a course's theory and lab rows into one booking, where a
+ * pair that overlaps in the timetable is a data error rather than a coincidence.
+ * Takes the slot strings as written (`"A1+TA1"`) because that is the shape they
+ * arrive in from the report.
+ */
+export function slotsOverlap(
+  theorySlotStr: string,
+  labSlotStr: string,
+  schema: CampusSchema
+): boolean {
+  const split = (s: string) =>
+    String(s ?? "")
+      .split("+")
+      .map((x) => normalise(x))
+      .filter(Boolean);
+
+  const theoryPeriods = split(theorySlotStr).flatMap((s) => periodsForSlot(schema, s));
+  const labPeriods = split(labSlotStr).flatMap((s) => periodsForSlot(schema, s));
+
+  for (const t of theoryPeriods) {
+    for (const l of labPeriods) {
+      if (t.day === l.day && Math.max(t.startMin, l.startMin) < Math.min(t.endMin, l.endMin)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+

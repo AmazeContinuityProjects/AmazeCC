@@ -230,7 +230,7 @@ export default function MarksDisplay({ data }) {
         <PageHeader
           icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
           title="Academic Marks"
-          meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300">Marks OS</Badge>}
+          meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-50/20 text-zinc-600 dark:text-zinc-300">Marks OS</Badge>}
         />
         <div className="mt-8 flex flex-col items-center justify-center text-center">
           <Image src="/images/chepu/chepu_says_sup.png" alt="No Data Available" width={220} height={220} className="mb-4 opacity-80" />
@@ -288,7 +288,7 @@ export default function MarksDisplay({ data }) {
       <PageHeader
         icon={<GraduationCap className="w-5 h-5 text-indigo-500" />}
         title="Academic Marks"
-        meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300">Marks OS</Badge>}
+        meta={<Badge variant="default" className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-50/20 text-zinc-600 dark:text-zinc-300">Marks OS</Badge>}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -345,7 +345,7 @@ export default function MarksDisplay({ data }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
               key={group.courseCode}
-              className={`p-5 rounded-3xl shadow-2xs border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 cursor-pointer transition-all duration-300 hover:shadow-xs active:scale-[0.99] group ${HOVER_BORDER_CLASSES[predictedGrade] || 'hover:border-zinc-350 dark:hover:border-zinc-700'}`}
+              className={`p-5 rounded-[24px] shadow-2xs border border-zinc-200/60 bg-gradient-to-br from-white to-zinc-50/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 cursor-pointer transition-all duration-300 hover:shadow-xs active:scale-[0.99] group ${HOVER_BORDER_CLASSES[predictedGrade] || 'hover:border-zinc-300 dark:hover:border-zinc-700'}`}
               onClick={() => setOpenCourseId(group.courseCode)}
             >
               <div className="flex justify-between items-start gap-4">
@@ -358,7 +358,7 @@ export default function MarksDisplay({ data }) {
                   </span>
 
                   <div className="flex gap-2 items-center mt-4">
-                    <Badge variant="default" className="rounded-lg uppercase font-bold tracking-wider text-[9px] bg-zinc-100 text-zinc-700 dark:bg-zinc-850 dark:text-zinc-300 border-zinc-200/30">
+                    <Badge variant="default" className="rounded-lg uppercase font-bold tracking-wider text-[9px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/30">
                       {courseType}
                     </Badge>
                     {predictedGrade !== "?" && (
@@ -454,9 +454,9 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
           </p>
         </div>
       }
-      className="bg-zinc-55/30 dark:bg-zinc-950/10 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden shadow-3xs"
+      className="bg-zinc-50/30 dark:bg-zinc-950/10 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 overflow-hidden shadow-3xs"
       headerClassName="text-[10px] text-zinc-400 dark:text-zinc-500 font-black uppercase tracking-wider p-4"
-      contentClassName="border-t border-zinc-150 dark:border-zinc-850 bg-white dark:bg-black/20 p-4.5"
+      contentClassName="border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-black/20 p-4.5"
     >
       {(isRelative && (!aStat || aStat.count === 0)) ? (
         <p className="text-xs text-zinc-400 dark:text-zinc-500 italic text-center py-2">
@@ -468,16 +468,16 @@ function AssessmentCard({ detail, typeLabel, aStat, isRelative }) {
             <div className="flex justify-between items-center text-xs">
               <div>
                 <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Class Avg</p>
-                <p className="font-extrabold text-zinc-800 dark:text-zinc-250">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-[10px] font-normal text-zinc-400">({formatNumber(aStat.mean)}%)</span></p>
+                <p className="font-extrabold text-zinc-800 dark:text-zinc-200">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-[10px] font-normal text-zinc-400">({formatNumber(aStat.mean)}%)</span></p>
               </div>
               <div className="text-right">
                 <p className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase font-black tracking-widest leading-none mb-1">Std Dev</p>
-                <p className="font-extrabold text-zinc-800 dark:text-zinc-250">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
+                <p className="font-extrabold text-zinc-800 dark:text-zinc-200">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
               </div>
             </div>
           )}
 
-          <div className="border-t border-zinc-150/80 dark:border-zinc-900 pt-3">
+          <div className="border-t border-zinc-100/80 dark:border-zinc-900 pt-3">
             <p className="text-zinc-400 dark:text-zinc-500 text-[9px] uppercase font-black tracking-widest mb-2 leading-none">
               {isRelative ? "Grade Placement Preview" : "Absolute Grade Range Preview"}
             </p>
@@ -524,9 +524,9 @@ function MarksSubpage({ group, allStats, onBack }) {
     const totals = getAssessmentTotals(assessments);
 
     return (
-      <div className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-3xl p-5 shadow-2xs mt-6">
+      <div className="bg-gradient-to-br from-white to-zinc-50/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-[24px] p-5 shadow-2xs mt-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2.5">
-          <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-150 flex items-center gap-2">
+          <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
             {icon} {typeLabel} Assessments
           </h3>
           <div className="flex items-center justify-between md:justify-end gap-3">
@@ -545,9 +545,9 @@ function MarksSubpage({ group, allStats, onBack }) {
             return <AssessmentCard key={idx} detail={detail} typeLabel={typeLabel} aStat={aStat} isRelative={isRelative} />;
           })}
         </div>
-        <div className="mt-4 pt-3.5 border-t border-zinc-150 dark:border-zinc-850 flex justify-end">
+        <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
           <p className="text-xs font-black text-zinc-500 dark:text-zinc-400">
-            Total Points Lost: <span className="font-extrabold text-red-500">{(totals.weightPercent - totals.weighted).toFixed(2)}</span> · Max Possible Score: <span className="font-black text-zinc-800 dark:text-zinc-150">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
+            Total Points Lost: <span className="font-extrabold text-red-500">{(totals.weightPercent - totals.weighted).toFixed(2)}</span> · Max Possible Score: <span className="font-black text-zinc-800 dark:text-zinc-100">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
           </p>
         </div>
       </div>
@@ -571,8 +571,8 @@ function MarksSubpage({ group, allStats, onBack }) {
             ["Grading Mode", isRelative ? "Relative" : "Absolute", isRelative ? 'text-indigo-500 dark:text-indigo-400' : 'text-emerald-500 dark:text-emerald-400'],
             ["Slot", mainCourse.slot, "text-zinc-800 dark:text-zinc-100"],
           ].map(([label, value, valueClass]: any) => (
-            <div key={label} className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-2xl p-4 shadow-3xs text-center flex flex-col justify-center min-w-0">
-              <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest mb-1.5 truncate">{label}</p>
+            <div key={label} className="bg-gradient-to-br from-white to-zinc-50/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-2xl p-4 shadow-3xs text-center flex flex-col justify-center min-w-0">
+              <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-black tracking-widest mb-1.5 truncate">{label}</p>
               <p className={`text-xs truncate ${valueClass}`}>{value}</p>
             </div>
           ))}
@@ -582,8 +582,8 @@ function MarksSubpage({ group, allStats, onBack }) {
         {renderAssessmentTable(group.lab?.assessments, "Lab", <Activity className="w-4 h-4 text-emerald-500" />)}
 
         {/* Grade Insights and Boundaries */}
-        <div className="bg-gradient-to-br from-white to-zinc-55/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-3xl overflow-hidden shadow-2xs mt-6">
-          <div className="p-5 border-b border-zinc-150 dark:border-zinc-850 bg-white/40 dark:bg-zinc-900/30">
+        <div className="bg-gradient-to-br from-white to-zinc-50/20 dark:border-zinc-800/80 dark:bg-gradient-to-br dark:from-zinc-900/60 dark:to-zinc-950/40 border border-zinc-200/50 rounded-[24px] overflow-hidden shadow-2xs mt-6">
+          <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 bg-white/40 dark:bg-zinc-900/30">
             <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
               Grade Distribution Curves <Badge variant="info" className="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400 font-black text-[9px] rounded-md px-1.5 py-0.5">BETA</Badge>
             </h3>
@@ -592,7 +592,7 @@ function MarksSubpage({ group, allStats, onBack }) {
               <summary className="font-extrabold text-indigo-500 dark:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
                 <Info size={13} /> How class curves are compiled
               </summary>
-              <div className="mt-3.5 p-4 bg-zinc-50 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200/50 dark:border-zinc-850 space-y-2.5">
+              <div className="mt-3.5 p-4 bg-zinc-50 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200/50 dark:border-zinc-800 space-y-2.5">
                 <p>
                   <strong>Proof of Concept:</strong> To calculate an accurate class curve, we need to know the class average and standard deviation. 
                   This requires aggregating the marks of all students in the class. It is mathematically impossible to do this securely strictly on your local device, 
@@ -612,19 +612,19 @@ function MarksSubpage({ group, allStats, onBack }) {
             )}
           </div>
           
-          <div className="p-5 bg-zinc-55/20 dark:bg-black/30 space-y-5">
+          <div className="p-5 bg-zinc-50/20 dark:bg-black/30 space-y-5">
             {isRelative ? (
               <div className="flex flex-wrap gap-3 text-xs">
-                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Samples</p>
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-800 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-black tracking-widest leading-none mb-1">Samples</p>
                   <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">{dataPoints}</p>
                 </div>
-                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Class Mean</p>
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-800 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-black tracking-widest leading-none mb-1">Class Mean</p>
                   <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">{stats ? formatNumber(stats.mean) : "N/A"}</p>
                 </div>
-                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-850 rounded-xl p-3.5 text-center min-w-[80px]">
-                  <p className="text-[9px] text-zinc-400 dark:text-zinc-550 uppercase font-black tracking-widest leading-none mb-1">Std Dev (SD)</p>
+                <div className="flex-1 bg-white/70 dark:bg-zinc-950/40 border border-zinc-200/40 dark:border-zinc-800 rounded-xl p-3.5 text-center min-w-[80px]">
+                  <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-black tracking-widest leading-none mb-1">Std Dev (SD)</p>
                   <p className="font-black text-sm text-zinc-800 dark:text-zinc-200">±{stats ? formatNumber(stats.sd) : "N/A"}</p>
                 </div>
               </div>
@@ -709,9 +709,9 @@ function MarksSubpage({ group, allStats, onBack }) {
                       </div>
                     ))}
                     
-                    <div className="col-span-full mt-4 bg-white/70 dark:bg-zinc-950/30 border border-zinc-200/50 dark:border-zinc-850 rounded-2xl p-4.5 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-3xs">
+                    <div className="col-span-full mt-4 bg-white/70 dark:bg-zinc-950/30 border border-zinc-200/50 dark:border-zinc-800 rounded-2xl p-4.5 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-3xs">
                       <div>
-                        <h4 className="font-black text-xs text-zinc-800 dark:text-zinc-150">Target Grade Calculator</h4>
+                        <h4 className="font-black text-xs text-zinc-800 dark:text-zinc-100">Target Grade Calculator</h4>
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Calculate the required weightage points left to secure your target grade.</p>
                       </div>
                       <div className="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-end">

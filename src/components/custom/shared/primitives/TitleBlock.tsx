@@ -15,10 +15,10 @@ import type { ReactNode } from "react";
  * the calmer of the two for a kicker that repeats on every screen.
  */
 
-const EYEBROW = "text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1";
+const EYEBROW = "text-xs font-semibold text-text-muted dark:text-text-secondary leading-none mb-1";
 const TITLE =
-  "text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate";
-const SUBTITLE = "text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1";
+  "text-xl sm:text-2xl font-black text-text-heading tracking-tight leading-tight font-outfit truncate";
+const SUBTITLE = "text-xs text-text-secondary dark:text-text-muted font-medium mt-1";
 const GROUP = "flex flex-col items-start min-w-0 text-left";
 
 export type TitleTag = "h1" | "h2" | "h3";
