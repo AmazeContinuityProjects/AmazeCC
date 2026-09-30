@@ -45,7 +45,7 @@ export default function WhatIfSimulator({
             return (
               <div
                 key={asm.id}
-                className={`p-3 rounded-[18px] border transition-all min-w-0 overflow-hidden ${
+                className={`p-3 rounded-2xl border transition-all min-w-0 overflow-hidden ${
                   isSimulated
                     ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-800/80 shadow-2xs"
                     : isPending

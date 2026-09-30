@@ -16,7 +16,7 @@ import {
 
 /** The squircle the Theory and Lab log grids already use. */
 const CELL =
-  "relative aspect-square rounded-[12px] flex flex-col items-center justify-center gap-1 transition-colors duration-150 cursor-pointer";
+  "relative aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-colors duration-150 cursor-pointer";
 
 /**
  * Day-type tint.

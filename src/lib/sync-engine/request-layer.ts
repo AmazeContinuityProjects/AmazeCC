@@ -13,9 +13,23 @@ export interface RequestOpts {
   bypassDedupe?: boolean;
 }
 
+/**
+ * What a session looks like to the request layer.
+ *
+ * Exported because `CredentialManager.getCreds` returns the same shape and used
+ * to declare its own copy of it. Three declarations of one contract is how the
+ * `cookies` type drifted out of step with what the backends actually send.
+ */
+export interface AuthCreds {
+  cookies?: string | string[];
+  authorizedID?: string;
+  csrf?: string;
+  jsessionid?: string;
+}
+
 type AuthProvider = (
   domain: AuthDomain,
-) => Promise<{ cookies?: string[]; authorizedID?: string; csrf?: string; jsessionid?: string } | null>;
+) => Promise<AuthCreds | null>;
 
 let authProvider: AuthProvider | null = null;
 export function setAuthProvider(p: AuthProvider): void {

@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
 
       <div className="w-full max-w-2xl space-y-6 relative z-10 pt-10">
         {/* Content Card */}
-        <div className="bg-white/80 dark:bg-[#050814]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-3xl p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
+        <div className="bg-white/80 dark:bg-[#050814]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-[24px] p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
           <div className="border-b border-slate-100 dark:border-white/[0.08] pb-4">
             <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight font-[family-name:var(--font-outfit)]">
               Privacy Policy

@@ -1391,7 +1391,7 @@ export default function SimplifiedMobileHome({
                       isLive
                         ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                         : isCompleted
-                        ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-850 opacity-75 hover:opacity-100"
+                        ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
                         : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                     } hover:scale-[1.006] active:scale-[0.99]`}
                   >
@@ -1518,7 +1518,7 @@ export default function SimplifiedMobileHome({
                     isLive
                       ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                       : isCompleted
-                      ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-850 opacity-75 hover:opacity-100"
+                      ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
                       : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                   } hover:scale-[1.008] active:scale-[0.99]`}
                 >

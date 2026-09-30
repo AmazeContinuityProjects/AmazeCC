@@ -16,8 +16,10 @@ import {
   resolvePeriods,
   timeToMinutes,
   type CampusSchema,
+  type DayId,
   type FreeRoomCourse,
 } from "../lib/freeClassrooms";
+import chennai from "../data/campus/chennai.json";
 
 /**
  * The free-classroom model.
@@ -262,6 +264,26 @@ const monday = (courses: FreeRoomCourse[]) => {
   return buildDayIndex(courses, periods, buildPeriodSlots(periods));
 };
 
+/** Index over the real `chennai.json`, for the periods the trimmed one drops. */
+const realChennai = (day: DayId, courses: FreeRoomCourse[]) => {
+  const periods = resolvePeriods(chennai, day);
+  return buildDayIndex(courses, periods, buildPeriodSlots(periods));
+};
+
+/**
+ * The period a day runs the given theory slot in.
+ *
+ * Looked up by slot rather than written as a time key, because `resolvePeriods`
+ * merges the 12:35 lecture into the 12:30 lab that overlaps it — so the window
+ * that carries `S11` is keyed `12:30pm-1:25pm`, not `12:35pm-1:25pm`.
+ */
+const periodRunning = (day: DayId, theorySlot: string) => {
+  const periods = resolvePeriods(chennai, day);
+  const found = periods.find((p) => p.theorySlot === theorySlot);
+  if (!found) throw new Error(`${theorySlot} does not run on ${day}`);
+  return found.key;
+};
+
 describe("buildDayIndex", () => {
   it("counts a room as occupied when it is in EITHER slot of a period", () => {
     // A lab course in the lab slot of the 8:00 period. Before the fix the
@@ -299,6 +321,87 @@ describe("buildDayIndex", () => {
   it("classifies a room by what actually runs in it", () => {
     const index = monday([course({ SLOT: "L1", TYPE: "LA", VENUE: "AB1-201" })]);
     expect(index.rooms.get("AB1-201")?.kind).toBe("lab");
+  });
+
+  /**
+   * The law school books its courses with no period number at all — `A+TA+TAA`
+   * where everybody else writes `A1+TA1+TAA1` — and runs mornings only. Those
+   * ids matched nothing, so every AB5 room came back free for the whole morning
+   * while a class was sitting in it.
+   */
+  it("counts a law course booked without a period number", () => {
+    const index = monday([
+      course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" }),
+    ]);
+    expect(freeRoomsForPeriod(index, "8:00am-8:50am").rooms).not.toContain("AB5-405");
+  });
+
+  /**
+   * The asymmetry the whole alias rests on. The law school has no evening
+   * timetable, so `A+TA` must *not* resolve against `A2` — if it did, every law
+   * room would read as busy from 2pm to 7:25pm on the strength of a morning
+   * class.
+   */
+  it("leaves a law room free in the evening, because law has no evening", () => {
+    const index = monday([
+      course({ CODE: "TLAW524L", TYPE: "TH", SLOT: "A+TA", VENUE: "AB5-405" }),
+    ]);
+    expect(freeRoomsForPeriod(index, "8:55am-9:45am").rooms).toContain("AB5-405");
+  });
+});
+
+describe("buildPeriodSlots", () => {
+  it("carries the law spelling alongside the schema's own", () => {
+    const slots = buildPeriodSlots(resolvePeriods(CHENNAI, "mon"));
+    expect(slots.get("8:00am-8:50am")).toContain("A1");
+    expect(slots.get("8:00am-8:50am")).toContain("A");
+  });
+
+  it("keeps the law spelling off the evening period", () => {
+    const slots = buildPeriodSlots(resolvePeriods(CHENNAI, "mon"));
+    expect(slots.get("8:55am-9:45am")).toContain("A2");
+    expect(slots.get("8:55am-9:45am")).not.toContain("A");
+  });
+
+  it("keeps it off a lab period, which has no law equivalent", () => {
+    // Only the theory slot is ever aliased, so L1 cannot lend out a bare "L".
+    const slots = buildPeriodSlots(resolvePeriods(CHENNAI, "mon"));
+    expect(slots.get("6:30pm-7:20pm")).toContain("L9");
+    expect(slots.get("6:30pm-7:20pm")).not.toContain("L");
+  });
+});
+
+/**
+ * The two 12:35 periods are the one case that cannot be exercised against the
+ * trimmed schema above, because they are the only periods the Chennai grid gives
+ * an `S` id — `S11` on Monday, `S15` on Friday — and they are where the law
+ * school's `TEE` and `TFF` actually land. So this uses the real file.
+ */
+describe("the 12:35 periods in the real Chennai schema", () => {
+  const law = (over: Partial<FreeRoomCourse>) => course({
+    CODE: "TLAW304L",
+    TYPE: "TH",
+    VENUE: "AB5-303",
+    ...over,
+  });
+
+  it("counts a TEE course in the Monday S11 period", () => {
+    const index = realChennai("mon", [law({ SLOT: "E+TE+TEE" })]);
+    const key = periodRunning("mon", "S11");
+    expect(freeRoomsForPeriod(index, key).rooms).not.toContain("AB5-303");
+  });
+
+  it("counts a TFF course in the Friday S15 period", () => {
+    const index = realChennai("fri", [law({ SLOT: "F+TF+TFF" })]);
+    const key = periodRunning("fri", "S15");
+    expect(freeRoomsForPeriod(index, key).rooms).not.toContain("AB5-303");
+  });
+
+  it("keeps the two 12:35 periods apart", () => {
+    // TEE is a Monday session and TFF a Friday one, so neither may leak into
+    // the other day.
+    const monday = realChennai("mon", [law({ SLOT: "F+TF+TFF" })]);
+    expect(freeRoomsForPeriod(monday, periodRunning("mon", "S11")).rooms).toContain("AB5-303");
   });
 });
 

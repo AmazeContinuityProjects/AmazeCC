@@ -1331,7 +1331,7 @@ export default function CourseDetailSubpage({
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
     return (
-      <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-6 shadow-sm mt-6">
+      <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] p-6 shadow-sm mt-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
           <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             <Activity className="w-4 h-4" /> {typeLabel} Assessments
@@ -1832,8 +1832,8 @@ export default function CourseDetailSubpage({
             {planLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-12 w-1/3 rounded-2xl" />
-                <Skeleton className="h-64 w-full rounded-3xl" />
-                <Skeleton className="h-48 w-full rounded-3xl" />
+                <Skeleton className="h-64 w-full rounded-[24px]" />
+                <Skeleton className="h-48 w-full rounded-[24px]" />
               </div>
             ) : coursePlan && coursePlan.length > 0 ? (
               <div className="space-y-6">
@@ -1849,7 +1849,7 @@ export default function CourseDetailSubpage({
                       {entries.map((cp: any, ci: number) => (
                         <div key={ci} className="space-y-4">
                           {cp.data.tables?.map((t: any, ti: number) => (
-                            <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative">
+                            <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] overflow-hidden shadow-sm relative">
                               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
                               <div className="p-6 relative z-10">
                                 {t.caption && <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
@@ -1885,14 +1885,14 @@ export default function CourseDetailSubpage({
                 })}
               </div>
             ) : (
-              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-3xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
+              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-[24px] border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
                 <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Course plan is unavailable or loading.</p>
               </div>
             )}
           </div>
 
           {/* Schedule toggle */}
-          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl overflow-hidden shadow-sm relative mt-8">
+          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] overflow-hidden shadow-sm relative mt-8">
             <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 border-b border-gray-200/50 dark:border-gray-800/50">
               <h4 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-500" /> Weekly Schedule

@@ -51,6 +51,44 @@ const eslintConfig = [
       "no-restricted-imports": "off",
     },
   },
+
+  // Design-token guardrails.
+  //
+  // Each of these encodes a decision from docs/sep-29-2026/ui-upgrade-final/ and
+  // design/DESIGN_LANGUAGE.md. All are `warn` because the codebase is mid
+  // migration; they are scheduled to become `error` as each phase lands.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/components/custom/shared/primitives/**",
+      "src/lib/uiTokens.ts",
+    ],
+    rules: {
+      // R9. `rounded-3xl` is Tailwind's 24px, which our scale spells
+      // `rounded-[24px]`. Identical rendering, but two spellings of one surface
+      // hide drift when only one of them gets edited. See DESIGN_LANGUAGE.md §5.
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector:
+            "Literal[value=/\\brounded-3xl\\b/]",
+          message:
+            "Use rounded-[24px] (the 24px step). `rounded-3xl` is the same size but a second spelling of it — see design/DESIGN_LANGUAGE.md §5.",
+        },
+      ],
+    },
+  },
+  {
+    // The primitives and the token module are the definition of the dialect, so
+    // they are exempt from the token rules that everything else must follow.
+    files: [
+      "src/components/custom/shared/primitives/**",
+      "src/lib/uiTokens.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

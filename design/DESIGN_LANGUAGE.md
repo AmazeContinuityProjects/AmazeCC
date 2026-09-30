@@ -119,47 +119,49 @@ Organic should influence atmosphere, not usability.
 
 # 5. Radius System
 
-Only these values may be used.
+Only these six values may be used.
 
-Small Radius
-12px
+| Step | Class | Used for |
+|------|-------|----------|
+| 8px | `rounded-lg` | Segmented-control segments, inner chips |
+| 12px | `rounded-xl` | Icon buttons, tone icon tiles |
+| 16px | `rounded-2xl` | List shells, chips, content cards, row icons |
+| 24px | `rounded-[24px]` | Tile surfaces, insight carousels |
+| 28px | `rounded-[28px]` | Bottom sheets, dashed empty states |
+| 32px | `rounded-[32px]` | Large empty-panel variant |
 
-Medium Radius
-16px
+`rounded-[24px]`, `rounded-[28px]` and `rounded-[32px]` are the named steps written in
+Tailwind's arbitrary-value syntax. They are not arbitrary values, and they are not
+violations of this scale.
 
-Large Radius
-24px
+**`rounded-3xl` is not permitted.** Tailwind's `rounded-3xl` is 24px, which this scale
+expresses as `rounded-[24px]`. The two are visually identical but a source file using
+both produces two spellings of the same surface, which defeats grepping for a single
+step and hides drift when one is edited and the other is not.
 
-Extra Large Radius
-32px
+The 8px step is not a rounding artefact: it is what keeps a chip inside a 12px icon
+button from looking like it is touching the edge.
 
-No arbitrary radius values.
+No values outside this scale. In particular no `rounded-[18px]`, `rounded-[22px]` or
+`rounded-[28px]`-as-a-typo — snap to the nearest step above or below and say which in
+review.
 
 ---
 
 # 6. Shadow System
 
-Shadow Small
+| Class | Used for |
+|-------|----------|
+| `shadow-2xs` | Resting cards, rows, inputs |
+| `shadow-xs` | Interactive tiles, raised surfaces |
+| `shadow-sm` | Floating controls (switch thumb, popovers) |
+| `shadow-2xl` | Icon buttons, dialogs, bottom sheets, overlays |
 
-Used for:
-
-* Cards
-
-Shadow Medium
-
-Used for:
-
-* Dropdowns
-* Menus
-
-Shadow Large
-
-Used for:
-
-* Dialogs
-* Overlays
-
-No custom shadows.
+No custom `shadow-[…]` values. The one current exception is the bottom sheet's
+upward lift (`shadow-[0_-15px_…]` in `shared/BottomSheet.tsx`), which is a
+directional shadow rather than a step on this scale; if more directional shadows
+appear, promote it to a named step here rather than adding a second arbitrary
+value.
 
 ---
 

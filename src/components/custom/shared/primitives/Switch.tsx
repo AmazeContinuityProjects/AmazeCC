@@ -29,7 +29,7 @@ const THUMB_ON = {
 } as const;
 
 /** Off = zinc, on = the app's indigo accent (same as `SEG_ACTIVE`). */
-const TRACK_OFF = "bg-zinc-200 dark:bg-zinc-700";
+const TRACK_OFF = "bg-border-muted dark:bg-surface-hover";
 const TRACK_ON = "bg-indigo-500";
 
 export interface SwitchProps {
@@ -63,7 +63,7 @@ export default function Switch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
-      className={`relative shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`relative shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed ${
         TRACK[size]
       } ${checked ? TRACK_ON : TRACK_OFF} ${className}`.trim()}
     >

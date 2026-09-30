@@ -2,13 +2,11 @@
 export { BackButton } from "@amazecontinuityprojects/amazeui";
 export { Badge } from "@amazecontinuityprojects/amazeui";
 export { CircularProgress } from "@amazecontinuityprojects/amazeui";
-export { DataTable } from "@amazecontinuityprojects/amazeui";
 export { ErrorDisplay } from "@amazecontinuityprojects/amazeui";
 export { ExpandableSection } from "@amazecontinuityprojects/amazeui";
 export { FetchButton } from "@amazecontinuityprojects/amazeui";
 export { InfoRow } from "@amazecontinuityprojects/amazeui";
 export { LoadingSpinner } from "@amazecontinuityprojects/amazeui";
-export { ProgressBar } from "@amazecontinuityprojects/amazeui";
 export { SearchInput } from "@amazecontinuityprojects/amazeui";
 export { SectionHeader } from "@amazecontinuityprojects/amazeui";
 export { SubpageLayout } from "@amazecontinuityprojects/amazeui";

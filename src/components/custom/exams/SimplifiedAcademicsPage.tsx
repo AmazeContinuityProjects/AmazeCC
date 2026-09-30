@@ -1,17 +1,19 @@
 import React, { useState, useMemo, useCallback } from "react";
-import PageHeader from "../shared/PageHeader";
-import { EmptyPanel } from "../shared/primitives";
+import { ChipTabs, EmptyPanel, PageShell, SelectField } from "../shared/primitives";
+import { SEARCH_FIELD, TILE_INTERACTIVE_ROW } from "@/lib/uiTokens";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import {
   BookOpen,
   Search,
   ChevronRight,
-  ChevronLeft,
-  Lock,
-  History,
   GraduationCap,
+  History,
+  Lock,
   Sparkles,
 } from "lucide-react";
+
+/** The four course-type pills above the list. Ordered, so `ChipTabs` scrolls rather than wraps. */
+type CourseTypeFilter = "all" | "theory" | "lab" | "embedded";
 
 interface SimplifiedAcademicsPageProps {
   marksData: any;
@@ -649,7 +651,7 @@ export default function SimplifiedAcademicsPage({
       <div
         key={course.courseCode}
         onClick={() => handleCourseClick(course.courseCode)}
-        className="rounded-[22px] sm:rounded-[24px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-200 cursor-pointer overflow-hidden p-3.5 sm:p-4 flex items-center justify-between gap-3 group select-none text-left"
+        className={`${TILE_INTERACTIVE_ROW} hover:border-indigo-500/40 dark:hover:border-indigo-500/40 duration-200 group select-none`}
       >
         {/* Left Column: Clean Icon + Course Code, Title & Subtitle */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -738,43 +740,25 @@ export default function SimplifiedAcademicsPage({
         : pastSemesters.filter((s) => s.semesterId === selectedPastSemId);
 
     return (
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-12 animate-in fade-in duration-200 text-left select-none">
-        <PageHeader
-          icon={<History className="w-5.5 h-5.5 text-blue-600 dark:text-blue-400" />}
-          title="Previous Semester History"
-          meta={
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/85 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-gray-200/60 dark:border-gray-700/60 font-mono">
-              {pastSemesters.length} {pastSemesters.length === 1 ? "semester" : "semesters"}
-            </span>
-          }
-          actions={
-            <div className="flex items-center gap-2">
-              {pastSemesters.length > 1 && (
-                <div className="relative">
-                  <select
-                    value={selectedPastSemId}
-                    onChange={(e) => setSelectedPastSemId(e.target.value)}
-                    className="appearance-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 pr-7 text-xs font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer shadow-2xs"
-                  >
-                    <option value="all">All Past Semesters</option>
-                    {pastSemesters.map((s) => (
-                      <option key={s.semesterId} value={s.semesterId}>
-                        {s.semesterName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <button
-                onClick={() => setShowPastSemestersView(false)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Current Courses</span>
-              </button>
-            </div>
-          }
-        />
+      <PageShell
+        eyebrow="Academics · History"
+        title="Previous Semester History"
+        subtitle={`${pastSemesters.length} ${pastSemesters.length === 1 ? "semester" : "semesters"}`}
+        onBack={() => setShowPastSemestersView(false)}
+        actions={
+            pastSemesters.length > 1 ? (
+              <SelectField
+                value={selectedPastSemId}
+                onChange={setSelectedPastSemId}
+                options={[
+                  { value: "all", label: "All Past Semesters" },
+                  ...pastSemesters.map((s) => ({ value: s.semesterId, label: s.semesterName })),
+                ]}
+                className="w-44"
+              />
+          ) : undefined
+        }
+      >
 
         {/* Search */}
         <div className="relative w-full">
@@ -784,7 +768,7 @@ export default function SimplifiedAcademicsPage({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search past course code or name..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            className={`${SEARCH_FIELD} pl-9 pr-4 text-xs sm:text-sm shadow-2xs focus:ring-2 focus:ring-indigo-500`}
           />
         </div>
 
@@ -840,61 +824,47 @@ export default function SimplifiedAcademicsPage({
             />
           )}
         </div>
-      </div>
-    );
-  }
+    </PageShell>
+      );
+    }
 
-  // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
-  return (
-    <div className="w-full max-w-3xl mx-auto space-y-3.5 pb-12 animate-in fade-in duration-200 text-left select-none">
-      <PageHeader
-        icon={<GraduationCap className="w-5.5 h-5.5 text-blue-600 dark:text-blue-400" />}
-        title="My Courses & Marks"
-        meta={
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/85 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-gray-200/60 dark:border-gray-700/60 font-mono">
-            {filteredCurrentCourses.length} {filteredCurrentCourses.length === 1 ? "course" : "courses"}
-          </span>
-        }
-      />
+    // ── VIEW 1: CURRENT SEMESTER COURSES + PREVIOUS SEMESTERS PILL AT BOTTOM ──
+    return (
+    <PageShell
+      eyebrow="Academics"
+      title="My Courses & Marks"
+      subtitle={`${filteredCurrentCourses.length} ${filteredCurrentCourses.length === 1 ? "course" : "courses"}`}
+    >
 
       {/* ── SEARCH & FILTER STRIP ── */}
-      <div className="flex flex-col sm:flex-row items-center gap-2.5">
+      {/* A vertical stack, not a row: the house pattern (ClubHubTab, EventHubTab).
+          `ChipTabs` is `w-full` + `overflow-x-auto` by design, so it wants its own
+          line and to scroll horizontally. In a `sm:flex-row` it claims 100% width
+          and squeezes the search field instead. */}
+      <div className="space-y-3">
         {/* Search Input */}
-        <div className="relative w-full flex-1">
+        <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search course code or name..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            className={`${SEARCH_FIELD} pl-9 pr-4 text-xs sm:text-sm shadow-2xs focus:ring-2 focus:ring-indigo-500`}
           />
         </div>
 
         {/* Type Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none pb-1 sm:pb-0">
-          {[
-            { id: "all", label: "All" },
-            { id: "theory", label: "Theory" },
-            { id: "lab", label: "Lab" },
-            { id: "embedded", label: "Embedded" },
-          ].map((f) => {
-            const isActive = selectedType === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setSelectedType(f.id)}
-                className={`px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-xs"
-                    : "bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
+        <ChipTabs
+          options={[
+            { value: "all" as CourseTypeFilter, label: "All" },
+            { value: "theory", label: "Theory" },
+            { value: "lab", label: "Lab" },
+            { value: "embedded", label: "Embedded" },
+          ]}
+          value={selectedType}
+          onChange={setSelectedType}
+        />
       </div>
 
       {/* ── CURRENT SEMESTER COURSES PILLS LIST ── */}
@@ -915,7 +885,7 @@ export default function SimplifiedAcademicsPage({
         {/* Marks Predictor Featured Hero Card */}
         <button
           onClick={() => setActiveSubTab?.("marks-predictor")}
-          className="w-full p-4 rounded-[22px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          className="w-full p-4 rounded-[24px] border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 hover:from-indigo-500/15 hover:to-pink-500/15 shadow-2xs hover:shadow-xs flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -941,7 +911,7 @@ export default function SimplifiedAcademicsPage({
           {/* Degree Curriculum Card */}
           <button
             onClick={() => setActiveSubTab?.("curriculum")}
-            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-indigo-500/40 dark:hover:border-indigo-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+            className={`${TILE_INTERACTIVE_ROW} w-full p-4 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 group duration-200`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -965,7 +935,7 @@ export default function SimplifiedAcademicsPage({
           {/* Grade History Card */}
           <button
             onClick={() => setActiveSubTab?.("grades")}
-            className="w-full p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-purple-500/40 dark:hover:border-purple-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+            className={`${TILE_INTERACTIVE_ROW} w-full p-4 hover:border-purple-500/40 dark:hover:border-purple-500/40 group duration-200`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
@@ -998,7 +968,7 @@ export default function SimplifiedAcademicsPage({
               setShowPastSemestersView(true);
             }
           }}
-          className="w-full p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 shadow-2xs hover:shadow-md hover:border-blue-500/40 dark:hover:border-blue-500/40 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer text-left"
+          className={`${TILE_INTERACTIVE_ROW} w-full p-3.5 sm:p-4 hover:border-blue-500/40 dark:hover:border-blue-500/40 group duration-200`}
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -1020,8 +990,8 @@ export default function SimplifiedAcademicsPage({
             <span>{pastSemesters.length > 0 ? "View History" : "Grade History"}</span>
             <ChevronRight className="w-4 h-4" />
           </div>
-        </button>
-      </div>
-    </div>
+          </button>
+        </div>
+    </PageShell>
   );
 }

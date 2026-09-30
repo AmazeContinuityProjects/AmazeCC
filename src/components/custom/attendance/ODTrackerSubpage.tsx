@@ -6,15 +6,15 @@ import { officialOdDataAtom } from "@/store";
 import { AnimatePresence, m } from "framer-motion";
 import { Award, CheckCircle2, ChevronDown, Clock, FileText, ShieldAlert } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { TILE } from "@/lib/uiTokens";
-import { PageShell } from "../shared/primitives";
-import { BackButton } from "../shared";
+import { TILE, TILE_CARD } from "@/lib/uiTokens";
 import {
-  EmptyPanel,
-  InsightCarousel,
-  SegmentedControl,
-  useCarousel,
-  type InsightSlide,
+    EmptyPanel,
+    InsightCarousel,
+    PageShell,
+    SectionHeader,
+    SegmentedControl,
+    useCarousel,
+    type InsightSlide,
 } from "../shared/primitives";
 import { parseAttendanceTime } from "@/lib/attendanceTimetable";
 import config from "../../../../config.json";
@@ -347,29 +347,25 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
 
             {/* ── HISTORY ── */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                        <Award className="w-4 h-4 text-indigo-500" />
-                        <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-                            History
-                        </h2>
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                            {visibleHistory.length}
-                        </span>
-                    </div>
-                    {wastedDaysCount > 0 && (
-                        <SegmentedControl
-                            options={[
-                                { value: "all" as StatusFilter, label: "all" },
-                                { value: "valid", label: "valid" },
-                                { value: "wasted", label: "wasted" },
-                            ]}
-                            value={filter}
-                            onChange={setFilter}
-                            className="[&_button]:capitalize"
-                        />
-                    )}
-                </div>
+                <SectionHeader
+                    icon={Award}
+                    title="History"
+                    count={visibleHistory.length}
+                    right={
+                        wastedDaysCount > 0 ? (
+                            <SegmentedControl
+                                options={[
+                                    { value: "all" as StatusFilter, label: "all" },
+                                    { value: "valid", label: "valid" },
+                                    { value: "wasted", label: "wasted" },
+                                ]}
+                                value={filter}
+                                onChange={setFilter}
+                                className="[&_button]:capitalize"
+                            />
+                        ) : undefined
+                    }
+                />
 
                 {visibleHistory.length === 0 ? (
                     <EmptyPanel
@@ -390,7 +386,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                             return (
                                 <div
                                     key={key}
-                                    className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                                    className={`${TILE_CARD} transition-all hover:border-border-strong dark:hover:border-border`}
                                 >
                                     {/* Compressed row */}
                                     <button

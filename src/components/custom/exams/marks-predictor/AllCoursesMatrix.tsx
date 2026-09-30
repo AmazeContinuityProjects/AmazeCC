@@ -44,7 +44,7 @@ export default function AllCoursesMatrix({
     <div className="w-full max-w-full overflow-hidden space-y-3.5">
       {/* Overview — 1 col on mobile, 3 cols from sm, like SimplifiedAcademicsPage pills */}
       <div className="grid grid-cols-1 gap-2.5">
-        <div className="p-3.5 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3 min-w-0 overflow-hidden">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3 min-w-0 overflow-hidden">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 truncate">Total Courses</p>
             <p className="text-lg font-black text-zinc-900 dark:text-white font-outfit mt-1 truncate">{predictions.length} Courses</p>
@@ -52,14 +52,14 @@ export default function AllCoursesMatrix({
           <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-black shrink-0">📚</div>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 overflow-hidden">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 truncate">Avg Ceiling</p>
               <p className="text-base font-black text-emerald-600 dark:text-emerald-400 font-outfit mt-1 truncate">{avgCeiling.toFixed(1)}% Max</p>
             </div>
             <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">✨</div>
           </div>
-          <div className="p-3 rounded-[18px] bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-2 min-w-0 overflow-hidden">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 truncate">Total Deficit</p>
               <p className={`text-base font-black font-outfit mt-1 truncate ${totalPointsLostAcrossAll > 0 ? "text-rose-500" : "text-emerald-500"}`}>
@@ -119,7 +119,7 @@ export default function AllCoursesMatrix({
             <div
               key={p.courseCode}
               onClick={() => onSelectCourse(p.courseCode)}
-              className="group w-full max-w-full overflow-hidden p-3.5 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-indigo-500/50 hover:shadow-xs transition-all duration-200 cursor-pointer text-left flex flex-col gap-3"
+              className="group w-full max-w-full overflow-hidden p-3.5 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-indigo-500/50 hover:shadow-xs transition-all duration-200 cursor-pointer text-left flex flex-col gap-3"
             >
               <div className="flex items-start justify-between gap-2 min-w-0">
                 <div className="min-w-0 flex-1">

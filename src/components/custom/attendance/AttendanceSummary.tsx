@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import CircularProgress from "../shared/CircularProgress";
+import { ToneBadge } from "../shared/primitives";
+import { TILE_CARD } from "@/lib/uiTokens";
 import { AlertTriangle, ShieldCheck, TriangleAlert } from "lucide-react";
 
 function getTargetAttendancePct(): number {
@@ -70,11 +72,8 @@ export default function AttendanceSummary({
     return { thresholdPct, warnPct, totalAttended, totalClasses, aggPct, safe, warn, crit, criticalCourses, needsAttention };
   }, [attendance, simulatedSkips, isDayscholarWithBus]);
 
-  const chipBase =
-    "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 border text-xs font-extrabold uppercase tracking-wider";
-
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-800/80 bg-white dark:bg-black shadow-sm p-5 animate-in fade-in duration-500 motion-reduce:animate-none">
+    <div className={`${TILE_CARD} p-5 animate-in fade-in duration-500 motion-reduce:animate-none`}>
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         {/* Left: ring + headline */}
         <div className="flex items-center gap-4">
@@ -101,15 +100,15 @@ export default function AttendanceSummary({
         {/* Right: chips + CTA */}
         <div className="flex flex-col gap-3 md:items-end">
           <div className="flex flex-wrap gap-2">
-            <span className={`${chipBase} text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20`}>
-              <ShieldCheck className="w-3.5 h-3.5" /> {stats.safe} Safe
-            </span>
-            <span className={`${chipBase} text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20`}>
-              <TriangleAlert className="w-3.5 h-3.5" /> {stats.warn} Warning
-            </span>
-            <span className={`${chipBase} text-red-500 dark:text-red-400 bg-red-500/10 border-red-500/20`}>
-              <AlertTriangle className="w-3.5 h-3.5" /> {stats.crit} Critical
-            </span>
+            <ToneBadge tone="emerald" size="lg" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
+              {stats.safe} Safe
+            </ToneBadge>
+            <ToneBadge tone="amber" size="lg" icon={<TriangleAlert className="w-3.5 h-3.5" />}>
+              {stats.warn} Warning
+            </ToneBadge>
+            <ToneBadge tone="red" size="lg" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
+              {stats.crit} Critical
+            </ToneBadge>
           </div>
 
           {stats.needsAttention > 0 && (
@@ -125,12 +124,9 @@ export default function AttendanceSummary({
           {stats.criticalCourses.length > 0 && (
             <div className="flex flex-wrap gap-1.5 md:justify-end">
               {stats.criticalCourses.map((code) => (
-                <span
-                  key={code}
-                  className="rounded-md bg-red-500/10 dark:bg-red-400/10 px-2 py-0.5 text-[10px] font-bold text-red-500 dark:text-red-400 border border-red-500/20"
-                >
+                <ToneBadge key={code} tone="red" size="md">
                   {code}
-                </span>
+                </ToneBadge>
               ))}
             </div>
           )}

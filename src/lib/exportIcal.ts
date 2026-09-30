@@ -1,4 +1,5 @@
 import { TimetableState } from "@/components/custom/exams/FFCS/types";
+import { slotSpellings } from "@/lib/slots";
 
 // Helper to convert time like "8:00 AM" to "080000"
 function formatIcalTime(timeStr: string): string {
@@ -63,8 +64,20 @@ export function exportTimetableIcal(
 
   const createdAt = Date.now();
 
-  // Pre-process schema into a quick lookup: slotName -> [{ day, start, end }]
+  // Pre-process the schema into a quick lookup: slotName -> [{ day, start, end }].
+  //
+  // Keyed under *both* spellings of a period, because the law school books
+  // "A+TA+TAA" where the schema says "A1+TA1+TAA1" and a key of "A1" alone
+  // matched no course — so an entire law timetable exported to zero events.
   const slotLookup = new Map<string, { day: string; start: string; end: string }[]>();
+
+  const addSlot = (slotName: string, entry: { day: string; start: string; end: string }) => {
+    for (const spelling of slotSpellings(slotName)) {
+      const bucket = slotLookup.get(spelling);
+      if (bucket) bucket.push(entry);
+      else slotLookup.set(spelling, [entry]);
+    }
+  };
 
   const processCategory = (category: any[]) => {
     category.forEach((period: any) => {
@@ -72,14 +85,7 @@ export function exportTimetableIcal(
       Object.entries(period.days).forEach(([day, slotsStr]) => {
         const slots = (slotsStr as string).split("/").map((s) => s.trim());
         slots.forEach((slotName) => {
-          if (!slotLookup.has(slotName)) {
-            slotLookup.set(slotName, []);
-          }
-          slotLookup.get(slotName)!.push({
-            day,
-            start: period.start,
-            end: period.end,
-          });
+          addSlot(slotName, { day, start: period.start, end: period.end });
         });
       });
     });

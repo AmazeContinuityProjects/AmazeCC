@@ -13,20 +13,35 @@ export function ToneBadge({
   tone = "zinc",
   children,
   size = "md",
+  icon,
   className = "",
 }: {
   tone?: string;
   children: ReactNode;
-  size?: "sm" | "md";
+  /**
+   * `sm` is the list-row pill, `md` the default, `lg` the summary-tile
+   * treatment. The three existed as hand-written `px-`/`text-` pairs in about a
+   * dozen places; `lg` was added when the attendance summary banner needed a
+   * chip big enough to be a headline stat rather than a row status.
+   */
+  size?: "sm" | "md" | "lg";
+  /** Leading icon. Rendered at the text's own size so the pill stays one optical block. */
+  icon?: ReactNode;
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[9px] sm:text-[10px] px-2 py-0.5";
+  const sizing =
+    size === "sm"
+      ? "text-[9px] px-1.5 py-0.5"
+      : size === "lg"
+        ? "text-xs px-3 py-2 rounded-xl"
+        : "text-[9px] sm:text-[10px] px-2 py-0.5";
   return (
     <span
-      className={`${sizing} font-extrabold uppercase rounded-md border shrink-0 ${
+      className={`${sizing} inline-flex items-center gap-1.5 font-extrabold uppercase rounded-md border shrink-0 ${
         TONE_BADGE[tone] ?? TONE_BADGE.zinc
       } ${className}`.trim()}
     >
+      {icon}
       {children}
     </span>
   );
@@ -50,7 +65,7 @@ export function ToneDot({
     indigo: "bg-indigo-500",
     red: "bg-red-500",
     cyan: "bg-cyan-500",
-    zinc: "bg-zinc-500",
+    zinc: "bg-text-secondary",
   };
   const box = size === "sm" ? "w-1.5 h-1.5" : "w-2 h-2";
   return (
@@ -108,7 +123,7 @@ export function ToneLegend({
   if (!items.length) return null;
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 ${className}`.trim()}
+      className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold text-text-secondary dark:text-text-muted ${className}`.trim()}
     >
       {items.map((item) => (
         <span key={item.label as string} className="inline-flex items-center gap-1.5">
@@ -204,9 +219,9 @@ export function EmptyPanel({
     return (
       <div className={`${EMPTY_STATE} ${className}`.trim()}>
         {icon}
-        <p className="text-xs font-bold text-zinc-600 dark:text-zinc-400 mt-2">{title}</p>
+        <p className="text-xs font-bold text-text-secondary dark:text-text-muted mt-2">{title}</p>
         {description ? (
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">{description}</p>
+          <p className="text-[11px] text-text-muted dark:text-text-secondary mt-1">{description}</p>
         ) : null}
         {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
       </div>
@@ -220,12 +235,12 @@ export function EmptyPanel({
     indigo: "bg-indigo-500/10 text-indigo-500",
     violet: "bg-violet-500/10 text-violet-500",
     sky: "bg-sky-500/10 text-sky-500",
-    zinc: "bg-zinc-500/10 text-zinc-500",
+    zinc: "bg-surface-secondary text-text-secondary",
   };
 
   return (
     <div
-      className={`p-10 rounded-[32px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-4 shadow-2xs ${className}`.trim()}
+      className={`p-10 rounded-[32px] bg-surface/70 dark:bg-surface/60 backdrop-blur-md border border-border-muted/60 dark:border-border/80 text-center space-y-4 shadow-2xs ${className}`.trim()}
     >
       {icon ? (
         <div
@@ -237,9 +252,9 @@ export function EmptyPanel({
         </div>
       ) : null}
       <div>
-        <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">{title}</h3>
+        <h3 className="font-black text-base text-text-heading font-outfit">{title}</h3>
         {description ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
+          <p className="text-xs text-text-secondary dark:text-text-muted mt-1 max-w-sm mx-auto font-medium">
             {description}
           </p>
         ) : null}

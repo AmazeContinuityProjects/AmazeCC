@@ -416,7 +416,7 @@ export default function MarksPredictorTab({
           meta={
             <Badge
               variant="default"
-              className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-55/20 text-zinc-650 dark:text-zinc-300"
+              className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-50/20 text-zinc-600 dark:text-zinc-300"
             >
               Academic AI Simulator
             </Badge>
@@ -484,8 +484,8 @@ export default function MarksPredictorTab({
               <TargetGradeSolver prediction={activePrediction} />
             </div>
 
-            {/* What-If Scenario Simulator — mirrors SimplifiedAcademicsPage pill: rounded-[22px], tighter padding */}
-            <div className="p-3.5 sm:p-4 rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs space-y-3 overflow-hidden">
+            {/* What-If Scenario Simulator — mirrors SimplifiedAcademicsPage pill: rounded-[24px], tighter padding */}
+            <div className="p-3.5 sm:p-4 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs space-y-3 overflow-hidden">
               <div className="flex flex-col gap-1 min-w-0">
                 <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit truncate">
                   Interactive What-If Marks Simulator

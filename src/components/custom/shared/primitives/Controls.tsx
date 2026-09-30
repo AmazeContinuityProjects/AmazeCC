@@ -35,6 +35,44 @@ export function IconButton({
   );
 }
 
+/**
+ * Icon-only action that navigates. Same surface as `IconButton`, rendered as an
+ * anchor so it keeps link affordances: middle-click, open-in-new-tab, and the
+ * status-bar URL on hover all keep working, which a `button` with an onClick
+ * silently breaks.
+ *
+ * `aria-label` is separate from `title` because the two say different things —
+ * the visible tooltip is "Open in Moodle", the accessible name is "Open <course>
+ * in Moodle" — and the row it sits in has no other text to derive from.
+ */
+export function IconLink({
+  href,
+  title,
+  ariaLabel,
+  children,
+  className = "",
+}: {
+  href: string;
+  title: string;
+  /** Required: an icon-only link inside a list row has no other text to name it. */
+  ariaLabel: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={title}
+      aria-label={ariaLabel}
+      className={`${ICON_BUTTON} ${className}`.trim()}
+    >
+      {children}
+    </a>
+  );
+}
+
 /** Low-emphasis inline action (refresh, try again, add to calendar). */
 export function GhostButton({
   onClick,
@@ -93,7 +131,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className={`${container} p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs${overflow} ${className}`.trim()}
+      className={`${container} p-0.5 bg-surface-tertiary dark:bg-surface-secondary rounded-xl border border-border-muted/60 dark:border-border/60 text-xs${overflow} ${className}`.trim()}
     >
       {options.map((opt) => (
         <button
@@ -168,7 +206,7 @@ export function ChipTabs<T extends string>({
               sizing,
               active
                 ? "bg-indigo-600 text-white shadow-xs"
-                : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                : "bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading"
             )}
           >
             {opt.label}

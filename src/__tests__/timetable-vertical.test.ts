@@ -436,6 +436,63 @@ describe("weekDateForDayId", () => {
   });
 });
 
+describe("a law course, booked without a period number", () => {
+  // TLAW524L is booked "A+TA" where everyone else books "A1+TA1". The cells were
+  // empty, so a law student's whole timetable rendered as free.
+  const law = course({ id: "TLAW524L", code: "TLAW524L", slots: ["A", "TA"] });
+
+  it("fills the cell at the period the schema calls A1", () => {
+    const g = gridFor([law]);
+    const cell = cellAt(g, "mon", 0);
+    expect(cell?.course?.code).toBe("TLAW524L");
+    expect(cell?.kind).toBe("course");
+  });
+
+  it("labels the cell with the slot the course is booked under", () => {
+    // Not "A1": the student's own timetable says "A", and every other surface
+    // that lists the course agrees.
+    expect(cellAt(gridFor([law]), "mon", 0)?.label).toBe("A");
+  });
+
+  it("fills Friday's TA period too", () => {
+    // TA is TA1, which is Friday 9:50 — the second half of the same booking.
+    expect(cellAt(gridFor([law]), "fri", 2)?.course?.code).toBe("TLAW524L");
+  });
+
+  it("hatches when the slot is blocked under either spelling", () => {
+    // A law student blocks "A" because that is what the chip in the detail sheet
+    // offers; the cell's slot is the schema's "A1". Both mean Monday 8:00.
+    for (const blocked of [["A"], ["A1"]]) {
+      const g = buildVerticalGrid({
+        courses: [law],
+        theoryPeriods: THEORY,
+        labPeriods: LAB,
+        days: [{ id: "mon", name: "MON" }],
+        blockedSlots: new Set(blocked),
+      });
+      expect(cellAt(g, "mon", 0)?.blocked).toBe(true);
+    }
+  });
+
+  it("leaves a normal course's label exactly as it was", () => {
+    // The re-spelling must be a no-op when the two ids already agree.
+    const g = gridFor([course({ id: "eth", code: "BCSE101", slots: ["A1"] })]);
+    const cell = cellAt(g, "mon", 0);
+    expect(cell?.label).toBe("A1");
+    expect(cell?.course?.code).toBe("BCSE101");
+  });
+
+  it("leaves the Monday evening free, because law has no evening", () => {
+    // A2 is Monday 2:00 and the law school has no evening timetable, so the
+    // alias must not drag the band in. Found by time rather than by index,
+    // because the schema's lunch spacer sits at band 6 and shifts the evening.
+    const g = gridFor([law]);
+    const evening = g.bands.findIndex((b) => b.start.startsWith("2:00 PM"));
+    expect(evening).toBeGreaterThan(0);
+    expect(cellAt(g, "mon", evening)?.course ?? null).toBeNull();
+  });
+});
+
 describe("describeCell", () => {
   it("names the course, and says so when the slot is blocked or free", () => {
     const g = buildVerticalGrid({

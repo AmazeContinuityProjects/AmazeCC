@@ -1,4 +1,4 @@
-import { request, setAuthProvider } from "./request-layer";
+import { request, setAuthProvider, type AuthCreds } from "./request-layer";
 import { AuthError, backoff } from "./errors";
 import { storage } from "../storage";
 import type { AuthDomain, Ids, VtopCreds } from "./types";
@@ -164,9 +164,7 @@ class CredentialManager {
     return gate;
   }
 
-  async getCreds(
-    domain: AuthDomain,
-  ): Promise<{ cookies?: string[]; authorizedID?: string; csrf?: string; jsessionid?: string } | null> {
+  async getCreds(domain: AuthDomain): Promise<AuthCreds | null> {
     if (domain === "vtop") {
       // A refresh already running means we are somewhere inside `loginVtop`,
       // whose own request body-building calls back into here. Awaiting

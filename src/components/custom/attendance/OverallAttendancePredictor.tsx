@@ -1,9 +1,17 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import PageHeader from "../shared/PageHeader";
 import {
-  CalendarCheck,
+  ChipTabs,
+  EmptyPanel,
+  GhostButton,
+  PageShell,
+  SegmentedControl,
+  StatTile,
+  ToneBadge,
+} from "../shared/primitives";
+import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
+import {
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +29,12 @@ import {
   Plus,
   Zap,
 } from "lucide-react";
+
+/** The four attendance targets the picker offers, and their option values. */
+const THRESHOLD_OPTIONS = [75, 80, 85, 90] as const;
+type TargetThresholdOption = `${(typeof THRESHOLD_OPTIONS)[number]}`;
+
+type FilterType = "all" | "safe" | "risk" | "theory" | "lab";
 
 interface CalendarEvent {
   text: string;
@@ -62,8 +76,7 @@ export default function OverallAttendancePredictor({
   decimalValues = true,
 }: OverallAttendancePredictorProps) {
   // Target threshold state (default from localStorage or bus status)
-  const [targetThreshold, setTargetThreshold] = useState<number>(() => {
-    if (typeof window !== "undefined") {
+  const [targetThreshold, setTargetThreshold] = useState<number>(() => {    if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("settings");
         if (saved) {
@@ -91,7 +104,7 @@ export default function OverallAttendancePredictor({
   const [monthIdx, setMonthIdx] = useState<number>(0);
   // Search and Filter
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType, setFilterType] = useState<FilterType>("all");
 
   const today = useMemo(() => {
     const d = new Date();
@@ -394,218 +407,161 @@ export default function OverallAttendancePredictor({
   }, [impDates]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-5 pb-16 animate-in fade-in duration-200 text-left select-none font-[family-name:var(--font-outfit)]">
-      {/* ── HEADER ── */}
-      <PageHeader
-        icon={<CalendarCheck className="w-5.5 h-5.5 text-blue-600 dark:text-blue-400" />}
-        title="Attendance Predictor & Simulator"
-        meta={
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">
-              Projected: {overallStats.predictedOverallPct}%
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100/85 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
-              Target: {targetThreshold}%
-            </span>
-          </div>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            {/* Target Threshold Picker */}
-            <div className="flex items-center bg-gray-100/90 dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800 rounded-xl p-1 shadow-2xs">
-              {[75, 80, 85, 90].map((th) => (
-                <button
-                  key={th}
-                  onClick={() => {
-                    setTargetThreshold(th);
-                    try {
-                      const saved = localStorage.getItem("settings");
-                      const parsed = saved ? JSON.parse(saved) : {};
-                      parsed.targetAttendance = th;
-                      localStorage.setItem("settings", JSON.stringify(parsed));
-                    } catch {}
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                    targetThreshold === th
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {th}%
-                </button>
-              ))}
-            </div>
-
-            {/* Reset All Button */}
-            <button
-              onClick={handleResetAll}
-              title="Reset all simulated leaves and skips"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100/90 hover:bg-gray-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-gray-200/80 dark:border-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-
-            {/* Back Button if available */}
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition-colors cursor-pointer shadow-sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
-            )}
-          </div>
-        }
-      />
+    <PageShell
+      eyebrow="Attendance · Predictor"
+      title="Attendance Predictor & Simulator"
+      subtitle={`Projected ${overallStats.predictedOverallPct}% · target ${targetThreshold}%`}
+      onBack={onBack}
+      actions={
+        <>
+          {/* Target Threshold Picker */}
+          <SegmentedControl
+            options={THRESHOLD_OPTIONS.map((th) => ({
+              value: String(th) as TargetThresholdOption,
+              label: `${th}%`,
+            }))}
+            value={String(targetThreshold) as TargetThresholdOption}
+            onChange={(next) => {
+              const th = Number(next);
+              setTargetThreshold(th);
+              try {
+                const saved = localStorage.getItem("settings");
+                const parsed = saved ? JSON.parse(saved) : {};
+                parsed.targetAttendance = th;
+                localStorage.setItem("settings", JSON.stringify(parsed));
+              } catch {}
+            }}
+          />
+          <GhostButton onClick={handleResetAll} title="Reset all simulated leaves and skips">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset</span>
+          </GhostButton>
+        </>
+      }
+    >
 
       {/* ── TOP KPI SUMMARY CARDS ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        {/* Card 1: Overall Projected Avg */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-4 shadow-2xs dark:border-gray-800/80 dark:bg-zinc-900/60 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">
-              Projected Avg
-            </span>
-            <Sparkles className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="mt-2">
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl sm:text-3xl font-black ${
-                Number(overallStats.predictedOverallPct) >= targetThreshold
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-rose-600 dark:text-rose-400"
-              }`}>
-                {overallStats.predictedOverallPct}%
+        <StatTile
+          height="h-auto"
+          label="Projected Avg"
+          icon={<Sparkles className="w-4 h-4 text-sky-500" />}
+          tone={
+            Number(overallStats.predictedOverallPct) >= targetThreshold ? "emerald" : "red"
+          }
+          value={
+            <>
+              {overallStats.predictedOverallPct}%
+              <span
+                className={`ml-2 text-xs font-bold align-baseline ${
+                  overallStats.isDeltaPositive ? "text-emerald-500" : "text-rose-500"
+                }`}
+              >
+                {overallStats.isDeltaPositive
+                  ? `+${overallStats.deltaOverall}%`
+                  : `${overallStats.deltaOverall}%`}
               </span>
-              <span className={`text-xs font-bold ${
-                overallStats.isDeltaPositive ? "text-emerald-500" : "text-rose-500"
-              }`}>
-                {overallStats.isDeltaPositive ? `+${overallStats.deltaOverall}%` : `${overallStats.deltaOverall}%`}
+            </>
+          }
+          sub={`Current: ${overallStats.currentOverallPct}%`}
+        />
+        <StatTile
+          height="h-auto"
+          label="Total Safe Leaves"
+          icon={<ShieldCheck className="w-4 h-4 text-emerald-500" />}
+          tone="neutral"
+          value={
+            <>
+              {overallStats.totalSafeBunksAcrossCourses}
+              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
+                classes
               </span>
-            </div>
-            <p className="mt-1 text-[11px] text-gray-500 dark:text-zinc-400 font-medium truncate">
-              Current: {overallStats.currentOverallPct}%
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2: Safe Bunk Buffer */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-4 shadow-2xs dark:border-gray-800/80 dark:bg-zinc-900/60 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">
-              Total Safe Leaves
-            </span>
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="mt-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
-                {overallStats.totalSafeBunksAcrossCourses}
+            </>
+          }
+          sub={`${overallStats.safeCount} of ${overallStats.totalCourses} courses safe`}
+          className="[&_p]:text-emerald-600 dark:[&_p]:text-emerald-400"
+        />
+        <StatTile
+          height="h-auto"
+          label="Courses At Risk"
+          icon={
+            <ShieldAlert
+              className={`w-4 h-4 ${overallStats.atRiskCount > 0 ? "text-red-500" : "text-emerald-500"}`}
+            />
+          }
+          tone={overallStats.atRiskCount > 0 ? "red" : "emerald"}
+          value={
+            <>
+              {overallStats.atRiskCount}
+              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
+                below {targetThreshold}%
               </span>
-              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">classes</span>
-            </div>
-            <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">
-              {overallStats.safeCount} of {overallStats.totalCourses} courses safe
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3: At Risk Courses */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-4 shadow-2xs dark:border-gray-800/80 dark:bg-zinc-900/60 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">
-              Courses At Risk
-            </span>
-            <ShieldAlert className={`w-4 h-4 ${overallStats.atRiskCount > 0 ? "text-rose-500" : "text-emerald-500"}`} />
-          </div>
-          <div className="mt-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-2xl sm:text-3xl font-black ${
-                overallStats.atRiskCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
-              }`}>
-                {overallStats.atRiskCount}
+            </>
+          }
+          sub={overallStats.atRiskCount === 0 ? "All courses compliant" : "Requires attention"}
+        />
+        <StatTile
+          height="h-auto"
+          label="Remaining Days"
+          icon={<Clock className="w-4 h-4 text-indigo-500" />}
+          tone="neutral"
+          value={
+            <>
+              {totalRemainingWorkingDays}
+              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
+                working days
               </span>
-              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">below {targetThreshold}%</span>
-            </div>
-            <p className="mt-1 text-[11px] text-gray-500 dark:text-zinc-400 font-medium truncate">
-              {overallStats.atRiskCount === 0 ? "All courses compliant 🎉" : "Requires attention"}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Remaining Milestone Timeline */}
-        <div className="rounded-2xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-4 shadow-2xs dark:border-gray-800/80 dark:bg-zinc-900/60 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-400 uppercase tracking-wider">
-              Remaining Days
-            </span>
-            <Clock className="w-4 h-4 text-indigo-500" />
-          </div>
-          <div className="mt-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
-                {totalRemainingWorkingDays}
-              </span>
-              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">working days</span>
-            </div>
-            <p className="mt-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold truncate">
-              Mode: {mode === "LID" ? "Till Last Day" : `Till ${mode}`}
-            </p>
-          </div>
-        </div>
+            </>
+          }
+          sub={`Mode: ${mode === "LID" ? "Till Last Day" : `Till ${mode}`}`}
+          className="[&_p]:text-indigo-600 dark:[&_p]:text-indigo-400"
+        />
       </div>
 
       {/* ── MILESTONE SELECTOR STRIP ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50/70 dark:bg-zinc-900/40 p-3 rounded-2xl border border-gray-200/60 dark:border-zinc-800/60">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          {milestoneOptions.map((opt) => (
-            <button
-              key={opt.id}
-              disabled={!opt.available}
-              onClick={() => setMode(opt.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                mode === opt.id
-                  ? "bg-blue-600 text-white shadow-xs scale-[1.02]"
-                  : opt.available
-                    ? "bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800"
-                    : "opacity-40 cursor-not-allowed bg-transparent text-gray-400"
-              }`}
-            >
-              {opt.label}
-              {opt.date && (
-                <span className="ml-1.5 opacity-80 text-[10px] font-normal">
-                  ({opt.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })})
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs
+          options={milestoneOptions.map((opt) => ({
+            value: opt.id,
+            label: (
+              <>
+                {opt.label}
+                {opt.date ? (
+                  <span className="ml-1.5 opacity-80 text-[10px] font-normal">
+                    ({opt.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })})
+                  </span>
+                ) : null}
+              </>
+            ),
+            title: opt.available ? `Simulate up to ${opt.label}` : `${opt.label} (no data)`,
+          }))}
+          value={mode}
+          onChange={(next) => {
+            if (next === mode) return;
+            const opt = milestoneOptions.find((o) => o.id === next);
+            if (opt?.available) setMode(next);
+          }}
+        />
 
         {/* Quick Batch Simulation Actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleAttendAll}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-black transition-colors cursor-pointer"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Attend All</span>
-          </button>
-          <button
-            onClick={handleBunkFridays}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-xs font-black transition-colors cursor-pointer"
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>Bunk Fridays</span>
-          </button>
+          <ToneBadge tone="emerald" size="lg" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+            <button type="button" onClick={handleAttendAll} className="cursor-pointer">
+              Attend All
+            </button>
+          </ToneBadge>
+          <ToneBadge tone="amber" size="lg" icon={<Flame className="w-3.5 h-3.5" />}>
+            <button type="button" onClick={handleBunkFridays} className="cursor-pointer">
+              Bunk Fridays
+            </button>
+          </ToneBadge>
         </div>
       </div>
 
       {/* ── INTERACTIVE CALENDAR SIMULATOR SECTION ── */}
-      <div className="rounded-3xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4">
+      <div className={`${TILE_CARD} p-5 space-y-4`}>
         {/* Calendar Header & Month Switcher */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border-muted dark:border-border">
           <div>
             <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-500" />
@@ -732,40 +688,32 @@ export default function OverallAttendancePredictor({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search courses by code, title, or faculty..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-gray-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+              className={`${SEARCH_FIELD} pl-9 pr-4 text-xs sm:text-sm shadow-2xs focus:ring-2 focus:ring-sky-500`}
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none pb-1 sm:pb-0">
-            {[
-              { id: "all", label: "All" },
-              { id: "safe", label: `Safe (≥${targetThreshold}%)` },
-              { id: "risk", label: `At Risk (<${targetThreshold}%)` },
-              { id: "theory", label: "Theory" },
-              { id: "lab", label: "Lab" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilterType(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-                  filterType === tab.id
-                    ? "bg-blue-600 text-white shadow-xs scale-105"
-                    : "bg-gray-100/90 dark:bg-zinc-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200/70 dark:border-zinc-800"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <ChipTabs
+            options={[
+              { value: "all" as FilterType, label: "All" },
+              { value: "safe", label: `Safe (≥${targetThreshold}%)` },
+              { value: "risk", label: `At Risk (<${targetThreshold}%)` },
+              { value: "theory", label: "Theory" },
+              { value: "lab", label: "Lab" },
+            ]}
+            value={filterType}
+            onChange={setFilterType}
+          />
         </div>
 
         {/* Course Cards Grid */}
         {filteredCourses.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200/60 bg-white/60 dark:border-gray-800/60 dark:bg-zinc-900/40 p-10 text-center space-y-2">
-            <BookOpen className="w-8 h-8 text-gray-300 dark:text-zinc-600 mx-auto" />
-            <p className="text-sm font-bold text-gray-500 dark:text-zinc-400">No courses match your filter</p>
-          </div>
+          <EmptyPanel
+            icon={<BookOpen className="w-7 h-7" />}
+            title="No courses match your filter"
+            description="Try a different filter, or clear the search."
+            variant="dashed"
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredCourses.map((course) => {
@@ -777,7 +725,7 @@ export default function OverallAttendancePredictor({
               return (
                 <div
                   key={course.courseCode}
-                  className="rounded-3xl border border-gray-200/70 bg-white/70 backdrop-blur-xl p-5 shadow-sm dark:border-gray-800/80 dark:bg-zinc-900/60 space-y-4 hover:border-blue-500/30 transition-all flex flex-col justify-between"
+                  className={`${TILE_CARD} p-5 space-y-4 hover:border-sky-500/30 transition-all flex flex-col justify-between`}
                 >
                   {/* Top: Code, Title & Badges */}
                   <div>
@@ -824,7 +772,7 @@ export default function OverallAttendancePredictor({
                   {/* Middle: Attendance Comparison & Progress */}
                   <div className="space-y-3 pt-1">
                     {/* Live Stats Row */}
-                    <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-gray-50/80 dark:bg-zinc-950/60 border border-gray-100 dark:border-zinc-800/80">
+                    <div className={`${TILE_CARD} grid grid-cols-2 gap-3 p-3`}>
                       {/* Current */}
                       <div>
                         <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block">
@@ -881,7 +829,7 @@ export default function OverallAttendancePredictor({
                   </div>
 
                   {/* Bottom: Margin Callout & Single Course Skip Stepper */}
-                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border-muted dark:border-border/80">
                     {/* Bunk / Catchup Intelligence */}
                     <div className="text-xs font-extrabold flex items-center gap-1.5">
                       {isSafe ? (
@@ -937,7 +885,7 @@ export default function OverallAttendancePredictor({
       </div>
 
       {/* ── SMART ATTENDANCE ADVISOR & EXAM LOCK RULES ── */}
-      <div className="rounded-3xl border border-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20 p-5 shadow-sm space-y-3">
+        <div className={`${TILE_CARD} p-5 space-y-3 border-sky-500/20`}>
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-200 font-outfit">
@@ -963,17 +911,17 @@ export default function OverallAttendancePredictor({
               <strong>Target Safety:</strong> Keeping attendance at or above {targetThreshold}% ensures full eligibility for CAT examinations and FAT hall tickets.
             </p>
           </div>
-          <div className="flex items-start gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-            <p>
-              <strong>Real-Time Simulation:</strong> All date toggles and skip steppers simulate your projected percentages instantly without modifying actual portal records.
-            </p>
+            <div className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0" />
+              <p>
+                <strong>Real-Time Simulation:</strong> All date toggles and skip steppers simulate your projected percentages instantly without modifying actual portal records.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+    </PageShell>
   );
-}
+  }
 
 // Helper: Count future scheduled working days for a specific course
 function countFutureClassesForCourse(

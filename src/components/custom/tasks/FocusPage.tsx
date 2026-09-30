@@ -85,7 +85,7 @@ export default function FocusPage({
 
         {/* Selected Task Details Pill */}
         {selectedTask && (
-          <div className="mb-4 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-850/60 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-3">
+          <div className="mb-4 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               {selectedTask.courseCode && (
                 <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 text-zinc-800 dark:text-zinc-200 shrink-0">
@@ -136,7 +136,7 @@ export default function FocusPage({
                 className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all cursor-pointer ${
                   selectedTaskId === task.id
                     ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 text-indigo-900 dark:text-indigo-200"
-                    : "bg-white dark:bg-zinc-800 border-zinc-200/70 dark:border-zinc-750 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
+                    : "bg-white dark:bg-zinc-800 border-zinc-200/70 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300"
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">

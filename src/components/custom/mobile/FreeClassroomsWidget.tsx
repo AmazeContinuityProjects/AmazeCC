@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 
 import type { ParsedCourse } from "../exams/FFCS/types";
+import { slotSpellings } from "@/lib/slots";
 
 
 // Import schemas
@@ -157,7 +158,10 @@ export default function FreeClassroomsWidget() {
 
     const theoryPeriod = schema.theory.find((p: any) => p.start === reqStart && p.end === reqEnd);
     if (theoryPeriod && theoryPeriod.days && theoryPeriod.days[selectedDay]) {
-      targetSlots.add(theoryPeriod.days[selectedDay]);
+      // Law courses are booked "A+TA+TAA", with no period number, so the law
+      // school's morning slots would never match the schema's "A1"/"TA1"/"TAA1"
+      // and every AB5 room would read as free. See `slotSpellings`.
+      slotSpellings(theoryPeriod.days[selectedDay]).forEach((s) => targetSlots.add(s));
     }
 
     const labPeriod = schema.lab.find((p: any) => p.start === reqStart && p.end === reqEnd);
@@ -219,7 +223,7 @@ export default function FreeClassroomsWidget() {
   }, [courses, selectedTime, selectedDay, schema]);
 
   return (
-    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl p-5 shadow-sm mt-6">
+    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] p-5 shadow-sm mt-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-500">

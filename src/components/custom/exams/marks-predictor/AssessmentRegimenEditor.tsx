@@ -119,7 +119,7 @@ export default function AssessmentRegimenEditor({
   };
 
   return (
-    <div className="w-full max-w-full overflow-hidden rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3.5 sm:p-4 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
+    <div className="w-full max-w-full overflow-hidden rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3.5 sm:p-4 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain">
       {/* Header — simple, no overflow */}
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">

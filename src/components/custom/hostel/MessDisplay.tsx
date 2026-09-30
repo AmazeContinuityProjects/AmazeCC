@@ -111,7 +111,7 @@ const getSmartMenuText = (rawText: string, weekNum: number): string => {
 export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: any) {
   if (!hostelData?.hostelInfo?.isHosteller) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500 dark:text-zinc-400 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 rounded-3xl space-y-4 shadow-sm">
+      <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500 dark:text-zinc-400 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 rounded-[24px] space-y-4 shadow-sm">
         <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
           <Utensils size={28} />
         </div>
@@ -306,7 +306,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
         {/* Unified Controls Cluster */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           {/* Gender Segmented Control */}
-          <div className="flex p-1 bg-zinc-100 dark:bg-zinc-850 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+          <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
             {["Male", "Female"].map(g => (
               <button
                 key={g}
@@ -323,7 +323,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           </div>
 
           {/* Mess Type Control */}
-          <div className="flex p-1 bg-zinc-100 dark:bg-zinc-850 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+          <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
             {[
               { id: "Veg", label: "Veg" },
               { id: "Non Veg", label: "Non-Veg" },
@@ -388,7 +388,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           {isMobile ? (
             /* Mobile Tab Switcher & Single Active Meal View */
             <div className="space-y-4">
-              <div className="flex bg-zinc-100 dark:bg-zinc-850 p-1 rounded-xl w-full border border-zinc-200/60 dark:border-zinc-800">
+              <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full border border-zinc-200/60 dark:border-zinc-800">
                 {mealsList.map(meal => {
                   const isActive = activeMealMobile === meal.name;
                   const isCurrentNow = activeDay === today && currentActiveMealName === meal.name;
@@ -424,7 +424,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                   <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                           <MealIcon size={18} className={meal.accentColor} />
                         </div>
                         <div>
@@ -471,7 +471,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                     <div className="space-y-3">
                       <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                             <MealIcon size={16} className={meal.accentColor} />
                           </div>
                           <div>

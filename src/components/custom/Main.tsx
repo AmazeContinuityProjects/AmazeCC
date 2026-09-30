@@ -6,7 +6,7 @@ import {
   allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
   isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
   isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
-  activeAttendanceSubTabAtom, activeToolsSubTabAtom, activeDayscholarSubTabAtom, activeQBankSubTabAtom,
+  activeAttendanceSubTabAtom, activeToolsSubTabAtom, activeDayscholarSubTabAtom,
   activeMoreSubTabAtom, activeProfileSubTabAtom, progressBarAtom,
   moodleDataAtom, vitolDataAtom, demoModeAtom, settingsAtom, showIntroAtom,
   registeredEventsAtom, eventHubEventsAtom, commandPaletteOpenAtom, isShortcutsHelpOpenAtom,
@@ -88,7 +88,6 @@ export default function LoginPage() {
   const [activeAttendanceSubTab, setActiveAttendanceSubTab] = useAtom(activeAttendanceSubTabAtom);
   const [activeToolsSubTab, setActiveToolsSubTab] = useAtom(activeToolsSubTabAtom);
   const [activeDayscholarSubTab, setActiveDayscholarSubTab] = useAtom(activeDayscholarSubTabAtom);
-  const [activeQBankSubTab, setActiveQBankSubTab] = useAtom(activeQBankSubTabAtom);
   const [activeMoreSubTab, setActiveMoreSubTab] = useAtom(activeMoreSubTabAtom);
   const [activeProfileSubTab, setActiveProfileSubTab] = useAtom(activeProfileSubTabAtom);
   const [progressBar, setProgressBar] = useAtom(progressBarAtom);
@@ -1368,9 +1367,8 @@ export default function LoginPage() {
       { id: "ds-transport", label: "Transport Registration", description: "Register for transport services", icon: "🚏", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-bus-routes", label: "Bus Routes", description: "Browse all bus routes, stops & contacts", icon: "🚌", category: "Transport", onSelect: () => setActiveTab("transport") },
       { id: "tr-placements", label: "Vehicle Placements", description: "5 PM & 6 PM vehicle placement info", icon: "🚍", category: "Transport", onSelect: () => setActiveTab("transport") },
-      { id: "qbank-archive", label: "Question Bank Archive", description: "Previous year question papers", icon: "📄", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); setActiveQBankSubTab("archive"); } },
-      { id: "qbank-pure", label: "Pure QBank", description: "Subject-wise question banks", icon: "❓", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); setActiveQBankSubTab("pure"); } },
-      { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
+      { id: "qbank", label: "Question Bank", description: "Previous year papers & extracted questions", icon: "??", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("qbank"); } },
+        { id: "tool-faculty", label: "Search Faculty Directory", description: "Search for faculty contact & information", icon: "👨‍🏫", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("faculty-info"); } },
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
       { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Campus", onSelect: () => { setActiveTab("free-class"); } },
@@ -2285,8 +2283,7 @@ export default function LoginPage() {
 
     return result;
   }, [
-    setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab,
-    setActiveDayscholarSubTab, setActiveMoreSubTab, setActiveQBankSubTab,
+    setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab, setActiveDayscholarSubTab, setActiveMoreSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
     ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme,
     setTasksQuickAddRequest
@@ -2471,8 +2468,6 @@ export default function LoginPage() {
             setActiveToolsSubTab={setActiveToolsSubTab}
             activeDayscholarSubTab={activeDayscholarSubTab}
             setActiveDayscholarSubTab={setActiveDayscholarSubTab}
-            activeQBankSubTab={activeQBankSubTab}
-            setActiveQBankSubTab={setActiveQBankSubTab}
             activeMoreSubTab={activeMoreSubTab}
             setActiveMoreSubTab={setActiveMoreSubTab}
             activeProfileSubTab={activeProfileSubTab}

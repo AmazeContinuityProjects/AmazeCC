@@ -211,7 +211,7 @@ export default function ToolsHub({
       </div>
 
       {filteredTools.length === 0 && (
-        <div className="p-12 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
+        <div className="p-12 rounded-[24px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center space-y-2">
           <Search className="w-8 h-8 text-zinc-400 mx-auto" />
           <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
             No tools found matching &quot;{searchTerm}&quot;

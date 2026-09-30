@@ -90,7 +90,7 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
   const BadgeIcon = badge.icon;
 
   return (
-    <div className="w-full max-w-full overflow-hidden rounded-[22px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 p-3.5 sm:p-4 shadow-2xs space-y-3">
+    <div className="w-full max-w-full overflow-hidden rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 p-3.5 sm:p-4 shadow-2xs space-y-3">
       {/* Header — stacks on mobile, like SimplifiedAcademicsPage pills header */}
       <div className="flex flex-col gap-2 min-w-0">
         <div className="flex items-center gap-2.5 min-w-0">

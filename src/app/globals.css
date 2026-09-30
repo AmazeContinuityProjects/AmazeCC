@@ -7,6 +7,80 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/*
+ * The zinc scale, bound to the semantic tokens.
+ *
+ * Every surface in the app is written in zinc (`bg-white/80 dark:bg-zinc-900/70`,
+ * `text-zinc-900 dark:text-white`, `border-zinc-200/70`). Stock Tailwind zinc is a
+ * fixed palette, so those classes ignore the accent picker: switching palette
+ * recoloured the semantic layer and left the zinc layer grey.
+ *
+ * `inline` makes each utility read the variable at the point of use, so the
+ * `.dark` block and the per-palette overrides Main.tsx writes onto
+ * `documentElement` both take effect.
+ *
+ * The mapping is `--color-zinc-N -> var(--neutral-N)`, i.e. the same chain
+ * amazeui already uses for `gray-*` and `slate-*`. That indirection is the whole
+ * trick, and it must not be collapsed into direct semantic references.
+ *
+ * Each zinc step plays TWO roles, one per mode, and only the neutral chain
+ * satisfies both:
+ *
+ *   text-zinc-900 dark:text-white    light: needs near-black ink
+ *   dark:bg-zinc-900/70              dark:  needs a dark card surface
+ *
+ * The app's convention is `light-step dark:other-step` on the same class family,
+ * so a step has to be dark-appropriate in BOTH modes:
+ *
+ *   --neutral-900 = --text-heading in light  (oklch 0.18, near black)
+ *                 = --surface       in dark   (oklch 0.20, near black)
+ *
+ * Referencing `--text-heading` directly instead gives near-WHITE in dark mode
+ * (oklch 0.985), which painted 238 `dark:bg-zinc-900` cards white-on-black.
+ * Same for 800 (`--surface-secondary` in dark), 200 (`--text-secondary`, a light
+ * hairline, which is correct for a dark-mode border) and 400/500/600/700.
+ */
+@theme inline {
+  --color-zinc-50: var(--neutral-50);
+  --color-zinc-100: var(--neutral-100);
+  --color-zinc-200: var(--neutral-200);
+  --color-zinc-300: var(--neutral-300);
+  --color-zinc-400: var(--neutral-400);
+  --color-zinc-500: var(--neutral-500);
+  --color-zinc-600: var(--neutral-600);
+  --color-zinc-700: var(--neutral-700);
+  --color-zinc-800: var(--neutral-800);
+  --color-zinc-900: var(--neutral-900);
+  --color-zinc-950: var(--neutral-950);
+}
+
+/*
+ * Off-scale zinc steps, aliased to the nearest stock step.
+ *
+ * `zinc-55`, `zinc-150`, `zinc-850` and friends are not stock Tailwind and were
+ * not defined in any theme, so Tailwind emitted no rule for them and they
+ * rendered as nothing — a silent hole, not a near-miss colour. 219 occurrences
+ * across 40 files. Defining them here makes the existing markup paint; the
+ * source-level normalisation is Phase 0 of the UI plan, and until then this is
+ * the safety net. They alias to the stock step below them, never above, so a
+ * border never gets darker than intended.
+ */
+@theme inline {
+  --color-zinc-55: var(--neutral-50);
+  --color-zinc-150: var(--neutral-100);
+  --color-zinc-250: var(--neutral-200);
+  --color-zinc-350: var(--neutral-300);
+  --color-zinc-405: var(--neutral-400);
+  --color-zinc-450: var(--neutral-400);
+  --color-zinc-455: var(--neutral-400);
+  --color-zinc-550: var(--neutral-500);
+  --color-zinc-555: var(--neutral-500);
+  --color-zinc-650: var(--neutral-600);
+  --color-zinc-655: var(--neutral-600);
+  --color-zinc-750: var(--neutral-700);
+  --color-zinc-850: var(--neutral-800);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

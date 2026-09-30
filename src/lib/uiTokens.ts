@@ -1,20 +1,27 @@
 /**
- * Design tokens shared across the app's "zinc" surfaces.
+ * Design tokens shared across the app's surfaces.
  *
- * These mirror the tokens already used by the Curriculum and Payments pages so
- * the whole app shares one visual language: exactly three surface grammars
- * (tile / list shell / list row) and one button + chip style.
+ * Exactly three surface grammars (tile / list shell / list row) and one button
+ * + chip style, so every screen speaks the same visual dialect.
+ *
+ * Colours are semantic tokens, not zinc steps. That is what makes the accent
+ * colour picker reach them: `Main.tsx` repaints `--surface`, `--border-muted`,
+ * `--text-heading` and friends on `documentElement` when the palette changes,
+ * and anything reading a variable follows. Zinc steps now resolve to those same
+ * variables via the `@theme inline` block in `globals.css`, so the ~95 files
+ * still written in zinc also follow — but a token that names the variable is
+ * legible about why it changes colour, and a zinc step is not.
  *
  * Kept free of any feature-specific import so pages (Libraries, OD hours, exam
  * schedule, …) can all speak the same visual dialect.
  */
 
 /**
- * The shared tile surface. Every "card" in the app is this translucent zinc
- * panel; only the padding, layout and sizing utilities on top differ.
+ * The shared tile surface. Every "card" in the app is this translucent panel;
+ * only the padding, layout and sizing utilities on top differ.
  */
 const TILE_SURFACE =
-  "rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs";
+  "rounded-[24px] bg-surface/80 dark:bg-surface/70 backdrop-blur-xl border border-border-muted dark:border-border/80 shadow-xs";
 
 export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between text-left relative overflow-hidden`;
 
@@ -27,6 +34,24 @@ export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between te
  */
 export const TILE_INTERACTIVE = `${TILE} transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`;
 
+/** The interaction affordance, separated so it can pair with any surface. */
+const TILE_AFFORDANCE = "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer";
+
+/**
+ * An interactive surface whose children sit in a ROW.
+ *
+ * `TILE` is a column: it ships `flex flex-col justify-between` so a label, a
+ * value and a footer can be pushed apart. A row-shaped surface — a course pill,
+ * a nav card, a list entry that is itself a button — must not use it. Appending
+ * `flex items-center` to `TILE_INTERACTIVE` does not work, because `flex-col` and
+ * `items-center` are different properties: the result is a column whose items
+ * are centred, which is the bug this token exists to make impossible.
+ *
+ * Built on `TILE_CARD` (no flex at all) with the row direction stated outright,
+ * so there is nothing to override.
+ */
+export const TILE_INTERACTIVE_ROW = `${TILE_SURFACE} p-3.5 sm:p-4 flex flex-row items-center justify-between gap-3 text-left relative overflow-hidden ${TILE_AFFORDANCE}`;
+
 /**
  * Same surface as `TILE`, but children stay in normal document flow.
  *
@@ -38,35 +63,44 @@ export const TILE_CARD = `${TILE_SURFACE} p-4 sm:p-5 overflow-hidden`;
 
 /** The boxed search input, shared by the Libraries catalog and Social people search. */
 export const SEARCH_FIELD =
-  "w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500";
+  "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
 export const LIST_SHELL =
-  "overflow-hidden rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl shadow-xs divide-y divide-zinc-200/60 dark:divide-zinc-800/60";
+  "overflow-hidden rounded-2xl border border-border-muted dark:border-border/80 bg-surface/80 dark:bg-surface/70 backdrop-blur-xl shadow-xs divide-y divide-border-muted/60 dark:divide-border/60";
 
 export const LIST_ROW =
-  "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40";
+  "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover/40";
 
 export const CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60";
+  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted/60 dark:border-border/60";
 
 export const SECTION_CHIP = CHIP;
 
 export const ICON_BUTTON =
-  "p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
+  "p-2.5 rounded-xl bg-surface-tertiary hover:bg-border-muted/80 dark:bg-surface dark:hover:bg-surface-hover border border-border-muted/80 dark:border-border text-text-primary dark:text-text-primary transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
 
 /**
  * Active/inactive segmented-control segments.
  *
  * `SEG_ACTIVE` deliberately carries no text colour: the accent colour is the
  * caller's choice, and baking it in would leave two competing `text-*` classes
- * for the cascade to arbitrate. (The dark surface is `zinc-900`, which is what
+ * for the cascade to arbitrate. (The dark surface is `--surface`, which is what
  * all nine segmented controls in the app already use.)
  */
-export const SEG_ACTIVE = "bg-white dark:bg-zinc-900 shadow-2xs font-extrabold";
+export const SEG_ACTIVE = "bg-white dark:bg-surface shadow-2xs font-extrabold";
 export const SEG_IDLE =
-  "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200";
+  "text-text-secondary dark:text-text-muted hover:text-text-heading dark:hover:text-text-heading";
 
-/** Pill tone recipes: `bg-<c>-500/10 border-<c>-500/20 text-<c>-600 dark:text-<c>-400` */
+/**
+ * Pill tone recipes: `bg-<c>-500/10 border-<c>-500/20 text-<c>-600 dark:text-<c>-400`
+ *
+ * The semantic hues (`red`, `amber`, `emerald`, `violet`, `cyan`) stay fixed on
+ * purpose: a "3 absences" badge has to read as red whatever the accent is, and
+ * letting the picker repaint it would destroy the meaning. The accent family
+ * (`indigo`, `sky`, `blue`) is remapped to `--theme-accent` by the block at the
+ * top of `globals.css`, so those follow the picker. `zinc` is neutral and reads
+ * the surface tokens.
+ */
 export const TONE_BADGE: Record<string, string> = {
   red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
   amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
@@ -77,7 +111,8 @@ export const TONE_BADGE: Record<string, string> = {
   sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
   violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
   cyan: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
-  zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
+  zinc:
+    "bg-surface-secondary text-text-secondary dark:text-text-muted border-border-muted",
 };
 
 export const TONE_TEXT: Record<string, string> = {
@@ -89,7 +124,7 @@ export const TONE_TEXT: Record<string, string> = {
   sky: "text-sky-600 dark:text-sky-400",
   violet: "text-violet-600 dark:text-violet-400",
   cyan: "text-cyan-600 dark:text-cyan-400",
-  zinc: "text-zinc-500 dark:text-zinc-400",
+  zinc: "text-text-secondary dark:text-text-muted",
 };
 
 export const TONE_ICON_TILE: Record<string, string> = {
@@ -102,11 +137,11 @@ export const TONE_ICON_TILE: Record<string, string> = {
 };
 
 export const EMPTY_STATE =
-  "p-8 rounded-[28px] border border-dashed border-zinc-300 dark:border-zinc-800 text-center";
+  "p-8 rounded-[28px] border border-dashed border-border-strong dark:border-border text-center";
 
 export const FIELD_INPUT =
-  "w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 placeholder:font-medium focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500";
+  "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
 /** Small ghost action used for secondary row/page actions (Libraries, dues). */
 export const GHOST_BUTTON =
-  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer shrink-0";
+  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer shrink-0";

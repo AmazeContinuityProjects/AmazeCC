@@ -32,13 +32,13 @@
 
 import type { ReactNode } from "react";
 import {
-  TimetableGrid as AmazeUITimetableGrid,
   cn,
   type AddedCourse,
   type GapDetail,
   type TimetablePeriod,
 } from "@amazecontinuityprojects/amazeui";
 import { SegmentedControl } from "../shared/primitives";
+import HorizontalTimetableGrid from "./HorizontalTimetableGrid";
 import VerticalTimetableGrid from "./VerticalTimetableGrid";
 import {
   useTimetableViewMode,
@@ -202,7 +202,7 @@ export default function TimetableView({
             </div>
           )}
           <div className={cn("overflow-x-auto", horizontalClassName)}>
-            <AmazeUITimetableGrid
+            <HorizontalTimetableGrid
               courses={courses}
               theoryPeriods={theoryPeriods}
               labPeriods={labPeriods}

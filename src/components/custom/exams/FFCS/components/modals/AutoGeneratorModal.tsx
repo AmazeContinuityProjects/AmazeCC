@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from '../../types';
 import { getBatchColorClass } from '@/lib/utils';
-import { generateTimetablesAsync } from '../../logic/generator';
+import { sortTimetables, timetableMetrics, formatHours } from '@/lib/timetableMetrics';
+import { periodsForSlot } from '@/lib/slots';
+import { generateTimetablesAsync, type GeneratorErrorCode } from '../../logic/generator';
 import SearchInput from "../../../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
 import { COLORS, DAYS } from '../../constants';
@@ -75,45 +77,13 @@ export function AutoGeneratorModal({
     return hours * 60 + minutes;
   };
 
-  const getPeriodsForSlot = (slot: string) => {
-    const matched: { day: string; startMin: number; endMin: number }[] = [];
-    theoryPeriods.forEach(p => {
-      if (!p.days || !p.start || !p.end) return;
-      Object.entries(p.days).forEach(([day, s]) => {
-        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slot)) {
-          matched.push({ day, startMin: timeToMinutes(p.start), endMin: timeToMinutes(p.end) });
-        }
-      });
-    });
-    labPeriods.forEach(p => {
-      if (!p.days || !p.start || !p.end) return;
-      Object.entries(p.days).forEach(([day, s]) => {
-        const slotsInPeriod = (s as string).split('+').map(x => x.trim().toUpperCase());
-        if (slotsInPeriod.includes(slot)) {
-          matched.push({ day, startMin: timeToMinutes(p.start), endMin: timeToMinutes(p.end) });
-        }
-      });
-    });
-    return matched;
-  };
-
-  const isMorningSlot = (slot: string) => {
-    const periods = getPeriodsForSlot(slot);
-    if (periods.length === 0) return true;
-    return periods.some(p => p.startMin < 840);
-  };
-
-  const isEveningSlot = (slot: string) => {
-    const periods = getPeriodsForSlot(slot);
-    if (periods.length === 0) return false;
-    return periods.some(p => p.startMin >= 840);
-  };
-
-  const parse24HourToMinutes = (timeStr: string) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
+  // The one lookup, shared with the tab. The old local version was a fifth copy
+  // of the same walk over the schema, and `isMorningSlot`, `isEveningSlot` and
+  // `parse24HourToMinutes` were copies of copies of things — all three moved
+  // into `logic/generate.ts` with the solve that needed them, and are no longer
+  // referenced here.
+  const getPeriodsForSlot = (slot: string) =>
+    periodsForSlot({ theory: theoryPeriods, lab: labPeriods }, slot);
 
   const allAvailableSlots = React.useMemo(() => {
     const slots = new Set<string>();
@@ -144,433 +114,75 @@ export function AutoGeneratorModal({
   const uniqueCourseCodes = Array.from(new Set(masterCourses.map(c => c.CODE)));
 
 
+  /**
+   * The four ways the generator can come back empty-handed, in this modal's
+   * own words.
+   *
+   * The solver returns a code and not a message, so the wording stays here with
+   * the UI that owns it. The tab keeps its own copy of these strings; both used
+   * to carry their own copy of the entire solve as well.
+   */
+  const errorFor = (code: GeneratorErrorCode, subjectCode?: string): string => {
+    switch (code) {
+      case "no_courses_selected":
+        return "Please select at least one course.";
+      case "no_valid_slots":
+        return `No valid slots found for ${subjectCode} with current preferences and blocked slots.`;
+      case "no_conflict_free":
+        return "Could not generate any conflict-free timetables from the selected options.";
+      case "below_min_half_days":
+        return `No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`;
+      default:
+        return "An error occurred while generating timetables.";
+    }
+  };
+
   const generateTimetables = async () => {
     setIsGenerating(true);
     setStagedTimetables([]);
     setSelectedStagedIds(new Set());
     setSelectedTimetablesToCompare([]);
-    // Yield to let UI update
-    await new Promise(r => setTimeout(r, 50));
-    
+
     try {
-      const coursesByCode = new Map<string, ParsedCourse[]>();
-      masterCourses.forEach(c => {
-        if (!coursesByCode.has(c.CODE)) coursesByCode.set(c.CODE, []);
-        coursesByCode.get(c.CODE)!.push(c);
+      // Off the main thread where the browser will let us. The spinner above
+      // paints because this thread is no longer the one doing the work.
+      const outcome = await generateTimetablesAsync({
+        schema: getTimetableSchema(),
+        masterCourses,
+        courseLocks,
+        blockedSlots: [...blockedSlots],
+        friends,
+        preference: generatorPreference,
+        syncFriendClasses: generatorSyncFriendsClasses,
+        maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
+        minStartTime: generatorMinStartTime,
+        maxEndTime: generatorMaxEndTime,
+        uniqueFaculties: generatorUniqueFaculties,
+        noLimit: generatorNoLimit,
+        minHalfDays: generatorMinHalfDays,
+        sortBy: generatorSortBy,
       });
 
-      const targetCodes = courseLocks.map(c => c.code);
-      
-      if (targetCodes.length === 0) {
-        setError("Please select at least one course.");
-        setIsGenerating(false);
+      if (outcome.kind === "error") {
+        setError(errorFor(outcome.code, outcome.subjectCode));
         return;
       }
 
-      const optionsPerCourse: ParsedCourse[][] = [];
-      for (const sel of courseLocks) {
-        let options = coursesByCode.get(sel.code) || [];
-        
-        // Handle slot constraints
-        if (sel.allowedSlots && sel.allowedSlots.length > 0) {
-          options = options.filter(opt => {
-            const individualSlots = opt.SLOT.split('+').map(sl => sl.trim());
-            return individualSlots.some(sl => sel.allowedSlots.includes(sl));
-          });
-        }
-        
-        // Handle faculty constraints
-        if (sel.allowedFaculty && sel.allowedFaculty.length > 0) {
-          options = options.filter(opt => sel.allowedFaculty.includes(opt.FACULTY));
-        }
-        
-        // Handle offering constraints (from auto-generator UI)
-        if (sel.offerings && sel.offerings.length > 0) {
-          options = options.filter(opt => sel.offerings!.includes(`${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`));
-        }
-
-        // Ensure embedded courses are properly combined
-        options = options.filter(opt => {
-          const t = opt.TYPE.trim().toUpperCase();
-          const isEmbedded = t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED") || t.includes("+");
-          if (isEmbedded) {
-            const parsedSlots = opt.SLOT.split('+').map(s => s.trim());
-            const hasTheory = parsedSlots.some(s => !s.startsWith('L') && s !== 'NIL');
-            const hasLab = parsedSlots.some(s => s.startsWith('L'));
-            return hasTheory && hasLab;
-          }
-          return true;
-        });
-        if (generatorPreference === 'morning') {
-          options = options.filter(opt => {
-            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L') && s !== 'NIL');
-            if (theorySlots.length > 0) return isMorningSlot(theorySlots[0]);
-            return opt.SLOT.split('+').map(s => s.trim()).filter(s => s !== 'NIL').some(s => isEveningSlot(s));
-          });
-        } else if (generatorPreference === 'evening') {
-          options = options.filter(opt => {
-            const theorySlots = opt.SLOT.split('+').map(s => s.trim()).filter(s => !s.startsWith('L') && s !== 'NIL');
-            if (theorySlots.length > 0) return isEveningSlot(theorySlots[0]);
-            return opt.SLOT.split('+').map(s => s.trim()).filter(s => s !== 'NIL').some(s => isMorningSlot(s));
-          });
-        }
-
-        options = options.filter(opt => {
-          const slots = opt.SLOT.split('+').map(s => s.trim());
-          return !slots.some(s => blockedSlots.has(s));
-        });
-
-        // Time Bounds Filtering
-        if (generatorMinStartTime || generatorMaxEndTime) {
-          const minAllowedMins = generatorMinStartTime ? parse24HourToMinutes(generatorMinStartTime) : 0;
-          const maxAllowedMins = generatorMaxEndTime ? parse24HourToMinutes(generatorMaxEndTime) : 24 * 60;
-          
-          options = options.filter(opt => {
-            const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
-            return slots.every(slot => {
-              const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
-              const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
-              
-              const tPeriod = theoryPeriods.find(p => Object.values(p.days || {}).includes(slot));
-              const lPeriod = labPeriods.find(p => Object.values(p.days || {}).includes(slot));
-              const p = tPeriod || lPeriod;
-              
-              if (!p || !p.start || !p.end) return true; // ignore slots without specific times
-              
-              const startMins = timeToMinutes(p.start);
-              const endMins = timeToMinutes(p.end);
-              return startMins >= minAllowedMins && endMins <= maxAllowedMins;
-            });
-          });
-        }
-
-        // Sync with friends
-        if (generatorSyncFriendsClasses) {
-          const validFriendCourses = friends.flatMap(f => (f.timetables || []).flatMap(t => t.courses)).filter(c => c.code === sel.code);
-          if (validFriendCourses.length > 0) {
-            options = options.filter(opt => {
-              const optSlots = opt.SLOT.split('+').map(s => s.trim().toUpperCase()).sort().join(',');
-              return validFriendCourses.some(fc => {
-                const fSlots = [...fc.slots].sort().join(',');
-                return opt.FACULTY === fc.faculty && optSlots === fSlots;
-              });
-            });
-          }
-        }
-
-        if (options.length === 0) {
-          setError(`No valid slots found for ${sel.code} with current preferences and blocked slots.`);
-          setIsGenerating(false);
-          return;
-        }
-        optionsPerCourse.push(options);
-      }
-
-      const results: ParsedCourse[][] = [];
-      const MAX_RESULTS = generatorNoLimit ? 999999 : 50;
-
-      const usedFacultiesPerCourse = new Map<string, Set<string>>();
-      targetCodes.forEach(code => usedFacultiesPerCourse.set(code, new Set()));
-
-      type ParsedCourseWithPeriods = ParsedCourse & { periods: {day: string, startMin: number, endMin: number}[] };
-      const optionsPerCourseWithPeriods: ParsedCourseWithPeriods[][] = optionsPerCourse.map(options => 
-        options.map(opt => {
-          const slots = opt.SLOT.split('+').map(s => s.trim().toUpperCase());
-          return { ...opt, periods: slots.flatMap(getPeriodsForSlot) };
-        })
+      const timetables = outcome.timetables;
+      setStagedTimetables(timetables);
+      const variantCount = timetables.reduce(
+        (n, t) => n + (t.variants?.length ?? 1),
+        0
       );
-
-      const backtrack = (courseIndex: number, currentCombo: ParsedCourse[], currentPeriods: {day: string, startMin: number, endMin: number}[]) => {
-        if (results.length >= MAX_RESULTS) return;
-        if (courseIndex === targetCodes.length) {
-          results.push([...currentCombo]);
-          return;
-        }
-
-        const options = optionsPerCourseWithPeriods[courseIndex];
-        for (const opt of options) {
-
-          let hasConflict = false;
-          for (const np of opt.periods) {
-            for (const ep of currentPeriods) {
-              if (np.day === ep.day && Math.max(np.startMin, ep.startMin) < Math.min(np.endMin, ep.endMin)) {
-                hasConflict = true;
-                break;
-              }
-            }
-            if (hasConflict) break;
-          }
-
-          if (!hasConflict) {
-            currentCombo.push(opt);
-            backtrack(courseIndex + 1, currentCombo, currentPeriods.concat(opt.periods));
-            currentCombo.pop();
-          }
-        }
-      };
-
-      backtrack(0, [], []);
-
-      if (results.length === 0) {
-        setError("Could not generate any conflict-free timetables from the selected options.");
-      } else {
-        const newTts = results.map((combo, idx) => {
-          const tId = Math.random().toString(36).substr(2, 9);
-          const mappedCourses: AddedCourse[] = combo.map((c, i) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            code: c.CODE,
-            title: c.TITLE,
-            faculty: c.FACULTY,
-            venue: c.ROOM,
-            slots: c.SLOT.split('+').map(s => s.trim().toUpperCase()),
-            credits: c.CREDITS,
-            type: c.TYPE,
-            color: COLORS[i % COLORS.length],
-            batch: c.BATCH
-          }));
-          
-          let freeHalfDays = 0;
-          let totalGapMinutes = 0;
-          let isFridayFree = true;
-          let isMondayFree = true;
-          let buildingDashes = 0;
-          const gapsPerDay: Record<string, number> = {};
-          const dashDetails: { fromClass: string; toClass: string; fromTime: string; toTime: string; day: string; fromBlock: string; toBlock: string }[] = [];
-          const gapDetails: { day: string; startMin: number; endMin: number; durationMins: number; fromClass?: string; toClass?: string; fromTime?: string; toTime?: string }[] = [];
-
-          const mySlots = new Set(mappedCourses.flatMap(c => c.slots));
-
-          DAYS.forEach(day => {
-            let morningOccupied = false;
-            let eveningOccupied = false;
-            
-            type DailyClass = { startMins: number, endMins: number, venue: string, title: string, code: string, startTime: string, endTime: string };
-            const dailyClasses: DailyClass[] = [];
-
-            theoryPeriods.forEach((p, pIdx) => {
-              const tSlot = p.days?.[day.id];
-              const lSlot = labPeriods[pIdx]?.days?.[day.id];
-              const isMorning = timeToMinutes(p.start as string) < timeToMinutes("2:00 PM");
-              
-              let slotOccupied = false;
-              let venue = '';
-              let courseTitle = '';
-              let courseCode = '';
-              
-              if (tSlot && mySlots.has(tSlot)) {
-                slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(tSlot));
-                if (c) {
-                  venue = c.venue;
-                  courseTitle = c.title;
-                  courseCode = c.code;
-                  if (c.type?.toLowerCase().includes('embedded') && venue.includes('/')) {
-                    venue = venue.split('/')[0].trim();
-                  }
-                }
-              } else if (lSlot && mySlots.has(lSlot)) {
-                slotOccupied = true;
-                const c = mappedCourses.find(mc => mc.slots.includes(lSlot));
-                if (c) {
-                  venue = c.venue;
-                  courseTitle = c.title;
-                  courseCode = c.code;
-                  if (c.type?.toLowerCase().includes('embedded') && venue.includes('/')) {
-                    const parts = venue.split('/');
-                    venue = parts.length > 1 ? parts[1].trim() : parts[0].trim();
-                  }
-                }
-              }
-
-              if (slotOccupied) {
-                if (day.id === 'mon') isMondayFree = false;
-                if (day.id === 'fri') isFridayFree = false;
-
-                if (isMorning) morningOccupied = true;
-                else eveningOccupied = true;
-
-                dailyClasses.push({
-                  startMins: timeToMinutes(p.start as string),
-                  endMins: timeToMinutes(p.end as string),
-                  venue,
-                  title: courseTitle,
-                  code: courseCode,
-                  startTime: p.start as string,
-                  endTime: p.end as string
-                });
-              }
-            });
-
-            if (!morningOccupied) freeHalfDays++;
-            if (!eveningOccupied) freeHalfDays++;
-
-            // Sort classes by start time
-            dailyClasses.sort((a, b) => a.startMins - b.startMins);
-
-            let dayGaps = 0;
-            for (let i = 1; i < dailyClasses.length; i++) {
-              const prev = dailyClasses[i - 1];
-              const curr = dailyClasses[i];
-              const gap = curr.startMins - prev.endMins;
-              
-              if (gap > 5) {
-                dayGaps += gap;
-                gapDetails.push({
-                  day: day.id,
-                  startMin: prev.endMins,
-                  endMin: curr.startMins,
-                  durationMins: gap,
-                  fromClass: `${prev.code} (${prev.title})`,
-                  toClass: `${curr.code} (${curr.title})`,
-                  fromTime: prev.endTime,
-                  toTime: curr.startTime
-                });
-              }
-              
-              if (gap >= 0 && gap <= 15) {
-                const getBlock = (v: string) => v.split('-')[0].trim();
-                const prevBlock = getBlock(prev.venue);
-                const currBlock = getBlock(curr.venue);
-                // NIL or unassigned venues shouldn't trigger dashes
-                if (prevBlock && currBlock && prevBlock !== 'NIL' && currBlock !== 'NIL' && prevBlock !== currBlock) {
-                  buildingDashes++;
-                  dashDetails.push({
-                    fromClass: `${prev.code} (${prev.title})`,
-                    toClass: `${curr.code} (${curr.title})`,
-                    fromTime: prev.endTime,
-                    toTime: curr.startTime,
-                    day: day.name,
-                    fromBlock: prevBlock,
-                    toBlock: currBlock
-                  });
-                }
-              }
-            }
-
-            gapsPerDay[day.id] = parseFloat((dayGaps / 60).toFixed(1));
-            totalGapMinutes += dayGaps;
-          });
-
-          const isLongWeekend = isFridayFree || isMondayFree;
-          const halfDaysCount = freeHalfDays;
-          const gapsHours = parseFloat((totalGapMinutes / 60).toFixed(1));
-
-          let socialScore = 0;
-          let bestFriendMatches: string[] = [];
-
-          if (generatorMaximizeFreeTimeFriends.length > 0) {
-            let maxOverlap = -1;
-            let closestFriends: string[] = [];
-
-            generatorMaximizeFreeTimeFriends.forEach(fid => {
-              const f = friends.find(fr => fr.id === fid);
-              if (f && f.timetables && f.timetables.length > 0) {
-                let maxFriendScore = 0;
-                f.timetables.forEach(ft => {
-                  const { percentage } = calculatePairwiseSocialScore(mappedCourses, ft.courses as AddedCourse[]);
-                  if (percentage > maxFriendScore) maxFriendScore = percentage;
-                });
-                socialScore += maxFriendScore;
-
-                if (maxFriendScore > maxOverlap) {
-                  maxOverlap = maxFriendScore;
-                  closestFriends = [f.name];
-                } else if (maxFriendScore === maxOverlap) {
-                  closestFriends.push(f.name);
-                }
-              }
-            });
-            if (generatorMaximizeFreeTimeFriends.length > 0) {
-              socialScore = Math.round(socialScore / generatorMaximizeFreeTimeFriends.length);
-            }
-            bestFriendMatches = closestFriends;
-          }
-
-          if (halfDaysCount < generatorMinHalfDays) return null;
-
-          return { 
-            id: tId, 
-            name: `Generated Option`, 
-            courses: mappedCourses, 
-            metrics: {
-              halfDays: halfDaysCount,
-              gaps: gapsHours,
-              gapsPerDay: gapsPerDay,
-              gapDetails: gapDetails,
-              buildingDashes: buildingDashes,
-              dashDetails: dashDetails,
-              socialScore: socialScore,
-              bestFriendMatches: bestFriendMatches,
-              isLongWeekend: isLongWeekend
-            }
-          };
-        }).filter(Boolean) as TimetableState[];
-
-        if (newTts.length === 0) {
-          setError(`No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`);
-          setIsGenerating(false);
-          return;
-        }
-
-        newTts.sort((a, b) => {
-          const am = a.metrics!;
-          const bm = b.metrics!;
-          if (generatorSortBy === 'social') return bm.socialScore - am.socialScore;
-          if (generatorSortBy === 'halfdays') return bm.halfDays - am.halfDays;
-          if (generatorSortBy === 'compactness') return am.gaps - bm.gaps; // lower gaps is better
-          
-          const aBalanced = (am.halfDays * 10) + ((20 - am.gaps) * 5) + (am.socialScore);
-          const bBalanced = (bm.halfDays * 10) + ((20 - bm.gaps) * 5) + (bm.socialScore);
-          return bBalanced - aBalanced;
-        });
-
-        let filteredTts = newTts;
-
-        if (generatorUniqueFaculties) {
-          const usedFaculties = new Map<string, Set<string>>();
-          targetCodes.forEach(c => usedFaculties.set(c, new Set()));
-          
-          filteredTts = filteredTts.filter(tt => {
-            let isUnique = true;
-            for (const c of tt.courses) {
-              if (usedFaculties.get(c.code)!.has(c.faculty)) {
-                isUnique = false;
-                break;
-              }
-            }
-            if (isUnique) {
-              tt.courses.forEach(c => usedFaculties.get(c.code)!.add(c.faculty));
-              return true;
-            }
-            return false;
-          });
-        }
-
-        // Group by identical physical slot layouts
-        const grouped = new Map<string, TimetableState>();
-        
-        filteredTts.forEach(combo => {
-          const signature = [...combo.courses.flatMap(c => c.slots)].sort().join('|');
-          
-          if (!grouped.has(signature)) {
-            grouped.set(signature, { ...combo, variants: [{ ...combo, name: `Variant 1` }] });
-          } else {
-            const existing = grouped.get(signature)!;
-            existing.variants!.push({ ...combo, name: `Variant ${existing.variants!.length + 1}` });
-          }
-        });
-
-        const groupedTts = Array.from(grouped.values());
-        groupedTts.forEach((t, i) => { t.name = `Option ${i + 1}`; });
-
-        setStagedTimetables(groupedTts);
-        setSuccessMsg(`Found ${groupedTts.length} unique timetables (${newTts.length} total variants). Review them below!`);
-        // We do NOT close generator immediately so they can review.
-      }
-    } catch (e) {
+      setSuccessMsg(
+        `Found ${timetables.length} unique timetables (${variantCount} total variants). Review them below!`
+      );
+      // We do NOT close generator immediately so they can review.
+    } catch {
       setError("An error occurred while generating timetables.");
+    } finally {
+      setIsGenerating(false);
     }
-    setIsGenerating(false);
   };
 
   // File upload and clear master handlers removed as database is preloaded.
@@ -675,13 +287,13 @@ export function AutoGeneratorModal({
                     className="bg-background rounded-2xl border border-border p-4 flex flex-col justify-center items-center text-center shadow-sm relative group cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => setSelectedGapDetails(generatorPreviewTimetable.metrics?.gapDetails || null)}
                   >
-                    <span className="text-2xl font-black text-foreground">{generatorPreviewTimetable.metrics?.gaps}h</span>
+                    <span className="text-2xl font-black text-foreground">{formatHours(generatorPreviewTimetable.metrics?.gaps ?? 0)}h</span>
                     <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
                       {Object.entries(generatorPreviewTimetable.metrics?.gapsPerDay || {}).map(([day, gap]) => (
                         <div key={day} className="flex justify-between gap-3">
                           <span className="font-bold text-slate-400 uppercase">{day}</span>
-                          <span>{gap}h</span>
+                          <span>{formatHours(gap)}h</span>
                         </div>
                       ))}
                     </div>
@@ -941,7 +553,7 @@ export function AutoGeneratorModal({
                             <h3 className="font-bold text-lg text-foreground">{tt.name}</h3>
                             <div className="flex gap-2">
                               <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.halfDays} Half Days</span>
-                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{tt.metrics?.gaps}h Gaps</span>
+                              <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-md border border-border">{formatHours(tt.metrics?.gaps ?? 0)}h Gaps</span>
                             </div>
                           </div>
                           <div className="p-4 overflow-x-auto custom-scrollbar">
@@ -1054,13 +666,13 @@ export function AutoGeneratorModal({
                             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
                           </div>
                           <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
-                            <span className="text-2xl font-black text-foreground">{tt.metrics?.gaps}h</span>
+                            <span className="text-2xl font-black text-foreground">{formatHours(tt.metrics?.gaps ?? 0)}h</span>
                             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
                               {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
                                 <div key={day} className="flex justify-between gap-3">
                                   <span className="font-bold text-slate-400 uppercase">{day}</span>
-                                  <span>{gap}h</span>
+                                  <span>{formatHours(gap)}h</span>
                                 </div>
                               ))}
                             </div>

@@ -445,7 +445,7 @@ export default function MobileHome({
             <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.CGPAHidden || settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
               {marksData?.cgpa?.cgpa ? Number(marksData.cgpa.cgpa).toFixed(2) : "—"}
             </p>
-            <span className="text-[8px] text-zinc-400 dark:text-zinc-550 font-bold leading-none">VTOP Verified</span>
+            <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">VTOP Verified</span>
           </button>
         ) : null}
 
@@ -456,7 +456,7 @@ export default function MobileHome({
           <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
             {marksData?.cgpa?.creditsEarned ? Number(marksData.cgpa.creditsEarned) : "—"}
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none">Total Degree</span>
+          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none">Total Degree</span>
         </div>
 
         {/* OD Hours Card */}
@@ -474,7 +474,7 @@ export default function MobileHome({
               ? ODhoursData.reduce((sum: number, day: any) => sum + day.total, 0)
               : 0)} hrs
           </p>
-          <span className="text-[8px] text-zinc-400 dark:text-zinc-555 font-bold leading-none font-outfit">On-Duty History</span>
+          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 font-bold leading-none font-outfit">On-Duty History</span>
         </button>
       </div>
     );
@@ -623,7 +623,7 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
             <CalendarCheck className="w-4 h-4 text-emerald-500" />
             <span>Course Attendance</span>
           </h2>
@@ -653,7 +653,7 @@ export default function MobileHome({
                       </span>
                     )}
                   </div>
-                  <p className="text-[9.5px] text-zinc-405 dark:text-zinc-500 font-bold mt-0.5 truncate">
+                  <p className="text-[9.5px] text-zinc-400 dark:text-zinc-500 font-bold mt-0.5 truncate">
                     {c.courseCode}
                   </p>
                 </div>
@@ -674,7 +674,7 @@ export default function MobileHome({
                             <span className={`font-black text-xs ${color}`}>{pct.toFixed(0)}%</span>
                           </div>
                         </div>
-                        <div className="w-full bg-zinc-150 dark:bg-zinc-850 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
                           <div className={`h-full ${bgProgress} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
                         </div>
                       </div>
@@ -703,7 +703,7 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
             <GraduationCap className="w-4 h-4 text-violet-500" />
             <span>Academic Courses</span>
           </h2>
@@ -729,7 +729,7 @@ export default function MobileHome({
               
               <div className="flex items-center justify-between mt-3">
                 <span className="text-[9.5px] font-black text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20 px-2 py-0.5 rounded-md">Credits: {c.credits || "4"}</span>
-                <span className="text-[9.5px] font-bold text-zinc-455 dark:text-zinc-555">{c.slotName || "N/A"}</span>
+                <span className="text-[9.5px] font-bold text-zinc-400 dark:text-zinc-500">{c.slotName || "N/A"}</span>
               </div>
             </div>
           ))}
@@ -772,18 +772,18 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
             <Clock className="w-4 h-4" />
             <span>Today's Classes</span>
           </h2>
-          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-555">{todayClasses.length} Scheduled</span>
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} Scheduled</span>
         </div>
 
         {todayClasses.length === 0 ? (
           <div className="p-6 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-center">
-            <Coffee className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-650 mb-2 animate-pulse" />
+            <Coffee className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2 animate-pulse" />
             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No classes today!</p>
-            <p className="text-[10px] text-zinc-400 dark:text-zinc-550 mt-0.5 font-semibold">Enjoy your free time.</p>
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-semibold">Enjoy your free time.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -831,8 +831,8 @@ export default function MobileHome({
             ) : null}
 
             <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 p-4 text-left">
-              <div className="pb-3 border-b border-zinc-250/30 dark:border-zinc-800/50 flex items-center justify-between mb-3.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-555 font-outfit">Full Schedule</span>
+              <div className="pb-3 border-b border-zinc-200/30 dark:border-zinc-800/50 flex items-center justify-between mb-3.5">
+                <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">Full Schedule</span>
                 <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} sessions</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -843,7 +843,7 @@ export default function MobileHome({
                     <button
                       key={`${cls.courseCode}-${cls.slotName}-${cls.time}`}
                       onClick={() => { setActiveTab("attendance"); }}
-                      className="px-4 py-3 flex items-center gap-3 text-left rounded-[20px] bg-zinc-50/20 dark:bg-zinc-950/10 border border-zinc-250/30 dark:border-zinc-850 hover:bg-zinc-100/50 dark:hover:bg-zinc-850 transition-colors cursor-pointer"
+                      className="px-4 py-3 flex items-center gap-3 text-left rounded-[20px] bg-zinc-50/20 dark:bg-zinc-950/10 border border-zinc-200/30 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
                       <div className={`w-1 h-8 rounded-full shrink-0 ${
                         isCurrent ? "bg-emerald-500 animate-pulse" : isNext ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-800"
@@ -854,13 +854,13 @@ export default function MobileHome({
                           {isCurrent && <span className="shrink-0 text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/20 px-1 rounded">Now</span>}
                           {isNext && <span className="shrink-0 text-[8px] font-black uppercase text-indigo-650 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-950/20 px-1 rounded">Next</span>}
                         </div>
-                        <p className="mt-0.5 text-[9px] font-bold text-zinc-450 dark:text-zinc-500 truncate">
+                        <p className="mt-0.5 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 truncate">
                           {cls.courseCode} • Slot {cls.slotName}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300">{cls.time}</p>
-                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-555">{cls.slotVenue || "N/A"}</p>
+                        <p className="mt-0.5 max-w-24 truncate text-[9px] font-semibold text-zinc-400 dark:text-zinc-500">{cls.slotVenue || "N/A"}</p>
                       </div>
                     </button>
                   );
@@ -876,7 +876,7 @@ export default function MobileHome({
   const renderQuickActions = () => {
     return (
       <div className="space-y-3">
-        <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider px-1 text-left">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1 text-left">
           Quick Actions
         </h2>
         <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
@@ -952,7 +952,7 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
             <Shirt className="w-4 h-4 text-sky-500" />
             <span>Laundry Status</span>
           </h2>
@@ -1023,7 +1023,7 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
             <Coffee className="w-4 h-4 text-amber-500" />
             <span>Mess Menu • {currentMealType}</span>
           </h2>
@@ -1038,7 +1038,7 @@ export default function MobileHome({
           onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }}
           className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
         >
-          <p className="text-sm text-zinc-850 dark:text-zinc-200 leading-relaxed font-semibold">
+          <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">
             {todayMeal}
           </p>
         </div>
@@ -1050,7 +1050,7 @@ export default function MobileHome({
     if (upcomingDeadlines.length === 0) return null;
     return (
       <div className="space-y-3">
-        <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-500 uppercase tracking-wider px-1 text-left font-outfit font-black">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1 text-left font-outfit font-black">
           Upcoming Deadlines
         </h2>
         <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
@@ -1075,12 +1075,12 @@ export default function MobileHome({
                 className="p-3.5 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 flex justify-between items-center text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
               >
                 <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs font-bold text-zinc-850 dark:text-zinc-200 truncate">{task.title}</p>
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{task.title}</p>
                   <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5 truncate">{task.courseName || "General Assignment"}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <span className="text-[8px] font-black text-red-505 uppercase bg-red-100/50 dark:bg-red-950/20 px-1 py-0.5 rounded">Due</span>
-                  <p className="text-[10px] text-zinc-550 dark:text-zinc-400 font-bold mt-1">{dueStr}</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold mt-1">{dueStr}</p>
                 </div>
               </div>
             );
@@ -1098,7 +1098,7 @@ export default function MobileHome({
     if (!registeredEvents || registeredEvents.length === 0) return null;
     return (
       <div className="space-y-3">
-        <h2 className="text-xs font-bold text-zinc-450 dark:text-zinc-555 uppercase tracking-wider px-1 text-left font-outfit font-black">
+        <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1 text-left font-outfit font-black">
           Registered Events
         </h2>
         <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible" data-prevent-swipe="true">
@@ -1108,13 +1108,13 @@ export default function MobileHome({
               onClick={() => { setActiveTab("events"); }}
               className="min-w-[75vw] snap-center p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/95 dark:hover:bg-zinc-900/85 cursor-pointer md:min-w-0"
             >
-              <h4 className="font-bold text-sm text-zinc-850 dark:text-white truncate text-left">{ev.name}</h4>
-              <p className="text-[10px] text-zinc-500 dark:text-zinc-450 mt-1.5 flex items-center gap-1.5 text-left font-medium">
+              <h4 className="font-bold text-sm text-zinc-800 dark:text-white truncate text-left">{ev.name}</h4>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1.5 flex items-center gap-1.5 text-left font-medium">
                 <Calendar className="w-3.5 h-3.5 text-zinc-400" />
                 <span>{ev.date} • {ev.time}</span>
               </p>
-              <div className="flex items-center justify-between text-[10px] font-bold mt-3.5 pt-3.5 border-t border-zinc-150/50 dark:border-zinc-800/50 gap-2 min-w-0">
-                <span className="text-zinc-550 dark:text-zinc-455 truncate flex-1 text-left">{ev.venue}</span>
+              <div className="flex items-center justify-between text-[10px] font-bold mt-3.5 pt-3.5 border-t border-zinc-100/50 dark:border-zinc-800/50 gap-2 min-w-0">
+                <span className="text-zinc-500 dark:text-zinc-400 truncate flex-1 text-left">{ev.venue}</span>
                 <span className="text-indigo-650 dark:text-indigo-400 shrink-0 uppercase tracking-wider text-[9px] font-extrabold">{ev.paymentStatus}</span>
               </div>
             </div>
@@ -1128,8 +1128,8 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
-            <Sliders className="w-4 h-4 text-zinc-550" />
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+            <Sliders className="w-4 h-4 text-zinc-500" />
             <span>Quick Settings Toggles</span>
           </h2>
           <button 
@@ -1145,7 +1145,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-0">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Hide CGPA Everywhere</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur CGPA display on dashboard & header</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Blur CGPA display on dashboard & header</p>
             </div>
             <Switch
               checked={settings?.CGPAHidden ?? false}
@@ -1163,7 +1163,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Grades Anonymizer Mode</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Blur course marks & letter grades</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Blur course marks & letter grades</p>
             </div>
             <Switch
               checked={settings?.blurGrades ?? false}
@@ -1181,7 +1181,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Show Profile Photo</p>
-              <p className="text-[10px] text-zinc-455 dark:text-zinc-500">Display your avatar in dashboard greeting</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Display your avatar in dashboard greeting</p>
             </div>
             <Switch
               checked={settings?.showProfilePhoto ?? true}
@@ -1199,7 +1199,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Home Page Search Bar</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Display Spotlight search bar on home tab</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Display Spotlight search bar on home tab</p>
             </div>
             <Switch
               checked={!(settings?.hideHomeSearchBar ?? false)}
@@ -1217,7 +1217,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Decimal Attendance Values</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show 2 decimal places (e.g. 84.62%)</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Show 2 decimal places (e.g. 84.62%)</p>
             </div>
             <Switch
               checked={settings?.decimalValues ?? false}
@@ -1235,7 +1235,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Dayscholar Bus Mode</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Show bus route & boarding point widgets</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Show bus route & boarding point widgets</p>
             </div>
             <Switch
               checked={settings?.isDayscholarWithBus ?? false}
@@ -1253,7 +1253,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Reload All API Categories</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550">Refresh button syncs all categories</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Refresh button syncs all categories</p>
             </div>
             <Switch
               checked={settings?.reloadAllData ?? false}
@@ -1271,7 +1271,7 @@ export default function MobileHome({
           <div className="flex items-center justify-between text-xs pt-3">
             <div>
               <p className="font-bold text-zinc-800 dark:text-zinc-200">Smart Mess Menu Filter</p>
-              <p className="text-[10px] text-zinc-450 dark:text-zinc-550 font-medium">Auto-filter mess menu items for current week</p>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Auto-filter mess menu items for current week</p>
             </div>
             <Switch
               checked={settings?.smartMessFilter ?? false}
@@ -1319,7 +1319,7 @@ export default function MobileHome({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-bold text-zinc-455 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
+          <h2 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5 font-outfit font-black">
             <Calendar className="w-4 h-4 text-blue-500" />
             <span>Exam Schedule</span>
           </h2>
@@ -1438,7 +1438,7 @@ export default function MobileHome({
                         </span>
                         <p className="text-xs font-bold text-zinc-900 dark:text-white truncate font-outfit">{exam.courseCode}</p>
                       </div>
-                      <p className="text-[10px] text-zinc-450 dark:text-zinc-500 font-semibold truncate mt-0.5">{exam.courseTitle}</p>
+                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold truncate mt-0.5">{exam.courseTitle}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{exam.examDate}</span>
@@ -1572,7 +1572,7 @@ export default function MobileHome({
             className="overflow-hidden mb-6"
           >
             <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-4 sm:p-5 shadow-xl backdrop-blur-xl space-y-4 text-left">
-              <div className="flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 pb-3">
+              <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                 <div>
                   <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit flex items-center gap-2">
                     <Sliders className="w-4 h-4 text-indigo-500" />
@@ -1608,7 +1608,7 @@ export default function MobileHome({
                       className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all cursor-grab active:cursor-grabbing select-none ${
                         w.enabled
                           ? "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-850/60 text-zinc-800 dark:text-zinc-200"
-                          : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-850/50 text-zinc-400 dark:text-zinc-600"
+                          : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-800/50 text-zinc-400 dark:text-zinc-600"
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1 pr-2 text-left">
@@ -1663,7 +1663,7 @@ export default function MobileHome({
               </Reorder.Group>
 
               {/* Home Search Bar Toggle */}
-              <div className="pt-2 border-t border-zinc-150 dark:border-zinc-800">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
                 <button
                   onClick={() => {
                     const nextVal = !settings?.hideHomeSearchBar;

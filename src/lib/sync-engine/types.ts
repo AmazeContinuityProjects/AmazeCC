@@ -7,7 +7,23 @@ export interface Ids {
 }
 
 export interface VtopCreds {
-  cookies: string[];
+  /**
+   * The VTOP session cookie jar, ready to send as a `Cookie:` header.
+   *
+   * `string[]` is what this has always been *typed* as and never been: both
+   * backends join the jar before returning it — `AmazeCC-API/src/app/api/login`
+   * does `[...cookies, ...loginCookies].join("; ")`, and UniCC's `/api/login`
+   * does the same. So a `string` is the real value, and this union exists to say
+   * that plainly rather than to keep a type that has been lying since it was
+   * written.
+   *
+   * Nothing in the client reads it as an array: it is forwarded as JSON to the
+   * AmazeCC API, whose routes already accept both shapes
+   * (`Array.isArray(cookies) ? cookies.join("; ") : cookies`). A `string` — what
+   * UniCC returns — is therefore handled correctly by the existing backend with no
+   * change to it.
+   */
+  cookies: string | string[];
   authorizedID: string;
   csrf: string;
   /**

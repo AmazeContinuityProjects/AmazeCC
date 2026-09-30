@@ -18,7 +18,7 @@ export default function NotFoundPage() {
   return (
     <main className="min-h-screen w-full bg-slate-50 px-4 text-foreground transition-colors duration-300 dark:bg-[#03060F] flex items-center justify-center py-10">
       <div className="w-full max-w-xl animate-in fade-in duration-300">
-        <Card className="w-full border-slate-200 bg-white/70 backdrop-blur-md shadow-2xl dark:border-neutral-900 dark:bg-neutral-950/40 rounded-3xl overflow-hidden relative text-center">
+        <Card className="w-full border-slate-200 bg-white/70 backdrop-blur-md shadow-2xl dark:border-neutral-900 dark:bg-neutral-950/40 rounded-[24px] overflow-hidden relative text-center">
           {/* Subtle background gradient glow */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full pointer-events-none -z-10" />
 

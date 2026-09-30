@@ -75,7 +75,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       onClick={handleToggle}
       className={`relative inline-flex items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer select-none group focus:outline-none ${
         isDark 
-          ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-850 hover:border-amber-400/40" 
+          ? "bg-zinc-900/90 border-zinc-800 text-amber-300 shadow-md hover:bg-zinc-800 hover:border-amber-400/40" 
           : "bg-white border-zinc-200 text-indigo-600 shadow-sm hover:bg-zinc-50 hover:border-indigo-300"
       } ${className}`}
       title={`Switch to ${isDark ? "Light" : "Dark"} mode`}

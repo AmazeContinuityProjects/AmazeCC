@@ -111,10 +111,10 @@ export default function TaskWeekView({
                       <div
                         key={`${task.id}-${idx}`}
                         onClick={() => onEdit(task)}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] bg-white dark:bg-zinc-850 shadow-2xs ${
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] bg-white dark:bg-zinc-800 shadow-2xs ${
                           hasConflict
                             ? "border-amber-500/50 ring-1 ring-amber-500/20"
-                            : "border-zinc-200/80 dark:border-zinc-750"
+                            : "border-zinc-200/80 dark:border-zinc-700"
                         }`}
                       >
                         <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">

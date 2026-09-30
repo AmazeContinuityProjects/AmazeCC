@@ -103,7 +103,7 @@ export default function CabShareTab() {
               </div>
             </div>
 
-            <aside className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black lg:sticky lg:top-4">
+            <aside className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black lg:sticky lg:top-4">
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Quick actions</p>
