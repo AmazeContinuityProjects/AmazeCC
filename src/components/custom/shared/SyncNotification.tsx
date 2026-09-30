@@ -1,9 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import BottomSheet from "./BottomSheet";
 import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasBackupApi } from "@/lib/fetch-utils";
+import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
+import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
 import { 
   Loader2, 
@@ -98,18 +100,43 @@ export default function SyncNotification({
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
-  const [currentActiveApi, setCurrentActiveApi] = useState(getActiveApiUrl());
   const [copied, setCopied] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
 
+  // Live target + traffic, read straight from the request layer so the sheet can
+  // never claim one server while the app is using another.
+  const uniccTarget = useUniccTarget();
+  const activity = useUniccActivity();
+  const uniccAvailable = isUniccFallbackEnabled();
+  const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : getActiveApiUrl();
+
   const isOfflineNotice = notice === "offline";
+
+  const handleTargetChange = (newUrl: string) => {
+    if (newUrl === UNICC_API_URL) {
+      // Preference only: AmazeCC keeps serving the routes UniCC lacks, so the
+      // global active URL must not move.
+      setUniccTarget("unicc");
+    } else {
+      setUniccTarget("amazecc");
+      setActiveApiUrl(newUrl);
+      setIsMinimized(false);
+    }
+  };
+
+  // Per-session tally. Reset when a session opens, not on every progress tick,
+  // so the counts describe the sync the user is actually watching.
+  const wasActive = useRef(false);
+  useEffect(() => {
+    if (active && !wasActive.current) resetUniccActivity();
+    wasActive.current = active;
+  }, [active]);
 
   useEffect(() => {
     let timer: any;
     if (active && !isOfflineNotice) {
       setShowBackupBtn(false);
       setHasSwitched(false);
-      setCurrentActiveApi(getActiveApiUrl());
       
       // Show the backup API switch button if loading takes more than 6 seconds
       // (only when a distinct backup gateway is actually configured)
@@ -132,7 +159,6 @@ export default function SyncNotification({
   const handleSwitchToBackup = () => {
     if (!hasBackupApi()) return;
     setActiveApiUrl(BACKUP_API_URL);
-    setCurrentActiveApi(BACKUP_API_URL);
     setShowBackupBtn(false);
     setHasSwitched(true);
     setIsMinimized(false); // Maximize to show success state
@@ -148,6 +174,34 @@ export default function SyncNotification({
 
   // Split lines of message to render logs
   const logLines = message.split("\n").filter(line => line.trim() !== "");
+
+  // Which API is answering right now, in one line. The dot colour follows the
+  // same rule the log does, so the two never disagree.
+  const req = (n: number) => `${n} request${n === 1 ? "" : "s"}`;
+  const serving: { dot: string; tone: string; text: string } | null = (() => {
+    if (!uniccAvailable || !activity.lastServer) return null;
+    const viaUnicc = activity.lastServer === "unicc";
+
+    // Shown while opted in, so "UniCC is serving" is never read as "everything
+    // came from UniCC" when half the endpoints only exist on AmazeCC.
+    const viaAmazecc =
+      viaUnicc && activity.unsupported > 0
+        ? ` · ${req(activity.unsupported)} from AmazeCC (no UniCC route)`
+        : "";
+
+    if (viaUnicc) {
+      return {
+        dot: "bg-amber-500 animate-pulse",
+        tone: "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400",
+        text: `UniCC API is serving${activity.lastPath ? ` ${activity.lastPath}` : ""}${viaAmazecc}`,
+      };
+    }
+    return {
+      dot: "bg-emerald-500 animate-pulse",
+      tone: "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+      text: `AmazeCC API is serving${activity.lastPath ? ` ${activity.lastPath}` : ""}`,
+    };
+  })();
 
   // circular SVG progress configurations
   const strokeRadius = 13;
@@ -359,13 +413,44 @@ export default function SyncNotification({
                     </p>
                   </div>
 
-                  {/* Target server indicator */}
-                  <div className="flex items-center justify-between bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200/60 dark:border-[var(--border-muted)] p-3 rounded-xl gap-2">
-                    <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold">Target Server:</span>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-white dark:bg-[var(--surface)] border border-slate-200/60 dark:border-zinc-800 text-slate-600 dark:text-gray-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                      <span>{currentActiveApi.replace("https://", "").split("/")[0]}</span>
+                  {/* Target server: selectable mid-sync, and honest about who is
+                      actually answering right now. */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-[var(--surface-secondary)] border border-slate-200/60 dark:border-[var(--border-muted)] p-3 rounded-xl gap-2">
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold shrink-0">
+                        Target Server:
+                      </span>
+                      <select
+                        value={targetValue}
+                        onChange={(e) => handleTargetChange(e.target.value)}
+                        aria-label="Target server"
+                        className="min-w-0 flex-1 text-right text-[10px] font-black bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 cursor-pointer focus:outline-none"
+                      >
+                        <option value={PRIMARY_API_URL} className="bg-white dark:bg-zinc-900">AmazeCC</option>
+                        {hasBackupApi() && (
+                          <option value={BACKUP_API_URL} className="bg-white dark:bg-zinc-900">AmazeCC (Backup)</option>
+                        )}
+                        {uniccAvailable && (
+                          <option value={UNICC_API_URL} className="bg-white dark:bg-zinc-900">UniCC</option>
+                        )}
+                      </select>
                     </div>
+
+                    {/* Which API is answering, as opposed to which one was
+                        asked for. Reported even when the user did not opt in,
+                        because a third party quietly serving a student's data is
+                        exactly the thing that should never be invisible. */}
+                    {serving && (
+                      <m.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`flex items-start gap-2 px-2.5 py-1.5 rounded-lg border text-[9.5px] font-bold leading-snug ${serving.tone}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1 ${serving.dot}`} />
+                        <span>{serving.text}</span>
+                      </m.div>
+                    )}
                   </div>
 
                   {/* Custom styled progress indicator */}

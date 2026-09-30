@@ -13,6 +13,8 @@ import {
 import { Input, Button } from "@amazecontinuityprojects/amazeui";
 import ThemeToggle from "./ThemeToggle";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
+import { UNICC_API_URL } from "@/lib/unicc-fallback";
+import { useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 
 interface LoginFormProps {
   username: any;
@@ -141,7 +143,17 @@ export default function LoginForm({
   const [showLoginCard, setShowLoginCard] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  
+
+  // Which server to ask first. Read live rather than lifted into a prop, so the
+  // selector and the request layer cannot disagree about what is selected.
+  const uniccTarget = useUniccTarget();
+  const uniccAvailable = isUniccFallbackEnabled();
+
+  // The select shows UniCC when it is the preference, even though the *active
+  // URL* is still AmazeCC — the two are different things and conflating them
+  // would make the control lie about what the app is doing.
+  const targetValue = uniccTarget === "unicc" ? UNICC_API_URL : activeApi;
+
   // Simulator State
   const [mockAttended, setMockAttended] = useState(17);
   const [mockTotal, setMockTotal] = useState(20);
@@ -241,8 +253,17 @@ export default function LoginForm({
   };
 
   const handleApiChange = (newUrl: string) => {
-    setActiveApiUrl(newUrl);
-    setActiveApi(newUrl);
+    if (newUrl === UNICC_API_URL) {
+      // UniCC is a routing preference, not a new global host. It is tried first
+      // for the routes it implements, and the AmazeCC hosts keep serving
+      // everything else — so the active URL is deliberately left alone here.
+      setUniccTarget("unicc");
+      setActiveApi(PRIMARY_API_URL);
+    } else {
+      setUniccTarget("amazecc");
+      setActiveApiUrl(newUrl);
+      setActiveApi(newUrl);
+    }
   };
 
   const features = [
@@ -1026,22 +1047,45 @@ export default function LoginForm({
                     </div>
                   )}
 
-                  {/* Gateway config */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-neutral-950 dark:border-neutral-900 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Server size={14} className="text-slate-500" />
-                      <span className="text-xs font-bold text-slate-600 dark:text-gray-300">API Gateway</span>
+                  {/* Target server: which API to ask first. */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 dark:bg-neutral-950 dark:border-neutral-900">
+                      <div className="flex items-center gap-2">
+                        <Server size={14} className="text-slate-500" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Target Server</span>
+                      </div>
+                      <select
+                        value={targetValue}
+                        onChange={(e) => handleApiChange(e.target.value)}
+                        aria-label="Target server"
+                        className="text-xs bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer focus:outline-none"
+                      >
+                        <option value={PRIMARY_API_URL} className="bg-white dark:bg-neutral-950">AmazeCC</option>
+                        {hasBackupApi() && (
+                          <option value={BACKUP_API_URL} className="bg-white dark:bg-neutral-950">AmazeCC (Backup)</option>
+                        )}
+                        {uniccAvailable && (
+                          <option value={UNICC_API_URL} className="bg-white dark:bg-neutral-950">UniCC</option>
+                        )}
+                      </select>
                     </div>
-                    <select
-                      value={activeApi}
-                      onChange={(e) => handleApiChange(e.target.value)}
-                      className="text-xs bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer focus:outline-none"
-                    >
-                      <option value={PRIMARY_API_URL} className="bg-white dark:bg-neutral-950">Primary</option>
-                      {hasBackupApi() && (
-                        <option value={BACKUP_API_URL} className="bg-white dark:bg-neutral-950">Backup</option>
-                      )}
-                    </select>
+
+                    {/* Saying what the choice actually does. UniCC is a third-party
+                        server that would receive the VTOP password, and it serves
+                        nine of the routes the app calls — both facts matter more
+                        than the convenience, so neither is left implicit. */}
+                    {uniccTarget === "unicc" ? (
+                      <p className="text-[10px] leading-relaxed text-amber-700 dark:text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2 text-left">
+                        Your VTOP password is sent to <span className="font-bold">api.uni-cc.site</span>, a third-party
+                        service, to sign you in. It covers login, grades, attendance, calendar, hostel and
+                        schedule &mdash; everything else still comes from AmazeCC.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] leading-relaxed text-slate-500 dark:text-gray-400 pl-0.5 text-left">
+                        AmazeCC is used first. If it is unreachable, UniCC is tried automatically for the
+                        endpoints it supports.
+                      </p>
+                    )}
                   </div>
 
                   {/* Credentials fields */}
