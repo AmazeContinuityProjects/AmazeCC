@@ -34,6 +34,24 @@ export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between te
  */
 export const TILE_INTERACTIVE = `${TILE} transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer`;
 
+/** The interaction affordance, separated so it can pair with any surface. */
+const TILE_AFFORDANCE = "transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer";
+
+/**
+ * An interactive surface whose children sit in a ROW.
+ *
+ * `TILE` is a column: it ships `flex flex-col justify-between` so a label, a
+ * value and a footer can be pushed apart. A row-shaped surface — a course pill,
+ * a nav card, a list entry that is itself a button — must not use it. Appending
+ * `flex items-center` to `TILE_INTERACTIVE` does not work, because `flex-col` and
+ * `items-center` are different properties: the result is a column whose items
+ * are centred, which is the bug this token exists to make impossible.
+ *
+ * Built on `TILE_CARD` (no flex at all) with the row direction stated outright,
+ * so there is nothing to override.
+ */
+export const TILE_INTERACTIVE_ROW = `${TILE_SURFACE} p-3.5 sm:p-4 flex flex-row items-center justify-between gap-3 text-left relative overflow-hidden ${TILE_AFFORDANCE}`;
+
 /**
  * Same surface as `TILE`, but children stay in normal document flow.
  *

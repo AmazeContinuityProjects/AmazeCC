@@ -21,18 +21,10 @@ import FreeClassroomsTab from "../exams/FreeClassroomsTab";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
 import SocialTab from "../social/SocialTab";
 import CabShareTab from "../hostel/CabShare/CabShareTab";
-import QBankSubTabs from "../qbank/QBankSubTabs";
+import QBankSubpage from "../qbank/QBankSubpage";
 import OverallAttendancePredictor from "../attendance/OverallAttendancePredictor";
 import MarksPredictorTab from "../exams/MarksPredictorTab";
 import TasksTab from "../tasks/TasksTab";
-
-const PapersArchiveTab = dynamic(() => import("../qbank/PapersArchiveTab"), {
-
-  ssr: false,
-});
-const PureQBankTab = dynamic(() => import("../qbank/PureQBankTab"), {
-  ssr: false,
-});
 
 interface ToolsTabProps {
   marksData: any;
@@ -42,8 +34,6 @@ interface ToolsTabProps {
   IDs?: any;
   activeToolsSubTab: string;
   setActiveToolsSubTab: (subTab: string) => void;
-  activeQBankSubTab?: string;
-  setActiveQBankSubTab?: (subTab: string) => void;
   setActiveTab?: (tab: string) => void;
 }
 
@@ -55,16 +45,8 @@ export default function ToolsTab({
   IDs,
   activeToolsSubTab,
   setActiveToolsSubTab,
-  activeQBankSubTab = "archive",
-  setActiveQBankSubTab,
   setActiveTab,
 }: ToolsTabProps) {
-  const [internalQBankSubTab, setInternalQBankSubTab] = useState("archive");
-  const currentQBankSubTab = setActiveQBankSubTab
-    ? activeQBankSubTab
-    : internalQBankSubTab;
-  const setQBankSubTab = setActiveQBankSubTab || setInternalQBankSubTab;
-
   return (
     <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 md:pb-8">
       {/* Main View Router */}
@@ -77,27 +59,12 @@ export default function ToolsTab({
         )}
 
         {activeToolsSubTab === "qbank" && (
-          <div className="animate-fadeIn space-y-4">
-            <QBankSubTabs
-              activeSubTab={currentQBankSubTab}
-              setActiveSubTab={setQBankSubTab}
-            />
-            {currentQBankSubTab === "archive" && (
-              <PapersArchiveTab
-                allGradesData={allGradesData}
-                marksData={marksData}
-                username={IDs?.VtopUsername}
-                setActiveSubTab={setActiveToolsSubTab}
-              />
-            )}
-            {currentQBankSubTab === "pure" && (
-              <PureQBankTab
-                allGradesData={allGradesData}
-                marksData={marksData}
-                setActiveSubTab={setActiveToolsSubTab}
-              />
-            )}
-          </div>
+          <QBankSubpage
+            allGradesData={allGradesData}
+            marksData={marksData}
+            username={IDs?.VtopUsername}
+            setActiveSubTab={setActiveToolsSubTab}
+          />
         )}
 
         {activeToolsSubTab === "faculty-info" && (

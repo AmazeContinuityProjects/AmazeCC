@@ -29,10 +29,12 @@ import {
   PageShell,
   SectionHeader,
   SegmentedControl,
+  SubpageScreen,
   useCarousel,
+  useSubpageStack,
   type InsightSlide,
 } from "../shared/primitives";
-import { CHIP, LIST_ROW, LIST_SHELL, SECTION_CHIP, TILE } from "@/lib/uiTokens";
+import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE } from "@/lib/uiTokens";
 import { storage } from "@/lib/storage";
 import {
   buildCategoryRows,
@@ -115,8 +117,19 @@ interface Creds {
 }
 
 type TabView = "overview" | "catalog" | "completed" | "planner";
-type Screen = "landing" | TabView;
 type CourseStatus = "completed" | "in_progress" | "remaining";
+
+/**
+ * Root first, then the four peer views.
+ *
+ * These are siblings, not nested levels: landing is a hub and every one of the
+ * four is one hop from it, so back always returns to landing rather than
+ * stepping through the list. `useSubpageStack` models a linear stack where
+ * `back()` pops one entry, so the handler here calls `reset()` when it is
+ * drilled in. `go` is unchanged, and `back()` still does the root-exit.
+ */
+const SCREENS = ["landing", "overview", "catalog", "completed", "planner"] as const;
+type Screen = (typeof SCREENS)[number];
 
 interface ViewMeta {
   id: TabView;
@@ -194,8 +207,12 @@ export default function CurriculumPage({
   const [pageCsrf, setPageCsrf] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
-  const [screen, setScreen] = useState<Screen>("landing");
-  const [creds, setCreds] = useState<Creds | null>(null);
+  const stack = useSubpageStack<Screen>({
+    screens: SCREENS,
+    onExit: () => setActiveSubTab("courses-simplified"),
+  });
+  const { screen, isRoot } = stack;
+  const setScreen = stack.go;  const [creds, setCreds] = useState<Creds | null>(null);
   const [isDownloadingCurriculum, setIsDownloadingCurriculum] = useState(false);
   const [downloadingSyllabus, setDownloadingSyllabus] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -972,14 +989,14 @@ export default function CurriculumPage({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search course code or name..."
-            className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-xs font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            className={`${SEARCH_FIELD} pl-10 pr-9 text-xs shadow-2xs focus:ring-2 focus:ring-indigo-500`}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-surface-tertiary dark:bg-surface-secondary text-text-secondary hover:text-text-heading cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -1287,9 +1304,7 @@ export default function CurriculumPage({
     <PageShell
       eyebrow="Academics"
       title="Degree Curriculum"
-      onBack={() =>
-        inSubpage ? setScreen("landing") : setActiveSubTab("courses-simplified")
-      }
+      onBack={() => (inSubpage ? stack.reset() : stack.back())}
       actions={
         <>
           <IconButton onClick={() => void onSync()} title="Sync grades & curriculum">
@@ -1426,15 +1441,7 @@ export default function CurriculumPage({
 
       {/* The four views as one joined list */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Sections
-            </h2>
-            <span className={SECTION_CHIP}>{VIEW_META.length}</span>
-          </div>
-        </div>
+        <SectionHeader icon={LayoutGrid} title="Sections" count={VIEW_META.length} />
         <div className={LIST_SHELL}>
           {VIEW_META.map((v) => {
             const Icon = v.icon;
@@ -1474,14 +1481,17 @@ export default function CurriculumPage({
   );
 
   // ─ Subpage content ───────────────────────────────────────────────────
-  const subpage =
-    screen === "overview"
-      ? basketsList
-      : screen === "catalog"
-      ? catalogList
-      : screen === "completed"
-      ? completedList
-      : plannerList;
+  const subpage = (
+    <SubpageScreen id={screen}>
+      {screen === "overview"
+        ? basketsList
+        : screen === "catalog"
+          ? catalogList
+          : screen === "completed"
+            ? completedList
+            : plannerList}
+    </SubpageScreen>
+  );
 
-  return topBar(screen !== "landing");
+  return topBar(!isRoot);
 }

@@ -13,20 +13,35 @@ export function ToneBadge({
   tone = "zinc",
   children,
   size = "md",
+  icon,
   className = "",
 }: {
   tone?: string;
   children: ReactNode;
-  size?: "sm" | "md";
+  /**
+   * `sm` is the list-row pill, `md` the default, `lg` the summary-tile
+   * treatment. The three existed as hand-written `px-`/`text-` pairs in about a
+   * dozen places; `lg` was added when the attendance summary banner needed a
+   * chip big enough to be a headline stat rather than a row status.
+   */
+  size?: "sm" | "md" | "lg";
+  /** Leading icon. Rendered at the text's own size so the pill stays one optical block. */
+  icon?: ReactNode;
   className?: string;
 }) {
-  const sizing = size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[9px] sm:text-[10px] px-2 py-0.5";
+  const sizing =
+    size === "sm"
+      ? "text-[9px] px-1.5 py-0.5"
+      : size === "lg"
+        ? "text-xs px-3 py-2 rounded-xl"
+        : "text-[9px] sm:text-[10px] px-2 py-0.5";
   return (
     <span
-      className={`${sizing} font-extrabold uppercase rounded-md border shrink-0 ${
+      className={`${sizing} inline-flex items-center gap-1.5 font-extrabold uppercase rounded-md border shrink-0 ${
         TONE_BADGE[tone] ?? TONE_BADGE.zinc
       } ${className}`.trim()}
     >
+      {icon}
       {children}
     </span>
   );

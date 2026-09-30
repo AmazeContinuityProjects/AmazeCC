@@ -5,7 +5,6 @@ export const activeSubTabAtom = atom<string>("courses-simplified");
 export const activeAttendanceSubTabAtom = atom<string>("attendance");
 export const activeToolsSubTabAtom = atom<string>("overview");
 export const activeDayscholarSubTabAtom = atom<string>("finder");
-export const activeQBankSubTabAtom = atom<string>("archive");
 export const activeMoreSubTabAtom = atom<string>("social");
 /**
  * The settings screen is a hub of eight category sections, so the landing value

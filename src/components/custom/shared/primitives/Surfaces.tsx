@@ -57,6 +57,7 @@ export function StatTile({
   value,
   sub,
   badge,
+  icon,
   tone = "emerald",
   height = "h-32 sm:h-36",
   className = "",
@@ -66,6 +67,13 @@ export function StatTile({
   sub?: ReactNode;
   /** Optional top-right pill, e.g. "2 today". */
   badge?: ReactNode;
+  /**
+   * Optional top-right icon, for a tile that identifies itself by glyph rather
+   * than by a number. Mutually exclusive in practice with `badge` — a tile wants
+   * one marker, and `badge` wins if both are passed because it is the stronger
+   * signal.
+   */
+  icon?: ReactNode;
   /** Tints `value`, and the badge when one is given. `neutral` = heading ink. */
   tone?: string;
   height?: string;
@@ -75,13 +83,13 @@ export function StatTile({
   // toned-down grey, so an uncoloured tile does not look disabled.
   const valueTone =
     !tone || tone === "neutral" || tone === "default"
-      ? "text-text-heading"
-      : TONE_TEXT[tone] ?? "text-text-heading";
+      ? "text-zinc-900 dark:text-white"
+      : TONE_TEXT[tone] ?? "text-zinc-900 dark:text-white";
 
   return (
     <div className={`${TILE} ${height} ${className}`.trim()}>
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text-muted dark:text-text-secondary font-outfit truncate">
+        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
           {label}
         </span>
         {badge ? (
@@ -92,6 +100,8 @@ export function StatTile({
           >
             {badge}
           </span>
+        ) : icon ? (
+          <span className="shrink-0">{icon}</span>
         ) : null}
       </div>
 

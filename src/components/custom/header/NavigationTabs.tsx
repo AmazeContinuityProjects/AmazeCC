@@ -158,8 +158,6 @@ export default function NavigationTabs({
   setHostelActiveSubTab,
   activeDayscholarSubTab,
   setActiveDayscholarSubTab,
-  activeQBankSubTab,
-  setActiveQBankSubTab,
   activeMoreSubTab,
   setActiveMoreSubTab,
   activeProfileSubTab,
@@ -176,8 +174,6 @@ export default function NavigationTabs({
   void setPassword;
   void activeDayscholarSubTab;
   void setActiveDayscholarSubTab;
-  void activeQBankSubTab;
-  void setActiveQBankSubTab;
   void activeToolsSubTab;
   void setActiveToolsSubTab;
   void feedbackStatus;
