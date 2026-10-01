@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { Loader2, Car, Shield, AlertCircle, KeyRound, Phone, UserRound } from "lucide-react";
-import { readJsonResponse } from "./cabShareFallback";
+import { AlertCircle, Car, KeyRound, Loader2, Phone, Shield, UserRound } from "lucide-react";
+import { ListRowText, ListShell, SectionHeader } from "../../shared/primitives";
+import { FIELD_INPUT, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
-const panelClass = "rounded-[24px] border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black";
-const sidePanelClass = "rounded-[24px] border border-black/10 bg-gray-50 p-6 dark:border-white/10 dark:bg-white/[0.03]";
-const inputClass = "cabshare-input w-full rounded-2xl border border-black/10 bg-white px-4 py-3 pl-11 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:focus:border-blue-500";
+const FIELD_LABEL =
+  "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+
+const STEPS = [
+  ["Verify", "Use your saved VTOP registration number to keep ride requests student-only."],
+  ["Post or find", "Choose your hub, travel date, and preferred time."],
+  ["Confirm", "Contact details unlock only after the host accepts a request."],
+] as const;
 
 export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: boolean, onAuthSuccess: (user: any) => void }) {
   const [username, setUsername] = useState("");
@@ -46,29 +52,43 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
     setError("");
 
     try {
-      const res = await api("cabshare/auth", {
+      // `parse: "raw"` is required, not stylistic. Without it `api` returns the
+      // already-parsed body instead of a `Response`, so `readJsonResponse`'s
+      // `res.headers.get(...)` threw — and because that sat inside the try, a
+      // rejected password, an unreachable server and a *successful* login all
+      // landed in the same catch and quietly produced a local-only profile. It
+      // also matters because `parse: "raw"` returns above the `AuthError` the
+      // request layer raises on an auth-failure body: a Cab Share password
+      // problem must not be able to trigger the VTOP give-up flow.
+      const res = (await api("cabshare/auth", {
         method: "POST",
+        parse: "raw",
         body: { username, password, phone_number: phoneNumber },
-      });
+      })) as Response;
 
-      const data = await readJsonResponse(res as Response);
-      if (!data) {
-        onAuthSuccess({
-          reg_number: username.trim(),
-          username: username.trim(),
-          name: username.trim(),
-          phone_number: phoneNumber.trim(),
-          local_only: true,
-        });
+      // Read the body once, for both the OK and the rejected case: a non-OK
+      // status is exactly when the server's own explanation is most worth
+      // showing. `catch` covers an error page that is not JSON at all.
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success && data.user) {
+        onAuthSuccess(data.user);
         return;
       }
 
-      if (data.success) {
-        onAuthSuccess(data.user);
-      } else {
-        setError(data.error || data.message || "Authentication failed");
-      }
-    } catch (err) {
+      // A server that answered has judged these details. Never fall through to
+      // the local-only profile here — a wrong password that reads as a success
+      // is worse than an error, because the ride request then never reaches
+      // anyone and there is nothing to show for it.
+      setError(
+        data?.error ||
+          data?.message ||
+          `Authentication failed — the server rejected these details (HTTP ${res.status}).`
+      );
+    } catch {
+      // No response at all: offline, or the endpoint is unreachable. This is the
+      // one case where a local-only profile is a fair substitute, because there
+      // was nobody to reject the credentials.
       onAuthSuccess({
         reg_number: username.trim(),
         username: username.trim(),
@@ -84,109 +104,102 @@ export default function CabShareAuthModal({ isOpen, onAuthSuccess }: { isOpen: b
   if (!isOpen) return null;
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className={panelClass}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
-              <Car className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">One-time setup</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-gray-950 dark:text-white">Start using Cab Share</h2>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
-                Verify your VTOP account and add a reachable phone number before posting or joining rides.
-              </p>
-            </div>
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={TILE_CARD}>
+        <div className="flex items-start gap-3">
+          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.indigo}`}>
+            <Car className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">One-time setup</p>
+            <h2 className="mt-1 text-lg font-black font-outfit tracking-tight text-text-heading">
+              Start using Cab Share
+            </h2>
+            <p className="mt-1 text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+              Verify your VTOP account and add a reachable phone number before posting or joining rides.
+            </p>
           </div>
         </div>
-        
-        <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
+
+        <form onSubmit={handleSubmit} className="mt-5 grid gap-4 md:grid-cols-2">
           {error && (
-            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 md:col-span-2">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-400 md:col-span-2">
+              <AlertCircle className="h-5 w-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
-          
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Registration Number</label>
-            <div className="relative">
-              <UserRound className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                value={username} 
+
+          <label className="block space-y-1">
+            <span className={FIELD_LABEL}>Registration Number</span>
+            <span className="relative block [&_input]:pl-11">
+              <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="text"
+                value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className={inputClass}
+                className={FIELD_INPUT}
                 placeholder="Enter registration number"
               />
-            </div>
-          </div>
-          
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">VTOP Password</label>
-            <div className="relative">
-              <KeyRound className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="password" 
+            </span>
+          </label>
+
+          <label className="block space-y-1">
+            <span className={FIELD_LABEL}>VTOP Password</span>
+            <span className="relative block [&_input]:pl-11">
+              <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className={inputClass}
+                className={FIELD_INPUT}
                 placeholder="Enter your VTOP password"
               />
-            </div>
-          </div>
-          
+            </span>
+          </label>
+
           <div className="space-y-1 md:col-span-2">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone Number</label>
+            <label className={FIELD_LABEL}>Phone Number</label>
             <div className="relative">
-              <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="tel" 
+              <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
-                className={inputClass}
+                className={`${FIELD_INPUT} pl-11`}
                 placeholder="10-digit mobile number"
               />
             </div>
-            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
               <Shield className="h-3.5 w-3.5" /> Shared only with confirmed ride matches.
             </p>
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={loading}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 md:col-span-2"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70 md:col-span-2"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Authenticate & Continue"}
           </button>
         </form>
       </div>
 
-      <aside className={sidePanelClass}>
-        <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">How it works</p>
-        <div className="mt-4 space-y-4">
-          {[
-            ["Verify", "Use your saved VTOP registration number to keep ride requests student-only."],
-            ["Post or find", "Choose your hub, travel date, and preferred time."],
-            ["Confirm", "Contact details unlock only after the host accepts a request."],
-          ].map(([title, description], index) => (
-            <div key={title} className="flex gap-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white text-xs font-black text-blue-600 shadow-sm dark:bg-black dark:text-blue-400">
+      <div className="space-y-3">
+        <SectionHeader title="How it works" />
+        <ListShell>
+          {STEPS.map(([title, description], index) => (
+            <div key={title} className={LIST_ROW}>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-surface-secondary border border-border-muted text-[11px] font-black text-indigo-600 dark:text-indigo-400">
                 {index + 1}
               </span>
-              <div>
-                <p className="text-sm font-black text-gray-900 dark:text-white">{title}</p>
-                <p className="mt-1 text-xs font-medium leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
-              </div>
+              <ListRowText title={title} subtitle={description} />
             </div>
           ))}
-        </div>
-      </aside>
+        </ListShell>
+      </div>
     </section>
   );
 }

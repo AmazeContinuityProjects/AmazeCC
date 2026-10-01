@@ -214,8 +214,8 @@ export default function LoginPage() {
       root.style.setProperty("--surface-secondary", `color-mix(in oklab, ${accent} 6%, oklch(0.25 0 0))`);
       root.style.setProperty("--surface-tertiary", `color-mix(in oklab, ${accent} 8%, oklch(0.28 0 0))`);
       root.style.setProperty("--surface-hover", `color-mix(in oklab, ${accent} 9%, oklch(0.27 0 0))`);
-      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 18%, oklch(0.98 0.004 247 / 0.16))`);
-      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 24%, oklch(0.98 0.004 247 / 0.28))`);
+      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 18%, oklch(0.98 0.004 247 / 0.22))`);
+      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 24%, oklch(0.98 0.004 247 / 0.36))`);
       root.style.setProperty("--sidebar", `color-mix(in oklab, ${accent} 5%, oklch(0.18 0 0))`);
       root.style.setProperty("--sidebar-primary", `color-mix(in oklab, ${accent} 8%, oklch(0.22 0 0))`);
       root.style.setProperty("--sidebar-accent", `color-mix(in oklab, ${accent} 8%, oklch(0.22 0 0))`);
@@ -227,8 +227,8 @@ export default function LoginPage() {
       root.style.setProperty("--surface-secondary", `color-mix(in oklab, ${accent} 5%, oklch(0.965 0.005 247))`);
       root.style.setProperty("--surface-tertiary", `color-mix(in oklab, ${accent} 7%, oklch(0.935 0.008 247))`);
       root.style.setProperty("--surface-hover", `color-mix(in oklab, ${accent} 8%, oklch(0.955 0.007 247))`);
-      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 14%, oklch(0.93 0.007 247))`);
-      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 20%, oklch(0.84 0.012 247))`);
+      root.style.setProperty("--border-muted", `color-mix(in oklab, ${accent} 14%, oklch(0.88 0.008 247))`);
+      root.style.setProperty("--border-strong", `color-mix(in oklab, ${accent} 20%, oklch(0.78 0.011 247))`);
       root.style.setProperty("--sidebar", `color-mix(in oklab, ${accent} 4%, ${surface})`);
       root.style.setProperty("--sidebar-primary", `color-mix(in oklab, ${accent} 8%, oklch(0.9 0 0))`);
       root.style.setProperty("--sidebar-accent", `color-mix(in oklab, ${accent} 8%, oklch(0.95 0 0))`);
@@ -1383,7 +1383,6 @@ export default function LoginPage() {
       { id: "tool-od-hours", label: "OD Hours", description: "View on-duty hours breakdown", icon: "⏰", category: "Tools", onSelect: () => { setActiveTab("attendance"); setActiveAttendanceSubTab("od"); } },
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
       { id: "tool-marks-predictor", label: "Marks Predictor & Simulator", description: "Simulate test marks, weightage lost & FAT targets", icon: "📊", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("marks-predictor"); } },
-      { id: "tool-gpa-predictor", label: "CGPA Predictor Tool", description: "Calculate and predict your GPA", icon: "📈", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
       { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
       { id: "tool-tasks", label: "Tasks & Study Schedule", description: "View and manage homework, tests & weekly study chunks", icon: "✅", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("tasks"); } },

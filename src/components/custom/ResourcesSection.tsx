@@ -1,141 +1,185 @@
 "use client";
-import React, { useState } from "react";
-import { Link2, ExternalLink, History, Trophy, Github, FileText, Shield, ChevronRight, Users } from "lucide-react";
+import {
+  ChevronRight,
+  ExternalLink,
+  FileText,
+  Github,
+  History,
+  Link2,
+  MessagesSquare,
+  Shield,
+  Trophy,
+  Users,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import quickLinks from "../../data/quickLinks.json";
 import Links from "./header/Links";
-import ChangelogModal from "./header/ChangelogModal";
-import HallOfFameModal from "./header/HallOfFameModal";
+import { ListRowText, ListShell, SectionHeader } from "./shared/primitives";
+import { LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 
-// Re-use the Links component
-interface ResourcesSectionProps {
-  setActiveSubpage: (page: "main" | "hallOfFame" | "changelog" | "team") => void;
+type Subpage = "main" | "hallOfFame" | "changelog" | "team";
+
+/**
+ * One row, three shapes.
+ *
+ * The list used to be eight hand-typed blocks that differed only in four
+ * variables (icon, title, subtitle, where it goes), which is why two of them
+ * had drifted — the privacy and terms rows were `<div onClick={window.open}>`
+ * rather than real links, so they had no middle-click, no open-in-new-tab and
+ * no link status. The row is now built once and every entry is either a real
+ * anchor or a real button.
+ */
+function ResourceRow({
+  icon,
+  iconClass,
+  title,
+  desc,
+  href,
+  onClick,
+}: {
+  icon: ReactNode;
+  iconClass: string;
+  title: string;
+  desc: string;
+  href?: string;
+  onClick?: () => void;
+}) {
+  const inner = (
+    <>
+      <span
+        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${iconClass}`}
+      >
+        {icon}
+      </span>
+      <ListRowText title={title} subtitle={desc} />
+      {href ? (
+        <ExternalLink className="w-4 h-4 text-zinc-400 shrink-0" />
+      ) : (
+        <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+      )}
+    </>
+  );
+
+  const className = `${LIST_ROW} ${href ? "" : "cursor-pointer"}`;
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {inner}
+    </button>
+  );
 }
 
-export default function ResourcesSection({ setActiveSubpage }: ResourcesSectionProps) {
+export default function ResourcesSection({
+  setActiveSubpage,
+}: {
+  setActiveSubpage: (page: Subpage) => void;
+}) {
+  const community = quickLinks.communityLinks;
+
   return (
-    <>
-      <div className="bg-transparent sm:bg-white/50 dark:sm:bg-slate-900/50 sm:rounded-2xl sm:border sm:border-gray-200/80 dark:sm:border-gray-800 divide-y divide-gray-150 dark:divide-gray-800/60 overflow-hidden">
-        {/* Utilities / Important Links */}
-        {quickLinks.importantLinks.map((link) => (
-          <a key={link.id} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-            <div className="flex items-center gap-4 min-w-0 pr-4">
-              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                <Link2 size={18} />
-              </div>
-              <div className="min-w-0">
-                <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">{link.desc}</span>
-              </div>
-            </div>
-            <ExternalLink size={14} className="text-gray-400 shrink-0" />
-          </a>
-        ))}
-
-        {/* Social Community links */}
-        {quickLinks.communityLinks.map((link, idx) => (
-          <a key={idx} href={link.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-            <div className="flex items-center gap-4 min-w-0 pr-4">
-              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-                <ExternalLink size={18} />
-              </div>
-              <div className="min-w-0">
-                <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">{link.title}</span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">VIT community discussion forums and updates</span>
-              </div>
-            </div>
-            <ExternalLink size={14} className="text-gray-400 shrink-0" />
-          </a>
-        ))}
-
-        {/* Local Link Component integrations */}
-        <div className="p-4 bg-transparent">
-          <Links />
-        </div>
-
-        {/* Changelog */}
-        <div onClick={() => setActiveSubpage("changelog")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <History size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Changelog</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">View latest updates, features and releases in AmazeCC</span>
-            </div>
-          </div>
-          <ChevronRight size={14} className="text-gray-400 shrink-0" />
-        </div>
-
-        {/* Team */}
-        <div onClick={() => setActiveSubpage("team")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <Users size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">The Team</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the Amaze Continuity Projects team</span>
-            </div>
-          </div>
-          <ChevronRight size={14} className="text-gray-400 shrink-0" />
-        </div>
-
-        {/* Hall of Fame */}
-        <div onClick={() => setActiveSubpage("hallOfFame")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <Trophy size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Hall of Fame</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Meet the contributors, developers, and testers of the app</span>
-            </div>
-          </div>
-          <ChevronRight size={14} className="text-gray-400 shrink-0" />
-        </div>
-
-        {/* Source on GitHub */}
-        <a href="https://github.com/AmazeContinuityProjects/AmazeCC/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <Github size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">GitHub Repository</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Check out code, contribute fixes or report system bugs</span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-gray-400 shrink-0" />
-        </a>
-
-        {/* Privacy Policy */}
-        <div onClick={() => window.open("/privacy", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <FileText size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Privacy Policy</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Read about local credentials and encryption safety</span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-gray-400 shrink-0" />
-        </div>
-
-        {/* Terms of Service */}
-        <div onClick={() => window.open("/terms", "_blank")} className="flex items-center justify-between p-4 hover:bg-gray-100/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-          <div className="flex items-center gap-4 min-w-0 pr-4">
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 shrink-0">
-              <Shield size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-xs text-gray-900 dark:text-gray-100 block">Terms of Service</span>
-              <span className="text-[10px] text-gray-500 dark:text-gray-450 block truncate mt-0.5">Understand guidelines and rules of utilizing AmazeCC services</span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-gray-400 shrink-0" />
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <SectionHeader
+          icon={Link2}
+          title="Important links"
+          count={quickLinks.importantLinks.length}
+        />
+        <ListShell>
+          {quickLinks.importantLinks.map((link) => (
+            <ResourceRow
+              key={link.id}
+              href={link.link}
+              icon={<Link2 className="w-4.5 h-4.5" />}
+              iconClass={TONE_ICON_TILE.sky}
+              title={link.title}
+              desc={link.desc}
+            />
+          ))}
+        </ListShell>
       </div>
-    </>
+
+      <div className="space-y-3">
+        <SectionHeader icon={MessagesSquare} title="Community" count={community.length} />
+        <ListShell>
+          {community.map((link) => (
+            <ResourceRow
+              key={link.title}
+              href={link.link}
+              icon={<ExternalLink className="w-4.5 h-4.5" />}
+              iconClass={TONE_ICON_TILE.violet}
+              title={link.title}
+              desc="VIT community discussion forums and updates"
+            />
+          ))}
+        </ListShell>
+      </div>
+
+      <div className="space-y-3">
+        <SectionHeader icon={Link2} title="Links" />
+        <Links />
+      </div>
+
+      <div className="space-y-3">
+        <SectionHeader icon={Users} title="Project" />
+        <ListShell>
+          <ResourceRow
+            onClick={() => setActiveSubpage("changelog")}
+            icon={<History className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.emerald}
+            title="Changelog"
+            desc="View latest updates, features and releases in AmazeCC"
+          />
+          <ResourceRow
+            onClick={() => setActiveSubpage("team")}
+            icon={<Users className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.indigo}
+            title="The Team"
+            desc="Meet the Amaze Continuity Projects team"
+          />
+          <ResourceRow
+            onClick={() => setActiveSubpage("hallOfFame")}
+            icon={<Trophy className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.amber}
+            title="Hall of Fame"
+            desc="Meet the contributors, developers, and testers of the app"
+          />
+          <ResourceRow
+            href="https://github.com/AmazeContinuityProjects/AmazeCC/"
+            icon={<Github className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.zinc}
+            title="GitHub Repository"
+            desc="Check out code, contribute fixes or report system bugs"
+          />
+        </ListShell>
+      </div>
+
+      <div className="space-y-3">
+        <SectionHeader icon={Shield} title="Legal" />
+        <ListShell>
+          <ResourceRow
+            href="/privacy"
+            icon={<FileText className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.sky}
+            title="Privacy Policy"
+            desc="Read about local credentials and encryption safety"
+          />
+          <ResourceRow
+            href="/terms"
+            icon={<FileText className="w-4.5 h-4.5" />}
+            iconClass={TONE_ICON_TILE.sky}
+            title="Terms of Service"
+            desc="Understand guidelines and rules of utilizing AmazeCC services"
+          />
+        </ListShell>
+      </div>
+    </div>
   );
 }

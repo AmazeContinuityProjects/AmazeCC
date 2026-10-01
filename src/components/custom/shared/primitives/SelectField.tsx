@@ -14,7 +14,7 @@ import SettingRow from "./SettingRow";
  */
 
 const SELECT =
-  "w-full appearance-none bg-surface-secondary dark:bg-background/50 border border-border-muted/60 dark:border-border rounded-xl pl-3 pr-9 py-3 text-sm font-bold text-text-heading dark:text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
+  "w-full appearance-none bg-surface-secondary dark:bg-background/50 border border-border-strong dark:border-border rounded-xl pl-3 pr-9 py-3 text-sm font-bold text-text-heading dark:text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
 
 export interface SelectOption<T extends string> {
   value: T;

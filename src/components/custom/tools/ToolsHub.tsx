@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   Database,
   UserCheck,
-  TrendingUp,
   Users,
   Car,
   DoorOpen,
@@ -69,14 +68,6 @@ export default function ToolsHub({
       category: "academic",
       icon: Sparkles,
       iconColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20",
-    },
-    {
-      id: "predictor",
-      title: "CGPA Predictor",
-      subtitle: "Calculate target SGPA & cumulative CGPA",
-      category: "academic",
-      icon: TrendingUp,
-      iconColor: "text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/20",
     },
     {
       id: "social",

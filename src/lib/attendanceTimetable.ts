@@ -1,5 +1,6 @@
 import config from "../../config.json";
 import { DAYS, dayKeyForDate, slotRange, toMinutes } from "./social/schedule";
+import { TEACHING_DAYS, type TeachingDay } from "./calendarDay";
 
 export const ATTENDANCE_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
@@ -31,6 +32,38 @@ export function getTodayAttendanceDay(date = new Date()): AttendanceDay {
   // NOT `DAYS[date.getDay()]`. `DAYS` is MON-first (it mirrors config.slotMap's
   // key order) while `Date.getDay()` is 0=Sunday, so indexing one with the other
   // silently shifts every day by one. `dayKeyForDate` owns that mapping.
+  return dayKeyForDate(date);
+}
+
+/** A `dayOrder` that is not one of the seven is ignored rather than trusted. */
+export function isTeachingDay(value: unknown): value is TeachingDay {
+  return typeof value === "string" && (TEACHING_DAYS as readonly string[]).includes(value);
+}
+
+/**
+ * Which timetable a *date* follows.
+ *
+ * Three things can decide this, in priority order:
+ *
+ *  1. **The published day order.** The college reschedules to recover teaching
+ *     lost to a holiday, publishing `"Instructional Day Order - Thursday Day
+ *     Order"` against a specific date. On that date you attend your Thursday
+ *     classes even though the date is a Saturday, and reading the weekday off the
+ *     calendar gets it wrong. This is per-date and beats everything else.
+ *  2. **The term-wide Saturday setting.** Saturday classes in FFCS usually follow
+ *     another weekday (Monday, in the common case) and the student picks that once
+ *     for the whole term. `buildAttendanceDayCardsMap` has already applied it —
+ *     it rewrites `map.SAT` at build time — so reading `map["SAT"]` needs no
+ *     second pass here, and applying the override again would be the double-shift
+ *     this comment exists to prevent.
+ *  3. **The date's own weekday.** The ordinary case, and the only one most days
+ *     take.
+ *
+ * So the day order wins and everything else falls through to the weekday, with
+ * the Saturday override already baked into the map it is about to be read from.
+ */
+export function resolveTeachingDay(date: Date, dayOrder?: TeachingDay): AttendanceDay {
+  if (isTeachingDay(dayOrder)) return dayOrder as AttendanceDay;
   return dayKeyForDate(date);
 }
 

@@ -131,7 +131,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className={`${container} p-0.5 bg-surface-tertiary dark:bg-surface-secondary rounded-xl border border-border-muted/60 dark:border-border/60 text-xs${overflow} ${className}`.trim()}
+      className={`${container} p-0.5 bg-surface-tertiary dark:bg-surface-secondary rounded-xl border border-border-muted dark:border-border text-xs${overflow} ${className}`.trim()}
     >
       {options.map((opt) => (
         <button

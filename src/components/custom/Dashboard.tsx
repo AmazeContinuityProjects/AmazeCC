@@ -4,10 +4,8 @@ import NavigationTabs from "./header/NavigationTabs";
 import StatsCards from "./StatCards";
 import GradesModal from "./exams/GradesModal";
 import AttendanceTabs from "./attendance/AttendanceTabs";
-import AcademicsHub from "./exams/AcademicsHub";
-import TestGradesContainer from "./exams/TestGradesContainer";
+import MarksHistoryTab from "./exams/MarksHistoryTab";
 import CurriculumPage from "./exams/CurriculumPage";
-import GPAPredictorTab from "./exams/GPAPredictorTab";
 import MarksPredictorTab from "./exams/MarksPredictorTab";
 import ExamSchedule from "./exams/ScheduleDisplay";
 import MessDisplay from "./hostel/MessDisplay";
@@ -55,7 +53,7 @@ import FeedbackStatusModal from "./profile/FeedbackStatusModal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor";
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
-import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
+import { buildMilestoneDates } from "@/lib/milestoneDates";
 import { useMemo } from "react";
 import {
   ensureSyncSession,
@@ -155,10 +153,7 @@ function DashboardContent({
     }
   }, []);
 
-  const results = useMemo(() => {
-    const analysis = analyzeAllCalendars(calendarData?.calendars);
-    return analysis?.results || [];
-  }, [calendarData]);
+  const results = useMemo(() => buildMilestoneDates(calendarData).results, [calendarData]);
 
   useEffect(() => {
     if (demoMode) {
@@ -249,10 +244,11 @@ function DashboardContent({
   }, [allGradesData]);
 
   useEffect(() => {
+    // The CGPA predictor is no longer one of these: it lives in the Curriculum
+    // page's planner screen, so `predictor` / `gpa` are not redirected to Tools
+    // any more (see the `cgpa-predictor` render below).
     const academicToolRedirects: Record<string, string> = {
       qbank: "qbank",
-      predictor: "predictor",
-      gpa: "predictor",
       faculty: "faculty-info",
       "faculty-info": "faculty-info",
       "free-class": "free-class",
@@ -880,30 +876,26 @@ function DashboardContent({
               {activeAttendanceSubTab === "predictor" && (
                 <div className="animate-fadeIn">
                   {(() => {
-                    const calendarAnalysis = calendarData?.calendars ? analyzeAllCalendars(calendarData.calendars) : null;
-                    const impEventsList = calendarAnalysis?.importantEvents ? Array.from(calendarAnalysis.importantEvents.values()) : [];
-                    const findDate = (name: string) => {
-                      const found = impEventsList.find((e: any) => e.event?.toLowerCase()?.includes(name.toLowerCase()));
-                      return found?.formattedDate || null;
-                    };
+                    const { results, impDates } = buildMilestoneDates(calendarData);
                     return (
                       <OverallAttendancePredictor
                         attendanceData={attendanceData.attendance}
-                        analyzeCalendars={calendarAnalysis?.results || []}
+                        analyzeCalendars={results}
                         dayCardsMap={buildAttendanceDayCardsMap(
                           attendanceData.attendance,
                           undefined,
                           (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT"
                         )}
-                        impDates={{
-                          cat1Date: findDate("cat i") || findDate("cat 1"),
-                          cat2Date: findDate("cat ii") || findDate("cat 2"),
-                          lidTheoryDate: findDate("lid for theory") || findDate("last instructional day"),
-                          lidLabDate: findDate("lid for laboratory") || findDate("lid for lab"),
-                        }}
+                        impDates={impDates}
                         isDayscholarWithBus={settings.isDayscholarWithBus}
                         decimalValues={settings.decimalValues}
-                        onBack={() => setActiveAttendanceSubTab("attendance")}
+                        // `onSystemBack`, not a subtab setter. Setting the state
+                        // directly changes `screenKey`, which makes Main push a
+                        // *new* history entry instead of consuming the one the
+                        // predictor arrived on — so the next system-back landed on
+                        // the predictor again, and the stack mirror drifted until
+                        // the app let go of the history and exited.
+                        onBack={onSystemBack}
                       />
                     );
                   })()}
@@ -952,7 +944,13 @@ function DashboardContent({
               )}
               {activeSubTab === "grades" && (
                 marksData ? (
-                  <TestGradesContainer data={allGradesData} marksData={marksData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} />
+                  <MarksHistoryTab
+                    data={allGradesData}
+                    marksData={marksData}
+                    pastSemesters={pastSemesterData}
+                    onRefresh={handleAllGradesFetch}
+                    onBack={() => setActiveSubTab("overview")}
+                  />
                 ) : (
                   <div className="space-y-4 p-4">
                     <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
@@ -961,9 +959,22 @@ function DashboardContent({
                   </div>
                 )
               )}
-              {activeSubTab === "curriculum" && (
+              {(activeSubTab === "curriculum" || activeSubTab === "cgpa-predictor") && (
                 marksData ? (
-                  <CurriculumPage marksData={marksData} allGradesData={allGradesData} gradesData={GradesData} attendance={attendanceData.attendance} handleFetchGrades={handleAllGradesFetch} setActiveSubTab={setActiveSubTab} loginToVTOP={loginToVTOP} />
+                  <CurriculumPage
+                    marksData={marksData}
+                    allGradesData={allGradesData}
+                    gradesData={GradesData}
+                    attendance={attendanceData.attendance}
+                    handleFetchGrades={handleAllGradesFetch}
+                    setActiveSubTab={setActiveSubTab}
+                    loginToVTOP={loginToVTOP}
+                    /* Same page, opened drilled in. The CGPA predictor used to be
+                       a standalone Tools subpage with its own route; the planner
+                       screen is that feature now, so anything that still asks for
+                       it by subtab lands straight on it. */
+                    initialScreen={activeSubTab === "cgpa-predictor" ? "planner" : undefined}
+                  />
                 ) : (
                   <div className="space-y-4 p-4">
                     <div className="h-6 w-32 bg-slate-200 dark:bg-neutral-800 rounded-lg animate-pulse" />
@@ -996,7 +1007,7 @@ function DashboardContent({
           {activeTab === "tools" && (
             <div className="animate-fadeIn">
               <ToolsTab
-                marksData={marksData}
+marksData={marksData}
                 allGradesData={allGradesData}
                 attendanceData={attendanceData}
                 loginToVTOP={loginToVTOP}
@@ -1004,6 +1015,10 @@ function DashboardContent({
                 activeToolsSubTab={activeToolsSubTab}
                 setActiveToolsSubTab={setActiveToolsSubTab}
                 setActiveTab={setActiveTab}
+                onSystemBack={onSystemBack}
+                calendarData={calendarData}
+                decimalValues={settings.decimalValues}
+                isDayscholarWithBus={settings.isDayscholarWithBus}
               />
             </div>
           )}
@@ -1045,33 +1060,34 @@ function DashboardContent({
           )}
 
           {activeTab === "cabshare" && (
-            <CabShareTab />
+            <CabShareTab onBack={onSystemBack} />
           )}
 
+          {/* BusFinder owns its own page chrome now, so the header and the
+              refresh button it used to duplicate here are gone — the refresh is
+              the shell's action slot. */}
           {activeTab === "dayscholar" && (
-            <div className="animate-fadeIn space-y-8">
-              <BusFinder buses={dayscholarBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
-            </div>
+            <BusFinder
+              buses={dayscholarBuses}
+              transportData={transportData}
+              transportLoading={transportLoading}
+              loginToVTOP={loginToVTOP}
+              onRefresh={refreshTransportBuses}
+              refreshing={transportBusesLoading}
+              onBack={onSystemBack}
+            />
           )}
 
           {activeTab === "transport" && (
-            <div className="animate-fadeIn space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transport</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bus routes, boarding points, vehicle placements & contact info</p>
-                </div>
-                <button
-                  onClick={refreshTransportBuses}
-                  disabled={transportBusesLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/25"
-                >
-                  <RefreshCcw className={`w-4 h-4 ${transportBusesLoading ? "animate-spin" : ""}`} />
-                  {transportBusesLoading ? "Refreshing..." : "Refresh Bus Data"}
-                </button>
-              </div>
-              <BusFinder buses={transportBuses} transportData={transportData} transportLoading={transportLoading} loginToVTOP={loginToVTOP} />
-            </div>
+            <BusFinder
+              buses={transportBuses}
+              transportData={transportData}
+              transportLoading={transportLoading}
+              loginToVTOP={loginToVTOP}
+              onRefresh={refreshTransportBuses}
+              refreshing={transportBusesLoading}
+              onBack={onSystemBack}
+            />
           )}
 
               {activeTab === "payments" && (

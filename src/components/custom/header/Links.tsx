@@ -1,72 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe } from "lucide-react";
+import { ListRowText, ListShell } from "../shared/primitives";
+import { GHOST_BUTTON, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
 
+const LINKS = [
+  { url: "https://amaze-cc.vercel.app", label: "Amaze-CC on Vercel" },
+  { url: "https://amazecc.com", label: "amazecc.com" },
+  { url: "https://instagram.com/amazecc", label: "@amazecc on Instagram" },
+];
+
+/**
+ * The three canonical links, with a copy button each.
+ *
+ * This was a collapsible section behind a `text-xl` button, which cost a tap to
+ * see three rows and did not match anything else on the page. Always-open rows
+ * is the same shape as every other list in the app; `title` on the row keeps the
+ * full URL reachable on hover, because the label is a friendlier name than the
+ * address a reader is about to copy.
+ */
 export default function Links() {
-    const Links = [
-        "https://amaze-cc.vercel.app",
-        "https://amazecc.com",
-        "https://instagram.com/amazecc"
-    ];
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-    const [open, setOpen] = useState(false);
+  const handleCopy = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 1500);
+  };
 
-    const handleCopy = (link: string, index: number) => {
-        navigator.clipboard.writeText(link);
-        setCopiedIndex(index);
-
-        setTimeout(() => {
-            setCopiedIndex(null);
-        }, 1200);
-    };
-
-    return (
-        <div className="w-full">
+  return (
+    <ListShell>
+      {LINKS.map((link) => {
+        const copied = copiedUrl === link.url;
+        return (
+          <div key={link.url} className={LIST_ROW}>
+            <span
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.sky}`}
+            >
+              <Globe className="w-4.5 h-4.5" />
+            </span>
+            <ListRowText
+              title={link.label}
+              titleTooltip={link.url}
+              subtitle={link.url}
+            />
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Open ${link.url}`}
+              aria-label={`Open ${link.label}`}
+              className="shrink-0 text-zinc-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
             <button
-                onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between text-left text-xl font-semibold text-gray-800  dark:text-gray-100 hover:cursor-pointer"
+              type="button"
+              onClick={() => handleCopy(link.url)}
+              className={`${GHOST_BUTTON} shrink-0`}
+              title={`Copy ${link.url}`}
             >
-                <span>Links</span>
-                {open ? (
-                    <ChevronDown className="w-5 h-5" />
-                ) : (
-                    <ChevronRight className="w-5 h-5" />
-                )}
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              <span className="text-[11px]">{copied ? "Copied" : "Copy"}</span>
             </button>
-
-            <div
-                className={`transition-all overflow-hidden ${open ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                    }`}
-            >
-                <div className="space-y-3 mt-2">
-                    {Links.map((link, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center justify-between px-4 py-3 bg-gray-200  dark:bg-gray-900 rounded-lg"
-                        >
-                            <span
-                                className="flex-1 text-gray-800  dark:text-gray-100 truncate"
-                                title={link}
-                            >
-                                {link}
-                            </span>
-
-                            <button
-                                onClick={() => handleCopy(link, index)}
-                                className="ml-3 p-2 rounded-md bg-gray-300  dark:bg-gray-800 hover:bg-gray-400 dark:hover:bg-slate-600 transition-colors"
-                            >
-                                {copiedIndex === index ? (
-                                    <Check className="w-4 h-4 text-green-500 scale-110 transition-transform duration-300" />
-                                ) : (
-                                    <Copy className="w-4 h-4 text-gray-700  dark:text-gray-300" />
-                                )}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+          </div>
+        );
+      })}
+    </ListShell>
+  );
 }

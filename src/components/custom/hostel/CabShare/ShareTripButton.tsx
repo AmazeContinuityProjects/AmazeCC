@@ -2,13 +2,14 @@
 
 import { Share2, Check } from "lucide-react";
 import { useState } from "react";
+import { GHOST_BUTTON } from "@/lib/uiTokens";
 
 export default function ShareTripButton({ trip }: { trip: any }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
     const text = `🚕 Cab Share: ${trip.hub_name} on ${new Date(trip.travel_date).toLocaleDateString()} @ ${trip.preferred_time}\nHost: ${trip.name || 'AmazeCC User'}\nJoin me on AmazeCC!`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -26,12 +27,13 @@ export default function ShareTripButton({ trip }: { trip: any }) {
 
   return (
     <button
+      type="button"
       onClick={handleShare}
-      className="flex items-center gap-1 rounded-xl bg-gray-100 px-2.5 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+      className={GHOST_BUTTON}
       title="Share Trip"
     >
       {copied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
-      Share
+      <span className="text-[11px]">{copied ? "Copied" : "Share"}</span>
     </button>
   );
 }

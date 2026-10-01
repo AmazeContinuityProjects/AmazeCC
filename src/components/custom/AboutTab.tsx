@@ -1,55 +1,42 @@
-import { useState } from "react";
-import { AboutSection } from "./header/AboutSection";
-import ResourcesSection from "./ResourcesSection";
+"use client";
+import { PageShell, useSubpageStack } from "./shared/primitives";
+import AboutBody, { type AboutSubpage } from "./header/AboutBody";
 import HallOfFameModal from "./header/HallOfFameModal";
 import ChangelogModal from "./header/ChangelogModal";
 import TeamModal from "./header/TeamModal";
 
+/**
+ * About & Resources, plus the three subpages it drills into.
+ *
+ * The hub plus its drill-downs used to be a `useState<"main" | …>` union with an
+ * early return per screen, so the chrome lived inside whichever subpage was
+ * showing and the hub had none of its own. Each screen is now a named entry in
+ * one stack, and each subpage is a page in its own right with its own
+ * `PageShell` — which is also why they are returned rather than nested: a
+ * `PageShell` inside a `PageShell` would double the header, the back button and
+ * the max-width. `PageShell`'s own enter animation covers the transition.
+ *
+ * The body itself is shared with the Settings "About & Community" section — see
+ * `AboutBody`.
+ */
+const SCREENS = ["main", "hallOfFame", "changelog", "team"] as const;
+type Screen = (typeof SCREENS)[number];
+
 export default function AboutTab() {
-  const [activeSubpage, setActiveSubpage] = useState<"main" | "hallOfFame" | "changelog" | "team">("main");
+  const stack = useSubpageStack<Screen>({ screens: SCREENS });
+  const { screen } = stack;
 
-  if (activeSubpage === "team") {
-    return (
-      <div className="animate-fadeIn">
-        <TeamModal handleClose={() => setActiveSubpage("main")} />
-      </div>
-    );
-  }
-
-  if (activeSubpage === "hallOfFame") {
-    return (
-      <div className="animate-fadeIn">
-        <HallOfFameModal handleClose={() => setActiveSubpage("main")} />
-      </div>
-    );
-  }
-
-  if (activeSubpage === "changelog") {
-    return (
-      <div className="animate-fadeIn">
-        <ChangelogModal handleClose={() => setActiveSubpage("main")} />
-      </div>
-    );
-  }
+  if (screen === "team") return <TeamModal handleClose={stack.reset} />;
+  if (screen === "changelog") return <ChangelogModal handleClose={stack.reset} />;
+  if (screen === "hallOfFame") return <HallOfFameModal handleClose={stack.reset} />;
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6 pt-2 md:pb-8 animate-fadeIn">
-      <div className="flex flex-col mb-6">
-        <h2 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-          About & Resources
-        </h2>
-        <p className="text-sm font-semibold text-gray-500 mt-1">
-          Information about AmazeCC and helpful links
-        </p>
-      </div>
-      <AboutSection />
-      
-      <div className="flex flex-col mt-8 mb-4">
-        <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Resources
-        </h3>
-      </div>
-      <ResourcesSection setActiveSubpage={setActiveSubpage} />
-    </div>
+    <PageShell
+      eyebrow="AmazeCC"
+      title="About & Resources"
+      subtitle="Information about AmazeCC and helpful links"
+    >
+      <AboutBody setActiveSubpage={(page) => stack.go(page as AboutSubpage)} />
+    </PageShell>
   );
 }

@@ -336,25 +336,43 @@ Modal overlay showing:
 - Grade color coding: S (green), A (blue), B (yellow), C (orange), F/N (red)
 - Marks breakdown per assessment
 
-### 5.2 AllGradesDisplay (`Exams/AllGradesDisplay.tsx`)
+### 5.2 CGPA Predictor (`Exams/CurriculumPage.tsx`, planner screen)
 
-All semesters' grades in one view:
-- Grouped by semester
-- Per-course: grade, credits, GPA contribution
-- Running CGPA calculation
-- Overall CGPA display
+Predictive tool, reached via Academics → Degree Curriculum → Planner (and via the
+Academics hub and mobile home shortcuts, which deep-link to the same screen):
+- Target graduation CGPA dial, persisted locally
+- Per-course expected grade for the current term, seeded from the real grade
+  where the course is already cleared
+- Semester SGPA the plan delivers, and the SGPA needed to land on target
+- Projected cumulative CGPA, and the remaining average needed after the term
+- Respects the page's grade-blur privacy toggle
 
-### 5.3 GPAPredictorTab (`Exams/GPAPredictorTab.tsx`)
+### 5.3 Grade History (`Exams/MarksHistoryTab.tsx`)
 
-Predictive tool that:
-- Shows current marks per course
-- Allows inputting expected future marks
-- Calculates predicted GPA and CGPA
-- Shows what grade is needed in remaining assessments
+Every term's results in one place. Three screens off one `PageShell`:
+- **Overview** — cumulative CGPA headline (from VTOP, with a term-mean fallback
+  that is labelled as unweighted), a rotating insight tile, a semester chip
+  strip, the term's courses sorted best-grade-first, and a per-term GPA strip
+- **Subject** — one course's grade: overall, letter, per-assessment marks with
+  weightage, and the grade scale with the reader's own band marked. An embedded
+  (theory + lab) course additionally shows its two halves separately, each with
+  its own score, credits and assessment list, plus the credit-weighted blend
+  reconciled against the single published total
+- **Insights** — grade distribution across all terms, theory against lab, and
+  average score by term
 
-### 5.4 Marks History (`Exams/MarksHistoryTab.tsx`)
+Arithmetic lives in `lib/gradeHistory.ts` (tested). No charting library: the
+trends are `MiniBar` strips, which removed `recharts` from the first-load bundle.
 
-Timeline view of marks across assessments for each course.
+Embedded courses need one note. VTOP publishes an embedded course as a **single**
+row with one blended total and a flat breakdown — `all-grades` carries no
+theory/lab marker at all. The two halves appear only in the marks payload, where
+an embedded course is two courses under one code (`Embedded Theory`, 3cr +
+`Embedded Lab`, 1cr), and where the published total is their credit-weighted
+mean. `pastDataSync` already caches that payload per term as
+`frozen_marks_<semesterId>`, so the subject screen splits the halves from cache
+and fetches nothing extra. When a term predates that cache the screen says so
+instead of implying the breakdown is complete.
 
 ---
 

@@ -15,7 +15,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import ToolsHub from "./ToolsHub";
-import GPAPredictorTab from "../exams/GPAPredictorTab";
 import FacultyInfoTab from "../exams/FacultyInfoTab";
 import FreeClassroomsTab from "../exams/FreeClassroomsTab";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
@@ -23,6 +22,8 @@ import SocialTab from "../social/SocialTab";
 import CabShareTab from "../hostel/CabShare/CabShareTab";
 import QBankSubpage from "../qbank/QBankSubpage";
 import OverallAttendancePredictor from "../attendance/OverallAttendancePredictor";
+import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
+import { buildMilestoneDates } from "@/lib/milestoneDates";
 import MarksPredictorTab from "../exams/MarksPredictorTab";
 import TasksTab from "../tasks/TasksTab";
 
@@ -35,6 +36,15 @@ interface ToolsTabProps {
   activeToolsSubTab: string;
   setActiveToolsSubTab: (subTab: string) => void;
   setActiveTab?: (tab: string) => void;
+  /**
+   * Main's history-aware back. Required by any page here that should consume a
+   * history entry rather than push one — see the note on the predictor below.
+   */
+  onSystemBack?: () => void;
+  /** Raw `/api/calendar` payload, for the surfaces that read milestone dates. */
+  calendarData?: any;
+  decimalValues?: boolean;
+  isDayscholarWithBus?: boolean;
 }
 
 export default function ToolsTab({
@@ -46,6 +56,10 @@ export default function ToolsTab({
   activeToolsSubTab,
   setActiveToolsSubTab,
   setActiveTab,
+  onSystemBack,
+  calendarData,
+  decimalValues,
+  isDayscholarWithBus,
 }: ToolsTabProps) {
   return (
     <div className="animate-fadeIn w-full max-w-7xl mx-auto space-y-4 md:pb-8">
@@ -76,16 +90,6 @@ export default function ToolsTab({
           </div>
         )}
 
-        {activeToolsSubTab === "predictor" && (
-          <div className="animate-fadeIn">
-            <GPAPredictorTab
-              marksData={marksData}
-              attendance={attendanceData?.attendance}
-              setActiveSubTab={setActiveToolsSubTab}
-            />
-          </div>
-        )}
-
         {activeToolsSubTab === "marks-predictor" && (
           <div className="animate-fadeIn">
             <MarksPredictorTab
@@ -107,7 +111,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "cabshare" && (
           <div className="animate-fadeIn">
-            <CabShareTab />
+            <CabShareTab onBack={() => setActiveToolsSubTab("overview")} />
           </div>
         )}
 
@@ -119,10 +123,30 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "attendance-predictor" && (
           <div className="animate-fadeIn">
-            <OverallAttendancePredictor
-              attendanceData={attendanceData?.attendance || []}
-              onBack={() => setActiveToolsSubTab("overview")}
-            />
+            {(() => {
+              // Without the calendar the predictor has no working days, no
+              // milestones and therefore no locks — every course showed "no
+              // classes left to project". It was reachable from this hub, so it
+              // gets the same data the Dashboard hands its own copy.
+              const { results, impDates } = buildMilestoneDates(calendarData);
+              return (
+                <OverallAttendancePredictor
+                  attendanceData={attendanceData?.attendance || []}
+                  analyzeCalendars={results}
+                  dayCardsMap={buildAttendanceDayCardsMap(
+                    attendanceData?.attendance || [],
+                    undefined,
+                    (typeof window !== "undefined"
+                      ? localStorage.getItem("saturday_timetable_override")
+                      : null) || "SAT"
+                  )}
+                  impDates={impDates}
+                  isDayscholarWithBus={isDayscholarWithBus}
+                  decimalValues={decimalValues}
+                  onBack={onSystemBack ?? (() => setActiveToolsSubTab("overview"))}
+                />
+              );
+            })()}
           </div>
         )}
 

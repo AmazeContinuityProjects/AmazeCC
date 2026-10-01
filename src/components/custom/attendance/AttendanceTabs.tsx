@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { buildMilestoneDates } from "@/lib/milestoneDates";
 import NoContentFound from "../NoContentFound";
 import OverallAttendancePredictor from "./OverallAttendancePredictor";
 import { BadgeQuestionMark, Calendar, CalendarCheck, Users } from "lucide-react";
@@ -12,6 +12,7 @@ import AttendanceSummary from "./AttendanceSummary";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
+import { useOverlayBack } from "@/lib/overlayStack";
 import PageHeader from "../shared/PageHeader";
 import { AnimatePresence } from "framer-motion";
 import TabHelpFooter from "../shared/TabHelpFooter";
@@ -54,7 +55,19 @@ export default function AttendanceTabs({
   const [showCommonFree, setShowCommonFree] = useState(false);
 
   // Predictor/timetable/common-free dialogs register themselves for system
-  // back via BottomSheet; nothing to do here.
+  // back; nothing to do here.
+  //
+  // The predictor used to be wrapped in a `BottomSheet`, which registered itself
+  // and so got system back for free. That block sat *below* the full-screen
+  // `if (showPredictor) return ...`, so it never rendered: opening the predictor
+  // pushed no history entry and registered no overlay, leaving system back with
+  // nothing to dismiss. It registers here instead, and the dead sheet is gone.
+  useOverlayBack(
+    "attendance-predictor",
+    showPredictor,
+    useCallback(() => setShowPredictor(false), [])
+  );
+
   const [dashboardFriends, setDashboardFriends] = useState<Friend[]>([]);
   const [desktopSelectedIdx, setDesktopSelectedIdx] = useState(0);
   const [simulatedSkips, setSimulatedSkips] = useState<Record<string, number>>({});
@@ -109,7 +122,7 @@ export default function AttendanceTabs({
     return buildAttendanceDayCardsMap(data?.attendance || [], undefined, saturdayOverride);
   }, [data?.attendance, saturdayOverride]);
 
-  const { results, importantEvents } = analyzeAllCalendars(calendars);
+  const { results } = buildMilestoneDates(calendars);
 
   const today = new Date();
   const todayDate = today.getDate();
@@ -218,20 +231,14 @@ export default function AttendanceTabs({
     setDesktopSelectedIdx(getOngoingIndex(dayClasses));
   }, [activeDay]);
 
-  const findEventDate = (eventName) => {
-    const ev = [...importantEvents.values()].find(
-      (e) => e.event.toLowerCase() === eventName.toLowerCase()
-    );
-    if (!ev) return null;
-    return ev.formattedDate;
-  };
-  const impDates = {
-    cat1Date: findEventDate("CAT I"),
-    cat2Date: findEventDate("CAT II"),
-    lidLabDate: findEventDate("lid for laboratory classes"),
-    lidTheoryDate: findEventDate("LID FOR THEORY CLASSES"),
-    midsemStart: findEventDate("Mid Term Test"),
-  };
+  // Milestone dates by canonical key, shared with the Dashboard and Tools
+  // copies. This used to exact-match the display string against literals of
+  // mixed casing ("CAT I", "lid for laboratory classes", "LID FOR THEORY
+  // CLASSES"), so a reworded display name would have silently produced nulls.
+  const impDates = useMemo(
+    () => buildMilestoneDates(calendars).impDates,
+    [calendars]
+  );
 
   const overallSimStats = useMemo(() => {
     let totalAttended = 0;
@@ -553,19 +560,6 @@ export default function AttendanceTabs({
       {/* Tab Help Footer */}
       <TabHelpFooter tabId="attendance" />
 
-      <AnimatePresence>
-        {showPredictor && (
-          <BottomSheet onClose={() => setShowPredictor(false)} overlayId="attendance-predictor" maxWidth="max-w-4xl">
-            <OverallAttendancePredictor
-              attendanceData={data.attendance}
-              analyzeCalendars={results}
-              dayCardsMap={dayCardsMap}
-              impDates={impDates}
-              isDayscholarWithBus={isDayscholarWithBus}
-            />
-          </BottomSheet>
-        )}
-      </AnimatePresence>
       <AnimatePresence>
         {showTimetable && (
           <BottomSheet onClose={() => setShowTimetable(false)} overlayId="attendance-timetable" maxWidth="max-w-6xl">

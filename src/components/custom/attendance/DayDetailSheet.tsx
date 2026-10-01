@@ -21,10 +21,11 @@ import { cn } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { AvatarDot, DotPill, EmptyPanel, GhostButton, IconButton, IconLink, ListRowText, ListShell, SectionHeader, ToneBadge, ToneDot } from "../shared/primitives";
 import { dayKeyForDate, minutesToTimeStr, slotRange } from "@/lib/social/schedule";
-import type { AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
+import { resolveTeachingDay, type AttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import {
   dayHeadline,
   assessmentsOn,
+  dayOrderNote,
   examsOn,
   formatDayHeading,
   hasClasses,
@@ -122,15 +123,31 @@ export default function DayDetailSheet({
   const isToday = day ? day.dateKey === todayKey() : false;
 
   /**
-   * The live timetable for this weekday. `buildAttendanceDayCardsMap` already
-   * merged back-to-back slots of the same course, so a two-hour block is one
-   * row here, not two.
+   * The timetable this date follows.
+   *
+   * Not the weekday. When the college published a day order for the date — a
+   * reschedule, usually onto a Saturday — the classes on it are another day's,
+   * and keying off `dayKeyForDate` showed an empty or wrong list. The term-wide
+   * Saturday setting needs no help here: `buildAttendanceDayCardsMap` already
+   * rewrote `map.SAT` to that day's classes.
+   */
+  const teachingDay = useMemo(
+    () => (day ? resolveTeachingDay(day.fullDate, day.dayOrder) : "SAT"),
+    [day]
+  );
+
+  /**
+   * The live timetable for that teaching day. `buildAttendanceDayCardsMap`
+   * already merged back-to-back slots of the same course, so a two-hour block is
+   * one row here, not two.
    */
   const schedule = useMemo(() => {
     if (!day) return [];
-    const key = dayKeyForDate(day.fullDate);
-    return (dayCardsMap?.[key] ?? []) as any[];
-  }, [day, dayCardsMap]);
+    return (dayCardsMap?.[teachingDay] ?? []) as any[];
+  }, [day, dayCardsMap, teachingDay]);
+
+  /** Set only when the date does not follow its own weekday, so it is rare. */
+  const orderNote = useMemo(() => (day ? dayOrderNote(day) : undefined), [day]);
 
   /**
    * What occupies this day, in one place, because the schedule slot below is
@@ -258,9 +275,25 @@ export default function DayDetailSheet({
           */}
         {occupying.kind === "schedule" ? (
           <section className="space-y-2.5">
-            <SectionHeader icon={Clock} title="Schedule" count={schedule.length} />
+            <SectionHeader
+              icon={Clock}
+              title={orderNote ? "Schedule · rescheduled" : "Schedule"}
+              count={schedule.length}
+            />
+            {/* A reschedule shown without saying so is worse than not handled at
+                all: the student would sit through the wrong day's classes. The
+                note names both days, because "which timetable?" and "which day
+                is it?" are the two things that have just changed. */}
+            {orderNote && (
+              <p className="px-1 text-[11px] font-semibold leading-relaxed text-amber-600 dark:text-amber-400">
+                {orderNote}
+              </p>
+            )}
             {schedule.length === 0 ? (
-              <EmptyPanel variant="dashed" title="No classes on this weekday." />
+              <EmptyPanel
+                variant="dashed"
+                title={orderNote ? "No classes in that day's timetable." : "No classes on this weekday."}
+              />
             ) : (
               <ListShell>
                 {schedule.map((cls) => {

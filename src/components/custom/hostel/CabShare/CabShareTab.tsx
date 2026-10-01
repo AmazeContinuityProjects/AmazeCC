@@ -1,18 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import SubTabStrip from "../../shared/SubTabStrip";
 import CreateTrip from "./CreateTrip";
 import SearchTrips from "./SearchTrips";
 import MyTrips from "./MyTrips";
-import PageHeader from "../../shared/PageHeader";
-import { Car, Loader2, Plus, Search, UserRoundCheck } from "lucide-react";
+import { ChevronRight, Lock, Plus, UserRoundCheck } from "lucide-react";
+import { cn } from "@amazecontinuityprojects/amazeui";
 import CabShareAuthModal from "./CabShareAuthModal";
 import { api } from "@/lib/sync-engine";
 import { readJsonResponse } from "./cabShareFallback";
+import { PageShell, ChipTabs, ListSkeleton, SectionHeader, StatTile, ToneBadge } from "../../shared/primitives";
+import { TILE_INTERACTIVE_ROW, TILE_CARD } from "@/lib/uiTokens";
 
-export default function CabShareTab() {
-  const [activeTab, setActiveTab] = useState("search");
+const TABS = [
+  { value: "search", label: "Find Ride" },
+  { value: "create", label: "Post Ride" },
+  { value: "my-trips", label: "My Trips" },
+] as const;
+
+type CabShareScreen = (typeof TABS)[number]["value"];
+
+export default function CabShareTab({ onBack }: { onBack?: () => void }) {
+  const [activeTab, setActiveTab] = useState<CabShareScreen>("search");
   const [cabShareUser, setCabShareUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -44,98 +53,106 @@ export default function CabShareTab() {
     return () => clearInterval(interval);
   }, [refreshPendingCount]);
 
+  // The pending tally the poll has always computed but nothing showed: it is the
+  // one number on this page the reader cannot get anywhere else, and it is what
+  // makes "My Trips" worth opening.
+  const signedInAs = cabShareUser?.name || cabShareUser?.reg_number;
+
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-500 dark:text-gray-400" />
-      </div>
+      <PageShell
+        eyebrow="Hostel"
+        title="Cab Share"
+        subtitle="Find students heading the same way."
+        selectable
+        onBack={onBack}
+      >
+        <ListSkeleton rows={4} />
+      </PageShell>
     );
   }
 
   return (
-    <div className="animate-fadeIn space-y-6">
-      <PageHeader
-        icon={<Car className="w-5.5 h-5.5 text-blue-605 dark:text-blue-400" />}
-        title="Cab Share"
-        meta={
-          cabShareUser ? (
-            <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400">
-              <UserRoundCheck className="h-3.5 w-3.5" />
-              {cabShareUser.name || cabShareUser.reg_number}
-            </span>
-          ) : null
-        }
-        actions={
-          cabShareUser ? (
-            <div className="hidden items-center gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400 md:flex">
-              <span>Find students heading the same way.</span>
-            </div>
-          ) : null
-        }
-      />
-
-      <CabShareAuthModal 
-        isOpen={!cabShareUser} 
+    <PageShell
+      eyebrow="Hostel"
+      title="Cab Share"
+      subtitle="Find students heading the same way."
+      // Host names, ride notes and phone numbers are the page's content, and a
+      // reader copying a number to dial it is the obvious thing to do here.
+      selectable
+      onBack={onBack}
+      actions={
+        cabShareUser ? (
+          <ToneBadge tone="emerald" icon={<UserRoundCheck className="h-3 w-3" />}>
+            {signedInAs}
+          </ToneBadge>
+        ) : null
+      }
+    >
+      <CabShareAuthModal
+        isOpen={!cabShareUser}
         onAuthSuccess={(user) => {
           localStorage.setItem("cabshare_user", JSON.stringify(user));
           setCabShareUser(user);
-        }} 
+        }}
       />
 
       {cabShareUser && (
-        <>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="min-w-0">
-              <SubTabStrip
-                tabs={[
-                  { id: "search", label: "Find Ride" },
-                  { id: "create", label: "Post Ride" },
-                  { id: "my-trips", label: "My Trips" },
-                ]}
-                activeTab={activeTab}
-                onChange={setActiveTab}
-              />
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <StatTile
+              label="Pending requests"
+              value={pendingCount}
+              badge={pendingCount > 0 ? "Action needed" : "All clear"}
+              tone={pendingCount > 0 ? "amber" : "emerald"}
+              sub={pendingCount > 0 ? "Students waiting on your reply" : "No replies outstanding"}
+              height="min-h-32 sm:min-h-36"
+            />
 
-              <div className="pt-2">
-                {activeTab === "search" && <SearchTrips cabShareUser={cabShareUser} />}
-                {activeTab === "create" && <CreateTrip cabShareUser={cabShareUser} onTripCreated={() => setActiveTab("my-trips")} />}
-                {activeTab === "my-trips" && <MyTrips cabShareUser={cabShareUser} />}
-              </div>
-            </div>
-
-            <aside className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black lg:sticky lg:top-4">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Quick actions</p>
-                  <div className="mt-3 grid gap-2">
-                    <button
-                      onClick={() => setActiveTab("search")}
-                      className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-blue-900/40 dark:hover:bg-blue-950/20"
-                    >
-                      <Search className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Find a ride</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("create")}
-                      className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition-colors hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-emerald-900/40 dark:hover:bg-emerald-950/20"
-                    >
-                      <Plus className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Post a ride</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
-                  <p className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">Privacy</p>
-                  <p className="mt-2 text-xs font-medium leading-relaxed text-blue-900/70 dark:text-blue-200/70">
-                    Phone numbers are shared only after a ride request is accepted.
-                  </p>
-                </div>
-              </div>
-            </aside>
+            <button
+              type="button"
+              onClick={() => setActiveTab("create")}
+              className={cn(TILE_INTERACTIVE_ROW, "flex-col items-start justify-end gap-2 p-4 sm:p-5")}
+            >
+              <span className="flex w-full items-center justify-between gap-2">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">
+                  Post a ride
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              </span>
+              <span className="my-auto flex w-full items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  <Plus className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 text-left">
+                  <span className="block text-base font-black font-outfit tracking-tight leading-tight text-text-heading">
+                    Split your cab
+                  </span>
+                  <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
+                    {pendingCount > 0 ? `${pendingCount} pending on your rides` : "Offer your route to others"}
+                  </span>
+                </span>
+              </span>
+            </button>
           </div>
-        </>
+
+          <ChipTabs options={TABS} value={activeTab} onChange={setActiveTab} />
+
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {activeTab === "search" && <SearchTrips cabShareUser={cabShareUser} />}
+            {activeTab === "create" && <CreateTrip cabShareUser={cabShareUser} onTripCreated={() => setActiveTab("my-trips")} />}
+            {activeTab === "my-trips" && <MyTrips cabShareUser={cabShareUser} pendingCount={pendingCount} />}
+          </div>
+
+          <div className="space-y-3">
+            <SectionHeader icon={Lock} title="Privacy" />
+            <div className={cn(TILE_CARD, "text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted")}>
+              Phone numbers are shared only after a ride request is accepted. Until then a
+              matched student sees your name and register number only.
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </PageShell>
   );
 }

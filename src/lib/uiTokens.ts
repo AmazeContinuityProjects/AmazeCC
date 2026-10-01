@@ -19,9 +19,15 @@
 /**
  * The shared tile surface. Every "card" in the app is this translucent panel;
  * only the padding, layout and sizing utilities on top differ.
+ *
+ * The outline is `--border-strong`, not `--border-muted`. On a near-white
+ * `--surface` a `--border-muted` hairline is not readable as an edge at all, and
+ * a tile with no edge is a tile with no shape — the card and the page behind it
+ * read as one wash. `--border-strong` is the step that survives on white; see
+ * the border-step override in `globals.css`.
  */
 const TILE_SURFACE =
-  "rounded-[24px] bg-surface/80 dark:bg-surface/70 backdrop-blur-xl border border-border-muted dark:border-border/80 shadow-xs";
+  "rounded-[24px] bg-surface/80 dark:bg-surface/70 backdrop-blur-xl border border-border-strong dark:border-border shadow-xs";
 
 export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between text-left relative overflow-hidden`;
 
@@ -66,18 +72,18 @@ export const SEARCH_FIELD =
   "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
 export const LIST_SHELL =
-  "overflow-hidden rounded-2xl border border-border-muted dark:border-border/80 bg-surface/80 dark:bg-surface/70 backdrop-blur-xl shadow-xs divide-y divide-border-muted/60 dark:divide-border/60";
+  "overflow-hidden rounded-2xl border border-border-strong dark:border-border bg-surface/80 dark:bg-surface/70 backdrop-blur-xl shadow-xs divide-y divide-border-muted dark:divide-border/70";
 
 export const LIST_ROW =
   "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover/40";
 
 export const CHIP =
-  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted/60 dark:border-border/60";
+  "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border";
 
 export const SECTION_CHIP = CHIP;
 
 export const ICON_BUTTON =
-  "p-2.5 rounded-xl bg-surface-tertiary hover:bg-border-muted/80 dark:bg-surface dark:hover:bg-surface-hover border border-border-muted/80 dark:border-border text-text-primary dark:text-text-primary transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
+  "p-2.5 rounded-xl bg-surface-tertiary hover:bg-border-muted dark:bg-surface dark:hover:bg-surface-hover border border-border-muted dark:border-border text-text-primary dark:text-text-primary transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0";
 
 /**
  * Active/inactive segmented-control segments.
@@ -134,6 +140,10 @@ export const TONE_ICON_TILE: Record<string, string> = {
   violet: "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
   red: "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400",
   indigo: "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400",
+  // Neutral well, for an icon that identifies a destination rather than a state
+  // (a repository, a brand mark). `TONE_BADGE.zinc` reads the surface tokens;
+  // this one stays a fixed step so it still reads as a tile on both surfaces.
+  zinc: "bg-zinc-500/10 border-zinc-500/20 text-zinc-600 dark:text-zinc-300",
 };
 
 export const EMPTY_STATE =

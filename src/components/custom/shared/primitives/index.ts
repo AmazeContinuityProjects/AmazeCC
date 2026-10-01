@@ -21,7 +21,7 @@ export { ListSkeleton } from "./ListSkeleton";
 export { useCarousel, type CarouselState } from "./useCarousel";
 export { useHorizontalSwipe, type HorizontalSwipe } from "./useHorizontalSwipe";
 export { InsightCarousel, type InsightSlide } from "./InsightCarousel";
-export { SectionHeader, StatTile, ListShell, ListRowText, KeyValue } from "./Surfaces";
+export { SectionHeader, StatTile, ListShell, ListRowText, KeyValue, MiniBar } from "./Surfaces";
 export { IconButton, IconLink, GhostButton, SegmentedControl, ChipTabs } from "./Controls";
 export { ToneBadge, ToneDot, DotPill, ToneLegend, EmptyPanel, AvatarDot } from "./Feedback";
 export { default as Switch, type SwitchProps } from "./Switch";
