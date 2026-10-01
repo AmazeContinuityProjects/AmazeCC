@@ -2,15 +2,46 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { Loader2, Calendar as CalendarIcon, Clock, MapPin, Users, CheckCircle2, MessageSquareText, SlidersHorizontal, ArrowRight } from "lucide-react";
+import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, Clock, Loader2, MapPin, MessageSquareText, SlidersHorizontal, Users } from "lucide-react";
 import { createLocalTrip, fallbackHubs, readJsonResponse, dedupeHubs } from "./cabShareFallback";
+import SelectField from "../../shared/primitives/SelectField";
+import { ListSkeleton } from "../../shared/primitives";
+import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+
+const FIELD_LABEL =
+  "block text-[10px] font-black uppercase tracking-wider text-text-muted";
+
+/** Label + icon-led control, the one wrapper the date/time/seats/tolerance share. */
+// Descendant (not `> child`) selectors: `SelectField` renders its own wrapper
+// `div` around the `select`, so the control is not always a direct child.
+function FieldWithIcon({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className={FIELD_LABEL}>{label}</span>
+      <span className="relative block [&_input]:pl-11 [&_select]:pl-11">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+          {icon}
+        </span>
+        {children}
+      </span>
+    </label>
+  );
+}
 
 export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUser: any, onTripCreated: () => void }) {
   const [hubs, setHubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  
+
   const [fromHubId, setFromHubId] = useState("");
   const [hubId, setHubId] = useState("");
   const [date, setDate] = useState("");
@@ -106,157 +137,144 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
   };
 
   return (
-    <section className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black sm:p-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-gray-950 dark:text-white">Post a ride</h2>
-            <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
-              Add your route and timing so others can request to share the cab.
-            </p>
-          </div>
+    <div className={TILE_CARD}>
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
+          <MapPin className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Post a ride</h2>
+          <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium leading-relaxed mt-0.5">
+            Add your route and timing so others can request to share the cab.
+          </p>
         </div>
       </div>
-      
+
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+        <div className="mt-4">
+          <ListSkeleton rows={4} />
+        </div>
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} className="mt-5 grid gap-4 lg:grid-cols-2">
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 lg:col-span-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-400 lg:col-span-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
-              <select 
-                value={fromHubId} 
-                onChange={(e) => handleFromChange(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-              >
-                {hubs.map(h => (
-                  <option key={`from-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
-              <select 
-                value={hubId} 
-                onChange={(e) => handleToChange(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-              >
-                {hubs.map(h => (
-                  <option key={`to-${h.hub_id}`} value={h.hub_id}>{h.hub_name}</option>
-                ))}
-              </select>
-            </div>
+            <label className="block space-y-1">
+              <span className={FIELD_LABEL}>From</span>
+              <SelectField
+                value={fromHubId}
+                options={hubs.map(h => ({ value: h.hub_id.toString(), label: h.hub_name }))}
+                onChange={handleFromChange}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className={FIELD_LABEL}>To</span>
+              <SelectField
+                value={hubId}
+                options={hubs.map(h => ({ value: h.hub_id.toString(), label: h.hub_name }))}
+                onChange={handleToChange}
+              />
+            </label>
           </div>
-          
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="date" 
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</label>
-              <div className="relative">
-                <Clock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="time" 
-                  required
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-                />
-              </div>
-            </div>
+            <FieldWithIcon label="Date" icon={<CalendarIcon className="h-4 w-4" />}>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={FIELD_INPUT}
+              />
+            </FieldWithIcon>
+            <FieldWithIcon label="Time" icon={<Clock className="h-4 w-4" />}>
+              <input
+                type="time"
+                required
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className={FIELD_INPUT}
+              />
+            </FieldWithIcon>
           </div>
-          
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Available Seats</label>
-              <div className="relative">
-                <Users className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <select 
-                value={seats} 
+            <FieldWithIcon label="Available Seats" icon={<Users className="h-4 w-4" />}>
+              <select
+                value={seats}
                 onChange={(e) => setSeats(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+                className={`${FIELD_INPUT} appearance-none pr-4`}
               >
                 {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Tolerance</label>
-              <div className="relative">
-                <SlidersHorizontal className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <select 
-                value={tolerance} 
+            </FieldWithIcon>
+            <FieldWithIcon label="Tolerance" icon={<SlidersHorizontal className="h-4 w-4" />}>
+              <select
+                value={tolerance}
                 onChange={(e) => setTolerance(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+                className={`${FIELD_INPUT} appearance-none pr-4`}
               >
                 <option value="0.5">± 30 mins</option>
                 <option value="1.0">± 1 hr</option>
                 <option value="1.5">± 1.5 hrs</option>
                 <option value="2.0">± 2 hrs</option>
               </select>
-              </div>
-            </div>
+            </FieldWithIcon>
           </div>
-          
-          <div className="space-y-2 lg:col-span-2">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Gender Preference</label>
+
+          <fieldset className="lg:col-span-2">
+            <legend className={`${FIELD_LABEL} mb-2`}>Gender Preference</legend>
             <div className="grid gap-2 sm:grid-cols-3">
-              {['mixed', 'boys', 'girls'].map(opt => (
-                <label key={opt} className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-sm font-black capitalize transition-colors ${
-                  gender === opt
-                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400"
-                    : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-400"
-                }`}>
-                  <input className="sr-only" type="radio" name="gender" value={opt} checked={gender === opt} onChange={(e) => setGender(e.target.value)} />
+              {(["mixed", "boys", "girls"] as const).map(opt => (
+                <label
+                  key={opt}
+                  className={`flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-sm font-black capitalize transition-colors ${
+                    gender === opt
+                      ? "border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                      : "border-border-strong text-text-secondary dark:text-text-muted hover:bg-surface-secondary dark:hover:bg-surface-hover"
+                  }`}
+                >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="gender"
+                    value={opt}
+                    checked={gender === opt}
+                    onChange={(e) => setGender(e.target.value)}
+                  />
                   {opt}
                 </label>
               ))}
             </div>
-          </div>
-          
-          <div className="space-y-1 lg:col-span-2">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Notes</label>
-            <div className="relative">
-              <MessageSquareText className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
-              <textarea 
+          </fieldset>
+
+          <label className="block space-y-1 lg:col-span-2">
+            <span className={FIELD_LABEL}>Notes</span>
+            <span className="relative block">
+              <MessageSquareText className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-text-muted" />
+              <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Example: Bringing heavy luggage"
-                className="h-24 w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-11 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+                className={`${FIELD_INPUT} h-24 resize-none pl-11`}
               />
-            </div>
-          </div>
-          
-          <button 
-            type="submit" 
+            </span>
+          </label>
+
+          <button
+            type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70 lg:col-span-2"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70 lg:col-span-2"
           >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5" /> Post Ride</>}
           </button>
         </form>
       )}
-    </section>
+    </div>
   );
 }

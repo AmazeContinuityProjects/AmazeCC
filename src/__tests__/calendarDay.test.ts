@@ -19,11 +19,13 @@ import {
   milestonesOn,
   parseCalendarMonth,
   parseDayDate,
+  parseDayOrder,
   primaryEventOn,
   relativeDayLabel,
   statusForClass,
   summariseOd,
   synthesiseDay,
+  dayOrderNote,
 } from "../lib/calendarDay";
 import type { Task } from "../types/tasks";
 
@@ -70,6 +72,173 @@ const viewLink = (courseCode: string, courseTitle: string, entries: [string, str
   courseTitle,
   slotName: "A1",
   viewLink: entries.map(([date, status]) => ({ date, status })),
+});
+
+/**
+ * A calendar where one date carries a published day order.
+ *
+ * The reschedule is the reason this exists: a holiday costs a day of teaching, so
+ * the college republishes it against another date and says which weekday's
+ * timetable to follow. Those dates are usually Saturdays, which is exactly the
+ * case a weekday-keyed lookup gets wrong.
+ */
+function rescheduledCalendar(iso: string, category: string, text = "Instructional Day") {
+  return [
+    {
+      month: "August 2026",
+      year: 2026,
+      days: [
+        {
+          date: Number(iso.slice(8, 10)),
+          events: [{ type: "Other", text, category }],
+        },
+      ],
+    },
+  ];
+}
+
+describe("parseDayOrder", () => {
+  it("reads the day out of the full published phrase", () => {
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day", category: "Instructional Day Order - Thursday Day Order" },
+      ])
+    ).toBe("THU");
+  });
+
+  it("copes with the separator being a colon or an en dash", () => {
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day", category: "Instructional Day Order: Friday" },
+      ])
+    ).toBe("FRI");
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day", category: "Instructional Day Order – Monday Day Order" },
+      ])
+    ).toBe("MON");
+  });
+
+  it("reads a bare abbreviation", () => {
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day", category: "Instructional Day Order - SAT" },
+      ])
+    ).toBe("SAT");
+  });
+
+  it("takes the day order, not the date's own weekday", () => {
+    // The failure this exists to prevent. A reschedule lands on a Saturday and
+    // is written the way a human writes it — real date first — so the LAST
+    // weekday named is the answer and the first is the trap.
+    expect(
+      parseDayOrder([
+        {
+          type: "Other",
+          text: "Instructional Day",
+          category: "Saturday - Instruction Day Order - Thursday Day Order",
+        },
+      ])
+    ).toBe("THU");
+  });
+
+  it("finds the phrase in `text` as well as `category`", () => {
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day Order - Tuesday Day Order", category: "Working day" },
+      ])
+    ).toBe("TUE");
+  });
+
+  it("reads all seven long forms, not just the easy ones", () => {
+    // Written as a table on purpose. An earlier version enumerated the suffixes
+    // (`day` / `nesday` / `rsday` / `urday` / …) and quietly missed `sday`, so
+    // Tuesday — and only Tuesday — stopped matching. A missing weekday does not
+    // throw; it turns a rescheduled Tuesday into an ordinary teaching day, which
+    // is invisible until you are sitting in the wrong class.
+    const forms: [string, string][] = [
+      ["Monday", "MON"], ["Tuesday", "TUE"], ["Wednesday", "WED"],
+      ["Thursday", "THU"], ["Friday", "FRI"], ["Saturday", "SAT"],
+      ["Sunday", "SUN"],
+    ];
+    for (const [name, expected] of forms) {
+      expect(
+        parseDayOrder([
+          { type: "Other", text: "Instructional Day", category: `Instructional Day Order - ${name} Day Order` },
+        ])
+      ).toBe(expected);
+    }
+  });
+
+  it("does not read a word that merely starts like a weekday", () => {
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Instructional Day", category: "Working day - Monsoon Season" },
+      ])
+    ).toBeUndefined();
+  });
+
+  it("ignores a weekday that only appears on a non-instructional entry", () => {
+    // A festival named after a weekday must not be able to declare a reschedule.
+    expect(
+      parseDayOrder([
+        { type: "Other", text: "Holiday", category: "Sunday Observance" },
+        { type: "Other", text: "Instructional Day", category: "Working day" },
+      ])
+    ).toBeUndefined();
+  });
+
+  it("is undefined on an ordinary working day", () => {
+    expect(
+      parseDayOrder([{ type: "Other", text: "Instructional Day", category: "Working day" }])
+    ).toBeUndefined();
+    expect(parseDayOrder([])).toBeUndefined();
+  });
+
+  it("does not read a weekday out of the type word itself", () => {
+    // "Instructional Day" and "No Instructional Day" both contain day-shaped
+    // words; neither names a timetable to follow.
+    expect(
+      parseDayOrder([{ type: "Other", text: "Instructional Day", category: "Instructional Day Order" }])
+    ).toBeUndefined();
+  });
+});
+
+describe("day order on the day model", () => {
+  const dayOn = (cal: any, date: number) =>
+    buildEnrichedCalendars({ calendars: cal })[0].days.find((d) => d.date === date)!;
+
+  it("carries the published day order through to the day", () => {
+    // 8 Aug 2026 is a Saturday, so this is the real case.
+    const day = dayOn(rescheduledCalendar("2026-08-08", "Instructional Day Order - Thursday Day Order"), 8);
+    expect(day.weekday).toBe("Sat");
+    expect(day.dayOrder).toBe("THU");
+    expect(day.dayType).toBe("instructional");
+  });
+
+  it("leaves ordinary days undefined so the cheap path stays the default", () => {
+    const day = dayOn(monthCalendar("August 2026"), 11);
+    expect(day.weekday).toBe("Tue");
+    expect(day.dayOrder).toBeUndefined();
+  });
+
+  it("explains a reschedule in words, naming both days", () => {
+    const day = dayOn(rescheduledCalendar("2026-08-08", "Instructional Day Order - Thursday Day Order"), 8);
+    expect(dayOrderNote(day)).toBe(
+      "Following the Thursday timetable on this Saturday."
+    );
+  });
+
+  it("says nothing when the date already follows the named day", () => {
+    const day = dayOn(rescheduledCalendar("2026-08-13", "Instructional Day Order - Thursday Day Order"), 13);
+    expect(day.weekday).toBe("Thu");
+    expect(day.dayOrder).toBe("THU");
+    expect(dayOrderNote(day)).toBeUndefined();
+  });
+
+  it("says nothing on an ordinary day", () => {
+    expect(dayOrderNote(dayOn(monthCalendar("August 2026"), 11))).toBeUndefined();
+  });
 });
 
 describe("parseDayDate", () => {

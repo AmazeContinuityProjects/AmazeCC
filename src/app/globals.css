@@ -81,6 +81,40 @@
   --color-zinc-850: var(--neutral-800);
 }
 
+/*
+ * The border steps, pushed a full step darker.
+ *
+ * amazeui ships `--border-muted` at oklch 0.93 and `--border-strong` at 0.84 in
+ * light. On a `--surface` of pure white sitting on a `--background` of oklch
+ * 0.982, a 1px line at those values is invisible — so every tile, list shell,
+ * chip and input collapses into one undifferentiated wash, which is the flat,
+ * greyed-out look this reverts.
+ *
+ * Both are darkened here rather than at each call site, because
+ * `--neutral-200` / `--neutral-300` alias `--border-muted` / `--border-strong`:
+ * the `border-zinc-200` / `border-zinc-300` classes written across the ~95 zinc
+ * files strengthen with the same two declarations, and stay palette-following.
+ *
+ * Only the two border tokens move. In dark, `--neutral-200`/`--neutral-300` also
+ * carry `dark:text-zinc-200` / `dark:text-zinc-300` (they alias
+ * `--text-secondary`), so their dark values are deliberately left alone and only
+ * these tokens' alphas rise — a border can get more visible without a line of
+ * text getting dimmer.
+ *
+ * `Main.tsx` writes its own `--border-muted`/`--border-strong` onto
+ * `documentElement` for a non-default accent palette, so its literals are raised
+ * to match; otherwise switching palette would silently undo this.
+ */
+:root {
+  --border-muted: oklch(0.88 0.008 247);
+  --border-strong: oklch(0.78 0.011 247);
+}
+
+.dark {
+  --border-muted: oklch(0.98 0.004 247 / 0.22);
+  --border-strong: oklch(0.98 0.004 247 / 0.36);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -202,20 +236,21 @@ input, textarea, [contenteditable] {
   user-select: auto; /* Keep text fields selectable */
 }
 
-.cabshare-input {
-  background: var(--surface) !important;
-  border-color: var(--border-muted) !important;
-  color: var(--text-primary) !important;
-  caret-color: var(--info);
-}
-
-.cabshare-input:focus {
-  border-color: var(--info) !important;
-}
-
-.cabshare-input:-webkit-autofill,
-.cabshare-input:-webkit-autofill:hover,
-.cabshare-input:-webkit-autofill:focus {
+/*
+ * Autofill repaint.
+ *
+ * Chrome paints its own background and text colour on an autofilled field, which
+ * on a dark surface becomes a white block with black text. The inset shadow
+ * paints our `--surface` over the top; the transition trick stops the browser
+ * re-applying its colour for the ~1 frame the box-shadow fade would expose.
+ *
+ * Scoped to `input` rather than to a feature class so every form using
+ * `FIELD_INPUT` keeps the fix — the Cab Share inputs are no longer the only ones
+ * taking a password, and the rule used to travel with them.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text-primary);
   box-shadow: 0 0 0 1000px var(--surface) inset;
   transition: background-color 9999s ease-out;

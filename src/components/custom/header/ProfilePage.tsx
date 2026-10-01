@@ -12,15 +12,11 @@ import {
   User,
   Link2,
   ExternalLink,
-  Github,
   Database,
   Shield,
-  FileText,
   ChevronRight,
   ChevronLeft,
-  History,
   RefreshCcw,
-  Trophy,
   Sliders,
   Settings,
   Bell,
@@ -75,11 +71,11 @@ import { getAssetPath } from "@/lib/utils";
 import config from "../../../../config.json";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
-import quickLinks from "../../../data/quickLinks.json";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
-import { IconToggle } from "../Toggle";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
+import TeamModal from "./TeamModal";
+import AboutBody from "./AboutBody";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, Modal, useIsMobile } from "../shared";
@@ -336,6 +332,10 @@ export default function ProfilePage({
 
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [showHallOfFame, setShowHallOfFame] = useState<boolean>(false);
+  // The About body is shared with the About tab, which offers three drill-downs.
+  // Changelog and Hall of Fame were already reachable from here; the team page
+  // was not, so it gets the same treatment rather than a dead row.
+  const [showTeam, setShowTeam] = useState<boolean>(false);
 
   // Credentials Section States
   const [credData, setCredData] = useState<any>(null);
@@ -2421,173 +2421,21 @@ export default function ProfilePage({
   );
 
   // 7. About & Community Section
+  //
+  // Was a hand-copy of the About tab: the same wordmark block, the same
+  // quickLinks, the same changelog / hall-of-fame / GitHub / privacy / terms
+  // rows, with its own version numbers that had already drifted out of date
+  // (v3.2.0 / 2026.0816). It now renders `AboutBody` — the same body the About
+  // tab shows — so the two cannot disagree, and the version comes from
+  // `package.json` and the generated `buildInfo.json` once, in one place.
   const renderAboutContent = () => (
-    <div className="space-y-6">
-      {/* App Info Hero Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 flex flex-col items-center text-center space-y-4 shadow-2xs">
-        <div className="scale-125 mb-1 shrink-0">
-          <IconToggle />
-        </div>
-        <div>
-          <h3 className="text-lg font-black text-zinc-900 dark:text-white font-outfit">
-            AmazeCC
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Your high-speed, continuity-powered college companion.
-          </p>
-        </div>
-
-        <div className="w-full max-w-sm grid grid-cols-2 gap-3 text-xs text-left pt-3 border-t border-zinc-100 dark:border-zinc-800/60">
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-800">
-            <span className="text-zinc-400 font-semibold block text-[10px]">Version</span>
-            <span className="font-bold text-zinc-800 dark:text-zinc-200">v3.2.0</span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/50 dark:border-zinc-800">
-            <span className="text-zinc-400 font-semibold block text-[10px]">Build Number</span>
-            <span className="font-bold text-zinc-800 dark:text-zinc-200">2026.0816</span>
-          </div>
-        </div>
-
-        <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 tracking-widest uppercase pt-2 border-t border-zinc-100 dark:border-zinc-800/60 w-full">
-          Crafted with care by Amaze Continuity Projects
-        </p>
-      </div>
-
-      {/* Community & Useful Links List */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
-        {quickLinks.importantLinks.map((link) => (
-          <a
-            key={link.id}
-            href={link.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-          >
-            <div className="flex items-center gap-3.5 min-w-0 pr-4">
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                <Link2 size={18} />
-              </div>
-              <div className="min-w-0">
-                <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                  {link.title}
-                </span>
-                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                  {link.desc}
-                </span>
-              </div>
-            </div>
-            <ExternalLink size={14} className="text-zinc-400 shrink-0" />
-          </a>
-        ))}
-
-        {/* Changelog */}
-        <div
-          onClick={() => setShowChangelog(true)}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-              <History size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Changelog & Release Notes
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                See all latest feature updates and performance improvements
-              </span>
-            </div>
-          </div>
-          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-        </div>
-
-        {/* Hall of Fame */}
-        <div
-          onClick={() => setShowHallOfFame(true)}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-              <Trophy size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Hall of Fame
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                Meet the contributors, developers, and testers
-              </span>
-            </div>
-          </div>
-          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
-        </div>
-
-        {/* GitHub */}
-        <a
-          href="https://github.com/AmazeContinuityProjects/AmazeCC/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 shrink-0">
-              <Github size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                GitHub Repository
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                Open-source repository, issues, and contributions
-              </span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
-        </a>
-
-        {/* Privacy Policy */}
-        <div
-          onClick={() => window.open("/privacy", "_blank")}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-              <FileText size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Privacy Policy
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                Read about client-side storage encryption and local safety
-              </span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
-        </div>
-
-        {/* Terms of Service */}
-        <div
-          onClick={() => window.open("/terms", "_blank")}
-          className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-3.5 min-w-0 pr-4">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-              <Shield size={18} />
-            </div>
-            <div className="min-w-0">
-              <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Terms of Service
-              </span>
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate mt-0.5">
-                Usage guidelines and student companion service terms
-              </span>
-            </div>
-          </div>
-          <ExternalLink size={14} className="text-zinc-400 shrink-0" />
-        </div>
-      </div>
-    </div>
+    <AboutBody
+      setActiveSubpage={(page) => {
+        if (page === "changelog") setShowChangelog(true);
+        else if (page === "hallOfFame") setShowHallOfFame(true);
+        else if (page === "team") setShowTeam(true);
+      }}
+    />
   );
 
   const getSectionContent = (id: SectionId) => {
@@ -2640,6 +2488,7 @@ export default function ProfilePage({
       {/* Footer Modals */}
       {showChangelog && <ChangelogModal handleClose={() => setShowChangelog(false)} />}
       {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
+      {showTeam && <TeamModal handleClose={() => setShowTeam(false)} />}
 
       {/* Detail Modals */}
       {activeModal === "ept" && creds && (
@@ -2693,7 +2542,17 @@ export default function ProfilePage({
           >
             <SubpageScreen id={screens.screen}>
               {activeSection === null ? (
-                <>
+                /* `space-y-6` is load-bearing here, not decoration.
+                 *
+                 * `PageShell`'s own `space-y-6` only separates the header from
+                 * the screen body — `SubpageScreen` itself is a bare animated
+                 * wrapper with no spacing utility, so its children default to
+                 * zero gap. That left the search field flush against the first
+                 * section row and the shortcuts button flush against the last
+                 * one, and because `LIST_SHELL` draws dividers between its rows
+                 * it read as those controls being *part* of the list rather than
+                 * beside it. Same rhythm as the rest of the page. */
+                <div className="space-y-6">
                   {/* Search lives here, on the hub, and only here. It drives
                       `filteredSections`, which is read exclusively by the hub
                       branch — a section renders `getSectionContent` and never
@@ -2738,57 +2597,61 @@ export default function ProfilePage({
                   forced a line-clamped subtitle per card, truncated every
                   category name to three words on a phone, and had nowhere to put
                   the current value. */}
-              <ListShell>
-                {filteredSections.map((sec) => {
-                  const Icon = sec.icon;
-                  const summary = sectionSummary[sec.id];
-                  return (
-                    <button
-                      key={sec.id}
-                      type="button"
-                      onClick={() => screens.go(sec.id)}
-                      className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
+              {/* The empty `ListShell` is only rendered when there is something
+                  to put in it — otherwise a search with no hits drew a bare
+                  2px-bordered box above the "no match" panel. */}
+              {filteredSections.length > 0 ? (
+                <ListShell>
+                  {filteredSections.map((sec) => {
+                    const Icon = sec.icon;
+                    const summary = sectionSummary[sec.id];
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => screens.go(sec.id)}
+                        className={`${LIST_ROW} cursor-pointer active:bg-zinc-100/70 dark:active:bg-zinc-800/60`}
                       >
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <ListRowText
-                        title={sec.label}
-                        subtitle={sec.subtitle}
-                        titleTag="h3"
-                        titleTooltip={sec.label}
-                      />
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span
-                          className={cn(
-                            "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
-                            summary.tone === "emerald"
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : summary.tone === "red"
-                                ? "text-red-600 dark:text-red-400"
-                                : summary.tone === "amber"
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : "text-zinc-700 dark:text-zinc-200"
-                          )}
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${sec.iconBg} ${sec.iconColor}`}
                         >
-                          {summary.value}
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-zinc-400" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </ListShell>
-
-              {filteredSections.length === 0 ? (
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <ListRowText
+                          title={sec.label}
+                          subtitle={sec.subtitle}
+                          titleTag="h3"
+                          titleTooltip={sec.label}
+                        />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={cn(
+                              "text-sm font-black font-outfit tracking-tight leading-none truncate max-w-24 sm:max-w-32",
+                              summary.tone === "emerald"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : summary.tone === "red"
+                                  ? "text-red-600 dark:text-red-400"
+                                  : summary.tone === "amber"
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-zinc-700 dark:text-zinc-200"
+                            )}
+                          >
+                            {summary.value}
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-zinc-400" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </ListShell>
+              ) : (
                 <EmptyPanel
-                  icon={<Search className="w-7 h-7" />}
+                  icon={<Search className="w-7 w-7" />}
                   title="No settings match"
                   description={`Nothing matches "${searchQuery}". Try a different word.`}
                 />
-              ) : null}
+              )}
+
 
               {/* Quick actions */}
               <div className="space-y-2">
@@ -2809,7 +2672,7 @@ export default function ProfilePage({
               </div>
             </>
           )}
-                </>
+                </div>
               ) : activeSection === "storage" ? (
                 <LocalStorageSubpage />
               ) : (

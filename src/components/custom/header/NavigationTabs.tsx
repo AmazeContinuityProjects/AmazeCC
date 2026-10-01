@@ -54,7 +54,6 @@ import {
   Rss,
   Layers,
   Sparkles,
-  TrendingUp,
   Database,
   UserCheck,
   DoorOpen,
@@ -643,16 +642,6 @@ export default function NavigationTabs({
       },
     },
     {
-      id: "predictor",
-      label: "CGPA Predictor",
-      icon: TrendingUp,
-      isActive: activeTab === "tools" && activeToolsSubTab === "predictor",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("predictor");
-      },
-    },
-    {
       id: "cabshare",
       label: "Cab Share",
       icon: CarTaxiFront,
@@ -871,15 +860,6 @@ export default function NavigationTabs({
       onSelect: () => {
         selectTab("tools");
         setActiveToolsSubTab?.("faculty-info");
-      },
-    },
-    {
-      id: "predictor",
-      label: "CGPA Predictor",
-      isActive: activeTab === "tools" && activeToolsSubTab === "predictor",
-      onSelect: () => {
-        selectTab("tools");
-        setActiveToolsSubTab?.("predictor");
       },
     },
     {
@@ -1711,7 +1691,6 @@ const AppLibraryPortal = memo(({
     { label: "Tools Hub", group: "Tools", icon: Layers, action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
     { label: "Question Bank", group: "Tools", icon: Database, action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
-    { label: "CGPA Predictor", group: "Tools", icon: TrendingUp, action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
     { label: "Free Classrooms", group: "Campus", icon: DoorOpen, action: () => { selectTab("free-class"); } },
     
@@ -1756,7 +1735,6 @@ const AppLibraryPortal = memo(({
         { label: "Tools Hub", icon: Layers, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("overview"); } },
         { label: "Question Bank", icon: Database, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("qbank"); } },
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
-        { label: "CGPA Predictor", icon: TrendingUp, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("predictor"); } },
         { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
         { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
       ]

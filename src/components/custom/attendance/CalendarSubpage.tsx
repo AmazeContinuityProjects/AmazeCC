@@ -33,6 +33,7 @@ import { TILE_CARD } from "@/lib/uiTokens";
 import {
   buildAttendanceDayCardsMap,
   parseAttendanceTime,
+  resolveTeachingDay,
   type AttendanceDayCardsMap,
 } from "@/lib/attendanceTimetable";
 import { summariseAttendance } from "@/lib/attendanceSummary";
@@ -996,9 +997,16 @@ function LogRow({ row, onClick }: { row: AttendanceLogRow; onClick: () => void }
   );
 }
 
-/** How many classes the live timetable puts on this date's weekday. */
-function countClasses(dayCardsMap: AttendanceDayCardsMap, date: Date): number {
-  const key = dayKeyForDate(date);
+/**
+ * How many classes this *day* puts on the date.
+ *
+ * Takes the day model rather than a bare `Date` so a published day order can be
+ * honoured: on a rescheduled Saturday the count has to come from the weekday
+ * being followed, or the month header and the day sheet disagree about the same
+ * date.
+ */
+function countClasses(dayCardsMap: AttendanceDayCardsMap, day: CalendarDayModel): number {
+  const key = resolveTeachingDay(day.fullDate, day.dayOrder);
   return (dayCardsMap?.[key] ?? []).length;
 }
 
@@ -1029,6 +1037,6 @@ function todaySummary(day: CalendarDayModel | null, dayCardsMap: AttendanceDayCa
     }`;
   }
   if (day.dayType === "other") return "Today · not in the calendar";
-  const live = countClasses(dayCardsMap, day.fullDate);
+  const live = countClasses(dayCardsMap, day);
   return live > 0 ? `Today · ${live} class${live === 1 ? "" : "es"}` : "Today · no classes";
 }

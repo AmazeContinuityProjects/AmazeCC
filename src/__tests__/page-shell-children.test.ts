@@ -36,7 +36,14 @@ import { resolve } from "node:path";
  */
 type Expected = readonly string[];
 
-const EXPECTED: ReadonlyArray<{ file: string; shells: readonly Expected[] }> = [
+/** Branches of a `cond ? a : b` body: the children of each `<>…</>`. */
+type Branches = readonly Expected[];
+
+const EXPECTED: ReadonlyArray<{
+    file: string;
+    shells: readonly Expected[];
+    branches?: Branches;
+}> = [
     {
         file: "src/components/custom/exams/SimplifiedAcademicsPage.tsx",
         shells: [
@@ -52,11 +59,15 @@ const EXPECTED: ReadonlyArray<{ file: string; shells: readonly Expected[] }> = [
         file: "src/components/custom/exams/CurriculumPage.tsx",
         // The body is one `inSubpage ? subpage : landing` ternary.
         shells: [["ternary"]],
+        branches: [["ternary", "cond&&"]],
     },
     {
         file: "src/components/custom/attendance/OverallAttendancePredictor.tsx",
-        // KPI grid, milestone strip, calendar card, course breakdown, info card.
-        shells: [["div:div", "div:div", "div:stack", "div:stack", "div:stack"]],
+        // Summary grid, lock explainer, milestone strip, calendar card, course
+        // menu, info card. The lock explainer is a sibling paragraph, not nested
+        // inside the summary grid it explains.
+        shells: [["div:div", "p:div", "div:div", "div:stack", "div:stack", "div:stack"]],
+        branches: [],
     },
     {
         file: "src/components/custom/attendance/ODTrackerSubpage.tsx",
@@ -137,6 +148,48 @@ function pageShellShapes(file: string): string[][] {
     return out;
 }
 
+/** The direct children of the `<>…</>` inside a shell's ternary, if there is one. */
+function ternaryBranchShapes(file: string): string[][] {
+    const path = resolve(process.cwd(), file);
+    const src = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.ESNext, true);
+    const out: string[][] = [];
+
+    const visit = (node: ts.Node): void => {
+        if (
+            ts.isJsxElement(node) &&
+            node.openingElement.tagName.getText(src) === "PageShell"
+        ) {
+            for (const child of node.children) {
+                if (!ts.isJsxExpression(child) || !child.expression) continue;
+                if (!ts.isConditionalExpression(child.expression)) continue;
+                const e = child.expression;
+                for (const branch of [e.whenTrue, e.whenFalse]) {
+                    // `cond ? x : (<>…</>)` — the parser keeps the parens, and the
+                    // other branch is legitimately not a fragment (it is the
+                    // subpage variable), so only fragments are collected.
+                    let node = branch;
+                    while (ts.isParenthesizedExpression(node)) node = node.expression;
+                    if (!ts.isJsxFragment(node)) continue;
+                    out.push(
+                        node.children
+                            .filter(
+                                (c) =>
+                                    ts.isJsxElement(c) ||
+                                    ts.isJsxSelfClosingElement(c) ||
+                                    (ts.isJsxExpression(c) && c.expression !== undefined)
+                            )
+                            .map((c) => shapeOf(src, c))
+                    );
+                }
+            }
+        }
+        ts.forEachChild(node, visit);
+    };
+
+    visit(src);
+    return out;
+}
+
 describe("PageShell children are siblings, not nested", () => {
     it.each(EXPECTED)("$file", ({ file, shells }) => {
         const actual = pageShellShapes(file);
@@ -144,6 +197,14 @@ describe("PageShell children are siblings, not nested", () => {
         actual.forEach((children, i) => {
             expect({ shell: i, children }).toEqual({ shell: i, children: shells[i] });
         });
+    });
+
+    it.each(EXPECTED)("$file inside its ternary keeps its sections siblings", ({ file, shells, branches }) => {
+        // A screen whose body is one ternary still nests its sections inside that
+        // fragment, and the unclosed-container bug this file exists for can just
+        // as easily happen there. So the fragment's children are asserted too,
+        // via `branches`, rather than the check being skipped.
+        expect(ternaryBranchShapes(file)).toEqual(branches ?? []);
     });
 
     it("no converted PageShell collapsed to a single element child", () => {

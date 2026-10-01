@@ -240,7 +240,7 @@ export function EmptyPanel({
 
   return (
     <div
-      className={`p-10 rounded-[32px] bg-surface/70 dark:bg-surface/60 backdrop-blur-md border border-border-muted/60 dark:border-border/80 text-center space-y-4 shadow-2xs ${className}`.trim()}
+      className={`p-10 rounded-[32px] bg-surface/70 dark:bg-surface/60 backdrop-blur-md border border-border-strong dark:border-border text-center space-y-4 shadow-2xs ${className}`.trim()}
     >
       {icon ? (
         <div

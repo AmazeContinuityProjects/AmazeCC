@@ -48,7 +48,12 @@ describe("surface tokens", () => {
     it("TILE_INTERACTIVE_ROW shares the surface with the other tiles", () => {
         // Same colour and border, so a row tile and a column tile are the same
         // card rather than two different cards that happen to look similar.
-        for (const part of ["bg-surface", "border-border-muted", "backdrop-blur-xl", "rounded-[24px]"]) {
+        //
+        // The border step is `border-border-strong`, not `border-border-muted`:
+        // on a near-white surface the muted step is not readable as an edge, and a
+        // card without a visible edge has no shape. See the border-step override
+        // in `globals.css` for why both steps were darkened.
+        for (const part of ["bg-surface", "border-border-strong", "backdrop-blur-xl", "rounded-[24px]"]) {
             expect(TILE_INTERACTIVE_ROW).toContain(part);
             expect(TILE).toContain(part);
         }

@@ -190,8 +190,22 @@ export type CalendarDayModel = {
   fullDate: Date;
   /** `YYYY-MM-DD`, the join key against tasks, moodle and OD data. */
   dateKey: string;
-  /** `Mon`, `Tue`, ... */
+  /** `Mon`, `Tue`, ... — the calendar weekday, which is not always the teaching day. */
   weekday: string;
+  /**
+   * The timetable this date actually follows, when the college said so.
+   *
+   * A "day order" is a reschedule: the college publishes
+   * `"Instructional Day (Instructional Day Order - Thursday Day Order)"` and
+   * means that *on this date* you attend your **Thursday** classes, whatever
+   * weekday this date falls on. It exists to recover teaching lost to a holiday,
+   * so it lands on Saturdays surprisingly often, and it is the reason
+   * `weekday` alone cannot answer "what do I have today".
+   *
+   * `undefined` means the ordinary case — this date follows its own weekday —
+   * which is the majority of days and must stay the cheap path.
+   */
+  dayOrder?: TeachingDay;
   dayType: DayType;
   events: CalendarDayEvent[];
   attendance: DayAttendance;
@@ -298,6 +312,125 @@ const TYPE_WORDS = [
 
 function isTypeWord(value: string): boolean {
   return TYPE_WORDS.includes(value.toLowerCase());
+}
+
+// ---------------------------------------------------------------------------
+// Instructional day order
+// ---------------------------------------------------------------------------
+
+/**
+ * A teaching day, `MON`-first to match `config.json`'s `slotMap` keys.
+ *
+ * Declared here rather than imported from `attendanceTimetable` because that
+ * module reads `config.json` and `localStorage`, and this one is the pure model
+ * that everything else is derived from. `attendanceTimetable` re-exports nothing
+ * from here either — the two agree on the seven keys and nothing else.
+ */
+export type TeachingDay = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+
+export const TEACHING_DAYS: readonly TeachingDay[] = [
+  "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN",
+];
+
+/** `Mon`, `Thu`, … for display, from a `MON`-first key. */
+export const TEACHING_DAY_LABEL: Record<TeachingDay, string> = {
+  MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday",
+  FRI: "Friday", SAT: "Saturday", SUN: "Sunday",
+};
+
+/**
+ * The stem of a weekday, plus whatever letters the rest of the word is made of.
+ *
+ * The tail is `[a-z]*` and the *whole* match is then looked up in a table rather
+ * than matched against a list of suffixes. Enumerating the suffixes is the
+ * obvious way to write this and it is wrong in a way that hides: the seven long
+ * forms are `day / sday / nesday / rsday / urday / nes / rs` depending on the
+ * stem, and forgetting one silently loses that weekday completely — a Tuesday
+ * reschedule then reads as an ordinary teaching day, which is the exact failure
+ * this is here to prevent. Looking the word up cannot forget a case, and it also
+ * gives a place to put the abbreviations VTOP actually writes (`SAT`).
+ *
+ * `[a-z]*` is greedy, so `"monsoon"` matches whole and is then *not* in the
+ * table — skipped, rather than read as a Monday.
+ */
+const WEEKDAY_IN_TEXT = /\b(mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun)[a-z]*/gi;
+
+const WEEKDAY_KEY: Record<string, TeachingDay> = {
+  mon: "MON", monday: "MON",
+  tue: "TUE", tues: "TUE", tuesday: "TUE",
+  wed: "WED", weds: "WED", wednesday: "WED",
+  thu: "THU", thur: "THU", thurs: "THU", thursday: "THU",
+  fri: "FRI", friday: "FRI",
+  sat: "SAT", saturday: "SAT",
+  sun: "SUN", sunday: "SUN",
+};
+
+function lastWeekdayIn(text: string): TeachingDay | undefined {
+  let found: TeachingDay | undefined;
+  // `exec` on a /g regex walks the whole string, so this ends on the LAST
+  // weekday named rather than the first. See `parseDayOrder` for why that is the
+  // one we want. `lastIndex` is reset first so a caller that arrives mid-string
+  // cannot inherit a previous call's position.
+  WEEKDAY_IN_TEXT.lastIndex = 0;
+  for (let m = WEEKDAY_IN_TEXT.exec(text); m; m = WEEKDAY_IN_TEXT.exec(text)) {
+    const key = WEEKDAY_KEY[m[0].toLowerCase()];
+    if (key) found = key;
+  }
+  WEEKDAY_IN_TEXT.lastIndex = 0;
+  return found;
+}
+
+/**
+ * The day order the college published for a date, if any.
+ *
+ * VTOP writes it into the `category` of an instructional-day entry, under any of
+ * these shapes:
+ *
+ *   `"Instructional Day Order - Thursday Day Order"`   ← the full phrase
+ *   `"Instructional Day Order – Thursday Day Order"`   ← en dash
+ *   `"Thursday Day Order"`                             ← already stripped
+ *   `"Instructional Day Order: Thursday"`
+ *   `"Instructional Day Order - SAT"`
+ *
+ * Three decisions worth stating, because all three are load-bearing:
+ *
+ *  - **Only instructional entries are read.** A holiday named "Sunday Observance"
+ *    or a festival containing a weekday must not be able to declare a
+ *    reschedule, so the scan is restricted to events `isInstructionalEvent`
+ *    accepts. Everything else on a day is an exam, a milestone or a notice.
+ *  - **The LAST weekday named wins.** A reschedule lands on Saturdays
+ *    surprisingly often — that is the whole point of publishing one — and the
+ *    natural way to write it names the real date first. A Saturday row reading
+ *    `"Saturday - Instruction Day Order - Thursday Day Order"` has two weekdays
+ *    in it, and the first one is not the answer.
+ *  - **`text` is searched too, not just `category`.** VTOP has been seen splitting
+ *    the phrase across the two fields, and a reschedule is far too consequential
+ *    to drop because it arrived in the other one.
+ */
+export function parseDayOrder(events: RawCalendarEvent[]): TeachingDay | undefined {
+  let found: TeachingDay | undefined;
+  for (const e of events) {
+    if (!e || !isInstructionalEvent(e)) continue;
+    found = lastWeekdayIn(`${e.text ?? ""} ${e.category ?? ""}`) ?? found;
+  }
+  return found;
+}
+
+/**
+ * A one-line note for the day sheet, or `undefined` when the day is ordinary.
+ *
+ * The timetable changing under you with no explanation is the failure this whole
+ * feature exists to prevent, so anything that reads a day's classes has to be
+ * able to say *why* they are not that weekday's.
+ */
+export function dayOrderNote(day: {
+  dayOrder?: TeachingDay;
+  fullDate: Date;
+}): string | undefined {
+  if (!day.dayOrder) return undefined;
+  const actual = TEACHING_DAYS[(day.fullDate.getDay() + 6) % 7];
+  if (actual === day.dayOrder) return undefined;
+  return `Following the ${TEACHING_DAY_LABEL[day.dayOrder]} timetable on this ${TEACHING_DAY_LABEL[actual]}.`;
 }
 
 /**
@@ -1498,6 +1631,12 @@ export function buildEnrichedCalendars(sources: CalendarSources): CalendarMonthM
           fullDate,
           dateKey: key,
           weekday: WEEKDAY_SHORT[(fullDate.getDay() + 6) % 7],
+          // A reschedule, when the college published one for this date. Read
+          // from the *raw* VTOP entries rather than the classified events: the
+          // classifier deliberately drops the "Instructional Day Order" prefix to
+          // make a readable title, and the day it names is exactly the part that
+          // got dropped.
+          dayOrder: parseDayOrder(vtop),
           // Decided before the fold: a day carrying a paper is a shortened list
           // either way, and whether that paper is nested under a milestone does
           // not change what kind of day it is.

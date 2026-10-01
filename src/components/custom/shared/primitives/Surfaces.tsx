@@ -179,6 +179,40 @@ export function ListRowText({
 }
 
 /**
+ * A one-line proportion bar.
+ *
+ * "How much of the credit basket is earned", "how common is this grade", "this
+ * term's GPA out of ten" — all the same object. It was a local in the curriculum
+ * page until the grade history wanted a second one, and two local copies of a
+ * six-line div is exactly the retyping `uiTokens` exists to stop.
+ *
+ * `tone` is a bare background class, not a tone name, because the caller is
+ * choosing a hue against something the component cannot see (earned vs ongoing,
+ * an `S` against a `C`).
+ */
+export function MiniBar({
+  pct,
+  tone,
+  className = "",
+}: {
+  /** 0-100. Clamped, so a bad number renders an empty bar rather than an overflow. */
+  pct: number;
+  tone: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`w-full h-1.5 rounded-full bg-surface-tertiary dark:bg-surface-secondary overflow-hidden ${className}`.trim()}
+    >
+      <div
+        className={`h-full rounded-full transition-all ${tone}`}
+        style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
+      />
+    </div>
+  );
+}
+
+/**
  * Small label-over-value cell for a 2-up facts grid.
  *
  * The label is uppercase micro-type and the value is bold ink, which is the
@@ -198,7 +232,7 @@ export function KeyValue({
 }) {
   return (
     <div
-      className={`p-3 rounded-2xl bg-surface-secondary dark:bg-background/50 border border-border-muted/60 dark:border-border ${className}`.trim()}
+      className={`p-3 rounded-2xl bg-surface-secondary dark:bg-background/50 border border-border-muted dark:border-border ${className}`.trim()}
     >
       <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-0.5">
         {label}

@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   ListFilter,
   Award,
+  Target,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
 import {
@@ -26,14 +27,18 @@ import {
   IconButton,
   InsightCarousel,
   ListRowText,
+  MiniBar,
   PageShell,
   SectionHeader,
   SegmentedControl,
+  StatTile,
   SubpageScreen,
+  ToneBadge,
   useCarousel,
   useSubpageStack,
   type InsightSlide,
 } from "../shared/primitives";
+import SelectField from "../shared/primitives/SelectField";
 import { CHIP, LIST_ROW, LIST_SHELL, SEARCH_FIELD, TILE } from "@/lib/uiTokens";
 import { storage } from "@/lib/storage";
 import {
@@ -68,6 +73,32 @@ const GRADE_COLORS: Record<string, string> = {
   P: "text-violet-500 border-violet-500/20 bg-violet-500/10",
   N: "text-gray-400 border-gray-400/20 bg-gray-400/10",
 };
+
+/**
+ * VIT's 10-point scale, for the CGPA predictor's projection.
+ *
+ * `N` (not yet graded) is worth 0 for the projection — counting it as a 0 would
+ * quietly understate the plan, but leaving it out of the denominator would
+ * overstate it, so it stays in and reads as a risk.
+ */
+const GRADE_POINTS: Record<string, number> = {
+  S: 10, A: 9, B: 8, C: 7, D: 6, E: 5, F: 0, N: 0,
+};
+
+/**
+ * Grade -> `TONE_BADGE` tone, for the pill in the predictor's plan.
+ *
+ * Deliberately coarser than `GRADE_COLORS` above: the token recipe only carries
+ * six semantic hues, and the grades that collapse together (E and F) are the
+ * ones a reader should read the same way anyway. `GRADE_COLORS` still owns the
+ * per-grade text in the completed list, where all eight are distinguishable.
+ */
+const GRADE_TONE: Record<string, string> = {
+  S: "amber", A: "emerald", B: "blue", C: "cyan",
+  D: "violet", E: "red", F: "red", N: "zinc",
+};
+
+const GRADE_CHOICES = ["S", "A", "B", "C", "D", "E", "F", "N"] as const;
 
 // ── types ────────────────────────────────────────────────────────────
 interface CurriculumItem {
@@ -170,8 +201,8 @@ const VIEW_META: ViewMeta[] = [
   {
     id: "planner",
     label: "Planner",
-    title: "Degree Planner",
-    desc: "What average grade your remaining credits need",
+    title: "CGPA Predictor",
+    desc: "Set expected grades and see the SGPA and CGPA they produce",
     icon: Calculator,
     iconClass:
       "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400",
@@ -192,6 +223,7 @@ export default function CurriculumPage({
   handleFetchGrades,
   setActiveSubTab,
   loginToVTOP,
+  initialScreen,
 }: {
   allGradesData?: any;
   gradesData: any;
@@ -200,6 +232,15 @@ export default function CurriculumPage({
   handleFetchGrades: () => void;
   setActiveSubTab: (tab: string) => void;
   loginToVTOP?: () => Promise<Creds>;
+  /**
+   * Land drilled in rather than on the hub.
+   *
+   * The CGPA predictor used to be a standalone Tools page and had entry points
+   * all over the app. It now lives in the `planner` screen here, so anything
+   * that used to deep-link to it asks for this instead of reimplementing the
+   * screen. Undefined (the normal case) still opens on the hub.
+   */
+  initialScreen?: Screen;
 }) {
   const [curricDetails, setCurricDetails] = useState<CategoryDetail[] | null>(null);
   const [curricCategories, setCurricCategories] = useState<CurriculumCategory[]>([]);
@@ -209,10 +250,22 @@ export default function CurriculumPage({
   const [statusFilter, setStatusFilter] = useState<"all" | CourseStatus>("all");
   const stack = useSubpageStack<Screen>({
     screens: SCREENS,
+    initial: initialScreen,
     onExit: () => setActiveSubTab("courses-simplified"),
   });
   const { screen, isRoot } = stack;
   const setScreen = stack.go;  const [creds, setCreds] = useState<Creds | null>(null);
+
+  // `useSubpageStack` seeds its state from `initial` exactly once, so a repeat
+  // visit — the Academics hub card tapped again, or a back-and-forth between
+  // the hub and this page — would reopen on whatever screen was last shown
+  // rather than the one that was asked for. Re-navigating on change makes the
+  // prop behave like a link target instead of a mount-time hint.
+  useEffect(() => {
+    if (initialScreen) stack.go(initialScreen);
+    // `go` is a stable useCallback, so depending on it alone is correct here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialScreen]);
   const [isDownloadingCurriculum, setIsDownloadingCurriculum] = useState(false);
   const [downloadingSyllabus, setDownloadingSyllabus] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -764,15 +817,6 @@ export default function CurriculumPage({
     );
   };
 
-  const MiniBar = ({ pct, tone }: { pct: number; tone: string }) => (
-    <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all ${tone}`}
-        style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
-      />
-    </div>
-  );
-
   const SyllabusButton = ({ code }: { code: string }) => {
     if (!code || !loginToVTOP) return null;
     const busy = downloadingSyllabus === code;
@@ -1205,27 +1249,136 @@ export default function CurriculumPage({
   );
 
   // ─ PLANNER ───────────────────────────────────────────────────────────
-  const [targetCgpa, setTargetCgpa] = useState<number>(8.5);
+  const [targetCgpa, setTargetCgpaState] = useState<number>(() => {
+    // Reuses the key the standalone CGPA Predictor wrote. Its stored shape was
+    // `{ target, requiredSgpa }`; only `target` is load-bearing now (the
+    // required average is derived), so an existing value migrates untouched and
+    // `requiredSgpa` is simply ignored.
+    try {
+      const raw = localStorage.getItem("uni_cc_gpa_goal");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const t = Number(parsed?.target);
+        if (t > 0 && t <= 10) return t;
+      }
+    } catch {}
+    return 8.5;
+  });
+
+  // Persisted on every change, which is why there is no Save button: the target
+  // is a dial you drag while reading the numbers under it, and a Save step
+  // would only add a thing to forget to press.
+  const setTargetCgpa = (value: number) => {
+    setTargetCgpaState(value);
+    try {
+      localStorage.setItem("uni_cc_gpa_goal", JSON.stringify({ target: value }));
+    } catch {}
+  };
+
+  /**
+   * This term's courses, with theory and lab of an embedded course summed into
+   * one row. They arrive from `attendance`, which is the only source that
+   * carries per-course credits for courses still being taken.
+   */
+  const plannerCourses = useMemo(() => {
+    const map = new Map<string, { code: string; title: string; credits: number }>();
+    for (const a of safeAttendance) {
+      const code = String(a.courseCode || "")
+        .replace(/\((T|L)\)/g, "")
+        .trim();
+      const credits = num(a.credits);
+      if (!code || !credits) continue;
+      const existing = map.get(code);
+      if (existing) existing.credits += credits;
+      else map.set(code, { code, title: a.courseTitle || code, credits });
+    }
+    return [...map.values()].sort((a, b) => a.code.localeCompare(b.code));
+  }, [safeAttendance]);
+
+  /**
+   * Expected grade per course, seeded from the real grade where the course is
+   * already cleared and `A` otherwise.
+   *
+   * Re-seeding is additive rather than a reset: attendance arrives late and
+   * re-renders while the plan is open, and a wholesale reset would throw away
+   * whatever the reader had already dialled in.
+   */
+  const [expectedGrades, setExpectedGrades] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setExpectedGrades((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const c of plannerCourses) {
+        if (next[c.code]) continue;
+        const cleared = effectiveGrades.find(
+          (g) => String(g.courseCode || "").toUpperCase() === c.code.toUpperCase()
+        );
+        const known = cleared?.grade && GRADE_POINTS[cleared.grade] !== undefined
+          ? cleared.grade
+          : "A";
+        next[c.code] = known;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [plannerCourses, effectiveGrades]);
+
+  // ─ The maths ─
   const currentTotalPoints = currentCgpa * totalEarned;
-  const requiredAverageGrade = useMemo(() => {
-    if (remainingCredits <= 0) return 0;
-    const pointsNeeded = targetCgpa * totalRequired - currentTotalPoints;
-    return Math.max(0, pointsNeeded / remainingCredits);
-  }, [currentTotalPoints, totalRequired, remainingCredits, targetCgpa]);
-  const isAchievable = requiredAverageGrade <= 10.0;
+  const semCredits = plannerCourses.reduce((s, c) => s + c.credits, 0);
+  const semPoints = plannerCourses.reduce(
+    (s, c) => s + (GRADE_POINTS[expectedGrades[c.code]] ?? 0) * c.credits,
+    0
+  );
+  const predictedSgpa = semCredits > 0 ? semPoints / semCredits : 0;
+  const projectedTotalPoints = currentTotalPoints + predictedSgpa * semCredits;
+  const projectedCgpa =
+    totalEarned + semCredits > 0 ? projectedTotalPoints / (totalEarned + semCredits) : currentCgpa;
+
+  /** SGPA this term alone must average for the cumulative total to land on target. */
+  const requiredSgpa =
+    semCredits > 0
+      ? (targetCgpa * (totalEarned + semCredits) - currentTotalPoints) / semCredits
+      : 0;
+  const targetReachable = semCredits === 0 || requiredSgpa <= 10;
+
+  /**
+   * The planner's original question, now with the plan applied.
+   *
+   * Before, it divided the deficit by every credit still outstanding, which
+   * included this term — so it answered "if the rest of the degree is perfect,
+   * what do I need?" and ignored everything the reader had just dialled in.
+   * This spends the plan first and asks the same question of what is left.
+   */
+  const creditsAfterTerm = Math.max(totalRequired - totalEarned - semCredits, 0);
+  const requiredRemainingAverage =
+    creditsAfterTerm > 0
+      ? Math.max(0, (targetCgpa * totalRequired - projectedTotalPoints) / creditsAfterTerm)
+      : 0;
+
+  const sgpaGap = predictedSgpa - requiredSgpa;
+  const verdict = !targetReachable
+    ? { tone: "red", surface: "bg-red-600", badge: "Unreachable" }
+    : sgpaGap >= 0
+      ? { tone: "emerald", surface: "bg-emerald-600", badge: "On track" }
+      : { tone: "amber", surface: "bg-amber-600", badge: "Short" };
+
+  const blurGrades = isCgpaBlurred ? "blur-[5px] select-none" : "";
 
   const plannerList = (
-    <div className="space-y-3">
-      <SectionHeader icon={Calculator} title="Degree planner" />
+    <div className="space-y-6">
+      <SectionHeader icon={Target} title="Set your target" />
 
-      {/* Target control */}
+      {/* 1 · Target dial. A slider, not a number box: the useful move is dragging
+          it and watching the four readouts underneath move, which a typed value
+          does not invite. */}
       <div className={LIST_SHELL}>
         <div className="px-4 py-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">
               Target graduation CGPA
             </span>
-            <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 font-outfit">
+            <span className={`text-sm font-black text-indigo-600 dark:text-indigo-400 font-outfit ${blurGrades}`}>
               {targetCgpa.toFixed(2)}
             </span>
           </div>
@@ -1236,6 +1389,7 @@ export default function CurriculumPage({
             step="0.05"
             value={targetCgpa}
             onChange={(e) => setTargetCgpa(parseFloat(e.target.value))}
+            aria-label="Target graduation CGPA"
             className="w-full accent-indigo-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] font-bold text-zinc-400">
@@ -1248,47 +1402,168 @@ export default function CurriculumPage({
         </div>
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
-            Credits remaining
+            Credits this term
           </span>
           <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
-            {remainingCredits.toFixed(1)}
+            {semCredits.toFixed(1)}
+          </span>
+        </div>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+            Credits still open after it
+          </span>
+          <span className="text-sm font-black font-outfit text-amber-600 dark:text-amber-400">
+            {creditsAfterTerm.toFixed(1)}
           </span>
         </div>
       </div>
 
-      {/* Result */}
-      <div className="p-5 rounded-[24px] bg-indigo-600 text-white relative overflow-hidden">
-        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
-          Required remaining average
+      {/* 2 · Readouts. Four tiles rather than the old 4-across stat card, so the
+          planner opens on the same hero grammar as every other page. The blur
+          toggle covers the numbers only — a blurred label tells the reader
+          nothing and makes the tile unreadable. */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatTile
+          label="Needed this term"
+          value={
+            <span className={blurGrades}>
+              {semCredits > 0 ? (targetReachable ? requiredSgpa.toFixed(2) : "> 10") : "—"}
+            </span>
+          }
+          badge={`Target ${targetCgpa.toFixed(2)}`}
+          tone={semCredits === 0 ? "neutral" : targetReachable ? "indigo" : "red"}
+          sub="SGPA to land on target"
+        />
+        <StatTile
+          label="Plan delivers"
+          value={<span className={blurGrades}>{semCredits > 0 ? predictedSgpa.toFixed(2) : "—"}</span>}
+          badge={verdict.badge}
+          tone={semCredits === 0 ? "neutral" : verdict.tone}
+          sub={
+            semCredits === 0
+              ? "Set a target to compare"
+              : sgpaGap >= 0
+                ? `${sgpaGap.toFixed(2)} above what is needed`
+                : `${Math.abs(sgpaGap).toFixed(2)} short of target`
+          }
+        />
+        <StatTile
+          label="Projected CGPA"
+          value={<span className={blurGrades}>{projectedCgpa.toFixed(2)}</span>}
+          badge="Cumulative"
+          tone="blue"
+          sub={`from ${currentCgpa.toFixed(2)} today`}
+        />
+        <StatTile
+          label="Credits open"
+          value={creditsAfterTerm.toFixed(1)}
+          badge={expectedGraduation}
+          tone="neutral"
+          sub="after this term"
+        />
+      </div>
+
+      {/* 3 · The plan itself: the only editable part of the section. */}
+      <div className="space-y-3">
+        <SectionHeader
+          icon={ListFilter}
+          title="Expected semester grades"
+          count={plannerCourses.length}
+          right={<ToneBadge tone={plannerCourses.length ? verdict.tone : "zinc"}>{verdict.badge}</ToneBadge>}
+        />
+        {plannerCourses.length === 0 ? (
+          <EmptyPanel
+            icon={<ListFilter className="h-7 w-7" />}
+            tone="indigo"
+            title="No courses in progress"
+            description="Sync your attendance and the courses you are taking this term show up here, each with a credit weight you can set an expected grade for."
+          />
+        ) : (
+          <div className={LIST_SHELL}>
+            {plannerCourses.map((c) => {
+              const grade = expectedGrades[c.code] || "A";
+              const points = GRADE_POINTS[grade] ?? 0;
+              return (
+                <div key={c.code} className={LIST_ROW}>
+                  <ListRowText title={c.code} subtitle={c.title} titleTooltip={c.title} />
+                  <span className="shrink-0 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 w-12 text-right">
+                    {c.credits.toFixed(1)} cr
+                  </span>
+                  <ToneBadge tone={GRADE_TONE[grade] ?? "zinc"}>{grade}</ToneBadge>
+                  <label className="w-20 shrink-0">
+                    <span className="sr-only">Expected grade for {c.code}</span>
+                    <SelectField
+                      value={grade}
+                      options={GRADE_CHOICES.map((g) => ({ value: g, label: `${g} · ${GRADE_POINTS[g]}` }))}
+                      onChange={(g) =>
+                        setExpectedGrades((prev) => ({ ...prev, [c.code]: g }))
+                      }
+                    />
+                  </label>
+                  <span className={`shrink-0 w-8 text-right text-[11px] font-black font-outfit ${blurGrades}`}>
+                    {points}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 4 · Verdict. Solid, because this is the one block on the page that has
+          to be read before anything else — the tiles can be scanned, this cannot. */}
+      <div className={`p-5 rounded-[24px] ${verdict.surface} text-white relative overflow-hidden`}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
+          {targetReachable
+            ? sgpaGap >= 0
+              ? "You clear the target this term"
+              : "You fall short of the target this term"
+            : "The target is out of reach this term"}
         </p>
-        <div className="flex items-baseline gap-2 mt-1">
-          <span
-            className={`text-4xl font-black font-outfit tracking-tight ${
-              isCgpaBlurred ? "blur-[6px] select-none" : ""
-            }`}
-          >
-            {requiredAverageGrade.toFixed(2)}
-          </span>
-          <span className="text-xs text-indigo-200 font-bold">SGPA / 10.0</span>
-        </div>
-        <p className="text-xs font-semibold text-indigo-100 leading-relaxed mt-2">
-          {isAchievable ? (
+        <p className="mt-1 text-sm font-semibold leading-relaxed text-white/90">
+          {semCredits === 0 ? (
             <>
-              To graduate with a <strong>{targetCgpa.toFixed(2)}</strong> CGPA you need an
-              average of <strong>{requiredAverageGrade.toFixed(2)}</strong> across your
-              remaining {remainingCredits.toFixed(1)} credits.
+              Set an expected grade for each course above to see what this term does to your CGPA.
+            </>
+          ) : !targetReachable ? (
+            <>
+              Hitting a <strong>{targetCgpa.toFixed(2)}</strong> CGPA needs more than a 10.0 SGPA
+              from here &mdash; {requiredSgpa.toFixed(2)} this term alone. Try a lower target.
             </>
           ) : (
             <>
-              A {targetCgpa.toFixed(2)} CGPA target needs more than a 10.0 SGPA from here —
-              try a lower target.
+              At this plan you average <strong className={blurGrades}>{predictedSgpa.toFixed(2)}</strong>{" "}
+              this term, taking your CGPA to{" "}
+              <strong className={blurGrades}>{projectedCgpa.toFixed(2)}</strong>.{" "}
+              {sgpaGap >= 0 ? (
+                <>
+                  That is <strong className={blurGrades}>{sgpaGap.toFixed(2)}</strong> more than the{" "}
+                  {requiredSgpa.toFixed(2)} needed to stay on {targetCgpa.toFixed(2)}.
+                </>
+              ) : (
+                <>
+                  That is <strong className={blurGrades}>{Math.abs(sgpaGap).toFixed(2)}</strong> below
+                  the {requiredSgpa.toFixed(2)} needed to stay on {targetCgpa.toFixed(2)}.
+                </>
+              )}{" "}
+              {creditsAfterTerm > 0 ? (
+                <>
+                  From there you would need{" "}
+                  <strong className={blurGrades}>
+                    {requiredRemainingAverage.toFixed(2)}
+                  </strong>{" "}
+                  across your remaining {creditsAfterTerm.toFixed(1)} credits.
+                </>
+              ) : (
+                <>These are your last credits for the degree.</>
+              )}
             </>
           )}
         </p>
         <button
           type="button"
           onClick={() => setActiveSubTab("marks-predictor")}
-          className="mt-4 w-full py-2.5 px-4 rounded-2xl bg-white text-indigo-600 font-black text-xs hover:bg-indigo-50 transition-colors cursor-pointer flex items-center justify-center gap-2"
+          className="mt-4 w-full py-2.5 px-4 rounded-2xl bg-white text-zinc-900 font-black text-xs hover:bg-white/90 transition-colors cursor-pointer flex items-center justify-center gap-2"
         >
           Open Marks Predictor
           <ArrowUpRight className="w-4 h-4" />

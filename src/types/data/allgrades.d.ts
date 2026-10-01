@@ -6,6 +6,18 @@ export type GradeBreakdown = {
     status: string;
     scoredMark: string;
     weightageMark: string;
+    /**
+     * Which segment of the course this assessment belongs to - `"Theory"`,
+     * `"Lab"`, or `"Component N"`.
+     *
+     * The AmazeCC `all-grades` route derives this from VTOP's separate "Mark
+     * Title" tables, but it is **not** present in every deployment: the frozen
+     * legacy route behind `api.uni-cc.site` returns a flat breakdown with the
+     * field stripped, and it cannot be changed (it is shared by both APIs). So
+     * this is optional and every reader must cope without it - see
+     * `gradeSegments` in `lib/gradeHistory.ts`.
+     */
+    type?: string;
 };
 
 export type GradeRange = {

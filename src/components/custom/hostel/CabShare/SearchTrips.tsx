@@ -2,11 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/sync-engine";
-import { Loader2, Search, MapPin, Clock, Calendar as CalendarIcon, User, Send, Bell, Route, AlertCircle, Clock3 } from "lucide-react";
-import EmptyState from "../../shared/EmptyState";
-import BottomSheet from "../../shared/BottomSheet";
+import { AlertCircle, Bell, Calendar as CalendarIcon, Clock, Clock3, Loader2, MapPin, Route, Search, Send, User } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
+import BottomSheet from "../../shared/BottomSheet";
 import { fallbackHubs, getLocalTrips, readJsonResponse, saveLocalTrips, dedupeHubs } from "./cabShareFallback";
+import SelectField from "../../shared/primitives/SelectField";
+import { EmptyPanel, ListRowText, ListSkeleton, SectionHeader, ToneBadge } from "../../shared/primitives";
+import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+
+const FIELD_LABEL =
+  "block text-[10px] font-black uppercase tracking-wider text-text-muted mb-1";
 
 export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [hubs, setHubs] = useState<any[]>([]);
@@ -15,7 +20,7 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
   const [searched, setSearched] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showPendingModal, setShowPendingModal] = useState(false);
-  
+
   const [fromHubId, setFromHubId] = useState("");
   const [hubId, setHubId] = useState("");
   const [date, setDate] = useState("");
@@ -103,10 +108,10 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     try {
       const res = await api("cabshare/match", {
         method: "POST",
-        body: { 
-          reg_number: cabShareUser.reg_number, 
-          trip_id, 
-          action: "request" 
+        body: {
+          reg_number: cabShareUser.reg_number,
+          trip_id,
+          action: "request"
         }
       });
       const data = await readJsonResponse(res as Response);
@@ -159,158 +164,184 @@ export default function SearchTrips({ cabShareUser }: { cabShareUser: any }) {
     }
   };
 
+  const hubName = (hub: any) => hub?.hub_name || (hub?.hub_id ? `Hub #${hub.hub_id}` : "");
+  const routeLabel = (trip: any) => {
+    const from = trip.from_hub_name || hubName({ hub_id: trip.from_hub_id });
+    return `${from ? `${from} → ` : ""}${trip.hub_name}`;
+  };
+
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-black sm:p-6">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400">
+      <div className={TILE_CARD}>
+        <div className="flex items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.indigo}`}>
             <Route className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-gray-950 dark:text-white">Find a matching ride</h2>
-            <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">Search by hub and date, then request to join a posted ride.</p>
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-black text-text-heading font-outfit tracking-tight">Find a matching ride</h2>
+            <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+              Search by hub and date, then request to join a posted ride.
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleSearch} className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_140px]">
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">From</label>
-              <select 
-                value={fromHubId} 
-                onChange={(e) => handleFromChange(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-              >
-                <option value="">Any</option>
-                {hubs.map((h, idx) => (
-                  <option key={`search-from-${h.hub_id}-${idx}`} value={h.hub_id}>{h.hub_name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">To</label>
-              <select 
-                value={hubId} 
-                onChange={(e) => handleToChange(e.target.value)}
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
-              >
-                <option value="">Any</option>
-                {hubs.map((h, idx) => (
-                  <option key={`search-to-${h.hub_id}-${idx}`} value={h.hub_id}>{h.hub_name}</option>
-                ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</label>
-            <input 
-              type="date" 
+        <form
+          onSubmit={handleSearch}
+          className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_140px]"
+        >
+          <label className="block">
+            <span className={FIELD_LABEL}>From</span>
+            <SelectField
+              value={fromHubId}
+              options={[
+                { value: "", label: "Any" },
+                ...hubs.map((h) => ({ value: h.hub_id.toString(), label: h.hub_name })),
+              ]}
+              onChange={handleFromChange}
+            />
+          </label>
+
+          <label className="block">
+            <span className={FIELD_LABEL}>To</span>
+            <SelectField
+              value={hubId}
+              options={[
+                { value: "", label: "Any" },
+                ...hubs.map((h) => ({ value: h.hub_id.toString(), label: h.hub_name })),
+              ]}
+              onChange={handleToChange}
+            />
+          </label>
+
+          <label className="block">
+            <span className={FIELD_LABEL}>Date</span>
+            <input
+              type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+              className={FIELD_INPUT}
             />
-          </div>
+          </label>
+
           <div className="flex items-end">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 text-sm font-black text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4" /> Search</>}
             </button>
           </div>
         </form>
-      </section>
+      </div>
 
       {message && (
-        <div className={`flex items-center gap-3 rounded-2xl border p-4 text-sm font-semibold ${
-          message.type === "success"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400"
-            : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400"
-        }`}>
+        <div
+          className={`flex items-center gap-3 rounded-2xl border p-4 text-sm font-semibold ${
+            message.type === "success"
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+          }`}
+        >
           <AlertCircle className="h-5 w-5 shrink-0" />
           <span>{message.text}</span>
         </div>
       )}
 
-      <div className="space-y-4">
-        {loading ? (
-          <div className="flex justify-center rounded-[24px] border border-gray-200 bg-white py-16 shadow-sm dark:border-white/10 dark:bg-black">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          </div>
-        ) : trips.length === 0 ? (
-          searched && hubId && date ? (
-            <EmptyState
-              icon={<Search className="h-10 w-10" />}
-              title="No active rides found"
-              description="Create an alert for this hub and date so you know when someone posts a matching ride."
-              className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
-              action={
-              <button 
+      {loading ? (
+        <ListSkeleton rows={3} leading="dot" trailing />
+      ) : trips.length === 0 ? (
+        searched && hubId && date ? (
+          <EmptyPanel
+            icon={<Search className="h-7 w-7" />}
+            title="No active rides found"
+            description="Create an alert for this hub and date so you know when someone posts a matching ride."
+            action={
+              <button
+                type="button"
                 onClick={handleAlertMe}
-                className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-2.5 text-sm font-black text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-400"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700"
               >
                 <Bell className="w-4 h-4" /> Alert Me
               </button>
-              }
-            />
-          ) : (
-            <EmptyState
-              icon={<MapPin className="h-10 w-10" />}
-              title="Search for available rides"
-              description="Choose a hub and date to see students travelling around the same time."
-              className="rounded-[24px] border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-black"
-            />
-          )
+            }
+          />
         ) : (
-          trips.map(trip => (
-            <article key={trip.trip_id} className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-black">
+          <EmptyPanel
+            icon={<MapPin className="h-7 w-7" />}
+            tone="emerald"
+            title="Search for available rides"
+            description="Choose a hub and date to see students travelling around the same time."
+          />
+        )
+      ) : (
+        <div className="space-y-3">
+          <SectionHeader
+            icon={Route}
+            title="Matching rides"
+            count={trips.length}
+            right={<ToneBadge tone="emerald">Open</ToneBadge>}
+          />
+          {trips.map(trip => (
+            <article key={trip.trip_id} className={TILE_CARD}>
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${TONE_ICON_TILE.emerald}`}>
                       <MapPin className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-lg font-black text-gray-950 dark:text-white">
-                        {trip.from_hub_name || trip.from_hub_id ? `${trip.from_hub_name || `Hub #${trip.from_hub_id}`} → ` : ''}{trip.hub_name}
-                      </h3>
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Hosted by {trip.name}</p>
-                    </div>
+                    </span>
+                    <ListRowText
+                      title={routeLabel(trip)}
+                      titleTooltip={routeLabel(trip)}
+                      subtitle={`Hosted by ${trip.name}`}
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-2 text-xs font-bold text-gray-600 dark:text-gray-400">
-                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10"><CalendarIcon className="w-3.5 h-3.5" /> {new Date(trip.travel_date).toLocaleDateString()}</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10"><Clock className="w-3.5 h-3.5" /> {trip.preferred_time} (±{trip.tolerance_hours}h)</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-1.5 dark:border-white/10"><User className="w-3.5 h-3.5" /> {trip.name}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <ToneBadge tone="zinc" icon={<CalendarIcon className="h-3 w-3" />}>
+                      {new Date(trip.travel_date).toLocaleDateString()}
+                    </ToneBadge>
+                    <ToneBadge tone="zinc" icon={<Clock className="h-3 w-3" />}>
+                      {trip.preferred_time} (±{trip.tolerance_hours}h)
+                    </ToneBadge>
+                    <ToneBadge tone="zinc" icon={<User className="h-3 w-3" />}>
+                      {trip.name}
+                    </ToneBadge>
                   </div>
                   {trip.notes && (
-                    <p className="text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">{trip.notes}</p>
+                    <p className="text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted">
+                      {trip.notes}
+                    </p>
                   )}
                 </div>
-              
-                <button 
+
+                <button
+                  type="button"
                   onClick={() => handleJoinRequest(trip.trip_id)}
-                  className="flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400"
+                  className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-emerald-700"
                 >
                   <Send className="w-4 h-4" /> Request Join
                 </button>
               </div>
             </article>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
       <AnimatePresence>
       {showPendingModal && (
         <BottomSheet onClose={() => setShowPendingModal(false)} overlayId="cabshare-pending" maxWidth="max-w-sm">
           <div className="flex flex-col items-center text-center py-2">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Clock3 className="h-8 w-8" />
-            </div>
-            <h3 className="mt-5 text-xl font-black text-gray-950 dark:text-white font-outfit">Request Pending</h3>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
+            </span>
+            <h3 className="mt-5 text-xl font-black text-text-heading font-outfit">Request Pending</h3>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-text-secondary dark:text-text-muted">
               The host will see your request and respond soon. You can check the status in My Trips.
             </p>
             <button
+              type="button"
               onClick={() => setShowPendingModal(false)}
-              className="mt-6 w-full rounded-2xl bg-gray-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 cursor-pointer active:scale-[0.98]"
+              className="mt-6 w-full rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer active:scale-[0.98]"
             >
               Got it
             </button>

@@ -1,5 +1,14 @@
-import { AnimatePresence, m } from 'framer-motion';
-import { X, Trophy, Github, Star, ExternalLink, ChevronLeft } from 'lucide-react';
+"use client";
+import { ExternalLink, Github, Star, Trophy } from "lucide-react";
+import {
+  IconLink,
+  ListRowText,
+  ListShell,
+  PageShell,
+  SectionHeader,
+  StatTile,
+} from "../shared/primitives";
+import { LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 const credits = [
     {
@@ -40,90 +49,75 @@ const credits = [
     }
 ];
 
+/**
+ * The projects AmazeCC is built on top of.
+ *
+ * Each credit is a row in one list rather than a card of its own. A card grid
+ * gave every project a title, an author, a sentence and an arrow across two
+ * hundred pixels, for six sentences of content; as rows the whole page is one
+ * readable list, and the description no longer has to be squeezed into whatever
+ * height the grid decided on.
+ */
 export default function HallOfFameModal({ handleClose }: { handleClose: () => void }) {
+    const authors = new Set(credits.map((c) => c.author));
+
     return (
-        <AnimatePresence>
-            <m.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full h-full flex flex-col relative pb-10"
-            >
-                {/* Ambient Glows */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 hidden sm:block">
-                    <div className="absolute -top-[10%] -right-[5%] w-[60%] h-[60%] bg-amber-400/40  dark:bg-amber-500/20 rounded-full blur-[100px]" />
-                    <div className="absolute top-[30%] -left-[10%] w-[50%] h-[50%] bg-orange-500/40  dark:bg-orange-600/20 rounded-full blur-[100px]" />
+        <PageShell
+            eyebrow="About"
+            title="Hall of Fame"
+            subtitle="The giants whose shoulders we stand on"
+            onBack={handleClose}
+        >
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <StatTile
+                        label="Projects credited"
+                        value={credits.length}
+                        badge="Open source"
+                        tone="amber"
+                        sub="this app is built on"
+                    />
+                    <StatTile
+                        label="Authors"
+                        value={authors.size}
+                        badge="Thanked"
+                        tone="neutral"
+                        sub="across those projects"
+                    />
                 </div>
 
-                <div className="relative z-10 w-full max-w-3xl mx-auto flex flex-col">
-                    {/* Header */}
-                    <div className="flex items-center gap-4 py-6 mb-2 mt-4 sm:mt-8">
-                        <button 
-                            onClick={handleClose}
-                            className="p-2.5 bg-white/50 hover:bg-white  dark:hover:bg-slate-800 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700  dark:text-gray-200 rounded-full transition-all border border-gray-200/50  dark:border-white/10  shadow-sm"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
-                                <Trophy size={20} className="text-white" />
+                <div className="space-y-3">
+                    <SectionHeader icon={Trophy} title="Projects" count={credits.length} />
+                    <ListShell>
+                        {credits.map((credit) => (
+                            <div key={credit.repo} className={LIST_ROW}>
+                                <span
+                                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.zinc}`}
+                                >
+                                    <Github className="w-4.5 h-4.5" />
+                                </span>
+                                <ListRowText
+                                    title={credit.name}
+                                    subtitle={`by ${credit.author} · ${credit.description}`}
+                                    titleTooltip={credit.description}
+                                />
+                                <IconLink
+                                    href={credit.repo}
+                                    title={`${credit.name} repository`}
+                                    ariaLabel={`Open the ${credit.name} repository`}
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                </IconLink>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-500">Hall of Fame</h2>
-                                <p className="text-xs font-medium text-gray-500  dark:text-gray-400">The giants whose shoulders we stand on</p>
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <div className="relative z-10 w-full pb-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {credits.map((credit, idx) => (
-                            <m.a 
-                                href={credit.repo}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                key={idx}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="group block p-4 rounded-2xl bg-white/50  dark:bg-white/[0.02] hover:bg-white/80 dark:hover:bg-slate-800/80 dark:hover:bg-white/[0.04] border border-gray-100/50  dark:border-white/5 transition-all cursor-pointer"
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="p-2.5 bg-gray-100/80  dark:bg-black/80 rounded-xl text-gray-700  dark:text-gray-400 group-hover:text-amber-500 group-hover:scale-110 transition-all">
-                                            <Github size={22} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-base font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2 leading-tight">
-                                                {credit.name}
-                                            </h3>
-                                            <p className="text-xs font-semibold text-blue-600  dark:text-blue-400 mt-0.5">
-                                                by {credit.author}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="p-1.5 bg-gray-100/50  dark:bg-white/5 rounded-full text-gray-400 dark:text-gray-500 group-hover:text-amber-500 group-hover:bg-amber-50 dark:group-hover:bg-amber-500/10 transition-colors">
-                                        <ExternalLink size={16} />
-                                    </div>
-                                </div>
-                                <p className="text-sm text-gray-600  dark:text-gray-400 leading-relaxed font-medium">
-                                    {credit.description}
-                                </p>
-                            </m.a>
-                            ))}
-                        </div>
-
-                        <div className="relative z-10 mt-10 mb-8 pt-6 border-t border-gray-200/50  dark:border-white/10 text-center">
-                            <p className="text-sm font-medium text-gray-500  dark:text-gray-400 flex items-center justify-center gap-2">
-                                Curated with <Star size={16} className="text-amber-500" /> by <span className="text-gray-900  dark:text-gray-100 font-bold">SugeethJSA</span>
-                            </p>
-                        </div>
-                    </div>
+                        ))}
+                    </ListShell>
                 </div>
-            </m.div>
-        </AnimatePresence>
+
+                <div className={`${TILE_CARD} flex items-center justify-center gap-2 text-xs font-semibold text-text-secondary dark:text-text-muted`}>
+                    Curated with <Star className="w-3.5 h-3.5 text-amber-500 shrink-0" /> by{" "}
+                    <span className="font-black text-text-heading">SugeethJSA</span>
+                </div>
+            </div>
+        </PageShell>
     );
 }

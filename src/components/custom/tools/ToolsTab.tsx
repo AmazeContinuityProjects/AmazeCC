@@ -15,7 +15,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import ToolsHub from "./ToolsHub";
-import GPAPredictorTab from "../exams/GPAPredictorTab";
 import FacultyInfoTab from "../exams/FacultyInfoTab";
 import FreeClassroomsTab from "../exams/FreeClassroomsTab";
 import FFCSTimetableTab from "../exams/FFCSTimetableTab";
@@ -76,16 +75,6 @@ export default function ToolsTab({
           </div>
         )}
 
-        {activeToolsSubTab === "predictor" && (
-          <div className="animate-fadeIn">
-            <GPAPredictorTab
-              marksData={marksData}
-              attendance={attendanceData?.attendance}
-              setActiveSubTab={setActiveToolsSubTab}
-            />
-          </div>
-        )}
-
         {activeToolsSubTab === "marks-predictor" && (
           <div className="animate-fadeIn">
             <MarksPredictorTab
@@ -107,7 +96,7 @@ export default function ToolsTab({
 
         {activeToolsSubTab === "cabshare" && (
           <div className="animate-fadeIn">
-            <CabShareTab />
+            <CabShareTab onBack={() => setActiveToolsSubTab("overview")} />
           </div>
         )}
 

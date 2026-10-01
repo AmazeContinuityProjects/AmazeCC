@@ -891,7 +891,7 @@ export default function MobileHome({
           </button>
           
           <button 
-            onClick={() => { setActiveTab("academics"); setActiveSubTab("predictor"); }}
+            onClick={() => { setActiveTab("academics"); setActiveSubTab("cgpa-predictor"); }}
             className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-1.5 text-emerald-600 dark:text-emerald-450 shrink-0">

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildAttendanceDayCardsMap, getTodayAttendanceClasses } from "../lib/attendanceTimetable";
+import {
+  buildAttendanceDayCardsMap,
+  getTodayAttendanceClasses,
+  isTeachingDay,
+  resolveTeachingDay,
+} from "../lib/attendanceTimetable";
 
 const slotMap = {
   MON: {
@@ -63,5 +68,48 @@ describe("attendance timetable helpers", () => {
     const today = getTodayAttendanceClasses(attendance, monday, slotMap);
 
     expect(today.map((course) => course.courseCode)).toEqual(["CSE1001", "MAT1001", "CSE1002"]);
+  });
+});
+
+describe("resolveTeachingDay", () => {
+  // A reschedule names the weekday whose timetable runs, which is very often not
+  // the weekday the date falls on — the point of publishing one is to recover a
+  // day lost to a holiday, and the spare day is a Saturday.
+  const saturday = new Date(2026, 7, 8); // 8 Aug 2026
+  const thursday = new Date(2026, 7, 13); // 13 Aug 2026
+
+  it("follows the published day order over the date's own weekday", () => {
+    expect(resolveTeachingDay(saturday, "THU")).toBe("THU");
+  });
+
+  it("falls back to the weekday when nothing was published", () => {
+    expect(resolveTeachingDay(saturday)).toBe("SAT");
+    expect(resolveTeachingDay(thursday)).toBe("THU");
+  });
+
+  it("ignores a day order that is not one of the seven", () => {
+    // A typo or an unexpected value must not send the lookup off to nowhere and
+    // render the day as having no classes.
+    expect(resolveTeachingDay(saturday, "FUNDAY" as any)).toBe("SAT");
+    expect(resolveTeachingDay(saturday, undefined)).toBe("SAT");
+  });
+
+  it("applies the day order to a date that is not a weekend at all", () => {
+    // Mid-week reschedules happen too; the rule is about the order, not the date.
+    expect(resolveTeachingDay(new Date(2026, 7, 12), "MON")).toBe("MON");
+  });
+});
+
+describe("isTeachingDay", () => {
+  it("accepts the seven day keys", () => {
+    for (const day of ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]) {
+      expect(isTeachingDay(day)).toBe(true);
+    }
+  });
+
+  it("rejects anything else", () => {
+    for (const bad of ["Monday", "mon", "", null, undefined, 3]) {
+      expect(isTeachingDay(bad)).toBe(false);
+    }
   });
 });

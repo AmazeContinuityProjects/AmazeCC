@@ -5,12 +5,41 @@ import {
   ChipTabs,
   EmptyPanel,
   GhostButton,
+  InsightCarousel,
+  KeyValue,
+  ListShell,
   PageShell,
+  SectionHeader,
   SegmentedControl,
   StatTile,
+  SubpageScreen,
   ToneBadge,
+  useCarousel,
+  useSubpageStack,
+  type InsightSlide,
 } from "../shared/primitives";
 import { SEARCH_FIELD, TILE_CARD } from "@/lib/uiTokens";
+import {
+  buildEffectiveDayMap,
+  courseCeiling,
+  courseLockDate,
+  courseMeetingDates,
+  dayKey,
+  formatPct,
+  gridCeiling,
+  isLabCourse,
+  isProjectableCourse,
+  lockDateFor,
+  projectCourse,
+  skipCountFor,
+  skipSetFor,
+  summarise,
+  toggleCourseSkip,
+  CAT_LOCK_OFFSET_DAYS,
+  type CourseDateSkips,
+  type DayStates,
+  type SimulationMode,
+} from "@/lib/attendancePredictor";
 import {
   Calendar,
   ChevronLeft,
@@ -25,8 +54,8 @@ import {
   Flame,
   Search,
   BookOpen,
-  Minus,
-  Plus,
+  FlaskConical,
+  Snowflake,
   Zap,
 } from "lucide-react";
 
@@ -35,6 +64,39 @@ const THRESHOLD_OPTIONS = [75, 80, 85, 90] as const;
 type TargetThresholdOption = `${(typeof THRESHOLD_OPTIONS)[number]}`;
 
 type FilterType = "all" | "safe" | "risk" | "theory" | "lab";
+
+/** Midnight today, for the milestone countdowns. */
+function startOfToday(d: Date): number {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x.getTime();
+}
+
+/** `5 Aug`, the form a milestone date reads well in. */
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/** One course row: the raw attendance record plus its projection. */
+type Prediction = any & {
+  currentAttended: number;
+  currentTotal: number;
+  currentPct: number;
+  futureClasses: number;
+  missedClasses: number;
+  predictedAttended: number;
+  predictedTotal: number;
+  predictedPct: number;
+  deltaPct: number;
+  safeBunks: number;
+  classesNeeded: number;
+  isLab: boolean;
+  meetingDays: string[];
+  skippedCount: number;
+  locked: boolean;
+  lockDate: Date | null;
+  ceiling: Date | null;
+};
 
 interface CalendarEvent {
   text: string;
@@ -75,6 +137,16 @@ export default function OverallAttendancePredictor({
   onBack,
   decimalValues = true,
 }: OverallAttendancePredictorProps) {
+  /**
+   * The course whose date skipper is expanded.
+   *
+   * One at a time, and it expands *in place* rather than navigating: the menu
+   * rows are the "Course sections" pattern from the course subpage overview, and
+   * a row that swapped the page out from under itself would lose the reader's
+   * place in the list.
+   */
+  const [openSubject, setOpenSubject] = useState<Prediction | null>(null);
+
   // Target threshold state (default from localStorage or bus status)
   const [targetThreshold, setTargetThreshold] = useState<number>(() => {    if (typeof window !== "undefined") {
       try {
@@ -88,8 +160,8 @@ export default function OverallAttendancePredictor({
     return isDayscholarWithBus ? 85 : 75;
   });
 
-  // Simulation mode: "CAT1" | "CAT2" | "LID" | "ALL"
-  const [mode, setMode] = useState<string>(() => {
+// Simulation mode: "CAT1" | "CAT2" | "LID" | "ALL"
+  const [mode, setMode] = useState<SimulationMode>(() => {
     const now = new Date();
     if (impDates.cat1Date && impDates.cat1Date > now) return "CAT1";
     if (impDates.cat2Date && impDates.cat2Date > now) return "CAT2";
@@ -97,9 +169,16 @@ export default function OverallAttendancePredictor({
   });
 
   // Date States: timestamp -> 0 (Attending), 1 (Absent / Bunked), 2 (Off / Holiday)
-  const [dateStates, setDateStates] = useState<Record<number, number>>({});
-  // Per-course manual skip overrides
-  const [courseManualSkips, setCourseManualSkips] = useState<Record<string, number>>({});
+  const [dateStates, setDateStates] = useState<DayStates>({});
+  /**
+   * Dates skipped for one subject only, keyed `courseCode -> timestamp -> true`.
+   *
+   * Separate from `dateStates` on purpose: the global toggle says "I am away all
+   * day", this says "I am away from *this* course on this date", which is the
+   * situation that actually comes up - a placement interview costs you Data
+   * Structures and nothing else on the timetable.
+   */
+  const [courseSkips, setCourseSkips] = useState<CourseDateSkips>({});
   // Active calendar month index
   const [monthIdx, setMonthIdx] = useState<number>(0);
   // Search and Filter
@@ -123,7 +202,11 @@ export default function OverallAttendancePredictor({
 
     return analyzeCalendars.flatMap((monthObj) => {
       const monthStr = monthObj.month?.toLowerCase() || "";
-      const year = monthObj.year || new Date().getFullYear();
+      // VTOP sends the year inside the month string ("JULY 2026") and leaves
+      // `year` undefined, so reading it off the string is the only thing that
+      // survives a calendar fetched for a different year than the one we are in.
+      const year =
+        Number(monthStr.split(" ").pop()) || monthObj.year || new Date().getFullYear();
       const foundMonth = monthNames.find((m) => monthStr.includes(m));
       const mIndex = foundMonth ? monthNames.indexOf(foundMonth) : -1;
 
@@ -144,46 +227,24 @@ export default function OverallAttendancePredictor({
     });
   }, [analyzeCalendars, today]);
 
-  // Cutoff date based on selected mode
-  const cutoffDate = useMemo(() => {
-    if (mode === "CAT1") return impDates.cat1Date || null;
-    if (mode === "CAT2") return impDates.cat2Date || null;
-    if (mode === "LID") {
-      const labTime = impDates.lidLabDate?.getTime?.() || 0;
-      const theoryTime = impDates.lidTheoryDate?.getTime?.() || 0;
-      const maxTime = Math.max(labTime, theoryTime);
-      return maxTime > 0 ? new Date(maxTime) : null;
-    }
-    return null;
-  }, [mode, impDates]);
+  /**
+   * `dayKey -> the weekday students actually follow that date`.
+   *
+   * Built once here rather than inside each of the two counting helpers, which
+   * between them rebuilt it four times over.
+   */
+  const effectiveDayMap = useMemo(() => buildEffectiveDayMap(allWorkingDays), [allWorkingDays]);
 
-  // Attendance lock dates (Thursday/Friday prior to CAT exams)
-  const attendanceLockDates = useMemo(() => {
-    if (!cutoffDate || mode === "LID" || mode === "ALL") return new Set<number>();
-
-    const normalize = (d: Date) => {
-      const x = new Date(d);
-      x.setHours(0, 0, 0, 0);
-      return x.getTime();
-    };
-
-    const isThuOrFri = (d: Date) => {
-      const day = d.getDay();
-      return day === 4 || day === 5;
-    };
-
-    const locked = new Set<number>();
-    const d1 = new Date(cutoffDate);
-    d1.setDate(d1.getDate() - 2);
-
-    const d2 = new Date(cutoffDate);
-    d2.setDate(d2.getDate() - 1);
-
-    if (isThuOrFri(d1)) locked.add(normalize(d1));
-    if (isThuOrFri(d2)) locked.add(normalize(d2));
-
-    return locked;
-  }, [cutoffDate, mode]);
+  /**
+   * How far the shared month grid may page: the latest ceiling any course has.
+   *
+   * Each course still gets its own ceiling in the arithmetic below - lab stops
+   * at LID Lab and theory at LID Theory - but one grid can only show one window.
+   */
+  const cutoffDate = useMemo(
+    () => gridCeiling(mode, impDates),
+    [mode, impDates]
+  );
 
   // Available months list for navigation
   const monthsAvailable = useMemo(() => {
@@ -203,25 +264,26 @@ export default function OverallAttendancePredictor({
     });
   }, [allWorkingDays, currentMonth, cutoffDate]);
 
-  // Toggle single calendar day state: 0 (Attending) -> 1 (Absent) -> 2 (Off) -> 0
+  /** Whole-day toggle: present -> absent -> off. */
   const toggleDayState = useCallback((date: Date) => {
     const time = date.getTime();
     setDateStates((prev) => {
-      const effectiveState =
-        prev[time] !== undefined
-          ? prev[time]
-          : attendanceLockDates.has(time)
-            ? 2
-            : 0;
-      const nextState = (effectiveState + 1) % 3;
+      const nextState = ((prev[time] ?? 0) + 1) % 3;
       return { ...prev, [time]: nextState };
     });
-  }, [attendanceLockDates]);
+  }, []);
+
+  /** Skip or un-skip one date for one subject. */
+  const toggleSubjectSkip = useCallback((courseCode: string, date: Date) => {
+    const time = date.getTime();
+    setCourseSkips((prev) => toggleCourseSkip(prev, courseCode, time));
+  }, []);
 
   // Reset all simulation overrides
   const handleResetAll = useCallback(() => {
     setDateStates({});
-    setCourseManualSkips({});
+    setCourseSkips({});
+    setOpenSubject(null);
   }, []);
 
   // Quick Action: Mark all upcoming Fridays as absent
@@ -246,97 +308,50 @@ export default function OverallAttendancePredictor({
       }
     });
     setDateStates(newStates);
-    setCourseManualSkips({});
+    setCourseSkips({});
   }, [allWorkingDays, cutoffDate, dateStates]);
 
-  // Total working days remaining till cutoff
-  const totalRemainingWorkingDays = useMemo(() => {
-    return allWorkingDays.filter((d) => !cutoffDate || d.date <= cutoffDate).length;
-  }, [allWorkingDays, cutoffDate]);
-
   // Main Course-by-Course Attendance Predictions
-  const predictions = useMemo(() => {
-    const validCourses = attendanceData.filter((c) => c.slotName !== "NILL" && c.courseCode);
+  const predictions: Prediction[] = useMemo(() => {
+    const validCourses = attendanceData.filter((c) => isProjectableCourse(c));
 
     return validCourses.map((c) => {
-      const attended = parseInt(c.attendedClasses) || 0;
-      const total = parseInt(c.totalClasses) || 0;
-      const isLab = c.courseCode.endsWith("(L)") || c.courseType?.toLowerCase()?.includes("lab");
-      const currentPct = total > 0 ? (attended / total) * 100 : 0;
+      const isLab = isLabCourse(c);
+      const ceiling = courseCeiling(mode, isLab, impDates);
+      const lockDate = courseLockDate(mode, isLab, impDates);
 
-      let effectiveCutoff: Date | null = null;
-      if (mode === "CAT1") {
-        effectiveCutoff = impDates.cat1Date || null;
-      } else if (mode === "CAT2") {
-        effectiveCutoff = impDates.cat2Date || null;
-      } else if (mode === "LID") {
-        effectiveCutoff = isLab ? (impDates.lidLabDate || null) : (impDates.lidTheoryDate || null);
-      }
-
-      const filteredDays = allWorkingDays.filter(
-        (d) => !effectiveCutoff || d.date <= effectiveCutoff
-      );
-
-      const { futureCount, meetingDays } = countFutureClassesForCourse(
-        c.courseCode,
+      const result = projectCourse({
+        course: c,
         dayCardsMap,
-        filteredDays,
+        workingDays: allWorkingDays,
+        effectiveMap: effectiveDayMap,
         dateStates,
-        effectiveCutoff,
-        attendanceLockDates
-      );
-
-      const missedFromCalendar = countMissedClassesForCourse(
-        c.courseCode,
-        dayCardsMap,
-        dateStates,
-        filteredDays,
-        effectiveCutoff,
-        attendanceLockDates
-      );
-
-      const manualSkips = courseManualSkips[c.courseCode] || 0;
-      const totalMissedDays = missedFromCalendar + manualSkips;
-
-      const effectiveFutureClasses = isLab ? futureCount * 2 : futureCount;
-      const effectiveMissedClasses = effectiveFutureClasses > 0
-        ? Math.min(isLab ? totalMissedDays * 2 : totalMissedDays, effectiveFutureClasses)
-        : 0;
-
-      const predictedAttended = attended + (effectiveFutureClasses - effectiveMissedClasses);
-      const predictedTotal = total + effectiveFutureClasses;
-      const predictedPct = predictedTotal > 0 ? (predictedAttended / predictedTotal) * 100 : 0;
-      const deltaPct = predictedPct - currentPct;
-
-      // Safe Bunks / Classes Needed Calculations
-      const thresholdRatio = targetThreshold / 100;
-      let safeBunks = 0;
-      let classesNeeded = 0;
-
-      if (predictedPct >= targetThreshold) {
-        const rawSafe = Math.floor((predictedAttended - thresholdRatio * predictedTotal) / thresholdRatio);
-        safeBunks = Math.max(0, isLab ? Math.floor(rawSafe / 2) : rawSafe);
-      } else {
-        const rawNeeded = Math.ceil((thresholdRatio * predictedTotal - predictedAttended) / (1 - thresholdRatio));
-        classesNeeded = Math.max(0, isLab ? Math.ceil(rawNeeded / 2) : rawNeeded);
-      }
+        skips: skipSetFor(courseSkips, c.courseCode),
+        ceiling,
+        lockDate,
+        threshold: targetThreshold,
+      });
 
       return {
         ...c,
-        currentAttended: attended,
-        currentTotal: total,
-        currentPct,
-        futureClasses: effectiveFutureClasses,
-        missedClasses: effectiveMissedClasses,
-        predictedAttended,
-        predictedTotal,
-        predictedPct,
-        deltaPct,
-        safeBunks,
-        classesNeeded,
-        isLab,
-        meetingDays,
-        manualSkips,
+        currentAttended: result.attended,
+        currentTotal: result.total,
+        currentPct: result.currentPct,
+        futureClasses: result.futureDays,
+        missedClasses: result.missedDays,
+        predictedAttended: result.predictedAttended,
+        predictedTotal: result.predictedTotal,
+        predictedPct: result.predictedPct,
+        deltaPct: result.deltaPct,
+        safeBunks: result.safeBunks,
+        classesNeeded: result.classesNeeded,
+        isLab: result.isLab,
+        meetingDays: result.meetingDays,
+        skippedCount: skipCountFor(courseSkips, c.courseCode),
+        /** Whether this course's attendance is already frozen. */
+        locked: Boolean(lockDate && lockDate <= today),
+        lockDate,
+        ceiling,
       };
     });
   }, [
@@ -344,40 +359,37 @@ export default function OverallAttendancePredictor({
     mode,
     impDates,
     allWorkingDays,
+    effectiveDayMap,
     dayCardsMap,
     dateStates,
-    attendanceLockDates,
-    courseManualSkips,
+    courseSkips,
+    targetThreshold,
+    today,
+  ]);
+
+  const overallStats = useMemo(() => summarise(predictions, targetThreshold), [
+    predictions,
     targetThreshold,
   ]);
 
-  // Overall Statistics
-  const overallStats = useMemo(() => {
-    const currentAttendedSum = predictions.reduce((sum, p) => sum + p.currentAttended, 0);
-    const currentTotalSum = predictions.reduce((sum, p) => sum + p.currentTotal, 0);
-    const predictedAttendedSum = predictions.reduce((sum, p) => sum + p.predictedAttended, 0);
-    const predictedTotalSum = predictions.reduce((sum, p) => sum + p.predictedTotal, 0);
+  // Working days still ahead inside the selected window.
+  const totalRemainingWorkingDays = useMemo(
+    () => allWorkingDays.filter((d) => !cutoffDate || d.date <= cutoffDate).length,
+    [allWorkingDays, cutoffDate]
+  );
 
-    const currentOverallPct = currentTotalSum > 0 ? (currentAttendedSum / currentTotalSum) * 100 : 0;
-    const predictedOverallPct = predictedTotalSum > 0 ? (predictedAttendedSum / predictedTotalSum) * 100 : 0;
-    const deltaOverall = predictedOverallPct - currentOverallPct;
-
-    const safeCount = predictions.filter((p) => p.predictedPct >= targetThreshold).length;
-    const atRiskCount = predictions.filter((p) => p.predictedPct < targetThreshold).length;
-    const totalSafeBunksAcrossCourses = predictions.reduce((sum, p) => sum + p.safeBunks, 0);
-
-    return {
-      currentOverallPct: decimalValues ? currentOverallPct.toFixed(2) : currentOverallPct.toFixed(1),
-      predictedOverallPct: decimalValues ? predictedOverallPct.toFixed(2) : predictedOverallPct.toFixed(1),
-      deltaOverall: deltaOverall.toFixed(2),
-      isDeltaPositive: deltaOverall >= 0,
-      safeCount,
-      atRiskCount,
-      totalSafeBunksAcrossCourses,
-      totalCourses: predictions.length,
-    };
-  }, [predictions, targetThreshold, decimalValues]);
-
+  /**
+   * The course whose date skipper is expanded, re-read from `predictions` every
+   * render so its percentage moves as dates are toggled rather than freezing at
+   * the value it had when the row was tapped.
+   */
+  const activeSubject = useMemo(
+    () =>
+      openSubject
+        ? predictions.find((p) => p.courseCode === openSubject.courseCode) ?? null
+        : null,
+    [openSubject, predictions]
+  );
   // Filtered courses based on search and status filter
   const filteredCourses = useMemo(() => {
     return predictions.filter((p) => {
@@ -395,22 +407,123 @@ export default function OverallAttendancePredictor({
     });
   }, [predictions, searchTerm, filterType, targetThreshold]);
 
-  // Milestone button options
+  // Milestone button options. The date shown is the last day attendance can
+  // still move in that mode, which is three days before a CAT.
   const milestoneOptions = useMemo(() => {
     const now = new Date();
     return [
-      { id: "CAT1", label: "Till CAT I", date: impDates.cat1Date, available: !impDates.cat1Date || impDates.cat1Date > now },
-      { id: "CAT2", label: "Till CAT II", date: impDates.cat2Date, available: !impDates.cat2Date || impDates.cat2Date > now },
-      { id: "LID", label: "Till LID", date: impDates.lidTheoryDate || impDates.lidLabDate, available: true },
-      { id: "ALL", label: "All Days", date: null, available: true },
+      {
+        id: "CAT1" as SimulationMode,
+        label: "Till CAT I",
+        lockLabel: "3 days before CAT I",
+        date: lockDateFor(impDates.cat1Date, CAT_LOCK_OFFSET_DAYS),
+        available: !impDates.cat1Date || impDates.cat1Date > now,
+      },
+      {
+        id: "CAT2" as SimulationMode,
+        label: "Till CAT II",
+        lockLabel: "3 days before CAT II",
+        date: lockDateFor(impDates.cat2Date, CAT_LOCK_OFFSET_DAYS),
+        available: !impDates.cat2Date || impDates.cat2Date > now,
+      },
+      {
+        id: "LID" as SimulationMode,
+        label: "Till LID",
+        lockLabel: "Lab and theory lock separately",
+        date: impDates.lidTheoryDate || impDates.lidLabDate,
+        available: true,
+      },
+      {
+        id: "ALL" as SimulationMode,
+        label: "All Days",
+        lockLabel: "Bounded by the last instructional day",
+        date: null,
+        available: true,
+      },
     ];
   }, [impDates]);
+
+  const activeMilestone = useMemo(
+    () => milestoneOptions.find((o) => o.id === mode) ?? milestoneOptions[0],
+    [milestoneOptions, mode]
+  );
+
+  /**
+   * The rotating half of the summary row.
+   *
+   * The headline - projected average - is a single number and belongs in a
+   * `StatTile`; these are a set worth rotating through, which is what
+   * `InsightCarousel` is for. Same pairing as `FreeClassroomsTab`.
+   */
+  const summarySlides = useMemo<InsightSlide[]>(() => {
+    const slides: InsightSlide[] = [
+      {
+        id: "safe",
+        label: "Total Safe Leaves",
+        value: overallStats.totalSafeBunks,
+        sub: `${overallStats.safeCount} of ${overallStats.totalCourses} courses safe`,
+        badge: "classes",
+        tone: "emerald",
+        dotLabel: "Total safe leaves",
+      },
+      {
+        id: "risk",
+        label: "Courses At Risk",
+        value: overallStats.atRiskCount,
+        sub:
+          overallStats.atRiskCount === 0
+            ? "All courses compliant"
+            : `Below ${targetThreshold}%`,
+        badge: `under ${targetThreshold}%`,
+        tone: overallStats.atRiskCount > 0 ? "red" : "emerald",
+        dotLabel: "Courses at risk",
+      },
+      {
+        id: "remaining",
+        label: "Remaining Days",
+        value: totalRemainingWorkingDays,
+        sub: activeMilestone.lockLabel,
+        badge: "working days",
+        tone: "indigo",
+        dotLabel: "Remaining working days",
+      },
+    ];
+
+    // One slide per milestone that has a real date, so the countdown to the next
+    // thing that changes a number is on the tile rather than buried in a chip.
+    for (const opt of milestoneOptions) {
+      if (!opt.date) continue;
+      const days = Math.ceil((startOfToday(opt.date) - startOfToday(new Date())) / 86_400_000);
+      slides.push({
+        id: `milestone-${opt.id}`,
+        label: opt.label,
+        value: days > 0 ? `${days}d` : "now",
+        sub:
+          days > 0
+            ? `Attendance locks ${formatShortDate(opt.date)}`
+            : `Locked ${formatShortDate(opt.date)}`,
+        badge: "milestone",
+        tone: days > 0 ? (days <= 7 ? "amber" : "indigo") : "zinc",
+        dotLabel: `${opt.label} countdown`,
+      });
+    }
+    return slides;
+  }, [
+    overallStats,
+    totalRemainingWorkingDays,
+    activeMilestone,
+    milestoneOptions,
+    targetThreshold,
+  ]);
+
+  const lockedNow = predictions.filter((p) => p.locked).length;
+  const carousel = useCarousel(summarySlides.length);
 
   return (
     <PageShell
       eyebrow="Attendance · Predictor"
       title="Attendance Predictor & Simulator"
-      subtitle={`Projected ${overallStats.predictedOverallPct}% · target ${targetThreshold}%`}
+      subtitle={`Projected ${formatPct(overallStats.predictedPct, decimalValues)}% · target ${targetThreshold}%`}
       onBack={onBack}
       actions={
         <>
@@ -439,84 +552,54 @@ export default function OverallAttendancePredictor({
         </>
       }
     >
-
-      {/* ── TOP KPI SUMMARY CARDS ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+      {/* ── SUMMARY: one stat card and one auto carousel, side by side ── */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatTile
-          height="h-auto"
+          height="h-32 sm:h-36"
           label="Projected Avg"
           icon={<Sparkles className="w-4 h-4 text-sky-500" />}
-          tone={
-            Number(overallStats.predictedOverallPct) >= targetThreshold ? "emerald" : "red"
+          tone={overallStats.predictedPct >= targetThreshold ? "emerald" : "red"}
+          value={`${formatPct(overallStats.predictedPct, decimalValues)}%`}
+          sub={`Now ${formatPct(overallStats.currentPct, decimalValues)}%`}
+          badge={
+            overallStats.delta >= 0
+              ? `+${formatPct(overallStats.delta, decimalValues)}`
+              : formatPct(overallStats.delta, decimalValues)
           }
-          value={
-            <>
-              {overallStats.predictedOverallPct}%
-              <span
-                className={`ml-2 text-xs font-bold align-baseline ${
-                  overallStats.isDeltaPositive ? "text-emerald-500" : "text-rose-500"
-                }`}
-              >
-                {overallStats.isDeltaPositive
-                  ? `+${overallStats.deltaOverall}%`
-                  : `${overallStats.deltaOverall}%`}
-              </span>
-            </>
-          }
-          sub={`Current: ${overallStats.currentOverallPct}%`}
         />
-        <StatTile
-          height="h-auto"
-          label="Total Safe Leaves"
-          icon={<ShieldCheck className="w-4 h-4 text-emerald-500" />}
-          tone="neutral"
-          value={
-            <>
-              {overallStats.totalSafeBunksAcrossCourses}
-              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
-                classes
-              </span>
-            </>
-          }
-          sub={`${overallStats.safeCount} of ${overallStats.totalCourses} courses safe`}
-          className="[&_p]:text-emerald-600 dark:[&_p]:text-emerald-400"
-        />
-        <StatTile
-          height="h-auto"
-          label="Courses At Risk"
-          icon={
-            <ShieldAlert
-              className={`w-4 h-4 ${overallStats.atRiskCount > 0 ? "text-red-500" : "text-emerald-500"}`}
-            />
-          }
-          tone={overallStats.atRiskCount > 0 ? "red" : "emerald"}
-          value={
-            <>
-              {overallStats.atRiskCount}
-              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
-                below {targetThreshold}%
-              </span>
-            </>
-          }
-          sub={overallStats.atRiskCount === 0 ? "All courses compliant" : "Requires attention"}
-        />
-        <StatTile
-          height="h-auto"
-          label="Remaining Days"
-          icon={<Clock className="w-4 h-4 text-indigo-500" />}
-          tone="neutral"
-          value={
-            <>
-              {totalRemainingWorkingDays}
-              <span className="ml-1.5 text-xs font-bold align-baseline text-zinc-500 dark:text-zinc-400">
-                working days
-              </span>
-            </>
-          }
-          sub={`Mode: ${mode === "LID" ? "Till Last Day" : `Till ${mode}`}`}
-          className="[&_p]:text-indigo-600 dark:[&_p]:text-indigo-400"
+        <InsightCarousel
+          slides={summarySlides}
+          carousel={carousel}
+          height="h-32 sm:h-36"
+          interactiveDots
+          ariaLabel="Attendance summary"
         />
       </div>
+
+      {/* The lock the reader is currently projecting against, spelled out. */}
+      <p className="px-1 -mt-1 flex items-start gap-2 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+        <Snowflake className="h-3.5 w-3.5 shrink-0 mt-px" />
+        <span>
+          {mode === "CAT1" || mode === "CAT2" ? (
+            <>
+              Attendance freezes <strong>{CAT_LOCK_OFFSET_DAYS} days before</strong>{" "}
+              {mode === "CAT1" ? "CAT I" : "CAT II"}
+              {activeMilestone.date ? <> — {formatShortDate(activeMilestone.date)}</> : null}. Classes
+              from that day on are not counted.
+            </>
+          ) : mode === "LID" || mode === "ALL" ? (
+            <>
+              Lab attendance locks at LID — Lab
+              {impDates.lidLabDate ? <> ({formatShortDate(impDates.lidLabDate)})</> : null}; theory at
+              LID — Theory
+              {impDates.lidTheoryDate ? <> ({formatShortDate(impDates.lidTheoryDate)})</> : null}.
+              {lockedNow > 0 ? ` ${lockedNow} course${lockedNow === 1 ? " is" : "s are"} already frozen.` : null}
+            </>
+          ) : (
+            <>Every scheduled working day is projected.</>
+          )}
+        </span>
+      </p>
 
       {/* ── MILESTONE SELECTOR STRIP ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -568,7 +651,8 @@ export default function OverallAttendancePredictor({
               <span>Interactive Day Simulator ({currentMonth})</span>
             </h3>
             <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium mt-0.5">
-              Tap any date to toggle: <strong>Present</strong> → <strong>Absent (Bunk)</strong> → <strong>Off (Holiday)</strong>
+              Whole day, every subject: <strong>Present</strong> → <strong>Absent (Bunk)</strong> →{" "}
+              <strong>Off (Holiday)</strong>. To miss one subject only, open it from the list below.
             </p>
           </div>
 
@@ -605,25 +689,23 @@ export default function OverallAttendancePredictor({
           <div className="grid grid-cols-4 sm:grid-cols-7 md:grid-cols-8 gap-2">
             {visibleMonthDays.map((d, i) => {
               const time = d.date.getTime();
-              const state =
-                dateStates[time] !== undefined
-                  ? dateStates[time]
-                  : attendanceLockDates.has(time)
-                    ? 2
-                    : 0;
+              const state = dateStates[time] ?? 0;
 
               const isToday = d.date.toDateString() === today.toDateString();
               const dateNumber = d.date.getDate();
               const shortWeekday = d.weekday?.slice(0, 3).toUpperCase() || d.date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
 
-              // Count classes scheduled on this day
-              const dayCards = dayCardsMap[shortWeekday] || [];
+              // Classes scheduled that weekday. A published day order means the
+              // real weekday's cards apply, which the raw weekday lookup misses.
+              const effWeekday = effectiveDayMap.get(dayKey(d.date)) || shortWeekday;
+              const dayCards = dayCardsMap[effWeekday] || [];
               const classCount = dayCards.length;
 
               return (
                 <div
                   key={time || i}
                   onClick={() => toggleDayState(d.date)}
+                  aria-pressed={state === 1}
                   className={`group relative flex flex-col items-center justify-between p-2.5 rounded-2xl border text-center transition-all duration-200 cursor-pointer select-none active:scale-95 ${
                     state === 1
                       ? "bg-rose-500 text-white border-rose-600 shadow-sm scale-[1.02]"
@@ -706,7 +788,7 @@ export default function OverallAttendancePredictor({
           />
         </div>
 
-        {/* Course Cards Grid */}
+        {/* Course menu: one row per subject, each opening its own date skipper. */}
         {filteredCourses.length === 0 ? (
           <EmptyPanel
             icon={<BookOpen className="w-7 h-7" />}
@@ -715,172 +797,188 @@ export default function OverallAttendancePredictor({
             variant="dashed"
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ListShell>
             {filteredCourses.map((course) => {
               const isSafe = course.predictedPct >= targetThreshold;
               const isClose = isSafe && course.predictedPct < targetThreshold + 4;
-              const formattedPredPct = decimalValues ? course.predictedPct.toFixed(2) : course.predictedPct.toFixed(1);
-              const formattedCurrPct = decimalValues ? course.currentPct.toFixed(2) : course.currentPct.toFixed(1);
+              const expanded = openSubject?.courseCode === course.courseCode;
+              const dates = expanded
+                ? courseMeetingDates(
+                    course.courseCode,
+                    dayCardsMap,
+                    allWorkingDays,
+                    effectiveDayMap,
+                    course.ceiling,
+                    course.lockDate
+                  )
+                : [];
+              const skips = skipSetFor(courseSkips, course.courseCode);
 
               return (
-                <div
-                  key={course.courseCode}
-                  className={`${TILE_CARD} p-5 space-y-4 hover:border-sky-500/30 transition-all flex flex-col justify-between`}
-                >
-                  {/* Top: Code, Title & Badges */}
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                <div key={course.courseCode} className={expanded ? "bg-zinc-50/60 dark:bg-zinc-800/25" : ""}>
+                  {/* The menu item itself, mirroring "Course sections" in the
+                      course subpage overview: tile, title, value, chevron. */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenSubject(expanded ? null : course)
+                    }
+                    aria-expanded={expanded}
+                    aria-label={`${expanded ? "Hide" : "Choose dates to skip for"} ${course.courseCode}`}
+                    className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                        course.locked
+                          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border-zinc-200/60 dark:border-zinc-700/60"
+                          : isSafe
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : isClose
+                              ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                              : "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {course.isLab ? <FlaskConical className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] uppercase text-zinc-500 dark:text-zinc-400">
                           {course.courseCode}
                         </span>
-                        <h4 className="text-sm sm:text-base font-black text-gray-900 dark:text-white truncate font-outfit mt-0.5">
-                          {course.courseTitle}
-                        </h4>
-                      </div>
+                        {course.skippedCount > 0 && (
+                          <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            {course.skippedCount} skip{course.skippedCount === 1 ? "" : "s"}
+                          </span>
+                        )}
+                        {course.locked && (
+                          <Snowflake className="h-3 w-3 shrink-0 text-zinc-400 dark:text-zinc-500" aria-label="Attendance locked" />
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
+                        {course.slotName ? `${course.slotName} · ` : ""}
+                        {course.meetingDays?.join(", ") || "No timetable"} · now{" "}
+                        {formatPct(course.currentPct, decimalValues)}%
+                      </p>
+                    </div>
 
-                      {/* Health Status Badge */}
-                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${
-                        !isSafe
-                          ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
-                          : isClose
-                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                      }`}>
-                        {!isSafe ? "At Risk" : isClose ? "Caution" : "Safe"}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-base font-black font-outfit tracking-tight leading-none ${
+                          course.locked
+                            ? "text-zinc-400 dark:text-zinc-500"
+                            : isSafe
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                        }`}
+                      >
+                        {formatPct(course.predictedPct, decimalValues)}%
                       </span>
+                      <ChevronRight
+                        className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
+                      />
                     </div>
+                  </button>
 
-                    {/* Metadata strip */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[10px] font-bold text-gray-500 dark:text-zinc-400">
-                      <span className="bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
-                        {course.isLab ? "Lab Course (2 hrs)" : "Theory Course"}
-                      </span>
-                      {course.slotName && (
-                        <span className="bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
-                          Slot: {course.slotName}
-                        </span>
-                      )}
-                      {course.meetingDays?.length > 0 && (
-                        <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md">
-                          {course.meetingDays.join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Middle: Attendance Comparison & Progress */}
-                  <div className="space-y-3 pt-1">
-                    {/* Live Stats Row */}
-                    <div className={`${TILE_CARD} grid grid-cols-2 gap-3 p-3`}>
-                      {/* Current */}
-                      <div>
-                        <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block">
-                          Current
-                        </span>
-                        <div className="flex items-baseline gap-1 mt-0.5">
-                          <span className="text-sm font-black text-gray-700 dark:text-zinc-300">
-                            {formattedCurrPct}%
+                  {/* The dropdown: this subject's dates, revealed in place. */}
+                  {expanded && (
+                    <div className="px-4 pb-4 -mt-1">
+                      {course.locked ? (
+                        <p className="flex items-start gap-2 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/50 p-3 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                          <Snowflake className="h-3.5 w-3.5 shrink-0 mt-px" />
+                          <span>
+                            Attendance is frozen
+                            {course.lockDate ? <> as of {formatShortDate(course.lockDate)}</> : null}
+                            {course.isLab ? " for lab" : " for theory"}, so there is nothing left to skip.
                           </span>
-                          <span className="text-[10px] font-bold text-gray-400">
-                            ({course.currentAttended}/{course.currentTotal})
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Projected */}
-                      <div>
-                        <span className="text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider block">
-                          Simulated
-                        </span>
-                        <div className="flex items-baseline gap-1 mt-0.5">
-                          <span className={`text-base font-black ${
-                            isSafe ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                          }`}>
-                            {formattedPredPct}%
-                          </span>
-                          <span className={`text-[10px] font-bold ${
-                            course.deltaPct >= 0 ? "text-emerald-500" : "text-rose-500"
-                          }`}>
-                            ({course.deltaPct >= 0 ? `+${course.deltaPct.toFixed(1)}%` : `${course.deltaPct.toFixed(1)}%`})
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dual Layer Progress Bar with Target Marker */}
-                    <div className="relative pt-1">
-                      <div className="h-2 w-full bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden relative">
-                        {/* Target Threshold Marker */}
-                        <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-zinc-500 z-10"
-                          style={{ left: `${targetThreshold}%` }}
-                          title={`Target: ${targetThreshold}%`}
+                        </p>
+                      ) : dates.length === 0 ? (
+                        <EmptyPanel
+                          variant="dashed"
+                          title="No classes left to project"
+                          description="Every scheduled class for this course is in the past, or its attendance is already locked."
                         />
-                        {/* Projected Fill */}
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isSafe ? "bg-emerald-500" : "bg-rose-500"
-                          }`}
-                          style={{ width: `${Math.min(Math.max(course.predictedPct, 0), 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom: Margin Callout & Single Course Skip Stepper */}
-                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border-muted dark:border-border/80">
-                    {/* Bunk / Catchup Intelligence */}
-                    <div className="text-xs font-extrabold flex items-center gap-1.5">
-                      {isSafe ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span>Can miss <strong>{course.safeBunks}</strong> {course.safeBunks === 1 ? "class" : "classes"}</span>
-                        </span>
                       ) : (
-                        <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          <span>Need <strong>{course.classesNeeded}</strong> {course.classesNeeded === 1 ? "class" : "classes"}</span>
-                        </span>
+                        <>
+                          <p className="px-1 pb-2 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400 font-medium">
+                            {course.isLab
+                              ? "A lab session counts as two hours, so skipping one costs two classes."
+                              : "Skipped dates count as absent for this subject only — nothing else on the timetable moves."}
+                          </p>
+                          <ListShell>
+                            {dates.map((date) => {
+                              const time = date.getTime();
+                              const skipped = skips.has(time);
+                              return (
+                                <button
+                                  key={time}
+                                  type="button"
+                                  onClick={() => toggleSubjectSkip(course.courseCode, date)}
+                                  aria-pressed={skipped}
+                                  className="w-full py-2 px-3 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 active:bg-zinc-200/70 dark:active:bg-zinc-800"
+                                >
+                                  <span
+                                    className={`flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-xl border ${
+                                      skipped
+                                        ? "border-amber-500/40 bg-amber-500 text-white"
+                                        : "border-border-muted bg-surface-secondary"
+                                    }`}
+                                  >
+                                    <span className="text-[9px] font-black uppercase leading-none opacity-80">
+                                      {date.toLocaleDateString("en-GB", { weekday: "short" })}
+                                    </span>
+                                    <span className="text-sm font-black font-outfit leading-tight">
+                                      {date.getDate()}
+                                    </span>
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-bold text-text-heading dark:text-text-heading">
+                                      {date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+                                    </span>
+                                    <span className="block text-[11px] font-medium text-text-muted dark:text-text-muted">
+                                      {skipped
+                                        ? `Will be marked absent${course.isLab ? " (2 hrs)" : ""}`
+                                        : "Scheduled class"}
+                                    </span>
+                                  </span>
+                                  <span
+                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                                      skipped
+                                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                                    }`}
+                                  >
+                                    {skipped ? "Skipped" : "Skip"}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </ListShell>
+                          {course.skippedCount > 0 && (
+                            <div className="pt-2">
+                              <GhostButton
+                                onClick={() =>
+                                  setCourseSkips((prev) => ({
+                                    ...prev,
+                                    [course.courseCode]: {},
+                                  }))
+                                }
+                                title="Clear every skipped date for this subject"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                Clear {course.skippedCount} skipped date
+                                {course.skippedCount === 1 ? "" : "s"}
+                              </GhostButton>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
-
-                    {/* Single Course Custom Skip Stepper */}
-                    <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-zinc-800 px-2 py-1 rounded-xl">
-                      <span className="text-[9px] font-bold text-gray-500 dark:text-zinc-400 mr-1">
-                        Skips:
-                      </span>
-                      <button
-                        onClick={() => {
-                          setCourseManualSkips((prev) => ({
-                            ...prev,
-                            [course.courseCode]: Math.max(0, (prev[course.courseCode] || 0) - 1),
-                          }));
-                        }}
-                        className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-700 text-gray-700 dark:text-zinc-200 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-zinc-600 transition-colors cursor-pointer"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="text-xs font-black text-gray-900 dark:text-white px-1.5">
-                        {course.manualSkips}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setCourseManualSkips((prev) => ({
-                            ...prev,
-                            [course.courseCode]: (prev[course.courseCode] || 0) + 1,
-                          }));
-                        }}
-                        className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-700 text-gray-700 dark:text-zinc-200 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-zinc-600 transition-colors cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
-          </div>
+          </ListShell>
         )}
       </div>
 
@@ -896,7 +994,7 @@ export default function OverallAttendancePredictor({
           <div className="flex items-start gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
             <p>
-              <strong>Exam Freeze Rule:</strong> For CAT-1 and CAT-2, attendance is frozen on Thursday and Friday directly preceding the exam start date.
+              <strong>Exam Freeze Rule:</strong> Attendance freezes three days before CAT I and CAT II, so classes from that day onward are no longer counted.
             </p>
           </div>
           <div className="flex items-start gap-2">
@@ -914,169 +1012,13 @@ export default function OverallAttendancePredictor({
             <div className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0" />
               <p>
-                <strong>Real-Time Simulation:</strong> All date toggles and skip steppers simulate your projected percentages instantly without modifying actual portal records.
+                <strong>Real-Time Simulation:</strong> Whole-day toggles and per-subject skipped
+                dates simulate your projected percentages instantly without modifying actual
+                portal records.
               </p>
             </div>
           </div>
         </div>
     </PageShell>
   );
-  }
-
-// Helper: Count future scheduled working days for a specific course
-function countFutureClassesForCourse(
-  courseCode: string,
-  dayCardsMap: Record<string, any[]>,
-  allWorkingDays: CalendarDay[],
-  dateStates: Record<number, number>,
-  cutoffDate: Date | null,
-  attendanceLockDates?: Set<number>
-) {
-  if (!courseCode || !dayCardsMap || !Array.isArray(allWorkingDays))
-    return { futureCount: 0, meetingDays: [] };
-
-  const normalizeDay = (d: string) => d.slice(0, 3).toUpperCase();
-
-  const subjectDays = Object.keys(dayCardsMap).filter((day) =>
-    dayCardsMap[day]?.some((c) => c.courseCode === courseCode)
-  );
-  if (subjectDays.length === 0)
-    return { futureCount: 0, meetingDays: [] };
-
-  const subjectDaysShort = subjectDays.map(normalizeDay);
-
-  const dayOrderMap: Record<string, string> = {
-    monday: "MON",
-    tuesday: "TUE",
-    wednesday: "WED",
-    thursday: "THU",
-    friday: "FRI",
-  };
-
-  const ymd = (d: Date) => {
-    const dd = new Date(d);
-    dd.setHours(0, 0, 0, 0);
-    return `${dd.getFullYear()}-${dd.getMonth() + 1}-${dd.getDate()}`;
-  };
-
-  const effectiveMap = new Map<string, string>();
-  for (const d of allWorkingDays) {
-    if (!d?.date) continue;
-    let effectiveDay = normalizeDay(d.weekday || "");
-    if (effectiveDay === "SAT" && Array.isArray(d.events) && d.events.length > 0) {
-      const found = d.events.find((ev) =>
-        /(monday|tuesday|wednesday|thursday|friday)/i.test(ev.text || ev.category || "")
-      );
-      if (found) {
-        const match = (found.text || found.category || "").match(
-          /(Monday|Tuesday|Wednesday|Thursday|Friday)/i
-        );
-        if (match && match[1]) {
-          const mapped = dayOrderMap[match[1].toLowerCase()];
-          if (mapped) effectiveDay = mapped;
-        }
-      }
-    }
-    effectiveMap.set(ymd(d.date), effectiveDay);
-  }
-
-  const remainingWorkingDays = allWorkingDays.filter((d) => {
-    if (!d || !d.date || isNaN(d.date.getTime?.())) return false;
-    if (cutoffDate && d.date > cutoffDate) return false;
-
-    const time = d.date.getTime();
-    const effectiveState =
-      dateStates[time] !== undefined
-        ? dateStates[time]
-        : attendanceLockDates?.has(time)
-          ? 2
-          : 0;
-
-    const eff = effectiveMap.get(ymd(d.date)) || normalizeDay(d.weekday || "");
-    return subjectDaysShort.includes(eff) && effectiveState !== 2;
-  });
-
-  return {
-    futureCount: remainingWorkingDays.length,
-    meetingDays: subjectDaysShort,
-  };
-}
-
-// Helper: Count missed days for a specific course
-function countMissedClassesForCourse(
-  courseCode: string,
-  dayCardsMap: Record<string, any[]>,
-  dateStates: Record<number, number>,
-  allWorkingDays: CalendarDay[],
-  cutoffDate: Date | null,
-  attendanceLockDates?: Set<number>
-) {
-  if (!courseCode || !dayCardsMap || typeof dateStates !== "object") return 0;
-
-  const normalizeDay = (d: string) => d.slice(0, 3).toUpperCase();
-
-  const subjectDays = Object.keys(dayCardsMap).filter((day) =>
-    dayCardsMap[day]?.some((c) => c.courseCode === courseCode)
-  );
-  if (subjectDays.length === 0) return 0;
-
-  const subjectDaysShort = subjectDays.map(normalizeDay);
-  const dayOrderMap: Record<string, string> = {
-    monday: "MON",
-    tuesday: "TUE",
-    wednesday: "WED",
-    thursday: "THU",
-    friday: "FRI",
-  };
-
-  const ymd = (d: Date) => {
-    const dd = new Date(d);
-    dd.setHours(0, 0, 0, 0);
-    return `${dd.getFullYear()}-${dd.getMonth() + 1}-${dd.getDate()}`;
-  };
-
-  const effectiveMap = new Map<string, string>();
-  for (const d of allWorkingDays) {
-    if (!d?.date) continue;
-    let effectiveDay = normalizeDay(d.weekday || "");
-    if (effectiveDay === "SAT" && Array.isArray(d.events) && d.events.length > 0) {
-      const found = d.events.find((ev) =>
-        /(monday|tuesday|wednesday|thursday|friday)/i.test(ev.text || ev.category || "")
-      );
-      if (found) {
-        const match = (found.text || found.category || "").match(
-          /(Monday|Tuesday|Wednesday|Thursday|Friday)/i
-        );
-        if (match && match[1]) {
-          const mapped = dayOrderMap[match[1].toLowerCase()];
-          if (mapped) effectiveDay = mapped;
-        }
-      }
-    }
-    effectiveMap.set(ymd(d.date), effectiveDay);
-  }
-
-  let missed = 0;
-
-  for (const [timestamp, state] of Object.entries(dateStates)) {
-    const s = new Date(parseInt(timestamp));
-    if (cutoffDate && s > cutoffDate) continue;
-
-    const time = s.getTime();
-    const effectiveState =
-      dateStates[time] !== undefined
-        ? dateStates[time]
-        : attendanceLockDates?.has(time)
-          ? 2
-          : 0;
-
-    const key = ymd(s);
-    const eff = effectiveMap.get(key);
-    if (!eff) continue;
-
-    if (effectiveState === 1 && subjectDaysShort.includes(eff)) {
-      missed++;
-    }
-  }
-  return missed;
 }
