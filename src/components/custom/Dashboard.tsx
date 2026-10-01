@@ -53,7 +53,7 @@ import FeedbackStatusModal from "./profile/FeedbackStatusModal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
 import OverallAttendancePredictor from "./attendance/OverallAttendancePredictor";
 import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
-import { analyzeAllCalendars } from "@/lib/analyzeCalendar";
+import { buildMilestoneDates } from "@/lib/milestoneDates";
 import { useMemo } from "react";
 import {
   ensureSyncSession,
@@ -153,10 +153,7 @@ function DashboardContent({
     }
   }, []);
 
-  const results = useMemo(() => {
-    const analysis = analyzeAllCalendars(calendarData?.calendars);
-    return analysis?.results || [];
-  }, [calendarData]);
+  const results = useMemo(() => buildMilestoneDates(calendarData).results, [calendarData]);
 
   useEffect(() => {
     if (demoMode) {
@@ -879,34 +876,26 @@ function DashboardContent({
               {activeAttendanceSubTab === "predictor" && (
                 <div className="animate-fadeIn">
                   {(() => {
-                    const calendarAnalysis = calendarData?.calendars ? analyzeAllCalendars(calendarData.calendars) : null;
-                    // Look the milestones up by their canonical key, which is what
-                    // `matchImportantEvent` wrote the map under.
-                    //
-                    // This used to substring-match the display string: `"cat i"` is
-                    // also a substring of `"CAT II"`, so which exam a date belonged
-                    // to came down to the order the calendar happened to arrive in.
-                    // Reading the key back removes the question.
-                    const impEventDate = (key: string) =>
-                      calendarAnalysis?.importantEvents?.get(key)?.formattedDate ?? null;
+                    const { results, impDates } = buildMilestoneDates(calendarData);
                     return (
                       <OverallAttendancePredictor
                         attendanceData={attendanceData.attendance}
-                        analyzeCalendars={calendarAnalysis?.results || []}
+                        analyzeCalendars={results}
                         dayCardsMap={buildAttendanceDayCardsMap(
                           attendanceData.attendance,
                           undefined,
                           (typeof window !== "undefined" ? localStorage.getItem("saturday_timetable_override") : null) || "SAT"
                         )}
-                        impDates={{
-                          cat1Date: impEventDate("cat i"),
-                          cat2Date: impEventDate("cat ii"),
-                          lidTheoryDate: impEventDate("lid for theory classes"),
-                          lidLabDate: impEventDate("lid for laboratory classes"),
-                        }}
+                        impDates={impDates}
                         isDayscholarWithBus={settings.isDayscholarWithBus}
                         decimalValues={settings.decimalValues}
-                        onBack={() => setActiveAttendanceSubTab("attendance")}
+                        // `onSystemBack`, not a subtab setter. Setting the state
+                        // directly changes `screenKey`, which makes Main push a
+                        // *new* history entry instead of consuming the one the
+                        // predictor arrived on — so the next system-back landed on
+                        // the predictor again, and the stack mirror drifted until
+                        // the app let go of the history and exited.
+                        onBack={onSystemBack}
                       />
                     );
                   })()}
@@ -1018,7 +1007,7 @@ function DashboardContent({
           {activeTab === "tools" && (
             <div className="animate-fadeIn">
               <ToolsTab
-                marksData={marksData}
+marksData={marksData}
                 allGradesData={allGradesData}
                 attendanceData={attendanceData}
                 loginToVTOP={loginToVTOP}
@@ -1026,6 +1015,10 @@ function DashboardContent({
                 activeToolsSubTab={activeToolsSubTab}
                 setActiveToolsSubTab={setActiveToolsSubTab}
                 setActiveTab={setActiveTab}
+                onSystemBack={onSystemBack}
+                calendarData={calendarData}
+                decimalValues={settings.decimalValues}
+                isDayscholarWithBus={settings.isDayscholarWithBus}
               />
             </div>
           )}
