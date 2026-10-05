@@ -15,6 +15,7 @@ import ThemeToggle from "./ThemeToggle";
 import { getActiveApiUrl, setActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, hasBackupApi } from "@/lib/fetch-utils";
 import { UNICC_API_URL } from "@/lib/unicc-fallback";
 import { useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
+import SelectField from "./shared/primitives/SelectField";
 
 interface LoginFormProps {
   username: any;
@@ -1054,20 +1055,22 @@ export default function LoginForm({
                         <Server size={14} className="text-slate-500" />
                         <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Target Server</span>
                       </div>
-                      <select
+                      <SelectField
                         value={targetValue}
-                        onChange={(e) => handleApiChange(e.target.value)}
+                        onChange={handleApiChange}
+                        options={[
+                          { value: PRIMARY_API_URL, label: "AmazeCC" },
+                          ...(hasBackupApi()
+                            ? [{ value: BACKUP_API_URL, label: "AmazeCC (Backup)" }]
+                            : []),
+                          ...(uniccAvailable ? [{ value: UNICC_API_URL, label: "UniCC" }] : []),
+                        ]}
+                        searchable={false}
+                        size="sm"
+                        role="group"
                         aria-label="Target server"
-                        className="text-xs bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer focus:outline-none"
-                      >
-                        <option value={PRIMARY_API_URL} className="bg-white dark:bg-neutral-950">AmazeCC</option>
-                        {hasBackupApi() && (
-                          <option value={BACKUP_API_URL} className="bg-white dark:bg-neutral-950">AmazeCC (Backup)</option>
-                        )}
-                        {uniccAvailable && (
-                          <option value={UNICC_API_URL} className="bg-white dark:bg-neutral-950">UniCC</option>
-                        )}
-                      </select>
+                        className="w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-indigo-600 dark:[&>button:first-child]:text-indigo-400"
+                      />
                     </div>
 
                     {/* Saying what the choice actually does. UniCC is a third-party

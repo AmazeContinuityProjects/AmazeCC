@@ -10,8 +10,10 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
+import SelectField from "../shared/primitives/SelectField";
 
 import { getAssetPath } from "@/lib/utils";
+import { createTapTracker, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
 import { useOverlayBack } from "@/lib/overlayStack";
 import { animateThemeCircularExpansion } from "../ThemeToggle";
 import {
@@ -162,7 +164,8 @@ export default function NavigationTabs({
   activeProfileSubTab,
   setActiveProfileSubTab,
   onOpenFeedbackStatus,
-  onOpenCommandPalette
+  onOpenCommandPalette,
+  onCollapseScreenChange
 }: any) {
   // Suppress unused warnings to comply with ESLint configurations
   void handleLogOutRequest;
@@ -948,6 +951,63 @@ export default function NavigationTabs({
     },
   ], [activeTab, HostelActiveSubTab, selectTab, setHostelActiveSubTab]);
 
+  /**
+   * Single tap does the tab's normal thing; a second tap on the same icon inside
+   * `DOUBLE_TAP_MS` takes that section to its home sub-screen.
+   *
+   * The first tap is *not* delayed waiting to see whether a second follows: an
+   * icon that felt laggy would be worse than a double tap being one step late,
+   * which is how Android's own double-tap-to-top behaves.
+   */
+  const navTaps = useMemo(() => createTapTracker(), []);
+
+  const handleNavItemTap = useCallback(
+    (item: { id: string; onClick: () => void; isActive: boolean }) => {
+      const outcome = navTaps.tap(item.id, { wasActive: item.isActive });
+      if (outcome.kind === "single") {
+        item.onClick();
+        return;
+      }
+
+      const home = sectionHomeFor(item.id, {
+        setActiveAttendanceSubTab,
+        setActiveSubTab,
+        setActiveToolsSubTab,
+        setActiveDayscholarSubTab,
+        setActiveMoreSubTab,
+        setActiveProfileSubTab,
+      });
+      // A toggle icon (search, modules) has no home, and a single-screen tab
+      // needs no reset - in both cases the normal tap already did everything
+      // there is to do, so the double tap falls through to it.
+      if (!home) {
+        item.onClick();
+        return;
+      }
+
+      setIsAppLibraryOpen(false);
+      selectTab(item.id);
+      // When the first tap switched sections it already committed and wrote
+      // that section as its own screen, so fold this move into it. Otherwise the
+      // double tap would be two Back steps instead of one.
+      if (outcome.collapseFirstTap) {
+        onCollapseScreenChange?.();
+      }
+    },
+    [
+      navTaps,
+      selectTab,
+      setIsAppLibraryOpen,
+      onCollapseScreenChange,
+      setActiveAttendanceSubTab,
+      setActiveSubTab,
+      setActiveToolsSubTab,
+      setActiveDayscholarSubTab,
+      setActiveMoreSubTab,
+      setActiveProfileSubTab,
+    ]
+  );
+
   const renderMobileNav = () => {
     return (
       <>
@@ -958,9 +1018,13 @@ export default function NavigationTabs({
             return (
               <m.button
                 key={item.id}
-                onClick={item.onClick}
+                onClick={() => handleNavItemTap(item)}
                 whileTap={{ scale: 0.92 }}
-                aria-label={item.label}
+                aria-label={
+                  hasSectionHome(item.id)
+                    ? `${item.label} — double tap for home`
+                    : item.label
+                }
                 title={item.label}
                 className="flex items-center justify-center flex-1 py-2 relative select-none cursor-pointer group focus:outline-none"
               >
@@ -1089,21 +1153,21 @@ export default function NavigationTabs({
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">Current Semester</div>
                     <div className="relative flex items-center">
-                      <select
-                        value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          handleReloadRequest(val);
-                        }}
-                        className="appearance-none bg-transparent border-none text-[10px] font-black text-info hover:underline cursor-pointer focus:outline-none pr-3.5 py-0 select-none text-right"
-                      >
-                        {config.semesterIDs.map((semId: string) => (
-                          <option key={semId} value={semId} className="bg-sidebar text-sidebar-foreground text-xs">
-                            {formatSemesterName(semId)}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-info pointer-events-none" />
+                          <SelectField
+                            value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                            onChange={(val) => {
+                              handleReloadRequest(val);
+                            }}
+                            options={config.semesterIDs.map((semId: string) => ({
+                              value: semId,
+                              label: formatSemesterName(semId),
+                            }))}
+                            searchable={false}
+                            role="group"
+                            aria-label="Current semester"
+                            size="auto"
+                            className="ml-auto w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:pr-5 [&>button:first-child]:text-info [&>button:first-child]:hover:underline"
+                          />
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -1782,21 +1846,21 @@ const AppLibraryPortal = memo(({
         <div className="flex items-center gap-1.5 px-1 pb-3">
           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-550">Active Sem:</span>
           <div className="relative flex items-center">
-            <select
-              value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-              onChange={(e) => {
-                const val = e.target.value;
-                handleReloadRequest(val);
-              }}
-              className="appearance-none border-none bg-transparent py-0 pr-3.5 text-xs font-black text-info hover:underline focus:outline-none"
-            >
-              {config.semesterIDs.map((semId: string) => (
-                <option key={semId} value={semId} className="bg-white text-xs text-gray-900 dark:bg-neutral-900 dark:text-white">
-                  {formatSemesterName(semId)}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-info" />
+                <SelectField
+                  value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                  onChange={(val) => {
+                    handleReloadRequest(val);
+                  }}
+                  options={config.semesterIDs.map((semId: string) => ({
+                    value: semId,
+                    label: formatSemesterName(semId),
+                  }))}
+                  searchable={false}
+                  role="group"
+                  aria-label="Current semester"
+                  size="auto"
+                  className="w-full [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:pr-5 [&>button:first-child]:text-info [&>button:first-child]:hover:underline"
+                />
           </div>
         </div>
       )}

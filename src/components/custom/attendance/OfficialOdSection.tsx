@@ -5,11 +5,12 @@ import { useAtom } from "jotai";
 import { officialOdDataAtom } from "@/store";
 import { Badge } from "../shared";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { CalendarClock, ChevronDown, FileText, Inbox, RefreshCw, ScrollText, XCircle } from "lucide-react";
+import { CalendarClock, FileText, Inbox, RefreshCw, ScrollText, XCircle } from "lucide-react";
 import { syncEngine } from "@/lib/sync-engine";
 import { storage } from "@/lib/storage";
 import { DEMO_OFFICIAL_OD, formatSemesterName, getOfficialOd } from "@/lib/officialOd";
 import type { OfficialOdResponse } from "@/types/data/od";
+import SelectField from "../shared/primitives/SelectField";
 
 interface Props {
   currSemesterID: string;
@@ -121,19 +122,16 @@ export default function OfficialOdSection({ currSemesterID, allGradesData }: Pro
           </div>
         </div>
         {semesterOptions.length > 1 && (
-          <div className="relative max-w-xs">
-            <select
+          <div className="max-w-xs">
+            <SelectField
               value={semesterId}
-              onChange={(e) => setSemesterId(e.target.value)}
-              className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {semesterOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              onChange={(val) => setSemesterId(val)}
+              options={semesterOptions}
+              stacked
+              searchable
+              role="group"
+              aria-label="Semester"
+            />
           </div>
         )}
       </div>

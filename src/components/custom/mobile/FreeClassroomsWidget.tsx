@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-react";
 
+import SelectField from "../shared/primitives/SelectField";
 import type { ParsedCourse } from "../exams/FFCS/types";
 import { slotSpellings } from "@/lib/slots";
 
@@ -28,6 +29,13 @@ const timeToMinutes = (timeStr: string) => {
   if (period === "AM" && hours === 12) hours = 0;
   return hours * 60 + minutes;
 };
+
+/**
+ * The three filter fields share this chrome: an icon sits in the left gutter,
+ * so the trigger needs left padding for it and a smaller label than the default.
+ */
+const WIDGET_FIELD =
+  "[&>button:first-child]:pl-9 [&>button:first-child]:pr-2 [&>button:first-child]:bg-gray-50 dark:[&>button:first-child]:bg-slate-800 [&>button:first-child]:font-semibold";
 
 export default function FreeClassroomsWidget() {
   const [courses, setCourses] = useState<ParsedCourse[]>([]);
@@ -239,42 +247,56 @@ export default function FreeClassroomsWidget() {
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="relative">
           <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select 
+          <SelectField
             value={selectedDay}
-            onChange={e => setSelectedDay(e.target.value)}
-            className="w-full pl-9 pr-2 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-[11px] font-semibold text-gray-900 dark:text-gray-100 appearance-none outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="mon">Monday</option>
-            <option value="tue">Tuesday</option>
-            <option value="wed">Wednesday</option>
-            <option value="thu">Thursday</option>
-            <option value="fri">Friday</option>
-          </select>
+            onChange={(val) => setSelectedDay(val)}
+            options={[
+              { value: "mon", label: "Monday" },
+              { value: "tue", label: "Tuesday" },
+              { value: "wed", label: "Wednesday" },
+              { value: "thu", label: "Thursday" },
+              { value: "fri", label: "Friday" },
+            ]}
+            searchable={false}
+            size="md"
+            stacked
+            role="group"
+            aria-label="Day"
+            className={WIDGET_FIELD}
+          />
         </div>
         <div className="relative">
           <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select 
+          <SelectField
             value={selectedTime}
-            onChange={e => setSelectedTime(e.target.value)}
-            className="w-full pl-9 pr-2 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-[11px] font-semibold text-gray-900 dark:text-gray-100 appearance-none outline-none focus:ring-2 focus:ring-indigo-500/50 truncate"
-          >
-            {timePeriods.map(time => (
-              <option key={time} value={time}>{time}</option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedTime(val)}
+            options={timePeriods.map((time) => ({ value: time, label: time }))}
+            searchable={false}
+            size="md"
+            stacked
+            role="group"
+            aria-label="Time period"
+            className={WIDGET_FIELD}
+          />
         </div>
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select 
+          <SelectField
             value={selectedBlock}
-            onChange={e => setSelectedBlock(e.target.value)}
-            className="w-full pl-9 pr-2 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-[11px] font-semibold text-gray-900 dark:text-gray-100 appearance-none outline-none focus:ring-2 focus:ring-indigo-500/50 truncate"
-          >
-            <option value="All">All Blocks</option>
-            {Object.keys(freeVenuesByBlock).sort().map(block => (
-              <option key={block} value={block}>{block}</option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedBlock(val)}
+            options={[
+              { value: "All", label: "All Blocks" },
+              ...Object.keys(freeVenuesByBlock)
+                .sort()
+                .map((block) => ({ value: block, label: block })),
+            ]}
+            searchable={false}
+            size="md"
+            stacked
+            role="group"
+            aria-label="Block"
+            className={WIDGET_FIELD}
+          />
         </div>
       </div>
 

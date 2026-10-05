@@ -9,6 +9,7 @@ import {
   Bell, Volume2, Moon, AlertTriangle, Calendar, BookOpen, Utensils, 
   FileText, Sparkles, Send, CheckCircle, Key, Plane, Bus, BookMarked, Award, Clock
 } from "lucide-react";
+import SelectField from "@/components/custom/shared/primitives/SelectField";
 
 // Cryptographically valid uncompressed NIST P-256 ECDSA VAPID Public Key (65 bytes starting with 0x04)
 const DEFAULT_VAPID_PUBLIC_KEY = 
@@ -288,15 +289,22 @@ export default function PushNotificationManager() {
               <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-black/50 px-2.5 py-1 rounded-xl border border-gray-200/60 dark:border-gray-800">
                 <Clock size={12} className="text-indigo-500" />
                 <span className="text-[10px] font-bold text-gray-500">Class Alert:</span>
-                <select
-                  value={settings?.classReminderLeadMinutes || 15}
-                  onChange={(e) => updateSettingField("classReminderLeadMinutes", Number(e.target.value))}
-                  className="bg-transparent text-[11px] font-black text-indigo-600 dark:text-indigo-400 focus:outline-none cursor-pointer"
-                >
-                  <option value={10}>10m before</option>
-                  <option value={15}>15m before</option>
-                  <option value={30}>30m before</option>
-                </select>
+                <SelectField
+                  value={String(settings?.classReminderLeadMinutes || 15)}
+                  onChange={(val) =>
+                    updateSettingField("classReminderLeadMinutes", Number(val))
+                  }
+                  options={[
+                    { value: "10", label: "10m before" },
+                    { value: "15", label: "15m before" },
+                    { value: "30", label: "30m before" },
+                  ]}
+                  searchable={false}
+                  size="xs"
+                  role="group"
+                  aria-label="Class alert lead time"
+                  className="w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-[11px] [&>button:first-child]:text-indigo-600 dark:[&>button:first-child]:text-indigo-400"
+                />
               </div>
             </div>
 

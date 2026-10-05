@@ -5,7 +5,6 @@ import { useAtom } from "jotai";
 import {
   CheckCircle2,
   Clock,
-  ChevronDown,
   History,
   ArrowRight,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { pomodoroSessionsAtom } from "@/store/dataAtoms";
 import { getTodayAttendanceDay } from "@/lib/attendanceTimetable";
 import type { Task } from "@/types/tasks";
 import PomodoroTimer from "./PomodoroTimer";
+import SelectField from "../shared/primitives/SelectField";
 
 interface FocusPageProps {
   tasks: Task[];
@@ -66,20 +66,22 @@ export default function FocusPage({
           </div>
 
           {/* Quick task picker dropdown */}
-          <div className="relative min-w-48">
-            <select
+          <div className="min-w-48">
+            <SelectField
               value={selectedTaskId}
-              onChange={(e) => setSelectedTaskId(e.target.value)}
-              className="w-full text-xs font-bold rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer pr-8"
-            >
-              <option value="">Standalone (No task bound)</option>
-              {activeTasks.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title} {t.courseCode ? `(${t.courseCode})` : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-2.5 top-2.5 pointer-events-none" />
+              onChange={(val) => setSelectedTaskId(val)}
+              options={[
+                { value: "", label: "Standalone (No task bound)" },
+                ...activeTasks.map((t) => ({
+                  value: t.id,
+                  label: `${t.title}${t.courseCode ? ` (${t.courseCode})` : ""}`,
+                })),
+              ]}
+              searchable
+              stacked
+              role="group"
+              aria-label="Task to focus on"
+            />
           </div>
         </div>
 

@@ -47,6 +47,8 @@ import {
   AssessmentCard,
 } from "./courseHelpers";
 
+import SelectField from "../shared/primitives/SelectField";
+
 const AttendanceCalendarView = dynamic(
   () => import("../attendance/AttendanceCalendarView"),
   { ssr: false }
@@ -1760,13 +1762,20 @@ export default function CourseDetailSubpage({
                           <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">See how many weightage points you need for your goal.</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <select
-                            value={targetGrade}
-                            onChange={(e) => setTargetGrade(e.target.value)}
-                            className="px-3 py-1.5 rounded-lg border border-gray-300  dark:border-gray-600 bg-gray-50  dark:bg-black text-gray-900  dark:text-gray-100 font-bold"
-                          >
-                            {['S', 'A', 'B', 'C', 'D', 'E'].map(g => <option key={g} value={g}>Grade {g}</option>)}
-                          </select>
+<SelectField
+                                  value={targetGrade}
+                                  onChange={(val) => setTargetGrade(val)}
+                                  options={["S", "A", "B", "C", "D", "E"].map((g) => ({
+                                    value: g,
+                                    label: `Grade ${g}`,
+                                  }))}
+                                  searchable={false}
+                                  size="md"
+                                  stacked
+                                  role="group"
+                                  aria-label="Target grade"
+                                  className="[&>button:first-child]:rounded-lg [&>button:first-child]:px-3 [&>button:first-child]:text-xs"
+                                />
                           {remainingWeightagePoints <= 0 ? (
                             <div className="px-4 py-2 bg-emerald-100 text-emerald-800   dark:bg-emerald-900/50 dark:text-emerald-300 font-bold rounded-lg text-sm">
                               Target Achieved!

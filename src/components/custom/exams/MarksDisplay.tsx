@@ -10,6 +10,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import PageHeader from "../shared/PageHeader";
 import Badge from "../shared/Badge";
 import ExpandableSection from "../shared/ExpandableSection";
+import SelectField from "../shared/primitives/SelectField";
 
 const formatNumber = (num) => {
   const numericValue = Number(num);
@@ -715,13 +716,20 @@ function MarksSubpage({ group, allStats, onBack }) {
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Calculate the required weightage points left to secure your target grade.</p>
                       </div>
                       <div className="flex items-center gap-3.5 w-full sm:w-auto justify-between sm:justify-end">
-                        <select 
-                          value={targetGrade} 
-                          onChange={(e) => setTargetGrade(e.target.value)}
-                          className="px-3 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-bold text-xs cursor-pointer shadow-3xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        >
-                          {['S', 'A', 'B', 'C', 'D', 'E'].map(g => <option key={g} value={g}>Grade {g}</option>)}
-                        </select>
+<SelectField
+                               value={targetGrade}
+                               onChange={(val) => setTargetGrade(val)}
+                               options={["S", "A", "B", "C", "D", "E"].map((g) => ({
+                                 value: g,
+                                 label: `Grade ${g}`,
+                               }))}
+                               searchable={false}
+                               size="md"
+                               stacked
+                               role="group"
+                               aria-label="Target grade"
+                               className="[&>button:first-child]:rounded-xl [&>button:first-child]:px-3 [&>button:first-child]:text-xs [&>button:first-child]:shadow-3xs"
+                             />
                         
                         {remainingWeightagePoints <= 0 ? (
                           <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl text-xs shadow-3xs">

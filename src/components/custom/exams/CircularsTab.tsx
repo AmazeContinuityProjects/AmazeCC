@@ -5,7 +5,7 @@ import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence } from "framer-motion";
-import { RefreshCcw, FileText, ChevronRight, ChevronDown, FolderOpen, File, Download, X, Bell } from "lucide-react";
+import { AlertTriangle, Bell, ChevronDown, ChevronRight, Download, File, FileText, FolderOpen, RefreshCcw } from "lucide-react";
 
 interface Creds {
   cookies: string[];
@@ -23,6 +23,8 @@ interface CircularItem {
 interface CircularsTabProps {
   loginToVTOP: () => Promise<Creds>;
   onBack?: () => void;
+  /** Used only as the back target when `onBack` is not supplied. */
+  setActiveTab?: (tab: string) => void;
 }
 
 const LS_KEY = "uni_cc_circulars";
@@ -124,7 +126,7 @@ function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; 
   );
 }
 
-export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps) {
+export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: CircularsTabProps) {
   const [creds, setCreds] = useState<Creds | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -178,16 +180,66 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
   };
 
   useEffect(() => {
-    loginToVTOP().then(c => { setCreds(c); fetchData(c); }).catch(() => setLoading(false));
+    // The `.catch` used to only clear `loading`, which left `creds` null — and
+    // the guard below is `!creds || loading`, so a failed login pinned the
+    // subpage on its skeleton forever with no way out. Record the failure and let
+    // the error branch render.
+    loginToVTOP()
+      .then((c) => {
+        setCreds(c);
+        return fetchData(c);
+      })
+      .catch((e) => {
+        setError(
+          e?.message
+            ? `Could not reach VTOP: ${e.message}`
+            : "Could not reach VTOP to load circulars."
+        );
+        setLoading(false);
+      });
   }, []);
+
+  // `SubpageLayout` from amazeui renders its back button unconditionally — unlike
+  // this repo's `PageShell`, it does not hide the control when `onBack` is
+  // absent. So every branch below has to supply a real one; an empty arrow
+  // function renders a button that swallows the tap and does nothing.
+  const leave = onBack ?? (() => setActiveTab?.("attendance"));
 
   if (!creds || loading) {
     return (
-      <SubpageLayout title="Circulars" onBack={() => {}}>
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-48 rounded-lg" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-        </div>
+      <SubpageLayout title="Circulars" onBack={leave}>
+        {error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <AlertTriangle className="h-9 w-9 text-amber-500" />
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+              Could not load circulars
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{error}</p>
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                loginToVTOP()
+                  .then((c) => {
+                    setCreds(c);
+                    return fetchData(c, true);
+                  })
+                  .catch((e) => {
+                    setError(e?.message ?? "Could not reach VTOP.");
+                    setLoading(false);
+                  });
+              }}
+              className="mt-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-48 rounded-lg" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
+          </div>
+        )}
       </SubpageLayout>
     );
   }
@@ -197,7 +249,7 @@ export default function CircularsTab({ loginToVTOP, onBack }: CircularsTabProps)
   return (
     <SubpageLayout
       title="Circulars"
-      onBack={onBack || (() => {})}
+      onBack={leave}
       action={
         <button onClick={() => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEEN_KEY); if (creds) fetchData(creds, true); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
           <RefreshCcw className="w-5 h-5" />

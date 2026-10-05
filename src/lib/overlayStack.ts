@@ -34,6 +34,18 @@ export function closeTopOverlayFromPop(): boolean {
 }
 
 /**
+ * Whether `id` is the overlay the user is currently looking at.
+ *
+ * The Escape key is a document-level event, so every mounted sheet sees it —
+ * unlike system back, which goes through `closeTopOverlayFromPop` and is
+ * therefore already LIFO. Without this check a single Escape in a sheet stacked
+ * on another sheet closed both of them, because each sheet's own listener fired.
+ */
+export function isTopOverlay(id: string): boolean {
+  return stack.length > 0 && stack[stack.length - 1]?.id === id;
+}
+
+/**
  * Bind an overlay's open state to the system back gesture/button.
  *
  * While open, the overlay sits on the stack; a system back press closes the

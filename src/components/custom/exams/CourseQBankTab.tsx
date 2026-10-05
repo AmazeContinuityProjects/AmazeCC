@@ -5,6 +5,7 @@ import EmptyState from "../shared/EmptyState";
 import { api } from "@/lib/sync-engine";
 import ExamQuestion from "../qbank/ExamQuestion";
 import FetchButton from "../shared/FetchButton";
+import SelectField from "../shared/primitives/SelectField";
 
 export default function CourseQBankTab({ courseCode, username }: { courseCode: string, username: string }) {
   const [detailTab, setDetailTab] = useState<"papers" | "questions">("papers");
@@ -206,18 +207,22 @@ export default function CourseQBankTab({ courseCode, username }: { courseCode: s
                   />
                 </div>
                 <div>
-                  <select
-                    value={paperType}
-                    onChange={(e) => setPaperType(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-800 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option>CAT 1</option>
-                    <option>CAT 2</option>
-                    <option>FAT</option>
-                    <option>Quiz</option>
-                    <option>Assignment</option>
-                  </select>
-                </div>
+                        <SelectField
+                          value={paperType}
+                          onChange={(val) => setPaperType(val)}
+                          options={[
+                            { value: "CAT 1", label: "CAT 1" },
+                            { value: "CAT 2", label: "CAT 2" },
+                            { value: "FAT", label: "FAT" },
+                            { value: "Quiz", label: "Quiz" },
+                            { value: "Assignment", label: "Assignment" },
+                          ]}
+                          searchable={false}
+                          stacked
+                          role="group"
+                          aria-label="Paper type"
+                        />
+                      </div>
               </div>
 
               <div className="flex flex-col md:flex-row gap-3 items-end">

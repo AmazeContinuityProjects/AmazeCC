@@ -1120,6 +1120,11 @@ export default function LoginPage() {
   }, []);
 
   const screenMountedRef = useRef(false);
+  // Set by a double-tap that lands on a section home: the first tap already
+  // pushed the section it switched to, so this screen change folds into that
+  // entry instead of adding one. Back then leaves the double-tap in a single
+  // step rather than walking through the intermediate screen.
+  const collapseScreenPushRef = useRef(false);
   useEffect(() => {
     if (!screenMountedRef.current) {
       screenMountedRef.current = true;
@@ -1128,11 +1133,24 @@ export default function LoginPage() {
       return;
     }
     if (skipScreenPushRef.current) { skipScreenPushRef.current = false; return; }
+    // Read and clear it up front so it can only ever apply to this one change:
+    // leaving it set would silently collapse the next unrelated navigation.
+    const collapse = collapseScreenPushRef.current;
+    collapseScreenPushRef.current = false;
     const stack = screenStackRef.current;
     if (stack[stack.length - 1] === screenKey) return;
+    if (collapse) {
+      stack[stack.length - 1] = screenKey;
+      writeScreenState("replace", screenKey);
+      return;
+    }
     stack.push(screenKey);
     writeScreenState("push", screenKey);
   }, [screenKey, writeScreenState]);
+
+  const collapseLastScreenChange = useCallback(() => {
+    collapseScreenPushRef.current = true;
+  }, []);
 
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
@@ -2495,6 +2513,7 @@ export default function LoginPage() {
             onOpenCommandPalette={openCommandPalette}
             onOpenShortcutsHelp={openShortcutsHelp}
             onSystemBack={goBack}
+            onCollapseScreenChange={collapseLastScreenChange}
           />
             </>
           )}

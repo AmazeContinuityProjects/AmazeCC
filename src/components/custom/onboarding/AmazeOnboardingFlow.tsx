@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { 
   Sparkles, LayoutGrid, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, 
-  Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, ChevronDown, 
+  Check, GraduationCap, Bus, Bell, Palette, ShieldCheck, 
   Sliders, User, Calendar, CalendarCheck, Car, CreditCard, Key, Smartphone
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
@@ -15,6 +15,7 @@ import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
 import MobileHome from "../mobile/MobileHome";
 import AttendanceTabs from "../attendance/AttendanceTabs";
+import SelectField from "../shared/primitives/SelectField";
 
 export type InterfaceOptionId = "simplified" | "classic" | "attendance";
 
@@ -384,19 +385,20 @@ export default function AmazeOnboardingFlow({
                   <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 font-outfit">
                     Current Semester
                   </label>
-                  <div className="relative">
-                    <select
+                  <div>
+                    <SelectField
                       value={temp.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                      onChange={(e) => update("currSemesterID", e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-xs sm:text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
-                    >
-                      {config.semesterIDs.map((semId: string) => (
-                        <option key={semId} value={semId} className="bg-zinc-900 text-white">
-                          {formatSemesterName(semId)}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                      onChange={(val) => update("currSemesterID", val)}
+                      options={config.semesterIDs.map((semId: string) => ({
+                        value: semId,
+                        label: formatSemesterName(semId),
+                      }))}
+                      stacked
+                      searchable
+                      role="group"
+                      aria-label="Current semester"
+                      className="[&>button:first-child]:border-zinc-800 [&>button:first-child]:bg-zinc-950/60 [&>button:first-child]:text-white"
+                    />
                   </div>
                 </div>
 

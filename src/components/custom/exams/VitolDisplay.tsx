@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RefreshCcw, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import FetchButton from "../shared/FetchButton";
 import EmptyState from "../shared/EmptyState";
+import SelectField from "../shared/primitives/SelectField";
 
 export default function vitolDisplay({ vitolData, handleFetchVitol, setVitolData }) {
     if (!vitolData || vitolData.length === 0) {
@@ -143,18 +144,19 @@ export function VitolUserPassForm({ handleFetchVitol }) {
                     >
                         Vitol Site
                     </label>
-                    <select
-                        className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900
-                            dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100
-                            dark:bg-[#0f172a] dark:text-gray-100
-                            focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                        value={vitolSite}
-                        onChange={(e) => setVitolSite(e.target.value)}
-                    >
-                        <option value="vitolcc">https://vitolcc.vit.ac.in/</option>
-                        <option value="vitolcc1">https://vitolcc1.vit.ac.in/</option>
-                    </select>
-                </div>
+                        <SelectField
+                            value={vitolSite}
+                            onChange={(val) => setVitolSite(val)}
+                            options={[
+                                { value: "vitolcc", label: "https://vitolcc.vit.ac.in/" },
+                                { value: "vitolcc1", label: "https://vitolcc1.vit.ac.in/" },
+                            ]}
+                            searchable={false}
+                            role="group"
+                            aria-label="ViTOL site"
+                            className="w-full sm:w-auto"
+                        />
+                    </div>
 
                 <div className="flex flex-col text-left">
                     <label

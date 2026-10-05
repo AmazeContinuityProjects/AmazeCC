@@ -26,6 +26,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { CalendarRange, Info, Users } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { CHIP, EMPTY_STATE, TONE_TEXT } from "@/lib/libraries/ui";
@@ -363,6 +364,9 @@ export default function CommonFreeSlotsGrid({
 
       {/* The cell inspector was an always-dark inline box sitting in a light
           page. It is a sheet now. */}
+      {/* Wrapped so the sheet animates out. Without `AnimatePresence` the exit
+          variants never run and it vanishes instead of sliding down. */}
+      <AnimatePresence>
       {activeCell && (
         <BottomSheet onClose={() => setActiveCell(null)} overlayId="social-cell-detail" maxWidth="max-w-sm">
           <div className="text-left space-y-4">
@@ -430,6 +434,7 @@ export default function CommonFreeSlotsGrid({
           </div>
         </BottomSheet>
       )}
+      </AnimatePresence>
     </div>
   );
 }

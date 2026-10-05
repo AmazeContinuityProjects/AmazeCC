@@ -5,6 +5,7 @@ import { RefreshCcw, Calendar, Info, PlusCircle, AlertCircle, Clock, FileText } 
 import { Button } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
 import { AnimatePresence } from "framer-motion";
+import SelectField from "../shared/primitives/SelectField";
 
 interface LeaveDisplayProps {
   leaveData: any[];
@@ -300,15 +301,22 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
             <form onSubmit={handleApplySubmit} className="space-y-4 text-xs pt-1">
               <div className="space-y-1">
                 <label className="font-semibold text-gray-300">Leave / Outing Type</label>
-                <select
-                  value={applyForm.type}
-                  onChange={e => setApplyForm(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full border border-gray-800 bg-slate-950 rounded-lg p-2 text-white"
-                >
-                  <option value="Outing">Non-working Day Outing</option>
-                  <option value="Home">Home Leave</option>
-                  <option value="Emergency">Emergency Leave</option>
-                </select>
+                      <SelectField
+                        value={applyForm.type}
+                        onChange={(val) =>
+                          setApplyForm((prev) => ({ ...prev, type: val }))
+                        }
+                        options={[
+                          { value: "Outing", label: "Non-working Day Outing" },
+                          { value: "Home", label: "Home Leave" },
+                          { value: "Emergency", label: "Emergency Leave" },
+                        ]}
+                        searchable={false}
+                        stacked
+                        role="group"
+                        aria-label="Leave type"
+                        className="[&>button:first-child]:border-gray-800 [&>button:first-child]:bg-slate-950 [&>button:first-child]:text-white"
+                      />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

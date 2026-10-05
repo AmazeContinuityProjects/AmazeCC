@@ -2,9 +2,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "@/lib/sync-engine";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
-import { ChevronDown, Inbox, Send } from "lucide-react";
+import { Inbox, Send } from "lucide-react";
 import { LoadingSpinner, ErrorDisplay, EmptyState } from "@/components/custom/shared";
 
+import SelectField from "../shared/primitives/SelectField";
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-0">
     <p className="text-[11px] font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider">{label}</p>
@@ -447,15 +448,21 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
               <div className="p-4">
                 <label className="text-xs font-semibold text-gray-400  dark:text-gray-500 uppercase tracking-wider mb-2 block">Select Semester</label>
                 <div className="relative">
-                  <select value={selectedSemester} onChange={(e) => handleSemesterChange(e.target.value)}
-                    className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl bg-white  dark:bg-gray-800 border border-gray-200  dark:border-gray-700 text-gray-800  dark:text-gray-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Select --</option>
-                    {(semesterOptions[1] as Array<{value: string; text: string}>).map((opt: any, i: number) => (
-                      <option key={i} value={opt.value}>{opt.text}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
+                       <SelectField
+                         value={selectedSemester}
+                         onChange={(val) => handleSemesterChange(val)}
+                         options={[
+                           { value: "", label: "-- Select --" },
+                           ...(semesterOptions[1] as Array<{ value: string; text: string }>).map(
+                             (opt: any) => ({ value: opt.value, label: opt.text })
+                           ),
+                         ]}
+                         searchable
+                         stacked
+                         role="group"
+                         aria-label="Semester"
+                       />
+                     </div>
               </div>
             </div>
           )}

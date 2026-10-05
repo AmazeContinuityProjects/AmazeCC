@@ -11,7 +11,6 @@ import {
   Timer,
   AlertCircle,
   Layers,
-  ChevronDown,
 } from "lucide-react";
 import BottomSheet from "../shared/BottomSheet";
 import { attendanceDataAtom } from "@/store/dataAtoms";
@@ -21,6 +20,7 @@ import { sanitizeCourseCode, suggestPomodoros } from "@/lib/taskMatch";
 import type { Task, TaskComponent, TaskKind, TaskStatus, WeekChunk } from "@/types/tasks";
 import { TASK_KINDS } from "@/types/tasks";
 import { KIND_CONFIG } from "./TaskCard";
+import SelectField from "../shared/primitives/SelectField";
 
 interface TaskEditSheetProps {
   task?: Task | null;
@@ -336,19 +336,21 @@ export default function TaskEditSheet({
                 Course Link
               </label>
               <div className="relative">
-                <select
-                  value={courseCode}
-                  onChange={(e) => setCourseCode(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white px-3 py-2.5 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="">No Course (General)</option>
-                  {enrolledCourses.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} — {c.title}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                    <SelectField
+                      value={courseCode}
+                      onChange={(val) => setCourseCode(val)}
+                      options={[
+                        { value: "", label: "No Course (General)" },
+                        ...enrolledCourses.map((c) => ({
+                          value: c.code,
+                          label: `${c.code} - ${c.title}`,
+                        })),
+                      ]}
+                      searchable
+                      stacked
+                      role="group"
+                      aria-label="Course"
+                    />
               </div>
             </div>
 
@@ -501,19 +503,18 @@ export default function TaskEditSheet({
                 key={idx}
                 className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80"
               >
-                <select
-                  value={chunk.day}
-                  onChange={(e) =>
-                    updateChunk(idx, { day: e.target.value as AttendanceDay })
-                  }
-                  className="text-xs font-bold uppercase rounded-lg bg-zinc-100 dark:bg-zinc-700 px-2 py-1.5 border border-zinc-200 dark:border-zinc-600 text-zinc-800 dark:text-zinc-200 cursor-pointer"
-                >
-                  {ATTENDANCE_DAYS.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
+                  <SelectField
+                    value={String(chunk.day)}
+                    onChange={(val) =>
+                      updateChunk(idx, { day: val as AttendanceDay })
+                    }
+                    options={ATTENDANCE_DAYS.map((d) => ({ value: d, label: d }))}
+                    searchable={false}
+                    size="sm"
+                    role="group"
+                    aria-label="Day"
+                    className="w-auto shrink-0 [&>button:first-child]:rounded-lg [&>button:first-child]:bg-zinc-100 dark:[&>button:first-child]:bg-zinc-700 [&>button:first-child]:px-2 [&>button:first-child]:text-xs [&>button:first-child]:uppercase"
+                  />
 
                 <input
                   type="time"

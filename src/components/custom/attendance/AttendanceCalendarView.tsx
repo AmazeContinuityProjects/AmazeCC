@@ -143,7 +143,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                 {/* Individual Notes Sheet for Overall Mode */}
                 <AnimatePresence>
                     {selectedOverallDate && (
-                        <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes" maxWidth="max-w-sm">
+                        <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes-compact" maxWidth="max-w-sm">
                             <div className="flex items-center justify-between gap-3 pb-1">
                                 <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
                                     {selectedOverallDate.date}
@@ -337,7 +337,7 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
             {/* Individual Notes Sheet for Overall Mode */}
             <AnimatePresence>
                 {selectedOverallDate && (
-                    <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes" maxWidth="max-w-sm">
+                    <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes-wide" maxWidth="max-w-sm">
                             <div className="flex items-center justify-between gap-3 pb-1">
                                 <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
                                     {selectedOverallDate.date}

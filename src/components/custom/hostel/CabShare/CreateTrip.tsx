@@ -205,25 +205,25 @@ export default function CreateTrip({ cabShareUser, onTripCreated }: { cabShareUs
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
             <FieldWithIcon label="Available Seats" icon={<Users className="h-4 w-4" />}>
-              <select
+              <SelectField
                 value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-                className={`${FIELD_INPUT} appearance-none pr-4`}
-              >
-                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
+                onChange={(val) => setSeats(val)}
+                options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
+                className="w-full sm:w-auto"
+              />
             </FieldWithIcon>
             <FieldWithIcon label="Tolerance" icon={<SlidersHorizontal className="h-4 w-4" />}>
-              <select
+              <SelectField
                 value={tolerance}
-                onChange={(e) => setTolerance(e.target.value)}
-                className={`${FIELD_INPUT} appearance-none pr-4`}
-              >
-                <option value="0.5">± 30 mins</option>
-                <option value="1.0">± 1 hr</option>
-                <option value="1.5">± 1.5 hrs</option>
-                <option value="2.0">± 2 hrs</option>
-              </select>
+                onChange={(val) => setTolerance(val)}
+                options={[
+                  { value: "0.5", label: "± 30 mins" },
+                  { value: "1.0", label: "± 1 hr" },
+                  { value: "1.5", label: "± 1.5 hrs" },
+                  { value: "2.0", label: "± 2 hrs" },
+                ]}
+                className="w-full sm:w-auto"
+              />
             </FieldWithIcon>
           </div>
 

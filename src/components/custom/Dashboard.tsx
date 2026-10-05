@@ -120,7 +120,8 @@ function DashboardContent({
   setSettings,
   onOpenCommandPalette,
   onOpenShortcutsHelp,
-  onSystemBack
+  onSystemBack,
+  onCollapseScreenChange
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
@@ -244,21 +245,33 @@ function DashboardContent({
   }, [allGradesData]);
 
   useEffect(() => {
-    // The CGPA predictor is no longer one of these: it lives in the Curriculum
-    // page's planner screen, so `predictor` / `gpa` are not redirected to Tools
-    // any more (see the `cgpa-predictor` render below).
-    const academicToolRedirects: Record<string, string> = {
-      qbank: "qbank",
-      faculty: "faculty-info",
-      "faculty-info": "faculty-info",
-      "free-class": "free-class",
-    };
+    // Tools is its own section. Academics used to bounce `qbank`, `faculty` and
+    // `free-class` over to Tools from here, which meant tapping an Academics icon
+    // could silently land you in a different section, and made Tools reachable
+    // only through a hidden redirect. Nothing renders those under Academics any
+    // more, so a stale value (an old history entry, a bookmark) snaps to the
+    // Academics home instead of bouncing sections.
+    //
+    // The CGPA predictor is separate: it lives in the Curriculum page's planner,
+    // and `cgpa-predictor` is rendered by Academics below.
+    //
+    // Keep this in step with the `activeSubTab === ...` screens below - a new
+    // Academics screen that is not listed here will snap back to the home.
+    const ACADEMICS_HOME = "courses-simplified";
+    const ACADEMIC_SCREENS = new Set([
+      ACADEMICS_HOME,
+      "simplified-academics",
+      "overview",
+      "course-dashboard",
+      "grades",
+      "curriculum",
+      "cgpa-predictor",
+      "schedule",
+      "marks-predictor",
+    ]);
 
-    if (activeTab === "academics" && academicToolRedirects[activeSubTab]) {
-      setActiveTab("tools");
-      if (setActiveToolsSubTab) {
-        setActiveToolsSubTab(academicToolRedirects[activeSubTab]);
-      }
+    if (activeTab === "academics" && !ACADEMIC_SCREENS.has(activeSubTab)) {
+      setActiveSubTab(ACADEMICS_HOME);
     }
 
     if (activeTab === "more" && activeMoreSubTab === "qbank") {
@@ -622,6 +635,7 @@ function DashboardContent({
     >
       <NavigationTabs
         activeTab={activeTab}
+        onCollapseScreenChange={onCollapseScreenChange}
         setActiveTab={(newTab) => {
           if (newTab === activeTab) {
             setResetKey(k => k + 1);

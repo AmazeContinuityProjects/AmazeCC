@@ -542,7 +542,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                 </div>
             )}
 
-            <TabHelpFooter tabId="attendance" />
+            <TabHelpFooter tabId="attendance-od" />
         </PageShell>
     );
 }

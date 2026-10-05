@@ -24,6 +24,7 @@ import {
   WifiOff
 } from "lucide-react";
 
+import SelectField from "../shared/primitives/SelectField";
 interface SyncNotificationProps {
   message: string;
   progress: number;
@@ -420,21 +421,23 @@ export default function SyncNotification({
                       <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold shrink-0">
                         Target Server:
                       </span>
-                      <select
-                        value={targetValue}
-                        onChange={(e) => handleTargetChange(e.target.value)}
-                        aria-label="Target server"
-                        className="min-w-0 flex-1 text-right text-[10px] font-black bg-transparent border-none focus:ring-0 text-indigo-600 dark:text-indigo-400 cursor-pointer focus:outline-none"
-                      >
-                        <option value={PRIMARY_API_URL} className="bg-white dark:bg-zinc-900">AmazeCC</option>
-                        {hasBackupApi() && (
-                          <option value={BACKUP_API_URL} className="bg-white dark:bg-zinc-900">AmazeCC (Backup)</option>
-                        )}
-                        {uniccAvailable && (
-                          <option value={UNICC_API_URL} className="bg-white dark:bg-zinc-900">UniCC</option>
-                        )}
-                      </select>
-                    </div>
+                          <SelectField
+                            value={targetValue}
+                            onChange={handleTargetChange}
+                            options={[
+                              { value: PRIMARY_API_URL, label: "AmazeCC" },
+                              ...(hasBackupApi()
+                                ? [{ value: BACKUP_API_URL, label: "AmazeCC (Backup)" }]
+                                : []),
+                              ...(uniccAvailable ? [{ value: UNICC_API_URL, label: "UniCC" }] : []),
+                            ]}
+                            searchable={false}
+                            size="xs"
+                            role="group"
+                            aria-label="Target server"
+                            className="min-w-0 flex-1 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:px-0 [&>button:first-child]:text-[10px] [&>button:first-child]:text-indigo-600 dark:[&>button:first-child]:text-indigo-400"
+                          />
+                        </div>
 
                     {/* Which API is answering, as opposed to which one was
                         asked for. Reported even when the user did not opt in,
