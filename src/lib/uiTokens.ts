@@ -152,6 +152,52 @@ export const EMPTY_STATE =
 export const FIELD_INPUT =
   "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
+/**
+ * Size and surface for amazeui's `OptionPicker` trigger.
+ *
+ * `OptionPicker` puts `className` on its own wrapper `div` and renders the
+ * trigger as that div's first child, so the trigger's hard-coded chrome
+ * (`h-9 rounded-md border-input bg-transparent`) has to be overridden through
+ * the wrapper. `[&>button:first-child]` rather than `[&>div:first-child]`: the
+ * trigger is a real `<button>`, and on the mobile path the component also renders
+ * a modal `div` inside that same wrapper, which a `div` selector would catch.
+ *
+ * **Height and font size are deliberately not here.** Tailwind emits `h-*` in
+ * ascending order, so a caller's `[&>button:first-child]:h-9` would be *beaten*
+ * by an `h-10` set here no matter which came later in the class string — and
+ * the trigger's label is a child with its own size, which a size on the button
+ * cannot override anyway. `SelectField` takes a `size` prop for both.
+ */
+export const OPTION_PICKER_TRIGGER =
+  "[&>button:first-child]:rounded-xl [&>button:first-child]:border-border-strong " +
+  "dark:[&>button:first-child]:border-border [&>button:first-child]:bg-surface-secondary " +
+  "dark:[&>button:first-child]:bg-background/50 [&>button:first-child]:font-bold " +
+  "[&>button:first-child]:shadow-2xs [&>button:first-child]:focus-visible:ring-2 " +
+  "[&>button:first-child]:focus-visible:ring-indigo-500 " +
+  "[&>button:first-child_span]:font-bold [&>button:first-child_span]:text-text-heading " +
+  "dark:[&>button:first-child_span]:text-text-heading";
+
+/**
+ * Trigger height, and the size of the label inside it.
+ *
+ * The label is a child of the button carrying its own `text-sm`, so its size has
+ * to be set on the child or the button's size is simply ignored.
+ */
+const OPTION_PICKER_SIZE: Record<string, string> = {
+  // Inline controls that sit in a header strip or a chip row.
+  xs: "[&>button:first-child]:h-6 [&>button:first-child]:px-2 [&>button:first-child_span]:text-[10px]",
+  sm: "[&>button:first-child]:h-7 [&>button:first-child]:px-2.5 [&>button:first-child_span]:text-xs",
+  // Compact fields: the old `py-1.5` selects.
+  md: "[&>button:first-child]:h-8 [&>button:first-child]:px-3 [&>button:first-child_span]:text-xs",
+  lg: "[&>button:first-child]:h-11 [&>button:first-child]:px-4 [&>button:first-child_span]:text-sm",
+  // The default: what the native `<select>`'s `py-3` used to give.
+  xl: "[&>button:first-child]:h-10 [&>button:first-child]:px-3 [&>button:first-child_span]:text-sm",
+  // A bare text link in a header — height has to collapse to the line box.
+  auto: "[&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child_span]:text-[10px]",
+};
+
+export const optionPickerSize = (size: string): string => OPTION_PICKER_SIZE[size] ?? OPTION_PICKER_SIZE.xl;
+
 /** Small ghost action used for secondary row/page actions (Libraries, dues). */
 export const GHOST_BUTTON =
   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer shrink-0";

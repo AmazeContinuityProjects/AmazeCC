@@ -11,6 +11,7 @@ import { COLORS, DAYS } from '../../constants';
 import { TimetableGrid, GapDetail } from '../TimetableGrid';
 import { TargetCoursesModal } from './TargetCoursesModal';
 import { TimetablePeriod } from '../../types';
+import SelectField from "../../../../shared/primitives/SelectField";
 
 
 export interface AutoGeneratorModalProps {
@@ -961,16 +962,22 @@ export function AutoGeneratorModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground block mb-1.5">Sort Timetables By</label>
-                        <select 
-                          value={generatorSortBy} 
-                          onChange={e => setGeneratorSortBy(e.target.value as any)}
-                          className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                        >
-                          <option value="balanced">Balanced (All Metrics)</option>
-                          <option value="compactness">Max Compactness (Fewer Gaps)</option>
-                          <option value="halfdays">Max Free Half-Days</option>
-                          <option value="social">Max Social Score</option>
-                        </select>
+                            <SelectField
+                              value={generatorSortBy as string}
+                              onChange={(val) => setGeneratorSortBy(val as any)}
+                              options={[
+                                { value: "balanced", label: "Balanced (All Metrics)" },
+                                { value: "compactness", label: "Max Compactness (Fewer Gaps)" },
+                                { value: "halfdays", label: "Max Free Half-Days" },
+                                { value: "social", label: "Max Social Score" },
+                              ]}
+                              searchable={false}
+                              size="lg"
+                              stacked
+                              role="group"
+                              aria-label="Generator sort order"
+                              className="[&>button:first-child]:bg-muted/30"
+                            />
                       </div>
 
                       <div>
@@ -1019,15 +1026,21 @@ export function AutoGeneratorModal({
 
                     <div>
                       <label className="text-sm font-medium text-foreground block mb-1.5">Time Preference</label>
-                      <select 
-                        value={generatorPreference} 
-                        onChange={e => setGeneratorPreference(e.target.value as any)}
-                        className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
-                      >
-                        <option value="none">No Preference (Any combinations)</option>
-                        <option value="morning">Morning Theory Preferred</option>
-                        <option value="evening">Evening Theory Preferred</option>
-                      </select>
+                          <SelectField
+                            value={generatorPreference as string}
+                            onChange={(val) => setGeneratorPreference(val as any)}
+                            options={[
+                              { value: "none", label: "No Preference (Any combinations)" },
+                              { value: "morning", label: "Morning Theory Preferred" },
+                              { value: "evening", label: "Evening Theory Preferred" },
+                            ]}
+                            searchable={false}
+                            size="lg"
+                            stacked
+                            role="group"
+                            aria-label="Generator preference"
+                            className="[&>button:first-child]:bg-muted/30"
+                          />
                     </div>
 
                     <div className="flex flex-col gap-3">

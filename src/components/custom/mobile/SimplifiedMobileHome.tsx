@@ -1321,9 +1321,12 @@ export default function SimplifiedMobileHome({
             <div className="flex justify-center gap-2 pt-1">
               <button
                 onClick={() => {
-                  setActiveTab("academics");
-                  setActiveSubTab("free-class");
-                }}
+                    // Free Classrooms lives in Tools, so it is opened there
+                    // directly rather than through an Academics value that
+                    // Dashboard used to translate into a Tools section switch.
+                    setActiveTab("tools");
+                    setActiveToolsSubTab?.("free-class");
+                  }}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 px-3.5 py-2 rounded-xl active:scale-95 transition-all cursor-pointer"
               >
                 Free Classrooms <ChevronRight className="w-3.5 h-3.5" />

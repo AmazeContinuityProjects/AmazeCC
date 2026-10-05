@@ -1,20 +1,30 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { OptionPicker, cn } from "@amazecontinuityprojects/amazeui";
 import SettingRow from "./SettingRow";
+import { OPTION_PICKER_TRIGGER, optionPickerSize } from "@/lib/uiTokens";
 
 /**
- * A labelled native `<select>`.
+ * A labelled option picker.
  *
- * Deliberately still native: the OS picker is better than anything a div can
- * fake on a phone, and these are all short option lists. Only the chrome is
- * unified — the 10 settings selects had one hand-rolled class string, now one
- * token.
+ * Every option selector in the app is one of these now, backed by amazeui's
+ * `OptionPicker` rather than a native `<select>`. One wrapper means the call
+ * sites share a control rather than each re-deriving the chrome, and the popup is
+ * a themed, scrollable list instead of the OS menu.
+ *
+ * ## Trade-offs against the native `<select>` it replaced
+ *
+ * The trigger is a real `<button type="button">` — focusable and activatable by
+ * keyboard — but `OptionPicker` sets no `role="combobox"`, `aria-haspopup`,
+ * `aria-expanded` or `aria-label` on it, and accepts no passthrough props to add
+ * them. A screen reader therefore announces the trigger's value and "button"
+ * without announcing that it opens a listbox. `role` and `aria-label` are
+ * accepted here and land on this component's wrapper, which is what keeps an
+ * otherwise unlabelled field nameable in the tree.
+ *
+ * The other loss is `disabled` on *individual* options: `OptionPicker` only takes
+ * `disabled` for the whole field.
  */
-
-const SELECT =
-  "w-full appearance-none bg-surface-secondary dark:bg-background/50 border border-border-strong dark:border-border rounded-xl pl-3 pr-9 py-3 text-sm font-bold text-text-heading dark:text-text-heading focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -29,37 +39,57 @@ export default function SelectField<T extends string>({
   onChange,
   stacked = false,
   className = "",
+  disabled = false,
+  searchable,
+  size = "xl",
+  role,
+  "aria-label": ariaLabel,
 }: {
-  title?: ReactNode;
-  description?: ReactNode;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   value: T;
   options: readonly SelectOption<T>[];
   onChange: (value: T) => void;
   stacked?: boolean;
   className?: string;
+  disabled?: boolean;
+  /** Defaults to on only when the list is long enough to be worth searching. */
+  searchable?: boolean;
+  /**
+   * Trigger height. Not a class: Tailwind emits `h-*` in ascending order, so a
+   * size set in `className` loses to one set in the shared token no matter where
+   * it appears in the string. `xl` is the default and matches the `py-3` the
+   * native `<select>` used to give; `auto` collapses to a bare text link.
+   */
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "auto";
+  role?: string;
+  "aria-label"?: string;
 }) {
-  const select = (
-    <div className={`relative w-full ${stacked ? "" : "sm:w-64"}`.trim()}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className={SELECT}
-        aria-label={typeof title === "string" ? title : undefined}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="w-4 h-4 text-text-muted dark:text-text-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-        aria-hidden
+  // `OptionPicker` re-filters on every keystroke, so give it its own array
+  // rather than letting it hold onto the caller's.
+  const pickerOptions = options.map((o) => ({ value: String(o.value), label: o.label }));
+
+  // Short lists read faster scrolled than typed into.
+  const wantsSearch = searchable ?? pickerOptions.length > 8;
+
+  const picker = (
+    <div
+      className={cn("relative w-full", stacked ? "" : "sm:w-64", className).trim()}
+      {...(role ? { role } : {})}
+      {...(ariaLabel ? { "aria-label": ariaLabel } : {})}
+    >
+      <OptionPicker
+        value={String(value)}
+        onChange={(next) => onChange(next as T)}
+        options={pickerOptions}
+        disabled={disabled}
+        searchable={wantsSearch}
+        className={cn(OPTION_PICKER_TRIGGER, optionPickerSize(size))}
       />
     </div>
   );
 
-  if (!title) return select;
+  if (!title) return picker;
 
   return (
     <SettingRow
@@ -67,7 +97,7 @@ export default function SelectField<T extends string>({
       description={description}
       stacked={stacked}
       className={className}
-      control={select}
+      control={picker}
     />
   );
 }

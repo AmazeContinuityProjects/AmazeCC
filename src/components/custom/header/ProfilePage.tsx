@@ -41,7 +41,7 @@ import {
   BookOpen,
   Lock,
 } from "lucide-react";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button, Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { useOverlayBack } from "@/lib/overlayStack";
 import {
@@ -62,12 +62,12 @@ import {
   TitleBlock,
   ToggleRow,
   ToneDot,
-  useSubpageStack,
 } from "../shared/primitives";
 // `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
 // grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
 import { LIST_ROW, TONE_BADGE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
+import { parentOf } from "@/lib/settingsNav";
 import config from "../../../../config.json";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
@@ -193,20 +193,6 @@ export const SECTIONS: SectionConfig[] = [
   },
 ];
 
-/**
- * The hub first, then one screen per section in the order they are listed, then
- * the drill-downs.
- *
- * The order *is* the back stack: `useSubpageStack.back()` walks one entry back,
- * so a drill-down listed after its section pops to that section, which is the
- * only thing that is true about where it was opened from.
- */
-const SETTINGS_SCREENS: readonly SettingsScreen[] = [
-  "hub",
-  ...SECTIONS.map((s) => s.id),
-  ...(Object.keys(DRILLDOWNS) as (keyof typeof DRILLDOWNS)[]),
-];
-
 const COLOR_PALETTES = [
   { id: "default", label: "Default", swatches: ["#0ea5e9", "#ffffff", "#f8fafc"] },
   { id: "neonPink", label: "Neon Pink", swatches: ["#ff2bd6", "#ffffff", "#fff7fd"] },
@@ -219,7 +205,7 @@ const COLOR_PALETTES = [
 /**
  * `"ALL0225-26"` -> `"FALLSEM 25-26"`.
  *
- * The semester `<select>` and the Academic row on the settings hub both need
+ * The semester picker and the Academic row on the settings hub both need
  * this, and they must not be allowed to disagree about what "FALLSEM" means.
  * The id carries the term in its last two digits and the year in the middle, so
  * a raw id is not a label a human can read at a glance.
@@ -280,29 +266,45 @@ export default function ProfilePage({
     mode === "credentials" || mode === "profile" || mode === "info" ? mode === "info" ? "profile" : mode : null;
 
   /**
-   * The hub and its sections are a subpage flow, so they use the shared
-   * `useSubpageStack` rather than a bare `useState`. That primitive exists for
-   * exactly this shape and had no callers; hand-rolling it here meant the
-   * screen list, the "am I at the root" test and the pop-to-previous behaviour
-   * were each re-decided, and the settings page was the only drill-down in the
-   * app not built on it.
+   * Where "back" goes from here.
    *
-   * `activeSection` stays derived below so the rest of this 3,000-line file
-   * keeps reading `null` for "on the hub" without caring that the hub is now
-   * named rather than absent. It is typed as "a screen that is not the hub" —
-   * which includes the drill-downs, since they are reached the same way and
-   * the header has to title them exactly as it titles a section.
+   * Settings is a two-level tree — hub → section → drill-down — not a linear
+   * chain of siblings. It was built on `useSubpageStack` with every screen as
+   * its own entry, and that primitive walks the array backwards, so opening
+   * "Appearance & Theme" (third in the list) made back go to "VTOP Credentials",
+   * then "Student Profile", and only then the hub: every screen in the list got
+   * a back step whether or not the reader had ever visited it.
+   *
+   * The primitive is right for the pages that *are* linear (Grade History's
+   * overview → insights → subject), so it stays untouched and this keeps the same
+   * call shape — `go`, `back`, `reset`, `isRoot`, `canGoBack`, `screen` — over the
+   * hierarchy the page actually has.
    */
-  const screens = useSubpageStack<SettingsScreen>({
-    screens: SETTINGS_SCREENS,
-    initial: initialSection ?? "hub",
-  });
+  const [screen, setScreen] = useState<SettingsScreen>(initialSection ?? "hub");
   const activeSection: Exclude<SettingsScreen, "hub"> | null =
-    screens.screen === "hub" ? null : screens.screen;
+    screen === "hub" ? null : screen;
 
-  // System back (incl. Android predictive back) walks section -> hub, and only
-  // then falls through to Main's screen history — same order as the in-app
-  // BackButton in PageShell.
+  const goBack = useCallback(
+    () => setScreen((cur) => parentOf(cur) as SettingsScreen),
+    []
+  );
+  const resetScreen = useCallback(() => setScreen("hub"), []);
+
+  const screens = useMemo(
+    () => ({
+      screen,
+      isRoot: screen === "hub",
+      canGoBack: screen !== "hub",
+      go: setScreen,
+      back: goBack,
+      reset: resetScreen,
+    }),
+    [screen, goBack, resetScreen]
+  );
+
+  // System back (incl. Android predictive back) walks drill-down -> section ->
+  // hub, and only then falls through to Main's screen history — same order as
+  // the in-app BackButton in PageShell.
   useOverlayBack("profile-section", !screens.isRoot, screens.back);
 
   const [selectedSemester, setSelectedSemester] = useState<string>(currSemesterID);
@@ -1490,14 +1492,13 @@ export default function ProfilePage({
               Select your default landing and widget configuration
             </p>
           </div>
-          <select
+          <SelectField
             value={
               settings?.defaultLandingTab === "attendance"
                 ? "attendance"
                 : settings?.dashboardViewMode || "simplified"
             }
-            onChange={(e) => {
-              const val = e.target.value;
+            onChange={(val) => {
               if (val === "attendance") {
                 updateSetting("defaultLandingTab", "attendance");
                 updateSetting("dashboardViewMode", "simplified");
@@ -1507,12 +1508,13 @@ export default function ProfilePage({
               }
               updateSetting("interfaceChosen", true);
             }}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="simplified">✨ Minimal (Timetable & Stat Cards)</option>
-            <option value="classic">📱 Classic (Multi-Widget View)</option>
-            <option value="attendance">📊 Direct Attendance (Instant Tracker)</option>
-          </select>
+            options={[
+              { value: "simplified", label: "✨ Minimal (Timetable & Stat Cards)" },
+              { value: "classic", label: "📱 Classic (Multi-Widget View)" },
+              { value: "attendance", label: "📊 Direct Attendance (Instant Tracker)" },
+            ]}
+            className="shrink-0"
+          />
         </div>
 
         {/* Timetable Pill Style */}
@@ -1525,14 +1527,15 @@ export default function ProfilePage({
               Choose between compact 2-line cards or spacious multi-line cards
             </p>
           </div>
-          <select
-            value={settings?.timetablePillStyle || "compact"}
-            onChange={(e) => updateSetting("timetablePillStyle", e.target.value)}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="compact">📋 Compact (2-Line Info + Percentage on Right)</option>
-            <option value="detailed">🃏 Detailed (Spacious Multi-line Card)</option>
-          </select>
+          <SelectField
+            value={(settings?.timetablePillStyle as string) || "compact"}
+            onChange={(val) => updateSetting("timetablePillStyle", val)}
+            options={[
+              { value: "compact", label: "📋 Compact (2-Line Info + Percentage on Right)" },
+              { value: "detailed", label: "🃏 Detailed (Spacious Multi-line Card)" },
+            ]}
+            className="shrink-0"
+          />
         </div>
 
         {/* Timetable Grid Layout */}
@@ -1546,15 +1549,16 @@ export default function ProfilePage({
               grid on larger screens
             </p>
           </div>
-          <select
-            value={settings?.timetableViewMode || "auto"}
-            onChange={(e) => updateSetting("timetableViewMode", e.target.value)}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="auto">✨ Auto (Recommended)</option>
-            <option value="vertical">📱 Vertical Heatmap (Days × Times)</option>
-            <option value="horizontal">📊 Full Grid (Days × Periods)</option>
-          </select>
+          <SelectField
+            value={(settings?.timetableViewMode as string) || "auto"}
+            onChange={(val) => updateSetting("timetableViewMode", val)}
+            options={[
+              { value: "auto", label: "✨ Auto (Recommended)" },
+              { value: "vertical", label: "📱 Vertical Heatmap (Days × Times)" },
+              { value: "horizontal", label: "📊 Full Grid (Days × Periods)" },
+            ]}
+            className="shrink-0"
+          />
         </div>
 
         {/* Vertical Grid Cell Density */}
@@ -1568,14 +1572,15 @@ export default function ProfilePage({
               without swiping
             </p>
           </div>
-          <select
-            value={settings?.timetableCellDensity || "full"}
-            onChange={(e) => updateSetting("timetableCellDensity", e.target.value)}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="full">📋 Full (Slot + Course Code)</option>
-            <option value="compact">🔹 Compact (Slot Only, Fits Screen)</option>
-          </select>
+          <SelectField
+            value={(settings?.timetableCellDensity as string) || "full"}
+            onChange={(val) => updateSetting("timetableCellDensity", val)}
+            options={[
+              { value: "full", label: "📋 Full (Slot + Course Code)" },
+              { value: "compact", label: "🔹 Compact (Slot Only, Fits Screen)" },
+            ]}
+            className="shrink-0"
+          />
         </div>
 
         {/* Tasks Placement on Home */}
@@ -1588,14 +1593,15 @@ export default function ProfilePage({
               Display task badges inline with timetable classes or in a dedicated section below
             </p>
           </div>
-          <select
+          <SelectField
             value={settings?.tasksInlineOnHome !== false ? "inline" : "separate"}
-            onChange={(e) => updateSetting("tasksInlineOnHome", e.target.value === "inline")}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="inline">✨ Unified (Inline 3rd line on classes)</option>
-            <option value="separate">📑 Clean classes (Section below timetable)</option>
-          </select>
+            onChange={(val) => updateSetting("tasksInlineOnHome", val === "inline")}
+            options={[
+              { value: "inline", label: "✨ Unified (Inline 3rd line on classes)" },
+              { value: "separate", label: "📑 Clean classes (Section below timetable)" },
+            ]}
+            className="shrink-0"
+          />
         </div>
       </div>
 
@@ -1794,17 +1800,16 @@ export default function ProfilePage({
             </p>
           </div>
           <div className="flex gap-2 w-full sm:w-80 shrink-0">
-            <select
+            <SelectField
               value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="flex-1 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              {config.semesterIDs?.map((id: string, index: number) => (
-                <option key={index} value={id}>
-                  {semesterLabel(id)}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedSemester(val)}
+              options={(config.semesterIDs ?? []).map((id: string) => ({
+                value: id,
+                label: semesterLabel(id),
+              }))}
+              searchable
+              className="flex-1 sm:w-auto"
+            />
             <Button
               onClick={handleSaveSemester}
               disabled={!selectedSemester || selectedSemester === currSemesterID}
@@ -1823,20 +1828,21 @@ export default function ProfilePage({
               Default calendar scheme for exam dates and working days
             </p>
           </div>
-          <select
+          <SelectField
             value={calendarType || "ALL"}
-            onChange={(e) => setCalendarType(e.target.value)}
-            className="w-full sm:w-80 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="ALL">General Semester</option>
-            <option value="ALL02">General Flexible</option>
-            <option value="ALL03">General Freshers</option>
-            <option value="ALL05">General LAW</option>
-            <option value="ALL06">Flexible Freshers</option>
-            <option value="ALL08">Cohort LAW</option>
-            <option value="ALL11">Flexible Research</option>
-            <option value="WEI">Weekend Intra Semester</option>
-          </select>
+            onChange={(val) => setCalendarType(val)}
+            options={[
+              { value: "ALL", label: "General Semester" },
+              { value: "ALL02", label: "General Flexible" },
+              { value: "ALL03", label: "General Freshers" },
+              { value: "ALL05", label: "General LAW" },
+              { value: "ALL06", label: "Flexible Freshers" },
+              { value: "ALL08", label: "Cohort LAW" },
+              { value: "ALL11", label: "Flexible Research" },
+              { value: "WEI", label: "Weekend Intra Semester" },
+            ]}
+            className="sm:w-80 shrink-0"
+          />
         </div>
 
         {/* Target Attendance Threshold */}
@@ -1849,16 +1855,17 @@ export default function ProfilePage({
               Target threshold for safe bunk margin calculations
             </p>
           </div>
-          <select
-            value={settings?.targetAttendance ?? 75}
-            onChange={(e) => updateSetting("targetAttendance", parseInt(e.target.value))}
-            className="w-full sm:w-80 text-xs font-bold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value={75}>75% (Standard Exam Eligibility)</option>
-            <option value={80}>80% (Safety Buffer)</option>
-            <option value={85}>85% (Bus Registration / Dayscholar Goal)</option>
-            <option value={90}>90% (Distinction Honor Target)</option>
-          </select>
+          <SelectField
+            value={String(settings?.targetAttendance ?? 75)}
+            onChange={(val) => updateSetting("targetAttendance", parseInt(val, 10))}
+            options={[
+              { value: "75", label: "75% (Standard Exam Eligibility)" },
+              { value: "80", label: "80% (Safety Buffer)" },
+              { value: "85", label: "85% (Bus Registration / Dayscholar Goal)" },
+              { value: "90", label: "90% (Distinction Honor Target)" },
+            ]}
+            className="sm:w-80 shrink-0"
+          />
         </div>
 
         {/* Precision Decimal Toggle */}
@@ -2043,16 +2050,17 @@ export default function ProfilePage({
               Periodic timetable and marks check in the background
             </p>
           </div>
-          <select
-            value={settings?.autoSyncInterval || "off"}
-            onChange={(e) => updateSetting("autoSyncInterval", e.target.value)}
-            className="w-full sm:w-64 text-xs font-semibold border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0 cursor-pointer"
-          >
-            <option value="off">Off (Manual Refresh Only)</option>
-            <option value="15m">Every 15 Minutes</option>
-            <option value="30m">Every 30 Minutes</option>
-            <option value="1h">Every 1 Hour</option>
-          </select>
+          <SelectField
+            value={(settings?.autoSyncInterval as string) || "off"}
+            onChange={(val) => updateSetting("autoSyncInterval", val)}
+            options={[
+              { value: "off", label: "Off (Manual Refresh Only)" },
+              { value: "15m", label: "Every 15 Minutes" },
+              { value: "30m", label: "Every 30 Minutes" },
+              { value: "1h", label: "Every 1 Hour" },
+            ]}
+            className="shrink-0"
+          />
         </div>
 
         {/* Sync Toggles List */}

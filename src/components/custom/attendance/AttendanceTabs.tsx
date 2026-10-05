@@ -7,7 +7,6 @@ import TimetableGrid from "./TimetableGrid";
 import DailyPlanner from "./DailyPlanner";
 import { getFriends, Friend } from "../../../lib/socialUtils";
 import CommonFreeSlotsModal from "../social/CommonFreeSlotsModal";
-import AttendanceSubpage from "./AttendanceSubpage";
 import AttendanceSummary from "./AttendanceSummary";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
@@ -18,6 +17,7 @@ import { AnimatePresence } from "framer-motion";
 import TabHelpFooter from "../shared/TabHelpFooter";
 import { useIsMobile } from "../shared";
 import { ATTENDANCE_DAYS, buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
+import SelectField from "../shared/primitives/SelectField";
 
 const DesktopCourseDetail = dynamic(() => import("./DesktopCourseDetail"), {
   loading: () => (
@@ -473,24 +473,27 @@ export default function AttendanceTabs({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-extrabold text-indigo-700 dark:text-indigo-300">Following:</span>
-            <select
+            <SelectField
               value={saturdayOverride}
-              onChange={(e) => {
-                const val = e.target.value;
+              onChange={(val) => {
                 setSaturdayOverride(val);
                 if (typeof window !== "undefined") {
                   localStorage.setItem("saturday_timetable_override", val);
                 }
               }}
-              className="bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-100 text-xs font-black rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
-            >
-              <option value="SAT">Default Saturday Schedule</option>
-              <option value="MON">Monday's Timetable (MON)</option>
-              <option value="TUE">Tuesday's Timetable (TUE)</option>
-              <option value="WED">Wednesday's Timetable (WED)</option>
-              <option value="THU">Thursday's Timetable (THU)</option>
-              <option value="FRI">Friday's Timetable (FRI)</option>
-            </select>
+              options={[
+                { value: "SAT", label: "Default Saturday Schedule" },
+                { value: "MON", label: "Monday's Timetable (MON)" },
+                { value: "TUE", label: "Tuesday's Timetable (TUE)" },
+                { value: "WED", label: "Wednesday's Timetable (WED)" },
+                { value: "THU", label: "Thursday's Timetable (THU)" },
+                { value: "FRI", label: "Friday's Timetable (FRI)" },
+              ]}
+              searchable={false}
+              role="group"
+              aria-label="Saturday timetable override"
+              className="w-auto shrink-0 [&>button:first-child]:border-indigo-200 dark:[&>button:first-child]:border-indigo-800 [&>button:first-child]:text-indigo-900 dark:[&>button:first-child]:text-indigo-100 [&>button:first-child]:text-xs [&>button:first-child]:font-black"
+            />
           </div>
         </div>
       )}

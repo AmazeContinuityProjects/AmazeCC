@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { CustomCourseMock } from "@/lib/marksPredictorStorage";
 
+import SelectField from "../../shared/primitives/SelectField";
 interface AddCustomCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -89,17 +90,22 @@ export default function AddCustomCourseModal({
             <label className="text-xs font-black uppercase tracking-wider text-zinc-400">
               Course Structure
             </label>
-            <select
-              value={courseType}
-              onChange={(e) => setCourseType(e.target.value as any)}
-              className="mt-1 w-full px-3.5 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="Theory Only">Theory Only</option>
-              <option value="Lab Only">Lab Only</option>
-              <option value="Embedded Theory">Embedded Theory + Lab</option>
-              <option value="Project">Project / J-Component</option>
-              <option value="Soft Skill">Soft Skill / STS</option>
-            </select>
+                <SelectField
+                  value={courseType as string}
+                  onChange={(val) => setCourseType(val as any)}
+                  options={[
+                    { value: "Theory Only", label: "Theory Only" },
+                    { value: "Lab Only", label: "Lab Only" },
+                    { value: "Embedded Theory", label: "Embedded Theory + Lab" },
+                    { value: "Project", label: "Project / J-Component" },
+                    { value: "Soft Skill", label: "Soft Skill / STS" },
+                  ]}
+                  searchable={false}
+                  stacked
+                  role="group"
+                  aria-label="Course type"
+                  className="[&>button:first-child]:rounded-2xl [&>button:first-child]:text-xs"
+                />
           </div>
 
           {courseType === "Embedded Theory" && (

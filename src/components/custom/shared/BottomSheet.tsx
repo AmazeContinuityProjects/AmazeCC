@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { m } from "framer-motion";
 import { X } from "lucide-react";
-import { useOverlayBack } from "@/lib/overlayStack";
+import { isTopOverlay, useOverlayBack } from "@/lib/overlayStack";
 import { useKeyboardInset } from "@/lib/useKeyboardInset";
 
 interface BottomSheetProps {
@@ -94,6 +94,18 @@ export default function BottomSheet({
   const handleBackdropClick = onBackdropClick ?? onClose;
   const handleSwipeDown = onSwipeDown ?? onClose;
   const handleSystemBack = onSystemBack ?? onClose;
+  /**
+   * What Escape does.
+   *
+   * An overridable handler rather than `onClose` directly, so a sheet that
+   * repoints its swipe and backdrop handlers does not still hard-cancel on the
+   * keyboard. `SyncNotification` is the caller that cares: it *parks* on
+   * backdrop, swipe and system back, and only its X cancels.
+   */
+  const handleDismiss = useCallback(
+    () => (onSwipeDown ?? onClose)(),
+    [onSwipeDown, onClose]
+  );
 
   const keyboardInset = useKeyboardInset(avoidKeyboard);
   const lifted = avoidKeyboard && keyboardInset > 0;
@@ -110,9 +122,23 @@ export default function BottomSheet({
   }, []);
 
   // Escape to close + lock body scroll while open
+  //
+  // Two things had to be fixed here.
+  //
+  // 1. LIFO. Every mounted sheet installs its own document-level listener, so a
+  //    sheet nested on another sheet closed both on one Escape. System back was
+  //    already LIFO via `closeTopOverlayFromPop`; Escape now checks it is the top
+  //    overlay, so both dismiss paths agree.
+  // 2. The X is the only affordance that means "cancel" for some sheets. The sync
+  //    sheet passes `onSwipeDown`/`onBackdropClick` that *park* rather than close,
+  //    so tapping outside leaves it on screen — but Escape used to call `onClose`
+  //    and hard-cancel it. Escape is a dismissal gesture like the others, so it
+  //    routes through the same overridable handler.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && dismissable) onClose();
+      if (e.key !== "Escape" || !dismissable) return;
+      if (!isTopOverlay(overlayId)) return;
+      handleDismiss();
     };
     document.addEventListener("keydown", handler);
     const prevOverflow = document.body.style.overflow;
@@ -121,7 +147,7 @@ export default function BottomSheet({
       document.removeEventListener("keydown", handler);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose, dismissable]);
+  }, [handleDismiss, dismissable, overlayId]);
 
   // Grabber-initiated swipe-down to dismiss (content keeps native scrolling)
   const panelRef = useRef<HTMLDivElement>(null);
@@ -166,24 +192,39 @@ export default function BottomSheet({
   // it is still anchored to the bottom edge, so a handle there is honest and it
   // is what makes swipe-down dismissal available. Only the panel's horizontal
   // box and corner radius differ between the two.
+  //
+  // The X used to be `absolute right-4 top-2` inside this row. The row is 24px
+  // tall — 12px padding, a 4px grabber, 8px padding — and the button is 32px, so
+  // its bottom half hung over the first line of sheet content and covered it.
+  // It is now a real flex child with a matching spacer, so the row grows to fit
+  // it and nothing overlaps. The grabber sits in an absolutely-positioned strip
+  // of its own, which keeps it optically centred *and* keeps the X out of the
+  // drag subtree entirely.
   const chrome = (
-    <div
-      className="relative flex w-full shrink-0 justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-      onPointerDown={onGrabberPointerDown}
-      onPointerMove={onGrabberPointerMove}
-      onPointerUp={endGrabberDrag}
-      onPointerCancel={endGrabberDrag}
-    >
-      <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-      {showClose && dismissable && (
+    <div className="relative flex w-full shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-2">
+      {showClose && dismissable ? (
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-2 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-500 transition-colors cursor-pointer"
+          className="relative z-10 shrink-0 rounded-full bg-zinc-100 p-2 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
+      ) : (
+        <span className="w-9 shrink-0" aria-hidden />
       )}
+
+      <div
+        className="absolute inset-x-0 top-0 flex cursor-grab justify-center pt-3 active:cursor-grabbing touch-none select-none"
+        onPointerDown={onGrabberPointerDown}
+        onPointerMove={onGrabberPointerMove}
+        onPointerUp={endGrabberDrag}
+        onPointerCancel={endGrabberDrag}
+      >
+        <div className="h-1 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+      </div>
+
+      <span className="w-9 shrink-0" aria-hidden />
     </div>
   );
 
