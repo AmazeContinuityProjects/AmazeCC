@@ -73,7 +73,7 @@ import type { VtopCreds } from "./sync-engine/types";
  * would simply never fire.
  */
 export const UNICC_API_URL = (
-  process.env.NEXT_PUBLIC_UNICC_API_URL || "https://api.uni-cc.site"
+  process.env.NEXT_PUBLIC_UNICC_API_URL || "https://api-unicc.arya22.dev"
 ).replace(/\/+$/, "");
 
 /**
@@ -127,7 +127,7 @@ const UNICC_SUPPORTED_PATHS: ReadonlySet<string> = new Set([
 export function uniccPathFor(urlOrPath: string): string | null {
   let pathname: string;
   try {
-    pathname = new URL(urlOrPath, "https://placeholder.invalid").pathname;
+    pathname = new URL(urlOrPath, "https://api-unicc.arya22.dev").pathname;
   } catch {
     return null;
   }
@@ -399,7 +399,7 @@ export function resetUniccActivity(): void {
 
 /** The bare route name, for display. `"all-grades"`, not the full URL. */
 export function uniccRouteName(urlOrPath: string): string {
-  return uniccPathFor(urlOrPath) ?? new URL(urlOrPath, "https://placeholder.invalid").pathname.replace(/^\/+/, "").replace(/^api\//, "");
+  return uniccPathFor(urlOrPath) ?? new URL(urlOrPath, "https://api-unicc.arya22.dev").pathname.replace(/^\/+/, "").replace(/^api\//, "");
 }
 
 /**
