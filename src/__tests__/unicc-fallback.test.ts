@@ -49,7 +49,7 @@ describe("configuration", () => {
   it("defaults to the public UniCC deployment over HTTPS", () => {
     // HTTPS is load-bearing: the app is a secure page, and a browser refuses to
     // send plain-HTTP requests from one, so an http:// value would never fire.
-    expect(UNICC_API_URL).toBe("https://api.uni-cc.site");
+    expect(UNICC_API_URL).toBe("https://api-unicc.arya22.dev");
   });
 
   it("can be turned off without a code change", () => {
@@ -74,7 +74,7 @@ describe("the reachability probe", () => {
 
     expect(await isUniccReachable()).toBe(true);
     expect(fetchSpy).toHaveBeenCalledWith(
-      "https://api.uni-cc.site/api/status",
+      "https://api-unicc.arya22.dev/api/status",
       expect.objectContaining({ method: "GET" })
     );
   });
@@ -98,7 +98,7 @@ describe("logging in through UniCC", () => {
       .fn()
       .mockImplementationOnce(async () => jsonResponse({ text: "API is working" }))
       .mockImplementationOnce(async (url, init) => {
-        expect(url).toBe("https://api.uni-cc.site/api/login");
+        expect(url).toBe("https://api-unicc.arya22.dev/api/login");
         expect(init?.method).toBe("POST");
         expect(JSON.parse(String(init?.body))).toEqual({
           username: "24BCE1234",

@@ -37,7 +37,7 @@ import {
 } from "../lib/fetch-utils";
 import { UNICC_API_URL, uniccPathFor, uniccUrlFor } from "../lib/unicc-fallback";
 
-const UNICC = "https://api.uni-cc.site";
+const UNICC = "https://api-unicc.arya22.dev";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
 

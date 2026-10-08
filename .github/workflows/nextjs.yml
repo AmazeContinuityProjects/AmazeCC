@@ -51,6 +51,10 @@ jobs:
       - name: Build with Next.js
         run: pnpm run build
         env:
+          # NEXT_PUBLIC_* is inlined at build time, so it has to be present here.
+          # Without this the published bundle keeps whatever default is compiled
+          # into the source and silently points at the wrong API host.
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://amazecc-api-d402b5.rivendeploy.com' }}
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
