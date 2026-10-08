@@ -961,6 +961,7 @@ function DashboardContent({
                   <MarksHistoryTab
                     data={allGradesData}
                     marksData={marksData}
+                    gradesData={GradesData}
                     pastSemesters={pastSemesterData}
                     onRefresh={handleAllGradesFetch}
                     onBack={() => setActiveSubTab("overview")}
