@@ -42,4 +42,9 @@ jobs:
 
       - name: Run Build
         run: pnpm run build
+        env:
+          # NEXT_PUBLIC_* is inlined at build time. Set here so CI builds the
+          # same host the Pages workflow publishes, rather than depending on
+          # whatever default happens to be compiled in.
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://amazecc-api-d402b5.rivendeploy.com' }}
 
