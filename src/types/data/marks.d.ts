@@ -27,4 +27,11 @@ export type CGPA = {
     creditsEarned?: string;
     cgpa?: string;
     nonGradedRequirement?: string;
+    /**
+     * Credits enrolled so far. Published by the `/api/grades` CGPA Details
+     * table only, and deliberately NOT interchangeable with `creditsEarned` or
+     * `creditsRequired` — a failed or withdrawn course makes registered lower
+     * than earned.
+     */
+    creditsRegistered?: string;
 };

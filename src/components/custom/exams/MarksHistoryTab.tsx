@@ -52,6 +52,7 @@ import {
   weightedTotalDiffers,
   type SemesterRow,
 } from "@/lib/gradeHistory";
+import { resolveCgpa } from "@/lib/gradesEffective";
 import type { GradeItem, GradeResultsMap } from "@/types/data/allgrades";
 
 /**
@@ -89,6 +90,7 @@ const GRADE_BAR: Record<string, string> = {
 export default function MarksHistoryTab({
   data,
   marksData,
+  gradesData,
   pastSemesters,
   onRefresh,
   refreshing,
@@ -96,6 +98,17 @@ export default function MarksHistoryTab({
 }: {
   data: { grades?: GradeResultsMap } | null;
   marksData: any;
+  /**
+   * The `grades` route payload, and the CGPA's second source.
+   *
+   * `marksData.cgpa` used to be the only place a cumulative figure came from.
+   * That breaks when a different backend answers, because `marks` is folded
+   * into `attendance` on the UniCC side and is not a route it serves on its
+   * own — so a UniCC-served session had no CGPA at all and this screen fell
+   * back to an unweighted mean of term GPAs. `/api/grades` carries a published
+   * CGPA, so it is read here too.
+   */
+  gradesData?: { cgpa?: unknown; effectiveGrades?: unknown } | null;
   /**
    * Frozen per-semester data from `pastDataSync`, keyed by semester id. Only
    * `marks` is read here, and only to split an embedded course into its theory
@@ -119,10 +132,33 @@ export default function MarksHistoryTab({
     [rows, activeId]
   );
 
-  const cumulative = useMemo(
-    () => cumulativeGpa(rows, marksData?.cgpa),
-    [rows, marksData]
-  );
+  // `marks` first, then `grades`, then a credit-weighted reconstruction. The
+  // first two are VTOP's own figures; the third is this app rebuilding VTOP's
+  // formula from the effective grades and is labelled differently for that
+  // reason. See `gradesEffective.ts` for why the order matters.
+  const cumulative = useMemo(() => {
+    const cgpa = resolveCgpa(marksData?.cgpa, gradesData);
+
+    // No route published a CGPA. The unweighted mean of term GPAs is still
+    // worth showing — it is how the screen behaved before any of this, and it
+    // is labelled as the approximation it is.
+    if (!cgpa.cgpa) {
+      const fallback = cumulativeGpa(rows, marksData?.cgpa);
+      return {
+        value: fallback.value,
+        creditsEarned: fallback.creditsEarned,
+        creditsRequired: Number(marksData?.cgpa?.creditsRequired ?? 0),
+        source: fallback.source,
+      };
+    }
+
+    return {
+      value: Number(cgpa.cgpa),
+      creditsEarned: Number(cgpa.creditsEarned ?? 0),
+      creditsRequired: Number(marksData?.cgpa?.creditsRequired ?? 0),
+      source: cgpa.source,
+    };
+  }, [rows, marksData, gradesData]);
   const best = useMemo(() => bestTerm(rows), [rows]);
 
   // Computed up here rather than beside the insights screen below, because that
@@ -254,7 +290,15 @@ export default function MarksHistoryTab({
           </span>
         </div>
         <p className="text-[10.5px] sm:text-xs text-text-secondary dark:text-text-muted font-medium truncate">
-          {cumulative.source === "derived" ? "Mean of terms, not weighted" : "Credit-weighted CGPA"}
+          {/* Only VTOP's own figure may be presented as the CGPA. The other two
+              are this app's arithmetic — a reconstruction of VTOP's formula, and
+              an unweighted mean — and a reader deserves to know which one they
+              are looking at. */}
+          {cumulative.source === "marks" || cumulative.source === "grades"
+            ? "Credit-weighted CGPA"
+            : cumulative.source === "derived"
+              ? "Computed from your grades"
+              : "Mean of terms, not weighted"}
         </p>
       </div>
 
