@@ -159,6 +159,33 @@ export function parseCourseRows(rows: readonly Record<string, unknown>[]): FreeR
   return rows.map(parseCourseRow).filter((c) => c.CODE);
 }
 
+/**
+ * Re-read the shared `ffcs_raw_courses` cache into the one shape this module
+ * understands.
+ *
+ * The key has three writers and two shapes: the FFCS timetable tab writes the
+ * room as `ROOM`, the free-classroom page writes the lib's `VENUE`. Whichever
+ * screen a user visited last owns the key, so a reader cannot assume the field
+ * it wants is there. `parseCourseRow` already folds `ROOM`/`VENUE` into
+ * `VENUE`, so this only has to survive the cache being absent, corrupt, or not
+ * an array of rows — any of which used to reach the room scan as `undefined`
+ * and crash the page on `undefined.toUpperCase()`.
+ *
+ * Never throws: a cache this function cannot read is reported as "no rows", so
+ * the caller falls back to fetching the CSV.
+ */
+export function parseCachedCourses(raw: string | null | undefined): FreeRoomCourse[] {
+  if (!raw) return [];
+  let cached: unknown;
+  try {
+    cached = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(cached)) return [];
+  return parseCourseRows(cached.filter((r): r is Record<string, unknown> => !!r && typeof r === "object"));
+}
+
 /* ── time ──────────────────────────────────────────────────────────────── */
 
 /* `timeToMinutes` and `periodKey` now live in `./slots` and are re-exported
