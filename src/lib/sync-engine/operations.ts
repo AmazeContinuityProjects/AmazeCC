@@ -84,6 +84,75 @@ registerOp({
   },
 });
 
+// Cohort marks statistics, per class.
+//
+// Runs after `attendanceMarks` because the class list comes from the marks it just
+// fetched — current marks plus every frozen past semester. Using `ctx.request` (not the
+// bare `api()`) is what makes this robust where the old component-level call was not:
+// credentials are injected by the engine, failures are classified into AuthError vs
+// TransientError with retry, and the sync log shows the outcome per module.
+//
+// The server verifies each requested class against the enrollment recorded during the
+// attendance fetch, so the `classIds` parameter cannot be used to enumerate a cohort
+// the caller does not belong to.
+registerOp({
+  name: "marksStats",
+  auth: "vtop",
+  async run(ctx) {
+    const ids = new Set<string>();
+
+    const collect = (courses: unknown) => {
+      if (!Array.isArray(courses)) return;
+      for (const c of courses) {
+        const id =
+          c && typeof c === "object"
+            ? (c as { classNbr?: unknown }).classNbr
+            : undefined;
+        if (typeof id === "string" && id.length > 0) ids.add(id);
+      }
+    };
+
+    try {
+      const current = storage.marks.get() as { courses?: unknown } | null;
+      collect(current?.courses);
+    } catch {}
+
+    // Frozen past semesters live under `frozen_marks_<semId>` (see pastDataSync).
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("frozen_marks_")) continue;
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || "null") as {
+            courses?: unknown;
+          } | null;
+          collect(data?.courses);
+        } catch {}
+      }
+    } catch {}
+
+    const classIds = [...ids].slice(0, 100);
+    if (classIds.length === 0) return { stats: {} };
+
+    const res = await trackedRequest(ctx, "marksStats", () =>
+      ctx
+        .request("marks/stats", { classIds }, { auth: "vtop" })
+        .then((r: any) => (assertApiSuccess(r, "Cohort statistics"), r))
+    );
+
+    const fresh = (res as { stats?: Record<string, unknown> })?.stats ?? {};
+    const prev =
+      (ctx.bridge.getAtom(dataAtoms.marksStatsAtom) as Record<string, unknown>) ??
+      {};
+    // Merge, never overwrite: a failed fetch for one semester must not wipe the
+    // classes another one already resolved.
+    const merged = { ...prev, ...fresh };
+    persist("marksStats", merged);
+    ctx.bridge.setAtom(dataAtoms.marksStatsAtom, merged);
+    return { stats: merged };
+  },
+});
+
 // core data: grades / schedule / hostel / calendar / allGrades / profileImages
 registerOp({
   name: "core",

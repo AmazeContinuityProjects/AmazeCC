@@ -1,5 +1,9 @@
 "use client";
-import ExpandableSection from "../shared/ExpandableSection";
+import { useId, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { KeyValue, ListRowText, MiniBar, ToneDot } from "../shared/primitives";
+import { LIST_ROW, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
+import { toneForGrade } from "@/lib/gradeHistory";
 
 export interface Creds { cookies: string[]; authorizedID: string; csrf: string; }
 
@@ -88,16 +92,29 @@ export const getCourseTotal = (course: any, labCourse: any) => {
   return res + "/" + combinedWeightPercent;
 };
 
+/**
+ * A score expressed as a percentage of what has actually been released.
+ *
+ * `earned` is a raw weightage-point total and `available` is the weightage points
+ * published so far, so mid-term they are *not* out of 100 — they are out of whatever has
+ * been assessed. The grade ladder, however, is a 0-100 percentage scale. Comparing the two
+ * directly put a student on a genuine 90% into band D, because 54 >= 50 and 54 < 60.
+ *
+ * Shared with `getCourseStats` so the "Projected" tile and the ladder cannot drift apart.
+ */
+export const normalisedPct = (earned: number, available: number) =>
+  available > 0 ? (earned / available) * 100 : 0;
+
 export const getCourseStats = (group: any) => {
   const theoryTotals = getAssessmentTotals(group.theory?.assessments || []);
   const labTotals = getAssessmentTotals(group.lab?.assessments || []);
   if (!group.lab) {
     const pointsLost = theoryTotals.weightPercent - theoryTotals.weighted;
-    return { maxPossible: 100 - pointsLost, projected: theoryTotals.weightPercent > 0 ? Math.round((theoryTotals.weighted / theoryTotals.weightPercent) * 100) : 0 };
+    return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(theoryTotals.weighted, theoryTotals.weightPercent)) };
   }
   if (!group.theory) {
     const pointsLost = labTotals.weightPercent - labTotals.weighted;
-    return { maxPossible: 100 - pointsLost, projected: labTotals.weightPercent > 0 ? Math.round((labTotals.weighted / labTotals.weightPercent) * 100) : 0 };
+    return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(labTotals.weighted, labTotals.weightPercent)) };
   }
   const theoryCredits = getCourseCredits(group.theory);
   const labCredits = getCourseCredits(group.lab);
@@ -106,7 +123,7 @@ export const getCourseStats = (group: any) => {
   const combinedWeighted = (theoryCredits * theoryTotals.weighted + labCredits * labTotals.weighted) / creditsTotal;
   const combinedWeightPercent = (theoryCredits * theoryTotals.weightPercent + labCredits * labTotals.weightPercent) / creditsTotal;
   const pointsLost = combinedWeightPercent - combinedWeighted;
-  return { maxPossible: 100 - pointsLost, projected: combinedWeightPercent > 0 ? Math.round((combinedWeighted / combinedWeightPercent) * 100) : 0 };
+  return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(combinedWeighted, combinedWeightPercent)) };
 };
 
 export const checkIsRelative = (courseSystem: string, courseType: string) => {
@@ -124,35 +141,33 @@ export const formatTitle = (title: string) => {
   return shortened;
 };
 
-export const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`solid-card mb-5 ${className}`}>
-    {children}
-  </div>
-);
-
-export const TypeBadge = ({ label }: { label: string }) => {
-  const colors: Record<string, string> = {
-    "Embedded": "bg-indigo-100 text-indigo-700   dark:bg-indigo-900/30 dark:text-indigo-300",
-    "Theory Only": "bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-300",
-    "Lab Only": "bg-emerald-100 text-emerald-700   dark:bg-emerald-900/30 dark:text-emerald-300",
-    "Embedded Theory": "bg-purple-100 text-purple-700   dark:bg-purple-900/30 dark:text-purple-300",
-    "Embedded Lab": "bg-teal-100 text-teal-700   dark:bg-teal-900/30 dark:text-teal-300",
-  };
-  return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${colors[label] || "bg-gray-100 text-gray-600   dark:bg-gray-800 dark:text-gray-400"}`}>
-      {label}
-    </span>
-  );
-};
-
-export function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
+/**
+ * One assessment, as a row in the surrounding `ListShell`.
+ *
+ * This was a card, and it was built on amazeui's `ExpandableSection`. That
+ * component's header is `justify-between`, which pinned a two-word title hard
+ * left and the score hard right with a third of a screen of dead space between
+ * them — and it carries its own border, padding and `hover:bg-gray-50`, so
+ * dropping one inside a `ListShell` stacked card chrome inside card chrome.
+ * Both problems go away by owning the row: `LIST_ROW` supplies the chrome, and
+ * the expand is local state.
+ *
+ * The boundary arithmetic is unchanged from the version this replaced — only
+ * the wrapper moved.
+ */
+export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
   detail: any; typeLabel: string; aStat: any; isRelative: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   const shortenedTitle = formatTitle(detail.title);
   const asmPct = detail.maxMark > 0 ? (getNumericValue(detail.scoredMark) / getNumericValue(detail.maxMark)) * 100 : 0;
+  const scopeTone = typeLabel === "Theory" ? "blue" : "emerald";
+  // From the title alone, because a theory half and a lab half can both publish
+  // an assessment with the same VTOP title.
+  const panelId = `asm-panel-${useId()}`;
 
   let gradePlacement = "?";
-  let gradeBounds: { grade: string; range: string; color: string }[] = [];
+  let gradeBounds: { grade: string; range: string }[] = [];
 
   const sBoundaryCalc = (boundPct: number, maxMark: number) => {
     const rawMark = (boundPct / 100) * maxMark;
@@ -177,10 +192,10 @@ export function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
       else gradePlacement = "F";
 
       gradeBounds = [
-        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
-        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
-        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
-        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
+        { grade: 'S', range: `>= ${sBoundaryCalc(sB, detail.maxMark)}` },
+        { grade: 'A', range: `>= ${sBoundaryCalc(aB, detail.maxMark)}` },
+        { grade: 'B', range: `>= ${sBoundaryCalc(bB, detail.maxMark)}` },
+        { grade: 'C', range: `>= ${sBoundaryCalc(cB, detail.maxMark)}` },
       ];
     }
   } else {
@@ -193,77 +208,97 @@ export function AssessmentCard({ detail, typeLabel, aStat, isRelative }: {
     else gradePlacement = "F";
 
     gradeBounds = [
-      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}`, color: 'text-emerald-600  dark:text-emerald-400 bg-emerald-50  dark:bg-emerald-900/20' },
-      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}`, color: 'text-green-600  dark:text-green-400 bg-green-50  dark:bg-green-900/20' },
-      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}`, color: 'text-blue-600  dark:text-blue-400 bg-blue-50  dark:bg-blue-900/20' },
-      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}`, color: 'text-indigo-600  dark:text-indigo-400 bg-indigo-50  dark:bg-indigo-900/20' },
+      { grade: 'S', range: `>= ${sBoundaryCalc(90, detail.maxMark)}` },
+      { grade: 'A', range: `>= ${sBoundaryCalc(80, detail.maxMark)}` },
+      { grade: 'B', range: `>= ${sBoundaryCalc(70, detail.maxMark)}` },
+      { grade: 'C', range: `>= ${sBoundaryCalc(60, detail.maxMark)}` },
     ];
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all hover:shadow-md">
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${typeLabel === 'Theory' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
-      <ExpandableSection
-        title={shortenedTitle}
-        badge={
-          <div className="text-right">
-            <p className="text-xl font-black text-gray-900 dark:text-gray-100">
-              {formatNumber(detail.scoredMark)} <span className="text-xs text-gray-400 dark:text-gray-500 font-bold">/ {formatNumber(detail.maxMark)}</span>
-            </p>
-            <div className="flex items-center justify-end gap-2 mt-1">
-              <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${typeLabel === 'Theory' ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, Math.max(0, asmPct))}%` }} />
-              </div>
-              <p className={`text-[10px] font-black uppercase tracking-widest ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                {formatNumber(detail.weightageMark)} / {formatNumber(detail.weightagePercent)}%
-              </p>
-            </div>
-          </div>
-        }
-        className="bg-transparent border-none overflow-hidden"
-        headerClassName="text-[11px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest pl-3"
-        contentClassName="border-t border-gray-200/50 dark:border-gray-800/50 bg-white/40 dark:bg-black/20 backdrop-blur-md p-4"
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className={`${LIST_ROW} cursor-pointer`}
       >
-      {(isRelative && (!aStat || aStat.count === 0)) ? (
-        <p className="text-sm text-gray-500  dark:text-gray-400 italic text-center py-2">
-          Not enough data to calculate class statistics for this assessment yet.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {isRelative && aStat && (
-            <div className="flex justify-between items-center text-sm">
+        <ToneDot tone={scopeTone} />
+
+        <ListRowText
+          title={shortenedTitle}
+          titleTooltip={String(detail.title ?? "")}
+          subtitle={`${formatNumber(detail.weightageMark)} / ${formatNumber(detail.weightagePercent)}% weightage`}
+        />
+
+        {/* Capped rather than flexing: this block is what drifted away from the
+            title when the row was allowed to fill a 430px card. */}
+        <span className="w-20 shrink-0 text-right">
+          <span className="block text-sm font-black font-outfit tracking-tight leading-none text-text-heading">
+            {formatNumber(detail.scoredMark)}
+            <span className="text-[10px] font-bold text-text-muted"> / {formatNumber(detail.maxMark)}</span>
+          </span>
+          <span className="mt-1.5 block">
+            <MiniBar pct={asmPct} tone={scopeTone === "blue" ? "bg-blue-500" : "bg-emerald-500"} />
+          </span>
+        </span>
+
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div id={panelId} className="px-4 pb-4 pt-3 bg-surface-tertiary/40 dark:bg-background/40 border-t border-border-muted dark:border-border">
+          {isRelative && (!aStat || aStat.count === 0) ? (
+            <p className="text-[11px] text-text-secondary dark:text-text-muted italic text-center py-2">
+              Not enough data to calculate class statistics for this assessment yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {isRelative && aStat && (
+                <div className="grid grid-cols-2 gap-2.5">
+                  <KeyValue
+                    label="Class avg"
+                    value={`${sBoundaryCalc(aStat.mean, detail.maxMark)} (${formatNumber(aStat.mean)}%)`}
+                  />
+                  <KeyValue label="Std dev" value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`} />
+                </div>
+              )}
+
               <div>
-                <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Class Avg</p>
-                <p className="font-bold text-gray-900  dark:text-gray-100">{sBoundaryCalc(aStat.mean, detail.maxMark)} <span className="text-xs font-normal text-gray-500">({formatNumber(aStat.mean)}%)</span></p>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-500  dark:text-gray-400 text-xs uppercase font-bold tracking-wider">Std Dev</p>
-                <p className="font-bold text-gray-900  dark:text-gray-100">±{sBoundaryCalc(aStat.sd, detail.maxMark)}</p>
+                <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-2">
+                  {isRelative ? "Grade placement preview" : "Absolute grade range preview"}
+                </p>
+                <div className="flex gap-2">
+                  {gradeBounds.map(b => {
+                    const isPlacement = b.grade === gradePlacement;
+                    return (
+                      <span
+                        key={b.grade}
+                        className={`flex-1 rounded-lg border px-1.5 py-1.5 flex flex-col items-start gap-0.5 ${
+                          isPlacement
+                            ? `${TONE_BADGE[toneForGrade(b.grade)]} border-transparent ring-2 ring-indigo-500`
+                            : TONE_BADGE.zinc
+                        }`}
+                      >
+                        <span className="text-sm font-black">{b.grade}</span>
+                        <span className="text-[9px] font-bold opacity-80">{b.range}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+                {gradePlacement !== "?" && (
+                  <p className={`mt-2.5 text-[11px] font-bold ${TONE_TEXT[toneForGrade(gradePlacement)]}`}>
+                    Hypothetical placement: Grade {gradePlacement}
+                  </p>
+                )}
               </div>
             </div>
           )}
-
-          <div>
-            <p className="text-gray-500  dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">
-              {isRelative ? "Grade Placement Preview" : "Absolute Grade Range Preview"}
-            </p>
-            <div className="flex gap-2">
-              {gradeBounds.map(b => (
-                <div key={b.grade} className={`flex-1 rounded-md p-1.5 flex flex-col items-center justify-center border border-transparent ${b.grade === gradePlacement ? 'ring-2 ring-indigo-500' : ''} ${b.color}`}>
-                  <span className="font-black text-sm">{b.grade}</span>
-                  <span className="text-[10px] font-bold">{b.range}</span>
-                </div>
-              ))}
-            </div>
-            {gradePlacement !== "?" && (
-              <p className="text-center text-xs mt-3 text-indigo-600  dark:text-indigo-400 font-bold">
-                Hypothetical Placement: Grade {gradePlacement}
-              </p>
-            )}
-          </div>
         </div>
       )}
-      </ExpandableSection>
     </div>
   );
 }

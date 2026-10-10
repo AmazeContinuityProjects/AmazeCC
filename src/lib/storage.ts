@@ -19,6 +19,7 @@ export const KEYS = {
   MOODLE_PASSWORD: "moodle_password",
   IDS: "IDs",
   SETTINGS: "settings",
+  MARKS_STATS: "marksStats",
   DEMO_MODE: "demoMode",
   THEME: "theme",
   APP_ICON: "app-icon",
@@ -179,6 +180,18 @@ export const storage = {
     get: () => getItem<Record<string, unknown>>(KEYS.SETTINGS),
     set: (data: Record<string, unknown>) => setItem(KEYS.SETTINGS, data),
     remove: () => removeItem(KEYS.SETTINGS),
+  },
+  /**
+   * Cohort statistics, keyed by class id.
+   *
+   * Delivered by the server in the same payload as the marks, so it is persisted and
+   * read alongside them rather than fetched on its own. It is a derived aggregate —
+   * no individual mark — so caching it costs nothing privacy-wise.
+   */
+  marksStats: {
+    get: () => getItem<Record<string, unknown>>(KEYS.MARKS_STATS),
+    set: (data: Record<string, unknown>) => setItem(KEYS.MARKS_STATS, data),
+    remove: () => removeItem(KEYS.MARKS_STATS),
   },
   registeredEvents: {
     get: () => getItem<unknown[]>(KEYS.REGISTERED_EVENTS),
