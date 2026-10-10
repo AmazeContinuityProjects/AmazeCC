@@ -1,19 +1,41 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
+import { assessmentKeyFor, remapCohortStats } from "@/lib/marksSync";
 import { BackButton } from "../shared";
-import { EmptyPanel, InsightCarousel, ListShell, TitleBlock, useCarousel, type InsightSlide } from "../shared/primitives";
-import Badge from "../shared/Badge";
-import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
-import { TILE, TILE_CARD } from "@/lib/uiTokens";
+import {
+  EmptyPanel,
+  InsightCarousel,
+  KeyValue,
+  ListRowText,
+  ListShell,
+  ListSkeleton,
+  MiniBar,
+  SectionHeader,
+  SegmentedControl,
+  StatTile,
+  TitleBlock,
+  ToneBadge,
+  ToneLegend,
+  useCarousel,
+  type InsightSlide,
+} from "../shared/primitives";
+import {
+  LIST_ROW,
+  TILE_CARD,
+  TONE_BADGE,
+  TONE_ICON_TILE,
+  TONE_TEXT,
+} from "@/lib/uiTokens";
+import { toneForGrade } from "@/lib/gradeHistory";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
-  Grid3x3, CheckCircle2,
-  FileText as FileTextIcon, Sparkles, CheckSquare, Plus
+  Grid3x3, CheckCircle2, Gauge,
+  FileText as FileTextIcon, Sparkles, CheckSquare, Plus, ShieldCheck, StickyNote
 } from "lucide-react";
 import { useAtom } from "jotai";
-import { tasksAtom } from "@/store/dataAtoms";
+import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
 import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
 import { AnimatePresence, m } from "framer-motion";
@@ -42,9 +64,9 @@ import {
   getCourseCredits,
   getCourseTotal,
   getCourseStats,
+  normalisedPct,
   checkIsRelative,
-  Card,
-  AssessmentCard,
+  AssessmentRow,
 } from "./courseHelpers";
 
 import SelectField from "../shared/primitives/SelectField";
@@ -77,16 +99,56 @@ const ATT_TONE: Record<string, string> = {
   Critical: "red",
 };
 
+/** Attendance status -> the row's filled dot. Written out because a
+ *  `bg-${tone}-500` template would never be seen by Tailwind's scanner. */
+const ATT_DOT: Record<string, string> = {
+  present: "bg-emerald-500",
+  absent: "bg-red-500",
+  "on duty": "bg-amber-500",
+};
+
 /**
- * Exact value colours the hand-rolled attendance tile used. Deliberately not
- * the shared `TONE_TEXT` (that one is amber-600/red-600, this was amber-500 /
- * red-500) so the migration is colour-neutral.
+ * Theory/Lab -> tone. An embedded course publishes two halves under one code and
+ * they stay blue and green everywhere in the app, so the pair is named once here
+ * rather than re-decided at each call site.
  */
-const ATT_VALUE_TEXT: Record<string, string> = {
-  emerald: "text-emerald-600 dark:text-emerald-400",
-  amber: "text-amber-500 dark:text-amber-400",
-  red: "text-red-500 dark:text-red-400",
-  zinc: "text-zinc-400 dark:text-zinc-500",
+const SCOPE_TONE: Record<"Theory" | "Lab", string> = {
+  Theory: "blue",
+  Lab: "emerald",
+};
+
+/**
+ * A bar's hue, keyed on the same grade tones the pills use. Shared with the
+ * grade history so a given grade is the same colour on both screens.
+ */
+const GRADE_BAR: Record<string, string> = {
+  S: "bg-amber-500",
+  A: "bg-emerald-500",
+  B: "bg-blue-500",
+  C: "bg-cyan-500",
+  D: "bg-violet-500",
+  E: "bg-red-500",
+  F: "bg-red-600",
+  N: "bg-zinc-400",
+  P: "bg-violet-500",
+};
+
+/**
+ * A grade band's wash inside the ladder bar. At 15% these read as one
+ * continuous scale rather than seven competing cards, which is the whole point
+ * of replacing the old tiles — the grade letter carries the meaning and the
+ * colour only says "this slice of the ladder".
+ */
+const GRADE_TINT: Record<string, string> = {
+  S: "bg-amber-500/15",
+  A: "bg-emerald-500/15",
+  B: "bg-blue-500/15",
+  C: "bg-cyan-500/15",
+  D: "bg-violet-500/15",
+  E: "bg-red-500/15",
+  F: "bg-red-500/10",
+  N: "bg-zinc-500/10",
+  P: "bg-violet-500/15",
 };
 
 export default function CourseDetailSubpage({
@@ -95,6 +157,7 @@ export default function CourseDetailSubpage({
   selectedCode, initialTab, onBack
 }: CourseDetailSubpageProps) {
   const [creds, setCreds] = useState<Creds | null>(null);
+  const [marksStats] = useAtom(marksStatsAtom);
   const credsRef = useRef<Creds | null>(null);
   const [innerTab, setInnerTab] = useState(initialTab || "overview");
   const [coursePlan, setCoursePlan] = useState<any>(null);
@@ -368,21 +431,48 @@ export default function CourseDetailSubpage({
     );
   }, [marksData, attendanceData, pastSemesterData]);
 
-  useEffect(() => {
-    if (!marksData?.courses) return;
-    const fetchStats = async () => {
-      try {
-        const classIds = uniqueCourses.map(g => (g.theory || g.lab).classNbr).join(",");
-        if (!classIds) return;
-        const res = await api("marks/stats", { query: { classes: classIds }, parse: "raw" }) as Response;
-        if (res.ok) { const d = await res.json(); setAllStats(d); }
-      } catch {}
-    };
-    fetchStats();
-  }, [marksData]);
-
   const selectedGroup = useMemo(() => uniqueCourses.find(c => c.courseCode === selectedCode), [selectedCode, uniqueCourses]);
   const mainCourse = selectedGroup?.theory || selectedGroup?.lab;
+
+  useEffect(() => {
+    if (!marksData?.courses) return;
+    let cancelled = false;
+
+    // Cohort statistics arrive with the marks, per class.
+    //
+    // There is deliberately no second request here. The server had to scrape the marks
+    // anyway, so it returns the matching cohort statistics in the same payload — no
+    // semester to negotiate, no extra VTOP round trip, and nothing for this component to
+    // authenticate. An earlier version called `/marks/stats` itself, which failed two
+    // ways: it needed a semester id, and `credentialManager.vtop` is only populated by
+    // an explicit login, so on a boot restored from localStorage the request went out
+    // with no credentials and came back 400.
+    const fetchStats = async () => {
+      try {
+        // Read from the atom the sync engine already populated, not from a parallel
+        // storage read: the two can disagree, and when they did the statistics stayed
+        // invisible while the marks rendered normally.
+        if (!marksStats) return;
+        const stored = marksStats as Record<string, any>;
+        if (Object.keys(stored).length === 0) {
+          console.warn(
+            "[marks/stats] No cohort statistics in this sync's payload. If this " +
+              "persists after a Reload, the API process predates the engine op."
+          );
+          return;
+        }
+
+        const remapped = await remapCohortStats(stored, uniqueCourses);
+
+        if (!cancelled) setAllStats(remapped);
+      } catch {}
+    };
+
+    fetchStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [marksData, marksStats, uniqueCourses]);
 
   const { theoryAttItem, labAttItem } = useMemo(() => {
     if (!selectedCode) return { theoryAttItem: null, labAttItem: null };
@@ -862,20 +952,20 @@ export default function CourseDetailSubpage({
   const ovMarksSlides = useMemo(() => {
     if (!selectedGroup) return [];
     if (isSelectedPastSemester && selectedPastGrade) {
-      return [{ id: "grade", title: "Grades", headline: `Grade ${selectedPastGrade}`, subline: "Published grade", badge: "Final", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20", headlineColor: "text-emerald-600 dark:text-emerald-400" }];
+      return [{ id: "grade", title: "Grades", headline: `Grade ${selectedPastGrade}`, subline: "Published grade", badge: "Final", badgeColor: TONE_BADGE.emerald, headlineColor: TONE_TEXT.emerald }];
     }
     const slides: any[] = [];
     const hasTheory = (selectedGroup?.theory?.assessments?.length || 0) > 0;
     const hasLab = (selectedGroup?.lab?.assessments?.length || 0) > 0;
     if (selectedGroup?.theory && selectedGroup?.lab) {
       slides.push({ id: "combined", title: "Marks", headline: String(courseTotalString), subline: `Projected ${courseStats.projected}% · Max ${formatNumber(courseStats.maxPossible)}%`, badge: "Overall" });
-      slides.push({ id: "theory", title: "Marks", headline: hasTheory ? `${formatNumber(ovTheoryTotals.weighted)} / ${formatNumber(ovTheoryTotals.weightPercent)}` : "—", subline: ovTheoryPct !== null ? `${formatNumber(ovTheoryPct)}% scored` : "No theory marks yet", badge: "Theory", badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" });
-      slides.push({ id: "lab", title: "Marks", headline: hasLab ? `${formatNumber(ovLabTotals.weighted)} / ${formatNumber(ovLabTotals.weightPercent)}` : "—", subline: ovLabPct !== null ? `${formatNumber(ovLabPct)}% scored` : "No lab marks yet", badge: "Lab", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" });
+      slides.push({ id: "theory", title: "Marks", headline: hasTheory ? `${formatNumber(ovTheoryTotals.weighted)} / ${formatNumber(ovTheoryTotals.weightPercent)}` : "—", subline: ovTheoryPct !== null ? `${formatNumber(ovTheoryPct)}% scored` : "No theory marks yet", badge: "Theory", badgeColor: TONE_BADGE.blue });
+      slides.push({ id: "lab", title: "Marks", headline: hasLab ? `${formatNumber(ovLabTotals.weighted)} / ${formatNumber(ovLabTotals.weightPercent)}` : "—", subline: ovLabPct !== null ? `${formatNumber(ovLabPct)}% scored` : "No lab marks yet", badge: "Lab", badgeColor: TONE_BADGE.emerald });
     } else {
       const t = selectedGroup?.lab ? ovLabTotals : ovTheoryTotals;
       const pct = selectedGroup?.lab ? ovLabPct : ovTheoryPct;
       const has = hasTheory || hasLab;
-      slides.push({ id: "total", title: "Marks", headline: has ? `${formatNumber(t.weighted)} / ${formatNumber(t.weightPercent)}` : "—", subline: pct !== null ? `${formatNumber(pct)}% scored · Max ${formatNumber(courseStats.maxPossible)}%` : "No marks yet", badge: selectedGroup?.lab ? "Lab" : "Theory", badgeColor: selectedGroup?.lab ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" });
+      slides.push({ id: "total", title: "Marks", headline: has ? `${formatNumber(t.weighted)} / ${formatNumber(t.weightPercent)}` : "—", subline: pct !== null ? `${formatNumber(pct)}% scored · Max ${formatNumber(courseStats.maxPossible)}%` : "No marks yet", badge: selectedGroup?.lab ? "Lab" : "Theory", badgeColor: selectedGroup?.lab ? TONE_BADGE.emerald : TONE_BADGE.blue });
     }
     return slides;
   }, [selectedGroup, isSelectedPastSemester, selectedPastGrade, courseTotalString, courseStats, ovTheoryTotals, ovLabTotals, ovTheoryPct, ovLabPct]);
@@ -896,8 +986,8 @@ export default function CourseDetailSubpage({
     };
     if (theoryAttItem && labAttItem) {
       return [
-        toSlide(theoryAttItem, "Theory", "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"),
-        toSlide(labAttItem, "Lab", "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"),
+        toSlide(theoryAttItem, "Theory", TONE_BADGE.blue),
+        toSlide(labAttItem, "Lab", TONE_BADGE.emerald),
       ];
     }
     const item = theoryAttItem || labAttItem;
@@ -918,7 +1008,7 @@ export default function CourseDetailSubpage({
         // The tile's pill showed the attendance status, not Theory/Lab.
         badge: s.status,
         dotLabel: `${s.badge} attendance`,
-        valueClassName: ATT_VALUE_TEXT[ATT_TONE[s.status] ?? "red"],
+        valueClassName: TONE_TEXT[ATT_TONE[s.status] ?? "red"],
         tone: ATT_TONE[s.status],
         onClick: () => setInnerTab(`${defaultAttScope}-log`),
       })),
@@ -956,9 +1046,9 @@ export default function CourseDetailSubpage({
   const detailEntriesByScope = (scope: "theory" | "lab") =>
     (viewDetail || []).filter((vd: any) => (vd.scope || "theory") === scope);
   const renderScopeBadge = (scope: "theory" | "lab") => (
-    <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full w-fit ${scope === "theory" ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30" : "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30"}`}>
+    <ToneBadge tone={SCOPE_TONE[scope === "theory" ? "Theory" : "Lab"]}>
       {scope === "theory" ? "Theory" : "Lab"}
-    </span>
+    </ToneBadge>
   );
   const renderCourseDetailCard = (courseComp: any, attItem: any, badge: "Theory" | "Lab" | null) => {
     if (!courseComp && !attItem) return null;
@@ -971,20 +1061,23 @@ export default function CourseDetailSubpage({
     const faculty = courseComp?.faculty || attItem?.faculty || "";
     const venue = attItem?.slotVenue || "";
     return (
-      <div className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4 space-y-3">
+      <div className={`${TILE_CARD} space-y-3`}>
         {badge && renderScopeBadge(badge === "Theory" ? "theory" : "lab")}
         <div className="grid grid-cols-2 gap-2.5">
           {tiles.map(([label, value]) => (
-            <div key={label} className="bg-zinc-50/80 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
-              <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">{label}</p>
-              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{value}</p>
-            </div>
+            <KeyValue key={label} label={label} value={value} />
           ))}
         </div>
         {(faculty || venue) && (
-          <div className="bg-zinc-50/80 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60">
-            {faculty && <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{faculty}</p>}
-            {venue && <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium mt-0.5">Venue: {venue}</p>}
+          <div className="space-y-0.5">
+            {faculty && (
+              <p className="text-xs font-bold text-text-heading truncate">{faculty}</p>
+            )}
+            {venue && (
+              <p className="text-[10px] text-text-muted font-medium">
+                Venue: {venue}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -998,51 +1091,28 @@ export default function CourseDetailSubpage({
     2: "#EF4444",
     3: "#EAB308",
   };
-  // Shared status tones for attendance heroes, rows and pages.
-  const STATUS_TEXT: Record<string, string> = {
-    Safe: "text-emerald-600 dark:text-emerald-400",
-    Warning: "text-amber-500 dark:text-amber-400",
-    "N/A": "text-zinc-400 dark:text-zinc-500",
-    Critical: "text-red-500 dark:text-red-400",
-  };
-  const STATUS_BADGE: Record<string, string> = {
-    Safe: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    Warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    "N/A": "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
-    Critical: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  };
-  const TONE_TEXT: Record<string, string> = {
-    emerald: "text-emerald-600 dark:text-emerald-400",
-    amber: "text-amber-500 dark:text-amber-400",
-    red: "text-red-500 dark:text-red-400",
-    zinc: "text-zinc-400 dark:text-zinc-500",
-  };
-  const TONE_BADGE: Record<string, string> = {
-    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    red: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-    zinc: "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 border-zinc-500/20",
-  };
-  const scopeAccent = (badge: "Theory" | "Lab") => badge === "Theory"
-    ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
-    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+  // Shared status tones for attendance heroes, rows and pages. The colour half
+  // of these used to be four hand-rolled maps declared inside the component,
+  // which is exactly what `TONE_TEXT` / `TONE_BADGE` in `@/lib/uiTokens` exist
+  // to stop — `ATT_TONE` above is the only lookup this file owns now.
+  const scopeAccent = (badge: "Theory" | "Lab") =>
+    `w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE[SCOPE_TONE[badge]]}`;
 
   const renderLogRow = (item: any, d: any, badge: "Theory" | "Lab") => (
-    <button
-      onClick={() => setInnerTab(`${badge.toLowerCase()}-log`)}
-      className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-    >
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${scopeAccent(badge)}`}>
+    <button onClick={() => setInnerTab(`${badge.toLowerCase()}-log`)} className={LIST_ROW}>
+      <div className={scopeAccent(badge)}>
         <Clock className="w-5 h-5" />
       </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">{badge} Log</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-          {d.total > 0 ? `${d.attended}/${d.total}${item?.slotVenue ? ` · ${item.slotVenue}` : ""}` : "No attendance data"}
-        </p>
-      </div>
+      <ListRowText
+        title={`${badge} Log`}
+        subtitle={
+          d.total > 0
+            ? `${d.attended}/${d.total}${item?.slotVenue ? ` · ${item.slotVenue}` : ""}`
+            : "No attendance data"
+        }
+      />
       <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-base font-black font-outfit tracking-tight leading-none ${STATUS_TEXT[d.status]}`}>
+        <span className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[ATT_TONE[d.status] ?? "zinc"]}`}>
           {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
         </span>
         <ChevronRight className="w-4 h-4 text-zinc-400" />
@@ -1051,19 +1121,11 @@ export default function CourseDetailSubpage({
   );
 
   const renderPredictorRow = (item: any, d: any, badge: "Theory" | "Lab") => (
-    <button
-      onClick={() => setInnerTab(`${badge.toLowerCase()}-predictor`)}
-      className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-    >
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${scopeAccent(badge)}`}>
+    <button onClick={() => setInnerTab(`${badge.toLowerCase()}-predictor`)} className={LIST_ROW}>
+      <div className={scopeAccent(badge)}>
         <Target className="w-5 h-5" />
       </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">{badge} Predictor</h3>
-        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-          {d.marginSubline}
-        </p>
-      </div>
+      <ListRowText title={`${badge} Predictor`} subtitle={d.marginSubline} />
       <div className="flex items-center gap-2 shrink-0">
         <span className={`text-base font-black font-outfit tracking-tight leading-none ${TONE_TEXT[d.marginTone]}`}>
           {d.upcomingTotal > 0 ? `${d.upcomingTotal}` : "—"}
@@ -1075,34 +1137,20 @@ export default function CourseDetailSubpage({
 
   const renderAttHeroes = (d: any) => (
     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Attendance</span>
-          <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${STATUS_BADGE[d.status]}`}>{d.status}</span>
-        </div>
-        <div className="my-auto py-1">
-          <span className={`text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block ${STATUS_TEXT[d.status]}`}>
-            {d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
-          </span>
-        </div>
-        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-          {d.total > 0 ? `${d.attended}/${d.total} attended` : "No attendance data"}
-        </p>
-      </div>
-      <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Margin</span>
-          <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 border ${TONE_BADGE[d.marginTone]}`}>{d.status}</span>
-        </div>
-        <div className="my-auto py-1">
-          <span className={`text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block ${TONE_TEXT[d.marginTone]}`}>
-            {d.marginHeadline}
-          </span>
-        </div>
-        <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-          {d.marginSubline}
-        </p>
-      </div>
+      <StatTile
+        label="Attendance"
+        value={d.total > 0 ? `${Number(d.pct.toFixed(1))}%` : "—"}
+        badge={d.status}
+        tone={ATT_TONE[d.status] ?? "zinc"}
+        sub={d.total > 0 ? `${d.attended}/${d.total} attended` : "No attendance data"}
+      />
+      <StatTile
+        label="Margin"
+        value={d.marginHeadline}
+        badge={d.status}
+        tone={d.marginTone}
+        sub={d.marginSubline}
+      />
     </div>
   );
 
@@ -1120,27 +1168,24 @@ export default function CourseDetailSubpage({
     return (
       <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {renderAttHeroes(d)}
-        <div className={TILE_CARD}>
-          <div className="flex items-center gap-2 px-1 mb-3">
-            <Calendar className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Calendar</h2>
+        <div className="space-y-3">
+          <SectionHeader icon={Calendar} title="Calendar" />
+          <div className={TILE_CARD}>
+            <AttendanceCalendarView
+              analyzeCalendars={analyzeCalendars}
+              historyList={d.historyList}
+              notesTracker={notesTracker}
+              toggleNotes={(dateStr: string) => toggleNotes(dateStr, item.courseCode)}
+              courseCode={item.courseCode}
+              isOverall={false}
+              toggleIndividualNote={() => {}}
+              compact
+            />
           </div>
-          <AttendanceCalendarView
-            analyzeCalendars={analyzeCalendars}
-            historyList={d.historyList}
-            notesTracker={notesTracker}
-            toggleNotes={(dateStr: string) => toggleNotes(dateStr, item.courseCode)}
-            courseCode={item.courseCode}
-            isOverall={false}
-            toggleIndividualNote={() => {}}
-            compact
-          />
         </div>
-        <div className={TILE_CARD}>
-          <div className="flex items-center gap-2 px-1 mb-3">
-            <Grid3x3 className="w-4 h-4 text-indigo-500" />
-            <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Heatmap</h2>
-          </div>
+        <div className="space-y-3">
+          <SectionHeader icon={Grid3x3} title="Heatmap" />
+          <div className={TILE_CARD}>
           <div className="flex justify-start w-full overflow-x-auto hide-scrollbar" style={{ direction: "rtl" }}>
             <div style={{ direction: "ltr", minWidth: "500px" }} className="flex flex-col items-center">
               <HeatMap
@@ -1164,53 +1209,46 @@ export default function CourseDetailSubpage({
                 }}
                 panelColors={HEAT_STATUS_COLORS}
               />
-              <div className="flex flex-wrap items-center justify-center gap-5 mt-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-[#10B981] shadow-sm"></div>
-                  <span>Present</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-[#EF4444] shadow-sm"></div>
-                  <span>Absent</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-[#EAB308] shadow-sm"></div>
-                  <span>On Duty</span>
-                </div>
+              <div className="mt-4">
+                <ToneLegend
+                  items={[
+                    { tone: "emerald", label: "Present" },
+                    { tone: "red", label: "Absent" },
+                    { tone: "amber", label: "On Duty" },
+                  ]}
+                />
               </div>
             </div>
           </div>
+          </div>
         </div>
         <LogGap />
-        <div className="space-y-4" style={{ marginBlockStart: 0 }}>
+        <div className="space-y-3" style={{ marginBlockStart: 0 }}>
+          <SectionHeader
+            icon={Clock}
+            title="Log"
+            count={d.historyList.length}
+            right={
+              d.missingNotesCount > 0 ? (
+                <ToneBadge tone="red">
+                  <StickyNote className="h-3 w-3" />
+                  {d.missingNotesCount} missing
+                </ToneBadge>
+              ) : null
+            }
+          />
           <div className="px-1">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-m font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Log</h2>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                {d.historyList.length}
-              </span>
-              {d.missingNotesCount > 0 && (
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                  {d.missingNotesCount} notes missing
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 mt-2.5 p-0.5 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs overflow-x-auto hide-scrollbar">
-              {(["All", "Present", "Absent", "On Duty"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setAttFilter(f)}
-                  className={`flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    attFilter === f
-                      ? "bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-2xs font-extrabold"
-                      : "text-zinc-500 dark:text-zinc-400"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              scroll
+              value={attFilter}
+              onChange={setAttFilter}
+              options={[
+                { value: "All", label: "All" },
+                { value: "Present", label: "Present" },
+                { value: "Absent", label: "Absent" },
+                { value: "On Duty", label: "On Duty" },
+              ]}
+            />
           </div>
           {d.filteredHistory.length === 0 ? (
         <EmptyPanel variant="dashed" title="No records under this filter." />
@@ -1221,25 +1259,24 @@ export default function CourseDetailSubpage({
                 const st = h.status.toLowerCase();
                 const isPresent = st === "present";
                 const isAbsent = st === "absent";
+                const tone = isPresent ? "emerald" : isAbsent ? "red" : "amber";
                 const hasNotes = notesTracker[item?.courseCode || ""]?.[h.date] === true;
                 return (
-                  <div key={i} className="flex items-center justify-between gap-3 py-3 px-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isPresent ? "bg-emerald-500" : isAbsent ? "bg-red-500" : "bg-amber-500"}`} />
-                      <div className="min-w-0">
-                        <p className="font-bold text-base text-zinc-900 dark:text-white truncate font-outfit leading-tight">{h.date}</p>
-                        <p className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${isPresent ? "text-emerald-600 dark:text-emerald-400" : isAbsent ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
-                          {h.status}
-                        </p>
-                      </div>
-                    </div>
+                  <div key={i} className={LIST_ROW}>
+                    <span className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ATT_DOT[st] ?? "bg-amber-500"}`} />
+                      <span className="min-w-0">
+                        <span className="block font-bold text-sm text-text-heading truncate font-outfit leading-tight">{h.date}</span>
+                        <span className={`block text-[11px] font-medium mt-0.5 ${TONE_TEXT[tone]}`}>{h.status}</span>
+                      </span>
+                    </span>
                     {!isPresent && (
                       <button
                         onClick={() => toggleNotes(h.date, item?.courseCode || "")}
                         className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                           hasNotes
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400"
-                            : "bg-white border-zinc-200 text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300"
+                            ? TONE_BADGE.emerald
+                            : "bg-surface-secondary text-text-secondary border-border-muted dark:border-border"
                         }`}
                       >
                         {hasNotes ? <CheckCircle2 size={14} /> : <FileTextIcon size={14} />}
@@ -1267,15 +1304,7 @@ export default function CourseDetailSubpage({
       <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
         {renderAttHeroes(d)}
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1 gap-2">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Predictor</h2>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                {d.upcomingTotal}
-              </span>
-            </div>
-          </div>
+          <SectionHeader icon={Activity} title="Predictor" count={d.upcomingTotal} />
           {blocks.length === 0 ? (
       <EmptyPanel variant="dashed" title="No upcoming milestones to simulate." />
 
@@ -1283,14 +1312,12 @@ export default function CourseDetailSubpage({
             <div className="space-y-2.5">
               {blocks.map(({ key, label, data }) => (
                 <div key={key} className={TILE_CARD}>
-                  <div className="flex items-center justify-between gap-2 px-1 mb-3">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-text-heading flex items-center gap-2">
                       <CalendarIcon size={16} className="text-blue-500 dark:text-blue-400" />
                       <span>{label}</span>
                     </h3>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full">
-                      {data.length} Left
-                    </span>
+                    <ToneBadge tone="blue">{data.length} left</ToneBadge>
                   </div>
                   <UpcomingClassesList
                     classes={data}
@@ -1332,29 +1359,38 @@ export default function CourseDetailSubpage({
   const renderAssessmentTable = (assessments: any[], typeLabel: string) => {
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
+    const tone = SCOPE_TONE[typeLabel as "Theory" | "Lab"] ?? "indigo";
+    const remaining = 100 - (totals.weightPercent - totals.weighted);
     return (
-      <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] p-6 shadow-sm mt-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
-          <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${typeLabel === 'Theory' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-            <Activity className="w-4 h-4" /> {typeLabel} Assessments
-          </h3>
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest ${typeLabel === 'Theory' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
-              Total: {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
-            </span>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3">
+        <SectionHeader
+          icon={Activity}
+          title={`${typeLabel} assessments`}
+          count={assessments.length}
+          right={
+            <ToneBadge tone={tone}>
+              {formatNumber(totals.weighted)} / {formatNumber(totals.weightPercent)}
+            </ToneBadge>
+          }
+        />
+        <p className="px-1 -mt-1 text-[11px] text-text-secondary dark:text-text-muted font-medium">
+          {formatNumber(remaining)} weightage points still available across these {assessments.length}{" "}
+          assessment{assessments.length === 1 ? "" : "s"}.
+        </p>
+        <ListShell>
           {assessments.map((detail: any, idx: number) => {
             const aStat = asmStats[detail.title];
-            return <AssessmentCard key={idx} detail={detail} typeLabel={typeLabel} aStat={aStat} isRelative={isRelative} />;
+            return (
+              <AssessmentRow
+                key={`${detail.title}-${idx}`}
+                detail={detail}
+                typeLabel={typeLabel}
+                aStat={aStat}
+                isRelative={isRelative}
+              />
+            );
           })}
-        </div>
-        <div className="mt-5 pt-4 border-t border-gray-200/50 dark:border-gray-800/50 flex justify-end">
-          <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
-            Max Score Left: <span className="font-black text-gray-900 dark:text-white">{formatNumber(100 - (totals.weightPercent - totals.weighted))}</span>
-          </p>
-        </div>
+        </ListShell>
       </div>
     );
   };
@@ -1412,17 +1448,11 @@ export default function CourseDetailSubpage({
 
           {/* ── COURSE SECTIONS (joined grouped list) ── */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-indigo-500" />
-                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-                  Course sections
-                </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
-                  {isEmbedded && theoryAttItem && labAttItem ? 8 : 6}
-                </span>
-              </div>
-            </div>
+            <SectionHeader
+              icon={BookOpen}
+              title="Course sections"
+              count={isEmbedded && theoryAttItem && labAttItem ? 8 : 6}
+            />
             {/* Joined grouped list: single shell, dividers, curves only on outer top/bottom */}
             <ListShell>
               {/* Log + Predictor — split per component when embedded */}
@@ -1440,110 +1470,83 @@ export default function CourseDetailSubpage({
                 </>
               )}
               {/* Marks */}
-              <button
-                onClick={() => ovGo("marks")}
-                className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-              >
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+              <button onClick={() => ovGo("marks")} className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}>
                   <Target className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Marks</h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {isEmbedded
+                </span>
+                <ListRowText
+                  title="Marks"
+                  subtitle={
+                    isEmbedded
                       ? `Theory ${formatNumber(ovTheoryTotals.weighted)}/${formatNumber(ovTheoryTotals.weightPercent)} · Lab ${formatNumber(ovLabTotals.weighted)}/${formatNumber(ovLabTotals.weightPercent)}`
-                      : String(courseTotalString)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
+                      : String(courseTotalString)
+                  }
+                />
+                <span className="flex items-center gap-2 shrink-0">
                   <span className="text-base font-black font-outfit tracking-tight leading-none text-indigo-600 dark:text-indigo-400">
                     {isSelectedPastSemester && selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
-                </div>
+                </span>
               </button>
               {/* Grade History */}
-              <button
-                onClick={() => ovGo("grades")}
-                className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-              >
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <button onClick={() => ovGo("grades")} className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
                   <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Grades</h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {isRelative ? "Relative grading" : "Absolute grading"}{courseGradeHistory.length > 0 ? ` · ${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-zinc-900 dark:text-white">
+                </span>
+                <ListRowText
+                  title="Grades"
+                  subtitle={`${isRelative ? "Relative grading" : "Absolute grading"}${courseGradeHistory.length > 0 ? ` · ${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : ""}`}
+                />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-text-heading">
                     {selectedPastGrade ? `Grade ${selectedPastGrade}` : `${courseStats.projected}%`}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
-                </div>
+                </span>
               </button>
               {/* Course Plan */}
-              <button
-                onClick={() => ovGo("plan")}
-                className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-              >
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <button onClick={() => ovGo("plan")} className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.amber}`}>
                   <FileText className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">Review Course Details</h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    {mainCourse?.faculty || "Faculty N/A"}{mainCourse?.courseType ? ` · ${isEmbedded ? "Embedded" : mainCourse.courseType}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200 truncate max-w-24">
+                </span>
+                <ListRowText
+                  title="Review Course Details"
+                  subtitle={`${mainCourse?.faculty || "Faculty N/A"}${mainCourse?.courseType ? ` · ${isEmbedded ? "Embedded" : mainCourse.courseType}` : ""}`}
+                />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-black font-outfit tracking-tight leading-none text-text-heading truncate max-w-24">
                     {mainCourse?.slot || "—"}
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
-                </div>
+                </span>
               </button>
               {/* QBank */}
-              <button
-                onClick={() => ovGo("qbank")}
-                className="w-full py-3 px-4 flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 active:bg-zinc-100/70 dark:active:bg-zinc-800/60"
-              >
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400">
+              <button onClick={() => ovGo("qbank")} className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
                   <Sparkles className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">QBank</h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                    Papers & extracted questions
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-black font-outfit tracking-tight leading-none text-zinc-700 dark:text-zinc-200">
+                </span>
+                <ListRowText title="QBank" subtitle="Papers & extracted questions" />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-text-heading">
                     {(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)} tests
                   </span>
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
-                </div>
+                </span>
               </button>
               {/* Tasks & Homework */}
-              <div className="w-full py-3 px-4 flex items-center justify-between gap-3 text-left">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                    <CheckSquare className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                      Tasks &amp; Homework
-                    </h3>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 truncate">
-                      {tasks.filter((t) => t.courseCode === selectedCode && t.status !== "done").length} pending task(s)
-                    </p>
-                  </div>
-                </div>
+              <div className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+                  <CheckSquare className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="Tasks & Homework"
+                  subtitle={`${tasks.filter((t) => t.courseCode === selectedCode && t.status !== "done").length} pending task(s)`}
+                />
                 <button
                   type="button"
                   onClick={() => setIsTaskSheetOpen(true)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 cursor-pointer transition-colors"
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted border border-border-muted dark:border-border hover:bg-border-muted dark:hover:bg-surface-hover transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Task</span>
@@ -1555,156 +1558,171 @@ export default function CourseDetailSubpage({
         </div>
       )}
 
-      {/* MARKS - Full replication of MarksSubpage */}
+      {/* MARKS */}
       {innerTab === "marks" && (
         <div className="space-y-6 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* HERO STATS (overview format) */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {isSelectedPastSemester && selectedPastGrade ? (
               <>
-                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Final Grade</span>
-                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Final</span>
-                  </div>
-                  <div className="my-auto py-1">
-                    <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-emerald-600 dark:text-emerald-400">Grade {selectedPastGrade}</span>
-                  </div>
-                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">Published grade</p>
-                </div>
-                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Grading</span>
-                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">System</span>
-                  </div>
-                  <div className="my-auto py-1">
-                    <span className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block text-zinc-900 dark:text-white">{isRelative ? "Relative" : "Absolute"}</span>
-                  </div>
-                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                    {courseGradeHistory.length > 0 ? `${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}` : "Grade history"}
-                  </p>
-                </div>
+                <StatTile
+                  label="Final Grade"
+                  value={`Grade ${selectedPastGrade}`}
+                  badge="Final"
+                  tone="emerald"
+                  sub="Published grade"
+                />
+                <StatTile
+                  label="Grading"
+                  value={isRelative ? "Relative" : "Absolute"}
+                  badge="System"
+                  tone="indigo"
+                  sub={
+                    courseGradeHistory.length > 0
+                      ? `${courseGradeHistory.length} record${courseGradeHistory.length === 1 ? "" : "s"}`
+                      : "Grade history"
+                  }
+                />
               </>
             ) : (
               <>
-                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Total Score</span>
-                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40">Marks</span>
-                  </div>
-                  <div className="my-auto py-1">
-                    <span className="text-2xl sm:text-3xl font-black font-outfit tracking-tight leading-tight block text-zinc-900 dark:text-white">{courseTotalString}</span>
-                  </div>
-                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">{courseTypeLabel}</p>
-                </div>
-                <div className={cn(TILE, "min-h-36 sm:min-h-40")}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit truncate">Projected</span>
-                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">Forecast</span>
-                  </div>
-                  <div className="my-auto py-1">
-                    <span className="text-3xl sm:text-4xl font-black font-outfit tracking-tight leading-none block text-blue-600 dark:text-blue-400">{courseStats.projected}%</span>
-                  </div>
-                  <p className="text-[10.5px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium truncate">Max potential {formatNumber(courseStats.maxPossible)}%</p>
-                </div>
+                <StatTile
+                  label="Total Score"
+                  value={String(courseTotalString)}
+                  badge="Marks"
+                  tone="neutral"
+                  sub={courseTypeLabel}
+                />
+                <StatTile
+                  label="Projected"
+                  value={`${courseStats.projected}%`}
+                  badge="Forecast"
+                  tone="blue"
+                  sub={`Max potential ${formatNumber(courseStats.maxPossible)}%`}
+                />
               </>
             )}
           </div>
 
           {!isSelectedPastSemester && (
-            <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-xs">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white font-outfit">
-                    Simulate Marks & Regimen for {selectedCode}
-                  </h4>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                    Test what-if scores, points lost, and calculate exact FAT target marks
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (setActiveSubTab) {
-                    setActiveSubTab("marks-predictor");
-                  }
-                }}
-                className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
-              >
-                <span>Launch Marks Predictor</span>
-                <Sparkles className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab?.("marks-predictor")}
+              className={`${TILE_CARD} w-full flex items-center gap-3 text-left cursor-pointer hover:border-border-strong dark:hover:border-border transition-colors`}
+            >
+              <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
+                <Sparkles className="h-4.5 w-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-text-heading font-outfit tracking-tight">
+                  Simulate marks &amp; regimen
+                </span>
+                <span className="block text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5 truncate">
+                  What-if scores, points lost and the exact FAT target
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-zinc-400 shrink-0" />
+            </button>
           )}
 
           {renderAssessmentTable(selectedGroup?.theory?.assessments, "Theory")}
           {renderAssessmentTable(selectedGroup?.lab?.assessments, "Lab")}
 
           {(!selectedGroup?.theory?.assessments?.length && !selectedGroup?.lab?.assessments?.length) && (
-            <Card><div className="p-5 text-sm text-gray-400  dark:text-gray-500">No assessment data available</div></Card>
+            <EmptyPanel
+              icon={<Activity className="w-7 h-7" />}
+              tone="indigo"
+              variant="dashed"
+              title="No assessment data available"
+              description="Pull fresh marks from VTOP and every assessment, its weightage and your score will collect here."
+            />
           )}
 
-          {/* Grade Insights - Full replication from MarksSubpage */}
-          <div className="bg-white  dark:bg-black border border-gray-100  dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm mt-6">
-            <div className="p-5 border-b border-gray-100  dark:border-gray-800">
-              <h3 className="text-lg font-bold text-gray-900  dark:text-gray-100 flex items-center gap-2">
-                Grade Insights <Badge variant="info" className="bg-blue-100 text-blue-700   dark:bg-blue-900/30 dark:text-blue-400 font-bold">BETA</Badge>
-              </h3>
-              <details className="text-xs text-gray-500  dark:text-gray-400 mt-2 leading-relaxed cursor-pointer group">
-                <summary className="font-semibold text-indigo-600  dark:text-indigo-400 hover:underline list-none inline-flex items-center gap-1">
-                  <Info size={14} /> How this works & why it is safe
-                </summary>
-                <div className="mt-3 p-4 bg-gray-50  dark:bg-slate-800 rounded-lg border border-gray-200  dark:border-gray-700 space-y-2">
-                  <p>
-                    <strong>Proof of Concept:</strong> To calculate an accurate class curve, we need to know the class average and standard deviation.
-                    This requires aggregating the marks of all students in the class. It is mathematically impossible to do this securely strictly on your local device,
-                    because your device needs access to the rest of the class's performance to determine your relative rank.
-                  </p>
-                  <p>
-                    <strong>Privacy First:</strong> When you download fresh marks from VTOP, your client securely transmits only the changes (using a scrambled, anonymous hash of your ID to prevent duplicate updates). The server strictly processes the numbers in-memory using Welford's Algorithm, updates the class-wide statistics, and then
-                    <strong> immediately discards</strong> your individual marks. We do not store your exact marks in any database.
+          {/* Grade Insights */}
+          <div className="space-y-3">
+            <SectionHeader
+              icon={Gauge}
+              title="Grade insights"
+              right={<ToneBadge tone="blue">Beta</ToneBadge>}
+            />
+            <details className="group text-[11px] leading-relaxed text-text-secondary dark:text-text-muted">
+              <summary className="cursor-pointer list-none inline-flex items-center gap-1 font-semibold text-text-heading hover:underline">
+                <Info className="h-3.5 w-3.5" /> How this works &amp; why it is safe
+              </summary>
+              <div className={`${TILE_CARD} mt-3 space-y-2 text-[11px] font-medium`}>
+                <p>
+                  <strong>Proof of concept:</strong> an accurate class curve needs the class
+                  average and standard deviation, which means aggregating the marks of every
+                  student. That cannot be done securely on your device alone — your device would
+                  need the rest of the class&apos;s performance to work out your relative rank.
+                </p>
+                <p>
+                  <strong>Privacy first:</strong> when you sync fresh marks, your client
+                  transmits only the changes, wrapped in a scrambled anonymous hash of your ID
+                  so the server can skip a duplicate. The server aggregates the numbers
+                  in-memory with Welford&apos;s algorithm, updates the class-wide statistics and
+                  then <strong>immediately discards</strong> them. Your individual marks are
+                  never stored.
+                </p>
+              </div>
+            </details>
+            {isRelative && stats && stats.count > 0 && stats.count < 30 && (
+              <div className="flex items-center gap-2 px-1">
+                <ToneBadge tone="amber">{stats.count} samples</ToneBadge>
+                <span className="text-[11px] text-text-muted font-medium">
+                  Relative predictions stay rough until more peers sync.
+                </span>
+              </div>
+            )}
+          </div>
+
+            <div className="space-y-3">
+            {isRelative ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <StatTile
+                  label="Samples"
+                  value={stats ? String(stats.count) : "—"}
+                  badge="Class"
+                  tone="neutral"
+                  sub="peers synced"
+                  height="h-28"
+                />
+                <StatTile
+                  label="Mean"
+                  value={stats ? formatNumber(stats.mean) : "—"}
+                  badge="Class"
+                  tone="neutral"
+                  sub="average score"
+                  height="h-28"
+                />
+                <StatTile
+                  label="Std Dev"
+                  value={stats ? formatNumber(stats.sd) : "—"}
+                  badge="Spread"
+                  tone="neutral"
+                  sub="class deviation"
+                  height="h-28"
+                />
+              </div>
+            ) : (
+              <div className={`${TILE_CARD} flex items-center gap-3.5`}>
+                <span className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+                  <ShieldCheck className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                    Absolute grading enforced
+                  </h4>
+                  <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                    Your grade comes from fixed percentage boundaries, not from how the class
+                    performed.
                   </p>
                 </div>
-              </details>
-              {(isRelative && stats && stats.count > 0 && stats.count < 30) && (
-                <p className="text-xs text-red-500 font-medium mt-2">
-                  Warning: Low data samples ({stats.count}). Relative predictions may not be fully accurate until more peers sync their marks.
-                </p>
-              )}
+              </div>
+            )}
             </div>
 
-            <div className="p-5 bg-gray-50/50  dark:bg-black/50">
-              {isRelative ? (
-                <div className="flex flex-wrap gap-4 mb-6 text-sm">
-                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Samples</p>
-                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? stats.count : "N/A"}</p>
-                  </div>
-                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Mean</p>
-                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.mean) : "N/A"}</p>
-                  </div>
-                  <div className="flex-1 bg-white  dark:bg-gray-900 border border-gray-200  dark:border-gray-800 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-gray-500  dark:text-gray-400 uppercase font-bold">Std Dev</p>
-                    <p className="font-bold text-gray-900  dark:text-gray-100">{stats ? formatNumber(stats.sd) : "N/A"}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-6 p-4 rounded-xl bg-emerald-50  dark:bg-emerald-900/20 border border-emerald-200  dark:border-emerald-800/50 flex flex-col md:flex-row items-center gap-4 text-emerald-800  dark:text-emerald-400">
-                  <div className="p-3 bg-white  dark:bg-emerald-950 rounded-full shadow-sm">
-                    <Activity size={24} className="text-emerald-500" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">Absolute Grading Enforced</h4>
-                    <p className="text-sm mt-1 opacity-90">This course uses an absolute grading system. Your grade is based purely on predefined percentage boundaries, irrespective of class performance.</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            <div className="space-y-4">
                 {(() => {
                   const mean = isRelative ? (stats?.mean || 0) : 0;
                   const sd = isRelative ? (stats?.sd || 0) : 0;
@@ -1720,14 +1738,17 @@ export default function CourseDetailSubpage({
                     sBoundary = 90; aLower = 80; bLower = 70; cLower = 60; dLower = 50; eLower = 40;
                   }
 
+                  // `width` is how many percentage points the band spans, so the
+                  // bar reads as "how much room is in this grade" rather than a
+                  // second copy of the threshold.
                   const boundaries = [
-                    { grade: 'S', limit: sBoundary, color: 'bg-emerald-50 text-emerald-700 border-emerald-200    dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50', range: `>= ${sBoundary.toFixed(0)}` },
-                    { grade: 'A', limit: aLower, color: 'bg-green-50 text-green-700 border-green-200    dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50', range: `>= ${aLower.toFixed(0)}` },
-                    { grade: 'B', limit: bLower, color: 'bg-blue-50 text-blue-700 border-blue-200    dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50', range: `>= ${bLower.toFixed(0)}` },
-                    { grade: 'C', limit: cLower, color: 'bg-indigo-50 text-indigo-700 border-indigo-200    dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50', range: `>= ${cLower.toFixed(0)}` },
-                    { grade: 'D', limit: dLower, color: 'bg-purple-50 text-purple-700 border-purple-200    dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/50', range: `>= ${dLower.toFixed(0)}` },
-                    { grade: 'E', limit: eLower, color: 'bg-orange-50 text-orange-700 border-orange-200    dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50', range: `>= ${eLower.toFixed(0)}` },
-                    { grade: 'F', limit: 0, color: 'bg-red-50 text-red-700 border-red-200    dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50', range: `< ${eLower.toFixed(0)}` },
+                    { grade: "S", limit: sBoundary, width: 100 - sBoundary, range: `≥ ${sBoundary}` },
+                    { grade: "A", limit: aLower, width: sBoundary - aLower, range: `≥ ${aLower}` },
+                    { grade: "B", limit: bLower, width: aLower - bLower, range: `≥ ${bLower}` },
+                    { grade: "C", limit: cLower, width: bLower - cLower, range: `≥ ${cLower}` },
+                    { grade: "D", limit: dLower, width: cLower - dLower, range: `≥ ${dLower}` },
+                    { grade: "E", limit: eLower, width: dLower - eLower, range: `≥ ${eLower}` },
+                    { grade: "F", limit: 0, width: eLower, range: `< ${eLower}` },
                   ];
 
                   const targetBoundary = boundaries.find(b => b.grade === targetGrade)?.limit || 0;
@@ -1746,57 +1767,139 @@ export default function CourseDetailSubpage({
                   const totalCredits = theoryCredits + labCredits;
                   const currentWeightedScore = totalCredits > 0 ? ((theoryCredits * theoryScored) + (labCredits * labScored)) / totalCredits : theoryScored;
                   const currentWeightPercent = totalCredits > 0 ? ((theoryCredits * theoryPercent) + (labCredits * labPercent)) / totalCredits : theoryPercent;
-                  const remainingWeightagePoints = targetBoundary - currentWeightedScore;
+
+                  // The ladder is a 0-100 percentage scale; the two figures above are
+                  // raw weightage-point totals, which mid-term are out of whatever has
+                  // been released rather than out of 100. Comparing them directly put a
+                  // student on a genuine 90% into band D. So normalise before comparing,
+                  // and convert the target back onto the raw scale before subtracting.
+                  const currentPct = normalisedPct(currentWeightedScore, currentWeightPercent);
+                  const requiredPoints = currentWeightPercent > 0
+                    ? (targetBoundary / 100) * currentWeightPercent
+                    : 0;
+                  const remainingWeightagePoints = requiredPoints - currentWeightedScore;
+
+                  // The band the student is standing in right now. Drives the
+                  // "You are here" marker and the target-grade emphasis.
+                  const standing = boundaries.find(b => currentPct >= b.limit);
+                  const statsMissing = isRelative && !stats;
 
                   return (
                     <>
-                      {boundaries.map((b, i) => (
-                        <div key={i} className={`rounded-xl border p-3 flex flex-col items-center justify-center ${b.color} ${(isRelative && !stats) ? 'opacity-50 grayscale' : ''}`}>
-                          <span className="text-xl font-black mb-1">{b.grade}</span>
-                          <span className="text-[10px] font-bold tracking-wider">{b.range}</span>
-                        </div>
-                      ))}
-                      <div className="col-span-full mt-4 bg-white  dark:bg-slate-800 border border-gray-200  dark:border-gray-700 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-gray-900  dark:text-gray-100">Target Grade Calculator</h4>
-                          <p className="text-xs text-gray-500  dark:text-gray-400 mt-1">See how many weightage points you need for your goal.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-<SelectField
-                                  value={targetGrade}
-                                  onChange={(val) => setTargetGrade(val)}
-                                  options={["S", "A", "B", "C", "D", "E"].map((g) => ({
-                                    value: g,
-                                    label: `Grade ${g}`,
-                                  }))}
-                                  searchable={false}
-                                  size="md"
-                                  stacked
-                                  role="group"
-                                  aria-label="Target grade"
-                                  className="[&>button:first-child]:rounded-lg [&>button:first-child]:px-3 [&>button:first-child]:text-xs"
-                                />
-                          {remainingWeightagePoints <= 0 ? (
-                            <div className="px-4 py-2 bg-emerald-100 text-emerald-800   dark:bg-emerald-900/50 dark:text-emerald-300 font-bold rounded-lg text-sm">
-                              Target Achieved!
-                            </div>
-                          ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
-                            <div className="px-4 py-2 bg-red-100 text-red-800   dark:bg-red-900/50 dark:text-red-300 font-bold rounded-lg text-sm">
-                              Impossible to achieve
-                            </div>
-                          ) : (
-                            <div className="px-4 py-2 bg-indigo-100 text-indigo-800   dark:bg-indigo-900/50 dark:text-indigo-300 font-bold rounded-lg text-sm">
-                              Need <span className="text-lg">{remainingWeightagePoints.toFixed(1)}</span> more weightage pts
-                            </div>
+                      <div className="space-y-3">
+                        <SectionHeader
+                          icon={Gauge}
+                          title="Grade boundaries"
+                          count={boundaries.length}
+                          right={
+                            statsMissing ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null
+                          }
+                        />
+                        <p className="px-1 -mt-1 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+                          {isRelative
+                            ? "Bands are drawn from your class's mean and spread, so they move as more peers sync."
+                            : "Fixed percentage boundaries. The widest band is where the most marks sit."}
+                        </p>
+                        {/* One proportional bar rather than seven stacked rows: on a
+                            phone a row per grade is a wall of scrolling, and the
+                            only thing each row said was a letter and a number. */}
+                        <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
+                          <div className="flex h-10 w-full gap-0.5 overflow-hidden">
+                            {boundaries.map((b) => (
+                              <div
+                                key={b.grade}
+                                title={`Grade ${b.grade} · ${b.range}`}
+                                style={{ flexGrow: Math.max(b.width, 1.5), flexBasis: 0, flexShrink: 1 }}
+                                className={`min-w-0 flex items-center justify-center rounded-lg ${
+                                  GRADE_TINT[b.grade] ?? "bg-zinc-500/10"
+                                } ${standing?.grade === b.grade && !statsMissing ? "ring-2 ring-inset ring-indigo-500" : ""}`}
+                              >
+                                <span className={`text-[11px] font-black font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>
+                                  {b.grade}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1">
+                            {boundaries.map((b) => (
+                              <span key={b.grade} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${GRADE_BAR[b.grade] ?? "bg-zinc-400"}`} />
+                                {b.grade} {b.range}
+                              </span>
+                            ))}
+                          </div>
+
+                          {standing && !statsMissing && (
+                            <p className="mt-2.5 text-[11px] font-bold text-text-heading">
+                              On {currentPct.toFixed(1)}% of released weightage — inside the{" "}
+                              <span className={TONE_TEXT[toneForGrade(standing.grade)]}>{standing.grade}</span> band.
+                            </p>
                           )}
                         </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <SectionHeader icon={Target} title="Target grade" />
+                        <ListShell>
+                          <div className={LIST_ROW}>
+                            <span className="w-32 shrink-0">
+                              <SelectField
+                                value={targetGrade}
+                                onChange={(val) => setTargetGrade(val)}
+                                options={["S", "A", "B", "C", "D", "E"].map((g) => ({
+                                  value: g,
+                                  label: `Grade ${g}`,
+                                }))}
+                                searchable={false}
+                                size="md"
+                                stacked
+                                role="group"
+                                aria-label="Target grade"
+                              />
+                            </span>
+                            <span className="min-w-0 flex-1 space-y-1.5">
+                              <ListRowText
+                                title={
+                                  remainingWeightagePoints <= 0
+                                    ? "Target achieved"
+                                    : remainingWeightagePoints > (100 - currentWeightPercent)
+                                      ? "Out of reach"
+                                      : "Points still needed"
+                                }
+                                subtitle={`Needs ${targetBoundary}% · you are on ${currentPct.toFixed(1)}% of the ${currentWeightPercent.toFixed(0)} points released`}
+                              />
+                              <MiniBar
+                                pct={Math.max(0, Math.min(100, currentPct))}
+                                tone={
+                                  remainingWeightagePoints <= 0
+                                    ? "bg-emerald-500"
+                                    : remainingWeightagePoints > (100 - currentWeightPercent)
+                                      ? "bg-red-500"
+                                      : "bg-indigo-500"
+                                }
+                              />
+                            </span>
+                            <span className="shrink-0">
+                              {remainingWeightagePoints <= 0 ? (
+                                <ToneBadge tone="emerald" size="lg" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
+                                  Achieved
+                                </ToneBadge>
+                              ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
+                                <ToneBadge tone="red" size="lg">Impossible</ToneBadge>
+                              ) : (
+                                <ToneBadge tone="indigo" size="lg">
+                                  +{remainingWeightagePoints.toFixed(1)} pts
+                                </ToneBadge>
+                              )}
+                            </span>
+                          </div>
+                        </ListShell>
                       </div>
                     </>
                   );
                 })()}
               </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -1817,10 +1920,7 @@ export default function CourseDetailSubpage({
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 mt-4">
           {/* 1 ── COURSE DETAILS */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <BookOpen className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Details</h2>
-            </div>
+            <SectionHeader icon={BookOpen} title="Course details" />
             {isEmbedded ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {renderCourseDetailCard(selectedGroup.theory, theoryAttItem, "Theory")}
@@ -1833,17 +1933,10 @@ export default function CourseDetailSubpage({
 
           {/* 2 ── COURSE PLAN TABLES (theory / lab separated) */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <FileText className="w-4 h-4 text-blue-500" />
-              <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Course Syllabus & Plan</h2>
-            </div>
+            <SectionHeader icon={FileText} title="Course syllabus & plan" />
 
             {planLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-1/3 rounded-2xl" />
-                <Skeleton className="h-64 w-full rounded-[24px]" />
-                <Skeleton className="h-48 w-full rounded-[24px]" />
-              </div>
+              <ListSkeleton rows={4} />
             ) : coursePlan && coursePlan.length > 0 ? (
               <div className="space-y-6">
                 {reviewScopes.map((scope) => {
@@ -1858,32 +1951,29 @@ export default function CourseDetailSubpage({
                       {entries.map((cp: any, ci: number) => (
                         <div key={ci} className="space-y-4">
                           {cp.data.tables?.map((t: any, ti: number) => (
-                            <div key={ti} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] overflow-hidden shadow-sm relative">
-                              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
-                              <div className="p-6 relative z-10">
-                                {t.caption && <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t.caption}</h4>}
-                                <div className="overflow-x-auto hide-scrollbar">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
-                                        {t.headers?.map((h: string, hi: number) => (
-                                          <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                            <div key={ti} className={TILE_CARD}>
+                              {t.caption && <h4 className="mb-4 text-[11px] font-black text-text-muted uppercase tracking-wider">{t.caption}</h4>}
+                              <div className="overflow-x-auto hide-scrollbar">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b border-border-muted dark:border-border">
+                                      {t.headers?.map((h: string, hi: number) => (
+                                        <th key={hi} className="text-left py-3 px-3 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {t.rows?.map((row: any, ri: number) => (
+                                      <tr key={ri} className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors">
+                                        {t.headers.map((h: string, hi: number) => (
+                                          <td key={hi} className="py-3 px-3 text-sm font-medium text-text-secondary dark:text-text-secondary">
+                                            {row[h] || "—"}
+                                          </td>
                                         ))}
                                       </tr>
-                                    </thead>
-                                    <tbody>
-                                      {t.rows?.map((row: any, ri: number) => (
-                                        <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
-                                          {t.headers.map((h: string, hi: number) => (
-                                            <td key={hi} className="py-3 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                              {row[h] || "—"}
-                                            </td>
-                                          ))}
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                                    ))}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           ))}
@@ -1894,29 +1984,28 @@ export default function CourseDetailSubpage({
                 })}
               </div>
             ) : (
-              <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-[24px] border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
-                <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Course plan is unavailable or loading.</p>
-              </div>
+              <EmptyPanel variant="dashed" title="Course plan is unavailable or loading." />
             )}
           </div>
 
           {/* Schedule toggle */}
-          <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-[24px] overflow-hidden shadow-sm relative mt-8">
-            <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 border-b border-gray-200/50 dark:border-gray-800/50">
-              <h4 className="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-500" /> Weekly Schedule
-              </h4>
-              <button 
-                onClick={() => { if (viewDetail) setViewDetail(null); else fetchViewDetail(); }} 
-                disabled={viewLoading}
-                className="text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 transition-colors shadow-inner"
-              >
-                {viewLoading ? "Loading..." : viewDetail ? "Hide Schedule" : "Load Schedule"}
-              </button>
-            </div>
-            
+          <div className="space-y-4">
+            <SectionHeader
+              icon={Calendar}
+              title="Weekly schedule"
+              right={
+                <button
+                  type="button"
+                  onClick={() => { if (viewDetail) setViewDetail(null); else fetchViewDetail(); }}
+                  disabled={viewLoading}
+                  className="text-[11px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {viewLoading ? "Loading..." : viewDetail ? "Hide schedule" : "Load schedule"}
+                </button>
+              }
+            />
             {viewDetail && (
-              <div className="p-6 relative z-10 space-y-6">
+              <div className={TILE_CARD}>
                 {reviewScopes.map((scope) => {
                   const entries = detailEntriesByScope(scope);
                   if (entries.length === 0) return null;
@@ -1928,20 +2017,20 @@ export default function CourseDetailSubpage({
                         <div key={ci} className="space-y-4">
                           {vd.data.tables?.slice(1).map((t: any, ti: number) => (
                             <div key={ti} className="overflow-x-auto hide-scrollbar">
-                              {t.caption && <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t.caption}</h5>}
+                              {t.caption && <h5 className="mb-3 text-[10px] font-black text-text-muted uppercase tracking-widest">{t.caption}</h5>}
                               <table className="w-full text-sm">
                                 <thead>
-                                  <tr className="border-b border-gray-200/50 dark:border-gray-800/50">
+                                  <tr className="border-b border-border-muted dark:border-border">
                                     {t.headers?.map((h: string, hi: number) => (
-                                      <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                                      <th key={hi} className="text-left py-2 px-2 text-[10px] font-black text-text-muted uppercase tracking-widest whitespace-nowrap">{h}</th>
                                     ))}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {t.rows?.map((row: any, ri: number) => (
-                                    <tr key={ri} className="border-b border-gray-100/50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                                    <tr key={ri} className="border-b border-border-muted/60 dark:border-border/60 last:border-0 hover:bg-surface-secondary dark:hover:bg-surface-hover/40 transition-colors">
                                       {t.headers.map((h: string, ci: number) => (
-                                        <td key={ci} className="py-2.5 px-2 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{row[h] || "—"}</td>
+                                        <td key={ci} className="py-2.5 px-2 text-sm font-medium text-text-secondary dark:text-text-secondary whitespace-nowrap">{row[h] || "—"}</td>
                                       ))}
                                     </tr>
                                   ))}
@@ -1959,31 +2048,36 @@ export default function CourseDetailSubpage({
           </div>
 
           {/* 4 ── QUALITY CIRCLE MEETING (QCM) */}
-          <div className={TILE_CARD}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-emerald-500" />
-                <h2 className="text-sm font-black text-zinc-900 dark:text-white font-outfit tracking-tight">Quality Circle Meeting</h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">QCM</span>
-              </div>
-              {!qcmData && (
-                <button onClick={fetchQcmForCourse} disabled={qcmLoading} className="text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 disabled:opacity-50 text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-xs active:scale-95 cursor-pointer w-fit">
-                  {qcmLoading ? "Loading..." : "Load QCM Data"}
-                </button>
-              )}
-            </div>
+          <div className="space-y-4">
+            <SectionHeader
+              icon={MessageSquare}
+              title="Quality Circle Meeting"
+              count={qcmData?.length}
+              right={
+                !qcmData ? (
+                  <button
+                    type="button"
+                    onClick={fetchQcmForCourse}
+                    disabled={qcmLoading}
+                    className="text-xs font-bold px-4 py-2 rounded-xl bg-surface-tertiary dark:bg-surface-secondary text-text-secondary dark:text-text-muted hover:bg-border-muted dark:hover:bg-surface-hover disabled:opacity-50 transition-colors cursor-pointer w-fit"
+                  >
+                    {qcmLoading ? "Loading..." : "Load QCM data"}
+                  </button>
+                ) : null
+              }
+            />
 
-               {qcmError && <p className="text-sm text-red-500">{qcmError}</p>}
+               {qcmError && <p className="px-1 text-sm text-red-500">{qcmError}</p>}
 
                {qcmData && qcmData.length === 0 && (
-                 <p className="text-sm text-gray-500">No QCM data found for {selectedCode} in this semester.</p>
+                 <EmptyPanel variant="dashed" title={`No QCM data for ${selectedCode} this semester.`} />
                )}
 
                {qcmData && qcmData.length > 0 && (
                  <div className="space-y-4">
                    {qcmData.map((table: any, ti: number) => (
                       <div key={ti} className="space-y-4">
-                        {table.caption && <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">{table.caption}</p>}
+                        {table.caption && <p className="px-1 text-sm font-semibold text-text-secondary dark:text-text-muted">{table.caption}</p>}
                         {table.rows.map((row: any, ri: number) => {
                           const findCol = (keywords: string[]) => {
                              const key = Object.keys(row).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
@@ -1997,28 +2091,28 @@ export default function CourseDetailSubpage({
                           const hodComments = findCol(["hod comment", "hod reply", "hod"]);
 
                           return (
-                            <div key={ri} className="rounded-2xl bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-xs p-4">
-                               <div className="flex justify-between items-center mb-3">
-                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
-                                  {action && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 uppercase">{action}</span>}
+                            <div key={ri} className={TILE_CARD}>
+                               <div className="mb-3 flex justify-between items-center gap-2">
+                                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">QCM {qcmNo || ri + 1}</span>
+                                  {action && <ToneBadge tone="blue">{action}</ToneBadge>}
                                </div>
                                <div className="space-y-3">
                                   {suggestions && (
                                      <div>
-                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Suggestions / Feedback</p>
-                                        <p className="text-sm text-gray-800 dark:text-gray-200">{suggestions}</p>
+                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Suggestions / Feedback</p>
+                                        <p className="text-sm text-text-heading">{suggestions}</p>
                                      </div>
                                   )}
                                   {facultyReply && (
-                                     <div className="pl-3 border-l-2 border-emerald-200 dark:border-emerald-900/50">
-                                        <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Faculty Reply</p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">{facultyReply}</p>
+                                     <div className="border-l-2 border-emerald-200 pl-3 dark:border-emerald-900/50">
+                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Faculty Reply</p>
+                                        <p className="text-sm text-text-secondary dark:text-text-secondary">{facultyReply}</p>
                                      </div>
                                   )}
                                   {hodComments && (
-                                     <div className="pl-3 border-l-2 border-purple-200 dark:border-purple-900/50">
-                                        <p className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-0.5">HOD Comments</p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">{hodComments}</p>
+                                     <div className="border-l-2 border-violet-200 pl-3 dark:border-violet-900/50">
+                                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">HOD Comments</p>
+                                        <p className="text-sm text-text-secondary dark:text-text-secondary">{hodComments}</p>
                                      </div>
                                   )}
                                </div>
@@ -2038,58 +2132,68 @@ export default function CourseDetailSubpage({
         <CourseQBankTab courseCode={selectedCode} username={creds?.authorizedID || "unknown"} />
       )}
 
-      {/* GRADES HISTORY */}
+{/* GRADES HISTORY */}
       {innerTab === "grades" && (
-        <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h4 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-blue-500" /> Grade History Timeline
-          </h4>
+        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <SectionHeader
+            icon={BookOpen}
+            title="Grade history"
+            count={courseGradeHistory.length}
+          />
           {courseGradeHistory.length === 0 ? (
-            <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-800/50 p-10 text-center shadow-sm">
-              <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">No past grade history found for this course.</p>
-            </div>
+            <EmptyPanel
+              variant="dashed"
+              title="No past grades for this course"
+              description="Once VTOP publishes a result for this course, every term and its breakdown collects here."
+            />
           ) : (
-            <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 dark:before:via-gray-800 before:to-transparent">
+            <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-border-muted dark:before:border-border before:from-transparent before:via-border-muted before:to-transparent">
               {courseGradeHistory.map((gh: any, idx: number) => {
                 const isCurrent = gh.semester === "Current";
+                const letter = gh.grade || gh.courseGrade || "N/A";
                 return (
                   <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 dark:border-black bg-white dark:bg-gray-900 text-blue-500 shadow-sm shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform duration-300 group-hover:scale-110">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-surface dark:border-background bg-surface dark:bg-surface-secondary text-indigo-500 shadow-xs shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform duration-300 group-hover:scale-110">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                     </div>
-                    
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl p-5 border border-gray-200/50 dark:border-gray-800/50 shadow-sm hover:shadow-md transition-all duration-300">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">
-                            {isCurrent ? "Current Semester" : formatSemesterName(gh.semester || "") || "Unknown Semester"}
+
+                    <div className={`${TILE_CARD} w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] hover:shadow-xs transition-all duration-300`}>
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="min-w-0">
+                          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 truncate">
+                            {isCurrent ? "Current semester" : formatSemesterName(gh.semester || "") || "Unknown semester"}
                           </p>
-                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{gh.courseTitle || selectedGroup?.courseTitle}</p>
+                          <p className="text-sm font-bold text-text-heading font-outfit truncate">
+                            {gh.courseTitle || selectedGroup?.courseTitle}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-black text-xl shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                            {gh.grade || gh.courseGrade || "N/A"}
-                          </div>
-                        </div>
+                        <ToneBadge tone={toneForGrade(letter)} size="lg">
+                          {letter}
+                        </ToneBadge>
                       </div>
 
                       {gh.details && gh.details.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-100/50 dark:border-gray-800/50">
+                        <div className="mt-4 pt-4 border-t border-border-muted dark:border-border">
                           <div className="space-y-4">
                             {(() => {
-                               const types = Array.from(new Set(gh.details.map((d: any) => d.type || 'Theory')));
+                               const types = Array.from(new Set(gh.details.map((d: any) => d.type || "Theory")));
                                const showLabels = types.length > 1;
                                return types.map((typeLabel: any) => {
-                                 const typeDetails = gh.details.filter((d: any) => (d.type || 'Theory') === typeLabel);
+                                 const typeDetails = gh.details.filter((d: any) => (d.type || "Theory") === typeLabel);
                                  return (
                                    <div key={typeLabel}>
-                                     {showLabels && <h5 className="mb-2 text-[10px] font-black uppercase tracking-widest text-indigo-500/80">{typeLabel}</h5>}
+                                     {showLabels && (
+                                       <h5 className="mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                                         {typeLabel}
+                                       </h5>
+                                     )}
                                      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                                        {typeDetails.map((detail: any, dIdx: number) => (
-                                         <div key={dIdx} className="rounded-xl border border-gray-100/80 bg-gray-50/50 p-3 text-center shadow-sm dark:border-gray-800/80 dark:bg-gray-900/30 transition-colors hover:bg-white dark:hover:bg-gray-800">
-                                           <p className="mb-1 line-clamp-1 text-[9px] font-black uppercase tracking-widest text-gray-400" title={detail.component}>{detail.component}</p>
-                                           <p className="text-base font-black text-gray-900 dark:text-white">{detail.scoredMark} <span className="text-[10px] font-bold text-gray-300">/ {detail.maxMark}</span></p>
-                                         </div>
+                                         <KeyValue
+                                           key={dIdx}
+                                           label={detail.component}
+                                           value={`${detail.scoredMark} / ${detail.maxMark}`}
+                                         />
                                        ))}
                                      </div>
                                    </div>
@@ -2099,36 +2203,33 @@ export default function CourseDetailSubpage({
                           </div>
                         </div>
                       )}
-                      {gh.range && (
-                        <div className="mt-4 border-t border-gray-100/50 pt-4 dark:border-gray-800/50">
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Grade Ranges</p>
-                          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-8">
-                            {Object.entries(gh.range).map(([grade, rangeStr]: any, idx) => {
-                              let colorClass = 'bg-gray-50 text-gray-700 border-gray-200 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400';
-                              if (grade === 'S') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400';
-                              else if (grade === 'A') colorClass = 'bg-green-50 text-green-700 border-green-200 dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-400';
-                              else if (grade === 'B') colorClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:border-blue-800/50 dark:bg-blue-900/20 dark:text-blue-400';
-                              else if (grade === 'C') colorClass = 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:border-indigo-800/50 dark:bg-indigo-900/20 dark:text-indigo-400';
-                              else if (grade === 'D') colorClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:border-purple-800/50 dark:bg-purple-900/20 dark:text-purple-400';
-                              else if (grade === 'E') colorClass = 'bg-orange-50 text-orange-700 border-orange-200 dark:border-orange-800/50 dark:bg-orange-900/20 dark:text-orange-400';
-                              else if (grade === 'F' || grade === 'N') colorClass = 'bg-red-50 text-red-700 border-red-200 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400';
 
-                              return (
-                                <div key={idx} className={`flex flex-col items-center justify-center rounded-xl border p-2 ${colorClass}`}>
-                                  <span className="mb-1 text-lg font-black">{grade}</span>
-                                  <span className="text-center text-[10px] font-bold tracking-wider">{rangeStr as string}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                      {gh.range && (
+                        <div className="mt-4 pt-4 border-t border-border-muted dark:border-border space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+                            Grade ranges
+                          </p>
+                          <ListShell>
+                            {Object.entries(gh.range).map(([grade, rangeStr]: any, rIdx: number) => (
+                              <div key={rIdx} className={LIST_ROW}>
+                                <span className="w-10 shrink-0">
+                                  <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
+                                </span>
+                                <span className="min-w-0 flex-1" />
+                                <span className="shrink-0 text-[11px] font-bold text-text-secondary dark:text-text-muted truncate">
+                                  {rangeStr as string}
+                                </span>
+                              </div>
+                            ))}
+                          </ListShell>
                         </div>
                       )}
                     </div>
                   </div>
                 );
               })}
-                </div>
-              )}
+            </div>
+          )}
         </div>
       )}
 

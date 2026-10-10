@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import {
-  credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, gradesDataAtom,
+  credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, marksStatsAtom, gradesDataAtom,
   allGradesDataAtom, scheduleDataAtom, hostelDataAtom, calendarDataAtom, activeDayAtom,
   isReloadingAtom, activeTabAtom, attendancePercentageAtom, odHoursDataAtom, odHoursIsOpenAtom,
   isLoggedInAtom, gradesDisplayIsOpenAtom, activeSubTabAtom, hostelActiveSubTabAtom,
@@ -68,6 +68,7 @@ export default function LoginPage() {
   const [message, setMessage] = useAtom(messageAtom);
   const [attendanceData, setAttendanceData] = useAtom(attendanceDataAtom);
   const [marksData, setMarksData] = useAtom(marksDataAtom);
+  const [marksStats, setMarksStats] = useAtom(marksStatsAtom);
   const [GradesData, setGradesData] = useAtom(gradesDataAtom);
   const [AllGradesData, setAllGradesData] = useAtom(allGradesDataAtom);
   const [ScheduleData, setScheduleData] = useAtom(scheduleDataAtom);
@@ -348,6 +349,7 @@ export default function LoginPage() {
   useEffect(() => {
     const storedAttendance = storage.attendance.get();
     const storedMarks = storage.marks.get();
+    const storedMarksStats = storage.marksStats.get();
     const storedGrades = storage.grades.get();
     const storedAllGrades = storage.allGrades.get();
     const storedUsername = storage.username.get();
@@ -367,6 +369,7 @@ export default function LoginPage() {
       setAttendanceAndOD(storedAttendance);
     }
     if (storedMarks) setMarksData(storedMarks as object);
+    if (storedMarksStats) setMarksStats(storedMarksStats as Record<string, unknown>);
     if (storedSchedule) setScheduleData(storedSchedule as object);
     if (storedGrades) setGradesData(storedGrades as object);
     if (storedAllGrades) setAllGradesData(storedAllGrades);
@@ -481,11 +484,16 @@ export default function LoginPage() {
       setAttendanceAndOD(attRes);
       setMarksData(marksRes as object);
 
+      // Read the previous marks BEFORE overwriting the cache. Doing it after meant
+      // `oldMarks` was the payload we had just written, so the diff was always empty and
+      // a mark change reached the class statistics only if the user happened to hit the
+      // reload path instead of logging in.
+      const oldMarks = storage.marks.get() || {};
+
       storage.attendance.set(attRes);
       storage.marks.set(marksRes);
 
-      const oldMarks = storage.marks.get() || {};
-      syncMarksDiff(oldMarks, marksRes, ids.VtopUsername);
+      syncMarksDiff(oldMarks, marksRes);
 
       let profileRes = storage.profile.get();
       const fetchedProfile = await syncEngine.sync<any>("studentProfile");
@@ -691,13 +699,34 @@ export default function LoginPage() {
         .then(({ attRes, marksRes }: any) => {
           setAttendanceAndOD(attRes);
           setMarksData(marksRes as object);
+          // Read before write — same reason as the login path.
           const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-          syncMarksDiff(oldMarks, marksRes, IDs.VtopUsername);
+          syncMarksDiff(oldMarks, marksRes);
           localStorage.setItem("attendance", JSON.stringify(attRes));
           localStorage.setItem("marks", JSON.stringify(marksRes));
         });
 
       const tasks: Promise<void>[] = [attendanceTask];
+
+      // Cohort statistics for every enrolled class, current and frozen past terms.
+      // Non-fatal by design — same reason as the core bundle below: a failed fetch
+      // keeps the last good cache instead of failing the reload.
+      //
+      // Chained AFTER attendance, not alongside it: the stats read verifies each class
+      // against the enrollment `/api/attendance` records, so firing both at once is a
+      // read-your-writes race — the check runs before the enrollment lands and comes
+      // back empty. (`syncAll` already orders them sequentially; this matches it.)
+      tasks.push(
+        attendanceTask
+          .catch(() => {})
+          .then(() => syncEngine.sync<void>("marksStats", {}))
+          .catch(() => {
+            appendSyncLine(
+              "Cohort statistics unavailable, keeping last synced records",
+              "error"
+            );
+          })
+      );
 
       // Core bundle: grades / exam schedule / hostel / calendar / all-grades.
       // The exam schedule is only ever fetched as part of this op, so a reload

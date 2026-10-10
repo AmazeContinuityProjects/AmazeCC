@@ -126,6 +126,9 @@ class SyncEngine {
   async syncAll(opts: SyncAllOptions): Promise<void> {
     this.ensureIds();
     await this.sync("attendanceMarks", { semesterId: opts.semesterId });
+// Cohort statistics are enrichment, not load-bearing: a failure is visible in the
+// sync log via the op's own error emit, but must never fail the sweep.
+await this.sync("marksStats", {}).catch(() => {});
     await this.sync("core", {
       semesterId: opts.semesterId,
       calendarType: opts.calendarType,

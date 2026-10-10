@@ -6,6 +6,15 @@ import type { Task, PomodoroSession } from "@/types/tasks";
 
 export const attendanceDataAtom = atom<attendanceRes | null>({});
 export const marksDataAtom = atom<object>({});
+
+/**
+ * Cohort marks statistics, keyed by class id.
+ *
+ * Delivered by the server inside the marks payload, so it travels on the same atom and
+ * the same bridge rather than through a parallel storage bucket — a second, unsynchronised
+ * path is how the statistics ended up invisible while the marks rendered fine.
+ */
+export const marksStatsAtom = atom<Record<string, unknown>>({});
 export const gradesDataAtom = atom<object>({});
 export const allGradesDataAtom = atom<AllGradesRes>({});
 export const scheduleDataAtom = atom<object>({});

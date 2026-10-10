@@ -166,6 +166,7 @@ export function formatSessionMessage(lines: SyncLogLine[]): string {
 // Includes per-request child ops emitted inside the "core" parent op.
 const OP_LABELS: Record<string, { label: string; delta: number }> = {
   attendanceMarks: { label: "Attendance & Marks", delta: 25 },
+  marksStats: { label: "Cohort statistics", delta: 5 },
   studentProfile: { label: "Profile details", delta: 5 },
   core: { label: "Core data bundle", delta: 9 },
   grades: { label: "Grades", delta: 8 },
