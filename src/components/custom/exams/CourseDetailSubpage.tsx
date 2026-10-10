@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
-import { assessmentKeyFor, remapCohortStats } from "@/lib/marksSync";
+import { assessmentKeyFor, getFrozenKeys, remapCohortStats } from "@/lib/marksSync";
 import { BackButton } from "../shared";
 import {
   EmptyPanel,
@@ -927,6 +927,23 @@ export default function CourseDetailSubpage({
   const stats = selectedGroup ? allStats[mainCourse?.classNbr]?.overall : null;
   const asmStats = selectedGroup ? (allStats[mainCourse?.classNbr]?.assessments || {}) : {};
 
+  // Assessments the server holds that this device cannot update — no local previous
+  // mark to state, so they stand as recorded. Counted per course for the badge below;
+  // see `syncMarksDiff` for how the list is produced.
+  const frozenCount = useMemo(() => {
+    if (!selectedGroup) return 0;
+    const ids = new Set(
+      [selectedGroup.theory?.classNbr, selectedGroup.lab?.classNbr].filter(
+        (id): id is string => typeof id === "string" && id.length > 0
+      )
+    );
+    if (ids.size === 0) return 0;
+    return getFrozenKeys().filter((k) => {
+      const sep = k.indexOf("::");
+      return sep > 0 && ids.has(k.slice(0, sep));
+    }).length;
+  }, [selectedGroup, allStats]);
+
   const isSelectedPastSemester = selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current";
   let selectedPastGrade = "";
   if (isSelectedPastSemester && allGradesData?.grades) {
@@ -1671,6 +1688,15 @@ export default function CourseDetailSubpage({
                 <ToneBadge tone="amber">{stats.count} samples</ToneBadge>
                 <span className="text-[11px] text-text-muted font-medium">
                   Relative predictions stay rough until more peers sync.
+                </span>
+              </div>
+            )}
+            {frozenCount > 0 && (
+              <div className="flex items-center gap-2 px-1">
+                <ToneBadge tone="zinc">{frozenCount} pinned</ToneBadge>
+                <span className="text-[11px] text-text-muted font-medium">
+                  These assessments stand as recorded — this device has no earlier mark
+                  to update them from. Syncing from a device with full history unpins them.
                 </span>
               </div>
             )}

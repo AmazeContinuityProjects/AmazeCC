@@ -75,7 +75,18 @@ CREATE TABLE IF NOT EXISTS class_user_marks (
   updated_at     BIGINT NOT NULL,
   PRIMARY KEY (class_id, user_key, scope, assessment_key)
 );
-DROP TABLE IF EXISTS class_user_hashes;
+-- Not dropped: the old hashes are the only bridge to contributions that predate tokens.
+-- `recordContribution` probes this table (read-only) to reconcile a first-time
+-- contributor with their old record instead of double-counting them. Renamed so the
+-- name states the role; the pre-migration backup stays under its own name.
+DO $$
+BEGIN
+  IF to_regclass('class_user_hashes_pre_migration_backup') IS NOT NULL
+     AND to_regclass('class_user_hashes_legacy') IS NULL THEN
+    ALTER TABLE class_user_hashes_pre_migration_backup
+      RENAME TO class_user_hashes_legacy;
+  END IF;
+END $$;
 
 -- ── dead table ───────────────────────────────────────────────────────────────
 -- Written by nothing: `AddClassData`'s only two call sites are commented out in

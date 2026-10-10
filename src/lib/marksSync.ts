@@ -206,13 +206,15 @@ function push(
   component: string,
   title: string,
   mark: number,
-  prev: number | null
+  prev: number | null,
+  force = false
 ) {
   if (!classId) return;
   if (!Number.isFinite(mark) || mark <= 0) return;
   // Re-sending an unchanged value would make the server do a remove-then-add of the
-  // same number. Harmless, but it is a write we do not need to make.
-  if (prev !== null && Math.abs(prev - mark) < 1e-9) return;
+  // same number. Harmless, but it is a write we do not need to make — unless this is
+  // the one-time backfill below, which exists precisely to state every value once.
+  if (!force && prev !== null && Math.abs(prev - mark) < 1e-9) return;
 
   out.push({
     classId,
@@ -224,8 +226,145 @@ function push(
   });
 }
 
-export const syncMarksDiff = async (oldMarksData: any, newMarksData: any) => {
-  if (!newMarksData?.courses) return;
+/**
+ * One-time backfill marker.
+ *
+ * Per-assessment statistics only arrive when a mark *changes*, so a course whose marks
+ * are stable would otherwise never contribute. The first sync after this version sends
+ * every scored assessment once, regardless of change; the server reconciles each
+ * against any legacy record (or adds it), mints a token, and every later sync resumes
+ * normal diffing. Set only on `res.ok`, so a failed backfill retries next time.
+ */
+const BACKFILL_KEY = "marksSyncBackfillV1";
+
+/** Receipt keys the last successful sync reported as frozen (server-held, not covered). */
+const FROZEN_KEY = "marksFrozenV1";
+
+export function getFrozenKeys(): string[] {
+  try {
+    const raw = localStorage.getItem(FROZEN_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Server-minted HMACs, keyed `${classId}::${scope}::${assessmentKey}`. */
+const TOKENS_KEY = "marksTokensV1";
+
+export type TokenMap = Record<string, string>;
+
+export function getStoredTokens(): TokenMap {
+  try {
+    const raw = localStorage.getItem(TOKENS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as TokenMap;
+  } catch {
+    return {};
+  }
+}
+
+function setStoredTokens(tokens: TokenMap): void {
+  try {
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+  } catch {}
+}
+
+export type MarksSyncResult = {
+  tally: Record<string, number>;
+  /**
+   * Receipt keys where the server's new token differs from what we held *without us
+   * changing the mark* — i.e. server state moved under us (restored backup, lost
+   * write, bug). Changed marks legitimately mint new tokens and are never listed.
+   */
+  mismatches: string[];
+  /**
+   * Receipt keys the server holds (per the last bootstrap or sync) that this sync did
+   * not cover — assessments whose contributions this device cannot update, because it
+   * has no previous mark to state. Frozen, not lost: the values stand as recorded.
+   */
+  frozen: string[];
+};
+
+/**
+ * Receipt key for one contribution. Mirrors the server's minting
+ * (`${classId}::${scope}::${assessmentKey}`) so the two can be compared without the
+ * client recomputing anything at read time.
+ */
+async function receiptKeyFor(
+  classId: string,
+  scope: "overall" | "assessment",
+  component: string,
+  title: string
+): Promise<string> {
+  // Must match AmazeCC-API `OVERALL_KEY`.
+  const key =
+    scope === "overall" ? "overall" : await assessmentKeyFor(classId, component, title);
+  return `${classId}::${scope}::${key}`;
+}
+
+/**
+ * Ask the server what HMACs it currently holds for this student.
+ *
+ * This is the re-bootstrap half of the handshake: a client that has lost its local
+ * record (cleared cache, new device) learns exactly which contributions exist
+ * server-side. What comes back is presence and continuity — opaque tokens, never
+ * values. An HMAC is non-invertible by construction, so no response here can hand back
+ * a mark nobody retained; exact resumption still needs the old value, and after a wipe
+ * nobody has it. See `remapCohortStats`'s module doc for the full reasoning.
+ */
+async function bootstrapTokens(): Promise<TokenMap> {
+  try {
+    const res = (await api("marks/tokens", {
+      method: "POST",
+      body: {},
+      auth: "vtop",
+      parse: "raw",
+    })) as Response;
+    if (!res.ok) return {};
+    const payload = await res.json().catch(() => null);
+    if (!payload?.success || !Array.isArray(payload.tokens)) return {};
+
+    const out: TokenMap = {};
+    for (const t of payload.tokens) {
+      if (!t || typeof t !== "object") continue;
+      const { classId, scope, assessmentKey, token } = t as {
+        classId?: unknown;
+        scope?: unknown;
+        assessmentKey?: unknown;
+        token?: unknown;
+      };
+      if (
+        typeof classId !== "string" ||
+        (scope !== "overall" && scope !== "assessment") ||
+        typeof assessmentKey !== "string" ||
+        typeof token !== "string"
+      ) {
+        continue;
+      }
+      out[`${classId}::${scope}::${assessmentKey}`] = token;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export const syncMarksDiff = async (
+  oldMarksData: any,
+  newMarksData: any
+): Promise<MarksSyncResult> => {
+  const empty: MarksSyncResult = { tally: {}, mismatches: [], frozen: [] };
+  if (!newMarksData?.courses) return empty;
+
+  let backfill = false;
+  try {
+    backfill = localStorage.getItem(BACKFILL_KEY) !== "true";
+  } catch {}
 
   try {
     const oldMap = buildMap(oldMarksData);
@@ -247,7 +386,8 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any) => {
         "",
         "",
         overallPct(newGroup),
-        oldGroup.theory || oldGroup.lab ? overallPct(oldGroup) : null
+        oldGroup.theory || oldGroup.lab ? overallPct(oldGroup) : null,
+        backfill
       );
 
       for (const component of ["theory", "lab"] as const) {
@@ -273,13 +413,34 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any) => {
             component,
             title,
             assessmentPct(asm),
-            previous ? assessmentPct(previous) : null
+            previous ? assessmentPct(previous) : null,
+            backfill
           );
         }
       }
     });
 
-    if (contributions.length === 0) return;
+    if (contributions.length === 0) {
+      // Nothing to send, but the store may still hold keys from an earlier sync —
+      // those are uncovered by definition, so report them as frozen rather than
+      // claiming a clean bill. Bootstrap only when the store itself is empty.
+      const stored = getStoredTokens();
+      const storedKeys = Object.keys(stored);
+      let frozen: string[];
+      if (storedKeys.length === 0) {
+        const fresh = await bootstrapTokens();
+        if (Object.keys(fresh).length > 0) setStoredTokens(fresh);
+        frozen = Object.keys(fresh);
+      } else {
+        frozen = storedKeys;
+      }
+      // Persisted like every other path: the UI badge reads the stored list, not a
+      // return value it never sees.
+      try {
+        localStorage.setItem(FROZEN_KEY, JSON.stringify(frozen));
+      } catch {}
+      return { tally: {}, mismatches: [], frozen };
+    }
 
     const res = (await api("marks/sync", {
       method: "POST",
@@ -294,8 +455,80 @@ export const syncMarksDiff = async (oldMarksData: any, newMarksData: any) => {
       // moments ago — so a failure here is logged and dropped rather than surfaced.
       // Nothing is lost: the next sync recomputes from the marks snapshot.
       console.warn("marks/sync rejected:", res.status);
+      return empty;
     }
+
+    const payload = await res.json().catch(() => null);
+    const tally: Record<string, number> =
+      payload && typeof payload.tally === "object" ? payload.tally : {};
+    const returned: TokenMap =
+      payload && typeof payload.tokens === "object" ? payload.tokens : {};
+
+    // ── receipt check ──────────────────────────────────────────────────────
+    // For contributions sent unchanged (mark == prevMark), the server must echo back
+    // the token we already hold: remove-then-add of the same number leaves the mint
+    // identical. A difference means server state moved without us — restored backup,
+    // lost write, bug — and is worth flagging rather than absorbing. Changed marks
+    // legitimately mint new tokens and are never listed.
+    const stored = getStoredTokens();
+    const mismatches: string[] = [];
+    const sentKeys = new Set<string>();
+    for (const c of contributions) {
+      const key = await receiptKeyFor(c.classId, c.scope, c.component, c.title);
+      sentKeys.add(key);
+      const had = stored[key];
+      const got = returned[key];
+      if (
+        had !== undefined &&
+        got !== undefined &&
+        had !== got &&
+        c.prevMark !== null &&
+        Math.abs(Number(c.prevMark) - Number(c.mark)) < 1e-9
+      ) {
+        mismatches.push(key);
+      }
+    }
+    if (mismatches.length > 0) {
+      console.warn(
+        `[marks/sync] ${mismatches.length} token(s) changed without a mark change — server state moved:`,
+        mismatches
+      );
+    }
+
+    // File the receipts, then top up anything this batch did not cover — but only
+    // when the store started empty. The sync response carries tokens solely for
+    // accepted writes; keys the server holds that we did not touch (skipped as
+    // frozen, or simply unchanged elsewhere) would otherwise stay unknown forever.
+    // Steady-state syncs skip this entirely: one extra call only when needed.
+    const merged = { ...stored, ...returned };
+    if (Object.keys(stored).length === 0) {
+      const fresh = await bootstrapTokens();
+      for (const [k, v] of Object.entries(fresh)) {
+        if (!(k in merged)) merged[k] = v;
+      }
+    }
+    setStoredTokens(merged);
+
+    // Frozen: server-held keys this sync did not cover. These are contributions the
+    // device cannot update — no previous mark to state — so they stand as recorded.
+    const frozen = Object.keys(merged).filter((k) => !sentKeys.has(k));
+
+    // Mark the backfill done only on success, so a failed attempt retries next sync.
+    if (backfill) {
+      try {
+        localStorage.setItem(BACKFILL_KEY, "true");
+      } catch {}
+    }
+
+    // Persist the frozen set so the UI can show it without recomputing: these are
+    // contributions the server holds that this device cannot update.
+    try {
+      localStorage.setItem(FROZEN_KEY, JSON.stringify(frozen));
+    } catch {}
+
+    return { tally, mismatches, frozen };
   } catch (e) {
     console.error("Error during background marks sync:", e);
+    return empty;
   }
 };

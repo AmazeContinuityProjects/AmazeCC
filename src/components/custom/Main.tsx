@@ -493,7 +493,14 @@ export default function LoginPage() {
       storage.attendance.set(attRes);
       storage.marks.set(marksRes);
 
-      syncMarksDiff(oldMarks, marksRes);
+      syncMarksDiff(oldMarks, marksRes).then((r) => {
+        if (r.mismatches.length > 0) {
+          appendSyncLine(
+            `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
+            "error"
+          );
+        }
+      });
 
       let profileRes = storage.profile.get();
       const fetchedProfile = await syncEngine.sync<any>("studentProfile");
@@ -701,7 +708,20 @@ export default function LoginPage() {
           setMarksData(marksRes as object);
           // Read before write — same reason as the login path.
           const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
-          syncMarksDiff(oldMarks, marksRes);
+          syncMarksDiff(oldMarks, marksRes).then((r) => {
+            if (r.mismatches.length > 0) {
+              appendSyncLine(
+                `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
+                "error"
+              );
+            }
+            if (r.frozen.length > 0) {
+              appendSyncLine(
+                `${r.frozen.length} contribution(s) pinned to an older sync (no local history)`,
+                "info"
+              );
+            }
+          });
           localStorage.setItem("attendance", JSON.stringify(attRes));
           localStorage.setItem("marks", JSON.stringify(marksRes));
         });
