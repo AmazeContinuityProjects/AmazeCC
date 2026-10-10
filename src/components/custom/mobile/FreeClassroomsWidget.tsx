@@ -6,6 +6,7 @@ import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-
 import SelectField from "../shared/primitives/SelectField";
 import type { ParsedCourse } from "../exams/FFCS/types";
 import { slotSpellings } from "@/lib/slots";
+import { parseCachedCourses } from "@/lib/freeClassrooms";
 
 
 // Import schemas
@@ -29,6 +30,29 @@ const timeToMinutes = (timeStr: string) => {
   if (period === "AM" && hours === 12) hours = 0;
   return hours * 60 + minutes;
 };
+
+/**
+ * `ffcs_raw_courses` has three writers and two shapes. The FFCS timetable tab
+ * writes the room as `ROOM`; the free-classroom page writes the lib's `VENUE`.
+ * Whichever screen the user visited last owns the key, so this widget could
+ * load rows with no `ROOM` key at all — and the room scan below died on
+ * `undefined.toUpperCase()`, taking the entire home page with it.
+ *
+ * `parseCachedCourses` is the tested normaliser: it strips the BOM, folds the
+ * `ROOM`/`VENUE` aliases into `VENUE`, and returns nothing rather than
+ * throwing when the cache is corrupt. Every field is then guaranteed a string.
+ */
+function coursesFromCache(raw: string): ParsedCourse[] {
+  return parseCachedCourses(raw).map((c) => ({
+    CODE: c.CODE ?? "",
+    TITLE: c.TITLE ?? "",
+    TYPE: c.TYPE ?? "",
+    CREDITS: "0",
+    ROOM: c.VENUE ?? "",
+    SLOT: c.SLOT ?? "",
+    FACULTY: c.FACULTY ?? "",
+  }));
+}
 
 /**
  * The three filter fields share this chrome: an icon sits in the left gutter,
@@ -109,8 +133,8 @@ export default function FreeClassroomsWidget() {
       try {
         const cached = localStorage.getItem("ffcs_raw_courses");
         if (cached) {
-          const parsedCached = JSON.parse(cached);
-          if (parsedCached && parsedCached.length > 0) {
+          const parsedCached = coursesFromCache(cached);
+          if (parsedCached.length > 0) {
             setCourses(parsedCached);
             setLoading(false);
             return;
@@ -186,20 +210,21 @@ export default function FreeClassroomsWidget() {
     const occupiedRooms = new Set<string>();
 
     courses.forEach(course => {
-      const room = course.ROOM.toUpperCase();
+      const room = String(course?.ROOM ?? "").trim().toUpperCase();
       if (!room || room === "NIL" || room === "UNK-UNK" || room.includes("ONLINE") || room === "N/A") return;
       
       allRooms.add(room);
 
       if (!roomTypes.has(room)) roomTypes.set(room, { theory: 0, lab: 0 });
-      const t = course.TYPE.toUpperCase();
-      if (t.includes("LA") || t === "LO" || course.SLOT.toUpperCase().includes("L")) {
+      const t = String(course?.TYPE ?? "").trim().toUpperCase();
+      const rawSlot = String(course?.SLOT ?? "");
+      if (t.includes("LA") || t === "LO" || rawSlot.toUpperCase().includes("L")) {
         roomTypes.get(room)!.lab++;
       } else {
         roomTypes.get(room)!.theory++;
       }
 
-      const courseSlots = course.SLOT.split("+").map(s => s.trim().toUpperCase());
+      const courseSlots = rawSlot.split("+").map(s => s.trim().toUpperCase());
       const isOccupied = [...targetSlots].some(ts => courseSlots.includes(ts.toUpperCase()));
       if (isOccupied) {
         occupiedRooms.add(room);

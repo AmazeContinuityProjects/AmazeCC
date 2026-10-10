@@ -8,6 +8,7 @@ import {
   freeRoomsForPeriod,
   freeRoomsForRun,
   isRealVenue,
+  parseCachedCourses,
   parseCourseRow,
   parseCourseRows,
   periodKey,
@@ -113,6 +114,44 @@ describe("parseCourseRows", () => {
     ]);
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.CODE)).toEqual(["A1", "B2"]);
+  });
+});
+
+describe("parseCachedCourses", () => {
+  // The production crash: `ffcs_raw_courses` is written by both the FFCS
+  // timetable tab (room under `ROOM`) and the free-classroom page (room under
+  // `VENUE`). A reader that assumed its own key got `undefined`, and the room
+  // scan died on `undefined.toUpperCase()` — taking the whole home page with it.
+  it("reads back a cache written by the other screen's shape", () => {
+    const rows = parseCachedCourses(
+      JSON.stringify([{ CODE: "A1", TITLE: "Maths", TYPE: "TH", SLOT: "A1", ROOM: "ab5-101" }])
+    );
+    expect(rows).toHaveLength(1);
+    // The room survives under the one name this module reads, whatever the
+    // writer called it.
+    expect(rows[0].VENUE).toBe("ab5-101");
+  });
+
+  it("reads back its own shape too", () => {
+    const rows = parseCachedCourses(
+      JSON.stringify([{ CODE: "A1", TYPE: "TH", SLOT: "A1", VENUE: "AB5-101" }])
+    );
+    expect(rows[0].VENUE).toBe("AB5-101");
+  });
+
+  it("reports a cache it cannot read as no rows, rather than throwing", () => {
+    // Each of these reached the render path once. A throw here is a page crash;
+    // "no rows" just makes the caller refetch the CSV.
+    expect(parseCachedCourses(null)).toEqual([]);
+    expect(parseCachedCourses(undefined)).toEqual([]);
+    expect(parseCachedCourses("")).toEqual([]);
+    expect(parseCachedCourses("not json")).toEqual([]);
+    expect(parseCachedCourses(JSON.stringify({ not: "an array" }))).toEqual([]);
+    expect(parseCachedCourses(JSON.stringify([null, 3, "x"]))).toEqual([]);
+  });
+
+  it("drops rows that name no course", () => {
+    expect(parseCachedCourses(JSON.stringify([{ TITLE: "nameless", ROOM: "AB5-101" }]))).toEqual([]);
   });
 });
 
