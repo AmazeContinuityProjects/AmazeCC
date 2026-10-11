@@ -1,29 +1,40 @@
 "use client";
 
-import { OptionPicker, cn } from "@amazecontinuityprojects/amazeui";
+import { cn } from "@amazecontinuityprojects/amazeui";
+import OptionPicker from "./OptionPicker";
 import SettingRow from "./SettingRow";
 import { OPTION_PICKER_TRIGGER, optionPickerSize } from "@/lib/uiTokens";
 
 /**
  * A labelled option picker.
  *
- * Every option selector in the app is one of these now, backed by amazeui's
- * `OptionPicker` rather than a native `<select>`. One wrapper means the call
- * sites share a control rather than each re-deriving the chrome, and the popup is
- * a themed, scrollable list instead of the OS menu.
+ * Every option selector in the app is one of these now, backed by the local
+ * `OptionPicker` primitive (`./OptionPicker`) rather than a native `<select>`. One
+ * wrapper means the call sites share a control rather than each re-deriving the
+ * chrome, and the popup is a themed, scrollable list instead of the OS menu.
  *
  * ## Trade-offs against the native `<select>` it replaced
  *
  * The trigger is a real `<button type="button">` — focusable and activatable by
- * keyboard — but `OptionPicker` sets no `role="combobox"`, `aria-haspopup`,
- * `aria-expanded` or `aria-label` on it, and accepts no passthrough props to add
- * them. A screen reader therefore announces the trigger's value and "button"
- * without announcing that it opens a listbox. `role` and `aria-label` are
- * accepted here and land on this component's wrapper, which is what keeps an
+ * keyboard — carrying `aria-haspopup="listbox"` and `aria-expanded`, so a screen
+ * reader announces that it opens a listbox. (It is still announced as "button"
+ * rather than "combobox": the picker sets no `role="combobox"`, a deliberate
+ * carry-over from the component this was re-homed from.) `role` and `aria-label`
+ * are accepted here and land on this component's wrapper, which is what keeps an
  * otherwise unlabelled field nameable in the tree.
  *
- * The other loss is `disabled` on *individual* options: `OptionPicker` only takes
+ * The other loss is `disabled` on *individual* options: the picker only takes
  * `disabled` for the whole field.
+ *
+ * ## Overlay stacking — read before placing one inside a sheet or modal
+ *
+ * The popup portal paints at `z-[70]`: above `BottomSheet` (`z-55`/`z-60`) and the
+ * mobile nav (`z-40`), below the fullscreen FFCS modals (`z-100` and up). A picker
+ * inside any of those modals would open underneath its own host — invisible popup,
+ * untappable backdrop — so that call site needs a control with no popup at all
+ * (`SegmentedControl` for a short fixed set, `ChipTabs` for an ordered one), not a
+ * bigger number here. The two `AutoGeneratorModal` pickers were converted for
+ * exactly this reason. No picker currently lives under a `z-100`+ surface.
  */
 
 export interface SelectOption<T extends string> {

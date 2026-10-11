@@ -153,7 +153,7 @@ export const FIELD_INPUT =
   "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
 /**
- * Size and surface for amazeui's `OptionPicker` trigger.
+ * Size and surface for the `OptionPicker` trigger (shared/primitives).
  *
  * `OptionPicker` puts `className` on its own wrapper `div` and renders the
  * trigger as that div's first child, so the trigger's hard-coded chrome

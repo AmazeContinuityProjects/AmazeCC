@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
-import { OptionPicker } from "@amazecontinuityprojects/amazeui";
+import { OptionPicker } from "../shared/primitives";
 import { m } from "framer-motion";
 import {
   Building2,
@@ -639,10 +639,10 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
               onChange={setPeriodKey}
               options={periods.map((p) => ({ value: p.key, label: p.label }))}
               searchable={false}
-              // amazeui hard-codes the trigger's own chrome, so the size is
-              // corrected through the wrapper — react-native-web renders it as
-              // the wrapper's first child, and pinning to `:first-child` keeps a
-              // change off the mobile modal, which is also a child div.
+              // The primitive hard-codes the trigger's own chrome, so the size is
+              // corrected through the wrapper — the root renders as its first-child
+              // div, and the overlay lives in a body portal, so `:first-child`
+              // rules can never leak onto it.
               className="flex-1 [&>div:first-child]:h-11 [&>div:first-child]:rounded-xl [&>div:first-child]:px-3.5 [&>div:first-child]:text-sm [&>div:first-child]:font-bold [&>div:first-child]:font-outfit"
             />
 
