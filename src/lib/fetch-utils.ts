@@ -13,24 +13,24 @@ import {
 /**
  * The AmazeCC API host.
  *
- * Default is the current deployment. Overridable per build with
+ * Default is the canonical production host. Overridable per build with
  * `NEXT_PUBLIC_API_URL`, which the GitHub Pages workflow sets so a build is
  * pinned to a known host rather than whatever happens to be in `.env` locally.
  */
 export const PRIMARY_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://amazecc-api-d402b5.rivendeploy.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.amazecc.com";
 
 /**
  * The global failover host.
  *
- * Defaults to the primary on purpose. Both slots are the same service, and
- * `rewriteUrlIfNeeded` swaps the origin of *every* request between them — so a
- * differing default would silently enable cross-host failover that nobody
- * asked for, sending every request to a second host the first one fails.
- * Per-deployment overrides still work via the env var.
+ * Defaults to the previous deployment, kept as a mirror while DNS/traffic
+ * moves to the canonical host. Per-deployment overrides still work via the
+ * env var. Leave blank only if you want no distinct global failover (in
+ * which case set it equal to the primary explicitly).
  */
 export const BACKUP_API_URL =
-  process.env.NEXT_PUBLIC_BACKUP_API_URL || PRIMARY_API_URL;
+  process.env.NEXT_PUBLIC_BACKUP_API_URL ||
+  "https://amazecc-api-d402b5.rivendeploy.com";
 
 /**
  * The backup host that is actually safe to swap in globally.
