@@ -38,8 +38,6 @@ import {
   Edit3,
   Clock,
   Copy,
-  BookOpen,
-  Lock,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button, Skeleton, cn } from "@amazecontinuityprojects/amazeui";
@@ -65,7 +63,7 @@ import {
 } from "../shared/primitives";
 // `TILE` was already dead here; `TILE_INTERACTIVE` went with the settings tile
 // grid. `LIST_ROW` is the row shell the course overview uses for the same shape.
-import { LIST_ROW, TONE_BADGE, FIELD_INPUT } from "@/lib/uiTokens";
+import { LIST_ROW, TILE_CARD, TONE_BADGE, TONE_ICON_TILE, FIELD_INPUT } from "@/lib/uiTokens";
 import { getAssetPath } from "@/lib/utils";
 import { parentOf } from "@/lib/settingsNav";
 import config from "../../../../config.json";
@@ -246,7 +244,6 @@ export default function ProfilePage({
   isLoggedIn,
   friendlyName,
   setFriendlyName,
-  loginToVTOP,
   creds,
   refreshKey,
   onCardClick,
@@ -348,16 +345,14 @@ export default function ProfilePage({
   );
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({});
   const [showAppPassword, setShowAppPassword] = useState(false);
-  const [vtopOldPassword, setVtopOldPassword] = useState("");
-  const [vtopNewPassword, setVtopNewPassword] = useState("");
-  const [vtopConfirmPassword, setVtopConfirmPassword] = useState("");
-  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
-  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
-  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
   const [refreshingCreds, setRefreshingCreds] = useState(false);
   const [kohaCard, setKohaCard] = useState("");
   const [kohaPassword, setKohaPassword] = useState("");
   const [kohaSaved, setKohaSaved] = useState(false);
+  const [lmsUsername, setLmsUsername] = useState("");
+  const [lmsPassword, setLmsPassword] = useState("");
+  const [showLmsPassword, setShowLmsPassword] = useState(false);
+  const [lmsSaved, setLmsSaved] = useState(false);
 
   // `resolvedTheme` is the theme actually rendered — `theme` is undefined until
   // next-themes mounts, so reading it for a summary value would flash "Light"
@@ -491,6 +486,10 @@ export default function ProfilePage({
   useEffect(() => {
     setKohaCard(localStorage.getItem("koha_card") || "");
     setKohaPassword(localStorage.getItem("koha_password") || "");
+    try {
+      setLmsUsername(localStorage.getItem("moodle_username") || "");
+      setLmsPassword(localStorage.getItem("moodle_password") || "");
+    } catch {}
   }, []);
 
   const saveKoha = () => {
@@ -500,60 +499,34 @@ export default function ProfilePage({
     setTimeout(() => setKohaSaved(false), 2000);
   };
 
+  // Same persistence contract as `MoodleDisplay` and the Koha form above: the IDs
+  // bucket plus the two dedicated keys the boot path reads. This page holds no IDs
+  // state of its own, so — like `MoodleDisplay` — it reloads after saving rather
+  // than leaving the app's in-memory credentials stale.
+  const saveLms = () => {
+    try {
+      const raw = localStorage.getItem("IDs");
+      const ids = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(
+        "IDs",
+        JSON.stringify({ ...ids, MoodleUsername: lmsUsername, MoodlePassword: lmsPassword })
+      );
+      localStorage.setItem("moodle_username", lmsUsername);
+      localStorage.setItem("moodle_password", lmsPassword);
+    } catch {}
+    setLmsSaved(true);
+    setTimeout(() => {
+      setLmsSaved(false);
+      window.location.reload();
+    }, 1000);
+  };
+
   const toggleShow = (idx: number) => setShowPasswords((p) => ({ ...p, [idx]: !p[idx] }));
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch {}
-  };
-
-  const handleChangeVtopPassword = async () => {
-    setPasswordChangeError(null);
-    setPasswordChangeSuccess(null);
-    if (!vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword) {
-      setPasswordChangeError("All fields are required");
-      return;
-    }
-    if (vtopNewPassword !== vtopConfirmPassword) {
-      setPasswordChangeError("New passwords do not match");
-      return;
-    }
-    if (vtopNewPassword.length < 6) {
-      setPasswordChangeError("New password must be at least 6 characters");
-      return;
-    }
-    setPasswordChangeLoading(true);
-    try {
-      const vtopCreds = loginToVTOP ? await loginToVTOP() : creds;
-      if (!vtopCreds || !vtopCreds.cookies) {
-        throw new Error("Failed to authenticate session with VTOP");
-      }
-      const { cookies, authorizedID, csrf } = vtopCreds;
-      const data = (await api("change-password", {
-        method: "POST",
-        body: {
-          cookies,
-          authorizedID,
-          csrf,
-          oldPassword: vtopOldPassword,
-          newPassword: vtopNewPassword,
-          confirmNewPassword: vtopConfirmPassword,
-        },
-      })) as any;
-      if (data.success) {
-        setPasswordChangeSuccess("VTOP password changed successfully!");
-        setVtopOldPassword("");
-        setVtopNewPassword("");
-        setVtopConfirmPassword("");
-      } else {
-        setPasswordChangeError(data.error || data.message || "Failed to change password");
-      }
-    } catch (err: any) {
-      setPasswordChangeError(err.message || "Network error");
-    } finally {
-      setPasswordChangeLoading(false);
-    }
   };
 
   const handleRefreshCreds = async () => {
@@ -1127,41 +1100,214 @@ export default function ProfilePage({
   // 2. VTOP Credentials & Security Section
   const renderCredentialsContent = () => (
     <div className="space-y-6">
-      {/* VTOP Session & Account Header Card */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-              <Key className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-                VTOP Authentication Session
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Authorized user: <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">{username}</span>
-              </p>
-            </div>
+      {/* HERO — who is signed in, and how many portals follow */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatTile
+          label="Signed in as"
+          value={username || "—"}
+          badge="VTOP"
+          tone="neutral"
+          sub="active portal session"
+        />
+        <StatTile
+          label="Linked accounts"
+          value={credAccounts.length}
+          badge="Portals"
+          tone="indigo"
+          sub={
+            credAccounts.length === 0
+              ? "none synced yet"
+              : `${credAccounts.length} portal${credAccounts.length === 1 ? "" : "s"} synced`
+          }
+        />
+      </div>
+
+      {/* Stored logins — editable, on this device */}
+      <div className="space-y-3">
+        <SectionHeader icon={Shield} title="Stored logins" count={3} />
+        <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+          Saved on this device alone for autofill and auto-login. Nothing here ever leaves your phone.
+        </p>
+        <div className={TILE_CARD}>
+          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">VTOP portal</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                VTOP registration / username
+              </span>
+              <input
+                type="text"
+                value={changedUsername}
+                onChange={(e) => setChangedUsername(e.target.value)}
+                className={FIELD_INPUT}
+              />
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                VTOP password
+              </span>
+              <span className="relative block">
+                <input
+                  type={showAppPassword ? "text" : "password"}
+                  value={changedPassword}
+                  onChange={(e) => setChangedPassword(e.target.value)}
+                  className={`${FIELD_INPUT} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAppPassword(!showAppPassword)}
+                  title={showAppPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1 cursor-pointer"
+                >
+                  {showAppPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </span>
+            </label>
           </div>
-          <button
-            type="button"
-            onClick={handleRefreshCreds}
-            disabled={refreshingCreds}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-bold transition-colors cursor-pointer"
-          >
-            <RefreshCcw className={`w-3.5 h-3.5 ${refreshingCreds ? "animate-spin" : ""}`} />
-            <span>{refreshingCreds ? "Syncing..." : "Sync Portal Keys"}</span>
-          </button>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setPassword([changedUsername, changedPassword]);
+                alert("Credentials saved locally!");
+              }}
+              disabled={!changedUsername || !changedPassword}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              Save stored credentials
+            </button>
+          </div>
+        </div>
+        <div className={TILE_CARD}>
+          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">LMS (Moodle)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                LMS username
+              </span>
+              <input
+                type="text"
+                value={lmsUsername}
+                onChange={(e) => setLmsUsername(e.target.value)}
+                placeholder="e.g. 22BCE1234"
+                className={FIELD_INPUT}
+              />
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                LMS password
+              </span>
+              <span className="relative block">
+                <input
+                  type={showLmsPassword ? "text" : "password"}
+                  value={lmsPassword}
+                  onChange={(e) => setLmsPassword(e.target.value)}
+                  className={`${FIELD_INPUT} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLmsPassword(!showLmsPassword)}
+                  title={showLmsPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1 cursor-pointer"
+                >
+                  {showLmsPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </span>
+            </label>
+          </div>
+
+          <div className="mt-4">
+            <GhostButton onClick={saveLms} title="Save LMS credentials">
+              <Save className="w-3.5 h-3.5" />
+              {lmsSaved ? "Saved!" : "Save LMS credentials"}
+            </GhostButton>
+          </div>
+          <p className="mt-3 text-[11px] text-text-secondary dark:text-text-muted font-medium">
+            Used for course materials and deadline tracking. The app reloads once after saving so the new login takes effect.
+          </p>
+        </div>
+        <div className={TILE_CARD}>
+          <p className="text-sm font-bold text-text-heading font-outfit tracking-tight mb-3">Koha library</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                Card number
+              </span>
+              <input
+                type="text"
+                value={kohaCard}
+                onChange={(e) => setKohaCard(e.target.value)}
+                placeholder="e.g. 22BCE1234"
+                className={FIELD_INPUT}
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                Library password
+              </span>
+              <input
+                type="password"
+                value={kohaPassword}
+                onChange={(e) => setKohaPassword(e.target.value)}
+                placeholder="Library password"
+                className={FIELD_INPUT}
+              />
+            </label>
+          </div>
+
+          <div className="mt-4">
+            <GhostButton onClick={saveKoha} title="Save library credentials">
+              <Save className="w-3.5 h-3.5" />
+              {kohaSaved ? "Saved!" : "Save library credentials"}
+            </GhostButton>
+          </div>
         </div>
       </div>
 
-      {/* App Saved Portals Grid */}
-      {credAccounts.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-1">
-            Linked Portal Accounts
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+        These are the logins VTOP itself reports for your account — read live from your
+        session, never stored.
+      </p>
+
+      {/* Linked portal accounts */}
+      <div className="space-y-3">
+        <SectionHeader
+          icon={Key}
+          title="Linked portal accounts"
+          count={credAccounts.length}
+          right={
+            <GhostButton onClick={handleRefreshCreds} title="Sync portal keys">
+              <RefreshCcw className={`w-3.5 h-3.5 ${refreshingCreds ? "animate-spin" : ""}`} />
+              {refreshingCreds ? "Syncing" : "Sync"}
+            </GhostButton>
+          }
+        />
+
+        {credAccounts.length === 0 ? (
+          <EmptyPanel
+            icon={<Key className="w-7 h-7" />}
+            tone="indigo"
+            variant="dashed"
+            title="No linked accounts yet"
+            description="Pull your portal keys from VTOP and every login it reports for you will collect here."
+            action={
+              <button
+                type="button"
+                onClick={handleRefreshCreds}
+                disabled={refreshingCreds}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCcw className={`h-4 w-4 ${refreshingCreds ? "animate-spin" : ""}`} />
+                Sync portal keys
+              </button>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {credAccounts.map((row: any, idx: number) => {
               const accountName = row.account || "Portal Account";
               const userName = row.username || "";
@@ -1169,266 +1315,104 @@ export default function ProfilePage({
               const url = row.url || "";
 
               return (
-                <div
-                  key={idx}
-                  className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs"
-                >
-                  <div className="flex items-center gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                    <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                <div key={idx} className={`${TILE_CARD} space-y-3`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${TONE_ICON_TILE.indigo}`}>
                       <User className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-extrabold text-xs text-zinc-900 dark:text-white truncate font-outfit">
-                        {accountName}
-                      </h4>
-                    </div>
+                    </span>
+                    <p className="text-sm font-bold text-text-heading truncate font-outfit tracking-tight flex-1 min-w-0">
+                      {accountName}
+                    </p>
+                    {userName && (
+                      <IconButton
+                        title="Copy username"
+                        onClick={() => copyToClipboard(userName)}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </IconButton>
+                    )}
                   </div>
 
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                          Username
-                        </p>
-                        <p className="font-bold text-zinc-900 dark:text-zinc-100 truncate font-mono text-xs mt-0.5">
-                          {userName || "N/A"}
-                        </p>
-                      </div>
-                      {userName && (
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(userName)}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
-                          title="Copy Username"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <KeyValue
+                      label="Username"
+                      value={userName || "—"}
+                      valueClassName="font-mono text-xs truncate block"
+                    />
                     {pass && (
-                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                            Password
-                          </p>
-                          <p className="font-bold text-zinc-900 dark:text-zinc-100 truncate font-mono text-xs mt-0.5 tracking-wider">
-                            {showPasswords[idx] ? pass : "••••••••••••"}
-                          </p>
+                      <div className="flex items-stretch gap-2">
+                        <div className="flex-1 min-w-0">
+                          <KeyValue
+                            label="Password"
+                            value={showPasswords[idx] ? pass : "••••••••"}
+                            valueClassName="font-mono text-xs truncate block"
+                          />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <IconButton
+                            title={showPasswords[idx] ? "Hide password" : "Show password"}
                             onClick={() => toggleShow(idx)}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-500 transition-colors"
-                            title={showPasswords[idx] ? "Hide" : "Show"}
                           >
                             {showPasswords[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            type="button"
+                          </IconButton>
+                          <IconButton
+                            title="Copy password"
                             onClick={() => copyToClipboard(pass)}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
-                            title="Copy Password"
                           >
                             <Copy className="w-3.5 h-3.5" />
-                          </button>
+                          </IconButton>
                         </div>
                       </div>
                     )}
-
-                    {url && url !== "-" && (
-                      <div className="text-[11px] truncate">
-                        <span className="text-zinc-400 font-semibold">URL: </span>
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                          {url}
-                        </a>
-                      </div>
-                    )}
                   </div>
+
+                  {url && url !== "-" && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-medium truncate"
+                    >
+                      {url}
+                    </a>
+                  )}
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Local App Stored Credentials */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Stored Portal Logins
-        </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Saved locally and encrypted in your device storage for instant autofill and auto-login
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-              VTOP Registration / Username
-            </label>
-            <input
-              type="text"
-              value={changedUsername}
-              onChange={(e) => setChangedUsername(e.target.value)}
-              className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-              VTOP Password
-            </label>
-            <div className="relative">
-              <input
-                type={showAppPassword ? "text" : "password"}
-                value={changedPassword}
-                onChange={(e) => setChangedPassword(e.target.value)}
-                className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3 py-2.5 pr-10 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowAppPassword(!showAppPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1 cursor-pointer"
-              >
-                {showAppPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <Button
-            size="sm"
-            onClick={() => {
-              setPassword([changedUsername, changedPassword]);
-              alert("Credentials saved locally!");
-            }}
-            disabled={!changedUsername || !changedPassword}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
-          >
-            <Save className="w-3.5 h-3.5 mr-1.5" /> Save Stored Credentials
-          </Button>
-        </div>
+        )}
       </div>
 
-      {/* Change VTOP Portal Password */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Change VTOP Portal Password
-        </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Remotely update your password on VIT's official VTOP servers
+      {/* Sign out */}
+      <div className="space-y-3">
+        <SectionHeader icon={LogOut} title="Sign out & end session" />
+        <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+          Clear your active session and cookies on this device. Your saved logins above stay put.
         </p>
-
-        <div className="space-y-3 max-w-md">
-          <input
-            type="password"
-            value={vtopOldPassword}
-            onChange={(e) => setVtopOldPassword(e.target.value)}
-            placeholder="Current VTOP Password"
-            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-          <input
-            type="password"
-            value={vtopNewPassword}
-            onChange={(e) => setVtopNewPassword(e.target.value)}
-            placeholder="New Password (min 6 chars)"
-            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-          <input
-            type="password"
-            value={vtopConfirmPassword}
-            onChange={(e) => setVtopConfirmPassword(e.target.value)}
-            placeholder="Confirm New Password"
-            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-
-          {passwordChangeError && (
-            <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 p-3 rounded-xl">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{passwordChangeError}</span>
+        <div className={TILE_CARD}>
+          <div className="flex items-center gap-3">
+            <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.red}`}>
+              <LogOut className="w-5 h-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                End this session
+              </p>
+              <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                You can sign back in anytime with the stored logins above.
+              </p>
             </div>
-          )}
-
-          {passwordChangeSuccess && (
-            <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 p-3 rounded-xl">
-              <CheckCircle className="w-4 h-4 shrink-0" />
-              <span>{passwordChangeSuccess}</span>
-            </div>
-          )}
-
-          <Button
-            size="sm"
-            onClick={handleChangeVtopPassword}
-            disabled={passwordChangeLoading || !vtopOldPassword || !vtopNewPassword || !vtopConfirmPassword}
-            className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold"
-          >
-            <Lock className="w-3.5 h-3.5 mr-1.5" />
-            {passwordChangeLoading ? "Updating VTOP..." : "Submit Password Change"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Koha Library Card Login */}
-      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-4 shadow-2xs">
-        <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
-          Koha Library Card
-        </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Library membership credentials used to query books, reserves, and due dates
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
-          <input
-            type="text"
-            value={kohaCard}
-            onChange={(e) => setKohaCard(e.target.value)}
-            placeholder="Card Number (e.g. 22BCE1234)"
-            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-          <input
-            type="password"
-            value={kohaPassword}
-            onChange={(e) => setKohaPassword(e.target.value)}
-            placeholder="Library Password"
-            className="w-full text-xs font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-950/50 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-        </div>
-
-        <Button
-          size="sm"
-          onClick={saveKoha}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
-        >
-          <Save className="w-3.5 h-3.5 mr-1.5" />
-          {kohaSaved ? "Saved!" : "Save Library Credentials"}
-        </Button>
-      </div>
-
-      {/* Session Security & Log Out */}
-      <div className="bg-red-50/50 dark:bg-red-950/20 rounded-2xl border border-red-200/80 dark:border-red-900/40 p-5 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 shrink-0">
-            <LogOut className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-sm font-extrabold text-red-900 dark:text-red-200 font-outfit">
-              Sign Out & End Session
-            </h3>
-            <p className="text-xs text-red-700/80 dark:text-red-400/80">
-              Clear your active session and cookies on this device
-            </p>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleLogOutRequest}
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-red-700 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Log out now
+            </button>
           </div>
-        </div>
-        <div className="pt-2">
-          <Button
-            size="sm"
-            onClick={handleLogOutRequest}
-            className="bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold"
-          >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Log Out Now
-          </Button>
         </div>
       </div>
     </div>
