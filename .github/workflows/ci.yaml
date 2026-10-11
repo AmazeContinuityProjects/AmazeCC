@@ -46,5 +46,7 @@ jobs:
           # NEXT_PUBLIC_* is inlined at build time. Set here so CI builds the
           # same host the Pages workflow publishes, rather than depending on
           # whatever default happens to be compiled in.
-          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://amazecc-api-d402b5.rivendeploy.com' }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.amazecc.com' }}
+          NEXT_PUBLIC_BACKUP_API_URL: ${{ vars.NEXT_PUBLIC_BACKUP_API_URL || 'https://amazecc-api-d402b5.rivendeploy.com' }}
+          NEXT_PUBLIC_UNICC_API_URL: ${{ vars.NEXT_PUBLIC_UNICC_API_URL || 'https://api-unicc.arya22.dev' }}
 
