@@ -34,7 +34,7 @@ import SyncNotification from "@/components/custom/shared/SyncNotification";
 import BottomSheet from "@/components/custom/shared/BottomSheet";
 import { useTheme } from "next-themes";
 import { X, Keyboard, WifiOff } from "lucide-react";
-import { syncEngine, clearEventHubSession, api } from "@/lib/sync-engine";
+import { syncEngine, clearEventHubSession, api, eventHubRequest } from "@/lib/sync-engine";
 import {
   openSyncSession,
   appendSyncLine,
@@ -768,7 +768,13 @@ export default function LoginPage() {
       );
 
       tasks.push(
-        api("events/profile", { method: "POST", auth: "eventhub" })
+        // Same contract as EventHubTab: username/password + session, with
+        // expiry retry. A raw `api(..., { auth: "eventhub" })` with no body
+        // sends an empty POST and the route 500s.
+        eventHubRequest(IDs, "events/profile", {
+          username: IDs.VtopUsername,
+          password: IDs.VtopPassword,
+        })
           .then((data: any) => {
             if (data?.events) {
               setRegisteredEvents(data.events);
@@ -778,7 +784,10 @@ export default function LoginPage() {
               appendSyncLine("Registered events unavailable (server error)", "error");
             }
           })
-          .catch(() => {
+          .catch((err: any) => {
+            if (err?.reason === "session_expired" || err?.reason === "invalid_credentials") {
+              clearEventHubSession();
+            }
             appendSyncLine("Registered events unavailable (server error)", "error");
           })
       );

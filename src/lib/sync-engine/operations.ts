@@ -349,10 +349,31 @@ registerOp({
     }
     try {
       const jsessionid = session;
+      // Same contract as `eventHubRequest` (EventHubTab): the route needs
+      // username/password alongside the session for its fallback login, and
+      // answers `reauthenticate: true` when the session died. Sending only
+      // `{ jsessionid }` 500'd server-side.
+      const fetchProfile = (sid: string) =>
+        ctx.request(
+          "events/profile",
+          {
+            username: ids.VtopUsername,
+            password: ids.VtopPassword,
+            ...(sid ? { jsessionid: sid } : {}),
+          },
+          { auth: "none", retry: { max: 0 } }
+        );
       const [eventsRes, publicEvents] = await Promise.all([
         (async () => {
-          if (!jsessionid) return { events: [] };
-          const r = await ctx.request("events/profile", { jsessionid }, { auth: "none", retry: { max: 0 } });
+          if (!jsessionid && (demoMode || ids.VtopUsername === "demo")) return { events: [] };
+          let r: any = await fetchProfile(jsessionid);
+          if ((r as { reauthenticate?: boolean } | null)?.reauthenticate) {
+            credentialManager.clearEventHub();
+            const fresh = await credentialManager
+              .ensureEventHubSession(ids, { demoMode })
+              .catch(() => "");
+            r = await fetchProfile(fresh);
+          }
           return r;
         })(),
         ctx.request("events", undefined, { method: "GET", auth: "none", retry: { max: 0 } }).catch(() => []),
