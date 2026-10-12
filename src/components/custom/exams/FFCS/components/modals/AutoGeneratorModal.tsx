@@ -11,7 +11,7 @@ import { COLORS, DAYS } from '../../constants';
 import { TimetableGrid, GapDetail } from '../TimetableGrid';
 import { TargetCoursesModal } from './TargetCoursesModal';
 import { TimetablePeriod } from '../../types';
-import SelectField from "../../../../shared/primitives/SelectField";
+import { SegmentedControl } from "../../../../shared/primitives";
 
 
 export interface AutoGeneratorModalProps {
@@ -962,21 +962,19 @@ export function AutoGeneratorModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground block mb-1.5">Sort Timetables By</label>
-                            <SelectField
-                              value={generatorSortBy as string}
-                              onChange={(val) => setGeneratorSortBy(val as any)}
+                            {/* Segmented, not a dropdown: this panel is itself an overlay
+                                (z-200), and the option-picker portal paints at z-50 —
+                                underneath it, untappable. A control with no popup cannot
+                                be buried. */}
+                            <SegmentedControl
+                              value={generatorSortBy}
+                              onChange={setGeneratorSortBy}
                               options={[
                                 { value: "balanced", label: "Balanced (All Metrics)" },
                                 { value: "compactness", label: "Max Compactness (Fewer Gaps)" },
                                 { value: "halfdays", label: "Max Free Half-Days" },
                                 { value: "social", label: "Max Social Score" },
                               ]}
-                              searchable={false}
-                              size="lg"
-                              stacked
-                              role="group"
-                              aria-label="Generator sort order"
-                              className="[&>button:first-child]:bg-muted/30"
                             />
                       </div>
 
@@ -1026,20 +1024,14 @@ export function AutoGeneratorModal({
 
                     <div>
                       <label className="text-sm font-medium text-foreground block mb-1.5">Time Preference</label>
-                          <SelectField
-                            value={generatorPreference as string}
+                          <SegmentedControl
+                            value={generatorPreference as "none" | "morning" | "evening"}
                             onChange={(val) => setGeneratorPreference(val as any)}
                             options={[
                               { value: "none", label: "No Preference (Any combinations)" },
                               { value: "morning", label: "Morning Theory Preferred" },
                               { value: "evening", label: "Evening Theory Preferred" },
                             ]}
-                            searchable={false}
-                            size="lg"
-                            stacked
-                            role="group"
-                            aria-label="Generator preference"
-                            className="[&>button:first-child]:bg-muted/30"
                           />
                     </div>
 

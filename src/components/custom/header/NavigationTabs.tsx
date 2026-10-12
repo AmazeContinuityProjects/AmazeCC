@@ -1011,8 +1011,14 @@ export default function NavigationTabs({
   const renderMobileNav = () => {
     return (
       <>
-        {/* Sleek Floating Pill Bottom Navigation Bar (Icon-Only on Mobile) */}
-        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-55 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
+        {/* Sleek Floating Pill Bottom Navigation Bar (Icon-Only on Mobile).
+            z-40, deliberately below every overlay surface: the option-picker
+            portal paints at z-50, sheets at z-55/60. At z-55 this pill floated
+            *above* an open picker — staying bright and tappable under the dim,
+            swallowing outside-taps meant to dismiss, and covering popups that
+            extended into its region. A bottom nav must dim with the page, not
+            hover over modals. */}
+        <div className="md:hidden fixed bottom-[calc(env(safe-area-inset-bottom,0px)+12px)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[380px] z-40 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/80 rounded-[24px] p-1.5 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_35px_-8px_rgba(0,0,0,0.55)] flex items-center justify-around mobile-bottom-nav-bar">
           {rawNavItems.map((item) => {
             const isActive = item.isActive;
             return (
