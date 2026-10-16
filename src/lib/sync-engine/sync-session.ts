@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { ProgressEvent } from "./types";
+import { getOpMeta } from "./operation-registry";
 import { subscribeUniccLogEvents } from "../unicc-fallback";
 
 export type SyncLineStatus = "success" | "error" | "pending" | "info" | "loading";
@@ -164,6 +165,10 @@ export function formatSessionMessage(lines: SyncLogLine[]): string {
 
 // Engine op -> human label + progress weight for a full login sweep (~100).
 // Includes per-request child ops emitted inside the "core" parent op.
+//
+// Labels prefer the op metadata in `operation-registry.ts` (the editor and
+// pickers read the same source); the table below is the fallback for ops
+// registered without meta and fixes the progress deltas the tests assert on.
 const OP_LABELS: Record<string, { label: string; delta: number }> = {
   attendanceMarks: { label: "Attendance & Marks", delta: 25 },
   marksStats: { label: "Cohort statistics", delta: 5 },
@@ -185,6 +190,14 @@ const OP_LABELS: Record<string, { label: string; delta: number }> = {
   lms: { label: "Moodle data", delta: 10 },
   social: { label: "Friends & groups", delta: 5 },
 };
+
+/**
+ * Human label for an op: registry metadata first, legacy table second, raw
+ * name last. Exported for the mode picker and editor badges.
+ */
+export function getOpLabel(op: string): string {
+  return getOpMeta(op)?.label ?? OP_LABELS[op]?.label ?? op;
+}
 
 /** Routes the request layer can hand to UniCC, in the words the log uses. */
 const UNICC_ROUTE_LABELS: Record<string, string> = {
@@ -231,7 +244,7 @@ subscribeUniccLogEvents((e) => {
  * what actually fetched — success or failure — per module.
  */
 export function handleEngineProgressEvent(e: ProgressEvent) {
-  const meta = OP_LABELS[e.op] || { label: e.op, delta: 5 };
+  const meta = OP_LABELS[e.op] || { label: getOpLabel(e.op), delta: 5 };
   if (e.phase === "start") {
     ensureSyncSession("VTOP Sync");
     appendSyncLine(`Fetching ${meta.label}…`, "loading");

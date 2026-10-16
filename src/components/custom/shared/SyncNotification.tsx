@@ -7,6 +7,8 @@ import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasB
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
 import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
+import SyncModePicker from "./SyncModePicker";
+import type { SyncMode } from "@/lib/sync-engine/sync-modes";
 import { 
   Loader2, 
   RefreshCw, 
@@ -21,7 +23,8 @@ import {
   AlertCircle,
   Clock,
   Info,
-  WifiOff
+  WifiOff,
+  Settings
 } from "lucide-react";
 
 import SelectField from "../shared/primitives/SelectField";
@@ -35,6 +38,18 @@ interface SyncNotificationProps {
   notice?: SyncNotice;
   /** Re-attempt the sync from the offline notice. */
   onRetry?: () => void;
+  /** Current sync mode id; when `modes` is set a switcher renders in the sheet. */
+  modeId?: string;
+  /** Default mode id, starred in the switcher. */
+  defaultModeId?: string;
+  /** All modes (built-in + custom) for the switcher. */
+  modes?: SyncMode[];
+  /** Title shown in the sheet header; defaults to "VTOP Sync". */
+  modeLabel?: string;
+  /** Switching modes mid-sheet re-runs the reload with that mode. */
+  onSelectMode?: (id: string) => void;
+  /** Opens the custom-mode editor. */
+  onOpenEditor?: () => void;
 }
 
 // Helper to clean emojis and determine status
@@ -97,7 +112,13 @@ export default function SyncNotification({
   onDismiss,
   outcome = null,
   notice = null,
-  onRetry
+  onRetry,
+  modeId,
+  defaultModeId,
+  modes,
+  modeLabel,
+  onSelectMode,
+  onOpenEditor
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
@@ -407,12 +428,33 @@ export default function SyncNotification({
                   <div className="flex flex-col gap-1 pr-12">
                     <div className="flex items-center gap-2">
                       <Terminal className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                      <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">VTOP Sync</h3>
+                      <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">{modeLabel ?? "VTOP Sync"}</h3>
                     </div>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold tracking-wide leading-relaxed">
                       Securing credentials and pulling academic records
                     </p>
                   </div>
+
+                  {/* Sync mode switcher: re-runs the reload with another mode. */}
+                  {modes && modes.length > 0 && onSelectMode && modeId && (
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <SyncModePicker modes={modes} activeId={modeId} defaultId={defaultModeId ?? modeId} onSelect={onSelectMode} />
+                      </div>
+                      {onOpenEditor && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenEditor();
+                          }}
+                          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer shrink-0"
+                          title="Manage sync modes"
+                        >
+                          <Settings size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Target server: selectable mid-sync, and honest about who is
                       actually answering right now. */}

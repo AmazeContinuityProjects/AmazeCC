@@ -28,6 +28,7 @@ export type Settings = {
   syncExcRegistration?: boolean;
   syncMinorHonour?: boolean;
   syncCourseCompletion?: boolean;
+  defaultSyncMode?: string;
   pinnedNavTabs?: string[];
   defaultAcademicsTab?: string;
   autoSyncInterval?: string;
@@ -108,6 +109,7 @@ export const defaultSettings: Settings = {
   syncExcRegistration: true,
   syncMinorHonour: true,
   syncCourseCompletion: true,
+  defaultSyncMode: "quick",
   pinnedNavTabs: ["academics", "attendance"],
   defaultAcademicsTab: "overview",
   autoSyncInterval: "manual",

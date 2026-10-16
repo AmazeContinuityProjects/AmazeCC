@@ -1,12 +1,27 @@
 import { credentialManager } from "./credential-manager";
 import { progressBus } from "./progress-bus";
 import { makeCtx, getOp } from "./operation-registry";
+import {
+  resolveMode,
+  loadCustomModes,
+  foregroundSteps,
+  backgroundSteps,
+  type SyncMode,
+} from "./sync-modes";
 import { toEngineError } from "./errors";
 import { storage } from "../storage";
 import type { Ids, VtopCreds, ProgressEvent } from "./types";
 
 export { apiRequest as api } from "./request-layer";
 import { apiRequest } from "./request-layer";
+
+export type { SyncMode, SyncModeStep } from "./sync-modes";
+export {
+  BUILT_IN_MODES,
+  listModes,
+  loadCustomModes,
+  estimateModeCost,
+} from "./sync-modes";
 
 export interface SyncAllOptions {
   semesterId: string;
@@ -16,7 +31,25 @@ export interface SyncAllOptions {
   demoMode?: boolean;
 }
 
-const BACKGROUND_OPS = ["pastAttendance", "fresher", "buses", "transport", "events", "bulk", "lms", "officialOd"];
+export interface SyncModeOptions {
+  semesterId?: string;
+  calendarType?: string;
+  isHosteller?: boolean;
+  settings?: Record<string, unknown>;
+  demoMode?: boolean;
+  /** When false, background steps are fired without awaiting (legacy sweep). */
+  awaitBackground?: boolean;
+  signal?: AbortSignal;
+}
+
+export interface SyncModeResult {
+  mode: SyncMode;
+  /** Per-op results for foreground steps, in order. */
+  results: { op: string; value: unknown }[];
+  /** Ops that failed but did not abort the run. */
+  errors: { op: string; message: string }[];
+  aborted: boolean;
+}
 
 class SyncEngine {
   private ids: Ids | null = null;
@@ -124,26 +157,76 @@ class SyncEngine {
   }
 
   async syncAll(opts: SyncAllOptions): Promise<void> {
+    // Legacy sweep, preserved exactly: the balanced preset with fire-and-forget
+    // background steps. New code should call `syncMode` directly.
+    await this.syncMode("balanced", opts, { awaitBackground: false });
+  }
+
+  /**
+   * Run a named sync mode (built-in or custom).
+   *
+   * Foreground steps run sequentially; a `critical` op failure aborts the rest.
+   * Background steps settle concurrently — awaited for `full` (honest progress),
+   * fire-and-forget otherwise (legacy sweep behaviour). Every step goes through
+   * `sync()`, so start/done/error still emit into the session log per module.
+   */
+  async syncMode(
+    modeId: string,
+    baseArgs: SyncModeOptions = {} as SyncModeOptions,
+    opts: { awaitBackground?: boolean; signal?: AbortSignal } = {},
+  ): Promise<SyncModeResult> {
     this.ensureIds();
-    await this.sync("attendanceMarks", { semesterId: opts.semesterId });
-// Cohort statistics are enrichment, not load-bearing: a failure is visible in the
-// sync log via the op's own error emit, but must never fail the sweep.
-await this.sync("marksStats", {}).catch(() => {});
-    await this.sync("core", {
-      semesterId: opts.semesterId,
-      calendarType: opts.calendarType,
-      isHosteller: opts.isHosteller,
-    });
-    await this.sync("studentProfile");
+    const mode = resolveMode(modeId, loadCustomModes());
+    if (!mode) throw new Error(`Unknown sync mode: ${modeId}`);
+    const { signal, awaitBackground = modeId === "full" } = { ...baseArgs, ...opts };
+    const { semesterId, calendarType, isHosteller, settings, demoMode } = baseArgs;
     const allGradesRes = storage.allGrades.get();
-    for (const name of BACKGROUND_OPS) {
-      this.sync(name, {
-        semesterId: opts.semesterId,
-        allGradesRes,
-        settings: opts.settings,
-        demoMode: opts.demoMode,
-      }).catch(() => {});
+    const argsFor = (extra?: Record<string, unknown>): Record<string, unknown> => ({
+      semesterId,
+      calendarType,
+      isHosteller,
+      settings,
+      demoMode,
+      allGradesRes,
+      ...extra,
+    });
+
+    const results: { op: string; value: unknown }[] = [];
+    const errors: { op: string; message: string }[] = [];
+    let aborted = false;
+
+    for (const s of foregroundSteps(mode)) {
+      if (signal?.aborted) {
+        aborted = true;
+        break;
+      }
+      try {
+        const value = await this.sync(s.op, argsFor(s.args));
+        results.push({ op: s.op, value });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        errors.push({ op: s.op, message });
+        if (getOp(s.op)?.critical) {
+          aborted = true;
+          break;
+        }
+      }
     }
+
+    const bg = backgroundSteps(mode).map((s) =>
+      this.sync(s.op, argsFor(s.args)).then(
+        (value) => results.push({ op: s.op, value }),
+        (e: unknown) =>
+          errors.push({ op: s.op, message: e instanceof Error ? e.message : String(e) }),
+      ),
+    );
+    if (awaitBackground) {
+      await Promise.all(bg);
+    } else {
+      // Legacy sweep: never let a background failure surface unhandled.
+      Promise.all(bg).catch(() => {});
+    }
+    return { mode, results, errors, aborted };
   }
 
   subscribe(cb: (e: ProgressEvent) => void): () => void {

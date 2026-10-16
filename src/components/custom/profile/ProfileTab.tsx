@@ -32,6 +32,7 @@ interface ProfileTabProps {
   setReloadAllData: (val: boolean) => void;
   settings: any;
   setSettings: (val: any) => void;
+  onRunSyncMode?: (modeId: string) => void;
 }
 
 function useCredentialSection(loginToVTOP: () => Promise<any>) {
@@ -61,6 +62,7 @@ export default function ProfileTab(props: ProfileTabProps) {
     username,
     password,
     setPassword,
+    onRunSyncMode,
     ...profilePageProps
   } = props;
   const { creds, refreshKey, reload } = useCredentialSection(loginToVTOP);
@@ -76,6 +78,7 @@ export default function ProfileTab(props: ProfileTabProps) {
         creds={creds}
         refreshKey={refreshKey}
         onReload={reload}
+        onRunSyncMode={onRunSyncMode}
         // "settings" is the category hub. It was "profile", which is a section
         // id, so an unset sub-tab skipped the hub and dropped the user straight
         // into Student Profile.

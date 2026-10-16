@@ -23,7 +23,7 @@ import SimplifiedMobileHome from "./mobile/SimplifiedMobileHome";
 import AmazeOnboardingFlow, { InterfaceOptionId } from "./onboarding/AmazeOnboardingFlow";
 import AboutTab from "./AboutTab";
 
-import { api } from "@/lib/sync-engine";
+import { api, syncEngine } from "@/lib/sync-engine";
 import CourseDashboard from "./exams/CourseDashboard";
 import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
 import ToolsTab from "./tools/ToolsTab";
@@ -40,7 +40,7 @@ import LibrariesTab from "./libraries/LibrariesTab";
 import EventHubTab from "./events/EventHubTab";
 import ClubHubTab from "./clubs/ClubHubTab";
 import CommunityFeed from "./clubs/CommunityFeed";
-import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
+import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
 import CircularsTab from "./exams/CircularsTab";
 import FacultyInfoTab from "./exams/FacultyInfoTab";
@@ -61,7 +61,6 @@ import {
   setSyncProgress,
   closeSyncSession,
 } from "@/lib/sync-engine/sync-session";
-import { assertApiSuccess } from "@/lib/sync-engine/errors";
 
 function DashboardContent({
   demoMode = false,
@@ -121,7 +120,8 @@ function DashboardContent({
   onOpenCommandPalette,
   onOpenShortcutsHelp,
   onSystemBack,
-  onCollapseScreenChange
+  onCollapseScreenChange,
+  onRunSyncMode
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
@@ -421,25 +421,26 @@ function DashboardContent({
     ensureSyncSession("VTOP Sync");
     appendSyncLine("Fetching all grades…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const AllGradesData = await api("all-grades", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf },
-      }) as any;
-      assertApiSuccess(AllGradesData, "All grades");
+      // Single-op engine sync: credentials, retry and the session log come
+      // free. The op persists + publishes atoms itself.
+      const AllGradesData = await syncEngine.sync<any>("all-grades");
       setSyncProgress(40);
 
       setAllGradesData(AllGradesData);
-      localStorage.setItem("allGrades", JSON.stringify(AllGradesData));
 
       appendSyncLine("Loading past semester data from cache…", "info");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
 
       // Fetch missing past semesters and update cache
-      syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf }).then(() => {
-        setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-      });
+      syncEngine
+        .sync("pastAttendance", {
+          semesterId: settings.currSemesterID,
+          allGradesRes: AllGradesData,
+        })
+        .then(() => {
+          setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
+        })
+        .catch(() => {});
 
       appendSyncLine("All grades reloaded successfully", "success");
       setSyncProgress(100);
@@ -458,18 +459,15 @@ function DashboardContent({
     ensureSyncSession("VTOP Sync");
     appendSyncLine("Fetching academic calendar…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const CalenderRes = await api("calendar", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, type: FncalendarType || "ALL", semesterId: settings.currSemesterID },
-      }) as any;
-      assertApiSuccess(CalenderRes, "Academic calendar");
+      const CalenderRes = await syncEngine.sync<any>("calendar", {
+        type: FncalendarType || "ALL",
+        calendarType: FncalendarType || "ALL",
+        semesterId: settings.currSemesterID,
+      });
       setSyncProgress(40);
 
       setCalender(CalenderRes);
       setSettings(prev => ({ ...prev, calendarType: FncalendarType || "ALL" }))
-      localStorage.setItem("calender", JSON.stringify(CalenderRes));
       localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: FncalendarType }));
 
       appendSyncLine("Calendar reloaded successfully", "success");
@@ -489,17 +487,12 @@ function DashboardContent({
     ensureSyncSession("VTOP Sync");
     appendSyncLine("Fetching grades…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const gradesData = await api("grades", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, semesterId: settings.currSemesterID },
-      }) as any;
-      assertApiSuccess(gradesData, "Grades");
+      const gradesData = await syncEngine.sync<any>("grades", {
+        semesterId: settings.currSemesterID,
+      });
       setSyncProgress(40);
 
       setGradesData(gradesData);
-      localStorage.setItem("grades", JSON.stringify(gradesData));
 
       appendSyncLine("Grades reloaded successfully", "success");
       setSyncProgress(100);
@@ -518,16 +511,9 @@ function DashboardContent({
     ensureSyncSession("VTOP Sync");
     appendSyncLine("Fetching hostel details…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const HostelData = await api("hostel", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf },
-      }) as any;
-      assertApiSuccess(HostelData, "Hostel details");
+      const HostelData = await syncEngine.sync<any>("hostel");
       setSyncProgress(40);
       sethostelData(HostelData);
-      localStorage.setItem("hostel", JSON.stringify(HostelData));
       appendSyncLine("Hostel details reloaded successfully", "success");
       setSyncProgress(100);
       setIsReloading(false);
@@ -549,28 +535,15 @@ function DashboardContent({
     appendSyncLine("Fetching Moodle data…", "loading");
     setSyncProgress(20);
     try {
-      const moodleData = await api("lms-data", {
-        method: "POST",
-        body: { username, pass },
-      }) as any;
-      assertApiSuccess(moodleData, "Moodle data");
-      if (!Array.isArray(moodleData)) {
+      // The `lms` op merges `hidden` flags and persists itself; the result is
+      // already the merged list.
+      const mergedData = await syncEngine.sync<any>("lms", { username, pass });
+      if (!Array.isArray(mergedData)) {
         throw new Error("Moodle data came back in an unexpected shape");
       }
       setSyncProgress(60);
 
-      const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
-
-      const mergedData = moodleData.map(item => {
-        const prevItem = prevData.find(p => p.url === item.url);
-        return {
-          ...item,
-          hidden: prevItem?.hidden ?? false,
-        };
-      });
-
       setMoodleData(mergedData);
-      localStorage.setItem("moodleData", JSON.stringify(mergedData));
 
       appendSyncLine("Moodle data fetched successfully", "success");
       setSyncProgress(100);
@@ -1242,6 +1215,7 @@ marksData={marksData}
                 }}
                 settings={settings}
                 setSettings={setSettings}
+                onRunSyncMode={onRunSyncMode}
               />
             </div>
           )}

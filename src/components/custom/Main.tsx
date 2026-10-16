@@ -36,6 +36,14 @@ import { useTheme } from "next-themes";
 import { X, Keyboard, WifiOff } from "lucide-react";
 import { syncEngine, clearEventHubSession, api, eventHubRequest } from "@/lib/sync-engine";
 import {
+  BUILT_IN_MODES,
+  listModes,
+  loadCustomModes,
+  resolveMode,
+  type SyncMode,
+} from "@/lib/sync-engine/sync-modes";
+import SyncModeEditor from "@/components/custom/shared/SyncModeEditor";
+import {
   openSyncSession,
   appendSyncLine,
   setSyncProgress,
@@ -105,6 +113,13 @@ export default function LoginPage() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useAtom(commandPaletteOpenAtom);
   const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useAtom(isShortcutsHelpOpenAtom);
   const [credEditorOpen, setCredEditorOpen] = useState(false);
+  // Custom sync modes (built-ins come from the engine). Refreshed whenever the
+  // editor reports a change, so the sheet picker and palette stay current.
+  const [customModes, setCustomModes] = useState<SyncMode[]>(() => loadCustomModes());
+  const [modeEditorOpen, setModeEditorOpen] = useState(false);
+  const allModes = useMemo(() => listModes(customModes), [customModes]);
+  const activeModeId = settings.defaultSyncMode ?? "quick";
+  const activeMode = resolveMode(activeModeId, customModes) ?? BUILT_IN_MODES[1];
 
   // Overlays dismiss via system back before screen navigation does
   useOverlayBack("command-palette", commandPaletteOpen, () => setCommandPaletteOpen(false));
@@ -470,9 +485,10 @@ export default function LoginPage() {
     }
 
     try {
-      // Open the session before any network work so credential-phase hangs
-      // and failures also land in the visible log instead of nowhere.
-      openSyncSession("VTOP Sync");
+      // Initial login always runs the full sweep: every endpoint is pinged so
+      // all caches start warm. Later reloads use the default sync mode
+      // (quick out of the box) unless the user picks another.
+      openSyncSession("Full Sync");
       appendSyncLine("Verifying VTOP credentials…", "loading");
       const ids = loginIds ?? IDs;
       await syncEngine.login(ids as Ids, demoMode);
@@ -532,12 +548,19 @@ export default function LoginPage() {
 
       // Defer non-critical/secondary data fetches to the background — kept in
       // the same session so their results stay visible instead of logging
-      // nowhere. The sheet closes once they finish.
+      // nowhere. The sheet closes once they finish. Together with the
+      // foreground (attendanceMarks, studentProfile, core) this is the full
+      // sweep: every module is pinged on initial login.
       appendSyncLine("Starting background sync…", "info");
       (async () => {
         try {
           console.log("Starting background sync for non-critical data...");
 
+          // Cohort stats read the enrollment the foreground attendance just
+          // recorded, so they run first here — same ordering as the sweeps.
+          await syncEngine.sync("marksStats", {}).catch(() => {
+            appendSyncLine("Cohort statistics unavailable, keeping last synced records", "error");
+          });
           await syncEngine.sync("events", { demoMode });
           await syncEngine.sync("officialOd", { semesterId: currSemesterID });
           await syncEngine.sync("pastAttendance", {
@@ -546,6 +569,11 @@ export default function LoginPage() {
           });
           await syncEngine.sync("fresher");
           await syncEngine.sync("buses");
+          await syncEngine.sync("transport").catch(() => {});
+          await syncEngine.sync("lms", {
+            username: (ids as Ids).MoodleUsername as string | undefined,
+            pass: (ids as Ids).MoodlePassword as string | undefined,
+          });
           // The op itself never throws, so it cannot skip the ops below it.
           await syncEngine.sync("social", {
             proposedSemesterId: currSemesterID,
@@ -625,7 +653,11 @@ export default function LoginPage() {
   }, [settings]);
 
   // --- Event Handlers ---
-  const handleReloadRequest = useCallback(async (targetSemesterID?: string) => {
+  // `modeId` selects a sync mode (built-in or custom). Defaults to the user's
+  // preferred mode in settings. Quick runs attendance only; balanced/full run
+  // the classic sweep (full awaits the background tail); anything else runs
+  // generically through the engine so custom modes stay in one code path.
+  const handleReloadRequest = useCallback(async (targetSemesterID?: string, modeId?: string) => {
     const activeSem = targetSemesterID || settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2];
     if (targetSemesterID && targetSemesterID !== settings.currSemesterID) {
       setSettings(prev => {
@@ -634,6 +666,8 @@ export default function LoginPage() {
         return next;
       });
     }
+    const mode = resolveMode(modeId ?? settings.defaultSyncMode ?? "quick", customModes)
+      ?? BUILT_IN_MODES[1];
 
     if (demoMode) {
       const demoData = await (await fetch('/data/demoData.json')).json();
@@ -677,7 +711,7 @@ export default function LoginPage() {
     }
 
     setIsReloading(true);
-    openSyncSession("Reloading data");
+    openSyncSession(mode.label);
     localStorage.setItem("IDs", JSON.stringify(IDs));
 
     try {
@@ -698,6 +732,98 @@ export default function LoginPage() {
       }
 
       const { cookies, authorizedID, csrf } = await syncEngine.login(IDs, demoMode);
+
+      // Shared post-processing for engine attendance results: derived
+      // percentages/OD lists plus the cohort-drift log lines. The balanced
+      // path below has its own inline copy; these branches reuse this one.
+      const applyAttendanceResult = (attRes: any, marksRes: any) => {
+        setAttendanceAndOD(attRes);
+        setMarksData(marksRes as object);
+        const oldMarks = JSON.parse(localStorage.getItem("marks") || "{}");
+        syncMarksDiff(oldMarks, marksRes).then((r) => {
+          if (r.mismatches.length > 0) {
+            appendSyncLine(
+              `${r.mismatches.length} cohort receipt(s) changed unexpectedly — server state moved`,
+              "error"
+            );
+          }
+          if (r.frozen.length > 0) {
+            appendSyncLine(
+              `${r.frozen.length} contribution(s) pinned to an older sync (no local history)`,
+              "info"
+            );
+          }
+        });
+        localStorage.setItem("attendance", JSON.stringify(attRes));
+        localStorage.setItem("marks", JSON.stringify(marksRes));
+      };
+
+      // Quick Sync: attendance + marks only, nothing else.
+      if (mode.id === "quick") {
+        try {
+          const { attRes, marksRes } = await syncEngine.sync<any>("attendanceMarks", {
+            semesterId: activeSem,
+          });
+          applyAttendanceResult(attRes, marksRes);
+          await syncEngine.sync<void>("marksStats", {}).catch(() => {
+            appendSyncLine("Cohort statistics unavailable, keeping last synced records", "error");
+          });
+          setSyncProgress(100);
+          setIsLoggedIn(true);
+          setIsReloading(false);
+          closeSyncSession();
+        } catch (err) {
+          console.error(err);
+          appendSyncLine(err instanceof Error ? err.message : "Quick sync failed", "error");
+          setSyncProgress(0);
+          setIsReloading(false);
+          closeSyncSession(4000, "error");
+        }
+        return;
+      }
+
+      // Focused built-ins (academics, campus) and all custom modes run
+      // generically: the engine writes atoms + caches per op, and only the
+      // attendance-derived UI state needs applying here.
+      if (mode.id !== "balanced" && mode.id !== "full") {
+        try {
+          // setAttendanceAndOD diffs against the stored copy, so snapshot it
+          // before the engine overwrites it below.
+          const prevAttRaw = localStorage.getItem("attendance");
+          const cachedProfile = storage.profile.get() as any;
+          const res = await syncEngine.syncMode(mode.id, {
+            semesterId: activeSem,
+            calendarType: settings.calendarType,
+            isHosteller: cachedProfile?.isHosteller ?? false,
+            settings: settings as unknown as Record<string, unknown>,
+            demoMode,
+          });
+          const att = res.results.find((r) => r.op === "attendanceMarks")?.value as any;
+          if (att?.attRes) {
+            if (prevAttRaw) localStorage.setItem("attendance", prevAttRaw);
+            applyAttendanceResult(att.attRes, att.marksRes);
+          }
+          setSyncProgress(100);
+          setIsLoggedIn(true);
+          setIsReloading(false);
+          if (res.errors.length > 0) {
+            appendSyncLine(
+              `${res.errors.length} module${res.errors.length === 1 ? "" : "s"} had errors — kept last good data`,
+              "error"
+            );
+          } else {
+            appendSyncLine(`${mode.label} complete`, "success");
+          }
+          closeSyncSession();
+        } catch (err) {
+          console.error(err);
+          appendSyncLine(err instanceof Error ? err.message : "Login failed", "error");
+          setSyncProgress(0);
+          setIsReloading(false);
+          closeSyncSession(4000, "error");
+        }
+        return;
+      }
 
       // Unified through the engine op so start/done/error emit into the
       // session log (same shape as the raw call, plus retry semantics).
@@ -847,7 +973,7 @@ export default function LoginPage() {
       setIsReloading(false);
 
       appendSyncLine("Starting background sync…", "info");
-      (async () => {
+      const runBackgroundSync = async () => {
         try {
           // Fresher / EPT data
           const [eptRes, ackRes] = await Promise.all([
@@ -934,7 +1060,14 @@ export default function LoginPage() {
           appendSyncLine("Background sync had errors, continuing", "error");
           closeSyncSession();
         }
-      })();
+      };
+      // Full Sync awaits the background tail so progress is honest; every
+      // other mode parks it in the background behind the open sheet.
+      if (mode.id === "full") {
+        await runBackgroundSync();
+      } else {
+        void runBackgroundSync();
+      }
 
     } catch (err) {
       console.error(err);
@@ -943,7 +1076,7 @@ export default function LoginPage() {
       setIsReloading(false);
       closeSyncSession(4000, "error");
     }
-  }, [settings, config, demoMode, IDs, loginToVTOP, fetchTransportData, setAttendanceAndOD, handleLogin]);
+  }, [settings, config, demoMode, IDs, loginToVTOP, fetchTransportData, setAttendanceAndOD, handleLogin, customModes]);
 
   const handleLogOutRequest = useCallback(() => {
     const savedTheme = localStorage.getItem("theme") || theme || "light";
@@ -984,6 +1117,22 @@ export default function LoginPage() {
 
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [setCommandPaletteOpen]);
   const openShortcutsHelp = useCallback(() => setIsShortcutsHelpOpen(true), [setIsShortcutsHelpOpen]);
+
+  // Switching modes persists the preference AND re-runs the reload with it,
+  // so the sheet switcher is one tap, not two.
+  const persistDefaultSyncMode = useCallback((id: string) => {
+    setSettings(prev => {
+      const next = { ...prev, defaultSyncMode: id };
+      try {
+        localStorage.setItem("settings", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, [setSettings]);
+  const selectSyncMode = useCallback((id: string) => {
+    persistDefaultSyncMode(id);
+    void handleReloadRequest(undefined, id);
+  }, [persistDefaultSyncMode, handleReloadRequest]);
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -1460,7 +1609,19 @@ export default function LoginPage() {
       { id: "tool-grades-modal", label: "Grades Details Modal", description: "Open detailed grade breakdown", icon: "📊", category: "Tools", onSelect: () => setGradesDisplayIsOpen(true) },
       { id: "tool-marks-predictor", label: "Marks Predictor & Simulator", description: "Simulate test marks, weightage lost & FAT targets", icon: "📊", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("marks-predictor"); } },
       { id: "tool-feedback-status", label: "Feedback Status", description: "Check course feedback submission status", icon: "💬", category: "Tools", onSelect: () => setActiveTab("profile") },
-      { id: "tool-reload", label: "Reload All Data", description: "Refresh all data from VTOP", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
+      { id: "tool-reload", label: "Reload Data", description: "Refresh using the default sync mode", icon: "🔄", category: "Tools", onSelect: () => handleReloadRequest() },
+      { id: "tool-sync-quick", label: "Quick Sync", description: "Attendance & marks only", icon: "⚡", category: "Sync", onSelect: () => handleReloadRequest(undefined, "quick") },
+      { id: "tool-sync-balanced", label: "Balanced Sync", description: "Core data first, rest in background", icon: "🔄", category: "Sync", onSelect: () => handleReloadRequest(undefined, "balanced") },
+      { id: "tool-sync-full", label: "Full Sync", description: "Every module, awaited", icon: "📦", category: "Sync", onSelect: () => handleReloadRequest(undefined, "full") },
+      ...customModes.map((m) => ({
+        id: `tool-sync-custom-${m.id}`,
+        label: m.label,
+        description: m.description,
+        icon: "🧩",
+        category: "Sync",
+        onSelect: () => handleReloadRequest(undefined, m.id),
+      })),
+      { id: "tool-sync-manage", label: "Manage Sync Modes", description: "Create and edit custom sync modes", icon: "⚙️", category: "Sync", onSelect: () => setModeEditorOpen(true) },
       { id: "tool-tasks", label: "Tasks & Study Schedule", description: "View and manage homework, tests & weekly study chunks", icon: "✅", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("tasks"); } },
       { id: "tasks-quick-add", label: "Add New Task", description: "Create a new course-linked task, homework, or test", icon: "➕", category: "Tasks", onSelect: () => { setTasksQuickAddRequest({ title: "", nonce: Date.now() }); setActiveTab("tools"); setActiveToolsSubTab("tasks"); } },
     );
@@ -2361,7 +2522,7 @@ export default function LoginPage() {
     setActiveTab, setActiveSubTab, setHostelActiveSubTab, setActiveAttendanceSubTab, setActiveDayscholarSubTab, setActiveMoreSubTab,
     attendanceData, marksData, GradesData, AllGradesData, registeredEvents, eventHubEvents, ScheduleData, Calender, hostelData, moodleData, settings, config,
     ODhoursData, setGradesDisplayIsOpen, setSettings, handleReloadRequest, handleLogOutRequest, theme, setTheme,
-    setTasksQuickAddRequest
+    setTasksQuickAddRequest, customModes
   ]);
 
   return (
@@ -2413,6 +2574,12 @@ export default function LoginPage() {
             active={session.open}
             outcome={session.outcome}
             notice={session.notice}
+            modeId={activeModeId}
+            defaultModeId={activeModeId}
+            modes={allModes}
+            modeLabel={activeMode.label}
+            onSelectMode={selectSyncMode}
+            onOpenEditor={() => setModeEditorOpen(true)}
             onRetry={() => {
               handleReloadRequest();
             }}
@@ -2468,6 +2635,18 @@ export default function LoginPage() {
           setIDs(ids as typeof IDs);
           setCredEditorOpen(false);
           handleLogin(undefined, ids as Ids);
+        }}
+      />
+
+      <SyncModeEditor
+        open={modeEditorOpen}
+        onClose={() => setModeEditorOpen(false)}
+        onChanged={setCustomModes}
+        defaultId={activeModeId}
+        onSetDefault={persistDefaultSyncMode}
+        onRun={(id) => {
+          setModeEditorOpen(false);
+          selectSyncMode(id);
         }}
       />
 
@@ -2572,6 +2751,7 @@ export default function LoginPage() {
             onOpenShortcutsHelp={openShortcutsHelp}
             onSystemBack={goBack}
             onCollapseScreenChange={collapseLastScreenChange}
+            onRunSyncMode={selectSyncMode}
           />
             </>
           )}
