@@ -194,6 +194,14 @@ export default function MarksPredictorTab({
     credits: 3,
   };
 
+  // Cohort statistics for this course's assessments. Keyed by VTOP's class id —
+  // the same key the course marks subpage reads — so a class that has synced
+  // shows its per-assessment mean/spread here. Custom subjects have no class
+  // id, so there is nothing to resolve for them.
+  const activeMetaItem = enrolledCourses.find((c) => c.courseCode === activeCourseCode);
+  const classNbr = activeMetaItem?.theoryCourse?.classNbr || activeMetaItem?.labCourse?.classNbr;
+  const assessmentStats = classNbr ? marksStats?.[classNbr]?.assessments ?? null : null;
+
   // Compute prediction for active course
   const activePrediction: CoursePredictionResult = useMemo(() => {
     return computeCoursePrediction({
@@ -447,6 +455,7 @@ export default function MarksPredictorTab({
             <div className="overflow-hidden">
               <CoursePredictorHero
                 prediction={activePrediction}
+                assessmentStats={assessmentStats}
                 onOpenRegimenEditor={() => setIsRegimenEditorOpen(true)}
                 onResetCourse={handleResetCourse}
                 onScrollToSimulator={() => {}}

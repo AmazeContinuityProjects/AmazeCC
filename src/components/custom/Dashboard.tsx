@@ -1001,6 +1001,7 @@ function DashboardContent({
             <div className="animate-fadeIn">
               <ToolsTab
 marksData={marksData}
+                marksStats={marksStats}
                 allGradesData={allGradesData}
                 attendanceData={attendanceData}
                 loginToVTOP={loginToVTOP}

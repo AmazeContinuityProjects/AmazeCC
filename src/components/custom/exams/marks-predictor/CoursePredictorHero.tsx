@@ -4,12 +4,14 @@ import React from "react";
 import {
   Sliders,
   RotateCcw,
+  BarChart3,
 } from "lucide-react";
 import { CoursePredictionResult } from "@/lib/marksPredictor";
 import {
   GhostButton,
   ListRowText,
   ListShell,
+  SectionHeader,
   StatTile,
   ToneBadge,
   ToneDot,
@@ -19,14 +21,23 @@ import { LIST_ROW, TILE_CARD } from "@/lib/uiTokens";
 
 interface CoursePredictorHeroProps {
   prediction: CoursePredictionResult;
+  /**
+   * Cohort statistics for this course's assessments, keyed by VTOP title —
+   * the same `class_user_marks`-backed numbers the course marks subpage shows.
+   * Null when the class has not synced, or for a custom subject (no class id).
+   */
+  assessmentStats?: Record<string, { count: number; mean: number; sd: number }> | null;
   onOpenRegimenEditor: () => void;
   onResetCourse: () => void;
   onScrollToSimulator: () => void;
   onScrollToTargetSolver: () => void;
 }
 
+const fmtStat = (n: number) => (Number.isFinite(n) ? n.toFixed(1) : "—");
+
 export default function CoursePredictorHero({
   prediction,
+  assessmentStats,
   onOpenRegimenEditor,
   onResetCourse,
 }: CoursePredictorHeroProps) {
@@ -43,6 +54,7 @@ export default function CoursePredictorHero({
     maxPossibleScaled,
     theoryStats,
     labStats,
+    projectStats,
     estimatedGrade,
     ceilingGrade,
   } = prediction;
@@ -50,6 +62,17 @@ export default function CoursePredictorHero({
   const scoredPercent = Math.min(100, Math.max(0, currentScoredScaled));
   const pendingPercent = Math.min(100 - scoredPercent, Math.max(0, potentialPendingScaled));
   const lostPercent = Math.min(100 - (scoredPercent + pendingPercent), Math.max(0, pointsLostScaled));
+
+  // Which of this course's assessments the class has synced statistics for.
+  // Only those get a row — the rest are the same "not enough data" case the
+  // course marks subpage renders, and inventing a row for them would read as
+  // a number that isn't there.
+  const assessmentEntries: { asm: any; tone: "blue" | "emerald" | "violet" }[] = [
+    ...(theoryStats?.assessments ?? []).map((asm: any) => ({ asm, tone: "blue" as const })),
+    ...(labStats?.assessments ?? []).map((asm: any) => ({ asm, tone: "emerald" as const })),
+    ...(projectStats?.assessments ?? []).map((asm: any) => ({ asm, tone: "violet" as const })),
+  ];
+  const withStats = assessmentEntries.filter(({ asm }) => assessmentStats?.[asm.title]);
 
   return (
     <div className={`${TILE_CARD} w-full max-w-full space-y-3.5`}>
@@ -135,6 +158,32 @@ export default function CoursePredictorHero({
           <div style={{ width: `${lostPercent}%` }} className="h-full bg-red-500 dark:bg-red-600 transition-all duration-300" />
         </div>
       </div>
+
+      {/* Per-assessment cohort statistics.
+          Only the assessments this class has actually synced get a row; the
+          rest are the same "not enough data" case the marks subpage renders. */}
+      {withStats.length > 0 && (
+        <div className="space-y-2.5">
+          <SectionHeader icon={BarChart3} title="Assessment statistics" count={withStats.length} />
+          <p className="px-1 -mt-1 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+            Class mean and spread for each synced assessment.
+          </p>
+          <ListShell>
+            {withStats.map(({ asm, tone }) => {
+              const stat = assessmentStats?.[asm.title];
+              return (
+                <div key={asm.id} className={LIST_ROW}>
+                  <ToneDot tone={tone} />
+                  <ListRowText
+                    title={asm.title}
+                    subtitle={`${stat?.count ?? 0} samples · μ ${fmtStat(stat?.mean ?? 0)} · σ ${fmtStat(stat?.sd ?? 0)}`}
+                  />
+                </div>
+              );
+            })}
+          </ListShell>
+        </div>
+      )}
 
       {isEmbedded && (theoryStats || labStats) && (
         <ListShell>
