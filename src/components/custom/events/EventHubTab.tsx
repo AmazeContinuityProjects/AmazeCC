@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, clearEventHubSession, eventHubRequest } from "@/lib/sync-engine";
+import { clearEventHubSession, eventHubRequest } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
 import {
@@ -212,6 +213,23 @@ export default function EventHubTab({
     fetchEvents();
   }, []);
 
+  const dedupeEvents = (data: EventHubEvent[]) => {
+    // Deduplicate by eid
+    const uniqueEventsMap = new Map<string, EventHubEvent>();
+    (Array.isArray(data) ? data : []).forEach(event => {
+      if (!uniqueEventsMap.has(event.eid)) {
+        uniqueEventsMap.set(event.eid, { ...event });
+      } else {
+        const existing = uniqueEventsMap.get(event.eid)!;
+        // Join eligibilities if they differ
+        if (event.eligibility && existing.eligibility && !existing.eligibility.includes(event.eligibility)) {
+          existing.eligibility += `, ${event.eligibility}`;
+        }
+      }
+    });
+    return Array.from(uniqueEventsMap.values());
+  };
+
   const fetchEvents = async () => {
     setLoading(true);
     if (IDs?.VtopUsername === "demo") {
@@ -248,22 +266,24 @@ export default function EventHubTab({
       return;
     }
     try {
-      const data: EventHubEvent[] = (await api("events")) as EventHubEvent[];
-
-      // Deduplicate by eid
-      const uniqueEventsMap = new Map<string, EventHubEvent>();
-      data.forEach(event => {
-        if (!uniqueEventsMap.has(event.eid)) {
-          uniqueEventsMap.set(event.eid, { ...event });
-        } else {
-          const existing = uniqueEventsMap.get(event.eid)!;
-          // Join eligibilities if they differ
-          if (event.eligibility && existing.eligibility && !existing.eligibility.includes(event.eligibility)) {
-            existing.eligibility += `, ${event.eligibility}`;
-          }
-        }
+      // The engine `events` op pulls the public catalogue AND the user's
+      // registrations with session + expiry retry. The sheet always reaches
+      // 100 and closes; local state mirrors the result.
+      const res = await runPageSync<{ registeredEvents: any[]; eventHubEvents: EventHubEvent[] }>({
+        title: "Event Hub",
+        steps: [
+          {
+            op: "events",
+            apply: (r) => {
+              setEvents(dedupeEvents(r?.eventHubEvents ?? []));
+              if (r?.registeredEvents) setRegisteredEvents?.(r.registeredEvents);
+            },
+          },
+        ],
+        doneLine: "Event Hub events loaded",
       });
-      setEvents(Array.from(uniqueEventsMap.values()));
+      if (!res) return;
+      setError("");
     } catch (err: any) {
       setError(err.message || "An error occurred");
       clearEventHubSession();

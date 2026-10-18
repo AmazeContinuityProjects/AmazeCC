@@ -4,8 +4,9 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import BottomSheet from "../../shared/BottomSheet";
 import { CustomCourseMock } from "@/lib/marksPredictorStorage";
-
 import SelectField from "../../shared/primitives/SelectField";
+import { GhostButton } from "../../shared/primitives";
+import { FIELD_INPUT, TONE_ICON_TILE } from "@/lib/uiTokens";
 interface AddCustomCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -49,9 +50,9 @@ export default function AddCustomCourseModal({
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <span className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}>
               <Plus className="w-5 h-5" />
-            </div>
+            </span>
             <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
               Add Custom Subject
             </h3>
@@ -69,7 +70,7 @@ export default function AddCustomCourseModal({
               placeholder="e.g. BCSE302L"
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
-              className="mt-1 w-full px-3.5 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-900 dark:text-white uppercase placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`${FIELD_INPUT} mt-1 uppercase placeholder:normal-case`}
             />
           </div>
 
@@ -82,7 +83,7 @@ export default function AddCustomCourseModal({
               placeholder="e.g. Database Systems"
               value={courseTitle}
               onChange={(e) => setCourseTitle(e.target.value)}
-              className="mt-1 w-full px-3.5 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`${FIELD_INPUT} mt-1`}
             />
           </div>
 
@@ -104,7 +105,6 @@ export default function AddCustomCourseModal({
                   stacked
                   role="group"
                   aria-label="Course type"
-                  className="[&>button:first-child]:rounded-2xl [&>button:first-child]:text-xs"
                 />
           </div>
 
@@ -118,7 +118,7 @@ export default function AddCustomCourseModal({
                   max="4"
                   value={theoryCredits}
                   onChange={(e) => setTheoryCredits(parseInt(e.target.value) || 3)}
-                  className="mt-1 w-full px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-center text-zinc-900 dark:text-white"
+                  className={`${FIELD_INPUT} mt-1 text-center`}
                 />
               </div>
               <div>
@@ -129,20 +129,16 @@ export default function AddCustomCourseModal({
                   max="3"
                   value={labCredits}
                   onChange={(e) => setLabCredits(parseInt(e.target.value) || 1)}
-                  className="mt-1 w-full px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-center text-zinc-900 dark:text-white"
+                  className={`${FIELD_INPUT} mt-1 text-center`}
                 />
               </div>
             </div>
           )}
 
           <div className="flex items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs font-black transition-colors cursor-pointer"
-            >
+            <GhostButton onClick={onClose} title="Cancel without adding">
               Cancel
-            </button>
+            </GhostButton>
             <button
               type="submit"
               className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"

@@ -56,11 +56,9 @@ import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { buildMilestoneDates } from "@/lib/milestoneDates";
 import { useMemo } from "react";
 import {
-  ensureSyncSession,
   appendSyncLine,
-  setSyncProgress,
-  closeSyncSession,
 } from "@/lib/sync-engine/sync-session";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 
 function DashboardContent({
   demoMode = false,
@@ -335,11 +333,16 @@ function DashboardContent({
   const refreshTransportBuses = useCallback(async () => {
     setTransportBusesLoading(true);
     try {
-      const data = await api("buses") as any;
-      if (data.success) {
-        setTransportBuses(data.buses);
-        setDayscholarBuses(data.buses);
-        localStorage.setItem("cache_buses", JSON.stringify(data.buses));
+      // Engine `buses` op: public endpoint with retry, cached + logged, and
+      // the sheet always reaches 100 and closes.
+      const buses = await runPageSync<any[]>({
+        title: "Bus Routes",
+        steps: [{ op: "buses" }],
+        doneLine: "Bus routes fetched",
+      });
+      if (Array.isArray(buses) && buses.length > 0) {
+        setTransportBuses(buses);
+        setDayscholarBuses(buses);
       }
     } catch (e) {
       console.error("Failed to fetch transport buses:", e);
@@ -418,15 +421,17 @@ function DashboardContent({
 
   const handleAllGradesFetch = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching all grades…", "loading");
     try {
       // Single-op engine sync: credentials, retry and the session log come
-      // free. The op persists + publishes atoms itself.
-      const AllGradesData = await syncEngine.sync<any>("all-grades");
-      setSyncProgress(40);
-
-      setAllGradesData(AllGradesData);
+      // free, and the sheet always reaches 100 and closes. The op persists +
+      // publishes atoms itself; only the frozen past-semester view needs a
+      // refresh here.
+      const AllGradesData = await runPageSync<any>({
+        title: "All Grades",
+        steps: [{ op: "all-grades", apply: setAllGradesData }],
+        doneLine: "All grades reloaded successfully",
+      });
+      if (!AllGradesData) return;
 
       appendSyncLine("Loading past semester data from cache…", "info");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
@@ -441,88 +446,94 @@ function DashboardContent({
           setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
         })
         .catch(() => {});
-
-      appendSyncLine("All grades reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "All Grades fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleCalendarFetch = async (FncalendarType) => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching academic calendar…", "loading");
     try {
-      const CalenderRes = await syncEngine.sync<any>("calendar", {
-        type: FncalendarType || "ALL",
-        calendarType: FncalendarType || "ALL",
-        semesterId: settings.currSemesterID,
+      await runPageSync({
+        title: "Academic Calendar",
+        steps: [
+          {
+            op: "calendar",
+            args: {
+              type: FncalendarType || "ALL",
+              calendarType: FncalendarType || "ALL",
+              semesterId: settings.currSemesterID,
+            },
+            apply: setCalender,
+          },
+        ],
+        doneLine: "Calendar reloaded successfully",
       });
-      setSyncProgress(40);
-
-      setCalender(CalenderRes);
       setSettings(prev => ({ ...prev, calendarType: FncalendarType || "ALL" }))
       localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: FncalendarType }));
-
-      appendSyncLine("Calendar reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Calendar fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleFetchGrades = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching grades…", "loading");
     try {
-      const gradesData = await syncEngine.sync<any>("grades", {
-        semesterId: settings.currSemesterID,
+      await runPageSync({
+        title: "Grades",
+        steps: [
+          {
+            op: "grades",
+            args: { semesterId: settings.currSemesterID },
+            apply: setGradesData,
+          },
+        ],
+        doneLine: "Grades reloaded successfully",
       });
-      setSyncProgress(40);
-
-      setGradesData(gradesData);
-
-      appendSyncLine("Grades reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Grades fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
+    }
+  };
+
+  const handleFetchSchedule = async () => {
+    setIsReloading(true);
+    try {
+      await runPageSync({
+        title: "Exam Schedule",
+        steps: [
+          {
+            op: "schedule",
+            args: { semesterId: settings.currSemesterID },
+            apply: setScheduleData,
+          },
+        ],
+        doneLine: "Exam schedule reloaded successfully",
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleHostelDetailsFetch = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching hostel details…", "loading");
     try {
-      const HostelData = await syncEngine.sync<any>("hostel");
-      setSyncProgress(40);
-      sethostelData(HostelData);
-      appendSyncLine("Hostel details reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
+      await runPageSync({
+        title: "Hostel Details",
+        steps: [{ op: "hostel", apply: sethostelData }],
+        doneLine: "Hostel details reloaded successfully",
+      });
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Hostel details fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -531,29 +542,21 @@ function DashboardContent({
   const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching Moodle data…", "loading");
-    setSyncProgress(20);
     try {
       // The `lms` op merges `hidden` flags and persists itself; the result is
       // already the merged list.
-      const mergedData = await syncEngine.sync<any>("lms", { username, pass });
-      if (!Array.isArray(mergedData)) {
+      const mergedData = await runPageSync<any>({
+        title: "Moodle Data",
+        steps: [{ op: "lms", args: { username, pass }, apply: setMoodleData }],
+        doneLine: "Moodle data fetched successfully",
+      });
+      if (mergedData && !Array.isArray(mergedData)) {
         throw new Error("Moodle data came back in an unexpected shape");
       }
-      setSyncProgress(60);
-
-      setMoodleData(mergedData);
-
-      appendSyncLine("Moodle data fetched successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Moodle Data fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -751,7 +754,7 @@ function DashboardContent({
                   attendanceData={attendanceData}
                   marksData={marksData}
                   scheduleData={ScheduleData}
-                  handleScheduleFetch={handleSyncClick}
+                  handleScheduleFetch={handleFetchSchedule}
                   hostelData={hostelData}
                   registeredEvents={registeredEvents}
                   moodleData={moodleData}
@@ -975,7 +978,7 @@ function DashboardContent({
                 <div className="animate-fadeIn">
                   <ExamSchedule
                     data={ScheduleData}
-                    handleScheduleFetch={handleSyncClick}
+                    handleScheduleFetch={handleFetchSchedule}
                     onBack={() => setActiveSubTab("courses-simplified")}
                   />
                 </div>

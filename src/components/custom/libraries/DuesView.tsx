@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Receipt, RefreshCcw, TriangleAlert } from "lucide-react";
 import { api } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import { storage } from "@/lib/storage";
 import { DEMO_DUES } from "@/lib/libraries/demo";
 import { num, type LibraryDueResponse, type PatronTable } from "@/lib/libraries/koha";
@@ -115,6 +116,38 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
       setLoading(false);
     }
   }, [creds, isDemo]);
+
+  const refreshDues = useCallback(async () => {
+    if (isDemo) {
+      await load();
+      return;
+    }
+    // Exactly this screen's endpoint through the engine: session opens,
+    // progress hits 100, sheet closes. The op refreshes the same cache key
+    // `load()` reads, so state mirrors it afterwards.
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await runPageSync({
+        title: "Library Dues",
+        steps: [{ op: "bulk", args: { only: ["library-due"] } }],
+        doneLine: "Library dues reloaded successfully",
+      });
+      if (!res) return;
+      const fresh = (() => {
+        try {
+          return storage.cache.get("library-due") as unknown as LibraryDueResponse | null;
+        } catch {
+          return null;
+        }
+      })();
+      if (fresh) setData(fresh);
+    } catch (e: any) {
+      setError(e?.message || "Could not load dues");
+    } finally {
+      setLoading(false);
+    }
+  }, [isDemo, load]);
 
   useEffect(() => {
     void load();
@@ -248,7 +281,7 @@ export default function DuesView({ creds, isDemo, refreshKey, onTotals }: DuesVi
           try {
             storage.cache.remove("library-due");
           } catch {}
-          void load();
+          void refreshDues();
         }}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
       >
