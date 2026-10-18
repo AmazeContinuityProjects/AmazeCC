@@ -22,6 +22,7 @@ import {
   Target,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   EmptyPanel,
   IconButton,
@@ -302,6 +303,16 @@ export default function CurriculumPage({
   };
 
   // ─ Fetch Curriculum Data ─
+  // Shared ingest for the silent mount fetch and the engine-backed sync below.
+  // Persistence lives in the `curriculum` op; this only mirrors to state.
+  const ingestCurriculum = (result: any) => {
+    if (!result || result.success === false) return;
+    setCurricDetails(result.details || []);
+    setCurricCategories(result.categories || []);
+    setCurricTotal(result.totalCredits || 0);
+    if (result.pageCsrf) setPageCsrf(result.pageCsrf);
+  };
+
   const fetchCurriculumData = async (force = false) => {
     if (!force) {
       const cached = storage.curriculum.get() as any;
@@ -325,11 +336,8 @@ export default function CurriculumPage({
         headers: { "Content-Type": "application/json" },
         body: c,
       });
+      ingestCurriculum(result);
       if (result && result.success !== false) {
-        setCurricDetails(result.details || []);
-        setCurricCategories(result.categories || []);
-        setCurricTotal(result.totalCredits || 0);
-        if (result.pageCsrf) setPageCsrf(result.pageCsrf);
         storage.curriculum.set({
           details: result.details,
           categories: result.categories,
@@ -348,7 +356,14 @@ export default function CurriculumPage({
   const onSync = async () => {
     setIsSyncing(true);
     try {
-      await Promise.all([handleFetchGrades(), fetchCurriculumData(true)]);
+      // Grades first (its own reliable session via the prop), then exactly
+      // this page's curriculum endpoint — each reaches 100 and closes.
+      await handleFetchGrades();
+      await runPageSync({
+        title: "Curriculum",
+        steps: [{ op: "curriculum", apply: ingestCurriculum }],
+        doneLine: "Curriculum reloaded successfully",
+      }).catch(() => null);
     } finally {
       setIsSyncing(false);
     }

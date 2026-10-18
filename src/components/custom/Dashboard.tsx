@@ -23,7 +23,7 @@ import SimplifiedMobileHome from "./mobile/SimplifiedMobileHome";
 import AmazeOnboardingFlow, { InterfaceOptionId } from "./onboarding/AmazeOnboardingFlow";
 import AboutTab from "./AboutTab";
 
-import { api } from "@/lib/sync-engine";
+import { api, syncEngine } from "@/lib/sync-engine";
 import CourseDashboard from "./exams/CourseDashboard";
 import SimplifiedAcademicsPage from "./exams/SimplifiedAcademicsPage";
 import ToolsTab from "./tools/ToolsTab";
@@ -40,7 +40,7 @@ import LibrariesTab from "./libraries/LibrariesTab";
 import EventHubTab from "./events/EventHubTab";
 import ClubHubTab from "./clubs/ClubHubTab";
 import CommunityFeed from "./clubs/CommunityFeed";
-import { syncPastSemesters, loadFrozenPastSemesters } from "@/lib/pastDataSync";
+import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
 import CircularsTab from "./exams/CircularsTab";
 import FacultyInfoTab from "./exams/FacultyInfoTab";
@@ -56,12 +56,9 @@ import { buildAttendanceDayCardsMap } from "@/lib/attendanceTimetable";
 import { buildMilestoneDates } from "@/lib/milestoneDates";
 import { useMemo } from "react";
 import {
-  ensureSyncSession,
   appendSyncLine,
-  setSyncProgress,
-  closeSyncSession,
 } from "@/lib/sync-engine/sync-session";
-import { assertApiSuccess } from "@/lib/sync-engine/errors";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 
 function DashboardContent({
   demoMode = false,
@@ -81,6 +78,7 @@ function DashboardContent({
   activeDay,
   setActiveDay,
   marksData,
+  marksStats,
   activeSubTab,
   setActiveSubTab,
   ScheduleData,
@@ -121,7 +119,8 @@ function DashboardContent({
   onOpenCommandPalette,
   onOpenShortcutsHelp,
   onSystemBack,
-  onCollapseScreenChange
+  onCollapseScreenChange,
+  onRunSyncMode
 }) {
   const [showFresherWelcome, setShowFresherWelcome] = useState(false);
   const [fresherEptData, setFresherEptData] = useState<any>(null);
@@ -335,11 +334,16 @@ function DashboardContent({
   const refreshTransportBuses = useCallback(async () => {
     setTransportBusesLoading(true);
     try {
-      const data = await api("buses") as any;
-      if (data.success) {
-        setTransportBuses(data.buses);
-        setDayscholarBuses(data.buses);
-        localStorage.setItem("cache_buses", JSON.stringify(data.buses));
+      // Engine `buses` op: public endpoint with retry, cached + logged, and
+      // the sheet always reaches 100 and closes.
+      const buses = await runPageSync<any[]>({
+        title: "Bus Routes",
+        steps: [{ op: "buses" }],
+        doneLine: "Bus routes fetched",
+      });
+      if (Array.isArray(buses) && buses.length > 0) {
+        setTransportBuses(buses);
+        setDayscholarBuses(buses);
       }
     } catch (e) {
       console.error("Failed to fetch transport buses:", e);
@@ -418,125 +422,119 @@ function DashboardContent({
 
   const handleAllGradesFetch = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching all grades…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const AllGradesData = await api("all-grades", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf },
-      }) as any;
-      assertApiSuccess(AllGradesData, "All grades");
-      setSyncProgress(40);
-
-      setAllGradesData(AllGradesData);
-      localStorage.setItem("allGrades", JSON.stringify(AllGradesData));
+      // Single-op engine sync: credentials, retry and the session log come
+      // free, and the sheet always reaches 100 and closes. The op persists +
+      // publishes atoms itself; only the frozen past-semester view needs a
+      // refresh here.
+      const AllGradesData = await runPageSync<any>({
+        title: "All Grades",
+        steps: [{ op: "all-grades", apply: setAllGradesData }],
+        doneLine: "All grades reloaded successfully",
+      });
+      if (!AllGradesData) return;
 
       appendSyncLine("Loading past semester data from cache…", "info");
       setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
 
       // Fetch missing past semesters and update cache
-      syncPastSemesters(AllGradesData, { cookies, authorizedID, csrf }).then(() => {
-        setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
-      });
-
-      appendSyncLine("All grades reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
+      syncEngine
+        .sync("pastAttendance", {
+          semesterId: settings.currSemesterID,
+          allGradesRes: AllGradesData,
+        })
+        .then(() => {
+          setPastSemesterData(loadFrozenPastSemesters(AllGradesData));
+        })
+        .catch(() => {});
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "All Grades fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleCalendarFetch = async (FncalendarType) => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching academic calendar…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const CalenderRes = await api("calendar", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, type: FncalendarType || "ALL", semesterId: settings.currSemesterID },
-      }) as any;
-      assertApiSuccess(CalenderRes, "Academic calendar");
-      setSyncProgress(40);
-
-      setCalender(CalenderRes);
+      await runPageSync({
+        title: "Academic Calendar",
+        steps: [
+          {
+            op: "calendar",
+            args: {
+              type: FncalendarType || "ALL",
+              calendarType: FncalendarType || "ALL",
+              semesterId: settings.currSemesterID,
+            },
+            apply: setCalender,
+          },
+        ],
+        doneLine: "Calendar reloaded successfully",
+      });
       setSettings(prev => ({ ...prev, calendarType: FncalendarType || "ALL" }))
-      localStorage.setItem("calender", JSON.stringify(CalenderRes));
       localStorage.setItem("settings", JSON.stringify({ ...settings, calendarType: FncalendarType }));
-
-      appendSyncLine("Calendar reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Calendar fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleFetchGrades = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching grades…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const gradesData = await api("grades", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, semesterId: settings.currSemesterID },
-      }) as any;
-      assertApiSuccess(gradesData, "Grades");
-      setSyncProgress(40);
-
-      setGradesData(gradesData);
-      localStorage.setItem("grades", JSON.stringify(gradesData));
-
-      appendSyncLine("Grades reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
+      await runPageSync({
+        title: "Grades",
+        steps: [
+          {
+            op: "grades",
+            args: { semesterId: settings.currSemesterID },
+            apply: setGradesData,
+          },
+        ],
+        doneLine: "Grades reloaded successfully",
+      });
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Grades fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
+    }
+  };
+
+  const handleFetchSchedule = async () => {
+    setIsReloading(true);
+    try {
+      await runPageSync({
+        title: "Exam Schedule",
+        steps: [
+          {
+            op: "schedule",
+            args: { semesterId: settings.currSemesterID },
+            apply: setScheduleData,
+          },
+        ],
+        doneLine: "Exam schedule reloaded successfully",
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsReloading(false);
     }
   };
 
   const handleHostelDetailsFetch = async () => {
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching hostel details…", "loading");
     try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-
-      const HostelData = await api("hostel", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf },
-      }) as any;
-      assertApiSuccess(HostelData, "Hostel details");
-      setSyncProgress(40);
-      sethostelData(HostelData);
-      localStorage.setItem("hostel", JSON.stringify(HostelData));
-      appendSyncLine("Hostel details reloaded successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
+      await runPageSync({
+        title: "Hostel Details",
+        steps: [{ op: "hostel", apply: sethostelData }],
+        doneLine: "Hostel details reloaded successfully",
+      });
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Hostel details fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -545,42 +543,21 @@ function DashboardContent({
   const handleFetchMoodle = async (username = IDs.MoodleUsername, pass = IDs.MoodlePassword) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsReloading(true);
-    ensureSyncSession("VTOP Sync");
-    appendSyncLine("Fetching Moodle data…", "loading");
-    setSyncProgress(20);
     try {
-      const moodleData = await api("lms-data", {
-        method: "POST",
-        body: { username, pass },
-      }) as any;
-      assertApiSuccess(moodleData, "Moodle data");
-      if (!Array.isArray(moodleData)) {
+      // The `lms` op merges `hidden` flags and persists itself; the result is
+      // already the merged list.
+      const mergedData = await runPageSync<any>({
+        title: "Moodle Data",
+        steps: [{ op: "lms", args: { username, pass }, apply: setMoodleData }],
+        doneLine: "Moodle data fetched successfully",
+      });
+      if (mergedData && !Array.isArray(mergedData)) {
         throw new Error("Moodle data came back in an unexpected shape");
       }
-      setSyncProgress(60);
-
-      const prevData = JSON.parse(localStorage.getItem("moodleData") || "[]");
-
-      const mergedData = moodleData.map(item => {
-        const prevItem = prevData.find(p => p.url === item.url);
-        return {
-          ...item,
-          hidden: prevItem?.hidden ?? false,
-        };
-      });
-
-      setMoodleData(mergedData);
-      localStorage.setItem("moodleData", JSON.stringify(mergedData));
-
-      appendSyncLine("Moodle data fetched successfully", "success");
-      setSyncProgress(100);
-      setIsReloading(false);
-      closeSyncSession();
     } catch (err) {
       console.error(err);
-      appendSyncLine(err instanceof Error ? err.message : "Moodle Data fetch failed, check console.", "error");
-      setSyncProgress(0);
-      closeSyncSession(4000, "error");
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -778,7 +755,7 @@ function DashboardContent({
                   attendanceData={attendanceData}
                   marksData={marksData}
                   scheduleData={ScheduleData}
-                  handleScheduleFetch={handleSyncClick}
+                  handleScheduleFetch={handleFetchSchedule}
                   hostelData={hostelData}
                   registeredEvents={registeredEvents}
                   moodleData={moodleData}
@@ -1002,7 +979,7 @@ function DashboardContent({
                 <div className="animate-fadeIn">
                   <ExamSchedule
                     data={ScheduleData}
-                    handleScheduleFetch={handleSyncClick}
+                    handleScheduleFetch={handleFetchSchedule}
                     onBack={() => setActiveSubTab("courses-simplified")}
                   />
                 </div>
@@ -1011,6 +988,7 @@ function DashboardContent({
                 <div className="animate-fadeIn">
                   <MarksPredictorTab
                     marksData={marksData}
+                    marksStats={marksStats}
                     attendance={attendanceData?.attendance}
                     setActiveSubTab={setActiveSubTab}
                   />
@@ -1023,6 +1001,7 @@ function DashboardContent({
             <div className="animate-fadeIn">
               <ToolsTab
 marksData={marksData}
+                marksStats={marksStats}
                 allGradesData={allGradesData}
                 attendanceData={attendanceData}
                 loginToVTOP={loginToVTOP}
@@ -1242,6 +1221,7 @@ marksData={marksData}
                 }}
                 settings={settings}
                 setSettings={setSettings}
+                onRunSyncMode={onRunSyncMode}
               />
             </div>
           )}

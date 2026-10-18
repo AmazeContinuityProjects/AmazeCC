@@ -17,6 +17,7 @@ import {
   User,
 } from "lucide-react";
 import { api } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import BottomSheet from "../shared/BottomSheet";
 import {
   IconButton,
@@ -567,20 +568,39 @@ export default function LibrariesTab({ loginToVTOP, onBack }: LibrariesTabProps)
   }, []);
 
   const reload = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-    try {
-      const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (k.startsWith("cache_") || k.startsWith("uni_cc_generic_"))) keys.push(k);
+    void (async () => {
+      if (isDemo) {
+        setRefreshKey((k) => k + 1);
+        return;
       }
-      for (const k of keys) {
-        try {
-          localStorage.removeItem(k);
-        } catch {}
+      // Drop stale generic caches (as before), then refresh exactly this
+      // screen's endpoint through the engine and nudge DuesView to re-read
+      // the freshly written cache.
+      try {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith("cache_") || k.startsWith("uni_cc_generic_"))) keys.push(k);
+        }
+        for (const k of keys) {
+          try {
+            localStorage.removeItem(k);
+          } catch {}
+        }
+      } catch {}
+      try {
+        await runPageSync({
+          title: "Library Dues",
+          steps: [{ op: "bulk", args: { only: ["library-due"] } }],
+          doneLine: "Library dues reloaded successfully",
+        });
+      } catch {
+        /* error already logged in the sheet */
+      } finally {
+        setRefreshKey((k) => k + 1);
       }
-    } catch {}
-  }, []);
+    })();
+  }, [isDemo]);
 
   const sectionCount = (id: SectionId): number => {
     if (id === "catalog") return catalogTotal;

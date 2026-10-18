@@ -63,6 +63,13 @@ registerOp({
   name: "attendanceMarks",
   auth: "vtop",
   critical: true,
+  meta: {
+    label: "Attendance & Marks",
+    description: "Current-semester attendance and marks — the daily check.",
+    category: "academics",
+    cost: "heavy",
+    needsSemester: true,
+  },
   async run(ctx, args) {
     const semesterId = args?.semesterId as string;
     const data = await ctx.request(
@@ -98,6 +105,12 @@ registerOp({
 registerOp({
   name: "marksStats",
   auth: "vtop",
+  meta: {
+    label: "Cohort statistics",
+    description: "Per-class cohort marks stats, merged over cached terms.",
+    category: "academics",
+    cost: "medium",
+  },
   async run(ctx) {
     const ids = new Set<string>();
 
@@ -153,48 +166,235 @@ registerOp({
   },
 });
 
+// --- Core bundle children -------------------------------------------------
+//
+// Each module below is BOTH a standalone op (so sync modes can pick them
+// individually) AND the implementation `core` delegates to. The
+// `trackedRequest` child emits are identical either way, so the sync log
+// looks the same whether `grades` ran alone or inside `core`.
+
+async function fetchGrades(ctx: OpCtx, semesterId: string) {
+  return trackedRequest(ctx, "grades", () =>
+    ctx
+      .request("grades", { semesterId }, { auth: "vtop" })
+      .then((r: any) => (assertApiSuccess(r, "Grades"), r)),
+  );
+}
+
+async function fetchSchedule(ctx: OpCtx, semesterId: string) {
+  return trackedRequest(ctx, "schedule", () =>
+    ctx
+      .request("schedule", { semesterId }, { auth: "vtop" })
+      .then((r: any) => (assertApiSuccess(r, "Exam schedule"), r)),
+  );
+}
+
+async function fetchHostel(ctx: OpCtx) {
+  return trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }));
+}
+
+async function fetchCalendar(ctx: OpCtx, semesterId: string, calendarType: string) {
+  return trackedRequest(ctx, "calendar", () =>
+    ctx
+      .request("calendar", { type: calendarType, semesterId }, { auth: "vtop" })
+      .then((r: any) => (assertApiSuccess(r, "Academic calendar"), r)),
+  );
+}
+
+async function fetchAllGrades(ctx: OpCtx) {
+  return trackedRequest(ctx, "all-grades", () =>
+    ctx
+      .request("all-grades", {}, { auth: "vtop" })
+      .then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
+  );
+}
+
+async function fetchProfileImages(ctx: OpCtx) {
+  return trackedRequest(ctx, "profile-images", () =>
+    ctx
+      .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
+      .then(async (r: any) => (r?.success ? r : null))
+      .catch(() => null),
+  );
+}
+
+/** The six modules `core` bundles, in bundle order. */
+export const CORE_CHILD_OPS = [
+  "grades",
+  "schedule",
+  "hostel",
+  "calendar",
+  "all-grades",
+  "profile-images",
+] as const;
+
+export type CoreChildOp = (typeof CORE_CHILD_OPS)[number];
+
+function coreChildArgs(args: Record<string, unknown> | undefined): {
+  semesterId: string;
+  calendarType: string;
+  isHosteller: boolean;
+} {
+  return {
+    semesterId: args?.semesterId as string,
+    calendarType: (args?.calendarType as string) || "ALL",
+    isHosteller: args?.isHosteller as boolean,
+  };
+}
+
+registerOp({
+  name: "grades",
+  auth: "vtop",
+  meta: {
+    label: "Grades",
+    description: "Current-semester grades breakdown.",
+    category: "academics",
+    cost: "medium",
+    needsSemester: true,
+  },
+  async run(ctx, args) {
+    const res = await fetchGrades(ctx, args?.semesterId as string);
+    if (res !== null && res !== undefined) {
+      persist("grades", res);
+      ctx.bridge.setAtom(dataAtoms.gradesDataAtom, res);
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "schedule",
+  auth: "vtop",
+  meta: {
+    label: "Exam schedule",
+    description: "Exam timetable for the active semester.",
+    category: "academics",
+    cost: "medium",
+    needsSemester: true,
+  },
+  async run(ctx, args) {
+    const res = await fetchSchedule(ctx, args?.semesterId as string);
+    if (res !== null && res !== undefined) {
+      persist("schedule", res);
+      ctx.bridge.setAtom(dataAtoms.scheduleDataAtom, res);
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "hostel",
+  auth: "vtop",
+  meta: {
+    label: "Hostel details",
+    description: "Room, mess, laundry and leave data.",
+    category: "stay",
+    cost: "medium",
+  },
+  async run(ctx) {
+    const res = await fetchHostel(ctx);
+    if (res !== null && res !== undefined) {
+      persist("hostel", res);
+      ctx.bridge.setAtom(dataAtoms.hostelDataAtom, res);
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "calendar",
+  auth: "vtop",
+  meta: {
+    label: "Academic calendar",
+    description: "Milestone dates and academic calendar.",
+    category: "academics",
+    cost: "medium",
+    needsSemester: true,
+  },
+  async run(ctx, args) {
+    const { semesterId, calendarType } = coreChildArgs(args);
+    const res = await fetchCalendar(ctx, semesterId, calendarType);
+    if (res !== null && res !== undefined) {
+      persist("calendar", res);
+      ctx.bridge.setAtom(dataAtoms.calendarDataAtom, res);
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "all-grades",
+  auth: "vtop",
+  meta: {
+    label: "All grades history",
+    description: "Every semester's grades — feeds past-semester caches.",
+    category: "academics",
+    cost: "medium",
+  },
+  async run(ctx) {
+    const res = await fetchAllGrades(ctx);
+    if (res !== null && res !== undefined) {
+      persist("allGrades", res);
+      ctx.bridge.setAtom(dataAtoms.allGradesDataAtom, res);
+    }
+    return res;
+  },
+});
+
+registerOp({
+  name: "profile-images",
+  auth: "vtop",
+  meta: {
+    label: "Profile images",
+    description: "Best-effort profile photos; never fails a sync.",
+    category: "profile",
+    cost: "light",
+  },
+  async run(ctx) {
+    const res = await fetchProfileImages(ctx);
+    if (res) persist("profileImages", res);
+    return res;
+  },
+});
+
 // core data: grades / schedule / hostel / calendar / allGrades / profileImages
 registerOp({
   name: "core",
   auth: "vtop",
   critical: true,
+  meta: {
+    label: "Core data bundle",
+    description: "Grades, schedule, hostel, calendar, history and photos in one bundle.",
+    category: "profile",
+    cost: "heavy",
+    needsSemester: true,
+  },
   async run(ctx, args) {
-    const semesterId = args?.semesterId as string;
-    const calendarType = (args?.calendarType as string) || "ALL";
-    const isHosteller = args?.isHosteller as boolean;
+    const { semesterId, calendarType, isHosteller } = coreChildArgs(args);
+    // Granular subset: `syncMode("academics")` and custom modes pass
+    // `only` to fetch some modules without the whole bundle.
+    const only = args?.only as string[] | undefined;
+    const wanted = new Set<CoreChildOp>(
+      only && only.length > 0
+        ? (only.filter((n) => (CORE_CHILD_OPS as readonly string[]).includes(n)) as CoreChildOp[])
+        : [...CORE_CHILD_OPS],
+    );
+    const runOrSkip = <T>(name: CoreChildOp, fn: () => Promise<T>): Promise<T | null> =>
+      wanted.has(name) ? fn() : Promise.resolve(null);
     // Settle independently: one failing module must not take down the whole
     // bundle, and failures already emitted their own child error lines above.
     const [gradesSettled, scheduleSettled, hostelSettled, calendarSettled, allGradesSettled, profileImagesSettled] =
       await Promise.allSettled([
-        trackedRequest(ctx, "grades", () =>
-          ctx
-            .request("grades", { semesterId }, { auth: "vtop" })
-            .then((r: any) => (assertApiSuccess(r, "Grades"), r)),
-        ),
-        trackedRequest(ctx, "schedule", () =>
-          ctx
-            .request("schedule", { semesterId }, { auth: "vtop" })
-            .then((r: any) => (assertApiSuccess(r, "Exam schedule"), r)),
-        ),
-        isHosteller
-          ? trackedRequest(ctx, "hostel", () => ctx.request("hostel", {}, { auth: "vtop" }))
-          : Promise.resolve({}),
-        trackedRequest(ctx, "calendar", () =>
-          ctx
-            .request("calendar", { type: calendarType, semesterId }, { auth: "vtop" })
-            .then((r: any) => (assertApiSuccess(r, "Academic calendar"), r)),
-        ),
-        trackedRequest(ctx, "all-grades", () =>
-          ctx
-            .request("all-grades", {}, { auth: "vtop" })
-            .then((r: any) => (assertApiSuccess(r, "All grades history"), r)),
-        ),
-        trackedRequest(ctx, "profile-images", () =>
-          ctx
-            .request("profile-images", {}, { auth: "vtop", retry: { max: 0 } })
-            .then(async (r: any) => (r?.success ? r : null))
-            .catch(() => null),
-        ),
+        runOrSkip("grades", () => fetchGrades(ctx, semesterId)),
+        runOrSkip("schedule", () => fetchSchedule(ctx, semesterId)),
+        wanted.has("hostel")
+          ? isHosteller
+            ? fetchHostel(ctx)
+            : Promise.resolve({})
+          : Promise.resolve(null),
+        runOrSkip("calendar", () => fetchCalendar(ctx, semesterId, calendarType)),
+        runOrSkip("all-grades", () => fetchAllGrades(ctx)),
+        runOrSkip("profile-images", () => fetchProfileImages(ctx)),
       ]);
     const gradesRes = settledValue(gradesSettled);
     const scheduleRes = settledValue(scheduleSettled);
@@ -228,6 +428,13 @@ registerOp({
 registerOp({
   name: "officialOd",
   auth: "vtop",
+  meta: {
+    label: "Official OD records",
+    description: "On-duty records for the active semester.",
+    category: "campus",
+    cost: "light",
+    needsSemester: true,
+  },
   async run(ctx, args) {
     const semesterId = args?.semesterId as string;
     if (!semesterId) return null;
@@ -249,6 +456,12 @@ registerOp({
 registerOp({
   name: "studentProfile",
   auth: "vtop",
+  meta: {
+    label: "Profile details",
+    description: "Student profile; publishes the active reg number.",
+    category: "profile",
+    cost: "light",
+  },
   async run(ctx) {
     try {
       const data = await ctx.request("student", {}, { auth: "vtop", retry: { max: 0 } });
@@ -271,6 +484,13 @@ registerOp({
 registerOp({
   name: "pastAttendance",
   auth: "vtop",
+  meta: {
+    label: "Past semester attendance",
+    description: "Freezes attendance for every older semester.",
+    category: "profile",
+    cost: "heavy",
+    needsSemester: true,
+  },
   async run(ctx, args) {
     const allGradesRes = (args?.allGradesRes as { grades?: Record<string, unknown> }) || (storage.allGrades.get() as any) || {};
     const currSemesterID = args?.semesterId as string;
@@ -292,6 +512,12 @@ registerOp({
 registerOp({
   name: "fresher",
   auth: "vtop",
+  meta: {
+    label: "Fresher / EPT data",
+    description: "EPT schedule and acknowledgement records.",
+    category: "campus",
+    cost: "light",
+  },
   async run(ctx) {
     try {
       const [eptRes, ackRes] = await Promise.all([
@@ -309,12 +535,20 @@ registerOp({
 registerOp({
   name: "buses",
   auth: "none",
+  meta: {
+    label: "Bus routes",
+    description: "Public bus routes — no login needed.",
+    category: "stay",
+    cost: "light",
+  },
   async run(ctx) {
     try {
       const data = await ctx.request("buses", undefined, { method: "GET", auth: "none", retry: { max: 1 } });
       if (data?.success) storage.cache.set("buses", data.buses);
+      return data?.buses ?? null;
     } catch {
       /* fail silently */
+      return null;
     }
   },
 });
@@ -322,6 +556,12 @@ registerOp({
 registerOp({
   name: "transport",
   auth: "vtop",
+  meta: {
+    label: "Transport data",
+    description: "Transport registration for the student.",
+    category: "stay",
+    cost: "medium",
+  },
   async run(ctx) {
     const data = await ctx.request("transport", {}, { auth: "vtop" });
     persist("transportData", data);
@@ -332,6 +572,12 @@ registerOp({
 registerOp({
   name: "events",
   auth: "eventhub",
+  meta: {
+    label: "Registered events",
+    description: "Event Hub registrations plus the public catalogue.",
+    category: "campus",
+    cost: "medium",
+  },
   async run(ctx, args) {
     const ids = ctx.ids;
     const demoMode = args?.demoMode as boolean;
@@ -393,9 +639,40 @@ registerOp({
   },
 });
 
+/** Bulk endpoints gated by `syncAdditionalData` (registrations). */
+export const BULK_ADDITIONAL_ENDPOINTS = [
+  "exc-registration",
+  "minor-honour",
+  "course-completion",
+] as const;
+
+/** Bulk endpoints gated by `syncProfileData` (profile + payments + library). */
+export const BULK_PROFILE_ENDPOINTS = [
+  "credentials",
+  "registration-schedule",
+  "dayboarder",
+  "bank-info",
+  "library-due",
+  "hostel-counselling",
+  "payments",
+  "payment-receipts",
+  "wallet",
+] as const;
+
+export const ALL_BULK_ENDPOINTS: readonly string[] = [
+  ...BULK_ADDITIONAL_ENDPOINTS,
+  ...BULK_PROFILE_ENDPOINTS,
+];
+
 registerOp({
   name: "bulk",
   auth: "vtop",
+  meta: {
+    label: "Additional records cache",
+    description: "Registrations, credentials, library dues and payments cache.",
+    category: "profile",
+    cost: "heavy",
+  },
   async run(ctx, args) {
     const settings = (args?.settings as Record<string, unknown>) || {};
     const bulkEndpoints: string[] = [];
@@ -417,8 +694,15 @@ registerOp({
         "wallet",
       );
     }
+    // Granular subset: custom modes pass `only` to cache some endpoints
+    // without the whole sweep. Unknown names are dropped, never fetched.
+    const only = args?.only as string[] | undefined;
+    const wanted =
+      only && only.length > 0
+        ? bulkEndpoints.filter((p) => only.includes(p))
+        : bulkEndpoints;
     await Promise.allSettled(
-      bulkEndpoints.map((path) =>
+      wanted.map((path) =>
         ctx
           .request(path, {}, { auth: "vtop", retry: { max: 0 } })
           .then((data: any) => {
@@ -432,18 +716,95 @@ registerOp({
           .catch(() => {}),
       ),
     );
+    return { endpoints: wanted };
   },
 });
 
 registerOp({
   name: "lms",
   auth: "vtop",
-  async run(ctx) {
+  meta: {
+    label: "Moodle data",
+    description: "LMS courses and deadlines. Needs Moodle credentials when passed.",
+    category: "academics",
+    cost: "heavy",
+  },
+  async run(ctx, args) {
     try {
-      return await ctx.request("lms-data", {}, { auth: "vtop", retry: { max: 0 } });
+      // Callers with explicit Moodle credentials (Dashboard refresh) pass them
+      // through; otherwise the server resolves the linked account itself.
+      const username = args?.username as string | undefined;
+      const pass = (args?.pass ?? args?.password) as string | undefined;
+      const body: Record<string, unknown> =
+        username && pass ? { username, pass } : {};
+      const res = await ctx.request("lms-data", body, { auth: "vtop", retry: { max: 0 } });
+      if (Array.isArray(res)) {
+        // Preserve per-course `hidden` flags across refreshes.
+        try {
+          const prev = JSON.parse(localStorage.getItem("moodleData") || "[]");
+          const merged = res.map((item: any) => {
+            const prevItem = Array.isArray(prev)
+              ? prev.find((p: any) => p?.url === item?.url)
+              : undefined;
+            return { ...item, hidden: prevItem?.hidden ?? false };
+          });
+          localStorage.setItem("moodleData", JSON.stringify(merged));
+          ctx.bridge.setAtom(dataAtoms.moodleDataAtom, merged);
+          return merged;
+        } catch {
+          /* fall through with the raw payload */
+        }
+      }
+      if (res !== null && res !== undefined) ctx.bridge.setAtom(dataAtoms.moodleDataAtom, res);
+      return res;
     } catch {
       return null;
     }
+  },
+});
+
+registerOp({
+  name: "circulars",
+  auth: "vtop",
+  meta: {
+    label: "Circulars",
+    description: "Official circulars and announcements.",
+    category: "campus",
+    cost: "light",
+  },
+  async run(ctx) {
+    const res = await ctx.request("circulars", {}, { auth: "vtop", retry: { max: 1 } });
+    assertApiSuccess(res, "Circulars");
+    try {
+      storage.cache.set("circulars", res);
+    } catch {}
+    return res;
+  },
+});
+
+registerOp({
+  name: "curriculum",
+  auth: "vtop",
+  meta: {
+    label: "Curriculum data",
+    description: "Degree credit baskets, catalog and planner source.",
+    category: "academics",
+    cost: "medium",
+  },
+  async run(ctx) {
+    const res = await ctx.request("curriculum", {}, { auth: "vtop", retry: { max: 1 } });
+    assertApiSuccess(res, "Curriculum data");
+    if (res && typeof res === "object") {
+      try {
+        storage.curriculum.set({
+          details: (res as any).details,
+          categories: (res as any).categories,
+          totalCredits: (res as any).totalCredits,
+          pageCsrf: (res as any).pageCsrf,
+        });
+      } catch {}
+    }
+    return res;
   },
 });
 
@@ -462,6 +823,13 @@ registerOp({
 registerOp({
   name: "social",
   auth: "vtop",
+  meta: {
+    label: "Friends & groups",
+    description: "Pushes your timetable, pulls peers and grant secrets.",
+    category: "social",
+    cost: "medium",
+    needsSemester: true,
+  },
   async run(ctx, args) {
     // Demo mode hands back authorizedID "DEMO123" and no real session, so the
     // route would 401 and put a bogus failure in the sheet. See

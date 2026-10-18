@@ -16,6 +16,7 @@ import {
   StatTile,
   TitleBlock,
   ToneBadge,
+  ToneDot,
   ToneLegend,
   useCarousel,
   type InsightSlide,
@@ -27,7 +28,7 @@ import {
   TONE_ICON_TILE,
   TONE_TEXT,
 } from "@/lib/uiTokens";
-import { toneForGrade } from "@/lib/gradeHistory";
+import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -35,6 +36,7 @@ import {
   FileText as FileTextIcon, Sparkles, CheckSquare, Plus, ShieldCheck, StickyNote
 } from "lucide-react";
 import { useAtom } from "jotai";
+import { cn } from "@amazecontinuityprojects/amazeui";
 import { tasksAtom, marksStatsAtom } from "@/store/dataAtoms";
 import { createTask } from "@/lib/tasksStorage";
 import TaskEditSheet from "../tasks/TaskEditSheet";
@@ -132,6 +134,43 @@ const GRADE_BAR: Record<string, string> = {
   N: "bg-zinc-400",
   P: "bg-violet-500",
 };
+
+/**
+ * One history entry's letter, score and bar tone. Shared by the hero tiles,
+ * the across-terms list and the detail below so the three cannot disagree.
+ */
+function historyLetter(h: any): string {
+  return h.grade || h.courseGrade || "";
+}
+
+function historyScore(h: any): number | null {
+  const g = Number(h.grandTotal);
+  if (Number.isFinite(g) && g > 0) return g;
+  const details = Array.isArray(h.details) ? h.details : [];
+  let scored = 0;
+  let max = 0;
+  for (const d of details) {
+    const s = Number(d.scoredMark);
+    const m = Number(d.maxMark);
+    if (Number.isFinite(s) && Number.isFinite(m) && m > 0) {
+      scored += s;
+      max += m;
+    }
+  }
+  return max > 0 ? (scored / max) * 100 : null;
+}
+
+function historyTermLabel(semester: string): string {
+  if (semester === "Current") return "Current semester";
+  return formatSemesterName(semester || "") || "Unknown semester";
+}
+
+function scoreBarTone(score: number | null): string {
+  if (score == null) return "bg-zinc-300 dark:bg-zinc-700";
+  if (score >= 80) return "bg-emerald-500";
+  if (score >= 65) return "bg-amber-500";
+  return "bg-red-500";
+}
 
 /**
  * A grade band's wash inside the ladder bar. At 15% these read as one
@@ -929,8 +968,10 @@ export default function CourseDetailSubpage({
 
   // Assessments the server holds that this device cannot update — no local previous
   // mark to state, so they stand as recorded. Counted per course for the badge below;
-  // see `syncMarksDiff` for how the list is produced.
-  const frozenCount = useMemo(() => {
+  // see `syncMarksDiff` for how the list is produced. Computed inline (not memoized):
+  // the list is a handful of keys, and a memo would need a reactive trigger that
+  // isn't actually read — which is exactly what the exhaustive-deps rule forbids.
+  const frozenCount = (() => {
     if (!selectedGroup) return 0;
     const ids = new Set(
       [selectedGroup.theory?.classNbr, selectedGroup.lab?.classNbr].filter(
@@ -942,7 +983,7 @@ export default function CourseDetailSubpage({
       const sep = k.indexOf("::");
       return sep > 0 && ids.has(k.slice(0, sep));
     }).length;
-  }, [selectedGroup, allStats]);
+  })();
 
   const isSelectedPastSemester = selectedGroup?.semesterSubId && selectedGroup.semesterSubId !== "Current";
   let selectedPastGrade = "";
@@ -1373,6 +1414,33 @@ export default function CourseDetailSubpage({
     return history.filter((v, i, a) => a.findIndex(t => t.semester === v.semester) === i);
   }, [selectedGroup, allGradesData]);
 
+  // Grade-history tab state: which term is open. A stale id (course switch)
+  // falls back to the latest term, so no reset effect is needed.
+  const [activeHistoryTerm, setActiveHistoryTerm] = useState<string | null>(null);
+  const latestHistory = useMemo(
+    () =>
+      courseGradeHistory.find((h) => h.semester === "Current") ??
+      courseGradeHistory[courseGradeHistory.length - 1] ??
+      null,
+    [courseGradeHistory],
+  );
+  const activeHistory = useMemo(
+    () => courseGradeHistory.find((h) => h.semester === activeHistoryTerm) ?? latestHistory,
+    [courseGradeHistory, activeHistoryTerm, latestHistory],
+  );
+  const bestHistory = useMemo(() => {
+    let best: any = null;
+    let bestPts = -2;
+    for (const h of courseGradeHistory) {
+      const pts = gradePoints(historyLetter(h)) ?? -1;
+      if (pts > bestPts) {
+        best = h;
+        bestPts = pts;
+      }
+    }
+    return best;
+  }, [courseGradeHistory]);
+
   const renderAssessmentTable = (assessments: any[], typeLabel: string) => {
     if (!assessments || assessments.length === 0) return null;
     const totals = getAssessmentTotals(assessments);
@@ -1683,54 +1751,17 @@ export default function CourseDetailSubpage({
                 </p>
               </div>
             </details>
-            {isRelative && stats && stats.count > 0 && stats.count < 30 && (
-              <div className="flex items-center gap-2 px-1">
-                <ToneBadge tone="amber">{stats.count} samples</ToneBadge>
-                <span className="text-[11px] text-text-muted font-medium">
-                  Relative predictions stay rough until more peers sync.
-                </span>
-              </div>
-            )}
             {frozenCount > 0 && (
               <div className="flex items-center gap-2 px-1">
                 <ToneBadge tone="zinc">{frozenCount} pinned</ToneBadge>
                 <span className="text-[11px] text-text-muted font-medium">
-                  These assessments stand as recorded — this device has no earlier mark
-                  to update them from. Syncing from a device with full history unpins them.
+                  Stand as recorded — no earlier mark on this device to update from.
                 </span>
               </div>
             )}
           </div>
 
-            <div className="space-y-3">
-            {isRelative ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <StatTile
-                  label="Samples"
-                  value={stats ? String(stats.count) : "—"}
-                  badge="Class"
-                  tone="neutral"
-                  sub="peers synced"
-                  height="h-28"
-                />
-                <StatTile
-                  label="Mean"
-                  value={stats ? formatNumber(stats.mean) : "—"}
-                  badge="Class"
-                  tone="neutral"
-                  sub="average score"
-                  height="h-28"
-                />
-                <StatTile
-                  label="Std Dev"
-                  value={stats ? formatNumber(stats.sd) : "—"}
-                  badge="Spread"
-                  tone="neutral"
-                  sub="class deviation"
-                  height="h-28"
-                />
-              </div>
-            ) : (
+            {!isRelative && (
               <div className={`${TILE_CARD} flex items-center gap-3.5`}>
                 <span className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
                   <ShieldCheck className="h-5 w-5" />
@@ -1746,7 +1777,6 @@ export default function CourseDetailSubpage({
                 </div>
               </div>
             )}
-            </div>
 
             <div className="space-y-4">
                 {(() => {
@@ -1821,15 +1851,27 @@ export default function CourseDetailSubpage({
                             statsMissing ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null
                           }
                         />
-                        <p className="px-1 -mt-1 text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
-                          {isRelative
-                            ? "Bands are drawn from your class's mean and spread, so they move as more peers sync."
-                            : "Fixed percentage boundaries. The widest band is where the most marks sit."}
-                        </p>
                         {/* One proportional bar rather than seven stacked rows: on a
                             phone a row per grade is a wall of scrolling, and the
                             only thing each row said was a letter and a number. */}
                         <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
+                          {isRelative && (
+                            <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                              <ToneDot tone={statsMissing ? "zinc" : stats.count < 30 ? "amber" : "emerald"} />
+                              {statsMissing ? (
+                                <span>No class data yet — showing default bands</span>
+                              ) : (
+                                <span>
+                                  <span className="font-bold text-text-heading">{stats.count}</span>{" "}
+                                  {stats.count === 1 ? "peer" : "peers"}
+                                  <span aria-hidden="true"> · </span>μ{" "}
+                                  <span className="font-bold text-text-heading">{formatNumber(stats.mean)}</span>
+                                  <span aria-hidden="true"> · </span>σ{" "}
+                                  <span className="font-bold text-text-heading">{formatNumber(stats.sd)}</span>
+                                </span>
+                              )}
+                            </p>
+                          )}
                           <div className="flex h-10 w-full gap-0.5 overflow-hidden">
                             {boundaries.map((b) => (
                               <div
@@ -1868,57 +1910,55 @@ export default function CourseDetailSubpage({
                       <div className="space-y-3">
                         <SectionHeader icon={Target} title="Target grade" />
                         <ListShell>
-                          <div className={LIST_ROW}>
-                            <span className="w-32 shrink-0">
-                              <SelectField
-                                value={targetGrade}
-                                onChange={(val) => setTargetGrade(val)}
-                                options={["S", "A", "B", "C", "D", "E"].map((g) => ({
-                                  value: g,
-                                  label: `Grade ${g}`,
-                                }))}
-                                searchable={false}
-                                size="md"
-                                stacked
-                                role="group"
-                                aria-label="Target grade"
-                              />
-                            </span>
-                            <span className="min-w-0 flex-1 space-y-1.5">
-                              <ListRowText
-                                title={
-                                  remainingWeightagePoints <= 0
-                                    ? "Target achieved"
-                                    : remainingWeightagePoints > (100 - currentWeightPercent)
-                                      ? "Out of reach"
-                                      : "Points still needed"
-                                }
-                                subtitle={`Needs ${targetBoundary}% · you are on ${currentPct.toFixed(1)}% of the ${currentWeightPercent.toFixed(0)} points released`}
-                              />
-                              <MiniBar
-                                pct={Math.max(0, Math.min(100, currentPct))}
-                                tone={
-                                  remainingWeightagePoints <= 0
-                                    ? "bg-emerald-500"
-                                    : remainingWeightagePoints > (100 - currentWeightPercent)
-                                      ? "bg-red-500"
-                                      : "bg-indigo-500"
-                                }
-                              />
-                            </span>
-                            <span className="shrink-0">
-                              {remainingWeightagePoints <= 0 ? (
-                                <ToneBadge tone="emerald" size="lg" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-                                  Achieved
-                                </ToneBadge>
-                              ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
-                                <ToneBadge tone="red" size="lg">Impossible</ToneBadge>
-                              ) : (
-                                <ToneBadge tone="indigo" size="lg">
-                                  +{remainingWeightagePoints.toFixed(1)} pts
-                                </ToneBadge>
-                              )}
-                            </span>
+                          <div className="p-4 space-y-3">
+                            <SelectField
+                              value={targetGrade}
+                              onChange={(val) => setTargetGrade(val)}
+                              options={["S", "A", "B", "C", "D", "E"].map((g) => ({
+                                value: g,
+                                label: `Grade ${g}`,
+                              }))}
+                              searchable={false}
+                              size="lg"
+                              stacked
+                              role="group"
+                              aria-label="Target grade"
+                            />
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="min-w-0 truncate text-sm font-bold text-text-heading font-outfit tracking-tight">
+                                {remainingWeightagePoints <= 0
+                                  ? "Target achieved"
+                                  : remainingWeightagePoints > (100 - currentWeightPercent)
+                                    ? "Out of reach"
+                                    : "Points still needed"}
+                              </p>
+                              <span className="shrink-0">
+                                {remainingWeightagePoints <= 0 ? (
+                                  <ToneBadge tone="emerald" size="lg" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
+                                    Achieved
+                                  </ToneBadge>
+                                ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
+                                  <ToneBadge tone="red" size="lg">Impossible</ToneBadge>
+                                ) : (
+                                  <ToneBadge tone="indigo" size="lg">
+                                    +{remainingWeightagePoints.toFixed(1)} pts
+                                  </ToneBadge>
+                                )}
+                              </span>
+                            </div>
+                            <MiniBar
+                              pct={Math.max(0, Math.min(100, currentPct))}
+                              tone={
+                                remainingWeightagePoints <= 0
+                                  ? "bg-emerald-500"
+                                  : remainingWeightagePoints > (100 - currentWeightPercent)
+                                    ? "bg-red-500"
+                                    : "bg-indigo-500"
+                              }
+                            />
+                            <p className="text-[11px] font-medium text-text-secondary dark:text-text-muted">
+                              Needs {targetBoundary}% · you&apos;re on {currentPct.toFixed(1)}% of the {currentWeightPercent.toFixed(0)} points released
+                            </p>
                           </div>
                         </ListShell>
                       </div>
@@ -2158,9 +2198,10 @@ export default function CourseDetailSubpage({
         <CourseQBankTab courseCode={selectedCode} username={creds?.authorizedID || "unknown"} />
       )}
 
-{/* GRADES HISTORY */}
+{/* GRADES HISTORY — same grammar as the overall Grade History page: hero
+    tiles, an across-terms list, and the open term's assessments + scale. */}
       {innerTab === "grades" && (
-        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <SectionHeader
             icon={BookOpen}
             title="Grade history"
@@ -2173,88 +2214,168 @@ export default function CourseDetailSubpage({
               description="Once VTOP publishes a result for this course, every term and its breakdown collects here."
             />
           ) : (
-            <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-border-muted dark:before:border-border before:from-transparent before:via-border-muted before:to-transparent">
-              {courseGradeHistory.map((gh: any, idx: number) => {
-                const isCurrent = gh.semester === "Current";
-                const letter = gh.grade || gh.courseGrade || "N/A";
-                return (
-                  <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-surface dark:border-background bg-surface dark:bg-surface-secondary text-indigo-500 shadow-xs shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 transition-transform duration-300 group-hover:scale-110">
-                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                    </div>
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <StatTile
+                  label="Latest"
+                  value={latestHistory ? historyLetter(latestHistory) || "—" : "—"}
+                  badge={
+                    latestHistory ? historyTermLabel(latestHistory.semester) : undefined
+                  }
+                  tone={latestHistory ? toneForGrade(historyLetter(latestHistory)) : "neutral"}
+                  sub={
+                    latestHistory && historyScore(latestHistory) != null
+                      ? `${historyScore(latestHistory)!.toFixed(1)}% recorded`
+                      : "No score published"
+                  }
+                />
+                <StatTile
+                  label="Best"
+                  value={bestHistory ? historyLetter(bestHistory) || "—" : "—"}
+                  badge={
+                    bestHistory ? historyTermLabel(bestHistory.semester) : undefined
+                  }
+                  tone={bestHistory ? toneForGrade(historyLetter(bestHistory)) : "neutral"}
+                  sub={
+                    bestHistory
+                      ? `${courseGradeHistory.length} term${courseGradeHistory.length === 1 ? "" : "s"} on record`
+                      : "No grades yet"
+                  }
+                />
+              </div>
 
-                    <div className={`${TILE_CARD} w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] hover:shadow-xs transition-all duration-300`}>
-                      <div className="flex justify-between items-start gap-3">
-                        <div className="min-w-0">
-                          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 truncate">
-                            {isCurrent ? "Current semester" : formatSemesterName(gh.semester || "") || "Unknown semester"}
-                          </p>
-                          <p className="text-sm font-bold text-text-heading font-outfit truncate">
-                            {gh.courseTitle || selectedGroup?.courseTitle}
-                          </p>
+              <div className="space-y-3">
+                <SectionHeader
+                  icon={Activity}
+                  title="Across terms"
+                  count={courseGradeHistory.length}
+                />
+                <ListShell>
+                  {courseGradeHistory.map((gh: any, idx: number) => {
+                    const letter = historyLetter(gh);
+                    const score = historyScore(gh);
+                    const isActive =
+                      activeHistory != null && gh.semester === activeHistory.semester;
+                    return (
+                      <button
+                        key={`${gh.semester}-${idx}`}
+                        type="button"
+                        onClick={() => setActiveHistoryTerm(gh.semester)}
+                        className={`${LIST_ROW} cursor-pointer`}
+                      >
+                        <span className="w-28 shrink-0 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                          {historyTermLabel(gh.semester)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <MiniBar pct={score ?? 0} tone={scoreBarTone(score)} />
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-16 text-right",
+                            isActive
+                              ? "text-indigo-600 dark:text-indigo-400"
+                              : "text-zinc-800 dark:text-zinc-100"
+                          )}
+                        >
+                          {score != null ? `${score.toFixed(1)}%` : "—"}
+                        </span>
+                        <ToneBadge tone={toneForGrade(letter)}>{letter || "—"}</ToneBadge>
+                      </button>
+                    );
+                  })}
+                </ListShell>
+              </div>
+
+              {activeHistory != null && (
+                <div className="space-y-6">
+                  {(() => {
+                    const gh = activeHistory;
+                    const letter = historyLetter(gh);
+                    const details = Array.isArray(gh.details)
+                      ? [...gh.details].sort(
+                          (a: any, b: any) =>
+                            (Number(b.weightagePercent) || 0) -
+                            (Number(a.weightagePercent) || 0)
+                        )
+                      : [];
+                    const rangeEntries =
+                      gh.range && typeof gh.range === "object"
+                        ? Object.entries(gh.range)
+                        : [];
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          <SectionHeader
+                            icon={FileText}
+                            title={`${historyTermLabel(gh.semester)} · assessments`}
+                            count={details.length}
+                          />
+                          {details.length === 0 ? (
+                            <EmptyPanel
+                              variant="dashed"
+                              title="No assessment breakdown"
+                              description="VTOP published a final grade for this term without the per-assessment marks behind it."
+                            />
+                          ) : (
+                            <ListShell>
+                              {details.map((d: any, dIdx: number) => (
+                                <div
+                                  key={`${d.component}-${dIdx}`}
+                                  className="flex items-center gap-3 py-2.5 px-4"
+                                >
+                                  <ListRowText
+                                    title={d.component}
+                                    subtitle={
+                                      d.weightagePercent != null
+                                        ? `${d.weightagePercent}% weightage`
+                                        : (d.type || "Theory")
+                                    }
+                                  />
+                                  <span className="shrink-0 text-sm font-black font-outfit text-zinc-800 dark:text-zinc-100">
+                                    {d.scoredMark ?? "-"}
+                                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 ml-0.5">
+                                      /{d.maxMark ?? "-"}
+                                    </span>
+                                  </span>
+                                </div>
+                              ))}
+                            </ListShell>
+                          )}
                         </div>
-                        <ToneBadge tone={toneForGrade(letter)} size="lg">
-                          {letter}
-                        </ToneBadge>
-                      </div>
 
-                      {gh.details && gh.details.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-border-muted dark:border-border">
-                          <div className="space-y-4">
-                            {(() => {
-                               const types = Array.from(new Set(gh.details.map((d: any) => d.type || "Theory")));
-                               const showLabels = types.length > 1;
-                               return types.map((typeLabel: any) => {
-                                 const typeDetails = gh.details.filter((d: any) => (d.type || "Theory") === typeLabel);
-                                 return (
-                                   <div key={typeLabel}>
-                                     {showLabels && (
-                                       <h5 className="mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
-                                         {typeLabel}
-                                       </h5>
-                                     )}
-                                     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                                       {typeDetails.map((detail: any, dIdx: number) => (
-                                         <KeyValue
-                                           key={dIdx}
-                                           label={detail.component}
-                                           value={`${detail.scoredMark} / ${detail.maxMark}`}
-                                         />
-                                       ))}
-                                     </div>
-                                   </div>
-                                 );
-                               });
-                            })()}
+                        {rangeEntries.length > 0 && (
+                          <div className="space-y-3">
+                            <SectionHeader
+                              icon={Gauge}
+                              title="Grade scale"
+                              count={rangeEntries.length}
+                            />
+                            <ListShell>
+                              {rangeEntries.map(([grade, rangeStr]: any) => (
+                                <div key={grade} className={LIST_ROW}>
+                                  <span className="w-14 shrink-0">
+                                    <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
+                                  </span>
+                                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 truncate">
+                                    {String(rangeStr)}
+                                  </span>
+                                  {String(grade).toUpperCase() ===
+                                    String(letter ?? "").toUpperCase() && (
+                                    <ToneBadge tone="indigo" className="ml-auto">
+                                      Yours
+                                    </ToneBadge>
+                                  )}
+                                </div>
+                              ))}
+                            </ListShell>
                           </div>
-                        </div>
-                      )}
-
-                      {gh.range && (
-                        <div className="mt-4 pt-4 border-t border-border-muted dark:border-border space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-                            Grade ranges
-                          </p>
-                          <ListShell>
-                            {Object.entries(gh.range).map(([grade, rangeStr]: any, rIdx: number) => (
-                              <div key={rIdx} className={LIST_ROW}>
-                                <span className="w-10 shrink-0">
-                                  <ToneBadge tone={toneForGrade(grade)}>{grade}</ToneBadge>
-                                </span>
-                                <span className="min-w-0 flex-1" />
-                                <span className="shrink-0 text-[11px] font-bold text-text-secondary dark:text-text-muted truncate">
-                                  {rangeStr as string}
-                                </span>
-                              </div>
-                            ))}
-                          </ListShell>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

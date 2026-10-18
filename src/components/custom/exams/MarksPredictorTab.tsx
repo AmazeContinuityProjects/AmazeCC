@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Sparkles } from "lucide-react";
-import SubpageLayout from "../shared/SubpageLayout";
+import { FlaskConical, RotateCcw } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import PageHeader from "../shared/PageHeader";
-import Badge from "../shared/Badge";
+import { GhostButton, PageShell, SectionHeader, ToneBadge } from "../shared/primitives";
+import { TILE_CARD } from "@/lib/uiTokens";
 import CourseSelectorStrip, { EnrolledCourseItem } from "./marks-predictor/CourseSelectorStrip";
 import CoursePredictorHero from "./marks-predictor/CoursePredictorHero";
 import AssessmentRegimenEditor from "./marks-predictor/AssessmentRegimenEditor";
@@ -33,6 +32,7 @@ import {
 
 interface MarksPredictorTabProps {
   marksData: any;
+  marksStats?: Record<string, any>;
   attendance?: any[];
   setActiveSubTab?: (subTab: string) => void;
   initialCourseCode?: string;
@@ -40,6 +40,7 @@ interface MarksPredictorTabProps {
 
 export default function MarksPredictorTab({
   marksData,
+  marksStats = {},
   attendance = [],
   setActiveSubTab,
   initialCourseCode,
@@ -192,6 +193,14 @@ export default function MarksPredictorTab({
     courseType: "Theory Only",
     credits: 3,
   };
+
+  // Cohort statistics for this course's assessments. Keyed by VTOP's class id —
+  // the same key the course marks subpage reads — so a class that has synced
+  // shows its per-assessment mean/spread here. Custom subjects have no class
+  // id, so there is nothing to resolve for them.
+  const activeMetaItem = enrolledCourses.find((c) => c.courseCode === activeCourseCode);
+  const classNbr = activeMetaItem?.theoryCourse?.classNbr || activeMetaItem?.labCourse?.classNbr;
+  const assessmentStats = classNbr ? marksStats?.[classNbr]?.assessments ?? null : null;
 
   // Compute prediction for active course
   const activePrediction: CoursePredictionResult = useMemo(() => {
@@ -404,24 +413,14 @@ export default function MarksPredictorTab({
   };
 
   return (
-    <SubpageLayout
-      title="Marks Predictor & Simulator"
+    <PageShell
+      eyebrow="Academics · Simulator"
+      title="Marks Predictor"
+      subtitle="Test what-if scores and see exactly what each remaining assessment can still earn."
       onBack={() => setActiveSubTab && setActiveSubTab("overview")}
+      actions={<ToneBadge tone="indigo">What-if</ToneBadge>}
     >
       <div className="w-full max-w-3xl mx-auto space-y-3.5 pb-12 animate-in fade-in duration-200 text-left select-none overflow-hidden">
-        {/* Page Header — mirrors SimplifiedAcademicsPage philosophy: minimal, single row */}
-        <PageHeader
-          icon={<Sparkles className="w-5 h-5 text-indigo-500" />}
-          title="Marks Predictor & Simulator"
-          meta={
-            <Badge
-              variant="default"
-              className="rounded-xl border border-zinc-200/50 font-semibold dark:border-zinc-800/80 bg-zinc-50/20 text-zinc-600 dark:text-zinc-300"
-            >
-              Academic AI Simulator
-            </Badge>
-          }
-        />
 
         {/* Course Pills Strip */}
         <CourseSelectorStrip
@@ -456,6 +455,7 @@ export default function MarksPredictorTab({
             <div className="overflow-hidden">
               <CoursePredictorHero
                 prediction={activePrediction}
+                assessmentStats={assessmentStats}
                 onOpenRegimenEditor={() => setIsRegimenEditorOpen(true)}
                 onResetCourse={handleResetCourse}
                 onScrollToSimulator={() => {}}
@@ -484,25 +484,34 @@ export default function MarksPredictorTab({
               <TargetGradeSolver prediction={activePrediction} />
             </div>
 
-            {/* What-If Scenario Simulator — mirrors SimplifiedAcademicsPage pill: rounded-[24px], tighter padding */}
-            <div className="p-3.5 sm:p-4 rounded-[24px] border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 shadow-2xs space-y-3 overflow-hidden">
-              <div className="flex flex-col gap-1 min-w-0">
-                <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit truncate">
-                  Interactive What-If Marks Simulator
-                </h3>
-                <p className="text-[11px] text-zinc-400 font-medium leading-snug">
-                  Drag sliders or input test marks to simulate hypothetical final outcomes
-                </p>
-              </div>
-
-              <WhatIfSimulator
-                theoryStats={activePrediction.theoryStats}
-                labStats={activePrediction.labStats}
-                projectStats={activePrediction.projectStats}
-                onUpdateScoredMark={handleUpdateScoredMark}
-                onBatchSimulate={handleBatchSimulate}
-                onClearSimulations={handleClearSimulations}
+            {/* What-if simulator */}
+            <div className="space-y-3">
+              <SectionHeader
+                icon={FlaskConical}
+                title="What-if simulator"
+                count={
+                  (activePrediction.theoryStats?.assessments.length ?? 0) +
+                  (activePrediction.labStats?.assessments.length ?? 0)
+                }
+                right={
+                  <GhostButton onClick={handleClearSimulations} title="Clear simulations">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Clear
+                  </GhostButton>
+                }
               />
+              <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+                Drag sliders or type test marks to simulate hypothetical final outcomes.
+              </p>
+              <div className={TILE_CARD}>
+                <WhatIfSimulator
+                  theoryStats={activePrediction.theoryStats}
+                  labStats={activePrediction.labStats}
+                  projectStats={activePrediction.projectStats}
+                  onUpdateScoredMark={handleUpdateScoredMark}
+                  onBatchSimulate={handleBatchSimulate}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -518,6 +527,6 @@ export default function MarksPredictorTab({
           )}
         </AnimatePresence>
       </div>
-    </SubpageLayout>
+    </PageShell>
   );
 }

@@ -77,6 +77,8 @@ import AboutBody from "./AboutBody";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, Modal, useIsMobile } from "../shared";
+import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
+import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
 import { useTheme } from "next-themes";
 import { AnimatePresence, m } from "framer-motion";
@@ -87,6 +89,7 @@ export type SectionId =
   | "preferences"
   | "academic"
   | "sync"
+  | "sync-modes"
   | "navigation"
   | "advanced"
   | "about";
@@ -164,6 +167,14 @@ export const SECTIONS: SectionConfig[] = [
     icon: RefreshCcw,
     iconBg: "bg-emerald-500/10 dark:bg-emerald-500/20",
     iconColor: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    id: "sync-modes",
+    label: "Sync Modes",
+    subtitle: "Quick, balanced and full sweeps plus your own custom modes",
+    icon: Sliders,
+    iconBg: "bg-violet-500/10 dark:bg-violet-500/20",
+    iconColor: "text-violet-600 dark:text-violet-400",
   },
   {
     id: "navigation",
@@ -249,6 +260,7 @@ export default function ProfilePage({
   onCardClick,
   onCredentialsClick,
   onReload,
+  onRunSyncMode,
   settings,
   setSettings,
   mode = "settings",
@@ -353,6 +365,8 @@ export default function ProfilePage({
   const [lmsPassword, setLmsPassword] = useState("");
   const [showLmsPassword, setShowLmsPassword] = useState(false);
   const [lmsSaved, setLmsSaved] = useState(false);
+  const [modeEditorOpen, setModeEditorOpen] = useState(false);
+  const [customSyncModes, setCustomSyncModes] = useState<SyncMode[]>(() => loadCustomModes());
 
   // `resolvedTheme` is the theme actually rendered — `theme` is undefined until
   // next-themes mounts, so reading it for a summary value would flash "Light"
@@ -781,6 +795,9 @@ export default function ProfilePage({
       sync: {
         value: sync === "off" ? "Manual" : sync === "15m" ? "15 min" : sync === "30m" ? "30 min" : "1 hour",
       },
+      "sync-modes": {
+        value: `${resolveMode(settings?.defaultSyncMode || "quick", customSyncModes)?.label ?? "Quick Sync"}${customSyncModes.length > 0 ? ` · ${customSyncModes.length} custom` : ""}`,
+      },
       navigation: {
         value: `${(settings?.pinnedNavTabs ?? []).length} pinned`,
       },
@@ -789,6 +806,8 @@ export default function ProfilePage({
     };
   }, [
     settings?.autoSyncInterval,
+    settings?.defaultSyncMode,
+    customSyncModes,
     settings?.pinnedNavTabs,
     isLoggedIn,
     theme,
@@ -1995,6 +2014,40 @@ export default function ProfilePage({
     </div>
   );
 
+  // 4b. Sync Modes page: default picker plus the full editor inline.
+  const renderSyncModesPage = () => (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 space-y-5 shadow-2xs">
+        <div>
+          <h3 className="text-sm font-extrabold text-zinc-900 dark:text-white font-outfit">
+            Default Sync Mode
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Used by the reload button, the sync sheet and the command palette. The
+            starred mode below is the current default — picking here, starring a
+            row, or tapping a mode in the sync sheet all change it.
+          </p>
+        </div>
+        <SelectField
+          value={settings?.defaultSyncMode || "quick"}
+          onChange={(val) => updateSetting("defaultSyncMode", val)}
+          options={listModes(customSyncModes).map((m) => ({
+            value: m.id,
+            label: m.builtIn ? m.label : `${m.label} (custom)`,
+          }))}
+        />
+      </div>
+
+      <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-2xs">
+        <SyncModeEditorContent
+          onChanged={setCustomSyncModes}
+          defaultId={settings?.defaultSyncMode || "quick"}
+          onSetDefault={(id) => updateSetting("defaultSyncMode", id)}
+          onRun={onRunSyncMode}
+        />
+      </div>
+    </div>
+  );
   // 4. Data Sync Section
   const renderSyncContent = () => (
     <div className="space-y-6">
@@ -2046,6 +2099,49 @@ export default function ProfilePage({
             className="shrink-0"
           />
         </div>
+
+        {/* Default Sync Mode */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Default Sync Mode
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Quick for daily checks, Balanced for routine reloads, Full for a complete sweep — or
+              one of your custom modes
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <SelectField
+              value={settings?.defaultSyncMode || "quick"}
+              onChange={(val) => updateSetting("defaultSyncMode", val)}
+              options={listModes(customSyncModes).map((m) => ({
+                value: m.id,
+                label: m.builtIn ? m.label : `${m.label} (custom)`,
+              }))}
+              className="shrink-0"
+            />
+            <button
+              onClick={() => {
+                setCustomSyncModes(loadCustomModes());
+                setModeEditorOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-extrabold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40 hover:bg-indigo-100 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Manage
+            </button>
+          </div>
+        </div>
+        {modeEditorOpen && (
+          <SyncModeEditor
+            open={modeEditorOpen}
+            onClose={() => setModeEditorOpen(false)}
+            onChanged={setCustomSyncModes}
+            defaultId={settings?.defaultSyncMode || "quick"}
+            onSetDefault={(id) => updateSetting("defaultSyncMode", id)}
+            onRun={onRunSyncMode}
+          />
+        )}
 
         {/* Sync Toggles List */}
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
@@ -2442,6 +2538,8 @@ export default function ProfilePage({
         return renderAcademicContent();
       case "sync":
         return renderSyncContent();
+      case "sync-modes":
+        return renderSyncModesPage();
       case "navigation":
         return renderNavigationContent();
       case "advanced":

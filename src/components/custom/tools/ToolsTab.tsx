@@ -29,6 +29,7 @@ import TasksTab from "../tasks/TasksTab";
 
 interface ToolsTabProps {
   marksData: any;
+  marksStats?: Record<string, any>;
   allGradesData?: any;
   attendanceData?: any;
   loginToVTOP?: any;
@@ -49,6 +50,7 @@ interface ToolsTabProps {
 
 export default function ToolsTab({
   marksData,
+  marksStats,
   allGradesData,
   attendanceData,
   loginToVTOP,
@@ -94,6 +96,7 @@ export default function ToolsTab({
           <div className="animate-fadeIn">
             <MarksPredictorTab
               marksData={marksData}
+              marksStats={marksStats}
               attendance={attendanceData?.attendance}
               setActiveSubTab={setActiveToolsSubTab}
             />

@@ -21,6 +21,7 @@ export function useSync(name?: string) {
     status: status as ProgressEvent,
     sync,
     syncAll: syncEngine.syncAll.bind(syncEngine),
+    syncMode: syncEngine.syncMode.bind(syncEngine),
     login: syncEngine.login.bind(syncEngine),
     logout: syncEngine.logout.bind(syncEngine),
     editCredentials: syncEngine.editCredentials.bind(syncEngine),

@@ -112,6 +112,71 @@ describe('sync session lifecycle', () => {
   });
 });
 
+describe('rejected credentials', () => {
+  it('keeps the sheet open when the run died on the saved password', () => {
+    openSyncSession('Full Sync');
+    appendSyncLine('Verifying VTOP credentials…', 'loading');
+    appendSyncLine('Invalid Username / Password', 'error');
+    closeSyncSession(4000, 'error');
+
+    vi.runAllTimers();
+
+    // The sheet is where the change-password prompt and CTA live; a timed
+    // close would take them away before the student could act on them.
+    expect(isSyncSessionOpen()).toBe(true);
+    expect(getSyncSessionSnapshot().outcome).toBe('error');
+
+    // The X is the way out.
+    dismissSyncSession();
+    expect(isSyncSessionOpen()).toBe(false);
+  });
+
+  it('still auto-closes ordinary errors', () => {
+    openSyncSession('VTOP Sync');
+    appendSyncLine('Core data bundle failed — HTTP 500', 'error');
+    closeSyncSession(4000, 'error');
+
+    expect(isSyncSessionOpen()).toBe(true);
+    vi.advanceTimersByTime(4000);
+    expect(isSyncSessionOpen()).toBe(false);
+  });
+
+  it('holds the sheet open for a sign-in rejected with no usable reason', () => {
+    openSyncSession('Full Sync');
+    appendSyncLine('Login failed', 'error');
+    closeSyncSession(4000, 'error');
+
+    vi.runAllTimers();
+
+    // This one is sent to the VTOP portal, so its CTA needs to be reachable.
+    expect(isSyncSessionOpen()).toBe(true);
+  });
+
+  it('only holds for failures a different password could fix', async () => {
+    const { classifyAuthFailure } = await import('../lib/sync-engine/errors');
+
+    // The server named the credential as wrong: the saved password is the fix.
+    expect(classifyAuthFailure('Invalid Username / Password')).toBe('bad-credentials');
+    expect(classifyAuthFailure('Username or password is incorrect')).toBe('bad-credentials');
+    expect(classifyAuthFailure('Login failed — stopped retrying… Use \'Edit credentials\' to fix it.')).toBe(
+      'bad-credentials'
+    );
+
+    // Rejected, but the reason is not a wrong password: only VTOP knows.
+    expect(classifyAuthFailure('Login failed')).toBe('unknown');
+    expect(classifyAuthFailure('Authentication failed')).toBe('unknown');
+    expect(classifyAuthFailure('Too many failed login attempts')).toBe('unknown');
+    expect(classifyAuthFailure('Account locked, try again later')).toBe('unknown');
+    expect(classifyAuthFailure('Captcha required')).toBe('unknown');
+
+    // Not a sign-in failure at all.
+    expect(classifyAuthFailure('Core data bundle failed — HTTP 500')).toBe(null);
+    expect(classifyAuthFailure('Network request failed')).toBe(null);
+    expect(classifyAuthFailure(undefined)).toBe(null);
+    expect(classifyAuthFailure('')).toBe(null);
+  });
+});
+
 describe('offline notice', () => {
   it('opens the sheet flagged as a notice rather than a run', () => {
     openOfflineSyncSession();

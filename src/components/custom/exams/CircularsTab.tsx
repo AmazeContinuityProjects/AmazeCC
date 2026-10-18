@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import SubpageLayout from "../shared/SubpageLayout";
 import { Skeleton } from "@amazecontinuityprojects/amazeui";
 import BottomSheet from "../shared/BottomSheet";
@@ -133,6 +134,42 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
   const [error, setError] = useState<string | null>(null);
   const [newCirculars, setNewCirculars] = useState<CircularItem[]>([]);
 
+  // Shared ingest: seen-tracking + persistence for both the silent mount
+  // fetch and the engine-backed refresh below.
+  const ingestCirculars = (result: any) => {
+    setData(result);
+
+    const seenStr = localStorage.getItem(LS_SEEN_KEY);
+    const seenIds = seenStr ? JSON.parse(seenStr) as string[] : [];
+    const currentIds = flattenIds(result.circulars || []);
+    const newIds = currentIds.filter(id => !seenIds.includes(id));
+    if (newIds.length > 0) {
+      const newItems = collectByIds(result.circulars || [], new Set(newIds));
+      if (newItems.length > 0) setNewCirculars(newItems);
+    }
+
+    localStorage.setItem(LS_SEEN_KEY, JSON.stringify(currentIds));
+    localStorage.setItem(LS_KEY, JSON.stringify(result));
+  };
+
+  // Header reload + error retry: exactly this screen's endpoint through the
+  // engine — session opens, progress hits 100, sheet closes.
+  const refreshCirculars = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await runPageSync<any>({
+        title: "Circulars",
+        steps: [{ op: "circulars", apply: ingestCirculars }],
+        doneLine: "Circulars reloaded successfully",
+      });
+      if (!res) return;
+    } catch (e: any) {
+      setError(e?.message ?? "Could not reach VTOP.");
+    } finally {
+      setLoading(false);
+    }
+  };
   const fetchData = async (c: Creds, force = false) => {
     if (!force) {
       try {
@@ -157,21 +194,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
         body: { cookies, authorizedID, csrf },
       }) as any;
       if (result.success === false) setError(result.error || "Failed to load");
-      else {
-        setData(result);
-
-        const seenStr = localStorage.getItem(LS_SEEN_KEY);
-        const seenIds = seenStr ? JSON.parse(seenStr) as string[] : [];
-        const currentIds = flattenIds(result.circulars || []);
-        const newIds = currentIds.filter(id => !seenIds.includes(id));
-        if (newIds.length > 0) {
-          const newItems = collectByIds(result.circulars || [], new Set(newIds));
-          if (newItems.length > 0) setNewCirculars(newItems);
-        }
-
-        localStorage.setItem(LS_SEEN_KEY, JSON.stringify(currentIds));
-        localStorage.setItem(LS_KEY, JSON.stringify(result));
-      }
+      else ingestCirculars(result);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -205,7 +228,9 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
   // function renders a button that swallows the tap and does nothing.
   const leave = onBack ?? (() => setActiveTab?.("attendance"));
 
-  if (!creds || loading) {
+  // Engine refreshes carry their own session, so data on screen is enough to
+  // render even before the credentialed mount fetch resolves.
+  if ((!creds && !data) || loading) {
     return (
       <SubpageLayout title="Circulars" onBack={leave}>
         {error ? (
@@ -217,17 +242,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">{error}</p>
             <button
               onClick={() => {
-                setError(null);
-                setLoading(true);
-                loginToVTOP()
-                  .then((c) => {
-                    setCreds(c);
-                    return fetchData(c, true);
-                  })
-                  .catch((e) => {
-                    setError(e?.message ?? "Could not reach VTOP.");
-                    setLoading(false);
-                  });
+                void refreshCirculars();
               }}
               className="mt-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold uppercase tracking-wider transition-colors cursor-pointer"
             >
@@ -251,7 +266,7 @@ export default function CircularsTab({ loginToVTOP, onBack, setActiveTab }: Circ
       title="Circulars"
       onBack={leave}
       action={
-        <button onClick={() => { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_SEEN_KEY); if (creds) fetchData(creds, true); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
+        <button onClick={() => { void refreshCirculars(); }} className="p-2.5 rounded-full bg-blue-50  dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors" title="Reload">
           <RefreshCcw className="w-5 h-5" />
         </button>
       }

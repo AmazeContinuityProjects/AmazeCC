@@ -66,14 +66,13 @@ export interface CoursePredictionResult {
   projectStats: ComponentStats | null;
   estimatedGrade: {
     letter: string;
-    color: string;
-    bg: string;
-    border: string;
+    /** Key into TONE_BADGE / TONE_TEXT — never a class string (R8). */
+    tone: string;
     description: string;
   };
   ceilingGrade: {
     letter: string;
-    color: string;
+    tone: string;
   };
   riskLevel: "safe" | "moderate" | "critical" | "warning";
 }
@@ -306,71 +305,55 @@ export const estimateGrade = (
   score: number
 ): {
   letter: string;
-  color: string;
-  bg: string;
-  border: string;
+  tone: string;
   description: string;
 } => {
   const rounded = Math.round(score * 100) / 100;
   if (rounded >= 90) {
     return {
       letter: "S",
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
-      border: "border-emerald-500/30",
+      tone: "emerald",
       description: "Outstanding (10 Grade Points)",
     };
   }
   if (rounded >= 80) {
     return {
       letter: "A",
-      color: "text-teal-600 dark:text-teal-400",
-      bg: "bg-teal-500/10 dark:bg-teal-500/20",
-      border: "border-teal-500/30",
+      tone: "cyan",
       description: "Excellent (9 Grade Points)",
     };
   }
   if (rounded >= 70) {
     return {
       letter: "B",
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-500/10 dark:bg-blue-500/20",
-      border: "border-blue-500/30",
+      tone: "blue",
       description: "Very Good (8 Grade Points)",
     };
   }
   if (rounded >= 60) {
     return {
       letter: "C",
-      color: "text-indigo-600 dark:text-indigo-400",
-      bg: "bg-indigo-500/10 dark:bg-indigo-500/20",
-      border: "border-indigo-500/30",
+      tone: "indigo",
       description: "Good (7 Grade Points)",
     };
   }
   if (rounded >= 50) {
     return {
       letter: "D",
-      color: "text-purple-600 dark:text-purple-400",
-      bg: "bg-purple-500/10 dark:bg-purple-500/20",
-      border: "border-purple-500/30",
+      tone: "violet",
       description: "Average (6 Grade Points)",
     };
   }
   if (rounded >= 40) {
     return {
       letter: "E",
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-500/10 dark:bg-amber-500/20",
-      border: "border-amber-500/30",
+      tone: "amber",
       description: "Pass (5 Grade Points)",
     };
   }
   return {
     letter: "F",
-    color: "text-rose-600 dark:text-rose-400",
-    bg: "bg-rose-500/10 dark:bg-rose-500/20",
-    border: "border-rose-500/30",
+    tone: "red",
     description: "Fail (0 Grade Points)",
   };
 };

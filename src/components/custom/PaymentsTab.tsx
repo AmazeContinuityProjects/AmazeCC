@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { api } from "@/lib/sync-engine";
+import { runPageSync } from "@/lib/sync-engine/single-sync";
 import {
   Wallet,
   Receipt,
@@ -270,7 +271,45 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
   }, []);
 
   const refreshAll = useCallback(() => {
-    void loadSections([...SUB_TABS]);
+    void (async () => {
+      // Demo has no VTOP session: fixtures come from the per-section path.
+      if (typeof window !== "undefined" && localStorage.getItem("demoMode") === "true") {
+        await loadSections([...SUB_TABS]);
+        return;
+      }
+      // One engine `bulk` sweep for exactly this page's three endpoints. The
+      // op writes the same `payments_*` keys this page reads, so apply just
+      // re-reads them; the sheet always reaches 100 and closes.
+      setLoading({ dues: true, receipts: true, wallet: true });
+      setError({ dues: null, receipts: null, wallet: null });
+      try {
+        const res = await runPageSync({
+          title: "Payments",
+          steps: [{ op: "bulk", args: { only: ["payments", "payment-receipts", "wallet"] } }],
+          doneLine: "Payments reloaded successfully",
+        });
+        if (!res) return;
+        const read = (key: string) => {
+          try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        };
+        const dues = read(PAYMENTS_KEYS.dues);
+        const receipts = read(PAYMENTS_KEYS.receipts);
+        const wallet = read(PAYMENTS_KEYS.wallet);
+        if (dues) setDuesData(dues as PaymentsDuesData);
+        if (receipts) setReceiptsData(receipts as PaymentReceiptsData);
+        if (wallet) setWalletData(wallet as PaymentWalletData);
+      } catch (err: any) {
+        const msg = err?.message || "Fetch failed";
+        setError({ dues: msg, receipts: msg, wallet: msg });
+      } finally {
+        setLoading({ dues: false, receipts: false, wallet: false });
+      }
+    })();
   }, [loadSections]);
 
   const anyLoading = loading.dues || loading.receipts || loading.wallet;

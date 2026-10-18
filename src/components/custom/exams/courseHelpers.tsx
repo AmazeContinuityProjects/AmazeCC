@@ -258,12 +258,16 @@ export function AssessmentRow({ detail, typeLabel, aStat, isRelative }: {
           ) : (
             <div className="space-y-3">
               {isRelative && aStat && (
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-3 gap-2.5">
                   <KeyValue
                     label="Class avg"
                     value={`${sBoundaryCalc(aStat.mean, detail.maxMark)} (${formatNumber(aStat.mean)}%)`}
                   />
-                  <KeyValue label="Std dev" value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`} />
+                  <KeyValue
+                    label="Std dev"
+                    value={`±${sBoundaryCalc(aStat.sd, detail.maxMark)}`}
+                  />
+                  <KeyValue label="Samples" value={String(aStat.count)} />
                 </div>
               )}
 
