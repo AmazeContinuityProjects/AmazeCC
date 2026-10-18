@@ -987,6 +987,7 @@ function DashboardContent({
                 <div className="animate-fadeIn">
                   <MarksPredictorTab
                     marksData={marksData}
+                    marksStats={marksStats}
                     attendance={attendanceData?.attendance}
                     setActiveSubTab={setActiveSubTab}
                   />

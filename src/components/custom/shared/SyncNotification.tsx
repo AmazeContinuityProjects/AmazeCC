@@ -7,6 +7,7 @@ import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasB
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
 import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
+import { isCredentialFailMessage } from "@/lib/sync-engine/errors";
 import SyncModePicker from "./SyncModePicker";
 import type { SyncMode } from "@/lib/sync-engine/sync-modes";
 import { 
@@ -24,7 +25,8 @@ import {
   Clock,
   Info,
   WifiOff,
-  Settings
+  Settings,
+  KeyRound
 } from "lucide-react";
 
 import SelectField from "../shared/primitives/SelectField";
@@ -50,6 +52,12 @@ interface SyncNotificationProps {
   onSelectMode?: (id: string) => void;
   /** Opens the custom-mode editor. */
   onOpenEditor?: () => void;
+  /**
+   * Opens the credential editor, so a run that died on the saved password can
+   * be fixed from inside the sheet instead of hunting for it on the login
+   * screen.
+   */
+  onChangePassword?: () => void;
 }
 
 // Helper to clean emojis and determine status
@@ -118,7 +126,8 @@ export default function SyncNotification({
   modes,
   modeLabel,
   onSelectMode,
-  onOpenEditor
+  onOpenEditor,
+  onChangePassword
 }: SyncNotificationProps) {
   const [showBackupBtn, setShowBackupBtn] = useState(false);
   const [hasSwitched, setHasSwitched] = useState(false);
@@ -196,6 +205,16 @@ export default function SyncNotification({
 
   // Split lines of message to render logs
   const logLines = message.split("\n").filter(line => line.trim() !== "");
+
+  // A rejected login is the one failure the student can act on, so it gets a
+  // prompt and a fix-it button rather than only a red line in the log. The
+  // wording of the advice depends on why VTOP said no: a changed password is
+  // the fix for bad credentials, but not for a captcha or a locked account,
+  // which is why the detector excludes those.
+  const credentialFailure = logLines.some((line) => {
+    const { text, status } = parseLogLine(line, false);
+    return status === "error" && isCredentialFailMessage(text);
+  });
 
   // Which API is answering right now, in one line. The dot colour follows the
   // same rule the log does, so the two never disagree.
@@ -536,6 +555,57 @@ export default function SyncNotification({
                       })}
                     </AnimatePresence>
                   </div>
+
+                  {/* Rejected credentials: say what to check and offer the
+                      fix here, because the run cannot recover on its own and
+                      the log line alone tells the student nothing actionable. */}
+                  {credentialFailure && (
+                    <m.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ type: "spring", damping: 20, stiffness: 240 }}
+                      className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3.5 space-y-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1 min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                            Check your password
+                          </p>
+                          <p className="text-[10.5px] font-semibold text-slate-700 dark:text-gray-300 leading-relaxed">
+                            Are you sure your password is the same? If you believe your password has changed,
+                            please change the password otherwise VTOP may force you to reset your password on
+                            the next attempt.
+                          </p>
+                        </div>
+                      </div>
+
+                      {onChangePassword && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onChangePassword();
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-indigo-500/20"
+                        >
+                          <KeyRound size={11} />
+                          <span>Change Password</span>
+                        </button>
+                      )}
+
+                      <p className="text-[10px] font-semibold text-slate-500 dark:text-gray-400">
+                        Need to reset it for real?{" "}
+                        <a
+                          href="https://vtopcc.vit.ac.in"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
+                        >
+                          Reset on VTOP Portal ↗
+                        </a>
+                      </p>
+                    </m.div>
+                  )}
 
                   {/* Slow connection switch backup button */}
                   <AnimatePresence>

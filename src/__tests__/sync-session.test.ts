@@ -112,6 +112,51 @@ describe('sync session lifecycle', () => {
   });
 });
 
+describe('rejected credentials', () => {
+  it('keeps the sheet open when the run died on the saved password', () => {
+    openSyncSession('Full Sync');
+    appendSyncLine('Verifying VTOP credentials…', 'loading');
+    appendSyncLine('Invalid Username / Password', 'error');
+    closeSyncSession(4000, 'error');
+
+    vi.runAllTimers();
+
+    // The sheet is where the change-password prompt and CTA live; a timed
+    // close would take them away before the student could act on them.
+    expect(isSyncSessionOpen()).toBe(true);
+    expect(getSyncSessionSnapshot().outcome).toBe('error');
+
+    // The X is the way out.
+    dismissSyncSession();
+    expect(isSyncSessionOpen()).toBe(false);
+  });
+
+  it('still auto-closes ordinary errors', () => {
+    openSyncSession('VTOP Sync');
+    appendSyncLine('Core data bundle failed — HTTP 500', 'error');
+    closeSyncSession(4000, 'error');
+
+    expect(isSyncSessionOpen()).toBe(true);
+    vi.advanceTimersByTime(4000);
+    expect(isSyncSessionOpen()).toBe(false);
+  });
+
+  it('only holds for failures a different password could fix', async () => {
+    const { isCredentialFailMessage } = await import('../lib/sync-engine/errors');
+
+    expect(isCredentialFailMessage('Invalid Username / Password')).toBe(true);
+    expect(isCredentialFailMessage('Login failed — stopped retrying')).toBe(true);
+    expect(isCredentialFailMessage('Username or password is incorrect')).toBe(true);
+
+    // Auth failures that changing the password will not clear.
+    expect(isCredentialFailMessage('Captcha required')).toBe(false);
+    expect(isCredentialFailMessage('Account locked, try again later')).toBe(false);
+
+    expect(isCredentialFailMessage(undefined)).toBe(false);
+    expect(isCredentialFailMessage('')).toBe(false);
+  });
+});
+
 describe('offline notice', () => {
   it('opens the sheet flagged as a notice rather than a run', () => {
     openOfflineSyncSession();

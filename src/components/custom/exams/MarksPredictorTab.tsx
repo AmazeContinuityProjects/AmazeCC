@@ -32,6 +32,7 @@ import {
 
 interface MarksPredictorTabProps {
   marksData: any;
+  marksStats?: Record<string, any>;
   attendance?: any[];
   setActiveSubTab?: (subTab: string) => void;
   initialCourseCode?: string;
@@ -39,6 +40,7 @@ interface MarksPredictorTabProps {
 
 export default function MarksPredictorTab({
   marksData,
+  marksStats = {},
   attendance = [],
   setActiveSubTab,
   initialCourseCode,

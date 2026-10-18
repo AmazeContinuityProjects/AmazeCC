@@ -618,9 +618,11 @@ export default function LoginPage() {
       setSyncProgress(0);
       setIsReloading(false);
       closeSyncSession(4000, "error");
-      if (err instanceof Error && /login failed|stopped retrying|event hub login failed/i.test(err.message)) {
-        setCredEditorOpen(true);
-      }
+      // The credential editor is not opened from here. Rejected credentials
+      // (`"Invalid Username / Password"`) never matched that old regex, and
+      // for the messages that did, the sheet now carries the explanation and
+      // the "Change Password" button — popping a second sheet over the top
+      // would hide the reason the student is being asked to sign in again.
       throw err;
     }
   }, [IDs, demoMode, settings, setAttendanceAndOD]);
@@ -2580,6 +2582,15 @@ export default function LoginPage() {
             modeLabel={activeMode.label}
             onSelectMode={selectSyncMode}
             onOpenEditor={() => setModeEditorOpen(true)}
+            onChangePassword={() => {
+              // The editor is another bottom sheet, so the sync sheet steps
+              // aside rather than stacking under it. Dismissing also marks the
+              // run as seen, so late events from it can't reopen the popup
+              // behind the editor.
+              dismissSyncSession();
+              if (isReloading) setIsReloading(false);
+              setCredEditorOpen(true);
+            }}
             onRetry={() => {
               handleReloadRequest();
             }}

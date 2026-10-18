@@ -79,3 +79,33 @@ export function isAuthFailMessage(msg?: string): boolean {
   const m = msg.toLowerCase();
   return AUTH_FAIL_HINTS.some((h) => m.includes(h));
 }
+
+const CREDENTIAL_FAIL_HINTS = [
+  "invalid",
+  "incorrect",
+  "wrong",
+  "login failed",
+  "authentication failed",
+  "stopped retrying",
+  "unauthorized",
+  "unauthorised",
+  "not logged",
+];
+
+/** Auth failures a *changed password* would explain. */
+const CREDENTIAL_BLOCKER_HINTS = ["captcha", "locked", "lockout", "too many", "try again later"];
+
+/**
+ * The subset of auth failures that a different saved password could fix —
+ * VTOP's `"Invalid Username / Password"`, the retry-lock notice, and friends.
+ *
+ * Captcha and lock-out notices are auth failures too, but a new saved password
+ * will not clear those, so they are deliberately excluded: callers use this to
+ * offer a change-password action and must not mislead on them.
+ */
+export function isCredentialFailMessage(msg?: string): boolean {
+  if (!msg) return false;
+  const m = msg.toLowerCase();
+  if (CREDENTIAL_BLOCKER_HINTS.some((h) => m.includes(h))) return false;
+  return CREDENTIAL_FAIL_HINTS.some((h) => m.includes(h));
+}
