@@ -80,32 +80,96 @@ export function isAuthFailMessage(msg?: string): boolean {
   return AUTH_FAIL_HINTS.some((h) => m.includes(h));
 }
 
-const CREDENTIAL_FAIL_HINTS = [
-  "invalid",
-  "incorrect",
-  "wrong",
-  "login failed",
-  "authentication failed",
+/**
+ * Why a sign-in was rejected, as far as the message can tell.
+ *
+ * `"bad-credentials"` — the server named the username/password as wrong, so
+ * updating the saved password is the fix.
+ *
+ * `"unknown"` — the sign-in failed for a reason the app cannot name: a rate
+ * limit, a lock-out, a captcha, or a bare "login failed". The password may
+ * still need changing, but only VTOP can say so — the student has to go
+ * there. `null` means this is not a sign-in failure at all.
+ */
+export type AuthFailureKind = "bad-credentials" | "unknown";
+
+/**
+ * Phrasing that names the username or password as the wrong one. These are
+ * anchored to a credential word on purpose: a bare "incorrect" says nothing
+ * about what was wrong, and guessing "wrong password" there would be a lie.
+ */
+const BAD_CREDENTIAL_HINTS = [
+  "invalid username",
+  "invalid password",
+  "invalid credential",
+  "invalid user",
+  "invalid login",
+  "incorrect password",
+  "incorrect username",
+  "incorrect credential",
+  "password is incorrect",
+  "username is incorrect",
+  "credentials are incorrect",
+  "incorrect details",
+  "wrong password",
+  "wrong username",
+  "wrong credential",
+  "password is wrong",
   "stopped retrying",
+  "edit credentials",
+];
+
+/** Rate limits, lock-outs and captchas: a new password will not clear these. */
+const TOO_MANY_ATTEMPT_HINTS = [
+  "too many",
+  "max attempts",
+  "maximum attempts",
+  "attempts exceeded",
+  "login attempt",
+  "rate limit",
+  "locked",
+  "lockout",
+  "try again later",
+  "captcha",
+];
+
+/** Words that mark a message as being about the sign-in itself. */
+const AUTH_CONTEXT_HINTS = [
+  "login",
+  "log in",
+  "sign in",
+  "signin",
+  "auth",
+  "credential",
+  "password",
+  "username",
+  "user name",
+  "session",
   "unauthorized",
   "unauthorised",
+  "denied",
   "not logged",
 ];
 
-/** Auth failures a *changed password* would explain. */
-const CREDENTIAL_BLOCKER_HINTS = ["captcha", "locked", "lockout", "too many", "try again later"];
-
 /**
- * The subset of auth failures that a different saved password could fix —
- * VTOP's `"Invalid Username / Password"`, the retry-lock notice, and friends.
+ * Classify a failure message into the two sign-in failures the app can talk
+ * about, or `null` when it is not a sign-in failure.
  *
- * Captcha and lock-out notices are auth failures too, but a new saved password
- * will not clear those, so they are deliberately excluded: callers use this to
- * offer a change-password action and must not mislead on them.
+ * The "unknown" bucket is deliberately wide: a bare "login failed" says
+ * nothing about the cause, and the advice for it is the same as for a
+ * rate-limit — go and change the password on VTOP.
  */
-export function isCredentialFailMessage(msg?: string): boolean {
-  if (!msg) return false;
+export function classifyAuthFailure(msg?: string): AuthFailureKind | null {
+  if (!msg) return null;
   const m = msg.toLowerCase();
-  if (CREDENTIAL_BLOCKER_HINTS.some((h) => m.includes(h))) return false;
-  return CREDENTIAL_FAIL_HINTS.some((h) => m.includes(h));
+
+  if (BAD_CREDENTIAL_HINTS.some((h) => m.includes(h))) return "bad-credentials";
+  if (TOO_MANY_ATTEMPT_HINTS.some((h) => m.includes(h))) return "unknown";
+
+  // The generic auth-failure wording only counts when the message is about
+  // signing in: "invalid" on its own can be about anything.
+  const authFailure = AUTH_FAIL_HINTS.some((h) => m.includes(h));
+  if (authFailure && AUTH_CONTEXT_HINTS.some((h) => m.includes(h))) return "unknown";
+
+  return null;
 }

@@ -78,6 +78,7 @@ function DashboardContent({
   activeDay,
   setActiveDay,
   marksData,
+  marksStats,
   activeSubTab,
   setActiveSubTab,
   ScheduleData,

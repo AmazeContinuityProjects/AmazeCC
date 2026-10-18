@@ -141,19 +141,39 @@ describe('rejected credentials', () => {
     expect(isSyncSessionOpen()).toBe(false);
   });
 
+  it('holds the sheet open for a sign-in rejected with no usable reason', () => {
+    openSyncSession('Full Sync');
+    appendSyncLine('Login failed', 'error');
+    closeSyncSession(4000, 'error');
+
+    vi.runAllTimers();
+
+    // This one is sent to the VTOP portal, so its CTA needs to be reachable.
+    expect(isSyncSessionOpen()).toBe(true);
+  });
+
   it('only holds for failures a different password could fix', async () => {
-    const { isCredentialFailMessage } = await import('../lib/sync-engine/errors');
+    const { classifyAuthFailure } = await import('../lib/sync-engine/errors');
 
-    expect(isCredentialFailMessage('Invalid Username / Password')).toBe(true);
-    expect(isCredentialFailMessage('Login failed — stopped retrying')).toBe(true);
-    expect(isCredentialFailMessage('Username or password is incorrect')).toBe(true);
+    // The server named the credential as wrong: the saved password is the fix.
+    expect(classifyAuthFailure('Invalid Username / Password')).toBe('bad-credentials');
+    expect(classifyAuthFailure('Username or password is incorrect')).toBe('bad-credentials');
+    expect(classifyAuthFailure('Login failed — stopped retrying… Use \'Edit credentials\' to fix it.')).toBe(
+      'bad-credentials'
+    );
 
-    // Auth failures that changing the password will not clear.
-    expect(isCredentialFailMessage('Captcha required')).toBe(false);
-    expect(isCredentialFailMessage('Account locked, try again later')).toBe(false);
+    // Rejected, but the reason is not a wrong password: only VTOP knows.
+    expect(classifyAuthFailure('Login failed')).toBe('unknown');
+    expect(classifyAuthFailure('Authentication failed')).toBe('unknown');
+    expect(classifyAuthFailure('Too many failed login attempts')).toBe('unknown');
+    expect(classifyAuthFailure('Account locked, try again later')).toBe('unknown');
+    expect(classifyAuthFailure('Captcha required')).toBe('unknown');
 
-    expect(isCredentialFailMessage(undefined)).toBe(false);
-    expect(isCredentialFailMessage('')).toBe(false);
+    // Not a sign-in failure at all.
+    expect(classifyAuthFailure('Core data bundle failed — HTTP 500')).toBe(null);
+    expect(classifyAuthFailure('Network request failed')).toBe(null);
+    expect(classifyAuthFailure(undefined)).toBe(null);
+    expect(classifyAuthFailure('')).toBe(null);
   });
 });
 

@@ -7,7 +7,8 @@ import { BACKUP_API_URL, PRIMARY_API_URL, getActiveApiUrl, setActiveApiUrl, hasB
 import { UNICC_API_URL, resetUniccActivity } from "@/lib/unicc-fallback";
 import { useUniccActivity, useUniccTarget, setUniccTarget, isUniccFallbackEnabled } from "@/lib/useUniccTarget";
 import type { SyncNotice } from "@/lib/sync-engine/sync-session";
-import { isCredentialFailMessage } from "@/lib/sync-engine/errors";
+import { classifyAuthFailure } from "@/lib/sync-engine/errors";
+import type { AuthFailureKind } from "@/lib/sync-engine/errors";
 import SyncModePicker from "./SyncModePicker";
 import type { SyncMode } from "@/lib/sync-engine/sync-modes";
 import { 
@@ -26,7 +27,8 @@ import {
   Info,
   WifiOff,
   Settings,
-  KeyRound
+  KeyRound,
+  ExternalLink
 } from "lucide-react";
 
 import SelectField from "../shared/primitives/SelectField";
@@ -206,15 +208,24 @@ export default function SyncNotification({
   // Split lines of message to render logs
   const logLines = message.split("\n").filter(line => line.trim() !== "");
 
-  // A rejected login is the one failure the student can act on, so it gets a
+  // A rejected sign-in is the one failure the student can act on, so it gets a
   // prompt and a fix-it button rather than only a red line in the log. The
-  // wording of the advice depends on why VTOP said no: a changed password is
-  // the fix for bad credentials, but not for a captcha or a locked account,
-  // which is why the detector excludes those.
-  const credentialFailure = logLines.some((line) => {
-    const { text, status } = parseLogLine(line, false);
-    return status === "error" && isCredentialFailMessage(text);
-  });
+  // advice depends on why VTOP said no: when it named the username/password
+  // as wrong, the saved password is the fix; when it said nothing useful —
+  // a rate limit, a lock-out, a bare "login failed" — only VTOP knows, and
+  // the student has to go and change the password there.
+  const authFailure: AuthFailureKind | null = (() => {
+    let kind: AuthFailureKind | null = null;
+    for (const line of logLines) {
+      const { text, status } = parseLogLine(line, false);
+      if (status !== "error") continue;
+      const found = classifyAuthFailure(text);
+      // A named bad password is the more specific answer, so it wins.
+      if (found === "bad-credentials") return found;
+      if (found) kind = found;
+    }
+    return kind;
+  })();
 
   // Which API is answering right now, in one line. The dot colour follows the
   // same rule the log does, so the two never disagree.
@@ -556,10 +567,12 @@ export default function SyncNotification({
                     </AnimatePresence>
                   </div>
 
-                  {/* Rejected credentials: say what to check and offer the
-                      fix here, because the run cannot recover on its own and
-                      the log line alone tells the student nothing actionable. */}
-                  {credentialFailure && (
+                  {/* Rejected sign-in: say what to check and offer the fix
+                      here, because the run cannot recover on its own and the
+                      log line alone tells the student nothing actionable.
+                      Buttons, not links: a phone is a thumb, and an
+                      underlined link in a sheet is a small target. */}
+                  {authFailure && (
                     <m.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -570,40 +583,67 @@ export default function SyncNotification({
                         <KeyRound className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1 min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                            Check your password
+                            {authFailure === "bad-credentials" ? "Check your password" : "Sign-in rejected"}
                           </p>
                           <p className="text-[10.5px] font-semibold text-slate-700 dark:text-gray-300 leading-relaxed">
-                            Are you sure your password is the same? If you believe your password has changed,
-                            please change the password otherwise VTOP may force you to reset your password on
-                            the next attempt.
+                            {authFailure === "bad-credentials" ? (
+                              <>
+                                Are you sure your password is the same? If you believe your password has
+                                changed, please change the password otherwise VTOP may force you to reset your
+                                password on the next attempt.
+                              </>
+                            ) : (
+                              <>
+                                Your VTOP Password may need to change, please log in to
+                                {" "}
+                                <span className="font-black text-amber-700 dark:text-amber-400">
+                                  vtopcc.vit.ac.in
+                                </span>{" "}
+                                to change your password.
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
 
-                      {onChangePassword && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onChangePassword();
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-indigo-500/20"
-                        >
-                          <KeyRound size={11} />
-                          <span>Change Password</span>
-                        </button>
-                      )}
-
-                      <p className="text-[10px] font-semibold text-slate-500 dark:text-gray-400">
-                        Need to reset it for real?{" "}
+                      {authFailure === "bad-credentials" ? (
+                        <>
+                          {onChangePassword && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onChangePassword();
+                              }}
+                              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-indigo-500/20"
+                            >
+                              <KeyRound size={11} />
+                              <span>Change Password</span>
+                            </button>
+                          )}
+                          {/* A button, not a link: the password may have been
+                              changed on VTOP itself, and only VTOP can undo
+                              that. */}
+                          <a
+                            href="https://vtopcc.vit.ac.in"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/25 font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer"
+                          >
+                            <ExternalLink size={11} />
+                            <span>Reset on VTOP</span>
+                          </a>
+                        </>
+                      ) : (
                         <a
                           href="https://vtopcc.vit.ac.in"
                           target="_blank"
                           rel="noreferrer"
-                          className="underline font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
+                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-150 active:scale-[0.985] cursor-pointer shadow-md shadow-amber-500/25"
                         >
-                          Reset on VTOP Portal ↗
+                          <ExternalLink size={11} />
+                          <span>Change Password on VTOP</span>
                         </a>
-                      </p>
+                      )}
                     </m.div>
                   )}
 

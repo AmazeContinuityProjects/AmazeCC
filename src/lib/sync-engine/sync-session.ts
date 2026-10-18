@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { ProgressEvent } from "./types";
 import { getOpMeta } from "./operation-registry";
-import { isCredentialFailMessage } from "./errors";
+import { classifyAuthFailure } from "./errors";
 import { subscribeUniccLogEvents } from "../unicc-fallback";
 
 export type SyncLineStatus = "success" | "error" | "pending" | "info" | "loading";
@@ -95,10 +95,10 @@ export function bumpSyncProgress(delta: number) {
  * Close the session, holding the final state visible for holdMs first so a
  * success tick (or the error log) is actually seen before dismissing.
  *
- * A run that died on the saved credentials (`"Invalid Username / Password"`)
- * is the exception: it is held open until dismissed, because the sheet is
- * where the change-password prompt and its CTA live, and a timed close would
- * take them away before the student can act.
+ * A run that died on the sign-in (`"Invalid Username / Password"`, a rate
+ * limit, a bare "login failed") is the exception: it is held open until
+ * dismissed, because the sheet is where the password prompt and its CTA
+ * live, and a timed close would take them away before the student can act.
  */
 export function closeSyncSession(
   holdMs: number = DEFAULT_HOLD_MS,
@@ -111,10 +111,10 @@ export function closeSyncSession(
 
   // Nothing this run can fix on its own, so the hold would only take the CTA
   // away. `dismissSyncSession` (the sheet's X) is the way out.
-  const credentialFailure =
+  const signInFailure =
     outcome === "error" &&
-    state.lines.some((l) => l.status === "error" && isCredentialFailMessage(l.text));
-  if (credentialFailure) return;
+    state.lines.some((l) => l.status === "error" && classifyAuthFailure(l.text) !== null);
+  if (signInFailure) return;
 
   const runId = state.runId;
   if (closeTimer) clearTimeout(closeTimer);

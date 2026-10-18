@@ -2721,6 +2721,7 @@ export default function LoginPage() {
             activeDay={activeDay}
             setActiveDay={setActiveDay}
             marksData={marksData}
+            marksStats={marksStats}
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
             ScheduleData={ScheduleData}
