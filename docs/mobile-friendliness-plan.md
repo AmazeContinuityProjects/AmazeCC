@@ -29,8 +29,10 @@
   - [x] `manifest.json` `background_color: #ffffff` vs dark-default app → cold-launch white flash. Set to `#020617`; light-theme `themeColor` header fixed (`#ffffffff` → `#ffffff`).
   - [x] Added missing manifest fields: `id`, `scope`, `description`, `lang`, `categories` (both `manifest.json` and `manifest-fire.json`).
   - [x] Root-level SW registration via `ServiceWorkerRegistrar` (mounted in `app/layout.tsx`) so offline fallback works even without visiting onboarding/Dashboard push paths.
-  - [x] `beforeinstallprompt` captured app-root; reusable `usePwaInstall()` hook (`src/lib/pwaInstall.ts`) + settings-hub **Install card** (`PwaInstallCard.tsx`, mounted on ProfilePage after Push Notifications) that only renders when the browser offers the prompt.
-  - [x] Zoom lock removed (`maximumScale`/`userScalable`) — WCAG 1.4.4; iOS ignores it anyway.
+  - [x] `beforeinstallprompt` captured app-root; reusable `usePwaInstall()` hook (`src/lib/pwaInstall.ts`) + install offer (`PwaInstallCard.tsx`) that only renders when it has something to show:
+      - **Browser prompt path** (Chrome/Edge Android+desktop): when the captured prompt is available, an **Install app** button triggers the native prompt; `accepted`/`dismissed` hide the card for good (dismissal persisted to localStorage).
+      - **iOS fallback**: Safari never fires `beforeinstallprompt`, so on touch-iOS (not already standalone) the card instead shows the manual **Share → Add to Home Screen** steps rather than vanishing.
+  - [x] Offer placement: Dashboard (next to the push prompt, so a new logged-in user sees both offers once) and the ProfilePage settings hub.
 
 ## Priority 2 — Medium
 
