@@ -54,7 +54,7 @@ export default function FocusPage({
   return (
     <div className="max-w-2xl mx-auto space-y-6 text-left">
       {/* Task Selector & Hero Card */}
-      <div className="rounded-[24px] bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/70 dark:border-zinc-800/80 p-5 sm:p-6 shadow-xs">
+      <div className="rounded-[24px] card-surface border border-zinc-200/70 dark:border-zinc-800/80 p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-outfit">

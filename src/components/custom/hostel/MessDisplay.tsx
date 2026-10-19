@@ -111,7 +111,7 @@ const getSmartMenuText = (rawText: string, weekNum: number): string => {
 export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: any) {
   if (!hostelData?.hostelInfo?.isHosteller) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500 dark:text-zinc-400 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 rounded-[24px] space-y-4 shadow-sm">
+      <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500 dark:text-zinc-400 card-surface border border-zinc-200/50 dark:border-zinc-800/80 rounded-[24px] space-y-4 shadow-sm">
         <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
           <Utensils size={28} />
         </div>
@@ -421,7 +421,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                 const MealIcon = meal.Icon;
 
                 return (
-                  <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
+                  <div className={`card-surface border ${isCurrentNow ? "border-indigo-500/50 dark:border-indigo-500/40" : "border-zinc-200/50 dark:border-zinc-800/80"} rounded-2xl p-5 shadow-xs space-y-4`}>
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -462,7 +462,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
                 return (
                   <div
                     key={meal.name}
-                    className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border ${
+                    className={`card-surface border ${
                       isCurrentNow 
                         ? "border-indigo-500/50 dark:border-indigo-500/40 ring-1 ring-indigo-500/20" 
                         : "border-zinc-200/50 dark:border-zinc-800/80"
@@ -499,7 +499,7 @@ export default function MessDisplay({ hostelData, handleHostelDetailsFetch }: an
           )}
         </div>
       ) : (
-        <div className="p-8 text-center bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl">
+        <div className="p-8 text-center card-surface border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
             No menu found for {activeDay}. Please click reload if data is outdated.
           </p>

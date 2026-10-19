@@ -14,10 +14,23 @@ self.skipWaiting();
 
 self.addEventListener("activate", () => self.clients.claim());
 
+/*
+ * Large hero artwork is excluded from precache on purpose. It is pure
+ * decoration for surfaces that are online anyway, and each multi-MB image
+ * would otherwise dominate the install payload on phones — the SW precache
+ * is what a first visit to an installed app pays for. The files still load
+ * over the network on demand (the runtime cache handles them), and the
+ * offline fallback page does not reference them.
+ */
+const precacheEntries = (self.__SW_MANIFEST ?? []).filter((entry) => {
+  const url = typeof entry === "string" ? entry : (entry as PrecacheEntry).url;
+  return !url?.includes("campus-twilight") && !url?.includes("hero-artwork");
+});
+
 const queue = new BackgroundSyncQueue("myQueueName");
 
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries,
   precacheOptions: {
     cleanupOutdatedCaches: true,
     concurrency: 10,

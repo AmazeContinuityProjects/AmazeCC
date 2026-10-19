@@ -46,7 +46,7 @@ export default function AddCustomCourseModal({
   };
 
   return (
-    <BottomSheet onClose={onClose} overlayId="predictor-custom-course" maxWidth="max-w-md">
+    <BottomSheet onClose={onClose} overlayId="predictor-custom-course" maxWidth="max-w-md" avoidKeyboard>
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

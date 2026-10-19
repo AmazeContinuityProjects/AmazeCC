@@ -140,7 +140,7 @@ export default function ToolsHub({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search tools..."
-            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-surface dark:bg-surface-secondary border border-zinc-200/80 dark:border-zinc-800 text-xs sm:text-sm font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs"
           />
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function ToolsHub({
             <button
               key={tool.id}
               onClick={() => setActiveToolsSubTab(tool.id)}
-              className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-900 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.99] text-left"
+              className="group relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 card-surface hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all duration-150 cursor-pointer shadow-2xs hover:shadow-sm active:scale-[0.99] text-left"
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
                 <div

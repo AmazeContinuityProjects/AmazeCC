@@ -275,6 +275,15 @@ export default function LoginPage() {
     root.style.setProperty("--chart-3", `color-mix(in oklab, ${accent} 70%, #f59e0b)`);
   }, [settings.colorPalette, settings.customPalette, theme]);
 
+  // The card interior preference: `data-card-surface` on the root is what the
+  // `.card-surface` rules in globals.css key on — absent or "gray" paints the
+  // grade-insights gray, "zinc" restores the classic glass. Always written, so
+  // no reader has to treat absence as a third state.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.cardSurface = settings.cardSurfaceZinc ? "zinc" : "gray";
+  }, [settings.cardSurfaceZinc]);
+
   const setAttendanceAndOD = useCallback((attendance: attendanceRes): void => {
     setAttendanceData(attendance);
     
@@ -2544,7 +2553,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[320px] px-4"
+            className="fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] left-1/2 -translate-x-1/2 z-50 w-full max-w-[320px] px-4"
           >
             <div className="flex items-center justify-between gap-3 p-3.5 bg-red-50/90 dark:bg-zinc-950/90 backdrop-blur-md border border-red-200/50 dark:border-red-900/30 rounded-2xl shadow-xl">
               <div className="flex items-center gap-2.5 min-w-0">

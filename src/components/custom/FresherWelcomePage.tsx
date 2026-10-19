@@ -96,7 +96,7 @@ export default function FresherWelcomePage({
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
       {/* Top Fixed Navigation & Dismiss Bar */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 px-4 sm:px-8 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 px-4 sm:px-8 py-3 flex items-center justify-between" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}>
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
             <GraduationCap className="w-4 h-4" />
@@ -136,7 +136,7 @@ export default function FresherWelcomePage({
             {/* Quick Metrics Bar */}
             <div className="flex sm:flex-col gap-2 shrink-0">
               {totalAckDocs > 0 && (
-                <div className="px-3.5 py-2 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-right">
+                <div className="px-3.5 py-2 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800 text-right">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Documents</p>
                   <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">
                     {submittedAckDocs}/{totalAckDocs} Submitted
@@ -144,7 +144,7 @@ export default function FresherWelcomePage({
                 </div>
               )}
               {eptData && (
-                <div className="px-3.5 py-2 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 text-right">
+                <div className="px-3.5 py-2 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800 text-right">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">EPT Test</p>
                   <p className="text-xs font-black text-amber-600 dark:text-amber-400">
                     {upcomingEpt ? "Upcoming" : "Scheduled"}
@@ -157,7 +157,7 @@ export default function FresherWelcomePage({
 
         {/* EPT Schedule Section */}
         {eptData && (
-          <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+          <section className="p-5 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -225,7 +225,7 @@ export default function FresherWelcomePage({
 
         {/* Onboarding Documents Checklist */}
         {totalAckDocs > 0 && (
-          <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+          <section className="p-5 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -283,7 +283,7 @@ export default function FresherWelcomePage({
         )}
 
         {/* Resources & Portals Grid */}
-        <section className="p-5 rounded-2xl bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
+        <section className="p-5 rounded-2xl card-surface border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <Sparkles size={18} />

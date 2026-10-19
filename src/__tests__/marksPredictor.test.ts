@@ -115,6 +115,56 @@ describe("Marks Predictor Calculation Engine", () => {
     });
   });
 
+  describe("currentStandingPct — the marks page's assigned-weight scale", () => {
+    // Mid-term: CAT-I 40/50 × 15 = 12 scored (3 lost, so released 15); CAT-II
+    // listed by VTOP but ungraded (15 pending); FAT's 40 rides in the config
+    // pinned at build, yet the marks subpage still divides only by the weight
+    // VTOP has assigned — the unweighted FAT contributes zero to its
+    // normalisedPct. So the ladder here must read 12 over (15 released + 15
+    // assigned pending) = 30, i.e. 40% — not the raw 12 on the full-100 scale,
+    // and not the 80% released pace the headline letter uses.
+    const midterm: PredictorAssessment[] = [
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 40, component: "theory" },
+      { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: null, component: "theory" },
+      { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+    ];
+
+    it("scales earned points to 100 over assigned weight, FAT excluded until it exists", () => {
+      const prediction = computeCoursePrediction({
+        courseCode: "BCSE1001",
+        courseTitle: "Problem Solving",
+        courseType: "Theory Only",
+        theoryAssessments: midterm,
+      });
+
+      expect(prediction.currentScoredScaled).toBeCloseTo(12, 1);
+      // Released pace (the headline read): 12 over 15 released → 80%.
+      expect(prediction.pacePct).toBeCloseTo(80, 0);
+      // The insights ladder's standing: 12 over 30 assigned → 40%.
+      expect(prediction.currentStandingPct).toBeCloseTo(40, 1);
+    });
+
+    it("collapses onto the released pace when nothing is pending", () => {
+      // Every assigned weight is recorded (released 6 + 11.76 = 17.76 scored,
+      // 12.24 lost over 30) — standing and pace are the same division of the
+      // same denominator, which is the subpage's normalisation mid-term too.
+      const ceilAssessments: PredictorAssessment[] = [
+        { id: "c1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 20, component: "theory" },
+        { id: "c2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: 39.2, component: "theory" },
+      ];
+
+      const prediction = computeCoursePrediction({
+        courseCode: "BCSE1001",
+        courseTitle: "Problem Solving",
+        courseType: "Theory Only",
+        theoryAssessments: ceilAssessments,
+      });
+
+      expect(prediction.pacePct).toBeCloseTo(59.2, 1);
+      expect(prediction.currentStandingPct).toBeCloseTo(59.2, 1);
+    });
+  });
+
   describe("grading context — curved course ladders", () => {
     // 67% pace: CAT-I 25/50 × 15 = 7.5 scored, CAT-II 42/50 × 15 = 12.6, FAT
     // pending. Released 30, scored 20.1 → 67%. Absolute bands call that a C;

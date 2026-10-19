@@ -17,8 +17,16 @@
  */
 
 /**
- * The shared tile surface. Every "card" in the app is this translucent panel;
- * only the padding, layout and sizing utilities on top differ.
+ * The shared tile surface. Every "card" in the app is this panel; only the
+ * padding, layout and sizing utilities on top differ.
+ *
+ * The interior comes from the `.card-surface` class in `globals.css` — by
+ * default the grade-insights card's gray on the course predictor (`--surface`
+ * in light, the `--surface-secondary` gray step in dark, no blur), switchable
+ * to the classic translucent zinc glass by the profile page's "Card look"
+ * setting, which `Main.tsx` applies as `data-card-surface`. Colour tints (tone
+ * badges, tone icon tiles, tinted cards) keep painting on top untouched, and
+ * the class carries no radius/edge of its own.
  *
  * The outline is `--border-strong`, not `--border-muted`. On a near-white
  * `--surface` a `--border-muted` hairline is not readable as an edge at all, and
@@ -27,7 +35,7 @@
  * the border-step override in `globals.css`.
  */
 const TILE_SURFACE =
-  "rounded-[24px] bg-surface/80 dark:bg-surface/70 backdrop-blur-xl border border-border-strong dark:border-border shadow-xs";
+  "rounded-[24px] card-surface border border-border-strong dark:border-border shadow-xs";
 
 export const TILE = `${TILE_SURFACE} p-4 sm:p-5 flex flex-col justify-between text-left relative overflow-hidden`;
 
@@ -72,7 +80,7 @@ export const SEARCH_FIELD =
   "w-full px-4 py-2.5 rounded-2xl bg-surface dark:bg-surface-secondary border border-border-strong dark:border-border text-sm font-bold text-text-heading dark:text-text-heading placeholder:text-text-muted placeholder:font-medium focus:outline-none focus:border-border-strong";
 
 export const LIST_SHELL =
-  "overflow-hidden rounded-2xl border border-border-strong dark:border-border bg-surface/80 dark:bg-surface/70 backdrop-blur-xl shadow-xs divide-y divide-border-muted dark:divide-border/70";
+  "overflow-hidden rounded-2xl card-surface border border-border-strong dark:border-border shadow-xs divide-y divide-border-muted dark:divide-border/70";
 
 export const LIST_ROW =
   "w-full flex items-center gap-3 py-3 px-4 text-left transition-colors hover:bg-surface-secondary dark:hover:bg-surface-hover/40";

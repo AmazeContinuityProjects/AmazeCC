@@ -301,7 +301,7 @@ export default function EventSearchPalette() {
           className="flex-1 bg-transparent text-sm text-gray-900  dark:text-gray-100 placeholder-gray-400  dark:placeholder-gray-500 outline-none"
         />
         {query ? (
-          <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} className="p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 dark:hover:bg-gray-800/40 text-gray-400 transition-colors">
+          <button onClick={() => { setQuery(""); inputRef.current?.focus(); }} className="relative hit-expand p-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-700/40 dark:hover:bg-gray-800/40 text-gray-400 transition-colors">
             <X className="w-4 h-4" />
           </button>
         ) : (
@@ -561,7 +561,7 @@ export default function EventSearchPalette() {
           <div className="relative max-w-[90vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black/10" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowEnlarged(false)}
-              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
+              className="absolute top-3 right-3 z-10 hit-expand w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white/90 hover:bg-black/70 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>

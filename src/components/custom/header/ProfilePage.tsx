@@ -69,6 +69,7 @@ import { parentOf } from "@/lib/settingsNav";
 import config from "../../../../config.json";
 import Links from "./Links";
 import PushNotificationManager from "@/app/pushNotificationManager";
+import PwaInstallCard from "../shared/PwaInstallCard";
 import LocalStorageSubpage from "../footer/LocalStorageSubpage";
 import ChangelogModal from "./ChangelogModal";
 import HallOfFameModal from "./HallOfFameModal";
@@ -76,7 +77,8 @@ import TeamModal from "./TeamModal";
 import AboutBody from "./AboutBody";
 import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
-import { Badge, Modal, useIsMobile } from "../shared";
+import { Badge, useIsMobile } from "../shared";
+import BottomSheet from "../shared/BottomSheet";
 import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
 import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
@@ -987,6 +989,8 @@ export default function ProfilePage({
                       <img
                         src={person.photo}
                         alt={person.role}
+                        loading="lazy"
+                        decoding="async"
                         className="w-14 h-14 rounded-2xl object-cover shadow-xs border border-zinc-200 dark:border-zinc-800 shrink-0"
                       />
                     ) : (
@@ -1764,6 +1768,25 @@ export default function ProfilePage({
             ))}
           </div>
         )}
+
+        {/* The card interior toggle: the grade-insights gray everywhere, or the
+            classic translucent zinc glass. Applies app-wide through the
+            `.card-surface` rule the surface tokens ride. */}
+        <div className="flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/60 pt-4 mt-1">
+          <div>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+              Classic Zinc Glass Cards
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Off — the solid gray card interior the grade insights card uses. On
+              — the older translucent zinc cards with a backdrop blur.
+            </p>
+          </div>
+          <Switch
+            checked={settings?.cardSurfaceZinc ?? false}
+            onCheckedChange={(val) => updateSetting("cardSurfaceZinc", val)}
+          />
+        </div>
       </div>
 
       {/* App Icon Card */}
@@ -2356,6 +2379,9 @@ export default function ProfilePage({
           <PushNotificationManager />
         </div>
       </div>
+
+      {/* Install — only rendered when the browser offers the prompt. */}
+      <PwaInstallCard />
     </div>
   );
 
@@ -2627,26 +2653,48 @@ export default function ProfilePage({
       {showHallOfFame && <HallOfFameModal handleClose={() => setShowHallOfFame(false)} />}
       {showTeam && <TeamModal handleClose={() => setShowTeam(false)} />}
 
-      {/* Detail Modals */}
+      {/* Detail sheets — bottom sheets instead of the desktop Modal so the
+          full list works the same on a phone (swipe-down, system back, no
+          centered dialog). */}
       {activeModal === "ept" && creds && (
-        <Modal isOpen onClose={closeModal} title="EPT Schedule" maxWidth="max-w-2xl">
-          <GenericApiView endpoint="ept-schedule" title="" creds={creds} refreshKey={refreshKey} />
-        </Modal>
+        <BottomSheet onClose={closeModal} overlayId="profile-ept-schedule" maxWidth="max-w-2xl">
+          <div className="space-y-4 pb-2">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              EPT Schedule
+            </h3>
+            <GenericApiView endpoint="ept-schedule" title="" creds={creds} refreshKey={refreshKey} />
+          </div>
+        </BottomSheet>
       )}
       {activeModal === "reg" && creds && (
-        <Modal isOpen onClose={closeModal} title="Registration Schedule" maxWidth="max-w-sm">
-          <RegistrationModalContent creds={creds} onClose={closeModal} />
-        </Modal>
+        <BottomSheet onClose={closeModal} overlayId="profile-reg-schedule" maxWidth="max-w-sm">
+          <div className="space-y-4 pb-2">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              Registration Schedule
+            </h3>
+            <RegistrationModalContent creds={creds} onClose={closeModal} />
+          </div>
+        </BottomSheet>
       )}
       {activeModal === "bank" && creds && (
-        <Modal isOpen onClose={closeModal} title="Bank Information" maxWidth="max-w-md">
-          <BankDayStatusModal endpoint="bank-info" title="Bank Info" creds={creds} />
-        </Modal>
+        <BottomSheet onClose={closeModal} overlayId="profile-bank-info" maxWidth="max-w-md">
+          <div className="space-y-4 pb-2">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              Bank Information
+            </h3>
+            <BankDayStatusModal endpoint="bank-info" title="Bank Info" creds={creds} />
+          </div>
+        </BottomSheet>
       )}
       {activeModal === "day" && creds && (
-        <Modal isOpen onClose={closeModal} title="Dayboarder Information" maxWidth="max-w-md">
-          <BankDayStatusModal endpoint="dayboarder" title="Dayboarder Info" creds={creds} />
-        </Modal>
+        <BottomSheet onClose={closeModal} overlayId="profile-dayboarder" maxWidth="max-w-md">
+          <div className="space-y-4 pb-2">
+            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
+              Dayboarder Information
+            </h3>
+            <BankDayStatusModal endpoint="dayboarder" title="Dayboarder Info" creds={creds} />
+          </div>
+        </BottomSheet>
       )}
 
       {/* ── Settings: one hub → section flow for every breakpoint ──────────

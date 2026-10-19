@@ -2,6 +2,7 @@ import * as React from "react"
 import { ThemeProvider } from "@amazecontinuityprojects/amazeui";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import IconUpdater from "../components/custom/IconUpdater";
+import ServiceWorkerRegistrar from "../components/custom/ServiceWorkerRegistrar";
 import type { Viewport, Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import './globals.css';
@@ -12,13 +13,14 @@ const dmSans = DM_Sans({ weight: 'variable', style: ['normal', 'italic'], subset
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffffff" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#020617" },
   ],
   width: "device-width",
   initialScale: 1.0,
-  maximumScale: 1.0,
-  userScalable: false,
+  // Pinching/zooming is left enabled on purpose: locking it (maximumScale 1 /
+  // userScalable false) fails WCAG 1.4.4 and iOS ignores the lock anyway —
+  // it only ever disabled zoom for Android users.
   // Without this every env(safe-area-inset-*) in the app resolves to 0px on
   // iOS, so the bottom nav, sheets and docked bars can sit under the home
   // indicator and the notch.
@@ -63,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="antialiased font-sans"
       >
         <IconUpdater />
+        <ServiceWorkerRegistrar />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

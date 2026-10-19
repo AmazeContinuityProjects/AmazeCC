@@ -84,6 +84,8 @@ export default function TeamModal({ handleClose }: { handleClose: () => void }) 
                       <img
                         src={member.avatar}
                         alt={member.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-10 h-10 rounded-full object-cover shrink-0 border border-border-muted"
                       />
                     ) : (

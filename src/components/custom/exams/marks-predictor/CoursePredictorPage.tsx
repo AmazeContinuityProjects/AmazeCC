@@ -10,9 +10,10 @@ import {
   Plus,
   RotateCcw,
   Sliders,
+  ShieldCheck,
   Zap,
 } from "lucide-react";
-import { TONE_TEXT } from "@/lib/uiTokens";
+import { TONE_ICON_TILE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
 import {
   GhostButton,
@@ -272,6 +273,7 @@ export default function CoursePredictorPage({
      stacked tiles were this pair read four ways. */
   const {
     currentScoredScaled,
+    currentStandingPct,
     potentialPendingScaled,
     pointsLostScaled,
     maxPossibleScaled,
@@ -305,8 +307,13 @@ export default function CoursePredictorPage({
       { grade: "F", limit: 0, width: eB, range: `< ${eB}` },
     ];
   })();
+  // The insights ring reads standing the way the marks page's Grade boundaries
+  // read theirs: earned over every weight the course has assigned so far (see
+  // currentStandingPct). The headline letter above stays the released-pace
+  // read — carrying the pace over what's still to come is the predictor's job;
+  // this ring is the "you are here" snapshot instead.
   const standingGrade =
-    ladderBands.find((b) => Math.ceil(currentScoredScaled) >= b.limit)?.grade ?? "F";
+    ladderBands.find((b) => Math.ceil(currentStandingPct) >= b.limit)?.grade ?? "F";
 
   // The mark sheet must track the LIVE row, not the snapshot captured when the
   // user tapped it: every drag rewrites the config, the prediction rebuilds its
@@ -558,40 +565,85 @@ export default function CoursePredictorPage({
         </div>
       </div>
 
-      {/* Grade insights — the engine's own ladder for the whole course, not a
-          half's: the predicted letter above came from these very bands, so the
-          page shows where the reader stands and why the letter is what it is.
-          The same shared chart the course marks subpage renders. */}
+      {/* Grade insights — the same section the course marks subpage shows:
+          the beta "Grade insights" header, the absolute-enforced card, then
+          the "Grade boundaries" ladder — all fed by the engine's own bands for
+          the whole course, so what justifies the predicted letter here is
+          word-for-word what the marks page's boundaries section shows. */}
       <div className="space-y-3">
         <SectionHeader
           icon={Gauge}
           title="Grade insights"
-          right={
-            prediction.isCurved ? (
-              classStats ? (
-                <ToneBadge tone="emerald">
-                  {classStats.count} peers · μ {classStats.mean.toFixed(1)} · σ {classStats.sd.toFixed(1)}
-                </ToneBadge>
-              ) : (
-                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
-              )
-            ) : (
-              <ToneBadge tone="blue">Absolute</ToneBadge>
-            )
-          }
+          right={<ToneBadge tone="blue">Beta</ToneBadge>}
         />
-        <div className="rounded-3xl border border-border-muted bg-surface dark:bg-surface-secondary px-4 py-3.5 space-y-2.5">
-          <GradeLadderChart bands={ladderBands} standingGrade={standingGrade} currentPct={currentScoredScaled} />
-          <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
-            The predicted{" "}
-            <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
-              {optimalGrade?.letter ?? "—"}
-            </strong>{" "}
-            is read straight off this ladder —
-            {prediction.isCurved
-              ? " shifted by the class's distribution, exactly like the course marks page reads it."
-              : " fixed percentage bands, not how the class performed."}
-          </p>
+        {!prediction.isCurved && (
+          <div className="rounded-3xl border border-border-strong dark:border-border card-surface flex items-center gap-3.5 px-4 py-3.5">
+            <span className={`h-11 w-11 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-text-heading font-outfit tracking-tight">
+                Absolute grading enforced
+              </h4>
+              <p className="text-[11px] text-text-secondary dark:text-text-muted font-medium mt-0.5">
+                Your grade comes from fixed percentage boundaries, not from how
+                the class performed.
+              </p>
+            </div>
+          </div>
+        )}
+        <div className="space-y-3">
+          <SectionHeader
+            icon={Gauge}
+            title="Grade boundaries"
+            count={ladderBands.length}
+            right={
+              prediction.isCurved && !classStats ? (
+                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
+              ) : null
+            }
+          />
+          <div
+            className={`rounded-3xl border border-border-strong dark:border-border card-surface px-4 py-3.5 space-y-2.5 ${
+              prediction.isCurved && !classStats ? "opacity-60 grayscale" : ""
+            }`}
+          >
+            {/* The marks page's in-card stats line: dose · μ · σ above the bar. */}
+            {prediction.isCurved && (
+              <p className="flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
+                <ToneDot
+                  tone={!classStats ? "zinc" : classStats.count < 30 ? "amber" : "emerald"}
+                />
+                {classStats ? (
+                  <span>
+                    <span className="font-bold text-text-heading">{classStats.count}</span>{" "}
+                    {classStats.count === 1 ? "peer" : "peers"}
+                    <span aria-hidden="true"> · </span>μ{" "}
+                    <span className="font-bold text-text-heading">{classStats.mean.toFixed(1)}</span>
+                    <span aria-hidden="true"> · </span>σ{" "}
+                    <span className="font-bold text-text-heading">{classStats.sd.toFixed(1)}</span>
+                  </span>
+                ) : (
+                  <span>No class data yet — showing default bands</span>
+                )}
+              </p>
+            )}
+            <GradeLadderChart
+              bands={ladderBands}
+              standingGrade={standingGrade}
+              currentPct={currentStandingPct}
+            />
+            <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+              The ring sits where you stand on the weight the course has
+              assigned so far — scaled exactly the way the marks page&apos;s
+              grade boundaries scale it. The predicted{" "}
+              <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
+                {optimalGrade?.letter ?? "—"}
+              </strong>{" "}
+              above is a different read: the released pace carried over the
+              weight still to come.
+            </p>
+          </div>
         </div>
       </div>
 

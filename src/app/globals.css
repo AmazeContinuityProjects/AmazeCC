@@ -381,6 +381,39 @@ input:-webkit-autofill:focus {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+/*
+ * The card interior the surface tokens paint — the grade-insights card's gray
+ * on the course predictor (the surface at full strength, `--surface-secondary`
+ * in dark), or the classic translucent zinc glass the tiles shipped with,
+ * chosen by the "Card look" setting in the profile page.
+ *
+ * `Main.tsx` writes `data-card-surface` (`"gray"` by default, `"zinc"` for the
+ * classic look) onto `documentElement`; absence reads as the gray. The class
+ * carries only the interior, so a riding call site keeps supplying its own
+ * radius, border and shadow, and colour-tinted cards that paint their own
+ * background never touch it. The zinc glass follows the cfg values the
+ * glassy era used: `--surface` at 80% over the light page, 70% in dark, with
+ * Tailwind's `backdrop-blur-xl` depth.
+ */
+.card-surface {
+  background-color: var(--surface);
+}
+
+.dark .card-surface {
+  background-color: var(--surface-secondary);
+}
+
+[data-card-surface="zinc"] .card-surface {
+  background-color: color-mix(in oklab, var(--surface) 80%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.dark[data-card-surface="zinc"] .card-surface {
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+}
+
+
 
 
 
@@ -419,6 +452,20 @@ input:-webkit-autofill:focus {
 .scanner-laser {
   position: absolute;
   animation: laser-scan 2.5s linear infinite;
+}
+
+/*
+ * Hit-area expansion for icon buttons that are visually smaller than the
+ * 44x44px touch minimum (small `p-1`/`p-1.5` icon buttons). The pseudo-element
+ * is invisible, inherits the button's border-radius, and extends the tappable
+ * region without changing layout or visuals. Requires `relative` (or an
+ * absolute position) on the button itself.
+ */
+.hit-expand::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: inherit;
 }
 
 /* ── Circular Wave View Transition for Theme Switch ── */
@@ -508,4 +555,20 @@ input[type="range"].m3-range:active::-moz-range-thumb {
    track must stay transparent. */
 input[type="range"].m3-range::-moz-range-track {
   background: transparent;
+}
+
+/* ── Motion opt-out ─────────────────────────────────────────────────────────
+   Every loop that runs continuously (pulse dots on the home screens, ping
+   "live" badges, spinner, shimmer, scanner laser) stops dead when the user
+   asks the OS for reduced motion. One-shot entry animations are short and
+   infrequent, so they stay. Unlayered rules win over Tailwind's utility
+   layer, so no !important is needed. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-ping,
+  .animate-spin,
+  .shimmer,
+  .scanner-laser {
+    animation: none;
+  }
 }

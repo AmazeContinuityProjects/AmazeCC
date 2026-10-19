@@ -277,7 +277,7 @@ export default function SyncNotification({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              className="fixed bottom-24 right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
+              className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] right-4 z-50 w-full max-w-[300px] bg-white dark:bg-[var(--surface)] border border-slate-200 dark:border-[var(--border-muted)] shadow-xl rounded-2xl p-3 pr-2 flex items-center gap-3 cursor-pointer select-none font-sans border-l-[4px] border-l-blue-500"
               onClick={() => setIsMinimized(false)}
             >
             <div className="flex items-center gap-3 w-full">
@@ -325,14 +325,14 @@ export default function SyncNotification({
               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setIsMinimized(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+                  className="relative hit-expand p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
                   title="Expand window"
                 >
                   <Maximize2 size={12} />
                 </button>
                 <button
                   onClick={onDismiss}
-                  className="p-1 rounded-md text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
+                  className="relative hit-expand p-1 rounded-md text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
                   title="Cancel sync"
                 >
                   <X size={12} />

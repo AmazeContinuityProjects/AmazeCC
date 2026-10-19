@@ -847,12 +847,14 @@ export default function SimplifiedMobileHome({
               <img
                 src={profileImage}
                 alt=""
+                decoding="async"
                 className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 object-cover shadow-xs"
               />
             ) : (
               <img
                 src={getAssetPath("/logo.png")}
                 alt="AmazeCC"
+                decoding="async"
                 className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
               />
             )}
@@ -1306,7 +1308,7 @@ export default function SimplifiedMobileHome({
           />
         ) : selectedDayClasses.length === 0 ? (
           /* ── VIEWPORT STATE 3: FREE DAY (NO CLASSES SCHEDULED) ── */
-          <div className="p-8 rounded-[28px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
+          <div className="p-8 rounded-[28px] card-surface border border-zinc-200/60 dark:border-zinc-800/80 text-center space-y-3 shadow-2xs">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mx-auto text-indigo-500">
               <Coffee className="w-6 h-6" />
             </div>
@@ -1395,7 +1397,7 @@ export default function SimplifiedMobileHome({
                         ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                         : isCompleted
                         ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                        : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                        : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                     } hover:scale-[1.006] active:scale-[0.99]`}
                   >
 
@@ -1419,8 +1421,8 @@ export default function SimplifiedMobileHome({
                             {cls.courseTitle}
                           </h3>
                           {isLive && (
-                            <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse">
-                              <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                            <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500 text-white shrink-0 shadow-2xs animate-pulse [animation-duration:2.5s]">
+                              <span className="w-1 h-1 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                               Live ({minutesLeft}m)
                             </span>
                           )}
@@ -1522,7 +1524,7 @@ export default function SimplifiedMobileHome({
                       ? "bg-white dark:bg-zinc-900 border-indigo-500 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/20"
                       : isCompleted
                       ? "bg-zinc-50/70 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-800 opacity-75 hover:opacity-100"
-                      : "bg-white/80 dark:bg-zinc-900/70 backdrop-blur-xl border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
+                      : "card-surface border-zinc-200/70 dark:border-zinc-800/80 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700"
                   } hover:scale-[1.008] active:scale-[0.99]`}
                 >
 
@@ -1546,8 +1548,8 @@ export default function SimplifiedMobileHome({
                         </span>
 
                         {isLive && (
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-xl bg-emerald-500 text-white shadow-xs animate-pulse [animation-duration:2.5s]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                             Live ({minutesLeft}m left)
                           </span>
                         )}

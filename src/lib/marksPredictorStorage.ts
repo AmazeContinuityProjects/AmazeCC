@@ -18,6 +18,12 @@ export interface StoredCourseState {
   labCredits?: number;
   simulations?: Record<string, number>; // assessmentId -> simulated raw mark
   targetScore?: number;
+  /**
+   * The user's choice to hold the subject out of the SGPA/CGPA aggregation.
+   * The row stays on the list (marked as ignored) but the GPA pair reads only
+   * courses that are not ignored.
+   */
+  ignored?: boolean;
   lastUpdated?: number;
 }
 
@@ -69,6 +75,27 @@ export const resetCoursePredictorState = (courseCode: string): void => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   } catch (e) {
     console.error("Error resetting course predictor state:", e);
+  }
+};
+
+/**
+ * Toggle the user's "leave this subject out of the GPA pair" choice — an
+ * exclusion of the aggregation, not of the list: the row stays visible and
+ * keeps its own prediction, only the SGPA/CGPA cards stop reading it. Dropped
+ * whenever the course's whole state is reset.
+ */
+export const setCourseIgnored = (courseCode: string, ignored: boolean): void => {
+  if (typeof window === "undefined" || !courseCode) return;
+  try {
+    const all = getStoredPredictorState();
+    all[courseCode] = {
+      ...all[courseCode],
+      ignored,
+      lastUpdated: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  } catch (e) {
+    console.error("Error setting course ignored state:", e);
   }
 };
 

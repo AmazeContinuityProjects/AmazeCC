@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
       </div>
 
       {/* Sticky Header Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#03060F]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#03060F]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link 
@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
 
       <div className="w-full max-w-2xl space-y-6 relative z-10 pt-10">
         {/* Content Card */}
-        <div className="bg-white/80 dark:bg-[#050814]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-[24px] p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
+        <div className="card-surface border border-border-strong dark:border-border rounded-[24px] p-8 shadow-xl space-y-6 text-slate-700 dark:text-gray-300">
           <div className="border-b border-slate-100 dark:border-white/[0.08] pb-4">
             <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight font-[family-name:var(--font-outfit)]">
               Privacy Policy

@@ -495,7 +495,7 @@ export default function CatalogSearch({
               <div
                 key={g.key}
                 title={g.key === "__noloc__" ? undefined : g.key}
-                className="p-4 rounded-2xl bg-white/70 dark:bg-zinc-900/50 border border-zinc-200/70 dark:border-zinc-800/80"
+                className="p-4 rounded-2xl card-surface border border-zinc-200/70 dark:border-zinc-800/80"
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 text-[11px] font-bold text-zinc-700 dark:text-zinc-200">

@@ -1521,7 +1521,7 @@ export default function FFCSTimetableTab() {
                   <select 
                     value={socialTargetId}
                     onChange={(e) => setSocialTargetId(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-lg text-sm text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
+                    className="flex-1 bg-background border border-border rounded-lg text-base sm:text-base text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
                   >
                     <option value="">Select Friend/Group...</option>
                     {friends.length > 0 && <optgroup label="Friends">
@@ -1536,7 +1536,7 @@ export default function FFCSTimetableTab() {
                     <select
                       value={socialScoreGroupMethod}
                       onChange={(e) => setSocialScoreGroupMethod(e.target.value as any)}
-                      className="w-24 bg-background border border-border rounded-lg text-[10px] text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
+                      className="w-28 bg-background border border-border rounded-lg text-base text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
                       title="Calculation Method"
                     >
                       <option value="intersection">Intersection</option>
@@ -1556,14 +1556,25 @@ export default function FFCSTimetableTab() {
                 <Download className="w-4 h-4" /> 
                 {isDownloading ? "Opening..." : "Printable View"}
               </button>
-              <div className="relative group">
-                <button 
+              <div className="relative group flex items-center gap-2">
+                <button
                   onClick={() => downloadImage('jpg')}
                   disabled={isDownloading || courses.length === 0}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
-                  <Download className="w-4 h-4" /> 
+                  <Download className="w-4 h-4" />
                   {isDownloading ? "Capturing..." : "Download JPG"}
+                </button>
+                {/* Touch devices never hover the trigger above, so the
+                    hover-only format menu is unreachable there. Surface PNG
+                    as a direct sibling action; the hover menu stays for
+                    pointer devices. */}
+                <button
+                  onClick={() => downloadImage('png')}
+                  disabled={isDownloading || courses.length === 0}
+                  className="hidden items-center bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-3 py-2 rounded-xl text-sm font-medium transition-colors [@media(any-hover:none)]:flex shadow-lg shadow-blue-500/20"
+                >
+                  PNG
                 </button>
                 <div className="absolute right-0 top-full mt-1 w-36 bg-background border border-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                   <button 

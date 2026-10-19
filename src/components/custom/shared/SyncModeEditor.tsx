@@ -695,7 +695,7 @@ export default function SyncModeEditor({
         />
         <button
           onClick={onClose}
-          className="absolute -top-1 right-0 p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 cursor-pointer"
+          className="absolute -top-1 right-0 p-1 hit-expand rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 cursor-pointer"
           aria-label="Close"
         >
           <X size={15} />

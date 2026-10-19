@@ -176,7 +176,7 @@ export default function CabShareMatchCard() {
     left: React.ReactNode;
     right?: React.ReactNode;
   }) => (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface/70 border border-border-muted px-3 py-2.5">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-tertiary dark:bg-surface border border-border-muted dark:border-border px-3 py-2.5">
       {left}
       {right}
     </div>

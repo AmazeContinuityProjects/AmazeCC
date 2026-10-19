@@ -54,7 +54,7 @@ export default function ChangelogModal() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -30, scale: 0.92 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="fixed top-4 right-4 left-4 md:left-auto md:w-[360px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] overflow-hidden flex flex-col max-h-[60vh] md:max-h-[480px] pointer-events-auto"
+          className="fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] right-4 left-4 md:left-auto md:w-[360px] bg-white/95 dark:bg-black/95 backdrop-blur-md border border-gray-250 dark:border-gray-850 rounded-2xl p-5 shadow-2xl z-[120] overflow-hidden flex flex-col max-h-[60vh] md:max-h-[480px] pointer-events-auto"
         >
           {/* Background Decoration */}
           <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[35px] pointer-events-none" />
@@ -62,7 +62,7 @@ export default function ChangelogModal() {
 
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 dark:bg-gray-900 rounded-full transition-colors z-10 cursor-pointer"
+            className="absolute top-4 right-4 hit-expand p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 dark:bg-gray-900 rounded-full transition-colors z-10 cursor-pointer"
           >
             <X size={14} />
           </button>

@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { officialOdDataAtom } from "@/store";
 import { AnimatePresence, m } from "framer-motion";
-import { Award, CheckCircle2, ChevronDown, Clock, FileText, ShieldAlert } from "lucide-react";
+import { Award, Calendar, CheckCircle2, ChevronRight, Clock, FileText, ShieldAlert } from "lucide-react";
 import { cn } from "@amazecontinuityprojects/amazeui";
-import { TILE, TILE_CARD } from "@/lib/uiTokens";
+import { LIST_ROW, TILE } from "@/lib/uiTokens";
 import {
     EmptyPanel,
     InsightCarousel,
+    ListRowText,
+    ListShell,
     PageShell,
     SectionHeader,
     SegmentedControl,
@@ -378,69 +380,48 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                         }
                     />
                 ) : (
-                    <div className="space-y-2.5">
+                    <ListShell>
                         {visibleHistory.map((d, i) => {
                             const status = d.allWasted ? "wasted" : d.hasWasted ? "partial" : "valid";
                             const key = `${d.date}-${i}`;
                             const isExpanded = expandedKey === key;
                             return (
-                                <div
-                                    key={key}
-                                    className={`${TILE_CARD} transition-all hover:border-border-strong dark:hover:border-border`}
-                                >
+                                <div key={key}>
                                     {/* Compressed row */}
                                     <button
                                         onClick={() => setExpandedKey(isExpanded ? null : key)}
-                                        className="w-full relative py-3 px-4 flex items-center justify-between gap-3 text-left cursor-pointer active:scale-[0.99] transition-transform"
+                                        className={`${LIST_ROW} cursor-pointer`}
                                     >
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <span
-                                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                                        status === "valid" ? "bg-emerald-500" : status === "partial" ? "bg-amber-500" : "bg-red-500"
-                                                    }`}
-                                                />
-                                                <h3 className="font-bold text-sm text-zinc-900 dark:text-white truncate font-outfit leading-tight">
-                                                    {prettyDate(d.date)}
-                                                </h3>
-                                                {status !== "valid" && (
-                                                    <span
-                                                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border shrink-0 ${
-                                                            status === "partial"
-                                                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                                                                : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                                                        }`}
-                                                    >
-                                                        {status === "partial" ? "Partial" : "Wasted"}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 truncate pl-3.5">
-                                                {d.courses.length} {d.courses.length === 1 ? "session" : "sessions"}
-                                                {d.daySpan && (
-                                                    <span> · {d.daySpan}</span>
-                                                )}
-                                                {d.officialWhy && d.officialWhy.length > 0 && (
-                                                    <span className="text-indigo-500 dark:text-indigo-400 font-semibold"> · {d.officialWhy[0].reason}</span>
-                                                )}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <div className="text-right flex flex-col items-end justify-center">
-                                                <span
-                                                    className={`text-base font-black font-outfit tracking-tight leading-none ${
-                                                        status === "valid"
-                                                            ? "text-emerald-600 dark:text-emerald-400"
-                                                            : status === "partial"
-                                                            ? "text-amber-600 dark:text-amber-400"
-                                                            : "text-red-500 dark:text-red-400"
-                                                    }`}
-                                                >
-                                                    {d.totalHours}h
-                                                </span>
-                                            </div>
-                                            <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                                        </div>
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border-muted bg-surface-secondary text-zinc-500 dark:text-zinc-400">
+                                            <Calendar className="h-4.5 w-4.5" />
+                                        </span>
+                                        <ListRowText
+                                            title={prettyDate(d.date)}
+                                            subtitle={`${d.courses.length} ${d.courses.length === 1 ? "session" : "sessions"}${d.daySpan ? ` · ${d.daySpan}` : ""}${d.officialWhy && d.officialWhy.length > 0 ? ` · ${d.officialWhy[0].reason}` : ""}`}
+                                        />
+                                        <span
+                                            className={`shrink-0 text-sm font-black font-outfit tracking-tight leading-none w-12 text-right ${
+                                                status === "valid"
+                                                    ? "text-emerald-600 dark:text-emerald-400"
+                                                    : status === "partial"
+                                                    ? "text-amber-600 dark:text-amber-400"
+                                                    : "text-red-500 dark:text-red-400"
+                                            }`}
+                                        >
+                                            {d.totalHours}h
+                                        </span>
+                                        {status !== "valid" && (
+                                            <span
+                                                className={`shrink-0 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border ${
+                                                    status === "partial"
+                                                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                                                        : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                                }`}
+                                            >
+                                                {status === "partial" ? "Partial" : "Wasted"}
+                                            </span>
+                                        )}
+                                        <ChevronRight className={`h-4 w-4 text-zinc-400 shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                                     </button>
 
                                     {/* Expanded detail */}
@@ -453,7 +434,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                                 transition={{ duration: 0.22, ease: "easeInOut" }}
                                                 className="overflow-hidden"
                                             >
-                                                <div className="px-4 pb-4 pt-1 space-y-2 border-t border-zinc-100 dark:border-zinc-800/80 mt-1">
+                                                <div className="px-4 pb-4 pt-1 space-y-2 border-t border-zinc-100 dark:border-zinc-800/80">
                                                     {d.officialWhy && d.officialWhy.length > 0 && (
                                                         <div className="space-y-1.5 pt-2.5">
                                                             {d.officialWhy.map((o, oi) => (
@@ -528,7 +509,7 @@ export default function ODTrackerSubpage({ ODhoursData, attendanceData, onBack, 
                                 </div>
                             );
                         })}
-                    </div>
+                    </ListShell>
                 )}
             </div>
 
