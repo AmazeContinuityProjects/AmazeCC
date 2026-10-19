@@ -72,6 +72,22 @@ export const resetCoursePredictorState = (courseCode: string): void => {
   }
 };
 
+/**
+ * The overall reset: every course's saved what-ifs, custom regimens, sims and
+ * goals go together with the custom subjects (whose regimens live entirely in
+ * this store, so dropping only the sim state would leave them hollow). Every
+ * course row then re-derives straight from VTOP's published marks.
+ */
+export const resetAllCoursePredictorState = (): void => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CUSTOM_COURSES_KEY);
+  } catch (e) {
+    console.error("Error resetting all marks predictor state:", e);
+  }
+};
+
 // ── Custom Mock Courses ──
 export const getCustomCourses = (): CustomCourseMock[] => {
   if (typeof window === "undefined") return [];

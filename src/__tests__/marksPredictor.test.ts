@@ -104,7 +104,97 @@ describe("Marks Predictor Calculation Engine", () => {
       expect(prediction.currentScoredScaled).toBeCloseTo(88.88, 1);
       expect(prediction.pointsLostScaled).toBeCloseTo(11.13, 1);
       expect(prediction.isEmbedded).toBe(true);
-      expect(prediction.estimatedGrade.letter).toBe("A");
+      // Everything is recorded, so the pace equals the standing: 88.88 over
+      // 100.01 released weight → 88.87, an A under the absolute ladder — the
+      // same number the marks subpage's ladder reports as "you are here".
+      expect(prediction.pacePct).toBeCloseTo(88.87, 1);
+      expect(prediction.optimalGrade?.letter).toBe("A");
+      // Ceiling = 100 − points lost = 88.87 → also an A: scoring the (zero)
+      // remaining weight at max changes nothing.
+      expect(prediction.maximisableGrade.letter).toBe("A");
+    });
+  });
+
+  describe("grading context — curved course ladders", () => {
+    // 67% pace: CAT-I 25/50 × 15 = 7.5 scored, CAT-II 42/50 × 15 = 12.6, FAT
+    // pending. Released 30, scored 20.1 → 67%. Absolute bands call that a C;
+    // a class curve with mean 55 σ 12 starts A at 61 — the same numbers the
+    // marks subpage turns into "A". The user's reported mismatch, pinned.
+    const assessments: PredictorAssessment[] = [
+      { id: "t1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 25, component: "theory" },
+      { id: "t2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: 42, component: "theory" },
+      { id: "t3", title: "FAT", maxMark: 100, weightagePercent: 40, scoredMark: null, component: "theory" },
+    ];
+    const curveStats = { count: 69, mean: 55, sd: 12 };
+
+    it("reads an ACE course's curve off class statistics", () => {
+      const prediction = computeCoursePrediction({
+        courseCode: "BAECE203",
+        courseTitle: "Analog Electronics",
+        courseType: "Embedded Theory",
+        theoryAssessments: assessments,
+        courseSystem: "ACE",
+        classStats: curveStats,
+      });
+
+      expect(prediction.pacePct).toBeCloseTo(67, 0);
+      expect(prediction.optimalGrade?.letter).toBe("A");
+      expect(prediction.isCurved).toBe(true);
+      // The shifted A threshold rides on the result so the hero's per-half
+      // rows reuse the identical ladder.
+      expect(prediction.boundaries.find((band) => band.grade === "A")?.limit).toBe(61);
+    });
+
+    it("without the system field stays fixed even when stats exist", () => {
+      // Legacy callers predating grading context: absolute, exactly as before.
+      const prediction = computeCoursePrediction({
+        courseCode: "BAECE203",
+        courseTitle: "Analog Electronics",
+        courseType: "Theory Only",
+        theoryAssessments: assessments,
+        classStats: curveStats,
+      } as any);
+
+      expect(prediction.optimalGrade?.letter).toBe("C");
+      expect(prediction.isCurved).toBe(false);
+      expect(prediction.boundaries[1]).toEqual({ grade: "A", limit: 80 });
+    });
+
+    it("curve-eligible but no class data falls back to the fixed ladder", () => {
+      const prediction = computeCoursePrediction({
+        courseCode: "BAECE203",
+        courseTitle: "Analog Electronics",
+        courseType: "Embedded Theory",
+        theoryAssessments: assessments,
+        courseSystem: "ACE",
+        classStats: null,
+      });
+
+      expect(prediction.optimalGrade?.letter).toBe("C");
+      expect(prediction.isCurved).toBe(false);
+    });
+
+    it("ceils a fractional weightage into the next band", () => {
+      // Pace 59.2 read raw would sit in D (≥ 50); grades are calculated on a
+      // ceiled weightage — 59.2 → 60 → C.
+      // CAT-I: 20/50 × 15 = 6.0; CAT-II: 39.2/50 × 15 = 11.76 → scored 17.76,
+      // released 30 → 59.2%. Nothing pending, so maximisable = 100 − 12.24
+      // lost = 87.76 → an A on either ladder.
+      const ceilAssessments: PredictorAssessment[] = [
+        { id: "c1", title: "CAT - I", maxMark: 50, weightagePercent: 15, scoredMark: 20, component: "theory" },
+        { id: "c2", title: "CAT - II", maxMark: 50, weightagePercent: 15, scoredMark: 39.2, component: "theory" },
+      ];
+
+      const prediction = computeCoursePrediction({
+        courseCode: "BCSE1001",
+        courseTitle: "Problem Solving",
+        courseType: "Theory Only",
+        theoryAssessments: ceilAssessments,
+      });
+
+      expect(prediction.pacePct).toBeCloseTo(59.2, 1);
+      expect(prediction.optimalGrade?.letter).toBe("C");
+      expect(prediction.maximisableGrade.letter).toBe("A");
     });
   });
 

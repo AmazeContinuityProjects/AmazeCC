@@ -435,3 +435,77 @@ input:-webkit-autofill:focus {
 ::view-transition-new(root) {
   z-index: 9999;
 }
+
+/* ── Material 3 slider ──────────────────────────────────────────────────────
+   A thick rounded track (M3 expressive) whose active share fills with the
+   theme accent, and a small circular handle that swells while you drag.
+   The caller sets `--range-fill` to the percentage inline; everything else
+   lives here so every range in the app reads like the same control. */
+input[type="range"].m3-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.875rem; /* 14px thick track */
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  --m3-color: var(--theme-accent, #6366f1);
+  --m3-rest: #e4e4e7;
+  background: linear-gradient(
+    to right,
+    var(--m3-color) 0%,
+    var(--m3-color) var(--range-fill, 0%),
+    var(--m3-rest) var(--range-fill, 0%),
+    var(--m3-rest) 100%
+  );
+}
+
+.dark input[type="range"].m3-range {
+  --m3-rest: #3f3f46;
+}
+
+/* The handle: an 8px primary dot inside a 20px hit target (the radial
+   gradient draws only the dot), swelling when grabbed — M3 handle
+   expressiveness. */
+input[type="range"].m3-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    var(--m3-color) 0 0.25rem,
+    transparent 0.25rem
+  );
+  transform: scale(1);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].m3-range:active::-webkit-slider-thumb {
+  transform: scale(1.35);
+}
+
+input[type="range"].m3-range::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    var(--m3-color) 0 0.25rem,
+    transparent 0.25rem
+  );
+  transform: scale(1);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].m3-range:active::-moz-range-thumb {
+  transform: scale(1.35);
+}
+
+/* The gradient on the input itself carries the track, so Firefox's painted
+   track must stay transparent. */
+input[type="range"].m3-range::-moz-range-track {
+  background: transparent;
+}

@@ -8,15 +8,14 @@ import {
   Check,
   AlertCircle,
   Sparkles,
-  X,
   Wand2,
   Save,
+  Lock,
   ChevronRight,
 } from "lucide-react";
 import {
   PredictorAssessment,
   PRESET_REGIMENS,
-  normalizeWeights,
   safeNumber,
   RegimenPreset,
 } from "@/lib/marksPredictor";
@@ -29,7 +28,13 @@ import {
   SegmentedControl,
   ToneBadge,
 } from "../../shared/primitives";
-import { FIELD_INPUT, LIST_ROW, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
+import { FIELD_INPUT, LIST_ROW, TONE_ICON_TILE } from "@/lib/uiTokens";
+import BottomSheet from "../../shared/BottomSheet";
+import {
+  isAssessmentPublished,
+  remainingWeightFor,
+  weightFreezeFor,
+} from "./useCoursePredictionScope";
 
 interface AssessmentRegimenEditorProps {
   courseCode: string;
@@ -75,7 +80,22 @@ export default function AssessmentRegimenEditor({
   const totalWeight = currentList.reduce((sum, item) => sum + safeNumber(item.weightagePercent, 0), 0);
   const isWeightValid = Math.abs(totalWeight - 100) < 0.05;
 
+  // Freeze enforcement: published rows are cohort facts and the final exam's
+  // 40% is reserved, so neither their weightage can be re-typed, their row
+  // removed, nor a preset rewrite over them. The remaining share is all a
+  // user's own addenda can ever claim.
+  const frozenWeight = currentList
+    .filter((item) => weightFreezeFor(item).frozen)
+    .reduce((sum, item) => sum + safeNumber(item.weightagePercent, 0), 0);
+  const remaining = remainingWeightFor(currentList);
+  const anyPublished = currentList.some(isAssessmentPublished);
+  const anyFrozen = currentList.some((item) => weightFreezeFor(item).frozen);
+
   const handleApplyPreset = (preset: RegimenPreset) => {
+    // A preset rewrites the whole component — that is exactly the change the
+    // freeze forbids once marks have published. Declined with the same rule
+    // the weight inputs follow.
+    if (anyPublished) return;
     const newItems: PredictorAssessment[] = preset.items.map((item, idx) => ({
       id: `${activeTab}-preset-${Date.now()}-${idx}`,
       title: item.title,
@@ -90,11 +110,14 @@ export default function AssessmentRegimenEditor({
   };
 
   const handleAddItem = () => {
+    // A new assessment claims only the weight still open — published facts and
+    // the reserved final exam are not spendable.
+    if (remaining <= 0) return;
     const newItem: PredictorAssessment = {
       id: `${activeTab}-custom-${Date.now()}`,
       title: `Assessment ${currentList.length + 1}`,
       maxMark: 50,
-      weightagePercent: 10,
+      weightagePercent: Math.min(10, remaining),
       scoredMark: null,
       status: "Pending",
       isSimulated: false,
@@ -104,24 +127,58 @@ export default function AssessmentRegimenEditor({
   };
 
   const handleRemoveItem = (id: string) => {
-    setCurrentList((prev) => prev.filter((item) => item.id !== id));
+    const item = currentList.find((it) => it.id === id);
+    // Frozen rows cannot be deleted: a published fact is not the user's to
+    // drop, and the reserved final exam must stay in the prediction.
+    if (!item || weightFreezeFor(item).frozen) return;
+    setCurrentList((prev) => prev.filter((it) => it.id !== id));
   };
 
   const handleEditItem = (id: string, field: keyof PredictorAssessment, val: any) => {
     setCurrentList((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
+        // A weightage edit stays inside the component total: every frozen row
+        // keeps its share, so the editable envelope is the non-frozen rest.
+        if (field === "weightagePercent" && weightFreezeFor(item).frozen) return item;
+        if (field === "weightagePercent") {
+          const frozenSum = prev
+            .filter((it) => it.id !== id && weightFreezeFor(it).frozen)
+            .reduce((sum, it) => sum + safeNumber(it.weightagePercent, 0), 0);
+          const editableSum = prev
+            .filter((it) => it.id !== id && !weightFreezeFor(it).frozen)
+            .reduce((sum, it) => sum + safeNumber(it.weightagePercent, 0), 0);
+          const capped = Math.min(
+            safeNumber(val, 0),
+            Math.max(0, 100 - frozenSum - editableSum)
+          );
+          return { ...item, weightagePercent: safeNumber(capped, 0) };
+        }
         return {
           ...item,
-          [field]: field === "maxMark" || field === "weightagePercent" ? safeNumber(val, 0) : val,
+          [field]: field === "maxMark" ? safeNumber(val, 0) : val,
         };
       })
     );
   };
 
   const handleNormalize = () => {
-    const normalized = normalizeWeights(currentList);
-    setCurrentList(() => normalized as PredictorAssessment[]);
+    // Scale only what the freeze leaves editable: frozen rows keep their share
+    // and the rest refills (100 − frozenSum) proportionally.
+    const editable = currentList.filter((item) => !weightFreezeFor(item).frozen);
+    if (editable.length === 0 || frozenWeight >= 100) return;
+    const editableSum = editable.reduce((sum, item) => sum + safeNumber(item.weightagePercent, 0), 0);
+    const target = 100 - frozenWeight;
+    setCurrentList((prev) =>
+      prev.map((item) => {
+        if (weightFreezeFor(item).frozen) return item;
+        const weight =
+          editableSum > 0
+            ? (safeNumber(item.weightagePercent, 0) / editableSum) * target
+            : target / editable.length;
+        return { ...item, weightagePercent: Math.round(weight * 10) / 10 };
+      })
+    );
   };
 
   const handleSave = () => {
@@ -130,22 +187,22 @@ export default function AssessmentRegimenEditor({
   };
 
   return (
-    <div className={`${TILE_CARD} w-full max-w-full space-y-4 max-h-[85vh] overflow-y-auto overscroll-contain`}>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 min-w-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+    <BottomSheet
+      onClose={onClose}
+      overlayId={`predictor-regimen-${courseCode}`}
+      maxWidth="max-w-md"
+    >
+      <div className="space-y-4 pb-2">
+        {/* Header — the sheet carries the X, grabber and dismissal gestures */}
+        <div className="flex items-center gap-3 min-w-0">
           <span className={`h-9 w-9 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}>
             <Sliders className="w-4 h-4" />
           </span>
           <div className="min-w-0">
             <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit truncate">Assessment Regimen Editor</h3>
-            <p className="text-[11px] text-zinc-400 font-medium truncate">Configure weightages for {courseCode}</p>
+            <p className="text-[11px] text-zinc-400 font-medium truncate">Configure weightages for {courseCode} · apply to save, swipe down to discard</p>
           </div>
         </div>
-        <IconButton title="Close editor" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </IconButton>
-      </div>
 
       {isEmbedded && (
         <SegmentedControl
@@ -170,32 +227,39 @@ export default function AssessmentRegimenEditor({
         </div>
       )}
 
-      <div className="space-y-3 min-w-0">
-        <SectionHeader
-          icon={Sparkles}
-          title="Quick presets"
-          count={
-            PRESET_REGIMENS.filter(
+      {/* Quick presets only exist to start a regimen from nothing. A component
+          that already carries assessments — from VTOP, storage, or the user's
+          own adds — would only be torn down by applying one, so the offer
+          disappears instead of dangling a dangerous rewrite. */}
+      {currentList.length === 0 && (
+        <div className="space-y-3 min-w-0">
+          <SectionHeader
+            icon={Sparkles}
+            title="Quick presets"
+            count={
+              PRESET_REGIMENS.filter(
+                (p) => (activeTab === "theory" && (p.category === "theory" || p.category === "softskill")) || (activeTab === "lab" && p.category === "lab") || p.category === "project"
+              ).length
+            }
+          />
+          <ListShell>
+            {PRESET_REGIMENS.filter(
               (p) => (activeTab === "theory" && (p.category === "theory" || p.category === "softskill")) || (activeTab === "lab" && p.category === "lab") || p.category === "project"
-            ).length
-          }
-        />
-        <ListShell>
-          {PRESET_REGIMENS.filter(
-            (p) => (activeTab === "theory" && (p.category === "theory" || p.category === "softskill")) || (activeTab === "lab" && p.category === "lab") || p.category === "project"
-          ).map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => handleApplyPreset(preset)}
-              className={`${LIST_ROW} cursor-pointer group`}
-            >
-              <ListRowText title={preset.name} subtitle={preset.description} />
-              <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
-            </button>
-          ))}
-        </ListShell>
-      </div>
+            ).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleApplyPreset(preset)}
+                title={preset.description}
+                className={`${LIST_ROW} cursor-pointer group`}
+              >
+                <ListRowText title={preset.name} subtitle={preset.description} />
+                <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+              </button>
+            ))}
+          </ListShell>
+        </div>
+      )}
 
       <div className="space-y-3 min-w-0">
         <div className="flex flex-col gap-2 min-w-0">
@@ -218,35 +282,68 @@ export default function AssessmentRegimenEditor({
           )}
         </div>
 
-        <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1 -mr-1 min-w-0">
-          {currentList.map((item, idx) => (
-            <div key={item.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 min-w-0 overflow-hidden">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs font-bold text-zinc-400 shrink-0">#{idx + 1}</span>
-                <input type="text" value={item.title} onChange={(e) => handleEditItem(item.id, "title", e.target.value)} placeholder="Assessment Name" aria-label="Assessment name" className={`${FIELD_INPUT} min-w-0`} />
-                <IconButton title="Remove assessment" onClick={() => handleRemoveItem(item.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </IconButton>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                  <span className="text-[11px] font-bold text-zinc-400 shrink-0">Max:</span>
-                  <input type="number" min="1" max="100" value={item.maxMark} onChange={(e) => handleEditItem(item.id, "maxMark", e.target.value)} aria-label="Maximum marks" className={`${FIELD_INPUT} min-w-0 text-center`} />
+        {/* Flat list — no inner scroller; the sheet body scrolls everything. */}
+        <div className="space-y-2 min-w-0">
+          {currentList.map((item, idx) => {
+            const freeze = weightFreezeFor(item);
+            return (
+              <div key={item.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-zinc-400 shrink-0">#{idx + 1}</span>
+                  <input type="text" value={item.title} onChange={(e) => handleEditItem(item.id, "title", e.target.value)} placeholder="Assessment Name" aria-label="Assessment name" className={`${FIELD_INPUT} min-w-0`} />
+                  {freeze.frozen ? (
+                    <ToneBadge tone={isAssessmentPublished(item) ? "emerald" : "amber"}>
+                      {isAssessmentPublished(item) ? "Published" : "Reserved"}
+                    </ToneBadge>
+                  ) : null}
+                  <IconButton
+                    title={freeze.frozen ? "Frozen — published facts and the reserved FAT stay" : "Remove assessment"}
+                    onClick={() => handleRemoveItem(item.id)}
+                    className={freeze.frozen ? "opacity-30 cursor-not-allowed" : ""}
+                  >
+                    <Trash2 className={freeze.frozen ? "w-4 h-4" : "w-4 h-4"} />
+                  </IconButton>
                 </div>
-                <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                  <span className="text-[11px] font-bold text-zinc-400 shrink-0">Wt:</span>
-                  <input type="number" min="1" max="100" value={item.weightagePercent} onChange={(e) => handleEditItem(item.id, "weightagePercent", e.target.value)} aria-label="Weightage percent" className={`${FIELD_INPUT} min-w-0 text-center`} />
-                  <span className="text-xs font-bold text-zinc-400 shrink-0">%</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                    <span className="text-[11px] font-bold text-zinc-400 shrink-0">Max:</span>
+                    <input type="number" min="1" max="100" value={item.maxMark} onChange={(e) => handleEditItem(item.id, "maxMark", e.target.value)} aria-label="Maximum marks" className={`${FIELD_INPUT} min-w-0 text-center`} />
+                  </div>
+                  <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                    <span className="text-[11px] font-bold text-zinc-400 shrink-0">Wt:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={item.weightagePercent}
+                      onChange={(e) => handleEditItem(item.id, "weightagePercent", e.target.value)}
+                      disabled={freeze.frozen}
+                      aria-label="Weightage percent"
+                      aria-disabled={freeze.frozen}
+                      className={`${FIELD_INPUT} min-w-0 text-center ${freeze.frozen ? "opacity-60 cursor-not-allowed" : ""}`}
+                    />
+                    {freeze.frozen ? (
+                      <Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" aria-label="Weightage frozen" />
+                    ) : null}
+                    <span className="text-xs font-bold text-zinc-400 shrink-0">%</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        <button onClick={handleAddItem} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 text-xs font-black transition-all cursor-pointer">
-          <Plus className="w-4 h-4" />
-          Add Assessment
-        </button>
+        {remaining > 0 ? (
+          <button onClick={handleAddItem} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 text-xs font-black transition-all cursor-pointer">
+            <Plus className="w-4 h-4" />
+            Add Assessment ({remaining.toFixed(1)} wt open)
+          </button>
+        ) : (
+          <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs font-black">
+            <Lock className="w-3.5 h-3.5" />
+            No weightage left — published facts and the reserved FAT hold {frozenWeight.toFixed(1)}%
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
@@ -261,18 +358,12 @@ export default function AssessmentRegimenEditor({
             </ToneBadge>
           )}
         </div>
-        <div className="flex gap-2">
-          <span className="flex-1">
-            <GhostButton onClick={onClose} title="Cancel without saving" className="w-full justify-center">
-              Cancel
-            </GhostButton>
-          </span>
-          <button onClick={handleSave} className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95">
-            <Save className="w-4 h-4" />
-            Apply Regimen
-          </button>
-        </div>
+        <button onClick={handleSave} className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95">
+          <Save className="w-4 h-4" />
+          Apply Regimen
+        </button>
       </div>
-    </div>
+      </div>
+    </BottomSheet>
   );
 }

@@ -31,6 +31,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as FetchUtils from "../lib/fetch-utils";
+import { switchApiHost } from "../lib/fetch-utils";
 
 const PRIMARY = "https://api.amazecc.com";
 const BACKUP = "https://mirror.amazecc.deno.net";
@@ -342,5 +343,58 @@ describe("with a real mirror configured", () => {
     const res = await fetchWithFailover(`${UNICC}/api/status`);
     expect(mock).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(200);
+  });
+});
+
+describe("persisted API host choice", () => {
+  const env = {
+    NEXT_PUBLIC_API_URL: PRIMARY,
+    NEXT_PUBLIC_BACKUP_API_URL: BACKUP,
+    NEXT_PUBLIC_UNICC_API_URL: UNICC,
+  };
+
+  it("restores the mirror after a reload", async () => {
+    // The bug: `setActiveApiUrl(BACKUP)` wrote this key, but nothing read it
+    // back at boot — so picking the mirror looked like it worked and then
+    // silently reverted to primary on the next reload.
+    store.set("amazecc_active_api_url", BACKUP);
+    const { getActiveApiUrl } = await loadFetchUtils(env);
+    expect(getActiveApiUrl()).toBe(BACKUP);
+  });
+
+  it("still prefers an explicit custom URL over the active key", async () => {
+    store.set("amazecc_custom_api_url", "https://self.example.com");
+    store.set("amazecc_active_api_url", BACKUP);
+    const { getActiveApiUrl } = await loadFetchUtils(env);
+    expect(getActiveApiUrl()).toBe("https://self.example.com");
+  });
+
+  it("clears a UniCC value instead of restoring it", async () => {
+    store.set("amazecc_active_api_url", UNICC);
+    const { getActiveApiUrl } = await loadFetchUtils(env);
+    expect(getActiveApiUrl()).toBe(PRIMARY);
+    expect(store.has("amazecc_active_api_url")).toBe(false);
+  });
+
+  it("falls back to primary when neither key is set", async () => {
+    const { getActiveApiUrl } = await loadFetchUtils(env);
+    expect(getActiveApiUrl()).toBe(PRIMARY);
+  });
+
+  it("switchApiHost clears a stored custom URL when picking Default", async () => {
+    // Otherwise the next reload would snap straight back to it, because the
+    // boot path honours the custom key first.
+    store.set("amazecc_custom_api_url", "https://self.example.com");
+    const { switchApiHost: switchHost, getActiveApiUrl } = await loadFetchUtils(env);
+    switchHost("default");
+    expect(getActiveApiUrl()).toBe(PRIMARY);
+    expect(store.has("amazecc_custom_api_url")).toBe(false);
+  });
+
+  it("switchApiHost switches to the mirror and persists it", async () => {
+    const { switchApiHost: switchHost, getActiveApiUrl } = await loadFetchUtils(env);
+    switchHost("backup");
+    expect(getActiveApiUrl()).toBe(BACKUP);
+    expect(store.get("amazecc_active_api_url")).toBe(BACKUP);
   });
 });

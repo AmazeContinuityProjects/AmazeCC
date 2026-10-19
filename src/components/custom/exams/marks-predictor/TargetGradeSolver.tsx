@@ -13,6 +13,7 @@ import {
   solveTargetFAT,
   TargetFATSolverResult,
   CoursePredictionResult,
+  estimateGrade,
 } from "@/lib/marksPredictor";
 import {
   ChipTabs,
@@ -23,20 +24,33 @@ import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 interface TargetGradeSolverProps {
   prediction: CoursePredictionResult;
+  /** The goal saved for this course (a percentage), if any. */
+  savedTargetScore?: number | null;
+  /** Writes the goal to the course's storage key on every change. */
+  onPersistTargetScore?: (score: number) => void;
 }
 
-const TARGET_PRESETS = [
-  { grade: "S", score: 90, desc: "Outstanding (10 GP)" },
-  { grade: "A", score: 80, desc: "Excellent (9 GP)" },
-  { grade: "B", score: 70, desc: "Very Good (8 GP)" },
-  { grade: "C", score: 60, desc: "Good (7 GP)" },
-  { grade: "D", score: 50, desc: "Average (6 GP)" },
-  { grade: "Pass", score: 40, desc: "Minimum Pass (5 GP)" },
-];
+export default function TargetGradeSolver({
+  prediction,
+  savedTargetScore,
+  onPersistTargetScore,
+}: TargetGradeSolverProps) {
+  // Band floors read off the prediction's own ladder: the presets name the
+  // same letters the hero shows, so on a curved course targeting "A" means the
+  // curve's A threshold, not the fixed 80. Absolute ladders reproduce the
+  // historic presets exactly (90/80/70/60/50/40).
+  const TARGET_PRESETS = prediction.boundaries.slice(0, 5).map((band) => ({
+    grade: band.grade === "E" ? "Pass" : band.grade,
+    score: Math.max(0, band.limit),
+    desc: estimateGrade(band.limit, prediction.boundaries).description,
+  }));
 
-export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps) {
-  const [selectedTargetScore, setSelectedTargetScore] = useState<number>(90);
-  const [customTargetInput, setCustomTargetInput] = useState<string>("90");
+  const [selectedTargetScore, setSelectedTargetScore] = useState<number>(
+    savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90
+  );
+  const [customTargetInput, setCustomTargetInput] = useState<string>(
+    String(savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90)
+  );
 
   const {
     isEmbedded,
@@ -47,32 +61,57 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
     currentScoredScaled,
   } = prediction;
 
-  const theoryFAT = theoryStats?.assessments.find((a) => /FAT|Final Assessment/i.test(a.title));
-  const fatWeight = theoryFAT?.weightagePercent || 40;
-  const fatMax = theoryFAT?.maxMark || 100;
-  const otherLabWeight = labStats?.scoredWeight || 0;
+  // The final exam that actually decides this course. A theory-carrying course
+  // solves against the theory FAT; a lab-only course has no theory half, so its
+  // final is the Lab FAT and the solve runs in the lab's own weight space.
+  // Hardcoding the theory side made a lab subject ask "what do I need in a FAT
+  // that does not exist" while its Lab FAT just sat there deciding the grade.
+  const finalRow = theoryStats
+    ? theoryStats.assessments.find((a) => /FAT|Final Assessment/i.test(a.title))
+    : labStats?.assessments.find((a) => /FAT|Final Assessment/i.test(a.title));
+  const solvesLab = !theoryStats;
+  const fatExamName = finalRow?.title?.trim() || (solvesLab ? "Lab FAT" : "FAT");
+  const fatWeight = finalRow?.weightagePercent || 40;
+  const fatMax = finalRow?.maxMark || 100;
+  // The current score is the earned weight points of the half being solved —
+  // published marks plus every what-if the reader entered on this page, which
+  // is the point of the exercise: set what you expect on the CATs and the
+  // required final-exam mark moves right away.
+  const currentComponentWeighted =
+    theoryStats?.scoredWeight ?? labStats?.scoredWeight ?? currentScoredScaled;
+  const otherComponentWeighted = solvesLab ? 0 : labStats?.scoredWeight || 0;
 
   const solverResult: TargetFATSolverResult = solveTargetFAT({
     targetScore: selectedTargetScore,
-    currentScoredScaled: theoryStats?.scoredWeight || currentScoredScaled,
+    currentScoredScaled: currentComponentWeighted,
     fatWeightagePercent: fatWeight,
     fatMaxMark: fatMax,
     theoryCredits,
     labCredits,
-    isEmbedded,
-    component: "theory",
-    otherComponentWeighted: otherLabWeight,
+    isEmbedded: isEmbedded && !solvesLab,
+    component: solvesLab ? "lab" : "theory",
+    otherComponentWeighted,
   });
+
+  // The goal, named: at this ladder the chosen percentage lands in this band —
+  // the belt between "90" and "grade B" closed.
+  const targetGradeOnLadder = estimateGrade(selectedTargetScore, prediction.boundaries).letter;
 
   const handleSelectPreset = (score: number) => {
     setSelectedTargetScore(score);
     setCustomTargetInput(score.toString());
+    // The target is the user's goal for this course — it persists in the
+    // course's storage key, not just this page's lifetime.
+    onPersistTargetScore?.(score);
   };
 
   const handleCustomChange = (val: string) => {
     setCustomTargetInput(val);
     const num = parseFloat(val);
-    if (Number.isFinite(num) && num > 0 && num <= 100) setSelectedTargetScore(num);
+    if (Number.isFinite(num) && num > 0 && num <= 100) {
+      setSelectedTargetScore(num);
+      onPersistTargetScore?.(num);
+    }
   };
 
   const getFeasibility = (feasibility: TargetFATSolverResult["feasibility"]) => {
@@ -103,7 +142,7 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
         count={TARGET_PRESETS.length}
       />
       <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        Calculate the exact marks needed in FAT.
+        Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder — calculated as the exact marks needed in {fatExamName}.
       </p>
 
       {/* Presets */}
@@ -145,7 +184,7 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-              Required in FAT
+              Required in {fatExamName}
             </p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">

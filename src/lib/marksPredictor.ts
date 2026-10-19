@@ -1,3 +1,12 @@
+import {
+  ABSOLUTE_GRADE_BOUNDARIES,
+  buildGradeBoundaries,
+  gradeAt,
+  isRelativeGrading,
+  type GradedBoundary,
+  type ClassStats,
+} from "./gradeBoundaries";
+
 export type AssessmentComponentType = "theory" | "lab" | "project" | "softskill";
 
 export interface PredictorAssessment {
@@ -61,19 +70,50 @@ export interface CoursePredictionResult {
   potentialPendingScaled: number;
   pointsLostScaled: number; // Deficit in total course marks
   maxPossibleScaled: number; // 100 - pointsLostScaled
-  theoryStats: ComponentStats | null;
-  labStats: ComponentStats | null;
-  projectStats: ComponentStats | null;
-  estimatedGrade: {
+  /**
+   * The current pace, extended to semester's end: earned weight over released
+   * weight — the same normalisation `normalisedPct` performs for the marks
+   * subpage's grade ladder. Independence from the released fraction is the
+   * point: pace does not improve merely because more of the semester arrived.
+   */
+  pacePct: number;
+  /**
+   * Grade if the current performance continues. Null before any mark is
+   * recorded: a pace cannot be read from a course with nothing released, and
+   * calling a zero-pace course an "F" would fail a student for test days that
+   * have not happened yet.
+   */
+  optimalGrade: {
+    letter: string;
+    /** Key into TONE_BADGE / TONE_TEXT — never a class string (R8). */
+    tone: string;
+    description: string;
+  } | null;
+  /**
+   * The best grade still reachable, assuming every remaining assessment is
+   * scored at its maximum. `100 − points lost` is a hard ceiling: weight
+   * already forfeited stays forfeited however the rest of the term goes.
+   * Under a curve the ceiling is read against the class ladder, not the
+   * fixed one — the same ladder the marks subpage shows.
+   */
+  maximisableGrade: {
     letter: string;
     /** Key into TONE_BADGE / TONE_TEXT — never a class string (R8). */
     tone: string;
     description: string;
   };
-  ceilingGrade: {
-    letter: string;
-    tone: string;
-  };
+  /**
+   * The ladder these letters were read from. Relative-graded courses with
+   * class statistics get the shifted ladder; everything else gets the fixed
+   * one. Carried on the result so the hero and per-half grades reuse the
+   * identical ladder instead of re-deriving one that can drift from it.
+   */
+  boundaries: GradedBoundary[];
+  /** True when the letters above were read against a class curve. */
+  isCurved: boolean;
+  theoryStats: ComponentStats | null;
+  labStats: ComponentStats | null;
+  projectStats: ComponentStats | null;
   riskLevel: "safe" | "moderate" | "critical" | "warning";
 }
 
@@ -300,62 +340,69 @@ export const computeComponentStats = (
   };
 };
 
-// Estimate Letter Grade from percentage / weighted score
+/**
+ * Grades for one blended course's half — the sub-total the hero shows under
+ * the parent, the way the marks subpage scores the theory half and the lab
+ * half each out of 100 on their own.
+ *
+ * Same two readings as the course-level pair, restricted to a component's
+ * own weight: `pace` is earned over released within the half, `maximisable`
+ * is what the half could still earn at full marks on its remaining weight.
+ * Null pace before the half has any recorded assessment — a half that has
+ * not happened yet is not a failing half.
+ */
+export const estimateComponentGrades = (
+  stats: ComponentStats,
+  boundaries?: GradedBoundary[]
+) => {
+  const released = stats.scoredWeight + stats.lostWeight;
+  const pacePct =
+    released > 0 ? Math.round((stats.scoredWeight / released) * 10000) / 100 : 0;
+  // The half is scored on its own 0–100 ladder ("out of 100 on its own" — grade
+  // history records the same convention), so its configured weight is the
+  // ladder total: a lab half worth 60 points maxes at 100%, not at 60.
+  const maximisablePct =
+    stats.totalWeightConfigured > 0
+      ? Math.round((stats.maxPossibleWeight / stats.totalWeightConfigured) * 10000) / 100
+      : 0;
+  return {
+    pacePct,
+    optimal: released > 0 ? estimateGrade(pacePct, boundaries) : null,
+    maximisablePct,
+    maximisable: estimateGrade(maximisablePct, boundaries),
+  };
+};
+
+// Letter metadata: tone + copy per grade, read once via gradeAt.
+const GRADE_META: Record<
+  GradedBoundary["grade"],
+  { tone: string; description: string }
+> = {
+  S: { tone: "emerald", description: "Outstanding (10 Grade Points)" },
+  A: { tone: "cyan", description: "Excellent (9 Grade Points)" },
+  B: { tone: "blue", description: "Very Good (8 Grade Points)" },
+  C: { tone: "indigo", description: "Good (7 Grade Points)" },
+  D: { tone: "violet", description: "Average (6 Grade Points)" },
+  E: { tone: "amber", description: "Pass (5 Grade Points)" },
+  F: { tone: "red", description: "Fail (0 Grade Points)" },
+};
+
+// Estimate Letter Grade from percentage / weighted score.
+// The letter comes from the shared `gradeBoundaries` ladder: callers without
+// curves get the fixed ladder (the historic behaviour), callers holding class
+// statistics pass the shifted one so a "67% → A" curve reads the same on the
+// marks page and the predictor.
 export const estimateGrade = (
-  score: number
+  score: number,
+  boundaries?: GradedBoundary[]
 ): {
   letter: string;
   tone: string;
   description: string;
 } => {
-  const rounded = Math.round(score * 100) / 100;
-  if (rounded >= 90) {
-    return {
-      letter: "S",
-      tone: "emerald",
-      description: "Outstanding (10 Grade Points)",
-    };
-  }
-  if (rounded >= 80) {
-    return {
-      letter: "A",
-      tone: "cyan",
-      description: "Excellent (9 Grade Points)",
-    };
-  }
-  if (rounded >= 70) {
-    return {
-      letter: "B",
-      tone: "blue",
-      description: "Very Good (8 Grade Points)",
-    };
-  }
-  if (rounded >= 60) {
-    return {
-      letter: "C",
-      tone: "indigo",
-      description: "Good (7 Grade Points)",
-    };
-  }
-  if (rounded >= 50) {
-    return {
-      letter: "D",
-      tone: "violet",
-      description: "Average (6 Grade Points)",
-    };
-  }
-  if (rounded >= 40) {
-    return {
-      letter: "E",
-      tone: "amber",
-      description: "Pass (5 Grade Points)",
-    };
-  }
-  return {
-    letter: "F",
-    tone: "red",
-    description: "Fail (0 Grade Points)",
-  };
+  const letter = gradeAt(score, boundaries ?? ABSOLUTE_GRADE_BOUNDARIES);
+  const meta = GRADE_META[letter as GradedBoundary["grade"]] ?? GRADE_META.F;
+  return { letter, ...meta };
 };
 
 // Compute Course Level Prediction (Combining Theory + Lab if Embedded)
@@ -369,6 +416,8 @@ export const computeCoursePrediction = ({
   theoryCredits = 3,
   labCredits = 1,
   projectCredits = 0,
+  courseSystem,
+  classStats = null,
 }: {
   courseCode: string;
   courseTitle: string;
@@ -379,11 +428,31 @@ export const computeCoursePrediction = ({
   theoryCredits?: number;
   labCredits?: number;
   projectCredits?: number;
+  /**
+   * The course's grading system as VTOP publishes it ("ACE" or otherwise).
+   * Omitted by legacy callers — they keep the fixed ladder. When provided and
+   * the course type is curve-eligible, class statistics shift the ladder the
+   * same way the marks subpage's grade insights does.
+   */
+  courseSystem?: string | null;
+  /** `marksStats[classNbr].overall` — the class distribution behind a curve. */
+  classStats?: ClassStats | null;
 }): CoursePredictionResult => {
   const hasTheory = theoryAssessments.length > 0;
   const hasLab = labAssessments.length > 0;
   const hasProject = projectAssessments.length > 0;
   const isEmbedded = (hasTheory && hasLab) || courseType.toLowerCase().includes("embedded");
+
+  // One ladder per prediction. `courseSystem === undefined` means the caller
+  // predates grading context — absolute, exactly as before. Passing a real
+  // system opts into the relative shift when the course type qualifies, and
+  // missing class statistics fall back to absolute (nothing to curve around).
+  const relativeEligible =
+    courseSystem !== undefined && isRelativeGrading(courseSystem ?? null, courseType);
+  const boundaries = buildGradeBoundaries(classStats ?? null, relativeEligible);
+  // Shifted only when statistics actually fed the curve — the fallback path
+  // returns the fixed ladder unchanged.
+  const isCurved = relativeEligible && boundaries !== ABSOLUTE_GRADE_BOUNDARIES;
 
   const theoryStats = hasTheory ? computeComponentStats(theoryAssessments, "theory", theoryCredits) : null;
   const labStats = hasLab ? computeComponentStats(labAssessments, "lab", labCredits) : null;
@@ -424,8 +493,21 @@ export const computeCoursePrediction = ({
   const pointsLostScaled = Math.round((weightedLostSum / effectiveCredits) * 100) / 100;
   const maxPossibleScaled = Math.max(0, Math.round((100 - pointsLostScaled) * 100) / 100);
 
-  const estimatedGrade = estimateGrade(currentScoredScaled + potentialPendingScaled);
-  const ceilingGrade = estimateGrade(maxPossibleScaled);
+  // Optimal = the pace extended over everything still to come. Released weight
+  // is the weight with a recorded outcome (scored + lost): pace is earned over
+  // that, so a thundering 40% before the first CAT stays 40% however many
+  // assessments VTOP has yet to release. Zero released weight → no pace.
+  const releasedWeight = currentScoredScaled + pointsLostScaled;
+  const pacePct =
+    releasedWeight > 0
+      ? Math.round((currentScoredScaled / releasedWeight) * 10000) / 100
+      : 0;
+
+  const optimalGrade = releasedWeight > 0 ? estimateGrade(pacePct, boundaries) : null;
+  // Maximisable assumes every pending weight is earned in full; the permanent
+  // deficit caps it. Curved courses read the ceiling against their class
+  // ladder — the same one the marks subpage renders.
+  const maximisableGrade = estimateGrade(maxPossibleScaled, boundaries);
 
   let riskLevel: "safe" | "moderate" | "critical" | "warning" = "safe";
   if (pointsLostScaled > 40) riskLevel = "critical";
@@ -447,8 +529,11 @@ export const computeCoursePrediction = ({
     theoryStats,
     labStats,
     projectStats,
-    estimatedGrade,
-    ceilingGrade,
+    pacePct,
+    optimalGrade,
+    maximisableGrade,
+    boundaries,
+    isCurved,
     riskLevel,
   };
 };

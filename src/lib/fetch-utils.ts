@@ -47,12 +47,16 @@ function failoverBackupUrl(): string {
 }
 
 let customUrlFromStorage = "";
+let activeUrlFromStorage = "";
 if (typeof window !== "undefined") {
   try {
     customUrlFromStorage = localStorage.getItem("amazecc_custom_api_url") || "";
-    // The custom-URL field in settings will happily accept any host, and a
-    // stored UniCC URL would make every request fail until it is cleared by
-    // hand. Drop it at boot instead.
+    activeUrlFromStorage = localStorage.getItem("amazecc_active_api_url") || "";
+
+    // Both keys will accept a UniCC URL, and one that survives a reload keeps
+    // every request pointed at a host that implements only part of the API — a
+    // 404 is an *answer*, so the failover never notices and the app looks
+    // healthy while returning nothing. Drop either at boot, the same way.
     if (customUrlFromStorage && isUniccHost(customUrlFromStorage)) {
       customUrlFromStorage = "";
       localStorage.removeItem("amazecc_custom_api_url");
@@ -61,10 +65,24 @@ if (typeof window !== "undefined") {
           "which does not implement all of AmazeCC's routes."
       );
     }
+    if (activeUrlFromStorage && isUniccHost(activeUrlFromStorage)) {
+      activeUrlFromStorage = "";
+      localStorage.removeItem("amazecc_active_api_url");
+      console.warn(
+        "Ignoring the stored active API URL because it points at UniCC, " +
+          "which does not implement all of AmazeCC's routes."
+      );
+    }
   } catch (e) {}
 }
 
-export let activeApiUrl = customUrlFromStorage || PRIMARY_API_URL;
+// The custom URL is the stronger statement — it names a specific host, while
+// the active key only records which built-in host was last picked. The order
+// matters: `setActiveApiUrl(BACKUP)` used to write a key that was never read
+// back, so choosing the mirror looked like it worked and then silently
+// reverted to primary on the next reload.
+export let activeApiUrl =
+  customUrlFromStorage || activeUrlFromStorage || PRIMARY_API_URL;
 
 /**
  * Whether there is a real, distinct backup gateway to show/switch to.
@@ -88,6 +106,10 @@ export function setActiveApiUrl(url: string) {
     url = PRIMARY_API_URL;
   }
   activeApiUrl = url;
+  // `API_BASE` is what `getRewrittenUrl` prefixes relative paths with, so it has
+  // to follow the switch too — otherwise the choice is only picked up after a
+  // reload, which is the whole reason this key exists.
+  API_BASE = url;
   if (typeof window !== "undefined" && window.localStorage) {
     try {
       window.localStorage.setItem("amazecc_active_api_url", url);
@@ -111,6 +133,28 @@ export function setCustomApiUrl(url: string) {
       }
     } catch (e) {}
   }
+}
+
+export type ApiHostChoice = "default" | "backup" | "custom";
+
+/**
+ * Switch which API host the app talks to.
+ *
+ * This is the one entry point the settings page should use. Picking a built-in
+ * host clears any stored custom URL, because the custom URL is what the boot
+ * path honours first — leaving it in place would make the next reload snap
+ * straight back to it and the switch would look broken.
+ */
+export function switchApiHost(choice: ApiHostChoice, customUrl?: string): void {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    if (choice === "custom") {
+      setCustomApiUrl(customUrl ?? "");
+      return;
+    }
+    localStorage.removeItem("amazecc_custom_api_url");
+    setActiveApiUrl(choice === "backup" ? BACKUP_API_URL : PRIMARY_API_URL);
+  } catch (e) {}
 }
 
 export let API_BASE = activeApiUrl;
