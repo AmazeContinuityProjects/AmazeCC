@@ -2,7 +2,7 @@
 
 import { api } from "@/lib/sync-engine";
 import TabHelpFooter from "../shared/TabHelpFooter";
-import { setCustomApiUrl } from "@/lib/fetch-utils";
+import { switchApiHost, hasBackupApi, getActiveApiUrl, PRIMARY_API_URL, BACKUP_API_URL, type ApiHostChoice } from "@/lib/fetch-utils";
 import {
   X,
   Save,
@@ -322,6 +322,26 @@ export default function ProfilePage({
   const [tempFriendlyName, setTempFriendlyName] = useState<string>(friendlyName || "");
   const [searchQuery, setSearchQuery] = useState("");
 
+  /**
+   * Which API host the app is pointed at.
+   *
+   * Derived from storage at mount rather than assumed, so the control shows the
+   * real state after a reload — a custom URL is the strongest signal, then the
+   * active key, and primary is the default. The backup option is only offered
+   * when `hasBackupApi()` says it is a real, distinct mirror.
+   */
+  const [apiChoice, setApiChoice] = useState<ApiHostChoice>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const custom = localStorage.getItem("amazecc_custom_api_url");
+        if (custom) return "custom";
+        const active = localStorage.getItem("amazecc_active_api_url");
+        if (active === BACKUP_API_URL) return "backup";
+      } catch {}
+    }
+    return "default";
+  });
+
   const [customApiInput, setCustomApiInput] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("amazecc_custom_api_url") || "";
@@ -438,17 +458,15 @@ export default function ProfilePage({
     window.dispatchEvent(new Event("app-icon-changed"));
   };
 
-  const saveCustomApiUrl = () => {
-    if (customApiInput) {
-      setCustomApiUrl(customApiInput);
-      alert("Custom API endpoint saved! Please refresh the application to apply changes.");
-    }
+  const applyApiChoice = (choice: ApiHostChoice, url?: string) => {
+    switchApiHost(choice, url);
+    setApiChoice(choice);
   };
 
-  const clearCustomApiUrl = () => {
-    setCustomApiInput("");
-    setCustomApiUrl("");
-    alert("API endpoint reset to default. Please refresh the application.");
+  const saveCustomApiUrl = () => {
+    const url = customApiInput.trim();
+    if (!url) return;
+    applyApiChoice("custom", url);
   };
 
   const handleResetCache = () => {
@@ -801,7 +819,14 @@ export default function ProfilePage({
       navigation: {
         value: `${(settings?.pinnedNavTabs ?? []).length} pinned`,
       },
-      advanced: { value: customApiInput ? "Custom API" : "Default API" },
+      advanced: {
+        value:
+          apiChoice === "backup"
+            ? "Mirror API"
+            : apiChoice === "custom"
+              ? "Custom API"
+              : "Default API",
+      },
       about: { value: "v3.2.0" },
     };
   }, [
@@ -814,7 +839,7 @@ export default function ProfilePage({
     resolvedTheme,
     currSemesterID,
     profileData?.branch,
-    customApiInput,
+    apiChoice,
   ]);
 
   const credAccounts =
@@ -2362,44 +2387,66 @@ export default function ProfilePage({
           <ChevronRight size={16} className="text-zinc-400 shrink-0" />
         </button>
 
-        {/* Custom API Endpoint */}
+        {/* API Endpoint */}
         <div className="p-4 space-y-3 bg-zinc-50/50 dark:bg-zinc-950/30">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+            <div className={`p-2.5 rounded-xl border shrink-0 ${TONE_ICON_TILE.violet}`}>
               <Link2 size={18} />
             </div>
             <div className="min-w-0 flex-1">
               <span className="font-bold text-xs text-zinc-900 dark:text-white block">
-                Custom API Endpoint URL
+                API Endpoint
               </span>
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
-                Override student API data server route
+                Switch between the production API and its mirror
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              placeholder="https://api.amazecc.com"
-              value={customApiInput}
-              onChange={(e) => setCustomApiInput(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-800 dark:text-white"
-            />
-            <button
-              onClick={saveCustomApiUrl}
-              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all cursor-pointer shadow-2xs"
-            >
-              Save
-            </button>
-            {customApiInput && (
+
+          <SegmentedControl
+            value={apiChoice}
+            onChange={(choice) => {
+              if (choice === "custom") {
+                // Reveal the field first; applying an empty URL would just
+                // drop the app back to primary and read as a no-op.
+                setApiChoice("custom");
+                return;
+              }
+              applyApiChoice(choice);
+            }}
+            options={[
+              { value: "default", label: "Default" },
+              ...(hasBackupApi()
+                ? [{ value: "backup" as ApiHostChoice, label: "Mirror" }]
+                : []),
+              { value: "custom", label: "Custom" },
+            ]}
+          />
+
+          {apiChoice === "custom" && (
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="https://api.amazecc.com"
+                value={customApiInput}
+                onChange={(e) => setCustomApiInput(e.target.value)}
+                className={`${FIELD_INPUT} flex-1`}
+              />
               <button
-                onClick={clearCustomApiUrl}
-                className="px-3 py-2 text-xs font-bold text-red-600 border border-red-200 dark:border-red-900/50 rounded-xl transition-all cursor-pointer shadow-2xs"
+                type="button"
+                onClick={saveCustomApiUrl}
+                disabled={!customApiInput.trim()}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all cursor-pointer shadow-2xs disabled:opacity-50"
               >
-                Reset
+                Save
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
+          <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+            Active: <span className="font-mono">{getActiveApiUrl()}</span>
+            {" · "}New requests use it immediately.
+          </p>
         </div>
 
         {/* Backup Settings */}
