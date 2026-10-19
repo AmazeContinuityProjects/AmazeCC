@@ -1,532 +1,339 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { FlaskConical, RotateCcw } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { GhostButton, PageShell, SectionHeader, ToneBadge } from "../shared/primitives";
-import { TILE_CARD } from "@/lib/uiTokens";
-import CourseSelectorStrip, { EnrolledCourseItem } from "./marks-predictor/CourseSelectorStrip";
-import CoursePredictorHero from "./marks-predictor/CoursePredictorHero";
-import AssessmentRegimenEditor from "./marks-predictor/AssessmentRegimenEditor";
-import WhatIfSimulator from "./marks-predictor/WhatIfSimulator";
-import TargetGradeSolver from "./marks-predictor/TargetGradeSolver";
-import AllCoursesMatrix from "./marks-predictor/AllCoursesMatrix";
+import { ChevronRight, FlaskConical, Plus } from "lucide-react";
 import AddCustomCourseModal from "./marks-predictor/AddCustomCourseModal";
-
 import {
-  type PredictorAssessment,
+  GhostButton,
+  ListRowText,
+  ListShell,
+  PageShell,
+  SectionHeader,
+  StatTile,
+  ToneBadge,
+} from "../shared/primitives";
+import { LIST_ROW } from "@/lib/uiTokens";
+import { toneForGrade } from "@/lib/gradeHistory";
+import { predictGpa } from "@/lib/predictorGpa";
+import {
   type CoursePredictionResult,
   computeCoursePrediction,
-  createPredictorAssessmentsFromVTOP,
   safeNumber,
 } from "@/lib/marksPredictor";
-
 import {
-  getStoredPredictorState,
-  saveCoursePredictorState,
-  resetCoursePredictorState,
   getCustomCourses,
   saveCustomCourse,
+  getCoursePredictorState,
   type CustomCourseMock,
 } from "@/lib/marksPredictorStorage";
+import {
+  buildCourseConfig,
+  buildEnrolledCourses,
+  useRemappedCourseStats,
+  type EnrolledCourseItem,
+} from "./marks-predictor/useCoursePredictionScope";
+import CoursePredictorPage from "./marks-predictor/CoursePredictorPage";
 
 interface MarksPredictorTabProps {
   marksData: any;
   marksStats?: Record<string, any>;
   attendance?: any[];
   setActiveSubTab?: (subTab: string) => void;
-  initialCourseCode?: string;
 }
+
+/**
+ * The marks predictor.
+ *
+ * This used to be two toggled views over one combined screen: a course strip
+ * that switched between "individual" and an all-courses risk matrix. That put
+ * the subject list and the prediction in the same place, so the matrix was the
+ * first thing you saw and the individual course was a mode you had to find.
+ *
+ * It now follows the same shape as Grade History — a list of subjects, each
+ * opening its own predictor page. The list is where you scan ("which course is
+ * furthest behind"), the page is where you work ("what do I need on the FAT").
+ *
+ * The per-course page is shared with the course subpage's "Grade Predictor"
+ * entry, so both places show the same numbers for the same course.
+ */
+
+/**
+ * The list's subtitle backs the type into the same line as the code, so the
+ * catalogue jargon takes the shorthand the space deserves: "Embedded Theory"
+ * is the theory half of a blended theory+lab pair — "ETL"; "Theory Only"
+ * collapses to "TO" and "Lab Only" to "LO".
+ */
+const typeLabel = (course: EnrolledCourseItem) => {
+  const type = course.courseType.toLowerCase();
+  if (type.includes("theory only")) return "TO";
+  if (type.includes("lab only")) return "LO";
+  return type.includes("embedded") ? "ETL" : course.courseType;
+};
 
 export default function MarksPredictorTab({
   marksData,
   marksStats = {},
   attendance = [],
   setActiveSubTab,
-  initialCourseCode,
 }: MarksPredictorTabProps) {
-  const [viewMode, setViewMode] = useState<"individual" | "matrix">("individual");
+  const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [activeCourseCode, setActiveCourseCode] = useState<string>("");
-  const [isRegimenEditorOpen, setIsRegimenEditorOpen] = useState(false);
-  const [isAddCustomOpen, setIsAddCustomOpen] = useState(false);
   const [customCourses, setCustomCourses] = useState<CustomCourseMock[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isAddCustomOpen, setIsAddCustomOpen] = useState(false);
 
-  // Per-course dynamic assessment configurations
-  const [courseAssessments, setCourseAssessments] = useState<
-    Record<
-      string,
-      {
-        theory: PredictorAssessment[];
-        lab: PredictorAssessment[];
-        theoryCredits: number;
-        labCredits: number;
-      }
-    >
-  >({});
-
-  // Load custom courses from storage
   useEffect(() => {
     setCustomCourses(getCustomCourses());
   }, [refreshTrigger]);
 
   // Parse all enrolled courses from VTOP marksData and attendance
-  const enrolledCourses: EnrolledCourseItem[] = useMemo(() => {
-    const map = new Map<string, EnrolledCourseItem>();
+  const enrolledCourses: EnrolledCourseItem[] = useMemo(
+    () => buildEnrolledCourses(marksData, attendance, customCourses),
+    [marksData, attendance, customCourses]
+  );
 
-    const rawCourses = Array.isArray(marksData?.courses) ? marksData.courses : [];
-    rawCourses.forEach((c: any) => {
-      if (!c) return;
-      const rawCode = String(c.courseCode || c.code || "").trim();
-      if (!rawCode) return;
-      const baseCode = rawCode.replace(/\s*\([LPT]\)$/i, "").trim();
-      const isLab = c.courseType?.toLowerCase().includes("lab") || c.slot?.toLowerCase().startsWith("l");
-      const credits = safeNumber(c.credits, isLab ? 1 : 3);
+  const activeCourse = useMemo(
+    () => enrolledCourses.find((c) => c.courseCode === activeCourseCode) ?? null,
+    [enrolledCourses, activeCourseCode]
+  );
 
-      if (!map.has(baseCode)) {
-        map.set(baseCode, {
-          courseCode: baseCode,
-          courseTitle: String(c.courseTitle || c.title || baseCode).trim(),
-          courseType: c.courseType || (isLab ? "Lab Only" : "Theory Only"),
-          credits,
-          theoryCourse: !isLab ? c : undefined,
-          labCourse: isLab ? c : undefined,
-        });
-      } else {
-        const existing = map.get(baseCode)!;
-        if (isLab) {
-          existing.labCourse = c;
-          if (!existing.courseType.includes("Embedded")) existing.courseType = "Embedded Theory";
-        } else {
-          existing.theoryCourse = c;
-          if (!existing.courseType.includes("Embedded")) existing.courseType = "Embedded Theory";
-        }
-      }
-    });
+  // The grading context the engine read needs the REMAPPED cohort statistics —
+  // `{ overall, assessments-by-title }` per class id — the same shape the marks
+  // subpage builds before its ladder resolves. Reading the raw sync atom
+  // directly found no `overall` key on any entry, which silently resolved
+  // every curved course to the fixed ladder on this list.
+  const cohortStats = useRemappedCourseStats(marksStats, enrolledCourses);
 
-    // Also check attendance for any missing subjects
-    if (Array.isArray(attendance)) {
-      attendance.forEach((att: any) => {
-        if (!att?.courseCode) return;
-        const baseCode = String(att.courseCode).replace(/\s*\([LPT]\)$/i, "").trim();
-        if (!map.has(baseCode)) {
-          const isLab = att.courseType?.toLowerCase().includes("lab") || att.slot?.toLowerCase().startsWith("l");
-          map.set(baseCode, {
-            courseCode: baseCode,
-            courseTitle: String(att.courseTitle || baseCode).trim(),
-            courseType: att.courseType || (isLab ? "Lab Only" : "Theory Only"),
-            credits: safeNumber(att.credits, isLab ? 1 : 3),
-          });
-        }
-      });
+  // One prediction per course, computed from whatever regimen is stored for it.
+  // Read-only: the list never mutates a course's configuration, it just reflects it.
+  // Grading context resolves the same ladder the marks subpage shows: the
+  // theory half's class distribution shifts the bands for curve-graded
+  // courses, so a subject cannot say "A" on one screen and "C" on the other.
+  const predictions = useMemo(() => {
+    const byCode = new Map<string, CoursePredictionResult>();
+    for (const course of enrolledCourses) {
+      const config = buildCourseConfig(course, getCoursePredictorState(course.courseCode));
+      const classNbr = course.theoryCourse?.classNbr || course.labCourse?.classNbr;
+      const overall = classNbr ? cohortStats?.[classNbr]?.overall : null;
+      const classStats = overall && Number.isFinite(overall.mean) ? overall : null;
+      byCode.set(
+        course.courseCode,
+        computeCoursePrediction({
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          courseType: course.courseType,
+          theoryAssessments: config.theory,
+          labAssessments: config.lab,
+          theoryCredits: config.theoryCredits,
+          labCredits: config.labCredits,
+          courseSystem: course.courseSystem ?? null,
+          classStats,
+        })
+      );
     }
+    return byCode;
+  }, [enrolledCourses, cohortStats]);
 
-    // Append custom mock courses
-    customCourses.forEach((custom) => {
-      map.set(custom.courseCode, {
-        courseCode: custom.courseCode,
-        courseTitle: custom.courseTitle,
-        courseType: custom.courseType,
-        credits: custom.theoryCredits + custom.labCredits,
-        isCustom: true,
-      });
-    });
+  const sortedCourses = useMemo(
+    () =>
+      [...enrolledCourses].sort(
+        (a, b) =>
+          (predictions.get(b.courseCode)?.pointsLostScaled ?? 0) -
+          (predictions.get(a.courseCode)?.pointsLostScaled ?? 0)
+      ),
+    [enrolledCourses, predictions]
+  );
 
-    return Array.from(map.values());
-  }, [marksData, attendance, customCourses]);
+  // The engine-derived letters the GPA pair aggregates: the pace grade per
+  // course (current performance continued) and the absolute ceiling
+  // (`100 − points lost`).
+  const paceGrades = useMemo(
+    () => Object.fromEntries([...predictions].map(([code, p]) => [code, p.optimalGrade?.letter ?? null])),
+    [predictions]
+  );
+  const ceilingGrades = useMemo(
+    () => Object.fromEntries([...predictions].map(([code, p]) => [code, p.maximisableGrade.letter])),
+    [predictions]
+  );
 
-  // Set initial active course
-  useEffect(() => {
-    if (enrolledCourses.length > 0) {
-      if (initialCourseCode && enrolledCourses.some((c) => c.courseCode === initialCourseCode)) {
-        setActiveCourseCode(initialCourseCode);
-      } else if (!activeCourseCode || !enrolledCourses.some((c) => c.courseCode === activeCourseCode)) {
-        setActiveCourseCode(enrolledCourses[0].courseCode);
-      }
-    }
-  }, [enrolledCourses, initialCourseCode, activeCourseCode]);
+  // The headline pair above the subject list: where the semester's predicted
+  // grades land as a GPA, and what that does to the cumulative figure. Both
+  // readings come from the grade-insights engine's letters (`predictGpa`);
+  // each tile leads with optimal (current performance continued) and quotes
+  // its maximisable / most-desirable companion underneath.
+  const gpa = useMemo(
+    () => predictGpa(enrolledCourses.map((c) => ({ credits: c.credits, optimal: paceGrades[c.courseCode] ?? null, maximisable: ceilingGrades[c.courseCode] ?? null })), marksData?.cgpa),
+    [enrolledCourses, paceGrades, ceilingGrades, marksData]
+  );
 
-  // Initialize course assessments with stored state or VTOP defaults
-  useEffect(() => {
-    if (enrolledCourses.length === 0) return;
-
-    const storedState = getStoredPredictorState();
-    const newAssessmentsMap: Record<string, any> = {};
-
-    enrolledCourses.forEach((course) => {
-      const saved = storedState[course.courseCode];
-
-      let theory = saved?.theoryAssessments;
-      let lab = saved?.labAssessments;
-      const theoryCreds = saved?.theoryCredits ?? (course.courseType.includes("Lab") && !course.courseType.includes("Embedded") ? 0 : 3);
-      const labCreds = saved?.labCredits ?? (course.courseType.includes("Lab") || course.courseType.includes("Embedded") ? 1 : 0);
-
-      if (!theory && !course.courseType.toLowerCase().includes("lab only")) {
-        theory = createPredictorAssessmentsFromVTOP(course.theoryCourse, "theory");
-      }
-      if (!lab && (course.courseType.toLowerCase().includes("lab") || course.labCourse)) {
-        lab = createPredictorAssessmentsFromVTOP(course.labCourse, "lab");
-      }
-
-      newAssessmentsMap[course.courseCode] = {
-        theory: theory || [],
-        lab: lab || [],
-        theoryCredits: theoryCreds,
-        labCredits: labCreds,
-      };
-    });
-
-    setCourseAssessments(newAssessmentsMap);
-  }, [enrolledCourses, refreshTrigger]);
-
-  // Current active course configuration
-  const currentCourseConfig = courseAssessments[activeCourseCode] || {
-    theory: [],
-    lab: [],
-    theoryCredits: 3,
-    labCredits: 1,
+  const openCourse = (code: string) => {
+    setActiveCourseCode(code);
+    setViewMode("course");
   };
 
-  const activeCourseMeta = enrolledCourses.find((c) => c.courseCode === activeCourseCode) || {
-    courseCode: activeCourseCode || "COURSE",
-    courseTitle: "Course Marks Predictor",
-    courseType: "Theory Only",
-    credits: 3,
-  };
-
-  // Cohort statistics for this course's assessments. Keyed by VTOP's class id —
-  // the same key the course marks subpage reads — so a class that has synced
-  // shows its per-assessment mean/spread here. Custom subjects have no class
-  // id, so there is nothing to resolve for them.
-  const activeMetaItem = enrolledCourses.find((c) => c.courseCode === activeCourseCode);
-  const classNbr = activeMetaItem?.theoryCourse?.classNbr || activeMetaItem?.labCourse?.classNbr;
-  const assessmentStats = classNbr ? marksStats?.[classNbr]?.assessments ?? null : null;
-
-  // Compute prediction for active course
-  const activePrediction: CoursePredictionResult = useMemo(() => {
-    return computeCoursePrediction({
-      courseCode: activeCourseMeta.courseCode,
-      courseTitle: activeCourseMeta.courseTitle,
-      courseType: activeCourseMeta.courseType,
-      theoryAssessments: currentCourseConfig.theory,
-      labAssessments: currentCourseConfig.lab,
-      theoryCredits: currentCourseConfig.theoryCredits,
-      labCredits: currentCourseConfig.labCredits,
-    });
-  }, [activeCourseMeta, currentCourseConfig]);
-
-  // Compute predictions for all courses (for Matrix & Strips)
-  const allPredictions: CoursePredictionResult[] = useMemo(() => {
-    return enrolledCourses.map((c) => {
-      const cfg = courseAssessments[c.courseCode] || {
-        theory: [],
-        lab: [],
-        theoryCredits: 3,
-        labCredits: 1,
-      };
-      return computeCoursePrediction({
-        courseCode: c.courseCode,
-        courseTitle: c.courseTitle,
-        courseType: c.courseType,
-        theoryAssessments: cfg.theory,
-        labAssessments: cfg.lab,
-        theoryCredits: cfg.theoryCredits,
-        labCredits: cfg.labCredits,
-      });
-    });
-  }, [enrolledCourses, courseAssessments]);
-
-  // Enriched course items for the strip with computed deficit and ceiling
-  const stripCourses: EnrolledCourseItem[] = useMemo(() => {
-    return enrolledCourses.map((c) => {
-      const pred = allPredictions.find((p) => p.courseCode === c.courseCode);
-      return {
-        ...c,
-        maxPossible: pred?.maxPossibleScaled ?? 100,
-        pointsLost: pred?.pointsLostScaled ?? 0,
-      };
-    });
-  }, [enrolledCourses, allPredictions]);
-
-  // Handlers for What-If Simulation updates
-  const handleUpdateScoredMark = (
-    id: string,
-    mark: number | null,
-    isSimulated: boolean
-  ) => {
-    setCourseAssessments((prev) => {
-      const curr = prev[activeCourseCode] || { theory: [], lab: [], theoryCredits: 3, labCredits: 1 };
-      const updateList = (list: PredictorAssessment[]) =>
-        list.map((item) => {
-          if (item.id !== id) return item;
-          return {
-            ...item,
-            scoredMark: mark,
-            isSimulated,
-            status: isSimulated ? "Simulated" : mark === null ? "Pending" : item.status,
-          };
-        });
-
-      const updatedTheory = updateList(curr.theory);
-      const updatedLab = updateList(curr.lab);
-
-      const next = {
-        ...prev,
-        [activeCourseCode]: {
-          ...curr,
-          theory: updatedTheory,
-          lab: updatedLab,
-        },
-      };
-
-      // Persist to storage
-      saveCoursePredictorState(activeCourseCode, {
-        theoryAssessments: updatedTheory,
-        labAssessments: updatedLab,
-        theoryCredits: curr.theoryCredits,
-        labCredits: curr.labCredits,
-      });
-
-      return next;
-    });
-  };
-
-  // Batch simulate all pending assessments for active course
-  const handleBatchSimulate = (percentage: number) => {
-    setCourseAssessments((prev) => {
-      const curr = prev[activeCourseCode] || { theory: [], lab: [], theoryCredits: 3, labCredits: 1 };
-      const batchList = (list: PredictorAssessment[]) =>
-        list.map((item) => {
-          // If already scored and not simulated, keep as is
-          if (item.scoredMark !== null && !item.isSimulated) return item;
-          const simulatedMark = Math.round((percentage / 100) * item.maxMark * 10) / 10;
-          return {
-            ...item,
-            scoredMark: simulatedMark,
-            isSimulated: true,
-            status: "Simulated",
-          };
-        });
-
-      const updatedTheory = batchList(curr.theory);
-      const updatedLab = batchList(curr.lab);
-
-      const next = {
-        ...prev,
-        [activeCourseCode]: {
-          ...curr,
-          theory: updatedTheory,
-          lab: updatedLab,
-        },
-      };
-
-      saveCoursePredictorState(activeCourseCode, {
-        theoryAssessments: updatedTheory,
-        labAssessments: updatedLab,
-        theoryCredits: curr.theoryCredits,
-        labCredits: curr.labCredits,
-      });
-
-      return next;
-    });
-  };
-
-  // Clear all simulations for active course (revert to VTOP verified marks)
-  const handleClearSimulations = () => {
-    setCourseAssessments((prev) => {
-      const curr = prev[activeCourseCode] || { theory: [], lab: [], theoryCredits: 3, labCredits: 1 };
-      const clearList = (list: PredictorAssessment[]) =>
-        list.map((item) => {
-          if (!item.isSimulated) return item;
-          return {
-            ...item,
-            scoredMark: null,
-            isSimulated: false,
-            status: "Pending",
-          };
-        });
-
-      const updatedTheory = clearList(curr.theory);
-      const updatedLab = clearList(curr.lab);
-
-      const next = {
-        ...prev,
-        [activeCourseCode]: {
-          ...curr,
-          theory: updatedTheory,
-          lab: updatedLab,
-        },
-      };
-
-      saveCoursePredictorState(activeCourseCode, {
-        theoryAssessments: updatedTheory,
-        labAssessments: updatedLab,
-        theoryCredits: curr.theoryCredits,
-        labCredits: curr.labCredits,
-      });
-
-      return next;
-    });
-  };
-
-  // Reset entire course regimen and simulations back to fresh VTOP data
-  const handleResetCourse = () => {
-    resetCoursePredictorState(activeCourseCode);
-    setRefreshTrigger((r) => r + 1);
-  };
-
-  // Update regimen assessments from Regimen Editor
-  const handleUpdateRegimenAssessments = (
-    theory: PredictorAssessment[],
-    lab: PredictorAssessment[],
-    theoryCreds = 3,
-    labCreds = 1
-  ) => {
-    setCourseAssessments((prev) => {
-      const next = {
-        ...prev,
-        [activeCourseCode]: {
-          theory,
-          lab,
-          theoryCredits: theoryCreds,
-          labCredits: labCreds,
-        },
-      };
-
-      saveCoursePredictorState(activeCourseCode, {
-        theoryAssessments: theory,
-        labAssessments: lab,
-        theoryCredits: theoryCreds,
-        labCredits: labCreds,
-      });
-
-      return next;
-    });
-  };
-
-  // Handle adding custom subject
   const handleAddCustomCourse = (course: CustomCourseMock) => {
     saveCustomCourse(course);
     setRefreshTrigger((r) => r + 1);
-    setActiveCourseCode(course.courseCode);
-    setViewMode("individual");
+    openCourse(course.courseCode);
   };
+
+  const title =
+    viewMode === "course" ? activeCourse?.courseCode ?? "Course" : "Marks Predictor";
+  const subtitle =
+    viewMode === "course"
+      ? activeCourse?.courseTitle
+      : "Pick a course to test what-if scores and see exactly what each remaining assessment can still earn.";
 
   return (
     <PageShell
       eyebrow="Academics · Simulator"
-      title="Marks Predictor"
-      subtitle="Test what-if scores and see exactly what each remaining assessment can still earn."
-      onBack={() => setActiveSubTab && setActiveSubTab("overview")}
-      actions={<ToneBadge tone="indigo">What-if</ToneBadge>}
+      title={title}
+      subtitle={subtitle}
+      onBack={() => {
+        if (viewMode === "course") {
+          setViewMode("list");
+          return;
+        }
+        setActiveSubTab && setActiveSubTab("overview");
+      }}
+      actions={
+        viewMode === "course" ? <ToneBadge tone="indigo">What-if</ToneBadge> : undefined
+      }
     >
       <div className="w-full max-w-3xl mx-auto space-y-3.5 pb-12 animate-in fade-in duration-200 text-left select-none overflow-hidden">
-
-        {/* Course Pills Strip */}
-        <CourseSelectorStrip
-          courses={stripCourses}
-          activeCourseCode={activeCourseCode}
-          onSelectCourse={(code) => {
-            setActiveCourseCode(code);
-            setViewMode("individual");
-          }}
-          viewMode={viewMode}
-          onToggleViewMode={setViewMode}
-          onOpenAddCustomCourse={() => setIsAddCustomOpen(true)}
-        />
-
-        {/* View Mode 1: All Courses Risk Matrix */}
-        {viewMode === "matrix" && (
-          <div className="animate-fadeIn">
-            <AllCoursesMatrix
-              predictions={allPredictions}
-              onSelectCourse={(code) => {
-                setActiveCourseCode(code);
-                setViewMode("individual");
-              }}
-            />
-          </div>
-        )}
-
-        {/* View Mode 2: Individual Course Predictor */}
-        {viewMode === "individual" && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
-            {/* Hero Card with Gauge, Deficit, Ceiling — compact, no overflow */}
-            <div className="overflow-hidden">
-              <CoursePredictorHero
-                prediction={activePrediction}
-                assessmentStats={assessmentStats}
-                onOpenRegimenEditor={() => setIsRegimenEditorOpen(true)}
-                onResetCourse={handleResetCourse}
-                onScrollToSimulator={() => {}}
-                onScrollToTargetSolver={() => {}}
+        {viewMode === "list" ? (
+          <>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+              {/* Optimal value leads; the maximisable reading — semester SGPA if
+                  every remaining assessment were maxed — quotes underneath. */}
+              <StatTile
+                label="Predicted SGPA"
+                value={gpa.optimalCredits > 0 ? gpa.optimalSgpa.toFixed(2) : "—"}
+                badge={`${gpa.optimalCredits} cr`}
+                tone="indigo"
+                sub={
+                  gpa.optimalCredits < gpa.semesterCredits
+                    ? `${gpa.optimalCredits}/${gpa.semesterCredits} graded · max ${gpa.maximisableSgpa.toFixed(2)}`
+                    : `maximisable ${gpa.maximisableSgpa.toFixed(2)}`
+                }
+              />
+              <StatTile
+                label="Predicted CGPA"
+                value={gpa.optimalCgpa == null ? "—" : gpa.optimalCgpa.toFixed(2)}
+                badge={gpa.optimalCgpa == null ? "—" : gpa.optimalCgpaIsAnchor ? "VTOP" : "Projected"}
+                tone="cyan"
+                sub={
+                  gpa.desirableCgpa == null
+                    ? "sync grades for a base figure"
+                    : `most desirable ${gpa.desirableCgpa.toFixed(2)}`
+                }
               />
             </div>
 
-            {/* Assessment Regimen Editor Modal/Drawer — constrained, scrolls inside, never overflows viewport */}
-            {isRegimenEditorOpen && (
-              <div className="animate-in fade-in duration-200 overflow-hidden">
-                <AssessmentRegimenEditor
-                  courseCode={activeCourseMeta.courseCode}
-                  isEmbedded={activePrediction.isEmbedded}
-                  theoryAssessments={currentCourseConfig.theory}
-                  labAssessments={currentCourseConfig.lab}
-                  theoryCredits={currentCourseConfig.theoryCredits}
-                  labCredits={currentCourseConfig.labCredits}
-                  onUpdateAssessments={handleUpdateRegimenAssessments}
-                  onClose={() => setIsRegimenEditorOpen(false)}
-                />
-              </div>
-            )}
-
-            {/* Target Grade & FAT Solver */}
-            <div className="overflow-hidden">
-              <TargetGradeSolver prediction={activePrediction} />
-            </div>
-
-            {/* What-if simulator */}
             <div className="space-y-3">
               <SectionHeader
                 icon={FlaskConical}
-                title="What-if simulator"
-                count={
-                  (activePrediction.theoryStats?.assessments.length ?? 0) +
-                  (activePrediction.labStats?.assessments.length ?? 0)
-                }
+                title="Courses"
+                count={enrolledCourses.length}
                 right={
-                  <GhostButton onClick={handleClearSimulations} title="Clear simulations">
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Clear
+                  <GhostButton onClick={() => setIsAddCustomOpen(true)} title="Add a custom subject">
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Subject
                   </GhostButton>
                 }
               />
               <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-                Drag sliders or type test marks to simulate hypothetical final outcomes.
+                Sorted by how much is left to lose. Tap one to simulate it.
               </p>
-              <div className={TILE_CARD}>
-                <WhatIfSimulator
-                  theoryStats={activePrediction.theoryStats}
-                  labStats={activePrediction.labStats}
-                  projectStats={activePrediction.projectStats}
-                  onUpdateScoredMark={handleUpdateScoredMark}
-                  onBatchSimulate={handleBatchSimulate}
-                />
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Add Custom Mock Course Sheet */}
-        <AnimatePresence>
-          {isAddCustomOpen && (
-            <AddCustomCourseModal
-              isOpen={isAddCustomOpen}
-              onClose={() => setIsAddCustomOpen(false)}
-              onAddCourse={handleAddCustomCourse}
-            />
-          )}
-        </AnimatePresence>
+              {enrolledCourses.length === 0 ? (
+                <div className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center">
+                  <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
+                    No courses found
+                  </p>
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+                    Pull your marks from VTOP, or add a custom subject to simulate.
+                  </p>
+                </div>
+              ) : (
+                <ListShell>
+                  {sortedCourses.map((course) => {
+                    const prediction = predictions.get(course.courseCode)!;
+                    const deficit = prediction.pointsLostScaled;
+                    return (
+                      <button
+                        key={course.courseCode}
+                        type="button"
+                        onClick={() => openCourse(course.courseCode)}
+                        className={`${LIST_ROW} cursor-pointer group`}
+                      >
+                        <ListRowText
+                          title={course.courseTitle}
+                          subtitle={`${course.courseCode} · ${typeLabel(course)} · ${course.credits} credits`}
+                        />
+                        <span className="flex items-center gap-3 shrink-0">
+                          <span className="w-20 text-right">
+                            <span className="block text-sm font-black font-outfit text-zinc-900 dark:text-white">
+                              {deficit > 0 ? `-${deficit.toFixed(1)}` : "0.0"}
+                            </span>
+                            <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                              pts lost
+                            </span>
+                          </span>
+                          <ToneBadge
+                            tone={toneForGrade(prediction.optimalGrade?.letter ?? "")}
+                            size="lg"
+                          >
+                            {prediction.optimalGrade?.letter ?? "—"}
+                          </ToneBadge>
+                          <ChevronRight className="w-4 h-4 text-zinc-400" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </ListShell>
+              )}
+            </div>
+          </>
+        ) : (
+          <AnimatePresence mode="wait">
+            {activeCourse ? (
+              <CoursePredictorPage
+                key={activeCourse.courseCode}
+                course={activeCourse}
+                marksStats={cohortStats}
+              />
+            ) : (
+              <div
+                key="empty"
+                className="p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 text-center"
+              >
+                <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
+                  No course selected
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Back to the list
+                </button>
+              </div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
+
+      <AnimatePresence>
+        {isAddCustomOpen && (
+          <AddCustomCourseModal
+            isOpen={isAddCustomOpen}
+            onClose={() => setIsAddCustomOpen(false)}
+            onAddCourse={handleAddCustomCourse}
+          />
+        )}
+      </AnimatePresence>
     </PageShell>
   );
 }

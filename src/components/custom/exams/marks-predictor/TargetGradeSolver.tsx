@@ -13,6 +13,7 @@ import {
   solveTargetFAT,
   TargetFATSolverResult,
   CoursePredictionResult,
+  estimateGrade,
 } from "@/lib/marksPredictor";
 import {
   ChipTabs,
@@ -25,18 +26,23 @@ interface TargetGradeSolverProps {
   prediction: CoursePredictionResult;
 }
 
-const TARGET_PRESETS = [
-  { grade: "S", score: 90, desc: "Outstanding (10 GP)" },
-  { grade: "A", score: 80, desc: "Excellent (9 GP)" },
-  { grade: "B", score: 70, desc: "Very Good (8 GP)" },
-  { grade: "C", score: 60, desc: "Good (7 GP)" },
-  { grade: "D", score: 50, desc: "Average (6 GP)" },
-  { grade: "Pass", score: 40, desc: "Minimum Pass (5 GP)" },
-];
-
 export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps) {
-  const [selectedTargetScore, setSelectedTargetScore] = useState<number>(90);
-  const [customTargetInput, setCustomTargetInput] = useState<string>("90");
+  // Band floors read off the prediction's own ladder: the presets name the
+  // same letters the hero shows, so on a curved course targeting "A" means the
+  // curve's A threshold, not the fixed 80. Absolute ladders reproduce the
+  // historic presets exactly (90/80/70/60/50/40).
+  const TARGET_PRESETS = prediction.boundaries.slice(0, 5).map((band) => ({
+    grade: band.grade === "E" ? "Pass" : band.grade,
+    score: Math.max(0, band.limit),
+    desc: estimateGrade(band.limit, prediction.boundaries).description,
+  }));
+
+  const [selectedTargetScore, setSelectedTargetScore] = useState<number>(
+    TARGET_PRESETS[0]?.score ?? 90
+  );
+  const [customTargetInput, setCustomTargetInput] = useState<string>(
+    String(TARGET_PRESETS[0]?.score ?? 90)
+  );
 
   const {
     isEmbedded,

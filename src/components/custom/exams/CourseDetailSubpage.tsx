@@ -29,6 +29,7 @@ import {
   TONE_TEXT,
 } from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
+import { buildGradeBoundaries } from "@/lib/gradeBoundaries";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -48,6 +49,7 @@ import config from '../../../../config.json';
 import HeatMap from "@uiw/react-heat-map";
 import dynamic from "next/dynamic";
 import CourseQBankTab from "./CourseQBankTab";
+import CoursePredictorPage from "./marks-predictor/CoursePredictorPage";
 
 
 // Dedicated whitespace between the heatmap card and the log section.
@@ -1574,6 +1576,24 @@ export default function CourseDetailSubpage({
                   <ChevronRight className="w-4 h-4 text-zinc-400" />
                 </span>
               </button>
+              {/* Grade Predictor */}
+              <button onClick={() => ovGo("grade-predictor")} className={LIST_ROW}>
+                <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
+                  <Sparkles className="w-5 h-5" />
+                </span>
+                <ListRowText
+                  title="Grade Predictor"
+                  subtitle="Simulate what-if scores and see what the FAT needs"
+                />
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-base font-black font-outfit tracking-tight leading-none text-violet-600 dark:text-violet-400">
+                    {selectedGroup?.theory?.assessments?.length || selectedGroup?.lab?.assessments?.length
+                      ? `${(selectedGroup?.theory?.assessments?.length || 0) + (selectedGroup?.lab?.assessments?.length || 0)} tests`
+                      : "—"}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                </span>
+              </button>
               {/* Grade History */}
               <button onClick={() => ovGo("grades")} className={LIST_ROW}>
                 <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.emerald}`}>
@@ -1692,7 +1712,7 @@ export default function CourseDetailSubpage({
           {!isSelectedPastSemester && (
             <button
               type="button"
-              onClick={() => setActiveSubTab?.("marks-predictor")}
+              onClick={() => ovGo("grade-predictor")}
               className={`${TILE_CARD} w-full flex items-center gap-3 text-left cursor-pointer hover:border-border-strong dark:hover:border-border transition-colors`}
             >
               <span className={`h-10 w-10 shrink-0 rounded-2xl border flex items-center justify-center ${TONE_ICON_TILE.violet}`}>
@@ -1780,19 +1800,15 @@ export default function CourseDetailSubpage({
 
             <div className="space-y-4">
                 {(() => {
-                  const mean = isRelative ? (stats?.mean || 0) : 0;
-                  const sd = isRelative ? (stats?.sd || 0) : 0;
-                  let sBoundary: number, aLower: number, bLower: number, cLower: number, dLower: number, eLower: number;
-                  if (isRelative && stats) {
-                    sBoundary = Math.min(Math.max(Math.round(mean + 1.5 * sd), 80), 100);
-                    aLower = Math.round(mean + 0.5 * sd);
-                    bLower = Math.round(mean - 0.5 * sd);
-                    cLower = Math.round(mean - 1.0 * sd);
-                    dLower = Math.round(mean - 1.5 * sd);
-                    eLower = Math.min(Math.round(mean - 2.0 * sd), 50);
-                  } else {
-                    sBoundary = 90; aLower = 80; bLower = 70; cLower = 60; dLower = 50; eLower = 40;
-                  }
+                  // The band table reads the shared ladder (`gradeBoundaries.ts` —
+                  // the same builder feeding the marks predictor), so the marks
+                  // page and the predictor cannot disagree about where a band
+                  // starts again. Chart-only figures below (`width`, `range`)
+                  // derive locally from those shared limits.
+                  const [sBoundary, aLower, bLower, cLower, dLower, eLower] =
+                    buildGradeBoundaries(isRelative ? stats : null, isRelative).map(
+                      (band) => band.limit
+                    );
 
                   // `width` is how many percentage points the band spans, so the
                   // bar reads as "how much room is in this grade" rather than a
@@ -1837,7 +1853,11 @@ export default function CourseDetailSubpage({
 
                   // The band the student is standing in right now. Drives the
                   // "You are here" marker and the target-grade emphasis.
-                  const standing = boundaries.find(b => currentPct >= b.limit);
+                  // Grade reads ceil the student's weightage to the next whole
+                  // number — how the boundary tables calculate — so a 79.5
+                  // standing is read against 80. The displayed percentages
+                  // below stay fractional; only this band read ceils.
+                  const standing = boundaries.find(b => Math.ceil(currentPct) >= b.limit);
                   const statsMissing = isRelative && !stats;
 
                   return (
@@ -1967,6 +1987,22 @@ export default function CourseDetailSubpage({
                 })()}
               </div>
         </div>
+      )}
+
+      {/* GRADE PREDICTOR — the per-course page. The global predictor's subject
+          list opens the same component, so both places show identical numbers. */}
+      {innerTab === "grade-predictor" && selectedGroup && (
+        <CoursePredictorPage
+          course={{
+            courseCode: selectedGroup.courseCode ?? selectedCode,
+            courseTitle: selectedGroup.courseTitle ?? "",
+            courseType: mainCourse?.courseType ?? "Theory Only",
+            credits: Number(mainCourse?.credits ?? 0) || (isEmbedded ? 4 : 3),
+            theoryCourse: selectedGroup.theory,
+            labCourse: selectedGroup.lab,
+          }}
+          marksStats={allStats}
+        />
       )}
 
       {/* THEORY LOG — OD-hours style dedicated page */}

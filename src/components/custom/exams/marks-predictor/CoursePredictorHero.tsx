@@ -6,7 +6,7 @@ import {
   RotateCcw,
   BarChart3,
 } from "lucide-react";
-import { CoursePredictionResult } from "@/lib/marksPredictor";
+import { CoursePredictionResult, estimateComponentGrades } from "@/lib/marksPredictor";
 import {
   GhostButton,
   ListRowText,
@@ -29,8 +29,6 @@ interface CoursePredictorHeroProps {
   assessmentStats?: Record<string, { count: number; mean: number; sd: number }> | null;
   onOpenRegimenEditor: () => void;
   onResetCourse: () => void;
-  onScrollToSimulator: () => void;
-  onScrollToTargetSolver: () => void;
 }
 
 const fmtStat = (n: number) => (Number.isFinite(n) ? n.toFixed(1) : "—");
@@ -52,16 +50,26 @@ export default function CoursePredictorHero({
     potentialPendingScaled,
     pointsLostScaled,
     maxPossibleScaled,
+    pacePct,
     theoryStats,
     labStats,
     projectStats,
-    estimatedGrade,
-    ceilingGrade,
+    optimalGrade,
+    maximisableGrade,
   } = prediction;
 
   const scoredPercent = Math.min(100, Math.max(0, currentScoredScaled));
   const pendingPercent = Math.min(100 - scoredPercent, Math.max(0, potentialPendingScaled));
   const lostPercent = Math.min(100 - (scoredPercent + pendingPercent), Math.max(0, pointsLostScaled));
+
+  // Each half's own sub-total. `estimateComponentGrades` rates the half on its
+  // released weight the same way the combined course is rated on the released
+  // whole, so the lab's letter means the same thing as the course letter above.
+  const totalWeightText = (theoryStats?.totalWeightConfigured ?? 0) + (labStats?.totalWeightConfigured ?? 0) > 0
+    ? `${((theoryStats?.totalWeightConfigured ?? 0) + (labStats?.totalWeightConfigured ?? 0)).toFixed(0)} points`
+    : "the regimen";
+  const theoryPace = theoryStats ? estimateComponentGrades(theoryStats, prediction.boundaries) : null;
+  const labPace = labStats ? estimateComponentGrades(labStats, prediction.boundaries) : null;
 
   // Which of this course's assessments the class has synced statistics for.
   // Only those get a row — the rest are the same "not enough data" case the
@@ -81,6 +89,9 @@ export default function CoursePredictorHero({
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           <ToneBadge tone="indigo">{courseCode}</ToneBadge>
           <ToneBadge tone="zinc">{courseType}</ToneBadge>
+          {prediction.isCurved ? (
+            <ToneBadge tone="amber">Curved</ToneBadge>
+          ) : null}
           {isEmbedded ? (
             <ToneBadge tone="violet">
               Embedded {theoryCredits}T + {labCredits}L
@@ -110,7 +121,7 @@ export default function CoursePredictorHero({
           label="Max possible"
           value={maxPossibleScaled.toFixed(1)}
           tone="emerald"
-          sub={`Ceiling ${ceilingGrade.letter} · of 100`}
+          sub={`Maximisable ${maximisableGrade.letter} · of 100`}
           height="h-28"
         />
         <StatTile
@@ -128,14 +139,14 @@ export default function CoursePredictorHero({
           label="Secured"
           value={currentScoredScaled.toFixed(1)}
           tone="indigo"
-          sub={`Pending ${potentialPendingScaled.toFixed(1)} pts`}
+          sub={`Pace ${pacePct.toFixed(1)}% · Pending ${potentialPendingScaled.toFixed(1)} pts`}
           height="h-28"
         />
         <StatTile
-          label="Estimated grade"
-          value={estimatedGrade.letter}
-          tone={estimatedGrade.tone}
-          sub={estimatedGrade.description}
+          label="Optimal grade"
+          value={optimalGrade?.letter ?? "—"}
+          tone={optimalGrade?.tone ?? "zinc"}
+          sub={optimalGrade?.description ?? "No marks recorded yet"}
           height="h-28"
         />
       </div>
@@ -185,6 +196,10 @@ export default function CoursePredictorHero({
         </div>
       )}
 
+      {/* Embedded course = one blended grade, but its two halves each carry
+          their own total — the lab's pace and ceiling stand beside the theory's,
+          and the tiles above are the combination. Same shape as the marks
+          subpage's embedded segments. */}
       {isEmbedded && (theoryStats || labStats) && (
         <ListShell>
           {theoryStats && (
@@ -192,7 +207,11 @@ export default function CoursePredictorHero({
               <ToneDot tone="blue" />
               <ListRowText
                 title={`Theory · ${theoryCredits} credits`}
-                subtitle={`Scored ${theoryStats.scoredWeight.toFixed(1)} of ${theoryStats.totalWeightConfigured} · lost ${theoryStats.lostWeight.toFixed(1)}`}
+                subtitle={
+                  theoryPace?.optimal
+                    ? `Optimal ${theoryPace.optimal.letter} · maximisable ${theoryPace.maximisable.letter} · scored ${theoryStats.scoredWeight.toFixed(1)} / lost ${theoryStats.lostWeight.toFixed(1)}`
+                    : `No theory marks recorded yet · maximisable ${theoryPace?.maximisable.letter ?? "—"}`
+                }
               />
             </div>
           )}
@@ -200,11 +219,22 @@ export default function CoursePredictorHero({
             <div className={LIST_ROW}>
               <ToneDot tone="emerald" />
               <ListRowText
-                title={`Lab · ${labCredits} credits`}
-                subtitle={`Scored ${labStats.scoredWeight.toFixed(1)} of ${labStats.totalWeightConfigured} · lost ${labStats.lostWeight.toFixed(1)}`}
+                title={`Lab · ${labCredits} credit${labCredits === 1 ? "" : "s"}`}
+                subtitle={
+                  labPace?.optimal
+                    ? `Optimal ${labPace.optimal.letter} · maximisable ${labPace.maximisable.letter} · scored ${labStats.scoredWeight.toFixed(1)} / lost ${labStats.lostWeight.toFixed(1)}`
+                    : `No lab marks recorded yet · maximisable ${labPace?.maximisable.letter ?? "—"}`
+                }
               />
             </div>
           )}
+          <div className={LIST_ROW}>
+            <ToneDot tone="violet" />
+            <ListRowText
+              title="Combined"
+              subtitle={`${currentScoredScaled.toFixed(1)} secured of ${totalWeightText} · optimal ${optimalGrade?.letter ?? "—"} / maximisable ${maximisableGrade.letter}`}
+            />
+          </div>
         </ListShell>
       )}
     </div>

@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { KeyValue, ListRowText, MiniBar, ToneDot } from "../shared/primitives";
 import { LIST_ROW, TONE_BADGE, TONE_TEXT } from "@/lib/uiTokens";
 import { toneForGrade } from "@/lib/gradeHistory";
+import { isRelativeGrading } from "@/lib/gradeBoundaries";
 
 export interface Creds { cookies: string[]; authorizedID: string; csrf: string; }
 
@@ -126,11 +127,10 @@ export const getCourseStats = (group: any) => {
   return { maxPossible: 100 - pointsLost, projected: Math.round(normalisedPct(combinedWeighted, combinedWeightPercent)) };
 };
 
-export const checkIsRelative = (courseSystem: string, courseType: string) => {
-  const isACE = courseSystem === "ACE";
-  if (isACE) return ["Embedded Theory", "Embedded Lab", "Embedded", "Theory Only"].includes(courseType);
-  return courseType === "Theory Only";
-};
+export const checkIsRelative = (courseSystem: string, courseType: string) =>
+  // Delegates to the shared ladder module so the marks page and the
+  // predictor cannot disagree about what counts as curved.
+  isRelativeGrading(courseSystem, courseType);
 
 export const formatTitle = (title: string) => {
   if (!title) return "";
