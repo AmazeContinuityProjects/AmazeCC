@@ -438,7 +438,7 @@ export default function MobileHome({
                 return next;
               });
             }}
-            className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+            className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
           >
             <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
             <span className="text-[9px] font-black text-emerald-655 dark:text-emerald-400 uppercase tracking-widest font-outfit font-black">Cumulative GPA</span>
@@ -450,7 +450,7 @@ export default function MobileHome({
         ) : null}
 
         {/* Credits Card */}
-        <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
+        <div className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden">
           <div className="absolute top-0 right-0 w-8 h-8 bg-blue-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-blue-655 dark:text-blue-400 uppercase tracking-widest font-outfit font-black">Credits Earned</span>
           <p className={`text-xl font-black text-zinc-900 dark:text-white leading-none mt-1 transition-all duration-300 ${settings?.blurGrades ? "blur-[5px] select-none hover:blur-none" : ""}`}>
@@ -465,7 +465,7 @@ export default function MobileHome({
             setActiveTab("attendance");
             setActiveAttendanceSubTab("od");
           }}
-          className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+          className="min-w-[125px] flex-1 snap-center p-4 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-24 text-left relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
         >
           <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 rounded-bl-full pointer-events-none" />
           <span className="text-[9px] font-black text-amber-600 dark:text-amber-455 uppercase tracking-widest font-outfit font-black">OD Approved</span>
@@ -517,7 +517,7 @@ export default function MobileHome({
                   : "bg-red-500/10 border-red-500/20 text-red-655 dark:text-red-450"
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                overallAttendance.status === "Safe" ? "bg-emerald-500 animate-pulse" : overallAttendance.status === "Warning" ? "bg-amber-500" : "bg-red-500"
+                overallAttendance.status === "Safe" ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]" : overallAttendance.status === "Warning" ? "bg-amber-500" : "bg-red-500"
               }`} />
               {overallAttendance.status}
             </span>
@@ -641,7 +641,7 @@ export default function MobileHome({
               <div 
                 key={`${c.courseCode}-${index}`}
                 onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-                className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                className="p-4 rounded-[22px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-bl-full pointer-events-none" />
                 <div className="min-w-0 pr-1 mb-2.5">
@@ -719,7 +719,7 @@ export default function MobileHome({
             <div 
               key={`${c.courseCode}-${c.slotName || ''}-${index}`}
               onClick={() => { setActiveTab("academics"); setActiveSubTab("overview"); }}
-              className="p-4 rounded-[22px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[105px] relative overflow-hidden"
+              className="p-4 rounded-[22px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-xs active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between h-[105px] relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-violet-500/5 dark:bg-violet-500/10 rounded-bl-full pointer-events-none" />
               <div className="min-w-0 pr-1">
@@ -780,8 +780,8 @@ export default function MobileHome({
         </div>
 
         {todayClasses.length === 0 ? (
-          <div className="p-6 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-center">
-            <Coffee className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2 animate-pulse" />
+          <div className="p-6 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center">
+            <Coffee className="w-8 h-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2 animate-pulse [animation-duration:3s]" />
             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No classes today!</p>
             <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-semibold">Enjoy your free time.</p>
           </div>
@@ -791,7 +791,7 @@ export default function MobileHome({
               <div className="p-4.5 rounded-[24px] bg-indigo-650 text-white shadow-sm border border-indigo-700/30 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-bl-full pointer-events-none" />
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 dark:bg-black/30 rounded-md">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping [animation-duration:2.5s]" />
                   Ongoing Now
                 </span>
                 <h4 className="font-extrabold text-base mt-2 leading-tight text-left">
@@ -807,7 +807,7 @@ export default function MobileHome({
             {classStatus.next ? (
               <div 
                 onClick={() => { setActiveTab("attendance"); }}
-                className="p-4.5 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 flex items-center gap-3 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
+                className="p-4.5 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 flex items-center gap-3 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
               >
                 <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shrink-0">
                   <Clock className="w-5 h-5" />
@@ -825,12 +825,12 @@ export default function MobileHome({
                 </div>
               </div>
             ) : !classStatus.current ? (
-              <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-center">
+              <div className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center">
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold">Done with classes for today!</p>
               </div>
             ) : null}
 
-            <div className="rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 p-4 text-left">
+            <div className="rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 p-4 text-left">
               <div className="pb-3 border-b border-zinc-200/30 dark:border-zinc-800/50 flex items-center justify-between mb-3.5">
                 <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit">Full Schedule</span>
                 <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">{todayClasses.length} sessions</span>
@@ -846,7 +846,7 @@ export default function MobileHome({
                       className="px-4 py-3 flex items-center gap-3 text-left rounded-[20px] bg-zinc-50/20 dark:bg-zinc-950/10 border border-zinc-200/30 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
                       <div className={`w-1 h-8 rounded-full shrink-0 ${
-                        isCurrent ? "bg-emerald-500 animate-pulse" : isNext ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-800"
+                        isCurrent ? "bg-emerald-500 animate-pulse [animation-duration:2.5s]" : isNext ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-800"
                       }`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
@@ -882,7 +882,7 @@ export default function MobileHome({
         <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6">
           <button 
             onClick={() => { setActiveTab("attendance"); setActiveAttendanceSubTab("attendance"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center mb-1.5 text-indigo-500 shrink-0">
               <Sliders className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -892,7 +892,7 @@ export default function MobileHome({
           
           <button 
             onClick={() => { setActiveTab("academics"); setActiveSubTab("cgpa-predictor"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-1.5 text-emerald-600 dark:text-emerald-450 shrink-0">
               <TrendingUp className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -902,7 +902,7 @@ export default function MobileHome({
 
           <button 
             onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("leave"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center mb-1.5 text-rose-600 dark:text-rose-455 shrink-0">
               <Plane className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -912,7 +912,7 @@ export default function MobileHome({
 
           <button 
             onClick={() => { setActiveTab("dayscholar"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-955/30 flex items-center justify-center mb-1.5 text-amber-605 dark:text-amber-400 shrink-0">
               <Bus className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -922,7 +922,7 @@ export default function MobileHome({
 
           <button 
             onClick={() => { setActiveTab("academics"); setActiveSubTab("wishlist"); }}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/30 flex items-center justify-center mb-1.5 text-violet-600 dark:text-violet-400 shrink-0">
               <Bookmark className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -932,7 +932,7 @@ export default function MobileHome({
 
           <button 
             onClick={onOpenCommandPalette}
-            className="flex flex-col items-center justify-center p-3 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+            className="flex flex-col items-center justify-center p-3 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-center active:scale-95 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
           >
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-955/30 flex items-center justify-center mb-1.5 text-blue-650 dark:text-blue-400 shrink-0">
               <FolderOpen className="w-4.5 h-4.5 stroke-[2.5]" />
@@ -966,7 +966,7 @@ export default function MobileHome({
         
         <div 
           onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("laundry"); }}
-          className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer text-left flex items-center gap-4"
+          className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer text-left flex items-center gap-4"
         >
           <div className="w-12 h-12 rounded-2xl bg-sky-500/10 dark:bg-sky-950/30 flex items-center justify-center text-sky-500 shrink-0">
             <Shirt className="w-6 h-6" />
@@ -1036,7 +1036,7 @@ export default function MobileHome({
         </div>
         <div 
           onClick={() => { setActiveTab("hostel"); setHostelActiveSubTab("mess"); }}
-          className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
+          className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
         >
           <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed font-semibold">
             {todayMeal}
@@ -1072,7 +1072,7 @@ export default function MobileHome({
                     setActiveAttendanceSubTab("calendar");
                   }
                 }}
-                className="p-3.5 rounded-[20px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 flex justify-between items-center text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
+                className="p-3.5 rounded-[20px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 flex justify-between items-center text-left hover:bg-white/90 dark:hover:bg-zinc-900/80 cursor-pointer"
               >
                 <div className="min-w-0 flex-1 pr-2">
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{task.title}</p>
@@ -1106,7 +1106,7 @@ export default function MobileHome({
             <div 
               key={idx}
               onClick={() => { setActiveTab("events"); }}
-              className="min-w-[75vw] snap-center p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/95 dark:hover:bg-zinc-900/85 cursor-pointer md:min-w-0"
+              className="min-w-[75vw] snap-center p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 active:scale-[0.99] transition-all hover:bg-white/95 dark:hover:bg-zinc-900/85 cursor-pointer md:min-w-0"
             >
               <h4 className="font-bold text-sm text-zinc-800 dark:text-white truncate text-left">{ev.name}</h4>
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1.5 flex items-center gap-1.5 text-left font-medium">
@@ -1139,7 +1139,7 @@ export default function MobileHome({
             All Settings
           </button>
         </div>
-        <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/50">
+        <div className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left space-y-3.5 divide-y divide-zinc-100 dark:divide-zinc-800/50">
           
           {/* Hide CGPA */}
           <div className="flex items-center justify-between text-xs pt-0">
@@ -1332,7 +1332,7 @@ export default function MobileHome({
         </div>
 
         {allExams.length === 0 ? (
-          <div className="p-5 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-4">
+          <div className="p-5 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-500 shrink-0">
                 <Calendar className="w-5 h-5" />
@@ -1361,7 +1361,7 @@ export default function MobileHome({
             <div className="p-4.5 rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm border border-emerald-600/30 relative overflow-hidden text-left">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full pointer-events-none" />
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider bg-white/20 rounded-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping [animation-duration:2.5s]" />
                 Exam Today!
               </span>
               {todayExams.map((exam, idx) => (
@@ -1429,7 +1429,7 @@ export default function MobileHome({
                   <div 
                     key={idx}
                     onClick={() => { setActiveTab("academics"); setActiveSubTab("schedule"); }}
-                    className="p-3 rounded-[18px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 transition-all cursor-pointer flex items-center justify-between gap-2"
+                    className="p-3 rounded-[18px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 hover:bg-white/90 dark:hover:bg-zinc-900/80 transition-all cursor-pointer flex items-center justify-between gap-2"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
@@ -1450,7 +1450,7 @@ export default function MobileHome({
             )}
           </div>
         ) : (
-          <div className="p-4 rounded-[24px] bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-3">
+          <div className="p-4 rounded-[24px] card-surface border border-zinc-200/50 dark:border-zinc-800/80 text-left flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 font-outfit">No upcoming exams</p>
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">All scheduled exams for this term are completed</p>
@@ -1512,6 +1512,7 @@ export default function MobileHome({
             <img
               src={profileImage}
               alt=""
+              decoding="async"
               className="h-12 w-12 rounded-2xl border border-white/60 object-cover shadow-sm dark:border-gray-800 md:h-14 md:w-14 shrink-0"
             />
           ) : (
@@ -1571,7 +1572,7 @@ export default function MobileHome({
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden mb-6"
           >
-            <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 rounded-[24px] p-4 sm:p-5 shadow-xl backdrop-blur-xl space-y-4 text-left">
+            <div className="card-surface border border-border-strong dark:border-border rounded-[24px] p-4 sm:p-5 shadow-xl space-y-4 text-left">
               <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
                 <div>
                   <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit flex items-center gap-2">
@@ -1698,7 +1699,7 @@ export default function MobileHome({
       {!settings?.hideHomeSearchBar && (
         <button 
           onClick={onOpenCommandPalette}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] bg-white/80 dark:bg-gray-950/80 border border-gray-200/70 dark:border-gray-800 shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group backdrop-blur-xl cursor-pointer"
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-[20px] card-surface border border-border-strong dark:border-border shadow-xs text-gray-400 dark:text-gray-550 hover:text-gray-600 dark:hover:text-gray-300 text-left transition-all active:scale-[0.99] relative overflow-hidden group cursor-pointer"
         >
           <div className="absolute inset-0 bg-indigo-50/10 dark:bg-indigo-950/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />

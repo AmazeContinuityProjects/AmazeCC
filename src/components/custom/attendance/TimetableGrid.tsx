@@ -274,7 +274,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
               <table className="w-full min-w-[700px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-150 bg-gray-50 dark:border-gray-800 dark:bg-zinc-950">
-                    <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    <th className="sticky left-0 z-10 bg-gray-50 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:bg-zinc-950 dark:text-gray-500">
                       Course
                     </th>
                     <th className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
@@ -297,7 +297,7 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
                       key={`${c.courseCode}-${i}`}
                       className="bg-white transition-colors hover:bg-gray-55 dark:bg-[#030507] dark:hover:bg-[#0a1825]"
                     >
-                      <td className="px-4 py-2.5">
+                      <td className="sticky left-0 z-10 bg-white px-4 py-2.5 dark:bg-[#030507]">
                         <div className="flex items-center gap-2">
                           <span className="shrink-0 rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-blue-800">
                             {c.courseCode}

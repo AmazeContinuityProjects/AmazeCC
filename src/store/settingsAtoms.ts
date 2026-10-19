@@ -18,6 +18,14 @@ export type Settings = {
     background: string;
     surface: string;
   };
+  /**
+   * The card interior the surfaces carry: `false` (default) paints every card
+   * with the grade-insights gray (the surface at full strength, via the
+   * `.card-surface` class), `true` restores the classic translucent zinc glass
+   * with its backdrop blur. Purely a "look" pref, so it defaults to the new
+   * gray.
+   */
+  cardSurfaceZinc?: boolean;
   hideHomeSearchBar?: boolean;
   reloadAllData?: boolean;
   isSidebarCollapsed?: boolean;
@@ -94,6 +102,7 @@ export const defaultSettings: Settings = {
   showProfilePhoto: true,
   blurGrades: false,
   colorPalette: "default",
+  cardSurfaceZinc: false,
   customPalette: {
     accent: "#0ea5e9",
     background: "#f8fafc",

@@ -196,6 +196,7 @@ export default function TransportRegistration({
               <img
                 src={data.qrCode}
                 alt="Daily attendance QR code"
+                decoding="async"
                 className="w-36 h-36 object-contain"
               />
             </div>

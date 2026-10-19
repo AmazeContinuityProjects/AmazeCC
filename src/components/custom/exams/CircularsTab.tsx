@@ -71,7 +71,7 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
       <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 dark:hover:bg-gray-800/30 transition-colors group" style={{ paddingLeft: `${16 + depth * 20}px` }}>
         <File className="w-3.5 h-3.5 shrink-0 text-gray-400" />
         <p className="text-sm text-gray-700  dark:text-gray-300 flex-1 min-w-0">{item.title}</p>
-        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
+        <button onClick={() => downloadCircular(item.id!, item.title!)} className="p-1.5 rounded-lg relative hit-expand opacity-0 group-hover:opacity-100 [@media(any-hover:none)]:opacity-100 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-all" title="Download">
           <Download className="w-3.5 h-3.5" />
         </button>
       </div>

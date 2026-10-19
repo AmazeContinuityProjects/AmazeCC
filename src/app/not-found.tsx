@@ -18,7 +18,7 @@ export default function NotFoundPage() {
   return (
     <main className="min-h-screen w-full bg-slate-50 px-4 text-foreground transition-colors duration-300 dark:bg-[#03060F] flex items-center justify-center py-10">
       <div className="w-full max-w-xl animate-in fade-in duration-300">
-        <Card className="w-full border-slate-200 bg-white/70 backdrop-blur-md shadow-2xl dark:border-neutral-900 dark:bg-neutral-950/40 rounded-[24px] overflow-hidden relative text-center">
+        <Card className="w-full border-border-strong dark:border-border card-surface shadow-2xl rounded-[24px] overflow-hidden relative text-center">
           {/* Subtle background gradient glow */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full pointer-events-none -z-10" />
 
@@ -45,10 +45,10 @@ export default function NotFoundPage() {
             </div>
 
             <div className="flex justify-center gap-3">
-              <Button asChild className="rounded-xl font-bold text-xs py-2 min-h-[38px] px-6 cursor-pointer">
+              <Button asChild className="rounded-xl font-bold text-xs py-2 min-h-11 px-6 cursor-pointer">
                 <Link href="/">Dashboard</Link>
               </Button>
-              <Button variant="outline" onClick={() => window.history.back()} className="rounded-xl font-bold text-xs py-2 min-h-[38px] px-6 cursor-pointer">
+              <Button variant="outline" onClick={() => window.history.back()} className="rounded-xl font-bold text-xs py-2 min-h-11 px-6 cursor-pointer">
                 Go back
               </Button>
             </div>

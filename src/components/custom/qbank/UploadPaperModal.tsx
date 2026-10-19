@@ -129,7 +129,7 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
             </div>
 
             {/* Paper Type + Sem + Year */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">Type</label>
                 <Select

@@ -78,6 +78,17 @@ export interface CoursePredictionResult {
    */
   pacePct: number;
   /**
+   * The standing the grade-insights ladder shows: earned weight over the
+   * weight the course has assigned so far — scored, lost, and every pending
+   * row that already carries a weightage — the same scaling the marks
+   * subpage's "Grade boundaries" section applies before reading its band.
+   * The unpublished final exam stays out on purpose: VTOP reports no
+   * weightage for it until it happens, so the subpage's ladder never divides
+   * by it, and this scale must not either (the 40% pin at the feed's edge is
+   * for the solver's reachability, not for this read).
+   */
+  currentStandingPct: number;
+  /**
    * Grade if the current performance continues. Null before any mark is
    * recorded: a pace cannot be read from a course with nothing released, and
    * calling a zero-pace course an "F" would fail a student for test days that
@@ -509,6 +520,42 @@ export const computeCoursePrediction = ({
   // ladder — the same one the marks subpage renders.
   const maximisableGrade = estimateGrade(maxPossibleScaled, boundaries);
 
+  // The final-exam rows VTOP has not weighted yet. The title read mirrors the
+  // scope's `isFinalExamAssessment`; the scope of this file is imported BY
+  // that component, so reaching back would be circular.
+  const PENDING_FINAL_RE = /fat|final assessment/i;
+  const pendingFinalWeight = (list: PredictorAssessment[]) =>
+    list.reduce(
+      (sum, asm) =>
+        asm.scoredMark == null && PENDING_FINAL_RE.test(asm.title)
+          ? sum + Math.max(0, safeNumber(asm.weightagePercent, 0))
+          : sum,
+      0
+    );
+  let finalReservedSum = 0;
+  if (theoryStats) {
+    finalReservedSum += pendingFinalWeight(theoryAssessments) * (isEmbedded ? theoryCredits : 1);
+  }
+  if (labStats) {
+    finalReservedSum += pendingFinalWeight(labAssessments) * (isEmbedded ? labCredits : 1);
+  }
+  if (projectStats) {
+    finalReservedSum += pendingFinalWeight(projectAssessments) * (isEmbedded ? projectCredits : 1);
+  }
+  const finalReservedScaled = Math.round((finalReservedSum / effectiveCredits) * 100) / 100;
+
+  // The insights ladder's standing: earned over every weight the course has
+  // assigned — the marks subpage's exact denominator (`normalisedPct` over
+  // the weightage the feed reports). Its pending final-exam weight is not
+  // assigned yet (VTOP reports zero there until the exam), so it leaves the
+  // denominator; pending rows that do carry a weightage stay in it — user-
+  // authored ones included, diluting the read like any listed weight would.
+  const assignedWeight = releasedWeight + Math.max(0, potentialPendingScaled - finalReservedScaled);
+  const currentStandingPct =
+    assignedWeight > 0
+      ? Math.round((currentScoredScaled / assignedWeight) * 10000) / 100
+      : 0;
+
   let riskLevel: "safe" | "moderate" | "critical" | "warning" = "safe";
   if (pointsLostScaled > 40) riskLevel = "critical";
   else if (pointsLostScaled > 20) riskLevel = "warning";
@@ -523,6 +570,7 @@ export const computeCoursePrediction = ({
     labCredits: Math.max(0, labCredits),
     totalCredits: effectiveCredits,
     currentScoredScaled,
+    currentStandingPct,
     potentialPendingScaled,
     pointsLostScaled,
     maxPossibleScaled,

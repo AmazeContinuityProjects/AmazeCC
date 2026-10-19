@@ -13,6 +13,8 @@ const Field = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const ROW_WINDOW = 80;
+
 interface Creds {
   cookies: string[];
   authorizedID: string;
@@ -45,6 +47,18 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [submitResult, setSubmitResult] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  // API dumps can carry thousands of rows; render the first ROW_WINDOW rows
+  // and hand out more on demand so a big payload doesn't build a giant DOM on
+  // a phone.
+  const [expandedTables, setExpandedTables] = useState<Set<number>>(new Set());
+  const toggleExpandTable = useCallback((idx: number) => {
+    setExpandedTables((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }, []);
   const credsRef = useRef(creds);
   credsRef.current = creds;
   const cacheKey = `${endpoint}:${selectedSemester || ""}:${JSON.stringify(extraParams || {})}`;
@@ -244,7 +258,12 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
         <div key={idx} className="solid-card mb-5">
           <div className="p-5">
             {table.caption && <h4 className="text-sm font-semibold text-gray-500  dark:text-gray-400 uppercase tracking-wider mb-4">{table.caption}</h4>}
-            {hasRows ? (
+            {hasRows ? (() => {
+              const expanded = expandedTables.has(idx);
+              const rows = expanded ? table.rows : table.rows.slice(0, ROW_WINDOW);
+              const hidden = table.rows.length - rows.length;
+              return (
+                <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -255,7 +274,7 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                     </tr>
                   </thead>
                   <tbody>
-                    {table.rows.map((row: any, ri: number) => (
+                    {rows.map((row: any, ri: number) => (
                       <tr key={ri} className="border-b border-gray-100  dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                         {table.headers.map((h: string, ci: number) => (
                           <td key={ci} className="py-2.5 px-2 text-gray-800  dark:text-gray-200 whitespace-nowrap">
@@ -267,7 +286,17 @@ export default function GenericApiView({ endpoint, title, creds, extraParams, re
                   </tbody>
                 </table>
               </div>
-            ) : (
+              {hidden > 0 && (
+                <button
+                  onClick={() => toggleExpandTable(idx)}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200  dark:border-gray-700 bg-white/60 dark:bg-zinc-900/50 px-4 py-2.5 text-xs font-bold text-gray-600  dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                >
+                  {expanded ? "Show fewer rows" : `Show ${hidden.toLocaleString()} more rows`}
+                </button>
+              )}
+              </>
+              );
+            })() : (
               <EmptyState title="No data available" className="py-4" />
             )}
           </div>

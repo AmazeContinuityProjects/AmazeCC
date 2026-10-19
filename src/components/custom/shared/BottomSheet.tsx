@@ -206,7 +206,7 @@ export default function BottomSheet({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="relative z-10 shrink-0 rounded-full bg-zinc-100 p-2 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer"
+          className="relative z-10 shrink-0 rounded-full bg-zinc-100 p-2 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 cursor-pointer hit-expand"
         >
           <X className="h-4 w-4" />
         </button>
@@ -268,6 +268,9 @@ export default function BottomSheet({
       style={
         {
           willChange: "transform",
+          // The keyboard-lift wrapper is pointer-events-none; the panel and
+          // everything inside it must stay tappable.
+          pointerEvents: "auto",
           paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
           "--sheet-kb-inset": `${keyboardInset}px`,
         } as React.CSSProperties
@@ -286,6 +289,8 @@ export default function BottomSheet({
       style={
         {
           willChange: "transform",
+          // Same as the centered panel: pointer-events-none wrapper above.
+          pointerEvents: "auto",
           paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
           "--sheet-kb-inset": `${keyboardInset}px`,
         } as React.CSSProperties
@@ -298,18 +303,41 @@ export default function BottomSheet({
   // The keyboard offset lives on a wrapper rather than on the panel: the panel's
   // own `transform` belongs to framer-motion and to the grabber drag, so
   // writing the offset there would be overwritten on the next frame.
-  const panel = lifted ? (
+  //
+  // The wrapper renders ALWAYS, not only when lifted: mounting it on the first
+  // keyboard event would change the panel's tree position, and React answers a
+  // change of parent by unmounting and remounting the panel — killing the
+  // focused input, which dismisses the keyboard, which unmounts the wrapper
+  // again. The keyboard reset loops exactly like that. Toggling only the
+  // inline style keeps one node identity the whole time.
+  //
+  // What toggles with `lifted` matters beyond the offset itself. A wrapper
+  // that carries `will-change: transform` — even with no actual transform —
+  // already becomes the containing block for the `position: fixed` panel
+  // inside it. Its box is 0px tall at the end of the document flow, so every
+  // sheet re-anchors to "the bottom of the document": on any page tall enough
+  // to scroll you get the dimmed backdrop with no sheet below the fold. So:
+  //  - not lifted: the wrapper is an inert pass-through (plain div, no
+  //    transform, no will-change) and the fixed panel anchors to the viewport
+  //    as always.
+  //  - lifted: the wrapper becomes a fixed, viewport-sized, pointer-transparent
+  //    layer (z above the backdrop, tree-ordered later). The panel keeps its
+  //    `bottom-0` against a box that mirrors the viewport, and the translateY
+  //    does the lift. `pointerEvents: "auto"` restores its interactivity.
+  const panel = (
     <div
-      className="flex min-h-0 flex-1 flex-col"
-      style={{
-        transform: `translateY(-${keyboardInset}px)`,
-        willChange: "transform",
-      }}
+      className={lifted ? "pointer-events-none fixed inset-0 z-[56]" : ""}
+      style={
+        lifted
+          ? {
+              transform: `translateY(-${keyboardInset}px)`,
+              willChange: "transform",
+            }
+          : undefined
+      }
     >
       {rawPanel}
     </div>
-  ) : (
-    rawPanel
   );
 
   return createPortal(

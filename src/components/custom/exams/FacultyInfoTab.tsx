@@ -121,6 +121,8 @@ const FacultyCard = ({
           <img
             src={profile.imageUrl}
             alt={profile.name}
+            loading="lazy"
+            decoding="async"
             className="w-12 h-12 rounded-2xl object-cover shrink-0 border border-border-muted"
             onError={(e: any) => {
               e.target.style.display = "none";

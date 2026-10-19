@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ChevronRight, FlaskConical, Plus, RotateCcw } from "lucide-react";
+import { Check, ChevronRight, Edit3, Eye, EyeOff, FlaskConical, Plus, RotateCcw, Trash2 } from "lucide-react";
 import AddCustomCourseModal from "./marks-predictor/AddCustomCourseModal";
 import BottomSheet from "../shared/BottomSheet";
 import {
@@ -24,10 +24,12 @@ import {
   safeNumber,
 } from "@/lib/marksPredictor";
 import {
+  deleteCustomCourse,
   getCustomCourses,
   resetAllCoursePredictorState,
   saveCustomCourse,
   getCoursePredictorState,
+  setCourseIgnored,
   type CustomCourseMock,
 } from "@/lib/marksPredictorStorage";
 import {
@@ -89,6 +91,15 @@ export default function MarksPredictorTab({
   const [isAddCustomOpen, setIsAddCustomOpen] = useState(false);
   /** The overall-reset confirmation sheet — destructive, so it asks first. */
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  /** The custom subject's code awaiting its delete confirmation. */
+  const [deleteCourseCode, setDeleteCourseCode] = useState<string | null>(null);
+  /** The list's edit mode. The per-row hide/delete controls are rarely used
+      assertions — excluding a real subject or removing a custom one — and a
+      permanent column of them beside every row taxes the width of the very
+      list that exists to be scanned. So they surface only while the back-row
+      toggle in the corner is on; turning it off re-hides them, and any
+      exclusion made while it was on keeps its dimmed row and Ignored badge. */
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     setCustomCourses(getCustomCourses());
@@ -168,14 +179,34 @@ export default function MarksPredictorTab({
     [predictions]
   );
 
+  // Which subjects the user held out of the GPA pair — read per course from
+  // storage (no subscriptions, so the same revision rides the deps). Ignored
+  // rows stay on the list; only the SGPA/CGPA cards stop reading them.
+  const ignoredCodes = useMemo(() => {
+    void refreshTrigger;
+    return new Set(
+      enrolledCourses
+        .filter((c) => getCoursePredictorState(c.courseCode)?.ignored === true)
+        .map((c) => c.courseCode)
+    );
+  }, [enrolledCourses, refreshTrigger]);
+
   // The headline pair above the subject list: where the semester's predicted
   // grades land as a GPA, and what that does to the cumulative figure. Both
   // readings come from the grade-insights engine's letters (`predictGpa`);
   // each tile leads with optimal (current performance continued) and quotes
   // its maximisable / most-desirable companion underneath.
   const gpa = useMemo(
-    () => predictGpa(enrolledCourses.map((c) => ({ credits: c.credits, optimal: paceGrades[c.courseCode] ?? null, maximisable: ceilingGrades[c.courseCode] ?? null })), marksData?.cgpa),
-    [enrolledCourses, paceGrades, ceilingGrades, marksData]
+    () =>
+      predictGpa(
+        enrolledCourses
+          // Excluded, not hidden: an ignored subject is inert for the
+          // aggregation but keeps its row and its own prediction.
+          .filter((c) => !ignoredCodes.has(c.courseCode))
+          .map((c) => ({ credits: c.credits, optimal: paceGrades[c.courseCode] ?? null, maximisable: ceilingGrades[c.courseCode] ?? null })),
+        marksData?.cgpa
+      ),
+    [enrolledCourses, paceGrades, ceilingGrades, marksData, ignoredCodes]
   );
 
   const openCourse = (code: string) => {
@@ -197,6 +228,25 @@ export default function MarksPredictorTab({
     setCustomCourses([]);
     setRefreshTrigger((r) => r + 1);
     setIsResetConfirmOpen(false);
+  };
+
+  // Excluding a subject from the pair is reversible and cheap, so it needs no
+  // confirmation — flip, revision bump, the cards recompute.
+  const handleToggleIgnored = (courseCode: string, ignored: boolean) => {
+    setCourseIgnored(courseCode, ignored);
+    setRefreshTrigger((r) => r + 1);
+  };
+
+  // Removing a custom subject drops the subject itself and the whole state
+  // saved against its code (its keystones live in the state store). The list
+  // pre-filters so the row disappears in the same commit the sheet closes.
+  const handleDeleteCustom = () => {
+    if (!deleteCourseCode) return;
+    deleteCustomCourse(deleteCourseCode);
+    const code = deleteCourseCode;
+    setCustomCourses((list) => list.filter((c) => c.courseCode !== code));
+    setDeleteCourseCode(null);
+    setRefreshTrigger((r) => r + 1);
   };
 
   const title =
@@ -232,15 +282,30 @@ export default function MarksPredictorTab({
             <ToneBadge tone="indigo">What-if</ToneBadge>
           </div>
         ) : (
-          // The list's square control on the back button's row: the overall
-          // reset. It wipes what every course saved into its storage key, so
-          // it asks before doing anything.
-          <IconButton
-            onClick={() => setIsResetConfirmOpen(true)}
-            title="Reset every course's predictor stats"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </IconButton>
+          // The list's square controls on the back button's row. Last is the
+          // overall reset — it stays resident in the corner it always sat in,
+          // reachable with the edit mode off as much as on, and asks before
+          // doing anything. Before it, the edit toggle: on, the check icon
+          // shows and the subject rows grow their hide/delete controls; off,
+          // the pencil icon returns and the rows run full width again.
+          <>
+            <IconButton
+              onClick={() => setIsEditMode((on) => !on)}
+              title={
+                isEditMode
+                  ? "Done editing — hide the subject controls"
+                  : "Edit subjects — show exclude and delete controls"
+              }
+            >
+              {isEditMode ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+            </IconButton>
+            <IconButton
+              onClick={() => setIsResetConfirmOpen(true)}
+              title="Reset every course's predictor stats"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </IconButton>
+          </>
         )
       }
     >
@@ -248,10 +313,14 @@ export default function MarksPredictorTab({
         {viewMode === "list" ? (
           <>
             <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              {/* Optimal value leads; the maximisable reading — semester SGPA if
-                  every remaining assessment were maxed — quotes underneath. */}
+              {/* SGPA leads the pair; CGPA's badge already reads "Projected"
+                  (or "VTOP" while the anchor stands untouched), so the subject
+                  word stays physically first in both labels — "SGPA
+                  Projected" / "CGPA Projected". Optimal still leads inside each
+                  tile; the maximisable reading — semester SGPA if everything
+                  were maxed — quotes beneath. */}
               <StatTile
-                label="Predicted SGPA"
+                label="SGPA Projected"
                 value={gpa.optimalCredits > 0 ? gpa.optimalSgpa.toFixed(2) : "—"}
                 badge={`${gpa.optimalCredits} cr`}
                 tone="indigo"
@@ -262,7 +331,7 @@ export default function MarksPredictorTab({
                 }
               />
               <StatTile
-                label="Predicted CGPA"
+                label="CGPA Projected"
                 value={gpa.optimalCgpa == null ? "—" : gpa.optimalCgpa.toFixed(2)}
                 badge={gpa.optimalCgpa == null ? "—" : gpa.optimalCgpaIsAnchor ? "VTOP" : "Projected"}
                 tone="cyan"
@@ -304,35 +373,79 @@ export default function MarksPredictorTab({
                   {sortedCourses.map((course) => {
                     const prediction = predictions.get(course.courseCode)!;
                     const deficit = prediction.pointsLostScaled;
+                    const isIgnored = ignoredCodes.has(course.courseCode);
                     return (
-                      <button
-                        key={course.courseCode}
-                        type="button"
-                        onClick={() => openCourse(course.courseCode)}
-                        className={`${LIST_ROW} cursor-pointer group`}
-                      >
-                        <ListRowText
-                          title={course.courseTitle}
-                          subtitle={`${course.courseCode} · ${typeLabel(course)} · ${course.credits} credits`}
-                        />
-                        <span className="flex items-center gap-3 shrink-0">
-                          <span className="w-20 text-right">
-                            <span className="block text-sm font-black font-outfit text-zinc-900 dark:text-white">
-                              {deficit > 0 ? `-${deficit.toFixed(1)}` : "0.0"}
+                      <div key={course.courseCode} className="flex items-stretch gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openCourse(course.courseCode)}
+                          className={`${LIST_ROW} cursor-pointer group flex-1 min-w-0 ${
+                            isIgnored ? "opacity-55" : ""
+                          }`}
+                        >
+                          <ListRowText
+                            title={course.courseTitle}
+                            subtitle={`${course.courseCode} · ${typeLabel(course)} · ${course.credits} credits`}
+                          />
+                          <span className="flex items-center gap-3 shrink-0">
+                            <span className="w-20 text-right">
+                              <span className="block text-sm font-black font-outfit text-zinc-900 dark:text-white">
+                                {deficit > 0 ? `-${deficit.toFixed(1)}` : "0.0"}
+                              </span>
+                              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                pts lost
+                              </span>
                             </span>
-                            <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                              pts lost
-                            </span>
+                            {isIgnored ? (
+                              // The pair no longer counts this course, so the
+                              // letter yields to the exclusion badge; the row
+                              // keeps its prediction until it is not ignored.
+                              <ToneBadge tone="zinc" size="lg">
+                                Ignored
+                              </ToneBadge>
+                            ) : (
+                              <ToneBadge
+                                tone={toneForGrade(prediction.optimalGrade?.letter ?? "")}
+                                size="lg"
+                              >
+                                {prediction.optimalGrade?.letter ?? "—"}
+                              </ToneBadge>
+                            )}
+                            <ChevronRight className="w-4 h-4 text-zinc-400" />
                           </span>
-                          <ToneBadge
-                            tone={toneForGrade(prediction.optimalGrade?.letter ?? "")}
-                            size="lg"
-                          >
-                            {prediction.optimalGrade?.letter ?? "—"}
-                          </ToneBadge>
-                          <ChevronRight className="w-4 h-4 text-zinc-400" />
-                        </span>
-                      </button>
+                        </button>
+                        {/* The row's own control sits outside the row button —
+                            one button nested in another is invalid HTML. One
+                            square control per subject: delete for a custom
+                            subject (which is wholly ours), exclude for a real
+                            one (which is VTOP's and can only be ignored).
+                            Both only surface while the corner edit toggle is
+                            on; a row closed out of edit mode keeps its dimmed
+                            text and Ignored badge, so an exclusion is legible
+                            without the controls that made it. */}
+                        {isEditMode &&
+                          (course.isCustom ? (
+                            <IconButton
+                              className="self-center"
+                              onClick={() => setDeleteCourseCode(course.courseCode)}
+                              title={`Remove ${course.courseTitle}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </IconButton>
+                          ) : (
+                            <IconButton
+                              className="self-center"
+                              onClick={() => handleToggleIgnored(course.courseCode, !isIgnored)}
+                              title={
+                                isIgnored
+                                  ? "Include this subject in SGPA and CGPA again"
+                                  : "Exclude this subject from SGPA and CGPA"
+                              }
+                            >
+                              {isIgnored ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            </IconButton>
+                          ))}
+                      </div>
                     );
                   })}
                 </ListShell>
@@ -384,9 +497,27 @@ export default function MarksPredictorTab({
 
       {/* Overall reset — asks before it wipes what every course saved. */}
       {isResetConfirmOpen ? (
-        <ResetAllConfirmSheet
+        <ConfirmSheet
+          overlayId="predictor-reset-all"
+          title="Reset every course's stats?"
+          body="All saved changes drop — what-if marks, custom regimens, goals and any custom subjects. Every course row returns to the marks VTOP published, and the SGPA pair recomputes from those. This cannot be undone."
+          confirmLabel="Reset to zero"
+          confirmIcon={<RotateCcw className="w-3.5 h-3.5" />}
           onClose={() => setIsResetConfirmOpen(false)}
           onConfirm={handleResetAll}
+        />
+      ) : null}
+
+      {/* Removing a custom subject — the deletion is ours to ask about. */}
+      {deleteCourseCode ? (
+        <ConfirmSheet
+          overlayId="predictor-delete-course"
+          title={`Remove ${customCourses.find((c) => c.courseCode === deleteCourseCode)?.courseTitle ?? deleteCourseCode}?`}
+          body="The subject is removed from the list together with everything saved against it — its regimen, what-if marks and goal. Adding it back starts fresh."
+          confirmLabel="Remove subject"
+          confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+          onClose={() => setDeleteCourseCode(null)}
+          onConfirm={handleDeleteCustom}
         />
       ) : null}
     </PageShell>
@@ -394,37 +525,50 @@ export default function MarksPredictorTab({
 }
 
 /**
- * The overall reset's confirmation, as a bottom sheet — native `confirm()` is
- * blocked in some in-app browsers, and this page already speaks in sheets.
- * Red because what it discards is work the user shaped: earlier sims, custom
- * regimens, goals and custom subjects.
+ * One destructive-ask sheet, sized to the question. A bottom sheet rather than
+ * a native confirm() — that is blocked in some in-app browsers, and this page
+ * already speaks in sheets. Red, because what it discards is work the user
+ * shaped.
  */
-function ResetAllConfirmSheet({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) {
+function ConfirmSheet({
+  overlayId,
+  title,
+  body,
+  confirmLabel,
+  confirmIcon,
+  onClose,
+  onConfirm,
+}: {
+  overlayId: string;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  confirmIcon: ReactNode;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
   return (
-    <BottomSheet onClose={onClose} overlayId="predictor-reset-all" maxWidth="max-w-md">
+    <BottomSheet onClose={onClose} overlayId={overlayId} maxWidth="max-w-md">
       <div className="space-y-3.5 pb-2">
         <div className="space-y-1.5">
           <h3 className="text-base font-black text-red-600 dark:text-red-400 font-outfit tracking-tight">
-            Reset every course&apos;s stats?
+            {title}
           </h3>
           <p className="text-[11px] font-medium leading-relaxed text-text-secondary dark:text-text-muted">
-            All saved changes drop — what-if marks, custom regimens, goals and any
-            custom subjects. Every course row returns to the marks VTOP
-            published, and the SGPA pair recomputes from those. This cannot be
-            undone.
+            {body}
           </p>
         </div>
         <div className="flex gap-2.5">
-          <GhostButton onClick={onClose} title="Keep the saved changes" className="flex-1 justify-center">
-            Keep changes
+          <GhostButton onClick={onClose} title="Keep things as they are" className="flex-1 justify-center">
+            Cancel
           </GhostButton>
           <button
             type="button"
             onClick={onConfirm}
             className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-xs cursor-pointer active:scale-95"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset to zero
+            {confirmIcon}
+            {confirmLabel}
           </button>
         </div>
       </div>

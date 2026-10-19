@@ -103,6 +103,8 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
                 <img
                   src={club.logo_url}
                   alt={`${club.club_name} logo`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-14 h-14 rounded-2xl object-cover shrink-0 border border-zinc-200/70 dark:border-zinc-800/80"
                 />
               ) : (

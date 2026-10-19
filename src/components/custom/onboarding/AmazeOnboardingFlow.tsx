@@ -353,6 +353,7 @@ export default function AmazeOnboardingFlow({
                 <img
                   src={getAssetPath("/logo.png")}
                   alt="AmazeCC"
+                  decoding="async"
                   className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain shadow-lg border border-zinc-800 p-0.5 bg-zinc-900"
                 />
                 <h1 className="text-2xl sm:text-3xl font-black text-white font-outfit tracking-tight">
@@ -478,6 +479,7 @@ export default function AmazeOnboardingFlow({
                 <img
                   src={getAssetPath("/logo.png")}
                   alt="AmazeCC"
+                  decoding="async"
                   className="w-11 h-11 rounded-2xl object-contain shadow-md border border-zinc-800 p-0.5 bg-zinc-900"
                 />
                 <h2 className="text-xl sm:text-2xl font-black text-white font-outfit tracking-tight">
@@ -675,6 +677,7 @@ export default function AmazeOnboardingFlow({
                       <img
                         src={getAssetPath("/logo.png")}
                         alt="AmazeCC"
+                        decoding="async"
                         className="w-7 h-7 rounded-xl object-contain border border-zinc-800 p-0.5 bg-zinc-900 shrink-0"
                       />
                       <div className="min-w-0">

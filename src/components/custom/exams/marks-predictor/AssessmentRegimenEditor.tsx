@@ -220,9 +220,9 @@ export default function AssessmentRegimenEditor({
           <span className="font-bold text-zinc-700 dark:text-zinc-300">Credit Weighting</span>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-zinc-500 font-medium text-[11px]">Theory:</span>
-            <input type="number" min="1" max="5" value={currTheoryCreds} onChange={(e) => setCurrTheoryCreds(Math.max(1, safeNumber(e.target.value, 3)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center font-bold text-zinc-900 dark:text-white" />
+            <input type="number" min="1" max="5" value={currTheoryCreds} onChange={(e) => setCurrTheoryCreds(Math.max(1, safeNumber(e.target.value, 3)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center text-base font-bold text-zinc-900 dark:text-white" />
             <span className="text-zinc-500 font-medium text-[11px]">Lab:</span>
-            <input type="number" min="1" max="4" value={currLabCreds} onChange={(e) => setCurrLabCreds(Math.max(1, safeNumber(e.target.value, 1)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center font-bold text-zinc-900 dark:text-white" />
+            <input type="number" min="1" max="4" value={currLabCreds} onChange={(e) => setCurrLabCreds(Math.max(1, safeNumber(e.target.value, 1)))} className="w-14 px-2 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-center text-base font-bold text-zinc-900 dark:text-white" />
           </div>
         </div>
       )}

@@ -330,13 +330,14 @@ export default function LoginForm({
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f060_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f060_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293708_1px,transparent_1px),linear-gradient(to_bottom,#1f293708_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
 
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${isScrolled ? "bg-white/90 border-slate-200/80 dark:bg-[#03060Fd0] dark:border-neutral-900 backdrop-blur-md" : "bg-transparent border-transparent"}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${isScrolled ? "bg-white/90 border-slate-200/80 dark:bg-[#03060Fd0] dark:border-neutral-900 backdrop-blur-md" : "bg-transparent border-transparent"}`} style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5 cursor-pointer select-none" onClick={() => setShowLoginCard(false)}>
               <img 
                 src="/logo.png" 
                 alt="AmazeCC Logo" 
+                decoding="async"
                 className="h-7 w-7 rounded-lg object-contain shadow-sm" 
                 onError={(e: any) => {
                   e.target.src = "/images/icons/logo.png";
@@ -407,7 +408,7 @@ export default function LoginForm({
 
               {/* Oversized Parallax Background Image (No Hard Edges) */}
               <m.div 
-                style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.png')" }}
+                style={{ y: backgroundY, scale: backgroundScale, x: orbX1, backgroundImage: "url('/campus-twilight.webp')" }}
                 className="absolute -inset-16 scale-110 bg-cover bg-center bg-no-repeat opacity-[0.55] dark:opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_50%,transparent_100%)]"
               />
               
@@ -645,9 +646,9 @@ export default function LoginForm({
                       <span className="text-[9px] font-black uppercase tracking-wider text-indigo-605 dark:text-indigo-400 block">Attendance Preview</span>
                       <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Predictor Sandbox</h3>
                     </div>
-                    <button 
-                      onClick={handleSimulateReset} 
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-slate-900 dark:text-gray-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer" 
+                    <button
+                      onClick={handleSimulateReset}
+                      className="relative hit-expand p-1.5 rounded-lg text-gray-400 hover:text-slate-900 dark:text-gray-500 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                       title="Reset Demo"
                     >
                       <RotateCcw size={12} />
@@ -1117,7 +1118,7 @@ export default function LoginForm({
                         />
                         <button
                           type="button"
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                          className="hit-expand absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}

@@ -53,9 +53,18 @@ describe("surface tokens", () => {
         // on a near-white surface the muted step is not readable as an edge, and a
         // card without a visible edge has no shape. See the border-step override
         // in `globals.css` for why both steps were darkened.
-        for (const part of ["bg-surface", "border-border-strong", "backdrop-blur-xl", "rounded-[24px]"]) {
+        //
+        // The interior rides the `.card-surface` class (globals.css), which the
+        // "Card look" setting flips between the grade-insights gray and the
+        // classic zinc glass — the token string itself must carry no bg
+        // utilities so the preference stays single-sourced.
+        for (const part of ["card-surface", "border-border-strong", "rounded-[24px]"]) {
             expect(TILE_INTERACTIVE_ROW).toContain(part);
             expect(TILE).toContain(part);
+        }
+        for (const part of ["bg-surface", "bg-surface/80", "backdrop-blur-xl"]) {
+            expect(TILE_INTERACTIVE_ROW).not.toContain(part);
+            expect(TILE).not.toContain(part);
         }
     });
 });

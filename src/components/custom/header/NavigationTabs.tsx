@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 import SelectField from "../shared/primitives/SelectField";
+import OptionPicker from "../shared/primitives/OptionPicker";
 
 import { getAssetPath } from "@/lib/utils";
 import { createTapTracker, hasSectionHome, sectionHomeFor } from "@/lib/sectionHome";
@@ -1158,23 +1159,24 @@ export default function NavigationTabs({
                 <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-[11px] space-y-1.5 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-sidebar-foreground/75 tracking-wide text-[10px] uppercase">Current Semester</div>
-                    <div className="relative flex items-center">
-                          <SelectField
-                            value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
-                            onChange={(val) => {
-                              handleReloadRequest(val);
-                            }}
-                            options={config.semesterIDs.map((semId: string) => ({
-                              value: semId,
-                              label: formatSemesterName(semId),
-                            }))}
-                            searchable={false}
+                          <div
                             role="group"
                             aria-label="Current semester"
-                            size="auto"
-                            className="ml-auto w-auto shrink-0 [&>button:first-child]:border-none [&>button:first-child]:bg-transparent [&>button:first-child]:pr-5 [&>button:first-child]:text-info [&>button:first-child]:hover:underline"
-                          />
-                    </div>
+                            className="flex max-w-[9rem] shrink-0"
+                          >
+                            <OptionPicker
+                              value={settings.currSemesterID || config.semesterIDs[config.semesterIDs.length - 2]}
+                              onChange={(val) => {
+                                handleReloadRequest(val);
+                              }}
+                              options={config.semesterIDs.map((semId: string) => ({
+                                value: semId,
+                                label: formatSemesterName(semId),
+                              }))}
+                              searchable={false}
+                              className="w-full [&>button:first-child]:h-auto [&>button:first-child]:p-0 [&>button:first-child]:rounded-none [&>button:first-child]:border-none [&>button:first-child]:shadow-none [&>button:first-child]:justify-end [&>button:first-child]:text-info [&>button:first-child]:hover:underline [&>button:first-child_span]:text-[10px] [&>button:first-child_span]:font-semibold [&>button:first-child_span]:text-info [&>button:first-child_svg]:h-3 [&>button:first-child_svg]:w-3"
+                            />
+                          </div>
                   </div>
                   <div className="space-y-1">
                     {shouldDisplayGpa && (

@@ -290,7 +290,7 @@ export function AutoGeneratorModal({
                   >
                     <span className="text-2xl font-black text-foreground">{formatHours(generatorPreviewTimetable.metrics?.gaps ?? 0)}h</span>
                     <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider mt-1">Total Gaps</span>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] bg-slate-900 text-white text-[10px] p-3 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-4 gap-y-1.5">
                       {Object.entries(generatorPreviewTimetable.metrics?.gapsPerDay || {}).map(([day, gap]) => (
                         <div key={day} className="flex justify-between gap-3">
                           <span className="font-bold text-slate-400 uppercase">{day}</span>
@@ -669,7 +669,7 @@ export function AutoGeneratorModal({
                           <div className="bg-muted/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
                             <span className="text-2xl font-black text-foreground">{formatHours(tt.metrics?.gaps ?? 0)}h</span>
                             <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
                               {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
                                 <div key={day} className="flex justify-between gap-3">
                                   <span className="font-bold text-slate-400 uppercase">{day}</span>
@@ -749,7 +749,7 @@ export function AutoGeneratorModal({
 
                 {/* Floating Compare Bar */}
                 {selectedTimetablesToCompare.length > 0 && (
-                  <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[250] bg-background border-2 border-purple-500 rounded-full px-6 py-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                  <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+2.5rem)] left-1/2 -translate-x-1/2 z-[250] bg-background border-2 border-purple-500 rounded-full px-6 py-3 shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
                     <span className="text-sm font-semibold text-foreground">
                       {selectedTimetablesToCompare.length} selected to compare (Max 3)
                     </span>
@@ -761,7 +761,7 @@ export function AutoGeneratorModal({
                     </button>
                     <button
                       onClick={() => setSelectedTimetablesToCompare([])}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors ml-2"
+                      className="relative hit-expand w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 text-muted-foreground transition-colors ml-2"
                     >
                       <X className="w-4 h-4" />
                     </button>
