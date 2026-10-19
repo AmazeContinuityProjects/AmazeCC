@@ -48,6 +48,88 @@ export interface CourseConfig {
   labCredits: number;
 }
 
+/**
+ * The weightage facts a regimen may not touch.
+ *
+ * - A **published** assessment — VTOP recorded real marks for it (not a
+ *   what-if) — has a frozen weightage. The number is a fact of the cohort;
+ *   letting what-ifs rewrite it would let a question paper be re-weighted
+ *   after it was written.
+ * - The **FAT** holds 40% of the theory total and the lab's own FAT holds 40%
+ *   of the lab total. Until those final weightages publish, the slot is
+ *   reserved at exactly that share, so "what do I still need on the FAT" is
+ *   always answered against the real final-exam mass — and the slot cannot be
+ *   spent on extra quizzes.
+ */
+export const COMPONENT_TOTAL_WEIGHT = 100;
+export const FAT_RESERVED_WEIGHT = 40;
+
+/** True when VTOP has recorded real marks for this assessment (not a what-if). */
+export const isAssessmentPublished = (asm: {
+  scoredMark: number | null;
+  isSimulated?: boolean;
+}): boolean =>
+  !asm.isSimulated && asm.scoredMark !== null && asm.scoredMark !== undefined;
+
+/** The final exam row itself, theory ("FAT") or lab ("Lab FAT") by title. */
+export const isFinalExamAssessment = (asm: { title: string }): boolean =>
+  /fat|final assessment/i.test(String(asm.title).trim());
+
+export type WeightFreeze =
+  | { frozen: false }
+  | { frozen: true; reason: "published" | "fat-reserved" | "fat-published" };
+
+/** Whether a row's weightage is locked, and why — for the rows and the editors
+ * to render the lock with the same rule. */
+export const weightFreezeFor = (asm: {
+  title: string;
+  scoredMark: number | null;
+  isSimulated?: boolean;
+}): WeightFreeze => {
+  const published = isAssessmentPublished(asm);
+  const isFinal = isFinalExamAssessment(asm);
+  if (published && isFinal) return { frozen: true, reason: "fat-published" };
+  if (published) return { frozen: true, reason: "published" };
+  if (isFinal) return { frozen: true, reason: "fat-reserved" };
+  return { frozen: false };
+};
+
+/** The weight a component still has open: the total minus everything already
+ * allocated in it (published facts, the reserved final exam, the user's own
+ * addenda). What a new assessment may claim. */
+export const remainingWeightFor = (
+  list: readonly { weightagePercent?: number | string | null }[]
+): number =>
+  Math.max(
+    0,
+    Math.round(
+      (COMPONENT_TOTAL_WEIGHT -
+        list.reduce((sum, a) => sum + safeNumber(a.weightagePercent, 0), 0)) *
+        10
+    ) / 10
+  );
+
+/**
+ * The final exam's share is law: the theory FAT holds 40% of the theory total
+ * and the lab FAT holds 40% of the lab total — no more, no less. Until VTOP
+ * publishes those weightages, a regimen that says otherwise (a stale payload
+ * row, a mangled stored state) is corrected here, so "what do I still need on
+ * the FAT" is always answered against the real 40% final-exam mass. Once the
+ * marks publish, the cohort's own number is the frozen fact (VIT publishes
+ * the FAT at 40 anyway).
+ */
+export const pinReservedFinalExamWeight = <
+  T extends { title: string; scoredMark: number | null; isSimulated?: boolean; weightagePercent: number },
+>(
+  list: readonly T[]
+): T[] =>
+  list.map((item) => {
+    if (!isFinalExamAssessment(item) || isAssessmentPublished(item)) return item;
+    return safeNumber(item.weightagePercent, 0) === FAT_RESERVED_WEIGHT
+      ? item
+      : { ...item, weightagePercent: FAT_RESERVED_WEIGHT };
+  });
+
 const stripComponentMarker = (code: unknown): string =>
   String(code ?? "")
     .replace(/\s*\([LPT]\)$/i, "")
@@ -93,7 +175,12 @@ export function buildCourseConfig(
     lab = createPredictorAssessmentsFromVTOP(course.labCourse, "lab");
   }
 
-  return { theory: theory || [], lab: lab || [], theoryCredits, labCredits };
+  return {
+    theory: pinReservedFinalExamWeight(theory || []),
+    lab: pinReservedFinalExamWeight(lab || []),
+    theoryCredits,
+    labCredits,
+  };
 }
 
 /**
@@ -287,6 +374,11 @@ export function useRemappedCourseStats(
  * One course's predictor state: its regimen, its prediction, and the cohort
  * statistics that match it.
  *
+ * Everything the user shapes — the what-if marks, the regimen, and the target
+ * grade — persists in the course's storage key the moment it changes
+ * (`saveCoursePredictorState`), so a course page reopens exactly as it was
+ * left, across navigation and across sessions.
+ *
  * The global subject list and the course subpage's "Grade Predictor" entry both
  * land on `CoursePredictorPage`, which mounts this keyed by course code — so a
  * course switch is a fresh mount, and unsaved edits to another course's regimen
@@ -306,6 +398,22 @@ export function useCoursePredictionScope(
   const [config, setConfig] = useState<CourseConfig>(() =>
     buildCourseConfig(course, getCoursePredictorState(courseCode))
   );
+
+  // The target grade is a persisted goal, not view state: it survives
+  // navigation and restarts in the same per-course storage key the regimen and
+  // simulations use (`StoredCourseState.targetScore`, never read before this
+  // hook exposed it).
+  const [targetScore, setTargetScore] = useState<number | null>(() => {
+    const stored = getCoursePredictorState(courseCode);
+    const v = stored?.targetScore;
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
+  });
+
+  const persistTargetScore = (score: number) => {
+    if (!Number.isFinite(score)) return;
+    setTargetScore(score);
+    saveCoursePredictorState(courseCode, { targetScore: score });
+  };
 
   const updateConfig = (next: CourseConfig) => {
     setConfig(next);
@@ -366,5 +474,14 @@ export function useCoursePredictionScope(
     return marksStats?.[classNbr]?.assessments ?? null;
   }, [course, marksStats]);
 
-  return { config, updateConfig, reset, prediction, assessmentStats, classStats };
+  return {
+    config,
+    updateConfig,
+    reset,
+    prediction,
+    assessmentStats,
+    classStats,
+    targetScore,
+    persistTargetScore,
+  };
 }

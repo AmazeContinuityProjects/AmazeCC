@@ -24,9 +24,17 @@ import { FIELD_INPUT, TILE_CARD, TONE_ICON_TILE } from "@/lib/uiTokens";
 
 interface TargetGradeSolverProps {
   prediction: CoursePredictionResult;
+  /** The goal saved for this course (a percentage), if any. */
+  savedTargetScore?: number | null;
+  /** Writes the goal to the course's storage key on every change. */
+  onPersistTargetScore?: (score: number) => void;
 }
 
-export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps) {
+export default function TargetGradeSolver({
+  prediction,
+  savedTargetScore,
+  onPersistTargetScore,
+}: TargetGradeSolverProps) {
   // Band floors read off the prediction's own ladder: the presets name the
   // same letters the hero shows, so on a curved course targeting "A" means the
   // curve's A threshold, not the fixed 80. Absolute ladders reproduce the
@@ -38,10 +46,10 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
   }));
 
   const [selectedTargetScore, setSelectedTargetScore] = useState<number>(
-    TARGET_PRESETS[0]?.score ?? 90
+    savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90
   );
   const [customTargetInput, setCustomTargetInput] = useState<string>(
-    String(TARGET_PRESETS[0]?.score ?? 90)
+    String(savedTargetScore ?? TARGET_PRESETS[0]?.score ?? 90)
   );
 
   const {
@@ -73,12 +81,18 @@ export default function TargetGradeSolver({ prediction }: TargetGradeSolverProps
   const handleSelectPreset = (score: number) => {
     setSelectedTargetScore(score);
     setCustomTargetInput(score.toString());
+    // The target is the user's goal for this course — it persists in the
+    // course's storage key, not just this page's lifetime.
+    onPersistTargetScore?.(score);
   };
 
   const handleCustomChange = (val: string) => {
     setCustomTargetInput(val);
     const num = parseFloat(val);
-    if (Number.isFinite(num) && num > 0 && num <= 100) setSelectedTargetScore(num);
+    if (Number.isFinite(num) && num > 0 && num <= 100) {
+      setSelectedTargetScore(num);
+      onPersistTargetScore?.(num);
+    }
   };
 
   const getFeasibility = (feasibility: TargetFATSolverResult["feasibility"]) => {

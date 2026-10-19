@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ChevronRight, FlaskConical, Plus } from "lucide-react";
 import AddCustomCourseModal from "./marks-predictor/AddCustomCourseModal";
@@ -79,6 +79,8 @@ export default function MarksPredictorTab({
 }: MarksPredictorTabProps) {
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [activeCourseCode, setActiveCourseCode] = useState<string>("");
+  /** DOM slot in the shell's back-button row; the page portals its controls here. */
+  const courseActionsRef = useRef<HTMLDivElement>(null);
   const [customCourses, setCustomCourses] = useState<CustomCourseMock[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isAddCustomOpen, setIsAddCustomOpen] = useState(false);
@@ -198,7 +200,14 @@ export default function MarksPredictorTab({
         setActiveSubTab && setActiveSubTab("overview");
       }}
       actions={
-        viewMode === "course" ? <ToneBadge tone="indigo">What-if</ToneBadge> : undefined
+        viewMode === "course" ? (
+          // The slot the per-course page portals its regimen/reset controls
+          // into, so they share the back button's row like the curriculum
+          // page's toolbar; the badge keeps the mode visible.
+          <div ref={courseActionsRef} className="flex items-center gap-2 pt-0.5 shrink-0">
+            <ToneBadge tone="indigo">What-if</ToneBadge>
+          </div>
+        ) : undefined
       }
     >
       <div className="w-full max-w-3xl mx-auto space-y-3.5 pb-12 animate-in fade-in duration-200 text-left select-none overflow-hidden">
@@ -303,6 +312,7 @@ export default function MarksPredictorTab({
                 key={activeCourse.courseCode}
                 course={activeCourse}
                 marksStats={cohortStats}
+                actionsSlotRef={courseActionsRef}
               />
             ) : (
               <div

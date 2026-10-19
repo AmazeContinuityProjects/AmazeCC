@@ -1,12 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { computeComponentStats, estimateComponentGrades } from "../lib/marksPredictor";
 import { assessmentKeyFor } from "../lib/marksSync";
 import {
   buildCourseConfig,
   buildEnrolledCourses,
+  pinReservedFinalExamWeight,
+  remainingWeightFor,
   useCoursePredictionScope,
   useRemappedCourseStats,
+  weightFreezeFor,
 } from "../components/custom/exams/marks-predictor/useCoursePredictionScope";
 
 /**
@@ -389,5 +392,174 @@ describe("useRemappedCourseStats — the raw atom into the predictor's shape", (
     expect(result.current.classStats).toEqual({ count: 69, mean: 55, sd: 12 });
     expect(result.current.prediction?.optimalGrade?.letter).toBe("A");
     expect(result.current.prediction?.isCurved).toBe(true);
+  });
+});
+
+describe("weightage freeze — the facts a regimen may not touch", () => {
+  it("freezes published rows and leaves pending user-made rows editable", () => {
+    // Real VTOP marks → a fact; a what-if or a pending row stays a knob.
+    expect(weightFreezeFor({ title: "CAT - I", scoredMark: 25, isSimulated: false })).toEqual({
+      frozen: true,
+      reason: "published",
+    });
+    expect(weightFreezeFor({ title: "Quiz 2", scoredMark: 30, isSimulated: true })).toEqual({
+      frozen: false,
+    });
+    expect(weightFreezeFor({ title: "Assignment", scoredMark: null })).toEqual({
+      frozen: false,
+    });
+  });
+
+  it("reserves the final exam at 40% until it publishes", () => {
+    // Unpublished FAT: reserved at 40% of the component total — the slot must
+    // not be spendable on extra quizzes, and it cannot be deleted.
+    expect(weightFreezeFor({ title: "FAT", scoredMark: null })).toEqual({
+      frozen: true,
+      reason: "fat-reserved",
+    });
+    expect(weightFreezeFor({ title: "Lab FAT", scoredMark: null })).toEqual({
+      frozen: true,
+      reason: "fat-reserved",
+    });
+    // Once published it stays frozen — now as a cohort fact.
+    expect(weightFreezeFor({ title: "FAT", scoredMark: 72 })).toEqual({
+      frozen: true,
+      reason: "fat-published",
+    });
+  });
+
+  it("pins the final exam's weightage at exactly 40% of its component", () => {
+    // FAT is only worth 40% weightage per component: a stale payload value is
+    // corrected, and it only lifts once the marks publish as a cohort fact.
+    expect(
+      pinReservedFinalExamWeight([
+        { title: "FAT", scoredMark: null, weightagePercent: 30 },
+        { title: "Lab FAT", scoredMark: null, weightagePercent: 60 },
+        { title: "CAT - I", scoredMark: 25, weightagePercent: 15 },
+      ])
+    ).toEqual([
+      { title: "FAT", scoredMark: null, weightagePercent: 40 },
+      { title: "Lab FAT", scoredMark: null, weightagePercent: 40 },
+      { title: "CAT - I", scoredMark: 25, weightagePercent: 15 },
+    ]);
+    // A published final exam keeps its own recorded weightage.
+    expect(
+      pinReservedFinalExamWeight([{ title: "FAT", scoredMark: 72, weightagePercent: 45 }])
+    ).toEqual([{ title: "FAT", scoredMark: 72, weightagePercent: 45 }]);
+  });
+
+  it("builds every regimen — payload, stored, or preset — with FAT at 40%", () => {
+    const roster = buildEnrolledCourses({ courses: [theoryPayload()] } as any, undefined, []);
+    const config = buildCourseConfig(roster[0], {
+      theoryAssessments: [
+        {
+          id: "t1",
+          title: "CAT - I",
+          maxMark: 50,
+          weightagePercent: 15,
+          scoredMark: 25,
+          component: "theory",
+        },
+        {
+          id: "t2",
+          title: "FAT",
+          maxMark: 100,
+          weightagePercent: 25,
+          scoredMark: null,
+          component: "theory",
+        },
+      ],
+      labAssessments: [],
+      theoryCredits: 3,
+      labCredits: 0,
+    });
+    expect(config.theory.find((a) => a.title === "FAT")?.weightagePercent).toBe(40);
+    // The remaining pool pays for whatever the corrected FAT did not take.
+    expect(remainingWeightFor(config.theory)).toBe(45);
+  });
+
+  it("pays out only the weight a component still has open", () => {
+    // CAT-I 15 + CAT-II 15 (published) + FAT 40 (reserved) = 70 allocated.
+    expect(remainingWeightFor([{ weightagePercent: 15 }, { weightagePercent: 15 }, { weightagePercent: 40 }])).toBe(30);
+    // Fully allocated — nothing left for a new assessment to claim.
+    expect(
+      remainingWeightFor([
+        { weightagePercent: 15 },
+        { weightagePercent: 30 },
+        { weightagePercent: 40 },
+        { weightagePercent: 15 },
+      ])
+    ).toBe(0);
+  });
+});
+
+describe("per-course persistence — what the user shapes survives the session", () => {
+  /**
+   * jsdom's localStorage is inert in this environment (reads come back dead),
+   * so these stub a working one. The storage module reads the global lazily,
+   * which is exactly what `vi.stubGlobal` covers.
+   */
+  const makeLS = () => {
+    const map = new Map<string, string>();
+    return {
+      getItem: (key: string) => map.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        map.set(key, String(value));
+      },
+      removeItem: (key: string) => {
+        map.delete(key);
+      },
+      clear: () => map.clear(),
+      key: (i: number) => Array.from(map.keys())[i] ?? null,
+      get length() {
+        return map.size;
+      },
+    };
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", makeLS());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const STORAGE_KEY = "uni_cc_marks_predictor_state";
+
+  it("writes a saved target grade into the course's storage key", () => {
+    const course = buildEnrolledCourses({ courses: [theoryPayload()] } as any, undefined, [])[0];
+    const { result } = renderHook(() => useCoursePredictionScope(course, {}));
+    expect(result.current.targetScore).toBeNull();
+
+    act(() => {
+      result.current.persistTargetScore(80);
+    });
+
+    const raw = (globalThis as any).localStorage.getItem(STORAGE_KEY);
+    expect(JSON.parse(raw).BCSE202E.targetScore).toBe(80);
+    expect(result.current.targetScore).toBe(80);
+  });
+
+  it("reopens with the goal a previous session saved", () => {
+    (globalThis as any).localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ BCSE202E: { targetScore: 75 } })
+    );
+    const course = buildEnrolledCourses({ courses: [theoryPayload()] } as any, undefined, [])[0];
+    const { result } = renderHook(() => useCoursePredictionScope(course, {}));
+
+    expect(result.current.targetScore).toBe(75);
+  });
+
+  it("round-trips: set the goal, remount, the goal is still there", () => {
+    const course = buildEnrolledCourses({ courses: [theoryPayload()] } as any, undefined, [])[0];
+    const first = renderHook(() => useCoursePredictionScope(course, {}));
+    act(() => {
+      first.result.current.persistTargetScore(90);
+    });
+    first.unmount();
+
+    const second = renderHook(() => useCoursePredictionScope(course, {}));
+    expect(second.result.current.targetScore).toBe(90);
   });
 });

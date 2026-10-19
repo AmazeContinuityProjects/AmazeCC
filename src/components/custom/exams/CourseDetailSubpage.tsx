@@ -200,6 +200,8 @@ export default function CourseDetailSubpage({
   const [creds, setCreds] = useState<Creds | null>(null);
   const [marksStats] = useAtom(marksStatsAtom);
   const credsRef = useRef<Creds | null>(null);
+  /** DOM slot in the back-button row; the predictor page portals its controls here. */
+  const courseActionsRef = useRef<HTMLDivElement>(null);
   const [innerTab, setInnerTab] = useState(initialTab || "overview");
   const [coursePlan, setCoursePlan] = useState<any>(null);
   const [planLoading, setPlanLoading] = useState(false);
@@ -1486,8 +1488,13 @@ export default function CourseDetailSubpage({
     <div className="w-full max-w-4xl mx-auto space-y-6 pt-3 sm:pt-5 md:pb-8 animate-in fade-in duration-300">
       {/* ── HEADER (OD hours page arrangement) ── */}
       <div className="px-1">
-        <div className="mb-5 flex">
+        <div className="mb-5 flex items-start justify-between gap-3">
           <BackButton onClick={handleBack} className="self-start" />
+          {innerTab === "grade-predictor" && selectedGroup ? (
+            // Slot for the predictor page's square controls — the curriculum
+            // page's toolbar arrangement, on the same row as the back button.
+            <div ref={courseActionsRef} className="flex items-center gap-2 pt-0.5 shrink-0" />
+          ) : null}
         </div>
         <TitleBlock
           eyebrow={
@@ -2002,6 +2009,7 @@ export default function CourseDetailSubpage({
             labCourse: selectedGroup.lab,
           }}
           marksStats={allStats}
+          actionsSlotRef={courseActionsRef}
         />
       )}
 
