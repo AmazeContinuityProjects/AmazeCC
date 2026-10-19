@@ -61,22 +61,41 @@ export default function TargetGradeSolver({
     currentScoredScaled,
   } = prediction;
 
-  const theoryFAT = theoryStats?.assessments.find((a) => /FAT|Final Assessment/i.test(a.title));
-  const fatWeight = theoryFAT?.weightagePercent || 40;
-  const fatMax = theoryFAT?.maxMark || 100;
-  const otherLabWeight = labStats?.scoredWeight || 0;
+  // The final exam that actually decides this course. A theory-carrying course
+  // solves against the theory FAT; a lab-only course has no theory half, so its
+  // final is the Lab FAT and the solve runs in the lab's own weight space.
+  // Hardcoding the theory side made a lab subject ask "what do I need in a FAT
+  // that does not exist" while its Lab FAT just sat there deciding the grade.
+  const finalRow = theoryStats
+    ? theoryStats.assessments.find((a) => /FAT|Final Assessment/i.test(a.title))
+    : labStats?.assessments.find((a) => /FAT|Final Assessment/i.test(a.title));
+  const solvesLab = !theoryStats;
+  const fatExamName = finalRow?.title?.trim() || (solvesLab ? "Lab FAT" : "FAT");
+  const fatWeight = finalRow?.weightagePercent || 40;
+  const fatMax = finalRow?.maxMark || 100;
+  // The current score is the earned weight points of the half being solved —
+  // published marks plus every what-if the reader entered on this page, which
+  // is the point of the exercise: set what you expect on the CATs and the
+  // required final-exam mark moves right away.
+  const currentComponentWeighted =
+    theoryStats?.scoredWeight ?? labStats?.scoredWeight ?? currentScoredScaled;
+  const otherComponentWeighted = solvesLab ? 0 : labStats?.scoredWeight || 0;
 
   const solverResult: TargetFATSolverResult = solveTargetFAT({
     targetScore: selectedTargetScore,
-    currentScoredScaled: theoryStats?.scoredWeight || currentScoredScaled,
+    currentScoredScaled: currentComponentWeighted,
     fatWeightagePercent: fatWeight,
     fatMaxMark: fatMax,
     theoryCredits,
     labCredits,
-    isEmbedded,
-    component: "theory",
-    otherComponentWeighted: otherLabWeight,
+    isEmbedded: isEmbedded && !solvesLab,
+    component: solvesLab ? "lab" : "theory",
+    otherComponentWeighted,
   });
+
+  // The goal, named: at this ladder the chosen percentage lands in this band —
+  // the belt between "90" and "grade B" closed.
+  const targetGradeOnLadder = estimateGrade(selectedTargetScore, prediction.boundaries).letter;
 
   const handleSelectPreset = (score: number) => {
     setSelectedTargetScore(score);
@@ -123,7 +142,7 @@ export default function TargetGradeSolver({
         count={TARGET_PRESETS.length}
       />
       <p className="px-1 -mt-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
-        Calculate the exact marks needed in FAT.
+        Aim {targetGradeOnLadder} ({selectedTargetScore}%) on this ladder — calculated as the exact marks needed in {fatExamName}.
       </p>
 
       {/* Presets */}
@@ -165,7 +184,7 @@ export default function TargetGradeSolver({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-              Required in FAT
+              Required in {fatExamName}
             </p>
             <p className="mt-1 flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl font-black text-zinc-900 dark:text-white font-outfit tracking-tight">

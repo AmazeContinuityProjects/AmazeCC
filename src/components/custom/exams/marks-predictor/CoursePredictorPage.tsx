@@ -5,12 +5,15 @@ import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronRight,
+  Gauge,
   Lock,
   Plus,
   RotateCcw,
   Sliders,
   Zap,
 } from "lucide-react";
+import { TONE_TEXT } from "@/lib/uiTokens";
+import { toneForGrade } from "@/lib/gradeHistory";
 import {
   GhostButton,
   InsightCarousel,
@@ -34,6 +37,7 @@ import {
 } from "./useCoursePredictionScope";
 import AssessmentMarkSheet from "./AssessmentMarkSheet";
 import AddAssessmentSheet from "./AddAssessmentSheet";
+import GradeLadderChart, { type LadderBand } from "./GradeLadderChart";
 import AssessmentRegimenEditor from "./AssessmentRegimenEditor";
 import TargetGradeSolver from "./TargetGradeSolver";
 
@@ -148,6 +152,7 @@ export default function CoursePredictorPage({
     reset,
     prediction,
     assessmentStats,
+    classStats,
     targetScore,
     persistTargetScore,
   } = useCoursePredictionScope(course, marksStats);
@@ -283,6 +288,25 @@ export default function CoursePredictorPage({
   const scoredPercent = Math.min(100, Math.max(0, currentScoredScaled));
   const pendingPercent = Math.min(100 - scoredPercent, Math.max(0, potentialPendingScaled));
   const lostPercent = Math.min(100 - (scoredPercent + pendingPercent), Math.max(0, pointsLostScaled));
+
+  // The engine's ladder, expanded into the chart's band rows. The predicted
+  // letter above is read by ceil-ing the standing onto these exact limits (the
+  // same read gradeAt makes), so this chart alone justifies the letter.
+  const ladderBands: LadderBand[] = (() => {
+    const limits = prediction.boundaries.map((b) => b.limit);
+    const [sB = 90, aB = 80, bB = 70, cB = 60, dB = 50, eB = 40] = limits;
+    return [
+      { grade: "S", limit: sB, width: 100 - sB, range: `≥ ${sB}` },
+      { grade: "A", limit: aB, width: sB - aB, range: `≥ ${aB}` },
+      { grade: "B", limit: bB, width: aB - bB, range: `≥ ${bB}` },
+      { grade: "C", limit: cB, width: bB - cB, range: `≥ ${cB}` },
+      { grade: "D", limit: dB, width: cB - dB, range: `≥ ${dB}` },
+      { grade: "E", limit: eB, width: dB - eB, range: `≥ ${eB}` },
+      { grade: "F", limit: 0, width: eB, range: `< ${eB}` },
+    ];
+  })();
+  const standingGrade =
+    ladderBands.find((b) => Math.ceil(currentScoredScaled) >= b.limit)?.grade ?? "F";
 
   // The mark sheet must track the LIVE row, not the snapshot captured when the
   // user tapped it: every drag rewrites the config, the prediction rebuilds its
@@ -531,6 +555,43 @@ export default function CoursePredictorPage({
             savedTargetScore={targetScore}
             onPersistTargetScore={persistTargetScore}
           />
+        </div>
+      </div>
+
+      {/* Grade insights — the engine's own ladder for the whole course, not a
+          half's: the predicted letter above came from these very bands, so the
+          page shows where the reader stands and why the letter is what it is.
+          The same shared chart the course marks subpage renders. */}
+      <div className="space-y-3">
+        <SectionHeader
+          icon={Gauge}
+          title="Grade insights"
+          right={
+            prediction.isCurved ? (
+              classStats ? (
+                <ToneBadge tone="emerald">
+                  {classStats.count} peers · μ {classStats.mean.toFixed(1)} · σ {classStats.sd.toFixed(1)}
+                </ToneBadge>
+              ) : (
+                <ToneBadge tone="zinc">Awaiting class data</ToneBadge>
+              )
+            ) : (
+              <ToneBadge tone="blue">Absolute</ToneBadge>
+            )
+          }
+        />
+        <div className="rounded-3xl border border-border-muted bg-surface dark:bg-surface-secondary px-4 py-3.5 space-y-2.5">
+          <GradeLadderChart bands={ladderBands} standingGrade={standingGrade} currentPct={currentScoredScaled} />
+          <p className="text-[11px] leading-relaxed text-text-secondary dark:text-text-muted font-medium">
+            The predicted{" "}
+            <strong className={TONE_TEXT[toneForGrade(optimalGrade?.letter ?? "")]}>
+              {optimalGrade?.letter ?? "—"}
+            </strong>{" "}
+            is read straight off this ladder —
+            {prediction.isCurved
+              ? " shifted by the class's distribution, exactly like the course marks page reads it."
+              : " fixed percentage bands, not how the class performed."}
+          </p>
         </div>
       </div>
 

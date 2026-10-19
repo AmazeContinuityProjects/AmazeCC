@@ -30,6 +30,7 @@ import {
 } from "@/lib/uiTokens";
 import { toneForGrade, gradePoints } from "@/lib/gradeHistory";
 import { buildGradeBoundaries } from "@/lib/gradeBoundaries";
+import GradeLadderChart from "./marks-predictor/GradeLadderChart";
 import {
   XCircle, BookOpen, Target, Clock, Info, Activity,
   ChevronRight, FileText, Calendar, Calendar as CalendarIcon, MessageSquare,
@@ -72,8 +73,6 @@ import {
   checkIsRelative,
   AssessmentRow,
 } from "./courseHelpers";
-
-import SelectField from "../shared/primitives/SelectField";
 
 const AttendanceCalendarView = dynamic(
   () => import("../attendance/AttendanceCalendarView"),
@@ -122,22 +121,6 @@ const SCOPE_TONE: Record<"Theory" | "Lab", string> = {
 };
 
 /**
- * A bar's hue, keyed on the same grade tones the pills use. Shared with the
- * grade history so a given grade is the same colour on both screens.
- */
-const GRADE_BAR: Record<string, string> = {
-  S: "bg-amber-500",
-  A: "bg-emerald-500",
-  B: "bg-blue-500",
-  C: "bg-cyan-500",
-  D: "bg-violet-500",
-  E: "bg-red-500",
-  F: "bg-red-600",
-  N: "bg-zinc-400",
-  P: "bg-violet-500",
-};
-
-/**
  * One history entry's letter, score and bar tone. Shared by the hero tiles,
  * the across-terms list and the detail below so the three cannot disagree.
  */
@@ -174,24 +157,6 @@ function scoreBarTone(score: number | null): string {
   return "bg-red-500";
 }
 
-/**
- * A grade band's wash inside the ladder bar. At 15% these read as one
- * continuous scale rather than seven competing cards, which is the whole point
- * of replacing the old tiles — the grade letter carries the meaning and the
- * colour only says "this slice of the ladder".
- */
-const GRADE_TINT: Record<string, string> = {
-  S: "bg-amber-500/15",
-  A: "bg-emerald-500/15",
-  B: "bg-blue-500/15",
-  C: "bg-cyan-500/15",
-  D: "bg-violet-500/15",
-  E: "bg-red-500/15",
-  F: "bg-red-500/10",
-  N: "bg-zinc-500/10",
-  P: "bg-violet-500/15",
-};
-
 export default function CourseDetailSubpage({
   marksData, attendanceData, allGradesData, pastSemesterData, loginToVTOP, setActiveSubTab,
   calendars, isDayscholarWithBus,
@@ -220,7 +185,6 @@ export default function CourseDetailSubpage({
 
   const [attFilter, setAttFilter] = useState("All");
   const [notesTracker, setNotesTracker] = useState<Record<string, Record<string, boolean>>>({});
-  const [targetGrade, setTargetGrade] = useState("A");
 
   useEffect(() => {
     loginToVTOP().then(c => { credsRef.current = c; setCreds(c); }).catch(() => {});
@@ -1830,7 +1794,6 @@ export default function CourseDetailSubpage({
                     { grade: "F", limit: 0, width: eLower, range: `< ${eLower}` },
                   ];
 
-                  const targetBoundary = boundaries.find(b => b.grade === targetGrade)?.limit || 0;
                   let theoryScored = 0, theoryPercent = 0;
                   let labScored = 0, labPercent = 0;
                   if (selectedGroup?.theory) {
@@ -1850,13 +1813,8 @@ export default function CourseDetailSubpage({
                   // The ladder is a 0-100 percentage scale; the two figures above are
                   // raw weightage-point totals, which mid-term are out of whatever has
                   // been released rather than out of 100. Comparing them directly put a
-                  // student on a genuine 90% into band D. So normalise before comparing,
-                  // and convert the target back onto the raw scale before subtracting.
+                  // student on a genuine 90% into band D. So normalise before comparing.
                   const currentPct = normalisedPct(currentWeightedScore, currentWeightPercent);
-                  const requiredPoints = currentWeightPercent > 0
-                    ? (targetBoundary / 100) * currentWeightPercent
-                    : 0;
-                  const remainingWeightagePoints = requiredPoints - currentWeightedScore;
 
                   // The band the student is standing in right now. Drives the
                   // "You are here" marker and the target-grade emphasis.
@@ -1878,9 +1836,10 @@ export default function CourseDetailSubpage({
                             statsMissing ? <ToneBadge tone="zinc">Awaiting class data</ToneBadge> : null
                           }
                         />
-                        {/* One proportional bar rather than seven stacked rows: on a
-                            phone a row per grade is a wall of scrolling, and the
-                            only thing each row said was a letter and a number. */}
+                        {/* One proportional bar rather than seven stacked rows — the
+                            shared GradeLadderChart the course predictor page renders
+                            too, so the two screens cannot disagree about where a
+                            band starts again. */}
                         <div className={`${TILE_CARD} ${statsMissing ? "opacity-60 grayscale" : ""}`}>
                           {isRelative && (
                             <p className="mb-2.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary dark:text-text-muted flex-wrap">
@@ -1899,95 +1858,12 @@ export default function CourseDetailSubpage({
                               )}
                             </p>
                           )}
-                          <div className="flex h-10 w-full gap-0.5 overflow-hidden">
-                            {boundaries.map((b) => (
-                              <div
-                                key={b.grade}
-                                title={`Grade ${b.grade} · ${b.range}`}
-                                style={{ flexGrow: Math.max(b.width, 1.5), flexBasis: 0, flexShrink: 1 }}
-                                className={`min-w-0 flex items-center justify-center rounded-lg ${
-                                  GRADE_TINT[b.grade] ?? "bg-zinc-500/10"
-                                } ${standing?.grade === b.grade && !statsMissing ? "ring-2 ring-inset ring-indigo-500" : ""}`}
-                              >
-                                <span className={`text-[11px] font-black font-outfit ${TONE_TEXT[toneForGrade(b.grade)]}`}>
-                                  {b.grade}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1">
-                            {boundaries.map((b) => (
-                              <span key={b.grade} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-text-muted">
-                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${GRADE_BAR[b.grade] ?? "bg-zinc-400"}`} />
-                                {b.grade} {b.range}
-                              </span>
-                            ))}
-                          </div>
-
-                          {standing && !statsMissing && (
-                            <p className="mt-2.5 text-[11px] font-bold text-text-heading">
-                              On {currentPct.toFixed(1)}% of released weightage — inside the{" "}
-                              <span className={TONE_TEXT[toneForGrade(standing.grade)]}>{standing.grade}</span> band.
-                            </p>
-                          )}
+                          <GradeLadderChart
+                            bands={boundaries}
+                            standingGrade={statsMissing ? null : standing?.grade ?? null}
+                            currentPct={statsMissing ? null : currentPct}
+                          />
                         </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <SectionHeader icon={Target} title="Target grade" />
-                        <ListShell>
-                          <div className="p-4 space-y-3">
-                            <SelectField
-                              value={targetGrade}
-                              onChange={(val) => setTargetGrade(val)}
-                              options={["S", "A", "B", "C", "D", "E"].map((g) => ({
-                                value: g,
-                                label: `Grade ${g}`,
-                              }))}
-                              searchable={false}
-                              size="lg"
-                              stacked
-                              role="group"
-                              aria-label="Target grade"
-                            />
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="min-w-0 truncate text-sm font-bold text-text-heading font-outfit tracking-tight">
-                                {remainingWeightagePoints <= 0
-                                  ? "Target achieved"
-                                  : remainingWeightagePoints > (100 - currentWeightPercent)
-                                    ? "Out of reach"
-                                    : "Points still needed"}
-                              </p>
-                              <span className="shrink-0">
-                                {remainingWeightagePoints <= 0 ? (
-                                  <ToneBadge tone="emerald" size="lg" icon={<CheckCircle2 className="h-3.5 w-3.5" />}>
-                                    Achieved
-                                  </ToneBadge>
-                                ) : remainingWeightagePoints > (100 - currentWeightPercent) ? (
-                                  <ToneBadge tone="red" size="lg">Impossible</ToneBadge>
-                                ) : (
-                                  <ToneBadge tone="indigo" size="lg">
-                                    +{remainingWeightagePoints.toFixed(1)} pts
-                                  </ToneBadge>
-                                )}
-                              </span>
-                            </div>
-                            <MiniBar
-                              pct={Math.max(0, Math.min(100, currentPct))}
-                              tone={
-                                remainingWeightagePoints <= 0
-                                  ? "bg-emerald-500"
-                                  : remainingWeightagePoints > (100 - currentWeightPercent)
-                                    ? "bg-red-500"
-                                    : "bg-indigo-500"
-                              }
-                            />
-                            <p className="text-[11px] font-medium text-text-secondary dark:text-text-muted">
-                              Needs {targetBoundary}% · you&apos;re on {currentPct.toFixed(1)}% of the {currentWeightPercent.toFixed(0)} points released
-                            </p>
-                          </div>
-                        </ListShell>
                       </div>
                     </>
                   );
