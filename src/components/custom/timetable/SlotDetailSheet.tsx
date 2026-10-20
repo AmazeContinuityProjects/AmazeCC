@@ -75,6 +75,8 @@ export default function SlotDetailSheet({
   onToggleBlockSlot,
   attendanceByCourse,
   onClose,
+  backdropZIndex,
+  panelZIndex,
 }: {
   cell: Cell;
   dayName: string;
@@ -82,6 +84,9 @@ export default function SlotDetailSheet({
   onToggleBlockSlot?: (slot: string) => void;
   attendanceByCourse?: Record<string, AttendanceTone>;
   onClose: () => void;
+  /** Lift the sheet above a surface that renders higher than the default z-60. */
+  backdropZIndex?: number;
+  panelZIndex?: number;
 }) {
   const course = cell.course;
   const attendance = course ? attendanceByCourse?.[course.code] : undefined;
@@ -125,6 +130,8 @@ export default function SlotDetailSheet({
       // which left a narrow strip down each side of a phone.
       placement="bottom-center"
       maxWidth="max-w-md"
+      backdropZIndex={backdropZIndex}
+      panelZIndex={panelZIndex}
     >
       <div className="space-y-5 text-left">
         <div className="flex items-center gap-3">

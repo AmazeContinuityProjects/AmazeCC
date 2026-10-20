@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, CalendarDays, ChevronRight, Search, X } from "lucide-react";
 
-import { TimetableGrid } from "../TimetableGrid";
+import { VerticalTimetableGrid } from "../../../../timetable";
+import { DAYS } from "../../constants";
 import {
   facultyGroupToAddedCourses,
   facultySchedulePeriods,
@@ -140,13 +141,21 @@ export function FacultyScheduleModal({
               </div>
             )}
 
-            <TimetableGrid
+            {/*
+              The vertical grid is deliberate: it is the only renderer whose tap
+              opens the slot detail sheet (day, time, course, venue). The sheet
+              portals to <body> at its own z-55/60, which would sit behind this
+              modal's z-300, so the z-index pair is raised to 400.
+            */}
+            <VerticalTimetableGrid
               courses={courses}
-              blockedSlots={new Set()}
-              toggleBlockSlot={() => {}}
-              selectedGapDetails={null}
               theoryPeriods={periods.theory}
               labPeriods={periods.lab}
+              days={DAYS}
+              blockedSlots={new Set()}
+              selectedGapDetails={null}
+              backdropZIndex={400}
+              panelZIndex={400}
             />
 
             <div className="overflow-x-auto rounded-xl border border-border custom-scrollbar">

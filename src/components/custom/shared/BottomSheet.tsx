@@ -60,6 +60,15 @@ interface BottomSheetProps {
    * `dvh` already tracks the keyboard and the measured inset stays 0 there.
    */
   avoidKeyboard?: boolean;
+  /**
+   * Backdrop z-index. Defaults to 55.
+   *
+   * A surface that renders *above* the default sheet (a modal at z-300, say)
+   * passes a higher value so the sheet it summons is not hidden behind it.
+   */
+  backdropZIndex?: number;
+  /** Panel z-index. Defaults to 60. */
+  panelZIndex?: number;
 }
 
 /**
@@ -90,6 +99,8 @@ export default function BottomSheet({
   onSystemBack,
   dismissable = true,
   avoidKeyboard = false,
+  backdropZIndex = 55,
+  panelZIndex = 60,
 }: BottomSheetProps) {
   const handleBackdropClick = onBackdropClick ?? onClose;
   const handleSwipeDown = onSwipeDown ?? onClose;
@@ -250,7 +261,17 @@ export default function BottomSheet({
   // inset and both slide up out of the bottom edge. The only difference is the
   // horizontal box — a drawer runs edge to edge, a centred card does not.
   const anchoredBottom =
-    "fixed bottom-0 left-0 right-0 z-[60] mx-auto sm:bottom-6 max-h-[88dvh] ";
+    "fixed bottom-0 left-0 right-0 mx-auto sm:bottom-6 max-h-[88dvh] ";
+
+  const panelStyle = {
+    willChange: "transform",
+    // The keyboard-lift wrapper is pointer-events-none; the panel and
+    // everything inside it must stay tappable.
+    pointerEvents: "auto",
+    paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
+    "--sheet-kb-inset": `${keyboardInset}px`,
+    zIndex: panelZIndex,
+  } as React.CSSProperties;
 
   const rawPanel = centered ? (
     // A card, not a drawer: it stops short of both screen edges and rounds on
@@ -265,16 +286,7 @@ export default function BottomSheet({
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
       className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-      style={
-        {
-          willChange: "transform",
-          // The keyboard-lift wrapper is pointer-events-none; the panel and
-          // everything inside it must stay tappable.
-          pointerEvents: "auto",
-          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-          "--sheet-kb-inset": `${keyboardInset}px`,
-        } as React.CSSProperties
-      }
+      style={panelStyle}
     >
       {panelBody}
     </m.div>
@@ -286,15 +298,7 @@ export default function BottomSheet({
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
       className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-[28px] sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-      style={
-        {
-          willChange: "transform",
-          // Same as the centered panel: pointer-events-none wrapper above.
-          pointerEvents: "auto",
-          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-          "--sheet-kb-inset": `${keyboardInset}px`,
-        } as React.CSSProperties
-      }
+      style={panelStyle}
     >
       {panelBody}
     </m.div>
@@ -326,12 +330,13 @@ export default function BottomSheet({
   //    does the lift. `pointerEvents: "auto"` restores its interactivity.
   const panel = (
     <div
-      className={lifted ? "pointer-events-none fixed inset-0 z-[56]" : ""}
+      className={lifted ? "pointer-events-none fixed inset-0" : ""}
       style={
         lifted
           ? {
               transform: `translateY(-${keyboardInset}px)`,
               willChange: "transform",
+              zIndex: panelZIndex,
             }
           : undefined
       }
@@ -348,8 +353,8 @@ export default function BottomSheet({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={dismissable ? handleBackdropClick : undefined}
-        className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs"
-        style={{ willChange: "opacity" }}
+        className="fixed inset-0 bg-black/45 backdrop-blur-xs"
+        style={{ willChange: "opacity", zIndex: backdropZIndex }}
       />
       {panel}
     </>,

@@ -65,6 +65,8 @@ export default function VerticalTimetableGrid({
   attendanceByCourse,
   compact = false,
   className,
+  backdropZIndex,
+  panelZIndex,
 }: {
   courses: AddedCourse[];
   theoryPeriods: TimetablePeriod[];
@@ -78,6 +80,13 @@ export default function VerticalTimetableGrid({
   /** Slot only, no course code, sized to fit the viewport without scrolling. */
   compact?: boolean;
   className?: string;
+  /**
+   * z-index for the slot detail sheet. Defaults to the sheet's own (55/60);
+   * a surface rendered above that (a modal at z-300) passes a higher pair so
+   * the sheet it summons is not hidden behind it.
+   */
+  backdropZIndex?: number;
+  panelZIndex?: number;
 }) {
   const [activeCell, setActiveCell] = useState<Cell | null>(null);
   const [today, setToday] = useState<string | null>(null);
@@ -405,6 +414,8 @@ export default function VerticalTimetableGrid({
             onToggleBlockSlot={onToggleBlockSlot}
             attendanceByCourse={attendanceByCourse}
             onClose={() => setActiveCell(null)}
+            backdropZIndex={backdropZIndex}
+            panelZIndex={panelZIndex}
           />
         )}
       </AnimatePresence>

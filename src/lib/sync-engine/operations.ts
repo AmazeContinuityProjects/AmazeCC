@@ -520,12 +520,15 @@ registerOp({
   },
   async run(ctx) {
     try {
-      const [eptRes, ackRes] = await Promise.all([
-        ctx.request("ept-schedule", {}, { auth: "vtop", retry: { max: 0 } }),
-        ctx.request("acknowledgement", {}, { auth: "vtop", retry: { max: 0 } }),
-      ]);
-      if (eptRes?.success) storage.cache.set("ept_schedule", eptRes);
-      if (ackRes?.success) storage.cache.set("acknowledgement", ackRes);
+      // Both ride in one invocation via /api/bulk instead of two requests.
+      const res = await ctx.request(
+        "bulk",
+        { endpoints: ["ept-schedule", "acknowledgement"] },
+        { auth: "vtop", retry: { max: 0 } }
+      );
+      const results = (res as { results?: Record<string, { success?: boolean }> } | null)?.results ?? {};
+      if (results["ept-schedule"]?.success) storage.cache.set("ept_schedule", results["ept-schedule"]);
+      if (results["acknowledgement"]?.success) storage.cache.set("acknowledgement", results["acknowledgement"]);
     } catch {
       /* fail silently */
     }
@@ -664,6 +667,28 @@ export const ALL_BULK_ENDPOINTS: readonly string[] = [
   ...BULK_PROFILE_ENDPOINTS,
 ];
 
+/**
+ * The bulk endpoints `/api/bulk` can run inside one invocation. Everything not
+ * listed here (today only `minor-honour`, which cascades over nested selects)
+ * is still fetched on its own.
+ *
+ * Mirrors `VTOP_PROXY_NAMES` in the API's `src/lib/vtop-proxy.ts`. Keep the two
+ * in step: a name here that the API does not know is silently dropped.
+ */
+const BATCHABLE_BULK_ENDPOINTS: ReadonlySet<string> = new Set([
+  "exc-registration",
+  "course-completion",
+  "credentials",
+  "registration-schedule",
+  "dayboarder",
+  "bank-info",
+  "library-due",
+  "hostel-counselling",
+  "payments",
+  "payment-receipts",
+  "wallet",
+]);
+
 registerOp({
   name: "bulk",
   auth: "vtop",
@@ -701,21 +726,51 @@ registerOp({
       only && only.length > 0
         ? bulkEndpoints.filter((p) => only.includes(p))
         : bulkEndpoints;
+
+    // Split into the endpoints that /api/bulk can run together and the ones that
+    // must still be fetched individually.
+    const batched: string[] = [];
+    const single: string[] = [];
+    for (const path of wanted) {
+      (BATCHABLE_BULK_ENDPOINTS.has(path) ? batched : single).push(path);
+    }
+
+    const results: Record<string, unknown> = {};
+    if (batched.length > 0) {
+      try {
+        const res = await ctx.request(
+          "bulk",
+          { endpoints: batched },
+          { auth: "vtop", retry: { max: 0 } }
+        );
+        const r = (res as { results?: Record<string, unknown> } | null)?.results;
+        if (r) Object.assign(results, r);
+      } catch {
+        // The batch endpoint is new: if it fails, fall back to fetching each
+        // endpoint on its own rather than losing the whole sweep.
+        single.push(...batched);
+      }
+    }
+
     await Promise.allSettled(
-      wanted.map((path) =>
+      single.map((path) =>
         ctx
           .request(path, {}, { auth: "vtop", retry: { max: 0 } })
-          .then((data: any) => {
-            if (data?.success !== false) {
-              storage.cache.set(path, data);
-              if (path === "payments") localStorage.setItem("payments_dues", JSON.stringify(data));
-              if (path === "payment-receipts") localStorage.setItem("payments_receipts", JSON.stringify(data));
-              if (path === "wallet") localStorage.setItem("payments_wallet", JSON.stringify(data));
-            }
+          .then((data: unknown) => {
+            results[path] = data;
           })
           .catch(() => {}),
       ),
     );
+
+    for (const [path, data] of Object.entries(results)) {
+      if (data && (data as { success?: boolean }).success !== false) {
+        storage.cache.set(path, data);
+        if (path === "payments") localStorage.setItem("payments_dues", JSON.stringify(data));
+        if (path === "payment-receipts") localStorage.setItem("payments_receipts", JSON.stringify(data));
+        if (path === "wallet") localStorage.setItem("payments_wallet", JSON.stringify(data));
+      }
+    }
     return { endpoints: wanted };
   },
 });
