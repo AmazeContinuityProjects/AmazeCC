@@ -21,7 +21,6 @@ Each line below is a direct `fetch(\`${API_BASE}/api/...\`)` or a `loginToVTOP()
 | File | Endpoints / calls |
 |------|-------------------|
 | `app/pushNotificationManager.tsx` | `notifications/subscribe`, `notifications/unsubscribe` |
-| `components/custom/dayscholar/TransportRegistration.tsx` | `transport/track` |
 | `components/custom/Dashboard.tsx` | `fresher-resources`, `buses`, `all-grades`, `calendar`, `grades`, `hostel`, `lms-data` (4× `loginToVTOP()`) |
 | `components/custom/more/CommunityFeed.tsx` | `club-admin/feed`, `events`, `club-admin/feed/promote` |
 | `components/custom/more/ClubHubTab.tsx` | `clubs/details`, `club-enrollment` |

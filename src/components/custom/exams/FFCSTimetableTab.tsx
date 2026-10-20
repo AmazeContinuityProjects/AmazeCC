@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -23,6 +23,8 @@ import { AutoGeneratorModal } from './FFCS/components/modals/AutoGeneratorModal'
 import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
 import { SocialMatrixModal } from './FFCS/components/modals/SocialMatrixModal';
 import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal';
+import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
+import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 
 export let GLOBAL_CAMPUS = "chennai";
 export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
@@ -436,6 +438,7 @@ export default function FFCSTimetableTab() {
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [isCourseLockOpen, setIsCourseLockOpen] = useState(false);
+  const [isFacultyScheduleOpen, setIsFacultyScheduleOpen] = useState(false);
 
   const [generatorPreference, setGeneratorPreference] = useState<'none' | 'morning' | 'evening'>('none');
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
@@ -575,6 +578,19 @@ export default function FFCSTimetableTab() {
       setMasterCourses([]);
     }
   }, [rawParsedCourses, isGroupingEnabled, isLoaded, manualLinks]);
+
+  /**
+   * Faculty groups from the registration list.
+   *
+   * Derived, not stored: the report is the only source of truth, so a re-upload
+   * or a grouping toggle changes the groups without a second cache to invalidate.
+   * First-seen order is preserved because the Faculty Explorer resolves a
+   * directory name against the first group that matches.
+   */
+  const facultyGroups = useMemo(
+    () => buildFacultyNameGroups(rawParsedCourses),
+    [rawParsedCourses]
+  );
 
   // Save to local storage on change
   useEffect(() => {
@@ -1367,6 +1383,22 @@ export default function FFCSTimetableTab() {
                   <span>Auto-Generate</span>
                 </button>
               </div>
+
+              {/* Faculty Schedule: the registration list, grouped by name. */}
+              <button
+                type="button"
+                onClick={() => setIsFacultyScheduleOpen(true)}
+                className="w-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 hover:text-cyan-400 text-sm font-semibold py-3 rounded-xl border border-cyan-500/20 transition-all flex items-center justify-center gap-2 shadow-sm"
+                title="See the full week taught by any faculty in the course report"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span>Faculty Schedule</span>
+                {facultyGroups.length > 0 && (
+                  <span className="text-xs font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-md">
+                    {facultyGroups.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1856,6 +1888,12 @@ export default function FFCSTimetableTab() {
         masterCourses={masterCourses}
         uniqueCourseCodes={uniqueCourseCodes}
         renderTypeChips={renderTypeChips}
+      />
+
+      <FacultyScheduleModal
+        open={isFacultyScheduleOpen}
+        onClose={() => setIsFacultyScheduleOpen(false)}
+        groups={facultyGroups}
       />
 
       {isFriendsManagerOpen && (

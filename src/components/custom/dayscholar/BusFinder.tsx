@@ -29,7 +29,6 @@ interface BusFinderProps {
   buses: BusRoute[];
   transportData?: TransportData | null;
   transportLoading?: boolean;
-  loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   /** Re-pulls the route list; rendered as the header's refresh action. */
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -56,7 +55,6 @@ const BusFinder = ({
   buses,
   transportData,
   transportLoading,
-  loginToVTOP,
   onRefresh,
   refreshing,
   onBack,
@@ -120,9 +118,6 @@ const BusFinder = ({
         <TransportRegistration
           data={transportData ?? null}
           loading={transportLoading ?? false}
-          loginToVTOP={
-            loginToVTOP ?? (async () => ({ cookies: [], authorizedID: "", csrf: "" }))
-          }
           buses={buses}
         />
 

@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   School as SchoolIcon,
+  CalendarDays,
 } from "lucide-react";
 import {
   EmptyPanel,
@@ -35,6 +36,12 @@ import {
   TILE_CARD,
   TONE_ICON_TILE,
 } from "@/lib/uiTokens";
+import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
+import {
+  buildFacultyNameGroups,
+  loadFacultyOfferings,
+  type FacultyNameGroup,
+} from "./FFCS/logic/facultyGroups";
 
 interface School {
   id: string;
@@ -74,9 +81,14 @@ function parseSchoolName(fullName: string) {
 const FacultyCard = ({
   profile,
   onDetailFetched,
+  hasSchedule,
+  onViewSchedule,
 }: {
   profile: FacultyProfile;
   onDetailFetched: (p: FacultyProfile) => void;
+  /** Whether the FFCS report is loaded, so the affordance is only offered when it can work. */
+  hasSchedule?: boolean;
+  onViewSchedule?: () => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -187,6 +199,23 @@ const FacultyCard = ({
         </div>
       )}
 
+      {/* The full schedule is a lookup against the FFCS report, so the card only
+          offers it once that report is available. The match is by name against
+          the first faculty group that matches, which the modal owns. */}
+      {hasSchedule && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewSchedule?.();
+          }}
+          className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>View full schedule</span>
+        </button>
+      )}
+
       {/* The expansion is a real fetch, so the row that triggers it has to say so
           and has to show progress — otherwise a slow portal reads as "no data". */}
       <button
@@ -248,6 +277,17 @@ export default function FacultyInfoTab({
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The FFCS report, grouped by faculty name.
+   *
+   * Loaded on mount so the "View full schedule" affordance is only offered when
+   * there is a report to look a name up in. A failed load is silent on purpose:
+   * the directory still works, it just has no schedules to show.
+   */
+  const [scheduleGroups, setScheduleGroups] = useState<FacultyNameGroup[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [scheduleFaculty, setScheduleFaculty] = useState<string | null>(null);
+
   // Fetch school list on mount (do NOT auto-select so user can pick from pill cards)
   useEffect(() => {
     api("faculty/schools", { parse: "raw" })
@@ -266,6 +306,26 @@ export default function FacultyInfoTab({
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoadingSchools(false));
+  }, []);
+
+  // The schedule lookup needs the FFCS report, which the planner caches. Read
+  // the cache first and only fetch the CSV when the reader has never visited
+  // the planner. `loadFacultyOfferings` does both.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const offerings = await loadFacultyOfferings();
+        if (!cancelled) setScheduleGroups(buildFacultyNameGroups(offerings));
+      } catch {
+        // No report available — the schedule affordance simply stays hidden.
+      } finally {
+        if (!cancelled) setScheduleLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSelectSchool = async (schoolId: string) => {
@@ -486,6 +546,8 @@ export default function FacultyInfoTab({
             <FacultyCard
               key={f.id || f.employeeId || i}
               profile={f}
+              hasSchedule={scheduleGroups.length > 0}
+              onViewSchedule={() => setScheduleFaculty(f.name)}
               onDetailFetched={(updated) => {
                 setFaculties((prev) =>
                   prev.map((p) =>
@@ -504,38 +566,48 @@ export default function FacultyInfoTab({
   );
 
   return (
-    <PageShell
-      eyebrow="Tools"
-      title="Faculty Explorer"
-      /* School names are user data and routinely long; a one-line ellipsis here
-         would throw away the thing the reader picked. */
-      wrap
-      subtitle={isRoot ? undefined : selectedSchoolObj?.school_name}
-      onBack={() => (isRoot ? stack.back() : handleBackToSchools())}
-    >
-      {error && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-xs font-semibold text-red-600 dark:text-red-400">
-          <div className="flex items-center gap-2 min-w-0">
-            <XCircle className="w-4 h-4 shrink-0" />
-            <span className="truncate">{error}</span>
+    <>
+      <PageShell
+        eyebrow="Tools"
+        title="Faculty Explorer"
+        /* School names are user data and routinely long; a one-line ellipsis here
+           would throw away the thing the reader picked. */
+        wrap
+        subtitle={isRoot ? undefined : selectedSchoolObj?.school_name}
+        onBack={() => (isRoot ? stack.back() : handleBackToSchools())}
+      >
+        {error && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-xs font-semibold text-red-600 dark:text-red-400">
+            <div className="flex items-center gap-2 min-w-0">
+              <XCircle className="w-4 h-4 shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            {selectedSchool && (
+              <button
+                type="button"
+                onClick={() => handleSelectSchool(selectedSchool)}
+                className="shrink-0 rounded-xl bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+            )}
           </div>
-          {selectedSchool && (
-            <button
-              type="button"
-              onClick={() => handleSelectSchool(selectedSchool)}
-              className="shrink-0 rounded-xl bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 transition-colors cursor-pointer"
-            >
-              Retry
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      {loadingSchools ? (
-        <ListSkeleton rows={5} leading="dot" trailing />
-      ) : (
-        <SubpageScreen id={screen}>{isRoot ? schoolsScreen : directoryScreen}</SubpageScreen>
-      )}
-    </PageShell>
+        {loadingSchools ? (
+          <ListSkeleton rows={5} leading="dot" trailing />
+        ) : (
+          <SubpageScreen id={screen}>{isRoot ? schoolsScreen : directoryScreen}</SubpageScreen>
+        )}
+      </PageShell>
+
+      <FacultyScheduleModal
+        open={scheduleFaculty !== null}
+        onClose={() => setScheduleFaculty(null)}
+        groups={scheduleGroups}
+        loading={scheduleLoading}
+        initialFaculty={scheduleFaculty ?? undefined}
+      />
+    </>
   );
 }

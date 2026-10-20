@@ -395,23 +395,10 @@ export default function CoursePredictorPage({
               {label} ({stats.assessments.length})
             </h4>
           </div>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="text-[10px] font-bold text-text-secondary">
-              <strong className="text-text-heading dark:text-zinc-200">{stats.scoredWeight.toFixed(1)}</strong>
-              {" / "}
-              {stats.totalWeightConfigured} wt
-            </div>
-            {remaining > 0 ? (
-              <button
-                type="button"
-                onClick={() => setAddFor(component)}
-                title={`Add an assessment — ${remaining} wt still open`}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-border-strong dark:border-border text-text-secondary hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500 text-[10px] font-black transition-colors cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                Add
-              </button>
-            ) : null}
+          <div className="text-[10px] font-bold text-text-secondary shrink-0">
+            <strong className="text-text-heading dark:text-zinc-200">{stats.scoredWeight.toFixed(1)}</strong>
+            {" / "}
+            {stats.totalWeightConfigured} wt
           </div>
         </div>
         <ListShell>
@@ -424,6 +411,41 @@ export default function CoursePredictorPage({
               onOpen={() => setSheetAsm({ asm, tone })}
             />
           ))}
+          {/* Unreleased weight is not a missing row but a missing fact: the
+              half still carries weight VTOP has not published (the FAT's
+              reserved share, an assessment never announced), so the prediction
+              covers less than the whole course. It reads as one more entry in
+              the same row language, in the warning colour that keeps it
+              honest — rather than a control floating in the header, which
+              claimed the weight was merely absent rather than unknowable.
+              Tapping it opens the add form for exactly the weight still open. */}
+          {remaining > 0 ? (
+            <button
+              type="button"
+              onClick={() => setAddFor(component)}
+              title={`Add an assessment — ${remaining} weightage points still open`}
+              className="w-full flex items-center gap-3 py-3 px-4 text-left cursor-pointer min-w-0 group"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-dashed border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Plus className="h-4.5 w-4.5" />
+              </span>
+              <ListRowText
+                title="Add assessment"
+                titleTooltip="Add an assessment"
+                subtitle={
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                    {remaining} weightage points not yet released on VTOP, so grade prediction is limited
+                  </span>
+                }
+              />
+              <span className="flex items-center gap-2 shrink-0">
+                <ToneBadge tone="amber" size="sm">
+                  +{remaining} wt
+                </ToneBadge>
+                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
+              </span>
+            </button>
+          ) : null}
         </ListShell>
       </div>
     );
