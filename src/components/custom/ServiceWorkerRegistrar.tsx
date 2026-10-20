@@ -18,9 +18,14 @@ import { initPwaInstallListeners } from "@/lib/pwaInstall";
 export default function ServiceWorkerRegistrar() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.warn("Service worker registration error:", err);
-      });
+      // `updateViaCache: "none"` keeps Safari from serving a stale sw.js out
+      // of its HTTP cache — on iOS a cached worker script is the classic way
+      // offline support "stops working" after a deploy.
+      navigator.serviceWorker
+        .register("/sw.js", { updateViaCache: "none" })
+        .catch((err) => {
+          console.warn("Service worker registration error:", err);
+        });
     }
     return initPwaInstallListeners();
   }, []);

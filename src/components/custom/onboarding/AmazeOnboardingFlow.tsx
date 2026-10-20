@@ -8,8 +8,6 @@ import {
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
 import { getAssetPath } from "@/lib/utils";
-import { fetchGitHubCommits } from "@/lib/githubChangelog";
-import buildInfo from "../../../data/buildInfo.json";
 import config from "../../../../config.json";
 import { api } from "@/lib/sync-engine";
 import SimplifiedMobileHome from "../mobile/SimplifiedMobileHome";
@@ -143,25 +141,6 @@ export default function AmazeOnboardingFlow({
     return () => window.removeEventListener("resize", updateRatio);
   }, []);
 
-  // Pre-emptively mark latest commit hash so new users don't see "What's New" modal
-  useEffect(() => {
-    try {
-      fetchGitHubCommits()
-        .then((commits) => {
-          if (commits && commits.length > 0) {
-            localStorage.setItem("lastSeenCommitHash", commits[0].sha);
-          } else if (buildInfo?.commitHash) {
-            localStorage.setItem("lastSeenCommitHash", buildInfo.commitHash);
-          }
-        })
-        .catch(() => {
-          if (buildInfo?.commitHash) {
-            localStorage.setItem("lastSeenCommitHash", buildInfo.commitHash);
-          }
-        });
-    } catch {}
-  }, []);
-
   const interfaces: Array<{
     id: InterfaceOptionId;
     title: string;
@@ -229,10 +208,6 @@ export default function AmazeOnboardingFlow({
       localStorage.setItem("hasSeenPushPrompt", "true");
       localStorage.setItem("push_prompt_dismissed", "true");
       localStorage.setItem("busPromptDismissed", "true");
-
-      if (buildInfo?.commitHash) {
-        localStorage.setItem("lastSeenCommitHash", buildInfo.commitHash);
-      }
     } catch {}
 
     setSettings(() => finalSettings);

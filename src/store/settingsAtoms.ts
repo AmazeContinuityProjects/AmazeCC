@@ -56,6 +56,13 @@ export type Settings = {
    * sideways when seven days will not fit.
    */
   timetableCellDensity?: "full" | "compact";
+  /**
+   * Whether a density was ever picked by the user. Absent = pristine, which is
+   * the only way `useTimetableViewMode` can tell a phone's compact default from
+   * the old `"full"` default that existing installs already have persisted
+   * verbatim in their settings blob. Stamped on the first pick, in-grid or here.
+   */
+  timetableDensityTouched?: boolean;
   interfaceChosen?: boolean;
   defaultLandingTab?: "home" | "attendance" | "academics";
 

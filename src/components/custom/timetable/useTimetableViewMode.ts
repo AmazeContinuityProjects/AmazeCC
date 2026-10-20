@@ -10,6 +10,28 @@ export type ResolvedView = "vertical" | "horizontal";
 /** How much a vertical cell holds. "compact" is slot-only and fits the viewport. */
 export type CellDensity = "full" | "compact";
 
+/**
+ * What the vertical grid renders at. Until the user has picked a density
+ * (`timetableDensityTouched` in settings), a phone defaults to compact: the
+ * full cells were designed for the scrollable desktop column and a phone and a
+ * full-code cell in every band never fit the week on screen at once.
+ *
+ * The `touched` flag instead of a flipped `timetableCellDensity` default is
+ * what makes this work on existing installs — their persisted settings already
+ * carry `"full"`, so there is no stored value that distinguishes "pristine"
+ * from "explicitly chose full". A phone with the flag absent shows compact no
+ * matter what the stored key says; the first tap anywhere stamps the flag and
+ * the stored choice takes over everywhere.
+ */
+export function effectiveCellDensity(
+  stored: CellDensity | undefined,
+  touched: boolean | undefined,
+  isMobile: boolean,
+): CellDensity {
+  if (!touched && isMobile) return "compact";
+  return stored ?? "full";
+}
+
 /** Below this the vertical heatmap is the better default. Matches `useIsMobile`. */
 export const MOBILE_BREAKPOINT_PX = 768;
 
@@ -37,7 +59,11 @@ export function useTimetableViewMode() {
   }, []);
 
   const mode: TimetableViewMode = settings?.timetableViewMode ?? "auto";
-  const density: CellDensity = settings?.timetableCellDensity ?? "full";
+  const density: CellDensity = effectiveCellDensity(
+    settings?.timetableCellDensity,
+    settings?.timetableDensityTouched,
+    isMobile,
+  );
 
   /**
    * Persists a preference patch. Every other write path in the app saves to
@@ -64,8 +90,11 @@ export function useTimetableViewMode() {
     [persist]
   );
 
+  /** Persists a density choice and marks it explicit, so it wins over the
+   *  phone's compact default from then on. */
   const setDensity = useCallback(
-    (next: CellDensity) => persist({ timetableCellDensity: next }),
+    (next: CellDensity) =>
+      persist({ timetableCellDensity: next, timetableDensityTouched: true }),
     [persist]
   );
 

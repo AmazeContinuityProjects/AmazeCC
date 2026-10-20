@@ -79,6 +79,7 @@ import ProfileStatusCards from "../profile/ProfileStatusCards";
 import AcknowledgementCards from "../profile/AcknowledgementCards";
 import { Badge, useIsMobile } from "../shared";
 import BottomSheet from "../shared/BottomSheet";
+import { effectiveCellDensity } from "../timetable/useTimetableViewMode";
 import SyncModeEditor, { SyncModeEditorContent } from "../shared/SyncModeEditor";
 import { listModes, loadCustomModes, resolveMode, type SyncMode } from "@/lib/sync-engine/sync-modes";
 import GenericApiView, { clearApiCache } from "../exams/GenericApiView";
@@ -407,6 +408,23 @@ export default function ProfilePage({
   const updateSetting = (key: string, value: any) => {
     setSettings((prev: any) => {
       const next = { ...prev, [key]: value };
+      localStorage.setItem("settings", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  /**
+   * A density pick here counts like an in-grid pick: it stamps
+   * `timetableDensityTouched`, so the choice beats the phone's compact default
+   * everywhere from now on. Single-key `updateSetting` can't stamp two keys.
+   */
+  const setTimetableDensity = (value: "full" | "compact") => {
+    setSettings((prev: any) => {
+      const next = {
+        ...prev,
+        timetableCellDensity: value,
+        timetableDensityTouched: true,
+      };
       localStorage.setItem("settings", JSON.stringify(next));
       return next;
     });
@@ -1601,12 +1619,16 @@ export default function ProfilePage({
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Compact shows the slot only and fits the whole week on screen
-              without swiping
+              without swiping — phones default to it until you pick
             </p>
           </div>
           <SelectField
-            value={(settings?.timetableCellDensity as string) || "full"}
-            onChange={(val) => updateSetting("timetableCellDensity", val)}
+            value={effectiveCellDensity(
+              settings?.timetableCellDensity,
+              settings?.timetableDensityTouched,
+              isMobile
+            )}
+            onChange={(val) => setTimetableDensity(val as "full" | "compact")}
             options={[
               { value: "full", label: "📋 Full (Slot + Course Code)" },
               { value: "compact", label: "🔹 Compact (Slot Only, Fits Screen)" },

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { GitBranch, GitCommit, History, RefreshCcw, Sparkles } from "lucide-react";
 import { fetchGitHubCommits, groupCommitsByDate, GitHubCommit, CommitGroup } from "@/lib/githubChangelog";
+import buildInfo from "@/data/buildInfo.json";
 import changelogData from "@/data/changelog.json";
 import {
   IconButton,
@@ -102,6 +103,48 @@ export default function ChangelogModal({ handleClose }: { handleClose: () => voi
           <ToneBadge tone={error ? "amber" : "emerald"} icon={<span className="w-1.5 h-1.5 rounded-full bg-current" />}>
             {error ? "Offline — showing saved releases" : "GitHub sync active"}
           </ToneBadge>
+        </div>
+
+        {/*
+         * The summary of the build this device is actually running — the same
+         * content the retired "What's New" toast used to pop over the app
+         * after every update. Pinned at the top of the log instead of shown
+         * as an interruption; sourced from the generated `buildInfo.json`, so
+         * it renders even with no network.
+         */}
+        <div className="space-y-3">
+          <SectionHeader
+            icon={Sparkles}
+            title="What's new in this build"
+            count={buildInfo.changes.length}
+            right={
+              <span className="text-[10px] font-bold text-text-muted shrink-0">
+                {buildInfo.date}
+              </span>
+            }
+          />
+          <ListShell>
+            {buildInfo.changes.map((change, i) => (
+              <div key={i} className="flex items-start gap-2.5 py-2.5 px-4">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                <span className="text-xs font-medium leading-relaxed text-text-secondary dark:text-text-muted flex-1 min-w-0">
+                  {change}
+                </span>
+                {i === 0 && buildInfo.commitHash !== "unknown" && (
+                  <a
+                    href={`https://github.com/AmazeContinuityProjects/AmazeCC/commit/${buildInfo.commitHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Open commit ${buildInfo.commitHash} on GitHub`}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface-tertiary dark:bg-surface-secondary px-2 py-1 text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-border-muted hover:border-indigo-500/40 transition-colors"
+                  >
+                    <GitCommit className="h-2.5 w-2.5" />
+                    {buildInfo.commitHash}
+                  </a>
+                )}
+              </div>
+            ))}
+          </ListShell>
         </div>
 
         {loading ? (

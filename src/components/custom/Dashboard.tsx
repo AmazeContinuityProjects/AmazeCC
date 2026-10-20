@@ -48,7 +48,6 @@ import FacultyInfoTab from "./exams/FacultyInfoTab";
 import ProfileTab from "./profile/ProfileTab";
 import PushPromptModal from "./PushPromptModal";
 import PwaInstallCard from "./shared/PwaInstallCard";
-import ChangelogModal from "./ChangelogModal";
 import FresherWelcomePage from "./FresherWelcomePage";
 import FeedbackStatusModal from "./profile/FeedbackStatusModal";
 import ODTrackerSubpage from "./attendance/ODTrackerSubpage";
@@ -747,7 +746,6 @@ function DashboardContent({
 
         <PushPromptModal UserID={IDs?.VtopUsername} />
         <PwaInstallCard />
-        <ChangelogModal />
         <FeedbackStatusModal isOpen={showFeedbackStatus} onClose={() => setShowFeedbackStatus(false)} loginToVTOP={loginToVTOP} />
         <div className="px-6 py-4 md:p-6 lg:p-10 max-w-7xl mx-auto w-full">
           {activeTab === "home" && (

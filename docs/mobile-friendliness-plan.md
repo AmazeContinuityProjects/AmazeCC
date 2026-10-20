@@ -51,6 +51,15 @@
 ## Bug fix (not in the audit)
 
 - [x] **Sheets invisible on scrollable pages** — an uncommitted `BottomSheet.tsx` change made the keyboard-offset wrapper render **always** with `willChange: "transform"`, which (per spec) turned the wrapper into the containing block for the `fixed` sheet panel. The sheet then anchored to a 0-height box at the end of the document flow, i.e. below the fold on any scrollable page: dimmed backdrop, no sheet. Fixed: wrapper stays always-mounted (preserving the remount-loop fix it was written for) but is an inert pass-through when not lifted; when lifted it becomes a fixed, viewport-sized, pointer-transparent layer with `pointerEvents: "auto"` restored on the panel.
+- [x] **Page reloading mid-operation** — the error boundaries (`error.tsx`/`global-error.tsx`) auto-reloaded on `ChunkLoadError`, but a plain `location.reload()` re-serves the same stale document (from the SW cache) that referenced the missing chunk, so the error re-threw and the page reloaded again every 10 s. Recovery now drops the stale bundle first (`src/lib/chunkRecovery.ts`: unregister the SW + delete caches, then reload) and never fires offline. Covered by `__tests__/chunkRecovery.test.ts`.
+
+## Offline persistence (iOS/Safari follow-up)
+
+- [x] **Root cause: 24-hour cache expiry.** `@serwist/next`'s `defaultCache` aged every shell-critical cache (`pages`, `next-static-js-assets`, `static-js-assets`, `static-style-assets`) out after 24 h, so after a day of not opening the app the cached shell was gone and only the offline fallback rendered. `src/app/sw.ts` now prepends persistence overrides (first match wins) giving the app shell **30 days** with `maxAgeFrom: "last-used"` — pages the user actually opens offline stay cached, abandoned ones age out. Dynamic data (APIs, `next-data`, RSC) keeps its short TTLs on purpose.
+- [x] **`skipWaiting`** cleaned up: the top-level `self.skipWaiting()` + `skipWaiting: false` contradiction is now a single `skipWaiting: true`, so a redeploy activates immediately instead of leaving the old cache in charge until every tab closes.
+- [x] **`updateViaCache: "none"`** on the root registration — Safari serving a stale `sw.js` from its HTTP cache is a classic way offline support "stops working" after a deploy.
+- [x] **Offline page is now a real gateway**: "Open dashboard" navigates to `/`, whose HTML is served from the `pages` cache, so the app shell comes up with last-synced data; added a reconnect button and honest copy. The page itself is precached (`~offline` present in `__SW_MANIFEST`).
+- [ ] **Platform limit, not a bug:** iOS Safari purges website data (including SW caches) for sites not visited for ~7 days **unless installed as a home-screen PWA**. The install offer (`PwaInstallCard`) is therefore part of the offline story on iOS — installed PWAs get persistent storage.
 
 ## Verification checklist
 
