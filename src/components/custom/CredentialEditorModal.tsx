@@ -55,12 +55,15 @@ export default function CredentialEditorModal({ open, onClose, onSaved }: Props)
   return (
     <AnimatePresence>
       {open && (
-        <BottomSheet onClose={onClose} overlayId="credential-editor-sheet" maxWidth="max-w-md">
+        <BottomSheet
+          onClose={onClose}
+          overlayId="credential-editor-sheet"
+          maxWidth="max-w-md"
+          title="Edit credentials"
+          subtitle="Wrong password? Update it here. We verify once and stop if it fails, so VTOP won't lock your account."
+          closeLabel="Close credential editor"
+        >
           <div role="dialog" aria-modal="true" className="pt-1">
-        <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>Edit credentials</h2>
-        <p style={{ margin: "0 0 16px", fontSize: 13, opacity: 0.7 }}>
-          Wrong password? Update it here. We verify once and stop if it fails, so VTOP won&apos;t lock your account.
-        </p>
         <form onSubmit={submit}>
           <label style={{ display: "block", fontSize: 13, marginBottom: 4 }}>VTOP Username</label>
           <input

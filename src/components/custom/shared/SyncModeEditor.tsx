@@ -307,15 +307,7 @@ export function SyncModeEditorContent({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-extrabold text-slate-900 dark:text-white text-sm font-outfit">
-            Sync Modes
-          </h3>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold leading-relaxed">
-            Pick what a sync fetches. Star a mode to make it the default.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <button
           onClick={startCreate}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-colors cursor-pointer shrink-0"
@@ -685,7 +677,14 @@ export default function SyncModeEditor({
   if (!open) return null;
 
   return (
-    <BottomSheet onClose={onClose} overlayId="sync-mode-editor" maxWidth="max-w-md">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="sync-mode-editor"
+      maxWidth="max-w-md"
+      title="Sync Modes"
+      subtitle="Pick what a sync fetches. Star a mode to make it the default."
+      closeLabel="Close sync mode editor"
+    >
       <div className="relative">
         <SyncModeEditorContent
           onChanged={onChanged}
@@ -693,13 +692,6 @@ export default function SyncModeEditor({
           defaultId={defaultId}
           onSetDefault={onSetDefault}
         />
-        <button
-          onClick={onClose}
-          className="absolute -top-1 right-0 p-1 hit-expand rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 cursor-pointer"
-          aria-label="Close"
-        >
-          <X size={15} />
-        </button>
       </div>
     </BottomSheet>
   );

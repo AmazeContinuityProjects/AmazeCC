@@ -61,6 +61,7 @@ import {
   UserCheck,
   DoorOpen,
   Users,
+  UserSearch,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, m } from "framer-motion";
@@ -118,6 +119,7 @@ function getTabIdFromLabel(label: string): string | null {
   if (lower === "hostel payments" || lower === "payments") return "payments";
   if (lower === "libraries" || lower === "question bank") return "libraries";
   if (lower === "free classrooms" || lower === "free classroom" || lower === "free-class") return "free-class";
+  if (lower === "faculty schedule" || lower === "faculty schedules" || lower === "find faculty schedule" || lower === "faculty-schedule") return "faculty-schedule";
   if (lower === "event hub" || lower === "events hub" || lower === "events") return "events";
   if (lower === "club hub" || lower === "clubs") return "clubs";
   if (lower === "community feed" || lower === "community" || lower === "announcements") return "community";
@@ -261,7 +263,7 @@ export default function NavigationTabs({
       setShowHostelPanel(false);
       if (activeTab === "home" || activeTab === "attendance") {
         setExpandedGroup("study");
-      } else if (["payments", "libraries", "events", "clubs", "community", "free-class", "transport", "cabshare"].includes(activeTab)) {
+      } else if (["payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "transport", "cabshare"].includes(activeTab)) {
         setExpandedGroup("campus");
       } else if (activeTab === "more") {
         setExpandedGroup("tools");
@@ -359,6 +361,7 @@ export default function NavigationTabs({
     clubs: { icon: <LayoutGrid className="h-5 w-5 stroke-[2]" />, label: "Club Hub" },
     community: { icon: <Rss className="h-5 w-5 stroke-[2]" />, label: "Announcements" },
     "free-class": { icon: <DoorOpen className="h-5 w-5 stroke-[2]" />, label: "Free Classrooms" },
+    "faculty-schedule": { icon: <UserSearch className="h-5 w-5 stroke-[2]" />, label: "Faculty Schedule" },
     cabshare: { icon: <CarTaxiFront className="h-5 w-5 stroke-[2]" />, label: "Cab Share" },
     transport: { icon: <Bus className="h-5 w-5 stroke-[2]" />, label: "Transport" },
     more: { icon: <MoreHorizontal className="h-5 w-5 stroke-[2]" />, label: "More" },
@@ -562,6 +565,13 @@ export default function NavigationTabs({
           (activeTab === "tools" && activeToolsSubTab === "free-class"),
         onSelect: () => selectTab("free-class"),
       },
+      {
+        id: "faculty-schedule",
+        label: "Faculty Schedule",
+        icon: UserSearch,
+        isActive: activeTab === "faculty-schedule",
+        onSelect: () => selectTab("faculty-schedule"),
+      },
     ];
 
     if (isHosteller === true || residentialStatus === "hosteller") {
@@ -759,6 +769,12 @@ export default function NavigationTabs({
           activeTab === "free-class" ||
           (activeTab === "tools" && activeToolsSubTab === "free-class"),
         onSelect: () => { selectTab("free-class"); }
+      },
+      "faculty-schedule": {
+        label: "Faculty Schedule",
+        icon: UserSearch,
+        isActive: activeTab === "faculty-schedule",
+        onSelect: () => { selectTab("faculty-schedule"); }
       },
       cabshare: {
         label: "Cab Share",
@@ -1430,7 +1446,7 @@ export default function NavigationTabs({
                 const isActive = group.id === "study"
                   ? activeTab === "home" || activeTab === "attendance" || activeTab === "academics"
                   : group.id === "campus"
-                  ? ["payments", "libraries", "events", "clubs", "community", "free-class", "hostel", "transport"].includes(activeTab)
+                  ? ["payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "hostel", "transport"].includes(activeTab)
                   : group.id === "tools"
                   ? activeTab === "more"
                   : activeTab === "profile";
@@ -1765,6 +1781,7 @@ const AppLibraryPortal = memo(({
     { label: "Faculty Explorer", group: "Tools", icon: UserCheck, action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
     { label: "Cab Share", group: "Tools", icon: CarTaxiFront, action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
     { label: "Free Classrooms", group: "Campus", icon: DoorOpen, action: () => { selectTab("free-class"); } },
+    { label: "Faculty Schedule", group: "Campus", icon: UserSearch, action: () => { selectTab("faculty-schedule"); } },
     
     { label: "Hostel Overview", group: "Hostel", icon: Building, action: () => { selectTab("hostel"); setHostelActiveSubTab("overview"); } },
     { label: "Mess Menu", group: "Hostel", icon: Coffee, action: () => { selectTab("hostel"); setHostelActiveSubTab("mess"); } },
@@ -1809,6 +1826,7 @@ const AppLibraryPortal = memo(({
         { label: "Faculty Explorer", icon: UserCheck, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("faculty-info"); } },
         { label: "Cab Share", icon: CarTaxiFront, type: "link", action: () => { selectTab("tools"); setActiveToolsSubTab?.("cabshare"); } },
         { label: "Free Classrooms", icon: DoorOpen, type: "link", action: () => { selectTab("free-class"); } },
+        { label: "Faculty Schedule", icon: UserSearch, type: "link", action: () => { selectTab("faculty-schedule"); } },
       ]
     },
     {
@@ -2121,6 +2139,7 @@ const AppLibraryPortal = memo(({
             { id: "payments", label: "Payments" },
             { id: "libraries", label: "Libraries" },
             { id: "free-class", label: "Free Classrooms" },
+            { id: "faculty-schedule", label: "Faculty Schedule" },
             { id: "events", label: "Event Hub" },
             { id: "clubs", label: "Club Hub" },
             { id: "community", label: "Announcements" },

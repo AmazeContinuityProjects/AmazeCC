@@ -1,27 +1,43 @@
 import React from 'react';
-import { X, BookOpen, Search, Zap, Users } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { BookOpen, Search, Zap, Users } from 'lucide-react';
+import BottomSheet from '../shared/BottomSheet';
 
 interface FFCSGuideModalProps {
+  /**
+   * Mounted unconditionally and toggled, rather than rendered behind
+   * `{isOpen && ...}`: AnimatePresence only animates its own children leaving,
+   * so a modal that disappears with its parent would snap shut instead of
+   * sliding down.
+   */
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export default function FFCSGuideModal({ onClose }: FFCSGuideModalProps) {
+export default function FFCSGuideModal({ isOpen, onClose }: FFCSGuideModalProps) {
+  /*
+    A sheet now, so the chrome — grabber, one X, swipe-down, Escape and system
+    back — belongs to it and the header keeps only the title. The z pair is
+    passed through rather than left at the sheet default because the planner can
+    be in fullscreen (z-100) behind this, and a sheet at the default z-60 would
+    land underneath it. `contentClassName` carries the body's old `space-y-8`;
+    the sheet's content wrapper supplies the padding and the scroll.
+  */
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
-      <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
-          <h3 className="font-bold text-xl text-foreground flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-blue-500" /> FFCS Planner Guide
-          </h3>
-          <button 
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-background"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 overflow-auto custom-scrollbar flex-1 space-y-8">
-          
+    <AnimatePresence>
+      {isOpen && (
+        <BottomSheet
+          onClose={onClose}
+          overlayId="ffcs-guide"
+          maxWidth="max-w-4xl"
+          panelZIndex={400}
+          backdropZIndex={395}
+          contentClassName="space-y-8"
+          title="FFCS Planner Guide"
+          icon={<BookOpen className="w-5 h-5" />}
+          accent="bg-blue-500/10 border-blue-500/20 text-blue-500"
+          closeLabel="Close FFCS guide"
+        >
           {/* Welcome */}
           <section>
             <h4 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
@@ -87,16 +103,16 @@ export default function FFCSGuideModal({ onClose }: FFCSGuideModalProps) {
             </ul>
           </section>
 
-        </div>
-        <div className="p-4 border-t border-border bg-muted/20 text-right shrink-0">
-          <button 
-            onClick={onClose}
-            className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-colors"
-          >
-            Got it, let's build!
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="pt-4 border-t border-border text-right">
+            <button 
+              onClick={onClose}
+              className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-colors"
+            >
+              Got it, let's build!
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
   );
 }

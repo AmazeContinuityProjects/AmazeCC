@@ -6,6 +6,7 @@ import { m } from "framer-motion";
 import { X } from "lucide-react";
 import { isTopOverlay, useOverlayBack } from "@/lib/overlayStack";
 import { useKeyboardInset } from "@/lib/useKeyboardInset";
+import { IconButton } from "./primitives/Controls";
 
 interface BottomSheetProps {
   onClose: () => void;
@@ -23,6 +24,31 @@ interface BottomSheetProps {
   contentClassName?: string;
   /** Show the floating X button. Default true. */
   showClose?: boolean;
+  /**
+   * Renders the standard title card above the content: a bordered rounded-2xl
+   * block with an icon badge, a stacked title + subtitle, and the close X — the
+   * block the Full Weekly Timetable sheet and the Faculty Schedule modal use.
+   * Passing it also suppresses the floating X so there is exactly one close
+   * affordance, the one beside the title it names.
+   */
+  title?: React.ReactNode;
+  /** Optional second line under the title. */
+  subtitle?: React.ReactNode;
+  /** Optional icon, rendered in the tile left of the title. */
+  icon?: React.ReactNode;
+  /**
+   * Tailwind classes for the icon tile's colour scheme. Defaults to the indigo
+   * tile the Full Timetable sheet uses; pass a matching set to keep a sheet's
+   * own accent (blue for the FFCS planner, red for a destructive action…).
+   */
+  accent?: string;
+  /** Accessible name for the title card's close button. Default "Close". */
+  closeLabel?: string;
+  /**
+   * Extra controls shown to the right of the title, before the close X — for a
+   * sheet that keeps a secondary action (copy, "New") in its header.
+   */
+  trailing?: React.ReactNode;
   /**
    * Where the panel sits horizontally.
    *
@@ -60,6 +86,15 @@ interface BottomSheetProps {
    * `dvh` already tracks the keyboard and the measured inset stays 0 there.
    */
   avoidKeyboard?: boolean;
+  /**
+   * Backdrop z-index. Defaults to 55.
+   *
+   * A surface that renders *above* the default sheet (a modal at z-300, say)
+   * passes a higher value so the sheet it summons is not hidden behind it.
+   */
+  backdropZIndex?: number;
+  /** Panel z-index. Defaults to 60. */
+  panelZIndex?: number;
 }
 
 /**
@@ -84,12 +119,20 @@ export default function BottomSheet({
   className = "",
   contentClassName = "",
   showClose = true,
+  title,
+  subtitle,
+  icon,
+  accent,
+  closeLabel = "Close",
+  trailing,
   placement = "bottom",
   onBackdropClick,
   onSwipeDown,
   onSystemBack,
   dismissable = true,
   avoidKeyboard = false,
+  backdropZIndex = 55,
+  panelZIndex = 60,
 }: BottomSheetProps) {
   const handleBackdropClick = onBackdropClick ?? onClose;
   const handleSwipeDown = onSwipeDown ?? onClose;
@@ -187,6 +230,9 @@ export default function BottomSheet({
   if (!portalReady) return null;
 
   const centered = placement === "bottom-center";
+  // A caller-supplied title renders its own close X, so the floating one is
+  // suppressed — exactly one close affordance, and it sits beside the title.
+  const hasTitleCard = Boolean(title);
 
   // One chrome row for both placements. The centred card keeps the grabber:
   // it is still anchored to the bottom edge, so a handle there is honest and it
@@ -202,7 +248,7 @@ export default function BottomSheet({
   // drag subtree entirely.
   const chrome = (
     <div className="relative flex w-full shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-2">
-      {showClose && dismissable ? (
+      {showClose && dismissable && !hasTitleCard ? (
         <button
           onClick={onClose}
           aria-label="Close"
@@ -238,6 +284,17 @@ export default function BottomSheet({
       <div
         className={`overflow-y-auto px-4 sm:px-5 pb-5 sm:pb-6 pt-1 min-h-0 ${contentClassName}`}
       >
+        {hasTitleCard && (
+          <TitleCard
+            title={title}
+            subtitle={subtitle}
+            icon={icon}
+            accent={accent}
+            trailing={trailing}
+            closeLabel={closeLabel}
+            onClose={onClose}
+          />
+        )}
         {children}
       </div>
     </>
@@ -250,8 +307,24 @@ export default function BottomSheet({
   // inset and both slide up out of the bottom edge. The only difference is the
   // horizontal box — a drawer runs edge to edge, a centred card does not.
   const anchoredBottom =
-    "fixed bottom-0 left-0 right-0 z-[60] mx-auto sm:bottom-6 max-h-[88dvh] ";
+    "fixed bottom-0 left-0 right-0 mx-auto sm:bottom-6 max-h-[88dvh] ";
 
+  const panelStyle = {
+    willChange: "transform",
+    // The keyboard-lift wrapper is pointer-events-none; the panel and
+    // everything inside it must stay tappable.
+    pointerEvents: "auto",
+    paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
+    "--sheet-kb-inset": `${keyboardInset}px`,
+    zIndex: panelZIndex,
+  } as React.CSSProperties;
+
+  // `data-prevent-swipe` is load-bearing. The dashboard's swipe-to-change-tab
+  // listens document-wide and bails only when the touch started inside a
+  // `button, a, input, textarea, select, [data-prevent-swipe]` subtree. The FFCS
+  // tab used to be that subtree, and its modals were in-tree children of it;
+  // they portal to `<body>` now, so the guard travels on the panel instead.
+  // A horizontal drag over sheet content must never change the tab.
   const rawPanel = centered ? (
     // A card, not a drawer: it stops short of both screen edges and rounds on
     // every corner, so it reads as a panel the tap summoned rather than a sheet
@@ -264,17 +337,9 @@ export default function BottomSheet({
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      data-prevent-swipe="true"
       className={`${anchoredBottom}w-[calc(100%-2rem)] ${maxWidth} ${surface} rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-      style={
-        {
-          willChange: "transform",
-          // The keyboard-lift wrapper is pointer-events-none; the panel and
-          // everything inside it must stay tappable.
-          pointerEvents: "auto",
-          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-          "--sheet-kb-inset": `${keyboardInset}px`,
-        } as React.CSSProperties
-      }
+      style={panelStyle}
     >
       {panelBody}
     </m.div>
@@ -285,16 +350,9 @@ export default function BottomSheet({
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 250, mass: 0.8 }}
+      data-prevent-swipe="true"
       className={`${anchoredBottom}w-full ${maxWidth} ${surface} rounded-t-[28px] sm:rounded-[28px] shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] ${className}`}
-      style={
-        {
-          willChange: "transform",
-          // Same as the centered panel: pointer-events-none wrapper above.
-          pointerEvents: "auto",
-          paddingBottom: lifted ? 0 : "env(safe-area-inset-bottom, 0px)",
-          "--sheet-kb-inset": `${keyboardInset}px`,
-        } as React.CSSProperties
-      }
+      style={panelStyle}
     >
       {panelBody}
     </m.div>
@@ -326,12 +384,13 @@ export default function BottomSheet({
   //    does the lift. `pointerEvents: "auto"` restores its interactivity.
   const panel = (
     <div
-      className={lifted ? "pointer-events-none fixed inset-0 z-[56]" : ""}
+      className={lifted ? "pointer-events-none fixed inset-0" : ""}
       style={
         lifted
           ? {
               transform: `translateY(-${keyboardInset}px)`,
               willChange: "transform",
+              zIndex: panelZIndex,
             }
           : undefined
       }
@@ -348,11 +407,66 @@ export default function BottomSheet({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={dismissable ? handleBackdropClick : undefined}
-        className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-xs"
-        style={{ willChange: "opacity" }}
+        className="fixed inset-0 bg-black/45 backdrop-blur-xs"
+        style={{ willChange: "opacity", zIndex: backdropZIndex }}
       />
       {panel}
     </>,
     document.body
+  );
+}
+
+/**
+ * The standard title card every bottom sheet shares, rendered by `BottomSheet`
+ * when a `title` is passed.
+ *
+ * A bordered rounded-2xl block holding three things: an optional icon badge, a
+ * stacked title + subtitle, and the close X on the right — the close sits next
+ * to the thing it names rather than floating in the sheet's chrome row. This is
+ * the exact block the Full Weekly Timetable sheet and the Faculty Schedule
+ * modal use; the card is zinc so it reads against the sheet's zinc surface, and
+ * `accent` lets a sheet tint only the icon tile to its own colour.
+ */
+function TitleCard({
+  title,
+  subtitle,
+  icon,
+  accent = "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30",
+  trailing,
+  closeLabel,
+  onClose,
+}: {
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  icon?: React.ReactNode;
+  accent?: string;
+  trailing?: React.ReactNode;
+  closeLabel: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="p-4 sm:p-5 mb-4 border border-zinc-200/70 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-900/70">
+      <div className="flex items-center gap-3 min-w-0">
+        {icon && (
+          <div className={`p-2 rounded-2xl border shrink-0 ${accent}`}>{icon}</div>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white truncate">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {trailing}
+        <IconButton onClick={onClose} title={closeLabel}>
+          <X className="w-4 h-4" />
+        </IconButton>
+      </div>
+    </div>
   );
 }

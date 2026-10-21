@@ -170,22 +170,17 @@ export default function ScanHandleSheet({
   const busy = state === "starting";
 
   return (
-    <BottomSheet onClose={onClose} overlayId="social-scan-peer" maxWidth="max-w-md">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="social-scan-peer"
+      maxWidth="max-w-md"
+      title="Scan their handle"
+      subtitle="Point the camera at the QR on their Social → Share screen"
+      icon={<Camera className="w-4.5 h-4.5" />}
+      accent="border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+      closeLabel="Close scanner"
+    >
       <div className="text-left space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl flex items-center justify-center border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-            <Camera className="w-4.5 h-4.5" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit leading-tight">
-              Scan their handle
-            </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-              Point the camera at the QR on their Social &rarr; Share screen
-            </p>
-          </div>
-        </div>
-
         {/*
           Always mounted, even on the error paths. The library injects its video
           element into this node and `clear()` expects to find it, so swapping

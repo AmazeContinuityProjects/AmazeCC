@@ -75,6 +75,8 @@ export default function SlotDetailSheet({
   onToggleBlockSlot,
   attendanceByCourse,
   onClose,
+  backdropZIndex,
+  panelZIndex,
 }: {
   cell: Cell;
   dayName: string;
@@ -82,6 +84,9 @@ export default function SlotDetailSheet({
   onToggleBlockSlot?: (slot: string) => void;
   attendanceByCourse?: Record<string, AttendanceTone>;
   onClose: () => void;
+  /** Lift the sheet above a surface that renders higher than the default z-60. */
+  backdropZIndex?: number;
+  panelZIndex?: number;
 }) {
   const course = cell.course;
   const attendance = course ? attendanceByCourse?.[course.code] : undefined;
@@ -125,27 +130,19 @@ export default function SlotDetailSheet({
       // which left a narrow strip down each side of a phone.
       placement="bottom-center"
       maxWidth="max-w-md"
+      backdropZIndex={backdropZIndex}
+      panelZIndex={panelZIndex}
+      title={`${dayName} · ${timeRange}`}
+      subtitle={<span className={cn("font-bold", headerTone)}>{headerCaption}</span>}
+      icon={<Clock className="h-4.5 w-4.5" />}
+      accent={
+        course
+          ? cn(course.color, "border-transparent text-gray-900 dark:text-gray-100")
+          : TONE_BADGE[cell.kind === "gap" ? "amber" : cell.blocked ? "red" : "zinc"]
+      }
+      closeLabel="Close slot detail"
     >
       <div className="space-y-5 text-left">
-        <div className="flex items-center gap-3">
-          <span
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border",
-              course
-                ? cn(course.color, "border-transparent text-gray-900 dark:text-gray-100")
-                : TONE_BADGE[cell.kind === "gap" ? "amber" : cell.blocked ? "red" : "zinc"]
-            )}
-          >
-            <Clock className="h-4.5 w-4.5" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="font-outfit text-sm font-black leading-tight text-zinc-900 dark:text-white">
-              {dayName} · {timeRange}
-            </h3>
-            <p className={cn("text-[11px] font-bold", headerTone)}>{headerCaption}</p>
-          </div>
-        </div>
-
         <div className="flex flex-wrap gap-1.5">
           {cell.slots.map((slot) => (
             <span

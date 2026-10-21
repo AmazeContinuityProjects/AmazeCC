@@ -21,7 +21,7 @@ export interface TimetableGridProps {
  *
  * Two behaviours here are load-bearing:
  *
- *  - **`customCourses && !fullSize` is a compare preview.** `AutoGeneratorModal`
+ *  - **`customCourses && !fullSize` is a compare preview.** `FFCSGeneratorSubpage`
  *    renders up to three of these side by side at 85% scale, and a friend
  *    preview is read-only. Both are pinned horizontal — there is no room for a
  *    switcher in a third of a column, and offering one in a read-only preview

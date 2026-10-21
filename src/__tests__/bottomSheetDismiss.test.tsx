@@ -22,6 +22,18 @@ import BottomSheet from "../components/custom/shared/BottomSheet";
 afterEach(cleanup);
 
 /**
+ * The backdrop, not the panel.
+ *
+ * Selected by its own styling rather than a z-index class: the z-index is an
+ * inline style (a sheet rendered above a z-300 surface passes a higher pair),
+ * so it no longer appears in `className`. The backdrop's translucent overlay
+ * classes are what distinguish it from the panel and the keyboard-lift wrapper,
+ * which are also `fixed inset-0`.
+ */
+const backdrop = () =>
+  document.querySelector(".fixed.inset-0.bg-black\\/45") as HTMLElement | null;
+
+/**
  * A sheet host that actually unmounts on close.
  *
  * Recording the call and leaving the sheet mounted is not enough: a sheet that
@@ -169,9 +181,9 @@ describe("BottomSheet dismissal", () => {
     const closed: string[] = [];
     renderStack(["solo"], (id) => closed.push(id));
 
-    const backdrop = document.querySelector(".fixed.inset-0.z-\\[55\\]") as HTMLElement;
-    expect(backdrop).toBeTruthy();
-    fireEvent.click(backdrop);
+    const overlay = backdrop();
+    expect(overlay).toBeTruthy();
+    fireEvent.click(overlay!);
 
     expect(closed).toEqual(["solo"]);
   });
@@ -183,8 +195,8 @@ describe("BottomSheet dismissal", () => {
       <Solo onClose={() => closed.push("x")} onBackdropClick={() => parked.push("park")} />,
     );
 
-    const backdrop = document.querySelector(".fixed.inset-0.z-\\[55\\]") as HTMLElement;
-    fireEvent.click(backdrop);
+    const overlay = backdrop();
+    fireEvent.click(overlay!);
 
     expect(parked).toEqual(["park"]);
     expect(closed).toEqual([]);

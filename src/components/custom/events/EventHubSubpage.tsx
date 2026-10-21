@@ -601,16 +601,15 @@ export default function EventHubSubpage({
       {/* Status Sheet */}
       <AnimatePresence>
         {modalOpen && (
-          <BottomSheet onClose={() => setModalOpen(false)} overlayId="eventhub-status" maxWidth="max-w-md">
+          <BottomSheet
+            onClose={() => setModalOpen(false)}
+            overlayId="eventhub-status"
+            maxWidth="max-w-md"
+            title={modalContent.title}
+            subtitle={modalContent.message}
+            closeLabel="Close status"
+          >
             <div className="space-y-4 pt-1">
-              <div>
-                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                  {modalContent.title}
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-                  {modalContent.message}
-                </p>
-              </div>
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} className="w-full py-3">
                 Close
               </Button>
@@ -622,15 +621,15 @@ export default function EventHubSubpage({
       {/* PWA Mobile Fallback Sheet */}
       <AnimatePresence>
         {!!pwaUrl && (
-          <BottomSheet onClose={() => setPwaUrl(null)} overlayId="eventhub-pwa" maxWidth="max-w-md">
+          <BottomSheet
+            onClose={() => setPwaUrl(null)}
+            overlayId="eventhub-pwa"
+            maxWidth="max-w-md"
+            title="Secure Access Required"
+            subtitle="Because of Mobile App security policies, accessing Event Hub securely requires two steps."
+            closeLabel="Close secure access steps"
+          >
             <div className="space-y-4 pt-1">
-              <div>
-                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">Secure Access Required</h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-                  Because of Mobile App security policies, accessing Event Hub securely requires two steps.
-                </p>
-              </div>
-
               <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
                 <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-1 text-sm">Step 1: Authenticate</h4>
                 <p className="text-xs text-indigo-700 dark:text-indigo-400 mb-3">Log in to the portal. <strong>Click 'Done' or 'X' in the top bar immediately when the dashboard appears.</strong></p>

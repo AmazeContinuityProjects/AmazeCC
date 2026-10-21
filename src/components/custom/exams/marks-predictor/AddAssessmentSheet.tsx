@@ -53,25 +53,22 @@ export default function AddAssessmentSheet({
       overlayId={`predictor-add-${component}`}
       maxWidth="max-w-md"
       avoidKeyboard
+      title={`Add ${componentLabel} assessment`}
+      subtitle={
+        <>
+          Published weightages are frozen facts, and the FAT holds 40% of the
+          {componentLabel === "Theory" ? " theory" : " lab"} total — the rest is what a new
+          assessment may claim.
+        </>
+      }
+      trailing={
+        <ToneBadge tone={remaining > 0 ? "emerald" : "red"}>
+          {remaining.toFixed(1)} wt left
+        </ToneBadge>
+      }
+      closeLabel="Close add assessment"
     >
       <div className="space-y-4 pb-2">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Add {componentLabel} assessment
-            </h3>
-            <ToneBadge tone={remaining > 0 ? "emerald" : "red"}>
-              {remaining.toFixed(1)} wt left
-            </ToneBadge>
-          </div>
-          <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 leading-relaxed">
-            Published weightages are frozen facts, and the FAT holds 40% of the
-            {componentLabel === "Theory" ? " theory" : " lab"} total — the rest is what a new
-            assessment may claim.
-          </p>
-        </div>
-
         {/* Fields */}
         <div className="space-y-3">
           <div className="space-y-1.5">

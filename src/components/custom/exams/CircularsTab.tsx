@@ -98,17 +98,17 @@ function TreeNode({ item, depth = 0, creds }: { item: CircularItem; depth?: numb
 
 function NewCircularsModal({ circulars, onClose }: { circulars: CircularItem[]; onClose: () => void }) {
   return (
-    <BottomSheet onClose={onClose} overlayId="new-circulars" maxWidth="max-w-lg">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="new-circulars"
+      maxWidth="max-w-lg"
+      title="New Circulars"
+      subtitle={`${circulars.length} new circular${circulars.length !== 1 ? "s" : ""} published`}
+      icon={<Bell className="w-5 h-5" />}
+      accent="bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+      closeLabel="Close circulars"
+    >
       <div className="flex flex-col min-h-0 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Bell className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">New Circulars</h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">{circulars.length} new circular{circulars.length !== 1 ? "s" : ""} published</p>
-          </div>
-        </div>
         <div className="space-y-2">
           {circulars.map((c, i) => (
             <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800/60">

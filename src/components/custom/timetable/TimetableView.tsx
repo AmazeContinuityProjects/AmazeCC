@@ -91,8 +91,9 @@ export interface TimetableViewProps {
    */
   forceView?: ResolvedView;
   /**
-   * Force a cell density. Left unset, it follows `timetableCellDensity` and the
-   * in-grid toggle; set it to pin a surface regardless of the setting.
+   * Force a cell density. Left unset, it follows the setting — on a phone,
+   * compact until the user picks one — and the in-grid toggle; set it to pin a
+   * surface regardless of the setting.
    */
   cellDensity?: CellDensity;
   /** Extra classes on the horizontal grid's scroll wrapper (compare mode shrink). */

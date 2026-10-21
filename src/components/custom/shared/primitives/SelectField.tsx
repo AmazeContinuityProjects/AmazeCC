@@ -33,7 +33,7 @@ import { OPTION_PICKER_TRIGGER, optionPickerSize } from "@/lib/uiTokens";
  * inside any of those modals would open underneath its own host — invisible popup,
  * untappable backdrop — so that call site needs a control with no popup at all
  * (`SegmentedControl` for a short fixed set, `ChipTabs` for an ordered one), not a
- * bigger number here. The two `AutoGeneratorModal` pickers were converted for
+ * bigger number here. The two `FFCSGeneratorSubpage` pickers were converted for
  * exactly this reason. No picker currently lives under a `z-100`+ surface.
  */
 

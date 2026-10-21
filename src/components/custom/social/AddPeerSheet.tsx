@@ -179,22 +179,17 @@ export default function AddPeerSheet({
     // below the fold. Letting the keyboard win — the browser resizes the
     // viewport and the content scrolls under it — is what the other 33 sheets
     // do, and it is the behaviour that actually works on a phone.
-    <BottomSheet onClose={close} overlayId="social-add-peer" maxWidth="max-w-md">
+    <BottomSheet
+      onClose={close}
+      overlayId="social-add-peer"
+      maxWidth="max-w-md"
+      title="Pair with a student"
+      subtitle="Enter their handle to share timetables both ways"
+      icon={<Link2 className="w-4.5 h-4.5" />}
+      accent="border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+      closeLabel="Close pair sheet"
+    >
       <div className="text-left space-y-5">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl flex items-center justify-center border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-            <Link2 className="w-4.5 h-4.5" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit leading-tight">
-              Pair with a student
-            </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-              Enter their handle to share timetables both ways
-            </p>
-          </div>
-        </div>
-
         <div className="space-y-2">
           <label
             htmlFor="social-peer-handle"

@@ -854,36 +854,26 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
           onClose={() => setInspectedRoom(null)}
           overlayId="room-inspector"
           maxWidth="max-w-xl"
+          title={inspectedRoom}
+          subtitle={`${DAY_LABELS[inspectDay].full} · ${timeline.filter((t) => !t.course).length}/${timeline.length} free`}
+          icon={<DoorOpen className="w-5 h-5" />}
+          accent="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+          closeLabel="Close room inspector"
+          trailing={
+            <GhostButton
+              onClick={() => handleCopy(inspectedRoom)}
+              title="Copy room code"
+              className="shrink-0"
+            >
+              {copied === inspectedRoom ? (
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </GhostButton>
+          }
         >
           <div className="space-y-4 text-left">
-            <div className={cn(TILE_CARD, "flex items-center justify-between gap-3")}>
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                  <DoorOpen className="w-5 h-5" />
-                </span>
-                <div className="min-w-0">
-                  <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate">
-                    {inspectedRoom}
-                  </h2>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                    {DAY_LABELS[inspectDay].full} ·{" "}
-                    {timeline.filter((t) => !t.course).length}/{timeline.length} free
-                  </p>
-                </div>
-              </div>
-              <GhostButton
-                onClick={() => handleCopy(inspectedRoom)}
-                title="Copy room code"
-                className="shrink-0"
-              >
-                {copied === inspectedRoom ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </GhostButton>
-            </div>
-
             {/* The room's own week. Scoped to the sheet: browsing days here
                 answers "when is this room free?" without moving the list. */}
             <DayPicker value={inspectDay} onChange={setInspectDay} today={now.day} compact />

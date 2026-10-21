@@ -36,6 +36,8 @@ export interface TransportData {
   fpReference?: string;
   paymentStatus?: string;
   busRouteId?: string;
+  /** Live GPS share link from VTOP, already resolved by /api/transport. */
+  busUrl?: string;
   qrCode?: string;
   pageCsrf?: string;
 }

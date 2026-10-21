@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { writeHistoryEntry } from "./historyStack";
 
 interface OverlayEntry {
   id: string;
@@ -24,7 +25,8 @@ export function hasOpenOverlays(): boolean {
 /**
  * Dismiss the topmost overlay. Returns true when something was closed.
  * Called from the global popstate handler: the OS gesture already popped a
- * history entry, so the caller re-pushes the current screen to resync.
+ * history entry, so the caller decides whether the screen beneath needs to be
+ * re-pushed.
  */
 export function closeTopOverlayFromPop(): boolean {
   const top = stack.pop() || null;
@@ -48,10 +50,16 @@ export function isTopOverlay(id: string): boolean {
 /**
  * Bind an overlay's open state to the system back gesture/button.
  *
- * While open, the overlay sits on the stack; a system back press closes the
- * topmost overlay instead of navigating screens. Closing in-app (or
- * unmounting) simply unregisters — no history bookkeeping needed because
- * overlays never push their own entries.
+ * Every back-able overlay owns a history entry while it is open. The OS back
+ * gesture pops that entry and the popstate handler dismisses the overlay —
+ * the entry *is* the op. Owning it, instead of borrowing a screen's entry,
+ * is what makes back work on the very first screen (where there is no screen
+ * entry to borrow) and keeps the whole chain of ops addressable by back, not
+ * just the screens.
+ *
+ * Closing an overlay in-app (X, backdrop, Escape) leaves its entry behind as a
+ * forward entry; the popstate handler treats a forward landing on an overlay
+ * entry whose overlay is already gone as a no-op rather than re-opening it.
  */
 export function useOverlayBack(id: string, open: boolean, onClose: () => void) {
   const closeRef = useRef(onClose);
@@ -61,6 +69,7 @@ export function useOverlayBack(id: string, open: boolean, onClose: () => void) {
     if (!open) return;
     removeEntry(id);
     stack.push({ id, close: () => closeRef.current() });
+    writeHistoryEntry("push", { op: { kind: "overlay", id } });
     return () => {
       removeEntry(id);
     };

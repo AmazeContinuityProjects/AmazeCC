@@ -29,7 +29,6 @@ interface BusFinderProps {
   buses: BusRoute[];
   transportData?: TransportData | null;
   transportLoading?: boolean;
-  loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   /** Re-pulls the route list; rendered as the header's refresh action. */
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -56,7 +55,6 @@ const BusFinder = ({
   buses,
   transportData,
   transportLoading,
-  loginToVTOP,
   onRefresh,
   refreshing,
   onBack,
@@ -120,9 +118,6 @@ const BusFinder = ({
         <TransportRegistration
           data={transportData ?? null}
           loading={transportLoading ?? false}
-          loginToVTOP={
-            loginToVTOP ?? (async () => ({ cookies: [], authorizedID: "", csrf: "" }))
-          }
           buses={buses}
         />
 
@@ -210,12 +205,26 @@ function BusDetailSheet({ bus, onClose }: { bus: BusRoute; onClose: () => void }
   const boardingPoints = bus.boardingPoints || [];
 
   return (
-    <BottomSheet onClose={onClose} overlayId="bus-detail" maxWidth="max-w-lg">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="bus-detail"
+      maxWidth="max-w-lg"
+      title={bus.route}
+      subtitle={
+        <span className="inline-flex items-center gap-2 flex-wrap">
+          <ToneBadge tone={routeTone(bus.type)}>{bus.type}</ToneBadge>
+          {bus.busLocation ? (
+            <span className="text-[11px] font-medium text-text-secondary dark:text-text-muted truncate max-w-32">
+              {bus.busLocation}
+            </span>
+          ) : null}
+        </span>
+      }
+      icon={<span className="text-sm font-black font-outfit">{bus.id}</span>}
+      accent={TONE_ICON_TILE[routeTone(bus.type)]}
+      closeLabel="Close route"
+    >
       <div className="space-y-5">
-        <div className="pb-4 border-b border-border-muted">
-          <RouteIdentity route={bus} />
-        </div>
-
         <RouteContacts route={bus} />
 
         {stops.length > 0 ? (

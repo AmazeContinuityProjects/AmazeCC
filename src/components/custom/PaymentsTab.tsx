@@ -721,22 +721,13 @@ export default function PaymentsTab({ loginToVTOP, onBack }: PaymentsTabProps) {
             onClose={() => setOpenReceipt(null)}
             overlayId="receipt-detail"
             maxWidth="max-w-lg"
+            title={openReceipt.receiptNumber}
+            subtitle="Official fee receipt"
+            icon={<Receipt className="w-5 h-5" />}
+            accent="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30"
+            closeLabel="Close receipt"
           >
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-black font-outfit text-zinc-900 dark:text-white truncate">
-                    {openReceipt.receiptNumber}
-                  </h3>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                    Official fee receipt
-                  </p>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-2.5 text-xs">
                 <KeyValue label="Amount" value={fmtAmt(openReceipt.amount)} />
                 <KeyValue label="Date" value={openReceipt.date || "—"} />

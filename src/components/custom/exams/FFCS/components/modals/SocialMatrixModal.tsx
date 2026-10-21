@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
-import { Users, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Users } from 'lucide-react';
 import { TimetableState, Friend, FriendGroup, AddedCourse } from '../../types';
 import { calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
+import BottomSheet from '../../../../shared/BottomSheet';
 
 export interface SocialMatrixModalProps {
   isOpen: boolean;
@@ -19,10 +21,12 @@ export interface SocialMatrixModalProps {
 export function SocialMatrixModal({
   isOpen, onClose, timetables, friends, friendGroups, socialScoreGroupMethod, generatorPreviewTimetable, stagedTimetables, activeTimetableId
 }: SocialMatrixModalProps) {
-  if (!isOpen) return null;
-
-  const setIsSocialMatrixOpen = (v: boolean) => { if (!v) onClose(); };
-
+  /**
+   * No `if (!isOpen) return null` guard any more, and that is load-bearing:
+   * `useMemo` below used to sit behind it, so the hook ran only while open. The
+   * closed tree is now an empty `<AnimatePresence>`, which keeps every hook on
+   * every render.
+   */
   // Calculate pairs
   const calculatePairs = () => {
     let pairs = [];
@@ -43,22 +47,30 @@ export function SocialMatrixModal({
 
   const topPairs = useMemo(() => calculatePairs(), [timetables, friends]);
 
+  /*
+    A sheet now, so the chrome — grabber, one X, swipe-down, Escape and system
+    back — belongs to it and the header keeps only the title. The z pair is
+    passed through rather than left at the sheet default because the planner can
+    be in fullscreen (z-100) behind this, and a sheet at the default z-60 would
+    land underneath it. `contentClassName` carries the body's `space-y-6`: the
+    sheet's content wrapper supplies the padding and the scroll that the old
+    `p-6 overflow-auto` div did.
+  */
   return (
-    <>        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Users className="w-5 h-5 text-pink-500" /> Social Score Breakdown
-              </h3>
-              <button 
-                onClick={() => setIsSocialMatrixOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-auto custom-scrollbar flex-1">
-              <div className="space-y-6">
+    <AnimatePresence>
+      {isOpen && (
+        <BottomSheet
+          onClose={onClose}
+          overlayId="ffcs-social-matrix"
+          maxWidth="max-w-6xl"
+          panelZIndex={300}
+          backdropZIndex={295}
+          contentClassName="space-y-6"
+          title="Social Score Breakdown"
+          icon={<Users className="w-5 h-5" />}
+          accent="bg-pink-500/10 border-pink-500/20 text-pink-500"
+          closeLabel="Close social breakdown"
+        >
                 <div>
                   <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">How it works</h4>
                   <p className="text-sm text-foreground/80 leading-relaxed max-w-3xl">
@@ -140,10 +152,8 @@ export function SocialMatrixModal({
                     </table>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
-    </>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
   );
 }

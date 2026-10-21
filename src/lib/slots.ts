@@ -274,7 +274,7 @@ export const MORNING_BEFORE_MIN = 840;
  * Every period a slot id names, under either spelling.
  *
  * This is the one lookup. It replaced five: two in `FFCSTimetableTab`, one in
- * `AutoGeneratorModal`, one in `exportIcal`, and a sixth in a `courseProcessor`
+ * `FFCSGeneratorSubpage`, one in `exportIcal`, and a sixth in a `courseProcessor`
  * that nothing imported and which read a `schema.timetable[].periods[].slots`
  * shape that exists nowhere in this repository.
  *

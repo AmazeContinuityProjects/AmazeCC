@@ -95,35 +95,29 @@ export default function ClubDetailsModal({ club, isOpen, onClose }: ClubDetailsM
   return (
     <AnimatePresence>
       {isOpen && (
-        <BottomSheet onClose={onClose} overlayId="club-details" maxWidth="max-w-2xl">
+        <BottomSheet
+          onClose={onClose}
+          overlayId="club-details"
+          maxWidth="max-w-2xl"
+          title={club.club_name}
+          subtitle={club.club_id}
+          icon={
+            club.logo_url ? (
+              <img
+                src={club.logo_url}
+                alt={`${club.club_name} logo`}
+                loading="lazy"
+                decoding="async"
+                className="w-9 h-9 rounded-xl object-cover"
+              />
+            ) : (
+              <User className="w-5 h-5" />
+            )
+          }
+          accent="bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+          closeLabel="Close club details"
+        >
           <div className="space-y-6 text-left">
-            {/* Header */}
-            <div className={cn(TILE_CARD, "flex items-center gap-4")}>
-              {club.logo_url ? (
-                <img
-                  src={club.logo_url}
-                  alt={`${club.club_name} logo`}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-14 h-14 rounded-2xl object-cover shrink-0 border border-zinc-200/70 dark:border-zinc-800/80"
-                />
-              ) : (
-                <span className="w-14 h-14 rounded-2xl shrink-0 border bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                  <User className="w-6 h-6" />
-                </span>
-              )}
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-black text-zinc-900 dark:text-white font-outfit tracking-tight leading-tight">
-                  {club.club_name}
-                </h2>
-                {club.club_id && (
-                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 font-outfit mt-0.5 break-words">
-                    {club.club_id}
-                  </p>
-                )}
-              </div>
-            </div>
-
             {loadingLp && (
               <div className="flex items-center justify-center py-6">
                 <div

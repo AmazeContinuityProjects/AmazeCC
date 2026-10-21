@@ -310,24 +310,17 @@ export default function TabHelpFooter({ tabId }: { tabId: string }) {
       {/* Detailed Step-by-Step Guide Sheet */}
       <AnimatePresence>
       {isOpen && (
-        <BottomSheet onClose={() => setIsOpen(false)} overlayId={`tab-help-${tabId}`} maxWidth="max-w-lg">
+        <BottomSheet
+          onClose={() => setIsOpen(false)}
+          overlayId={`tab-help-${tabId}`}
+          maxWidth="max-w-lg"
+          title={`${guide.tabName} Guide`}
+          subtitle={guide.subtitle}
+          icon={<HelpCircle className="w-5 h-5" />}
+          accent="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30"
+          closeLabel="Close guide"
+        >
           <div className="text-left space-y-5">
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                  <HelpCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                    {guide.tabName} Guide
-                  </h3>
-                  <p className="text-[11px] text-zinc-400 font-medium">
-                    {guide.subtitle}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-3.5">
               {guide.items.map((item, idx) => (
                 <div

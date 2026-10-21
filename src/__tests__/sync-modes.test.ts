@@ -169,8 +169,18 @@ describe("granular op subsets", () => {
       settings: {},
       only: ["library-due", "bogus-endpoint"],
     })) as { endpoints: string[] };
-    expect(calls).toEqual(["library-due"]);
     expect(res.endpoints).toEqual(["library-due"]);
+    // library-due is batchable, so it rides in one /api/bulk call.
+    expect(calls).toEqual(["bulk"]);
+  });
+
+  it("bulk sends batchable endpoints to /api/bulk in a single call", async () => {
+    const calls: string[] = [];
+    await getOp("bulk")!.run(fakeCtx(calls), { settings: {} });
+    // 12 of the 13 endpoints are batchable; only minor-honour stays direct.
+    expect(calls.filter((c) => c === "bulk").length).toBe(1);
+    expect(calls).toContain("minor-honour");
+    expect(calls.length).toBe(2);
   });
 
   it("standalone child ops persist individually", async () => {

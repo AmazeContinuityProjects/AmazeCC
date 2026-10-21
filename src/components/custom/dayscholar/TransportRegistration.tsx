@@ -1,11 +1,8 @@
 "use client";
-import { useState } from "react";
-import { api } from "@/lib/sync-engine";
 import {
   Bus,
   CheckCircle2,
   ExternalLink,
-  Loader2,
   MapPin,
   Navigation,
   QrCode,
@@ -25,7 +22,6 @@ import type { BusRoute, TransportData } from "@/types/transport";
 interface TransportRegistrationProps {
   data: TransportData | null;
   loading: boolean;
-  loginToVTOP: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   buses?: BusRoute[];
 }
 
@@ -38,32 +34,19 @@ interface TransportRegistrationProps {
  * the three states (loading, not registered, registered) are `ListSkeleton` and
  * `EmptyPanel` rather than bespoke cards, so a student with no registration sees
  * the same empty treatment as everywhere else instead of a lone amber blob.
+ *
+ * The tracking link rides in on `data.busUrl` (fetched by `/api/transport` in the
+ * same request as the registration), so tapping "Track my bus" is a plain
+ * `window.open` — no extra function invocation.
  */
 export default function TransportRegistration({
   data,
   loading,
-  loginToVTOP,
   buses,
 }: TransportRegistrationProps) {
-  const [tracking, setTracking] = useState(false);
-
-  const handleTrackBus = async () => {
-    if (!data?.busRouteId) return;
-    setTracking(true);
-    try {
-      const { cookies, authorizedID, csrf } = await loginToVTOP();
-      const result = (await api("transport/track", {
-        method: "POST",
-        body: { cookies, authorizedID, csrf, busRouteId: data.busRouteId },
-      })) as any;
-      if (result.busUrl) {
-        window.open(result.busUrl, "_blank", "noopener,noreferrer");
-      }
-    } catch (err: any) {
-      console.error("Track bus error:", err);
-    } finally {
-      setTracking(false);
-    }
+  const handleTrackBus = () => {
+    if (!data?.busUrl) return;
+    window.open(data.busUrl, "_blank", "noopener,noreferrer");
   };
 
   if (loading) return <ListSkeleton rows={3} leading="dot" trailing />;
@@ -154,19 +137,14 @@ export default function TransportRegistration({
         )}
 
         <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
-          {data.busRouteId && (
+          {data.busUrl && (
             <button
               type="button"
               onClick={handleTrackBus}
-              disabled={tracking}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 disabled:opacity-70 active:scale-[0.98]"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-indigo-700 active:scale-[0.98]"
             >
-              {tracking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Navigation className="h-4 w-4" />
-              )}
-              {tracking ? "Opening tracker…" : "Track my bus"}
+              <Navigation className="h-4 w-4" />
+              Track my bus
             </button>
           )}
           <a

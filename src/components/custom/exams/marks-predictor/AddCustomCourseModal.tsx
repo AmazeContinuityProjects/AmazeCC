@@ -46,19 +46,17 @@ export default function AddCustomCourseModal({
   };
 
   return (
-    <BottomSheet onClose={onClose} overlayId="predictor-custom-course" maxWidth="max-w-md" avoidKeyboard>
+    <BottomSheet
+      onClose={onClose}
+      overlayId="predictor-custom-course"
+      maxWidth="max-w-md"
+      avoidKeyboard
+      title="Add Custom Subject"
+      icon={<Plus className="w-5 h-5" />}
+      accent={TONE_ICON_TILE.indigo}
+      closeLabel="Close add subject"
+    >
       <div className="space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}>
-              <Plus className="w-5 h-5" />
-            </span>
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-              Add Custom Subject
-            </h3>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="text-xs font-black uppercase tracking-wider text-zinc-400">

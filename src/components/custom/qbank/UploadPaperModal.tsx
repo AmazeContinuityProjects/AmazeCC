@@ -63,15 +63,14 @@ export default function UploadPaperModal({ isOpen, onClose, courses, username, i
   };
 
   return (
-    <BottomSheet onClose={onClose} overlayId="qbank-upload" maxWidth="max-w-lg">
-      {/* Header */}
-      <div className="flex justify-between items-center gap-3 pb-1">
-        <div className="min-w-0">
-          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">Upload Past Paper Link</h2>
-          {isAdmin && <span className="inline-block mt-1 bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">Admin Mode</span>}
-        </div>
-      </div>
-
+    <BottomSheet
+      onClose={onClose}
+      overlayId="qbank-upload"
+      maxWidth="max-w-lg"
+      title="Upload Past Paper Link"
+      subtitle={isAdmin ? <span className="bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-green-900/30 dark:text-green-400">Admin Mode</span> : undefined}
+      closeLabel="Close upload form"
+    >
       {success ? (
         <div className="py-8 text-center flex flex-col items-center">
           <div className="w-16 h-16 bg-green-100  dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-4">

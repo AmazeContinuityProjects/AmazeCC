@@ -78,16 +78,15 @@ export default function FeedbackStatusModal({ isOpen, onClose, loginToVTOP }: Pr
   return (
     <AnimatePresence>
       {isOpen && (
-      <BottomSheet onClose={onClose} overlayId="feedback-status-sheet" maxWidth="max-w-2xl">
+      <BottomSheet
+        onClose={onClose}
+        overlayId="feedback-status-sheet"
+        maxWidth="max-w-2xl"
+        title="Feedback Status"
+        subtitle="Mid-semester and TEE feedback completion per course"
+        closeLabel="Close feedback status"
+      >
       <div className="space-y-5">
-        <div>
-          <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-            Feedback Status
-          </h2>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-            Mid-semester and TEE feedback completion per course
-          </p>
-        </div>
         {loading && (
           <div className="space-y-3">
             <Skeleton className="h-8 w-48 rounded-lg" />

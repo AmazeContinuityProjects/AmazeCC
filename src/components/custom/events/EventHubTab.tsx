@@ -182,12 +182,17 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
 
 export default function EventHubTab({
   IDs,
+  loginToVTOP,
   onBack,
   setIsSubpageOpen,
   registeredEvents,
   setRegisteredEvents,
 }: {
   IDs: any;
+  /** Optional so tests/hosts can mount without it, but Dashboard always wires
+   *  it — this page's load runs through the sync engine and cannot start a
+   *  session without an invoke like every other hub. */
+  loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   onBack?: () => void;
   setIsSubpageOpen?: (isOpen: boolean) => void;
   registeredEvents?: any[];
@@ -266,6 +271,26 @@ export default function EventHubTab({
       return;
     }
     try {
+      /**
+       * Invoke the same login every sibling hub (Libraries, Clubs, Circulars,
+       * Hostel Counselling) runs when it opens. Two reasons this page needs
+       * it explicitly:
+       *
+       *  - Its load is a `runPageSync` → `syncEngine.sync("events")`, and the
+       *    engine throws "not logged in" until `syncEngine.login` has seeded
+       *    it with credentials — which on a restored session (reload) no flow
+       *    does by itself. Without this, opening the tab errors out instead
+       *    of logging in.
+       *  - A live VTOP session re-arms whether the catalog fetch itself calls
+       *    the EventHub session or a later action (1-Click Register) needs
+       *    the real login.
+       *
+       * `loginVtop` answers from cache whenever a session already exists, so
+       * an in-tab reload costs nothing when the manager is warm.
+       */
+      if (IDs?.VtopUsername !== "demo") {
+        await loginToVTOP?.();
+      }
       // The engine `events` op pulls the public catalogue AND the user's
       // registrations with session + expiry retry. The sheet always reaches
       // 100 and closes; local state mirrors the result.

@@ -54,7 +54,8 @@ import {
   formatSessionMessage,
   handleEngineProgressEvent,
 } from "@/lib/sync-engine/sync-session";
-import { closeTopOverlayFromPop, useOverlayBack } from "@/lib/overlayStack";
+import { closeTopOverlayFromPop, hasOpenOverlays, useOverlayBack } from "@/lib/overlayStack";
+import { readHistoryOp, writeHistoryEntry } from "@/lib/historyStack";
 import type { Ids } from "@/lib/sync-engine/types";
 import { storage } from "@/lib/storage";
 import { reportError } from "@/lib/error-utils";
@@ -1322,19 +1323,13 @@ export default function LoginPage() {
   const screenKeyRef = useRef(screenKey);
   screenKeyRef.current = screenKey;
 
-  // Next.js App Router patches history.pushState/replaceState and force-reloads
-  // on popstate when the landed entry lacks its internal markers — and its
-  // patch installs (ancestor effect) after ours runs on mount. So every entry
-  // we write preserves the current history.state (markers included), mirroring
-  // Next's own copyNextJsInternalHistoryState. Never bypass via
-  // History.prototype: marker-less entries trigger location.reload on pop.
+  // Next.js App Router patches history.pushState/replaceState and reloads the
+  // page on popstate when the landed entry lacks its internal `__NA` marker.
+  // `writeHistoryEntry` writes that marker explicitly (and preserves the
+  // internals tree), so a back step can never turn into a reload that resets
+  // the app's own stack. `screen` is the op the entry restores.
   const writeScreenState = useCallback((method: "push" | "replace", key: string) => {
-    try {
-      const prev = window.history.state;
-      const data = prev && typeof prev === "object" ? { ...prev, screen: key } : { screen: key };
-      if (method === "push") window.history.pushState(data, "");
-      else window.history.replaceState(data, "");
-    } catch {}
+    writeHistoryEntry(method, { screen: key });
   }, []);
 
   const screenMountedRef = useRef(false);
@@ -1372,14 +1367,24 @@ export default function LoginPage() {
 
   useEffect(() => {
     const onPopState = (e: PopStateEvent) => {
-      // Overlays first: a back press dismisses the topmost modal/palette/
-      // in-tab subpage. The pop consumed a screen entry, so re-push the
-      // current screen to keep history in sync (net zero entries).
+      const state = e.state as { op?: unknown; screen?: unknown } | null;
+
+      // The popped entry was an overlay's own entry: dismissing that overlay
+      // *is* the back step, so there is no screen to re-push. If the overlay
+      // was already closed in-app (its entry is a forward leftover), fall
+      // through so the screen it was opened from still restores.
+      if (readHistoryOp(state)?.kind === "overlay" && closeTopOverlayFromPop()) {
+        return;
+      }
+
+      // An overlay is open but the popped entry was a screen's — the overlay
+      // borrowed it. Dismiss the overlay and re-push the current screen to
+      // keep the history length stable.
       if (closeTopOverlayFromPop()) {
         writeScreenState("push", screenKeyRef.current);
         return;
       }
-      const s = (e.state as { screen?: unknown } | null)?.screen;
+      const s = state?.screen;
       if (typeof s !== "string") return; // before app history — allow default (exit)
       const stack = screenStackRef.current;
       if (stack.length >= 2 && stack[stack.length - 2] === s) {
@@ -1397,7 +1402,9 @@ export default function LoginPage() {
   }, [writeScreenState]);
 
   const goBack = useCallback(() => {
-    if (screenStackRef.current.length > 1) {
+    // An open overlay is the topmost back step even when the screen stack is
+    // down to one entry — it owns a history entry of its own now.
+    if (hasOpenOverlays() || screenStackRef.current.length > 1) {
       try { window.history.back(); return; } catch {}
     }
     skipScreenPushRef.current = true;
@@ -1608,6 +1615,7 @@ export default function LoginPage() {
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
       { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Campus", onSelect: () => { setActiveTab("free-class"); } },
+      { id: "tool-faculty-schedule", label: "Find Faculty Schedule", description: "See any faculty member's full weekly classes", icon: "📅", category: "Campus", onSelect: () => { setActiveTab("faculty-schedule"); } },
       { id: "events", label: "Event Hub", description: "Registered events & campus activities", icon: "🎉", category: "Campus", onSelect: () => { setActiveTab("events"); } },
       { id: "clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "Campus", onSelect: () => { setActiveTab("clubs"); } },
     { id: "community", label: "Community Feed", description: "Announcements from clubs & chapters", icon: "📣", category: "Campus", onSelect: () => { setActiveTab("community"); } },
@@ -2827,16 +2835,16 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <BottomSheet onClose={onClose} overlayId="shortcuts-help-sheet" maxWidth="max-w-lg">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="shortcuts-help-sheet"
+      maxWidth="max-w-lg"
+      title="Keyboard Shortcuts"
+      icon={<Keyboard className="w-5 h-5" />}
+      accent="bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+      closeLabel="Close shortcuts help"
+    >
       <div className="flex flex-col min-h-0">
-        <div className="pb-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-            <Keyboard className="w-5 h-5" />
-          </div>
-          <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
-            Keyboard Shortcuts
-          </h3>
-        </div>
         <div className="space-y-5">
           {categories.map((cat, idx) => (
             <div key={idx} className="space-y-2">
