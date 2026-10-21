@@ -42,6 +42,7 @@ AmazeCC is a comprehensive student dashboard for **VIT University**, replacing t
 | Area | Features |
 |------|----------|
 | **Academics** | Attendance tracking with color-coded percentages, marks & assessment breakdown, semester-wise grades with CGPA tracking, GPA predictor & what-if simulations, exam schedule (CAT/FAT) with venue info, course curriculum & syllabus viewer |
+| **FFCS Planner** | Visual clash-free timetable builder, an Advanced Generator that streams conflict-free weeks and ranks them under five opinions (Balanced, Half Days, Minimize Gaps, Early Finish, Late Start), paste/CSV/XLSX course import, friend alignment with Social Matrix scoring, swipe-down sheets, a first-visit guided tour, saved defaults, and share links that carry the whole plan inside the URL |
 | **Campus Life** | Hostel mess menu, laundry & leave management, day scholar transport & bus route finder, library catalog search (KOHA integration), fee dues, payment history & receipts, event discovery & registration (EventHub), cab sharing platform |
 | **Productivity** | Command palette (Ctrl+K) with fuzzy search, real-time attendance predictor, Moodle/LMS assignment deadlines, academic calendar with event overlay, on-duty (OD) hours tracker, course dashboard with deep analytics |
 | **Experience** | Light / Dark / Midnight themes, custom accent colors & palettes, PWA with offline support, push notifications, touch gesture navigation, export to PDF, iCal & images |

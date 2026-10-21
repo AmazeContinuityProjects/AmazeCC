@@ -43,6 +43,21 @@
 
 ---
 
+## FFCS Planner (client-side — no endpoints)
+
+The FFCS timetable planner runs entirely in the browser (static export) and
+calls none of the endpoints above. Its inputs are the course report bundled at
+`public/ffcs/ffcsReport.csv` and files the student drops in (CSV / XLSX / TSV),
+all parsed locally.
+
+| Surface | Where |
+|---------|-------|
+| Share links | `/share/ffcs/?d=…` — the plan is compressed into the URL (lz-string) and decoded client-side; no server holds it |
+| Persistence | `localStorage`, namespaced `ffcs_*` (`ffcs_timetables`, `ffcs_settings`, `ffcs_tour_seen`, …) |
+| Generation | Web worker (`src/components/custom/exams/FFCS/workers/generator.worker.ts`) over the pure search in `logic/generate.ts` |
+
+---
+
 ## Hostel
 
 | Method | Endpoint | Purpose |

@@ -378,7 +378,7 @@ export const storage = {
   },
   ffcsSettings: {
     get: () => getItem<Record<string, unknown>>(KEYS.FFCS_SETTINGS),
-    set: (data: Record<string, unknown>) => setItem(KEYS.FFCS_SETTINGS, data),
+    set: (data: object) => setItem(KEYS.FFCS_SETTINGS, data),
     remove: () => removeItem(KEYS.FFCS_SETTINGS),
   },
   ffcsTourSeen: {

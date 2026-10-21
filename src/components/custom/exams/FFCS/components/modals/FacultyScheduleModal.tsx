@@ -24,8 +24,8 @@ import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primiti
  * Explorer opens it with `initialFaculty` and lands straight on the schedule of
  * the first group whose names match that directory entry.
  *
- * The modal speaks the planner's dialect (`bg-background` / `border-border` /
- * `text-foreground`) because the timetable grid and the planner are that
+ * The modal speaks the planner's dialect (`bg-surface` / `border-border-strong` /
+ * `text-text-heading`) because the timetable grid and the planner are that
  * dialect; it is an overlay, so the page behind it only supplies the backdrop.
  */
 export interface FacultyScheduleModalProps {
@@ -111,13 +111,13 @@ export function FacultyScheduleModal({
             sits at z-100 and a z-60 sheet would land behind it.
           */}
           <div className="space-y-4">
-            <div className="p-4 sm:p-5 border border-border rounded-2xl flex items-center justify-between gap-3 bg-muted/40">
+            <div className="p-4 sm:p-5 border border-border-strong rounded-2xl flex items-center justify-between gap-3 bg-surface-secondary/40">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
                   <CalendarDays className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-base font-black text-foreground truncate">
+                  <h2 className="text-base font-black text-text-heading truncate">
                     {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
                   </h2>
                   <p className="text-xs text-muted-foreground truncate">
@@ -137,7 +137,7 @@ export function FacultyScheduleModal({
             <button
               type="button"
               onClick={() => setSelectedKey(null)}
-              className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-text-heading transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to faculty list
@@ -151,7 +151,7 @@ export function FacultyScheduleModal({
                 {selected.names.map((name) => (
                   <span
                     key={name}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-foreground border border-border"
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-secondary text-text-heading border border-border-strong"
                   >
                     {name}
                   </span>
@@ -176,10 +176,10 @@ export function FacultyScheduleModal({
               panelZIndex={400}
             />
 
-            <div className="overflow-x-auto rounded-xl border border-border custom-scrollbar">
+            <div className="overflow-x-auto rounded-xl border border-border-strong custom-scrollbar">
               <table className="w-full text-left text-sm min-w-[520px]">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40">
+                  <tr className="border-b border-border-strong bg-surface-secondary/40">
                     <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Course</th>
                     <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Type</th>
                     <th className="py-2.5 px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Slot</th>
@@ -188,16 +188,16 @@ export function FacultyScheduleModal({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {selected.offerings.map((offering, index) => (
-                    <tr key={`${offering.CODE}-${offering.SLOT}-${index}`} className="hover:bg-muted/20 transition-colors">
+                    <tr key={`${offering.CODE}-${offering.SLOT}-${index}`} className="hover:bg-surface-secondary/20 transition-colors">
                       <td className="py-2.5 px-3">
-                        <span className="font-bold text-xs text-foreground">{offering.CODE}</span>
+                        <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
                         <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
                           {offering.TITLE}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-foreground/80">{offering.TYPE}</td>
-                      <td className="py-2.5 px-3 font-mono text-xs text-foreground/80">{offering.SLOT}</td>
-                      <td className="py-2.5 px-3 text-xs text-foreground/80">{offering.ROOM || offering.VENUE || "TBA"}</td>
+                      <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
+                      <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">{offering.SLOT}</td>
+                      <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.ROOM || offering.VENUE || "TBA"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -214,7 +214,7 @@ export function FacultyScheduleModal({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search faculty by name…"
                 aria-label="Search faculty"
-                className="w-full bg-background border border-border rounded-xl pl-11 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
+                className="w-full bg-surface border border-border-strong rounded-xl pl-11 pr-4 py-2.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50 transition-colors"
               />
             </div>
 
@@ -243,19 +243,19 @@ export function FacultyScheduleModal({
                 }
               />
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+              <div className="rounded-xl border border-border-strong overflow-hidden divide-y divide-border">
                 {filtered.map((group) => (
                   <button
                     key={group.key}
                     type="button"
                     onClick={() => setSelectedKey(group.key)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
                   >
                     <span className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-bold shrink-0">
                       {group.canonical.charAt(0).toUpperCase()}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-bold text-foreground truncate">
+                      <span className="block text-sm font-bold text-text-heading truncate">
                         {group.canonical}
                       </span>
                       <span className="block text-xs text-muted-foreground truncate">

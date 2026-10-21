@@ -1,0 +1,292 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { Settings2, Play, RotateCcw, Info } from "lucide-react";
+import BottomSheet from "../../../../shared/BottomSheet";
+import SettingRow from "../../../../shared/primitives/SettingRow";
+import Switch from "../../../../shared/primitives/Switch";
+import { ChipTabs, SegmentedControl } from "../../../../shared/primitives";
+import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/lib/analytics";
+import {
+  FFCSSettingsDefaults,
+  type DefaultRankingMode,
+  type ExportFormat,
+  type FFCSSettings,
+} from "@/lib/ffcsSettings";
+import { RANKING_MODES } from "@/lib/ffcsRanking";
+import type { SortBy } from "@/lib/timetableMetrics";
+
+/**
+ * The planner's settings sheet.
+ *
+ * ## Why it is rendered by the tab, not self-sufficient
+ *
+ * Two of its rows — batch grouping and the social-score method — edit state
+ * the tab already owns under its own storage keys, because the tab's own
+ * controls write those values live as well. Handing the sheet the tab's
+ * state and setter keeps one source of truth; a second copy in
+ * `ffcs_settings` would drift the first time someone toggled the switch in
+ * the grid instead of here. The rest of the rows come from `useFFCSSettings`,
+ * also owned by the tab and passed down.
+ *
+ * ## Controls
+ *
+ * `ChipTabs`/`SegmentedControl` rather than `SelectField` everywhere: the
+ * option picker's popup renders at z-70, below this sheet's z-300 panel, so
+ * a `<select>`-alike here would open *underneath* the sheet it belongs to.
+ */
+
+const RANKING_OPTIONS = [
+  { value: "none" as DefaultRankingMode, label: "None", title: "Plain sort order, no profile" },
+  ...RANKING_MODES.map((mode) => ({
+    value: mode as DefaultRankingMode,
+    label: mode,
+    title: `Start the generator ranked by the "${mode}" profile`,
+  })),
+];
+
+const SORT_OPTIONS: readonly { value: SortBy; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "social", label: "Social" },
+  { value: "halfdays", label: "Half-days" },
+  { value: "compactness", label: "Compact" },
+];
+
+const HALF_DAY_OPTIONS = [
+  { value: "0", label: "Off" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4" },
+];
+
+const CAP_OPTIONS = [
+  { value: "50", label: "50", title: "The planner's classic cap" },
+  { value: "100", label: "100" },
+  { value: "250", label: "250" },
+  { value: "500", label: "500" },
+];
+
+export interface FFCSSettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  settings: FFCSSettings;
+  update: <K extends keyof FFCSSettings>(key: K, value: FFCSSettings[K]) => void;
+  reset: () => void;
+  /** Tab-owned, same state the planner's own controls write. */
+  isGroupingEnabled: boolean;
+  setIsGroupingEnabled: (value: boolean) => void;
+  socialScoreGroupMethod: "intersection" | "cumulative";
+  setSocialScoreGroupMethod: (method: "intersection" | "cumulative") => void;
+  /** Starts the tab's tour — the sheet cannot reach the provider directly. */
+  onReplayTour: () => void;
+}
+
+export function FFCSSettingsModal({
+  isOpen,
+  onClose,
+  settings,
+  update,
+  reset,
+  isGroupingEnabled,
+  setIsGroupingEnabled,
+  socialScoreGroupMethod,
+  setSocialScoreGroupMethod,
+  onReplayTour,
+}: FFCSSettingsModalProps) {
+  // Consent is read live rather than held in `ffcs_settings`: it is a privacy
+  // choice with its own key, and a settings reset must not flip it silently.
+  const [analyticsOn, setAnalyticsOn] = useState(true);
+  useEffect(() => {
+    if (isOpen) setAnalyticsOn(isAnalyticsEnabled());
+  }, [isOpen]);
+
+  const replayTour = () => {
+    onClose();
+    onReplayTour();
+  };
+
+  const handleReset = () => {
+    if (
+      confirm(
+        "Reset planner settings to defaults?\n\nYour timetables, friends and courses are not affected. Analytics consent is kept."
+      )
+    ) {
+      reset();
+      setAnalyticsOn(isAnalyticsEnabled());
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <BottomSheet
+          onClose={onClose}
+          overlayId="ffcs-settings"
+          maxWidth="max-w-lg"
+          panelZIndex={300}
+          backdropZIndex={295}
+          contentClassName="flex flex-col"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Settings2 className="w-5 h-5 text-indigo-500" />
+            <h3 className="font-bold text-base text-text-heading">Planner Settings</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Defaults for new runs — everything stays editable where you use it, and everything
+            stays on this device.
+          </p>
+
+          <div className="divide-y divide-border/40 -mx-4 px-1">
+            <SettingRow
+              stacked
+              title="Ranking profile"
+              description={
+                settings.rankingMode === "none"
+                  ? "No profile: results come in the order of the sort below."
+                  : `New generator runs start ranked by "${settings.rankingMode}".`
+              }
+              control={
+                <ChipTabs
+                  options={RANKING_OPTIONS}
+                  value={settings.rankingMode}
+                  onChange={(value) => update("rankingMode", value)}
+                />
+              }
+            />
+            <SettingRow
+              stacked
+              title="Default sort order"
+              description="How the generator orders results; it also breaks ties between ranked ones."
+              control={
+                <SegmentedControl
+                  options={SORT_OPTIONS}
+                  value={settings.defaultSortBy}
+                  onChange={(value) => update("defaultSortBy", value)}
+                />
+              }
+            />
+            <SettingRow
+              stacked
+              title="Half-days floor"
+              description="New runs start requiring at least this many half-days off."
+              control={
+                <ChipTabs
+                  options={HALF_DAY_OPTIONS}
+                  value={String(settings.minHalfDays)}
+                  onChange={(value) => update("minHalfDays", Number(value))}
+                />
+              }
+            />
+            <SettingRow
+              stacked
+              title="Result cap"
+              description={
+                settings.resultCap === FFCSSettingsDefaults.resultCap
+                  ? "How many weeks a search keeps — the planner's classic fifty."
+                  : "How many weeks a search keeps before the \"unlimited\" switch."
+              }
+              control={
+                <ChipTabs
+                  options={CAP_OPTIONS}
+                  value={String(settings.resultCap)}
+                  onChange={(value) => update("resultCap", Number(value))}
+                />
+              }
+            />
+            <SettingRow
+              title="Image format"
+              description="Format of the timetable image download."
+              control={
+                <SegmentedControl
+                  options={[
+                    { value: "jpg" as ExportFormat, label: "JPG" },
+                    { value: "png" as ExportFormat, label: "PNG" },
+                  ]}
+                  value={settings.exportFormat}
+                  onChange={(value) => update("exportFormat", value)}
+                />
+              }
+            />
+            <SettingRow
+              title="Group by batch"
+              description="Pair each theory course with its lab in the course report."
+              control={
+                <Switch checked={isGroupingEnabled} onCheckedChange={setIsGroupingEnabled} />
+              }
+            />
+            <SettingRow
+              stacked
+              title="Group social score"
+              description="How a friend group's score is combined."
+              control={
+                <div className="w-full">
+                  <SegmentedControl
+                    options={[
+                      { value: "intersection" as const, label: "Intersection" },
+                      { value: "cumulative" as const, label: "Cumulative" },
+                    ]}
+                    value={socialScoreGroupMethod}
+                    onChange={setSocialScoreGroupMethod}
+                  />
+                  <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
+                    {socialScoreGroupMethod === "intersection"
+                      ? "One combined week: the whole group's slots counted once."
+                      : "Each friend scored on their own, then added together."}
+                  </p>
+                </div>
+              }
+            />
+            <SettingRow
+              title="Guided tour"
+              description="Offer the tour when you open the planner."
+              control={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={replayTour}
+                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline px-2 py-1.5 rounded-lg cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5" /> Replay
+                  </button>
+                  <Switch
+                    checked={settings.showTour}
+                    onCheckedChange={(checked) => update("showTour", checked)}
+                  />
+                </div>
+              }
+            />
+            <SettingRow
+              title="Usage analytics"
+              description="Share anonymous counts — which features run, never your courses or timetable."
+              control={
+                <Switch
+                  checked={analyticsOn}
+                  onCheckedChange={(checked) => {
+                    setAnalyticsEnabled(checked);
+                    setAnalyticsOn(checked);
+                  }}
+                />
+              }
+            />
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-relaxed flex-1">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              Timetables, friends and settings never leave this browser.
+            </p>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
+  );
+}
