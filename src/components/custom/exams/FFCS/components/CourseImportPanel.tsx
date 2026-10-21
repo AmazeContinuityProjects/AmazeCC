@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { AlertTriangle, CheckCircle2, ClipboardPaste, FileSpreadsheet, Info, UploadCloud } from "lucide-react";
 import type { ParsedCourse } from "../types";
 import { parsePastedText, toParsedCourses } from "@/features/import/parsePastedText";
+import { track } from "@/lib/analytics";
 import { importFile, type FileImport } from "@/features/import/importFile";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
 
@@ -44,6 +45,9 @@ interface CourseImportPanelProps {
 export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
   const [text, setText] = useState("");
   const [fileResult, setFileResult] = useState<FileImport | null>(null);
+  // Kept only so the import event can name the format; the parser works from
+  // bytes and never learns the extension.
+  const [fileExt, setFileExt] = useState("unknown");
   const [reading, setReading] = useState(false);
 
   const parsed = useMemo(() => {
@@ -56,6 +60,7 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
     const file = files[0];
     if (!file) return;
     setReading(true);
+    setFileExt(file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "unknown");
     setFileResult(await importFile(file));
     setReading(false);
   }, []);
@@ -73,6 +78,11 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
 
   const handleImport = () => {
     if (!canImport) return;
+    if (mode === "paste") {
+      track("import_pasted", { courses: coursesToImport.length });
+    } else {
+      track("import_file", { courses: coursesToImport.length, format: fileExt });
+    }
     onImport(coursesToImport);
     setText("");
     setFileResult(null);
@@ -98,7 +108,7 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/40">
+      <div className="flex items-center justify-between gap-3 pt-1 border-t border-border-strong/40">
         <span className="text-xs text-muted-foreground" aria-live="polite">
           {canImport
             ? `${coursesToImport.length} course${coursesToImport.length === 1 ? "" : "s"} ready to add`
@@ -121,7 +131,7 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
 function PasteInput({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <div className="flex items-center gap-2 text-sm font-semibold text-text-heading">
         <ClipboardPaste className="w-4 h-4 text-purple-500" /> Paste a course list
       </div>
       <textarea
@@ -130,7 +140,7 @@ function PasteInput({ value, onChange }: { value: string; onChange: (next: strin
         rows={6}
         spellCheck={false}
         placeholder={"BASTS101 Qualitative Skills F1+TF1 - Dr. Nair\nCSE1001 Introduction to Computing - A1+TA1 - Dr. Smith"}
-        className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-xs font-mono text-foreground resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar"
+        className="w-full bg-surface border border-border-strong rounded-xl px-3 py-2.5 text-xs font-mono text-text-heading resize-y focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all custom-scrollbar"
       />
     </div>
   );
@@ -146,13 +156,13 @@ function FileDropzone({
   const { getRootProps, getInputProps, isDragActive } = dropzone;
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <div className="flex items-center gap-2 text-sm font-semibold text-text-heading">
         <FileSpreadsheet className="w-4 h-4 text-purple-500" /> Upload a course sheet
       </div>
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-xl px-4 py-6 text-center cursor-pointer transition-colors ${
-          isDragActive ? "border-purple-500 bg-purple-500/10" : "border-border hover:border-purple-500/50"
+          isDragActive ? "border-purple-500 bg-purple-500/10" : "border-border-strong hover:border-purple-500/50"
         }`}
       >
         <input {...getInputProps()} />
@@ -161,7 +171,7 @@ function FileDropzone({
         ) : (
           <>
             <UploadCloud className="w-6 h-6 mx-auto text-muted-foreground mb-1.5" />
-            <p className="text-xs text-foreground font-medium">
+            <p className="text-xs text-text-heading font-medium">
               {isDragActive ? "Drop it here" : "Drag a file, or click to choose"}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">CSV, TSV or XLSX</p>
@@ -196,10 +206,10 @@ function PastePreview({
         </div>
       )}
 
-      <div className="border border-border rounded-xl overflow-hidden">
+      <div className="border border-border-strong rounded-xl overflow-hidden">
         <div className="max-h-56 overflow-y-auto custom-scrollbar">
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-muted/60 text-muted-foreground">
+            <thead className="sticky top-0 bg-surface-secondary/60 text-muted-foreground">
               <tr>
                 <th className="text-left font-semibold px-2.5 py-1.5">Line</th>
                 <th className="text-left font-semibold px-2.5 py-1.5">Slot</th>
@@ -208,11 +218,11 @@ function PastePreview({
             </thead>
             <tbody>
               {shown.map((option, index) => (
-                <tr key={`${option.rawLine}-${index}`} className="border-t border-border/50">
-                  <td className="px-2.5 py-1.5 max-w-[16rem] truncate text-foreground/80" title={option.rawLine}>
+                <tr key={`${option.rawLine}-${index}`} className="border-t border-border-strong/50">
+                  <td className="px-2.5 py-1.5 max-w-[16rem] truncate text-text-heading/80" title={option.rawLine}>
                     {option.rawLine}
                   </td>
-                  <td className="px-2.5 py-1.5 font-mono text-foreground/70 whitespace-nowrap">
+                  <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">
                     {[option.theorySlotRaw, option.labSlotRaw].filter(Boolean).join(" + ") || "—"}
                   </td>
                   <td className={`px-2.5 py-1.5 ${CONFIDENCE_STYLE[option.confidence]}`}>
@@ -224,7 +234,7 @@ function PastePreview({
           </table>
         </div>
         {options.length > shown.length && (
-          <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border/50 bg-muted/30">
+          <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
             …and {options.length - shown.length} more
           </p>
         )}
@@ -244,7 +254,7 @@ function FilePreview({ result }: { result: FileImport }) {
           <span className="text-red-500">{result.error}</span>
         ) : (
           <>
-            <span className="text-foreground">{result.courses.length}</span> course
+            <span className="text-text-heading">{result.courses.length}</span> course
             {result.courses.length === 1 ? "" : "s"} ready from <span className="font-mono">{result.source}</span>
             {result.skipped > 0 ? ` · ${result.skipped} row${result.skipped === 1 ? "" : "s"} skipped` : ""}
           </>
@@ -269,10 +279,10 @@ function FilePreview({ result }: { result: FileImport }) {
       )}
 
       {result.rows.length > 0 && (
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div className="border border-border-strong rounded-xl overflow-hidden">
           <div className="max-h-56 overflow-y-auto custom-scrollbar">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-muted/60 text-muted-foreground">
+              <thead className="sticky top-0 bg-surface-secondary/60 text-muted-foreground">
                 <tr>
                   <th className="text-left font-semibold px-2.5 py-1.5">Code</th>
                   <th className="text-left font-semibold px-2.5 py-1.5">Slot</th>
@@ -282,20 +292,20 @@ function FilePreview({ result }: { result: FileImport }) {
               </thead>
               <tbody>
                 {shown.map((row, index) => (
-                  <tr key={index} className="border-t border-border/50">
-                    <td className="px-2.5 py-1.5 font-medium text-foreground/80 whitespace-nowrap">{row.CODE ?? "—"}</td>
-                    <td className="px-2.5 py-1.5 font-mono text-foreground/70 whitespace-nowrap">{row.SLOT ?? "—"}</td>
-                    <td className="px-2.5 py-1.5 text-foreground/70 max-w-[10rem] truncate" title={row.FACULTY}>
+                  <tr key={index} className="border-t border-border-strong/50">
+                    <td className="px-2.5 py-1.5 font-medium text-text-heading/80 whitespace-nowrap">{row.CODE ?? "—"}</td>
+                    <td className="px-2.5 py-1.5 font-mono text-text-heading/70 whitespace-nowrap">{row.SLOT ?? "—"}</td>
+                    <td className="px-2.5 py-1.5 text-text-heading/70 max-w-[10rem] truncate" title={row.FACULTY}>
                       {row.FACULTY || "—"}
                     </td>
-                    <td className="px-2.5 py-1.5 text-foreground/70 whitespace-nowrap">{row.ROOM || "—"}</td>
+                    <td className="px-2.5 py-1.5 text-text-heading/70 whitespace-nowrap">{row.ROOM || "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {result.rows.length > shown.length && (
-            <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border/50 bg-muted/30">
+            <p className="text-[11px] text-muted-foreground px-2.5 py-1.5 border-t border-border-strong/50 bg-surface-secondary/30">
               …and {result.rows.length - shown.length} more
             </p>
           )}

@@ -5,6 +5,7 @@ import {
   type FFCSGeneratorSubpageProps,
 } from "../components/custom/exams/FFCS/FFCSGeneratorSubpage";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
+import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
 
 /**
  * The generator as a subpage of the FFCS tab rather than a sheet over it.
@@ -33,6 +34,7 @@ const courseLock = (code: string) => ({
 
 const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubpageProps => ({
   onClose: vi.fn(),
+  settings: FFCSSettingsDefaults,
   courseLocks: [],
   setCourseLocks: vi.fn(),
   friends: [],

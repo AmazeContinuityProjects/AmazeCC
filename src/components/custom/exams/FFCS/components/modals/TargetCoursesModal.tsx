@@ -129,11 +129,11 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
               }).flat())).sort();
 
               return (
-                <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-muted/30 border-purple-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border hover:bg-muted/50'}`}>
+                <div key={c.code} className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${isSelected ? 'bg-surface-secondary/30 border-purple-500/50 shadow-sm' : 'bg-transparent border-transparent hover:border-border-strong hover:bg-surface-secondary/50'}`}>
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input 
                       type="checkbox" 
-                      className="mt-1 rounded bg-background border-border text-purple-500 focus:ring-purple-500/30"
+                      className="mt-1 rounded bg-surface border-border-strong text-purple-500 focus:ring-purple-500/30"
                       checked={isSelected}
                       onChange={(e) => {
                         if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [] }]);
@@ -143,7 +143,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                     <div className="flex flex-col flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-base text-foreground">{c.code}</span>
+                          <span className="font-bold text-base text-text-heading">{c.code}</span>
                            {renderTypeChips(c.types || [], 'sm')}
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
@@ -173,7 +173,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                         
                         {availableSeries.length > 0 && (
                           <div className="mb-3">
-                            <div className="text-[10px] font-bold text-foreground/70 mb-1.5 uppercase">Quick Select Series</div>
+                            <div className="text-[10px] font-bold text-text-heading/70 mb-1.5 uppercase">Quick Select Series</div>
                             <div className="flex flex-wrap gap-1.5">
                               {availableSeries.map(series => {
                                 const seriesSlots = uniqueSlots.filter(slot => {
@@ -206,7 +206,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                                     className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
                                       allSelected 
                                         ? 'bg-purple-500 text-white shadow-sm' 
-                                        : 'bg-muted hover:bg-muted/80 text-foreground/70'
+                                        : 'bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading/70'
                                     }`}
                                   >
                                     {series} Series
@@ -221,10 +221,10 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                           {uniqueSlots.map(slot => {
                           const isOffChecked = sel.allowedSlots.includes(slot);
                           return (
-                            <label key={slot} className={`flex items-center gap-2 cursor-pointer border rounded-md p-1.5 px-3 transition-colors ${isOffChecked ? 'bg-purple-500/10 border-purple-500/30 text-purple-600' : 'hover:bg-muted/50 text-muted-foreground border-border/50'}`}>
+                            <label key={slot} className={`flex items-center gap-2 cursor-pointer border rounded-md p-1.5 px-3 transition-colors ${isOffChecked ? 'bg-purple-500/10 border-purple-500/30 text-purple-600' : 'hover:bg-surface-secondary/50 text-muted-foreground border-border-strong/50'}`}>
                               <input 
                                 type="checkbox" 
-                                className="rounded w-3.5 h-3.5 border-border text-purple-500 focus:ring-purple-500/30"
+                                className="rounded w-3.5 h-3.5 border-border-strong text-purple-500 focus:ring-purple-500/30"
                                 checked={isOffChecked}
                                 onChange={(e) => {
                                   setCourseLocks(prev => prev.map(p => {
@@ -249,8 +249,8 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
           ) : (
             <CourseImportPanel mode={mode} onImport={onImportCourses} />
           )}
-          <div className="pt-3 mt-1 border-t border-border bg-muted/20 flex justify-between items-center">
-            <span className="text-sm font-medium text-foreground">
+          <div className="pt-3 mt-1 border-t border-border-strong bg-surface-secondary/20 flex justify-between items-center">
+            <span className="text-sm font-medium text-text-heading">
               <span className="text-purple-500 font-bold">{courseLocks.length}</span> courses selected
             </span>
             <button 

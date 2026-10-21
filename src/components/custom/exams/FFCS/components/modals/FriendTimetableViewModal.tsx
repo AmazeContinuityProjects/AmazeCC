@@ -72,7 +72,7 @@ export function FriendTimetableViewModal({
               <div className="flex items-center gap-2 bg-zinc-200/60 dark:bg-zinc-700/50 rounded-lg p-1">
                 <button
                   onClick={() => setData(prev => prev ? {...prev, currentIndex: (prev.currentIndex - 1 + prev.timetables.length) % prev.timetables.length} : null)}
-                  className="p-1 hover:bg-background rounded-md transition-colors"
+                  className="p-1 hover:bg-surface rounded-md transition-colors"
                   aria-label="Previous option"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -80,7 +80,7 @@ export function FriendTimetableViewModal({
                 <span className="text-xs font-semibold px-2">Cycle Options</span>
                 <button
                   onClick={() => setData(prev => prev ? {...prev, currentIndex: (prev.currentIndex + 1) % prev.timetables.length} : null)}
-                  className="p-1 hover:bg-background rounded-md transition-colors"
+                  className="p-1 hover:bg-surface rounded-md transition-colors"
                   aria-label="Next option"
                 >
                   <ArrowRight className="w-4 h-4" />
@@ -90,7 +90,7 @@ export function FriendTimetableViewModal({
           }
         >
 
-          <div className="bg-muted/5 rounded-xl relative overflow-auto custom-scrollbar p-4 sm:p-6">
+          <div className="bg-surface-secondary/5 rounded-xl relative overflow-auto custom-scrollbar p-4 sm:p-6">
             <div className="flex flex-col gap-6 w-max min-w-full pb-4">
               <TimetableGrid 
                 courses={data.timetables[data.currentIndex].courses as AddedCourse[]} 

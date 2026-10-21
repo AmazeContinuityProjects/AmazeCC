@@ -1,9 +1,82 @@
 # FFCS Planner — Implementation Hardening Plan
 
 **Date:** Oct 21, 2026
-**Status:** In progress — Phase 1 complete; popups are bottom sheets; generator is a subpage
+**Status:** Complete — all 7 phases landed; `pnpm test` (1547 passing), `typecheck`, `lint` (0 errors) and `build` (static export incl. `/share/ffcs`) all green
 
 ## Progress log
+
+### Phase 7 — complete (sweep: tests, lint, build, docs)
+
+- Gates: `pnpm test` 89 files / 1547 passed / 6 skipped; `pnpm typecheck` 0;
+  `pnpm lint` 0 errors, 120 warnings (baseline 0/125 — five fewer, from
+  quote-escaping in the rewritten guide); `pnpm build` static export OK with
+  `/share/ffcs` prerendered.
+- README features table gains an FFCS row; `guide.md` gains a client-side FFCS
+  section (share route, `ffcs_*` storage namespace, generator worker) — it
+  documents that the planner calls no endpoints, because it makes none.
+
+### Phase 6 — complete (token migration, primitives, guide)
+
+- Equivalences verified against amazeui's `tailwind.css` before sweeping:
+  `bg-muted` ≡ `bg-surface-secondary` (`--color-muted`) and `border-border` ≡
+  `border-border-strong` (`--color-border` → `--border-strong`, so the plan's
+  "map to muted" reading would have been a visual regression, not a rename);
+  `bg-background`→`bg-surface` and `text-foreground`→`text-text-heading` are
+  the deliberate paradigm swap. No FFCS root painted `bg-background`, so no
+  page canvas moved — every occurrence was a well, input or thumb.
+- ~250 replacements across 13 files (26 `bg-background`, 92 `text-foreground`,
+  61 `bg-muted`, 71 `border-border`, 5 `solid-card`). `solid-card` →
+  `card-surface border border-border-strong rounded-2xl shadow-xs
+  text-text-primary`, preserving the old class's radius and ink.
+- The tab's last three native `<select>`s → `ChipTabs`/`SegmentedControl`:
+  OptionPicker's popup portals at z-70, *under* the tab's own fullscreen
+  `z-[100]`, so the tab body cannot host a portal picker at all — the same
+  trap that converted the subpage's pickers.
+- `FFCSGuideModal` rewritten: stale "Add to Draft" flow gone; paste/CSV/XLSX
+  import; the generator workspace (Stop, compare, five ranking opinions with
+  one-liners read off the actual profile weights — the old guide claimed
+  Social Score fed Balanced, which the port does not do); friend import via
+  Backup JSON; new Settings/Share/Tour section.
+- Changelog: `v3.2.0` (2026-10-21) at the top of `changelog.json`.
+
+### Phase 4 — complete (share links)
+
+- `src/lib/ffcsShare.ts`: versioned lz-string codec — exact-version check
+  decodes to `null` rather than misparsing, fresh timetable id per decode, and
+  a field-picked payload (name + courses + campus; no friends, no locks).
+  `buildShareUrl` honours `NEXT_PUBLIC_BASE_PATH` + `trailingSlash`; links
+  over 8000 chars warn the sender.
+- Route `/share/ffcs/`: prerendered shell + `useSearchParams` inside Suspense
+  (the only pattern that survives `output: 'export'`), read-only grid,
+  metric chips, PNG download, and "Open in planner" writing `ffcs_timetables`
+  under a fresh id with the active plan switched to it.
+- `GLOBAL_CAMPUS`/`CAMPUS_SCHEMAS`/`getTimetableSchema` moved to
+  `src/lib/campusSchema.ts` so the view renders without importing the
+  2,700-line tab (tab re-exports for its other importers).
+- Tab: share button (native share sheet → clipboard fallback, `AbortError`
+  treated as cancel, oversized-link warning). Tests: `ffcsShare.test.ts` (10).
+
+### Phase 3 — complete (settings, tour, tips)
+
+- `ffcs_settings` holds only the new prefs (ranking default incl. "none",
+  default sort, export format, min half-days, result cap, tour); grouping and
+  social method stay on the tab's own state (single source of truth, existing
+  keys); analytics consent is its own key and survives a settings reset.
+- `FFCSSettingsModal` as a sheet; settings + share buttons in the banner;
+  `resultCap` binds only when the run is not `noLimit`.
+- `features/tour/`: 6 anchors, once-`TOUR_VERSION` auto-start (600 ms), a
+  sibling spotlight layer at z-500 found via `data-tour-id`, capture-phase key
+  swallowing; `SettingsModalHost` bridges `useTour()` across the tab's
+  early return; dismissible tips; share step added to the `ffcs` help guide.
+- Tests: `ffcsSettings.test.ts`, `ffcsTour.test.tsx`,
+  `ffcsSettingsModal.test.tsx` — 29 across settings/tour/modal/analytics.
+
+### Phase 5 — complete (usage analytics)
+
+- `src/lib/analytics.ts`: typed count-only events behind the
+  `ffcs_analytics_enabled` consent key with a capped local queue; 9 tests.
+- Wired to generation, save, import and share events. A settings reset does
+  **not** flip consent — that toggle belongs to the student alone.
 
 ### Generator is a subpage of the FFCS tab, not a sheet — complete
 
@@ -48,6 +121,17 @@
   swipe-to-change-tab listens document-wide and only bails inside a guarded
   subtree, which portalled sheets no longer are.
 - Fixed a conditional `useMemo` behind an early return in `SocialMatrixModal`.
+
+### Phase 2 — complete (input: smart paste + CSV/XLSX)
+
+- `src/features/import/`: `normalizeColumns` → `parsePastedText` →
+  `importFile` — `.csv`/`.tsv`/`.txt` read as text, workbooks through SheetJS
+  (dynamically imported, as the rest of the app does); 68 tests.
+- `CourseImportPanel`: paste and file modes with a row-level preview before
+  anything lands; the file path stops at a preview, never a silent merge.
+- `TargetCoursesModal` retitled as the course selector: Search | Paste | File
+  tabs over the same panel; `handleImportCourses` owns merging into the
+  master list (the modal never mutates it).
 
 ### Phase 1 — complete (engine: streaming, cancellation, additive ranking)
 

@@ -1,5 +1,16 @@
 [
   {
+    "version": "v3.2.0",
+    "date": "2026-10-21",
+    "changes": [
+      "FFCS Generator, rebuilt: 'Auto-Generate' now opens an Advanced Generator workspace that streams valid, non-clashing combinations as they are found (Stop anytime), compares up to three weeks side by side, and ranks results by five opinions — Balanced, Half Days, Minimize Gaps, Early Finish, Late Start — as a per-run switch or a saved default.",
+      "FFCS Import: 'Target Courses' takes a pasted course list or a CSV/XLSX registration sheet now, with a preview before anything joins the master list — no typing codes by hand.",
+      "FFCS Share: the share icon copies a link that carries the whole plan inside the URL. Opening it shows the week read-only, ready to download as PNG or load straight into a planner — no server, no account, works offline.",
+      "FFCS Settings & Tour: a gear menu holds the new defaults (ranking, sorting, export format, result limits), replays the six-step guided tour that walks first-time visitors through the planner, and controls its dismissible tips.",
+      "FFCS UI: every popup is a swipe-down bottom sheet with predictive-back support, and the tab now speaks the app's shared design tokens, chips, segmented controls and switches throughout."
+    ]
+  },
+  {
     "version": "v3.1.0",
     "date": "2026-07-03",
     "changes": [

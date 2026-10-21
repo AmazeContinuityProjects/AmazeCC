@@ -73,29 +73,29 @@ export function SocialMatrixModal({
         >
                 <div>
                   <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">How it works</h4>
-                  <p className="text-sm text-foreground/80 leading-relaxed max-w-3xl">
+                  <p className="text-sm text-text-heading/80 leading-relaxed max-w-3xl">
                     The Social Score is a percentage indicating how well your timetable aligns with your friends' timetables.
-                    It awards points for <strong className="text-foreground">Shared Classes</strong> (+3 per slot), 
-                    <strong className="text-foreground"> Shared Free Half-Days</strong> (+5), and 
-                    <strong className="text-foreground"> Mutually Free Slots</strong> (+1), measured against the maximum possible score if you had the exact same timetable.
+                    It awards points for <strong className="text-text-heading">Shared Classes</strong> (+3 per slot), 
+                    <strong className="text-text-heading"> Shared Free Half-Days</strong> (+5), and 
+                    <strong className="text-text-heading"> Mutually Free Slots</strong> (+1), measured against the maximum possible score if you had the exact same timetable.
                   </p>
                 </div>
                 
                 {friends.length === 0 ? (
-                  <div className="text-center py-12 border border-dashed border-border rounded-xl">
+                  <div className="text-center py-12 border border-dashed border-border-strong rounded-xl">
                     <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
                     <p className="text-muted-foreground font-medium">You have no friends imported.</p>
                     <p className="text-sm text-muted-foreground/80 mt-1">Add friends in the Social tab to see the comparison matrix!</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto rounded-xl border border-border custom-scrollbar">
+                  <div className="overflow-x-auto rounded-xl border border-border-strong custom-scrollbar">
                     <table className="w-full text-sm text-center border-collapse">
-                      <thead className="bg-muted/50 border-b border-border">
+                      <thead className="bg-surface-secondary/50 border-b border-border-strong">
                         <tr>
-                          <th className="py-3 px-4 text-left font-semibold border-r border-border min-w-[200px] sticky left-0 bg-muted/95 z-20">My Options \ Friends</th>
+                          <th className="py-3 px-4 text-left font-semibold border-r border-border-strong min-w-[200px] sticky left-0 bg-surface-secondary/95 z-20">My Options \ Friends</th>
                           {friends.map(f => (
                             f.timetables?.map((ft, fIdx) => (
-                              <th key={`${f.id}-${ft.id}`} className="py-3 px-4 font-semibold whitespace-nowrap border-r border-border/50 last:border-r-0">
+                              <th key={`${f.id}-${ft.id}`} className="py-3 px-4 font-semibold whitespace-nowrap border-r border-border-strong/50 last:border-r-0">
                                 <div className="flex flex-col items-center gap-1">
                                   <span>{f.name}</span>
                                   <span className="text-xs text-muted-foreground font-normal">{ft.name || `Option ${fIdx + 1}`}</span>
@@ -110,8 +110,8 @@ export function SocialMatrixModal({
                           .filter(t => t && t.courses && t.courses.length > 0)
                           .map(t => [t.id, t])).values())
                           .map((mt, rIdx) => (
-                          <tr key={mt.id} className="hover:bg-muted/10 transition-colors">
-                            <td className="py-3 px-4 text-left font-medium border-r border-border whitespace-nowrap sticky left-0 bg-background/95 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          <tr key={mt.id} className="hover:bg-surface-secondary/10 transition-colors">
+                            <td className="py-3 px-4 text-left font-medium border-r border-border-strong whitespace-nowrap sticky left-0 bg-surface/95 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                               {mt.name || (mt.id === activeTimetableId ? 'Active Timetable' : `Option ${rIdx + 1}`)}
                               {mt.id === activeTimetableId && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Active</span>}
                             </td>
@@ -127,7 +127,7 @@ export function SocialMatrixModal({
                                 else if (pct > 0) { colorClass = "text-red-700 dark:text-red-400"; bgClass = "bg-red-500/10"; }
                                 
                                 return (
-                                  <td key={`${mt.id}-${f.id}-${ft.id}`} className={`py-3 px-4 transition-colors group relative border-r border-border/50 last:border-r-0 ${bgClass}`}>
+                                  <td key={`${mt.id}-${f.id}-${ft.id}`} className={`py-3 px-4 transition-colors group relative border-r border-border-strong/50 last:border-r-0 ${bgClass}`}>
                                     <span className={colorClass}>{pct}%</span>
                                     {/* Tooltip for breakdown */}
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-foreground text-background text-xs p-3 rounded-lg shadow-xl pointer-events-none z-50">

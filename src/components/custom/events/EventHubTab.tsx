@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { clearEventHubSession, eventHubRequest } from "@/lib/sync-engine";
+import { clearEventHubSession, eventHubRequest, loginToEventHub } from "@/lib/sync-engine";
 import { runPageSync } from "@/lib/sync-engine/single-sync";
 import { Skeleton, cn } from "@amazecontinuityprojects/amazeui";
 import { EventHubEvent, EventHubPreview } from "@/types/data/eventhub";
@@ -182,17 +182,12 @@ function EventCard({ event, onOpen }: { event: any; onOpen: (e: any) => void }) 
 
 export default function EventHubTab({
   IDs,
-  loginToVTOP,
   onBack,
   setIsSubpageOpen,
   registeredEvents,
   setRegisteredEvents,
 }: {
   IDs: any;
-  /** Optional so tests/hosts can mount without it, but Dashboard always wires
-   *  it — this page's load runs through the sync engine and cannot start a
-   *  session without an invoke like every other hub. */
-  loginToVTOP?: () => Promise<{ cookies: string[]; authorizedID: string; csrf: string }>;
   onBack?: () => void;
   setIsSubpageOpen?: (isOpen: boolean) => void;
   registeredEvents?: any[];
@@ -272,24 +267,29 @@ export default function EventHubTab({
     }
     try {
       /**
-       * Invoke the same login every sibling hub (Libraries, Clubs, Circulars,
-       * Hostel Counselling) runs when it opens. Two reasons this page needs
-       * it explicitly:
+       * Invoke Event Hub's own login first — `loginToEventHub` posts to the
+       * `events/login` route and holds back a `jsessionid`, which is the exact
+       * session the ops below consume. Two reasons this page needs an
+       * invocation at all:
        *
        *  - Its load is a `runPageSync` → `syncEngine.sync("events")`, and the
-       *    engine throws "not logged in" until `syncEngine.login` has seeded
-       *    it with credentials — which on a restored session (reload) no flow
-       *    does by itself. Without this, opening the tab errors out instead
-       *    of logging in.
-       *  - A live VTOP session re-arms whether the catalog fetch itself calls
-       *    the EventHub session or a later action (1-Click Register) needs
-       *    the real login.
+       *    engine throws "not logged in" until something has seeded its
+       *    credentials — which on a restored session (reload) no flow does by
+       *    itself. Without this, opening the tab errors out instead of
+       *    logging in; `syncEngine.loginEventHub` seeds them as a side effect.
+       *  - The session is minted once and reused: the op's own
+       *    `ensureEventHubSession` share is single-flight and cache-checked,
+       *    so it takes the warmed session instead of doing a second login.
        *
-       * `loginVtop` answers from cache whenever a session already exists, so
-       * an in-tab reload costs nothing when the manager is warm.
+       * Note the split's asymmetry with the sibling hubs: they load through
+       * the VTOP login because their data is VTOP-session-bound. This hub's
+       * routes are EventHub-session-bound, so it invokes the EventHub route —
+       * no VTOP captcha solve for a page that never touches VTOP cookies.
+       * Demo is handled inside `loginEventHub`, which returns an empty
+       * session for the demo username.
        */
       if (IDs?.VtopUsername !== "demo") {
-        await loginToVTOP?.();
+        await loginToEventHub(IDs);
       }
       // The engine `events` op pulls the public catalogue AND the user's
       // registrations with session + expiry retry. The sheet always reaches

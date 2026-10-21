@@ -10,16 +10,12 @@ import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 
-import chennaiSchema from "@/data/campus/chennai.json";
-import apSchema from "@/data/campus/ap.json";
-import bhopalSchema from "@/data/campus/bhopal.json";
-
-const CAMPUS_SCHEMAS: Record<string, any> = {
-  chennai: chennaiSchema,
-  ap: apSchema,
-  bhopal: bhopalSchema
-};
+// Re-exported because the tab has always been where importers found these;
+// the definitions moved to the lib so the share page can render a received
+// plan without importing this component.
+export { GLOBAL_CAMPUS, getTimetableSchema };
 
 import { FFCSGeneratorSubpage } from './FFCS/FFCSGeneratorSubpage';
 import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
@@ -28,9 +24,15 @@ import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal'
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
-
-export let GLOBAL_CAMPUS = "chennai";
-export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
+import { track } from "@/lib/analytics";
+import { useFFCSSettings } from "@/lib/ffcsSettings";
+import { encodeTimetableShare, buildShareUrl, isOversizedShareLink } from "@/lib/ffcsShare";
+import { FFCSSettingsModal, type FFCSSettingsModalProps } from "./FFCS/components/modals/FFCSSettingsModal";
+import { TourProvider, useTour } from "./FFCS/features/tour/TourProvider";
+import { useTips } from "./FFCS/features/tour/useTips";
+import { Tip } from "./FFCS/features/tour/Tip";
+import Switch from "../shared/primitives/Switch";
+import { ChipTabs, SegmentedControl } from "../shared/primitives";
 
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
@@ -433,6 +435,14 @@ export default function FFCSTimetableTab() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Preferences live one level above the UI that consumes them: the tab owns
+  // the single instance and hands it to the settings sheet, the generator's
+  // seed values and the export button, so a change is visible everywhere
+  // without a storage event or a remount.
+  const { settings, update: updateSetting, reset: resetSettings } = useFFCSSettings();
+  const { visible: hints, dismiss: dismissHint } = useTips();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -874,6 +884,7 @@ export default function FFCSTimetableTab() {
     setIsDownloading(true);
     try {
       await downloadTimetableImage(captureRef.current, activeTimetable.name, themeBgColor, format);
+      track("export_image", { format });
       setSuccessMsg("Timetable downloaded successfully!");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
@@ -883,6 +894,52 @@ export default function FFCSTimetableTab() {
       setIsDownloading(false);
     }
   }, [activeTimetable.name, themeBgColor]);
+
+  /**
+   * Share the active plan as a link that carries the plan itself.
+   *
+   * The native share sheet where the browser has one (phones, and desktop
+   * Chrome/Edge), the clipboard where it does not — and a cancelled sheet is
+   * treated as a decision, not a failure, so it does not fall through to a
+   * copy the student did not ask for.
+   */
+  const handleSharePlan = useCallback(async () => {
+    const plan = activeTimetable;
+    if (!plan || plan.courses.length === 0) {
+      setError("Add at least one course to the timetable before sharing it.");
+      return;
+    }
+
+    const url = buildShareUrl(encodeTimetableShare(plan), window.location.origin);
+    track("share_created", { courses: plan.courses.length, bytes: url.length });
+
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: `${plan.name} — AmazeCC FFCS`,
+          text: "My FFCS plan:",
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Anything else (no handler registered, permission refused) falls
+        // through to the clipboard rather than dying quietly.
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setSuccessMsg(
+        isOversizedShareLink(url)
+          ? "Share link copied — it is very long, so some apps may cut it short."
+          : "Share link copied to clipboard!"
+      );
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch {
+      setError("Could not copy the share link. Try again over https.");
+    }
+  }, [activeTimetable]);
 
   const openPrintablePage = useCallback(() => {
     if (!pdfCaptureRef.current) return;
@@ -904,6 +961,7 @@ export default function FFCSTimetableTab() {
       }
 
       setSuccessMsg("Printable view opened in new tab!");
+      track("export_printable");
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);
@@ -1150,6 +1208,7 @@ export default function FFCSTimetableTab() {
       <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
         <FFCSGeneratorSubpage
           onClose={closeGenerator}
+          settings={settings}
           courseLocks={courseLocks}
           setCourseLocks={setCourseLocks}
           friends={friends}
@@ -1179,10 +1238,10 @@ export default function FFCSTimetableTab() {
     <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
       {/* Top Banner / Upload Area */}
-      <div className="solid-card p-6">
+      <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-6" data-tour-id="ffcs-banner">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-text-heading flex items-center gap-2">
               <MapIcon className="text-blue-400 w-6 h-6" /> FFCS Planner
               <button 
                 onClick={() => setIsGuideModalOpen(true)}
@@ -1198,6 +1257,20 @@ export default function FFCSTimetableTab() {
               >
                 <Keyboard className="w-5 h-5" />
               </button>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
+                title="Planner Settings"
+              >
+                <Settings2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => { void handleSharePlan(); }}
+                className="text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
+                title="Share this plan"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
             </h2>
             <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
           </div>
@@ -1205,13 +1278,13 @@ export default function FFCSTimetableTab() {
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto mt-4 md:mt-0">
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="hidden md:flex items-center gap-2 bg-muted hover:border-border text-foreground px-4 py-2.5 rounded-xl border border-border transition-colors shadow-lg"
+              className="hidden md:flex items-center gap-2 bg-surface-secondary hover:border-border-strong text-text-heading px-4 py-2.5 rounded-xl border border-border-strong transition-colors shadow-lg"
               title="Toggle Fullscreen"
             >
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
 
-            <div className="flex items-center gap-3 bg-background px-4 py-2 rounded-xl border border-border">
+            <div className="flex items-center gap-3 bg-surface px-4 py-2 rounded-xl border border-border-strong">
               {isLoadingCourses ? (
                 <span className="text-amber-400 text-sm font-medium flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
@@ -1240,25 +1313,35 @@ export default function FFCSTimetableTab() {
         )}
       </div>
 
+      {/* Evergreen hints, each dismissed for good. Above the fold so they are
+          read where they apply rather than scrolled past inside a card. */}
+      {hints.length > 0 && (
+        <div className="space-y-2">
+          {hints.map((hint) => (
+            <Tip key={hint.id} hint={hint} onDismiss={() => dismissHint(hint.id)} />
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col gap-6">
         
         {/* Top Panel: Course Manager */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Timetable Manager */}
-          <div className="solid-card p-5">
-            <h2 className="text-lg font-bold text-foreground mb-4">Timetable Manager</h2>
+          <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-5">
+            <h2 className="text-lg font-bold text-text-heading mb-4">Timetable Manager</h2>
             <div className="space-y-4">
               {/* Timetable Selector as Modal Trigger */}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setIsTimetableModalOpen(true)}
-                  className="flex-1 bg-background border border-border rounded-xl pl-4 pr-3 py-2.5 text-sm text-foreground hover:bg-muted/50 transition-all flex items-center justify-between gap-2 shadow-sm"
+                  className="flex-1 bg-surface border border-border-strong rounded-xl pl-4 pr-3 py-2.5 text-sm text-text-heading hover:bg-surface-secondary/50 transition-all flex items-center justify-between gap-2 shadow-sm"
                 >
                   <span className="truncate font-medium">{activeTimetable?.name || 'Select Timetable'}</span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{activeTimetable?.courses.length || 0} courses</span>
+                    <span className="text-xs text-muted-foreground bg-surface-secondary px-2 py-0.5 rounded-md">{activeTimetable?.courses.length || 0} courses</span>
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </button>
@@ -1275,11 +1358,11 @@ export default function FFCSTimetableTab() {
               </div>
 
               {/* Active Timetable Actions: Rename, Duplicate, Delete */}
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-muted/30 border border-border/50 rounded-xl">
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-secondary/30 border border-border-strong/50 rounded-xl">
                 <button 
                   type="button"
                   onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }}
-                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
+                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all"
                   title="Rename Current Timetable"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -1289,7 +1372,7 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="button"
                   onClick={duplicateTimetable}
-                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all"
+                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all"
                   title="Duplicate Current Timetable"
                 >
                   <Copy className="w-3.5 h-3.5" />
@@ -1313,7 +1396,7 @@ export default function FFCSTimetableTab() {
                     type="text" 
                     value={editNameValue}
                     onChange={e => setEditNameValue(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50"
+                    className="flex-1 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
                     placeholder="New name..."
                   />
                   <button 
@@ -1326,11 +1409,11 @@ export default function FFCSTimetableTab() {
               )}
 
               {/* Utility Row: Export Calendar, Friends, Backup/Restore */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-tour-id="ffcs-export">
                 <button 
                   type="button"
                   onClick={() => exportTimetableIcal(activeTimetable, getTimetableSchema(), new Date().toISOString().split('T')[0], new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0])}
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium shadow-sm group"
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
                   title="Export to Apple/Google Calendar"
                 >
                   <Download className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" />
@@ -1340,7 +1423,8 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="button"
                   onClick={() => setIsFriendsManagerOpen(true)}
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium shadow-sm group"
+                  data-tour-id="ffcs-social"
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
                   title="Manage friends and compare schedules"
                 >
                   <Users className="w-4 h-4 text-pink-500 group-hover:scale-110 transition-transform" />
@@ -1350,7 +1434,7 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="button"
                   onClick={exportTimetables}
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium shadow-sm group"
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
                   title="Export backup data (JSON)"
                 >
                   <Save className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
@@ -1358,7 +1442,7 @@ export default function FFCSTimetableTab() {
                 </button>
 
                 <label 
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-background border border-border rounded-xl hover:bg-muted/30 transition-all text-[11px] text-foreground font-medium cursor-pointer shadow-sm group"
+                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium cursor-pointer shadow-sm group"
                   title="Import backup data (JSON)"
                 >
                   <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
@@ -1368,10 +1452,11 @@ export default function FFCSTimetableTab() {
               </div>
 
               {/* Core Planners: Target Courses, Auto-Generate */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-strong/30">
                 <button 
                   type="button"
                   onClick={() => setIsCourseLockOpen(true)}
+                  data-tour-id="ffcs-add-course"
                   className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 hover:text-purple-400 text-sm font-semibold py-3 rounded-xl border border-purple-500/20 transition-all flex items-center justify-center gap-2 relative shadow-sm"
                 >
                   <Lock className="w-4 h-4" /> 
@@ -1386,6 +1471,7 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="button"
                   onClick={() => setIsGeneratorOpen(true)}
+                  data-tour-id="ffcs-generate"
                   className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 text-sm font-semibold py-3 rounded-xl border border-amber-500/20 transition-all flex items-all justify-center gap-2 shadow-sm"
                 >
                   <Wand2 className="w-4 h-4" /> 
@@ -1412,35 +1498,33 @@ export default function FFCSTimetableTab() {
           </div>
 
           {/* Course Selector */}
-          <div className="solid-card p-5">
-            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+          <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-5">
+            <h2 className="text-lg font-bold text-text-heading mb-4 flex items-center gap-2">
               <PlusCircle className="text-blue-400 w-5 h-5" /> Course Selector
             </h2>
             
             {!masterCourses.length ? (
               <EmptyState
                 title="Please upload a master slots file first."
-                className="bg-background border border-border rounded-xl"
+                className="bg-surface border border-border-strong rounded-xl"
               />
             ) : (
               <form onSubmit={handleAddCourse} className="space-y-4">
-                <div className="flex items-center justify-between mb-4 bg-muted/30 p-3 rounded-xl border border-border">
+                <div className="flex items-center justify-between mb-4 bg-surface-secondary/30 p-3 rounded-xl border border-border-strong">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <span className="text-sm font-medium text-text-heading flex items-center gap-2">
                       Group Embedded Courses
                     </span>
-                    <button 
-                      type="button"
-                      onClick={() => setIsGroupingEnabled(!isGroupingEnabled)}
-                      className={`w-11 h-6 rounded-full transition-colors relative ${isGroupingEnabled ? 'bg-blue-500' : 'bg-muted-foreground'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${isGroupingEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                    <Switch
+                      checked={isGroupingEnabled}
+                      onCheckedChange={setIsGroupingEnabled}
+                      label="Group Embedded Courses"
+                    />
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsManualLinkerOpen(true)}
-                    className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 text-foreground font-medium rounded-md transition-colors border border-border"
+                    className="text-xs px-2 py-1 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-md transition-colors border border-border-strong"
                   >
                     Advanced Linker
                   </button>
@@ -1450,7 +1534,7 @@ export default function FFCSTimetableTab() {
                   <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">1. Select Course</label>
                   <button 
                     onClick={() => setIsCourseSearchOpen(true)}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-left text-foreground hover:bg-muted/50 transition-colors flex justify-between items-center group shadow-sm"
+                    className="w-full bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-sm"
                   >
                     <span className="truncate text-sm font-medium">
                       {selectedCourseCode 
@@ -1475,42 +1559,49 @@ export default function FFCSTimetableTab() {
                   <div className="animate-fadeIn">
                     <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">2. Select Slot & Faculty</label>
                     <div className="flex gap-2">
-                      <select 
-                        value={slotFilter}
-                        onChange={e => {
-                          setSlotFilter(e.target.value);
-                          setSelectedSlotIndex("-1");
-                        }}
-                        className="w-1/3 bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-blue-500/50 transition-colors"
-                      >
-                        <option value="all">All</option>
-                        {isGroupingEnabled ? (
-                          <>
-                            <option value="morning_session">Morning Session</option>
-                            <option value="evening_session">Evening Session</option>
-                          </>
-                        ) : (
-                          <>
-                            {(!hasLab || hasTheory) && (
-                              <>
-                                <option value="morning">Morning Theory</option>
-                                <option value="evening">Evening Theory</option>
-                              </>
-                            )}
-                            {(!hasTheory || hasLab) && (
-                              <>
-                                <option value="morning_lab">Morning Lab</option>
-                                <option value="evening_lab">Evening Lab</option>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </select>
+                      {/* ChipTabs, not a select: this tab goes fullscreen
+                          (`fixed z-[100]`) and OptionPicker's popup is a
+                          portal painted at z-70 — it would open beneath its
+                          own host in fullscreen mode. A scrolling pill strip
+                          has no popup to sink. */}
+                      <div className="w-1/3 min-w-0 flex items-center">
+                        <ChipTabs
+                          size="sm"
+                          className="min-w-0"
+                          value={slotFilter}
+                          onChange={(v) => {
+                            setSlotFilter(v);
+                            setSelectedSlotIndex("-1");
+                          }}
+                          options={[
+                            { value: "all", label: "All" },
+                            ...(isGroupingEnabled
+                              ? [
+                                  { value: "morning_session", label: "Morning Session" },
+                                  { value: "evening_session", label: "Evening Session" },
+                                ]
+                              : [
+                                  ...((!hasLab || hasTheory)
+                                    ? [
+                                        { value: "morning", label: "Morning Theory" },
+                                        { value: "evening", label: "Evening Theory" },
+                                      ]
+                                    : []),
+                                  ...((!hasTheory || hasLab)
+                                    ? [
+                                        { value: "morning_lab", label: "Morning Lab" },
+                                        { value: "evening_lab", label: "Evening Lab" },
+                                      ]
+                                    : []),
+                                ]),
+                          ]}
+                        />
+                      </div>
                       
                       <button
                         type="button"
                         onClick={() => setIsSlotSearchOpen(true)}
-                        className="w-2/3 bg-background border border-border rounded-xl px-4 py-2.5 text-left text-foreground hover:bg-muted/50 transition-colors flex justify-between items-center group shadow-sm"
+                        className="w-2/3 bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-sm"
                       >
                         <span className="truncate text-sm font-medium">
                           {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
@@ -1532,7 +1623,7 @@ export default function FFCSTimetableTab() {
                 <button 
                   type="submit" 
                   disabled={!selectedCourseCode || selectedSlotIndex === "-1"}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-foreground font-medium py-2.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-text-heading font-medium py-2.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
                 >
                   <PlusCircle className="w-4 h-4" /> Add to Timetable
                 </button>
@@ -1545,7 +1636,7 @@ export default function FFCSTimetableTab() {
         <div className="w-full space-y-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
             {/* Social Score Widget */}
-            <div className="flex items-center gap-3 bg-muted/20 border border-border p-2 rounded-xl w-full md:w-auto flex-1 max-w-md print:hidden">
+            <div className="flex items-center gap-3 bg-surface-secondary/20 border border-border-strong p-2 rounded-xl w-full md:w-auto flex-1 max-w-md print:hidden">
               <div className="flex flex-col gap-1 w-full">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3 text-pink-500" /> Social Score</label>
@@ -1559,30 +1650,31 @@ export default function FFCSTimetableTab() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <select 
+                  {/* Popup-free on purpose — same z-70-portal trap as the
+                      slot filter above. Group membership rides on `title`
+                      since a single scrolling strip has no optgroup headers. */}
+                  <ChipTabs
+                    className="flex-1 min-w-0"
                     value={socialTargetId}
-                    onChange={(e) => setSocialTargetId(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-lg text-base sm:text-base text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
-                  >
-                    <option value="">Select Friend/Group...</option>
-                    {friends.length > 0 && <optgroup label="Friends">
-                      {friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </optgroup>}
-                    {friendGroups.length > 0 && <optgroup label="Groups">
-                      {friendGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                    </optgroup>}
-                  </select>
+                    onChange={setSocialTargetId}
+                    options={[
+                      { value: "", label: "Select Friend/Group…", title: "No target selected" },
+                      ...friends.map((f) => ({ value: f.id, label: f.name, title: `Friend: ${f.name}` })),
+                      ...friendGroups.map((g) => ({ value: g.id, label: g.name, title: `Group: ${g.name}` })),
+                    ]}
+                  />
                   
                   {friendGroups.find(g => g.id === socialTargetId) && (
-                    <select
-                      value={socialScoreGroupMethod}
-                      onChange={(e) => setSocialScoreGroupMethod(e.target.value as any)}
-                      className="w-28 bg-background border border-border rounded-lg text-base text-foreground p-1.5 focus:outline-none focus:ring-1 focus:ring-pink-500/50"
-                      title="Calculation Method"
-                    >
-                      <option value="intersection">Intersection</option>
-                      <option value="cumulative">Cumulative</option>
-                    </select>
+                    <span title="Calculation Method" className="shrink-0">
+                      <SegmentedControl
+                        value={socialScoreGroupMethod}
+                        onChange={setSocialScoreGroupMethod}
+                        options={[
+                          { value: "intersection", label: "Intersection" },
+                          { value: "cumulative", label: "Cumulative" },
+                        ]}
+                      />
+                    </span>
                   )}
                 </div>
               </div>
@@ -1592,41 +1684,41 @@ export default function FFCSTimetableTab() {
               <button 
                 onClick={openPrintablePage}
                 disabled={isDownloading || courses.length === 0}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-text-heading px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
               >
                 <Download className="w-4 h-4" /> 
                 {isDownloading ? "Opening..." : "Printable View"}
               </button>
               <div className="relative group flex items-center gap-2">
                 <button
-                  onClick={() => downloadImage('jpg')}
+                  onClick={() => downloadImage(settings.exportFormat)}
                   disabled={isDownloading || courses.length === 0}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-text-heading px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
                   <Download className="w-4 h-4" />
-                  {isDownloading ? "Capturing..." : "Download JPG"}
+                  {isDownloading ? "Capturing..." : `Download ${settings.exportFormat.toUpperCase()}`}
                 </button>
                 {/* Touch devices never hover the trigger above, so the
-                    hover-only format menu is unreachable there. Surface PNG
-                    as a direct sibling action; the hover menu stays for
-                    pointer devices. */}
+                    hover-only format menu is unreachable there. Surface the
+                    other format as a direct sibling action; the hover menu
+                    stays for pointer devices. */}
                 <button
-                  onClick={() => downloadImage('png')}
+                  onClick={() => downloadImage(settings.exportFormat === 'jpg' ? 'png' : 'jpg')}
                   disabled={isDownloading || courses.length === 0}
-                  className="hidden items-center bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-foreground px-3 py-2 rounded-xl text-sm font-medium transition-colors [@media(any-hover:none)]:flex shadow-lg shadow-blue-500/20"
+                  className="hidden items-center bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-text-heading px-3 py-2 rounded-xl text-sm font-medium transition-colors [@media(any-hover:none)]:flex shadow-lg shadow-blue-500/20"
                 >
-                  PNG
+                  {settings.exportFormat === 'jpg' ? 'PNG' : 'JPG'}
                 </button>
-                <div className="absolute right-0 top-full mt-1 w-36 bg-background border border-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                   <button 
                     onClick={() => downloadImage('jpg')}
-                    className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-sm text-text-heading hover:bg-surface-secondary transition-colors"
                   >
                     Download as JPG
                   </button>
                   <button 
                     onClick={() => downloadImage('png')}
-                    className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors border-t border-border"
+                    className="w-full text-left px-4 py-2.5 text-sm text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
                   >
                     Download as PNG
                   </button>
@@ -1635,10 +1727,10 @@ export default function FFCSTimetableTab() {
             </div>
           </div>
           
-          <div ref={captureRef} className="space-y-6 rounded-xl">
+          <div ref={captureRef} className="space-y-6 rounded-xl" data-tour-id="ffcs-grid">
             {/* Header for the exported image */}
-            <div className="hidden print:block p-4 mb-4 bg-muted rounded-xl border border-border text-center">
-              <h1 className="text-2xl font-bold text-foreground">{activeTimetable.name}</h1>
+            <div className="hidden print:block p-4 mb-4 bg-surface-secondary rounded-xl border border-border-strong text-center">
+              <h1 className="text-2xl font-bold text-text-heading">{activeTimetable.name}</h1>
               <p className="text-muted-foreground text-sm mt-1">Generated by AmazeCC FFCS Planner</p>
             </div>
             
@@ -1656,9 +1748,9 @@ export default function FFCSTimetableTab() {
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
             {courses.length > 0 && (
-              <div className="solid-card p-6">
+              <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                  <h2 className="text-xl font-bold text-foreground flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
                     <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
                       Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
@@ -1675,7 +1767,7 @@ export default function FFCSTimetableTab() {
                 <div className="overflow-x-auto scrollbar-none">
                   <table className="w-full text-left min-w-[600px]">
                     <thead>
-                      <tr className="border-b border-border">
+                      <tr className="border-b border-border-strong">
                         <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Course</th>
                         <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
                         <th className="py-3 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Faculty</th>
@@ -1701,21 +1793,21 @@ export default function FFCSTimetableTab() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">
+                          <td className="py-3 px-2 text-sm text-text-heading/80">
                             {renderTypeChips(c.type)}
                           </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.faculty}</td>
+                          <td className="py-3 px-2 text-sm text-text-heading/80">{c.faculty}</td>
                           <td className="py-3 px-2">
                             <div className="flex flex-wrap gap-1">
                               {c.slots.map(s => (
-                                <span key={s} className="bg-accent/50 border border-border text-foreground/80 text-[10px] px-1.5 py-0.5 rounded-md">
+                                <span key={s} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">
                                   {s}
                                 </span>
                               ))}
                             </div>
                           </td>
-                          <td className="py-3 px-2 text-sm text-foreground/80 max-w-xs">{c.venue}</td>
-                          <td className="py-3 px-2 text-sm text-foreground/80">{c.credits}</td>
+                          <td className="py-3 px-2 text-sm text-text-heading/80 max-w-xs">{c.venue}</td>
+                          <td className="py-3 px-2 text-sm text-text-heading/80">{c.credits}</td>
                           <td className="py-3 px-2 text-right print:hidden">
                             <button 
                               onClick={() => {
@@ -1752,9 +1844,9 @@ export default function FFCSTimetableTab() {
           padding: '40px'
         }}
       >
-        <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
+        <div className="flex items-center justify-between mb-8 border-b border-border-strong pb-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">{activeTimetable.name}</h1>
+            <h1 className="text-3xl font-bold text-text-heading mb-2">{activeTimetable.name}</h1>
 
           </div>
           <div className="text-right">
@@ -1765,14 +1857,14 @@ export default function FFCSTimetableTab() {
 
         {/* Timetable Grid Preview */}
         <div className="mb-10">
-          <h2 className="text-xl font-bold text-foreground mb-4">Schedule</h2>
-          <div className="border border-border rounded-xl overflow-hidden">
+          <h2 className="text-xl font-bold text-text-heading mb-4">Schedule</h2>
+          <div className="border border-border-strong rounded-xl overflow-hidden">
             <table className="w-full text-xs text-center border-collapse table-fixed">
               <thead>
-                <tr className="bg-muted">
-                  <th className="border border-border p-2 w-20 text-muted-foreground">Day</th>
+                <tr className="bg-surface-secondary">
+                  <th className="border border-border-strong p-2 w-20 text-muted-foreground">Day</th>
                   {theoryPeriods.map(p => (
-                    <th key={p.start} className="border border-border p-2 text-foreground/80">
+                    <th key={p.start} className="border border-border-strong p-2 text-text-heading/80">
                       <div>{p.start}</div>
                       <div className="text-muted-foreground font-normal">to {p.end}</div>
                     </th>
@@ -1781,8 +1873,8 @@ export default function FFCSTimetableTab() {
               </thead>
               <tbody>
                 {DAYS.map(day => (
-                  <tr key={day.id} className="border border-border">
-                    <td className="border border-border font-bold bg-muted/50 uppercase">
+                  <tr key={day.id} className="border border-border-strong">
+                    <td className="border border-border-strong font-bold bg-surface-secondary/50 uppercase">
                       {day.id}
                     </td>
                     {theoryPeriods.map((tp, idx) => {
@@ -1794,9 +1886,9 @@ export default function FFCSTimetableTab() {
                       const lCourse = lSlot ? getCourseForSlot(lSlot) : null;
                       
                       return (
-                        <td key={idx} className="border border-border p-0 relative h-16 align-top">
+                        <td key={idx} className="border border-border-strong p-0 relative h-16 align-top">
                           {/* Theory Half */}
-                          <div className={`h-1/2 w-full border-b border-border/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? (tCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
+                          <div className={`h-1/2 w-full border-b border-border-strong/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? (tCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
                             {tCourse ? (
                               <>
                                 <span className="font-bold text-[10px] leading-tight">{tCourse.code}</span>
@@ -1831,12 +1923,12 @@ export default function FFCSTimetableTab() {
         {/* Selected Courses Table */}
         <div className="mb-10">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-foreground">Course List</h2>
+            <h2 className="text-xl font-bold text-text-heading">Course List</h2>
             <p className="text-muted-foreground font-medium">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
           </div>
           <table className="w-full text-sm text-left border-collapse">
             <thead>
-              <tr className="bg-muted border-b border-border text-foreground/80">
+              <tr className="bg-surface-secondary border-b border-border-strong text-text-heading/80">
                 <th className="py-3 px-4 font-semibold">Course Code</th>
                 <th className="py-3 px-4 font-semibold">Title</th>
                 <th className="py-3 px-4 font-semibold">Type</th>
@@ -1852,7 +1944,7 @@ export default function FFCSTimetableTab() {
                 </tr>
               ) : (
                 getGroupedCourses(courses).map((c, i) => (
-                  <tr key={i} className="border-b border-border hover:bg-muted/20">
+                  <tr key={i} className="border-b border-border-strong hover:bg-surface-secondary/20">
                     <td className="py-3 px-4 font-medium">
                       <div className={`inline-block px-2.5 py-1 rounded-lg ${c.color || 'bg-blue-600'} text-white text-xs font-bold shadow-sm`}>{c.code}</div>
                     </td>
@@ -1869,7 +1961,7 @@ export default function FFCSTimetableTab() {
                     <td className="py-3 px-4">
                       {renderTypeChips(c.type)}
                     </td>
-                    <td className="py-3 px-4 text-foreground/80">{c.faculty}</td>
+                    <td className="py-3 px-4 text-text-heading/80">{c.faculty}</td>
                     <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
                     <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
                   </tr>
@@ -1879,7 +1971,7 @@ export default function FFCSTimetableTab() {
           </table>
         </div>
 
-        <div className="text-center mt-12 pt-4 border-t border-border">
+        <div className="text-center mt-12 pt-4 border-t border-border-strong">
           <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
             Generated by AmazeCC <MapIcon className="w-4 h-4 text-blue-500" />
           </p>
@@ -1917,20 +2009,20 @@ export default function FFCSTimetableTab() {
             panelZIndex={200}
             backdropZIndex={195}
           >
-            <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-text-heading">
               <Users className="text-pink-500 w-6 h-6" /> Friends Manager
             </h2>
             <div className="flex flex-col gap-4">
-              <div className="flex bg-muted/50 p-1 rounded-xl gap-1 shrink-0">
+              <div className="flex bg-surface-secondary/50 p-1 rounded-xl gap-1 shrink-0">
                 <button 
                   onClick={() => setFriendsManagerTab("friends")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "friends" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "friends" ? "bg-surface text-text-heading shadow-sm" : "text-muted-foreground hover:text-text-heading"}`}
                 >
                   Friends
                 </button>
                 <button 
                   onClick={() => setFriendsManagerTab("groups")}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "groups" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${friendsManagerTab === "groups" ? "bg-surface text-text-heading shadow-sm" : "text-muted-foreground hover:text-text-heading"}`}
                 >
                   Groups
                 </button>
@@ -1944,20 +2036,20 @@ export default function FFCSTimetableTab() {
                   </label>
                   
                   <div className="mt-2 flex flex-col gap-3">
-                    <h3 className="font-semibold text-sm text-foreground">Your Friends ({friends.length})</h3>
+                    <h3 className="font-semibold text-sm text-text-heading">Your Friends ({friends.length})</h3>
                     {friends.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                      <div className="p-6 text-center text-sm text-muted-foreground bg-surface-secondary/20 rounded-lg border border-dashed border-border-strong">
                         No friends added yet. Ask your friend to click "Export Config" and send you the file!
                       </div>
                     ) : (
                       friends.map(f => (
-                        <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
+                        <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-border-strong bg-surface-secondary/10">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500 font-bold">
                               {f.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-foreground">{f.name}</p>
+                              <p className="text-sm font-bold text-text-heading">{f.name}</p>
                               <p className="text-xs text-muted-foreground">Considering {f.timetables?.length || 0} timetables</p>
                             </div>
                           </div>
@@ -1997,8 +2089,8 @@ export default function FFCSTimetableTab() {
 
               {friendsManagerTab === "groups" && (
                 <>
-                  <div className="bg-muted/10 border border-border rounded-xl p-4 flex flex-col gap-3 shrink-0">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <div className="bg-surface-secondary/10 border border-border-strong rounded-xl p-4 flex flex-col gap-3 shrink-0">
+                    <h3 className="text-sm font-bold text-text-heading flex items-center gap-2">
                       <Plus className="w-4 h-4 text-pink-500" /> Create New Group
                     </h3>
                     <input 
@@ -2006,14 +2098,14 @@ export default function FFCSTimetableTab() {
                       placeholder="Group Name (e.g., Gaming Squad)" 
                       value={newGroupName}
                       onChange={e => setNewGroupName(e.target.value)}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-pink-500/50"
+                      className="w-full bg-surface border border-border-strong rounded-lg px-3 py-2 text-sm text-text-heading focus:outline-none focus:border-pink-500/50"
                     />
-                    <div className="max-h-32 overflow-y-auto custom-scrollbar border border-border rounded-lg bg-background p-2">
+                    <div className="max-h-32 overflow-y-auto custom-scrollbar border border-border-strong rounded-lg bg-surface p-2">
                       {friends.length === 0 ? (
                         <div className="text-xs text-muted-foreground p-2 text-center">Add friends first</div>
                       ) : (
                         friends.map(f => (
-                          <label key={f.id} className="flex items-center gap-2 p-1.5 hover:bg-muted/50 rounded-md cursor-pointer transition-colors">
+                          <label key={f.id} className="flex items-center gap-2 p-1.5 hover:bg-surface-secondary/50 rounded-md cursor-pointer transition-colors">
                             <input 
                               type="checkbox" 
                               checked={newGroupFriends.includes(f.id)}
@@ -2021,9 +2113,9 @@ export default function FFCSTimetableTab() {
                                 if (e.target.checked) setNewGroupFriends(prev => [...prev, f.id]);
                                 else setNewGroupFriends(prev => prev.filter(id => id !== f.id));
                               }}
-                              className="rounded border-border text-pink-500 focus:ring-pink-500/30"
+                              className="rounded border-border-strong text-pink-500 focus:ring-pink-500/30"
                             />
-                            <span className="text-sm text-foreground">{f.name}</span>
+                            <span className="text-sm text-text-heading">{f.name}</span>
                           </label>
                         ))
                       )}
@@ -2043,18 +2135,18 @@ export default function FFCSTimetableTab() {
                   </div>
 
                   <div className="mt-2 flex flex-col gap-3">
-                    <h3 className="font-semibold text-sm text-foreground">Your Groups ({friendGroups.length})</h3>
+                    <h3 className="font-semibold text-sm text-text-heading">Your Groups ({friendGroups.length})</h3>
                     {friendGroups.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                      <div className="p-6 text-center text-sm text-muted-foreground bg-surface-secondary/20 rounded-lg border border-dashed border-border-strong">
                         No groups created yet.
                       </div>
                     ) : (
                       friendGroups.map(g => (
-                        <div key={g.id} className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/10">
+                        <div key={g.id} className="flex flex-col gap-2 p-3 rounded-lg border border-border-strong bg-surface-secondary/10">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-pink-500" />
-                              <p className="text-sm font-bold text-foreground">{g.name}</p>
+                              <p className="text-sm font-bold text-text-heading">{g.name}</p>
                             </div>
                             <button 
                               onClick={() => setFriendGroups(prev => prev.filter(gr => gr.id !== g.id))}
@@ -2067,7 +2159,7 @@ export default function FFCSTimetableTab() {
                             {g.friendIds.map(fid => {
                               const f = friends.find(fr => fr.id === fid);
                               if (!f) return null;
-                              return <span key={fid} className="text-[10px] bg-background border border-border px-1.5 py-0.5 rounded-full text-muted-foreground">{f.name}</span>;
+                              return <span key={fid} className="text-[10px] bg-surface border border-border-strong px-1.5 py-0.5 rounded-full text-muted-foreground">{f.name}</span>;
                             })}
                           </div>
                         </div>
@@ -2098,7 +2190,7 @@ export default function FFCSTimetableTab() {
               <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
                 <Users className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Name Your Friend</h2>
+              <h2 className="text-xl font-bold text-text-heading">Name Your Friend</h2>
             </div>
             <p className="text-sm text-muted-foreground">They're considering {pendingFriendTimetables.length} timetables. Give them a name so you can identify them in the generator.</p>
             <input 
@@ -2106,7 +2198,7 @@ export default function FFCSTimetableTab() {
               value={pendingFriendName}
               onChange={(e) => setPendingFriendName(e.target.value)}
               placeholder="E.g., Rahul"
-              className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/50 transition-all"
+              className="w-full bg-surface-secondary/30 border border-border-strong rounded-xl px-4 py-3 text-sm text-text-heading focus:outline-none focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/50 transition-all"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveFriend();
@@ -2118,7 +2210,7 @@ export default function FFCSTimetableTab() {
                   setPendingFriendTimetables(null);
                   setPendingFriendName("");
                 }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
               >
                 Cancel
               </button>
@@ -2172,17 +2264,17 @@ export default function FFCSTimetableTab() {
             backdropZIndex={395}
             contentClassName="flex flex-col gap-3"
           >
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               <Search className="w-5 h-5 text-blue-500" /> Search Course
             </h3>
-            <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
             {/*
               The results keep their own scroll box rather than inheriting the
               sheet's: this used to be `flex-1` inside an `max-h-[85vh]` column,
               and a capped list is what keeps the search field on screen while
               you arrow through results.
             */}
-            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {uniqueCourses.filter(c => 
                 (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
@@ -2201,11 +2293,11 @@ export default function FFCSTimetableTab() {
                     setIsCourseSearchOpen(false);
                     setCourseSearchQuery("");
                   }}
-                  className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? 'opacity-50 cursor-not-allowed bg-muted/30 border border-border/50' : selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
+                  className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? 'opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50' : selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-surface-secondary/80'}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-foreground'}`}>{c.code}</span>
+                      <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-text-heading'}`}>{c.code}</span>
                        {renderTypeChips(c.types || [], 'sm')}
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
@@ -2234,7 +2326,7 @@ export default function FFCSTimetableTab() {
                   icon={<Search className="w-8 h-8" />}
                   title="No courses found"
                   description="Try a different search term"
-                  className="py-12 border border-dashed border-border/50 rounded-xl m-2"
+                  className="py-12 border border-dashed border-border-strong/50 rounded-xl m-2"
                 />
               )}
               {uniqueCourses.filter(c => 
@@ -2243,7 +2335,7 @@ export default function FFCSTimetableTab() {
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
                 )
               ).length > 100 && (
-                <div className="text-center py-4 text-xs text-muted-foreground font-medium flex items-center justify-center gap-2 border-t border-border/30 mt-2">
+                <div className="text-center py-4 text-xs text-muted-foreground font-medium flex items-center justify-center gap-2 border-t border-border-strong/30 mt-2">
                   <Info className="w-3 h-3" /> Showing first 100 results. Refine search.
                 </div>
               )}
@@ -2263,13 +2355,13 @@ export default function FFCSTimetableTab() {
             backdropZIndex={395}
             contentClassName="flex flex-col gap-3"
           >
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
             </h3>
-            <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
             {/* Capped, like the course search, so the field stays put while the
                 result list scrolls. */}
-            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
                 if (slotFilter === "all") return true;
                 if (slotFilter === "morning_session") {
@@ -2308,11 +2400,11 @@ export default function FFCSTimetableTab() {
                     }}
                     className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1.5 
                       ${selectedSlotIndex === idx.toString() ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent'} 
-                      ${isBlocked ? 'opacity-50 cursor-not-allowed bg-red-500/5 border-red-500/10' : 'hover:bg-muted/80'}`}
+                      ${isBlocked ? 'opacity-50 cursor-not-allowed bg-red-500/5 border-red-500/10' : 'hover:bg-surface-secondary/80'}`}
                   >
                     <div className="flex flex-col w-full gap-1">
                       <div className="flex items-center justify-between w-full">
-                        <span className="font-bold text-foreground text-sm">
+                        <span className="font-bold text-text-heading text-sm">
                           {row?.SLOT}
                         </span>
                         {selectedSlotIndex === idx.toString() && <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Selected</span>}
@@ -2325,9 +2417,9 @@ export default function FFCSTimetableTab() {
                         </div>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground flex justify-between w-full mt-1 border-t border-border/30 pt-1.5">
+                    <span className="text-xs text-muted-foreground flex justify-between w-full mt-1 border-t border-border-strong/30 pt-1.5">
                       <span className="truncate pr-2">{row?.FACULTY}</span>
-                      <span className="font-medium text-foreground/70 shrink-0">{row?.ROOM}</span>
+                      <span className="font-medium text-text-heading/70 shrink-0">{row?.ROOM}</span>
                     </span>
                   </button>
                 );
@@ -2342,7 +2434,7 @@ export default function FFCSTimetableTab() {
                   icon={<Search className="w-8 h-8" />}
                   title="No slots found"
                   description="Try a different search term or filter"
-                  className="py-12 border border-dashed border-border/50 rounded-xl m-2"
+                  className="py-12 border border-dashed border-border-strong/50 rounded-xl m-2"
                 />
               )}
             </div>
@@ -2360,10 +2452,10 @@ export default function FFCSTimetableTab() {
             backdropZIndex={395}
             contentClassName="flex flex-col gap-3"
           >
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               Select Timetable
             </h3>
-            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {timetables.map(t => {
                 const isActive = t.id === activeTimetableId;
                 return (
@@ -2376,13 +2468,13 @@ export default function FFCSTimetableTab() {
                     className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex items-center justify-between gap-3 ${
                       isActive 
                         ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' 
-                        : 'border border-transparent hover:bg-muted/80'
+                        : 'border border-transparent hover:bg-surface-secondary/80'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-blue-500' : 'bg-muted-foreground/30'}`} />
                       <div className="min-w-0">
-                        <span className={`font-bold text-sm block truncate ${isActive ? 'text-foreground' : 'text-foreground/80'}`}>
+                        <span className={`font-bold text-sm block truncate ${isActive ? 'text-text-heading' : 'text-text-heading/80'}`}>
                           {t.name}
                         </span>
                         <span className="text-xs text-muted-foreground">{t.courses.length} course{t.courses.length !== 1 ? 's' : ''}</span>
@@ -2400,7 +2492,7 @@ export default function FFCSTimetableTab() {
                 </div>
               )}
             </div>
-            <div className="pt-3 border-t border-border flex justify-between items-center">
+            <div className="pt-3 border-t border-border-strong flex justify-between items-center">
               <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
               <button
                 onClick={() => { createNewTimetable(); setIsTimetableModalOpen(false); }}
@@ -2423,14 +2515,14 @@ export default function FFCSTimetableTab() {
             backdropZIndex={495}
             contentClassName="flex flex-col gap-3"
           >
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               <Search className="w-5 h-5 text-amber-500" /> Select Variant
             </h3>
             <div>
-              <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
+              <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             
-            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {(() => {
                 const differingCourseCodes: string[] = [];
                 const firstV = generatorPreviewTimetable.variants![0];
@@ -2450,7 +2542,7 @@ export default function FFCSTimetableTab() {
 
                 if (filteredVariants.length === 0) {
                   return (
-                    <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-xl m-2">
+                    <div className="text-center py-12 flex flex-col items-center justify-center border border-dashed border-border-strong/50 rounded-xl m-2">
                       <Search className="w-8 h-8 text-muted-foreground/30 mb-2" />
                       <span className="text-muted-foreground font-medium">No variants found</span>
                       <span className="text-xs text-muted-foreground/70 mt-1">Try a different search term</span>
@@ -2469,10 +2561,10 @@ export default function FFCSTimetableTab() {
                         setIsVariantSearchOpen(false);
                       }}
                       className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-2 
-                        ${isSelected ? 'bg-amber-500/10 border border-amber-500/20 shadow-sm' : 'border border-transparent hover:bg-muted/80'}`}
+                        ${isSelected ? 'bg-amber-500/10 border border-amber-500/20 shadow-sm' : 'border border-transparent hover:bg-surface-secondary/80'}`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-foreground">
+                        <span className="font-bold text-sm text-text-heading">
                           Variant {generatorPreviewTimetable.variants!.findIndex(x => x.id === v.id) + 1}
                         </span>
                         {isSelected && (
@@ -2481,13 +2573,13 @@ export default function FFCSTimetableTab() {
                       </div>
                       
                       {differingCourseCodes.length > 0 && (
-                        <div className="flex flex-col gap-1 mt-1 border-t border-border/30 pt-2">
+                        <div className="flex flex-col gap-1 mt-1 border-t border-border-strong/30 pt-2">
                           {differingCourseCodes.map(code => {
                             const c = v.courses.find(x => x.code === code);
                             return c ? (
                               <div key={code} className="flex justify-between items-center text-xs">
                                 <span className="font-medium text-muted-foreground">{code}</span>
-                                <span className="text-foreground">{c.faculty}</span>
+                                <span className="text-text-heading">{c.faculty}</span>
                               </div>
                             ) : null;
                           })}
@@ -2512,7 +2604,7 @@ export default function FFCSTimetableTab() {
             panelZIndex={600}
             backdropZIndex={595}
           >
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <h3 className="font-bold text-lg text-text-heading flex items-center gap-2">
               Advanced Course Linker
             </h3>
             
@@ -2545,16 +2637,16 @@ export default function FFCSTimetableTab() {
                     console.error("Failed to parse manual links CSV", err);
                   }
                 }}
-                className="w-full h-64 bg-muted/30 border border-border rounded-xl p-3 text-sm font-mono text-foreground focus:outline-none focus:border-amber-500/50 transition-colors"
+                className="w-full h-64 bg-surface-secondary/30 border border-border-strong rounded-xl p-3 text-sm font-mono text-text-heading focus:outline-none focus:border-amber-500/50 transition-colors"
                 placeholder="CODE,TYPE,SLOT,ROOM,FACULTY,LINK_ID&#10;BAMEE201,ETH,D1+TD1,AB2-301,SREEKANTH DONDAPATI,SREEKANTH_LAB_A&#10;BAMEE201,ELA,L5+L6,AB1-006,SREEKANTH DONDAPATI,SREEKANTH_LAB_A"
               />
               
               {manualLinks.length > 0 && (
                 <div className="mt-6">
                   <h4 className="text-sm font-semibold mb-2">Parsed Links Preview ({manualLinks.length})</h4>
-                  <div className="bg-muted/30 border border-border rounded-xl overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                  <div className="bg-surface-secondary/30 border border-border-strong rounded-xl overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-muted/50 border-b border-border sticky top-0">
+                      <thead className="bg-surface-secondary/50 border-b border-border-strong sticky top-0">
                         <tr>
                           <th className="p-2 font-medium">CODE</th>
                           <th className="p-2 font-medium">TYPE</th>
@@ -2565,7 +2657,7 @@ export default function FFCSTimetableTab() {
                       </thead>
                       <tbody className="divide-y divide-border/50">
                         {manualLinks.map((link, idx) => (
-                          <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                          <tr key={idx} className="hover:bg-surface-secondary/50 transition-colors">
                             <td className="p-2">{link.CODE}</td>
                             <td className="p-2">{link.TYPE}</td>
                             <td className="p-2">{link.SLOT}</td>
@@ -2580,7 +2672,7 @@ export default function FFCSTimetableTab() {
               )}
             </div>
             
-            <div className="pt-3 border-t border-border flex justify-end gap-3">
+            <div className="pt-3 border-t border-border-strong flex justify-end gap-3">
               <button
                 onClick={() => setIsManualLinkerOpen(false)}
                 className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors shadow-sm"
@@ -2591,8 +2683,40 @@ export default function FFCSTimetableTab() {
           </BottomSheet>
         )}
       </AnimatePresence>
+
+      {/* The tour layer and the settings sheet: siblings of the planner, not
+          wrapped around it. The spotlight reaches its anchors by
+          `data-tour-id` wherever they live; only the sheet needs the tour
+          context (its "Replay" button). Neither exists while the generator
+          subpage is up, so a tour can never run over a screen whose anchors
+          are gone. */}
+      <TourProvider offerTour={settings.showTour}>
+        <SettingsModalHost
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          settings={settings}
+          update={updateSetting}
+          reset={resetSettings}
+          isGroupingEnabled={isGroupingEnabled}
+          setIsGroupingEnabled={setIsGroupingEnabled}
+          socialScoreGroupMethod={socialScoreGroupMethod}
+          setSocialScoreGroupMethod={setSocialScoreGroupMethod}
+        />
+      </TourProvider>
     </div>
   );
+}
+
+/**
+ * The settings sheet, bridged to the tour context. Only descendants of the
+ * provider can call `useTour`, and the sheet needs it for exactly one thing:
+ * "Replay", which restarts a tour the auto-offer has already forgotten about.
+ */
+type SettingsModalHostProps = Omit<FFCSSettingsModalProps, "onReplayTour">;
+
+function SettingsModalHost(props: SettingsModalHostProps) {
+  const tour = useTour();
+  return <FFCSSettingsModal {...props} onReplayTour={tour.start} />;
 }
 
 function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -2625,7 +2749,7 @@ function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           backdropZIndex={395}
           contentClassName="flex flex-col gap-3"
         >
-          <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+          <h3 className="font-bold text-base text-text-heading flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
           </h3>
           <p className="text-xs text-muted-foreground mb-2">
@@ -2637,7 +2761,7 @@ function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                 <span className="text-muted-foreground">{shortcut.desc}</span>
                 <div className="flex items-center gap-1">
                   {shortcut.keys.map((k, kidx) => (
-                    <kbd key={kidx} className="px-2 py-1 bg-muted border border-border rounded-md font-mono text-[10px] font-bold text-foreground shadow-xs">
+                    <kbd key={kidx} className="px-2 py-1 bg-surface-secondary border border-border-strong rounded-md font-mono text-[10px] font-bold text-text-heading shadow-xs">
                       {k}
                     </kbd>
                   ))}
@@ -2645,7 +2769,7 @@ function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
               </div>
             ))}
           </div>
-          <div className="pt-3 border-t border-border text-right">
+          <div className="pt-3 border-t border-border-strong text-right">
             <button 
               onClick={onClose}
               className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"

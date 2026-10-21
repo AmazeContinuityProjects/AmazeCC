@@ -1099,7 +1099,6 @@ marksData={marksData}
             <div className="animate-fadeIn">
               <EventHubTab
                 IDs={IDs}
-                loginToVTOP={loginToVTOP}
                 onBack={onSystemBack}
                 setIsSubpageOpen={setIsSubpageOpen}
                 registeredEvents={registeredEvents}

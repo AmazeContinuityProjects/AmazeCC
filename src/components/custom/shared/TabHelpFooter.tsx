@@ -284,6 +284,67 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
         ]
       }
     ]
+  },
+  ffcs: {
+    tabName: "FFCS Planner",
+    subtitle: "Plan conflict-free timetables: import your courses, generate options, score them with friends, and export the week you pick",
+    items: [
+      {
+        icon: <ListOrdered className="w-4 h-4 text-purple-500" />,
+        name: "Add Target Courses",
+        description: "Choose the courses (and faculty) you plan to register, from the loaded course report.",
+        steps: [
+          "Step 1: Open 'Target Courses' under the planner banner.",
+          "Step 2: Search the report, or paste your registration sheet list, or upload a CSV/XLSX — column headings do not have to match ours.",
+          "Step 3: Lock the courses and faculty variants you have decided on; leave the rest flexible for the generator."
+        ]
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        name: "Generate Conflict-Free Weeks",
+        description: "The generator streams options while it searches — filter, sort, rank, compare, and save the ones you like.",
+        steps: [
+          "Step 1: Press 'Auto-Generate'.",
+          "Step 2: Set preferences: session, earliest start, latest end, minimum half-days off, unique faculties.",
+          "Step 3: Sort by half-days, gaps, compactness or social score — or rank by a profile such as 'Early Finish'.",
+          "Step 4: Stop the search any time; partial results are kept. Select two options to compare them side by side.",
+          "Step 5: Preview an option and 'Save & Use This' (or save several at once)."
+        ]
+      },
+      {
+        icon: <Users className="w-4 h-4 text-pink-500" />,
+        name: "Friends & Social Score",
+        description: "See how many classes you would actually share with each friend, per timetable.",
+        steps: [
+          "Step 1: Open 'Friends' and add friends with their course codes.",
+          "Step 2: Pick a friend or group in the Social Score row above the grid.",
+          "Step 3: Open the Social Matrix to score every saved week at once."
+        ]
+      },
+      {
+        icon: <Sliders className="w-4 h-4 text-indigo-500" />,
+        name: "Planner Settings & Tour",
+        description: "Defaults for the generator, export format, analytics consent, and the guided tour.",
+        steps: [
+          "Step 1: Open the settings icon in the planner banner.",
+          "Step 2: Set your default ranking profile, sort order, half-days floor and result cap.",
+          "Step 3: Toggle usage analytics (count-only; your courses and timetables are never shared).",
+          "Step 4: Replay the guided tour from the same sheet, or dismiss these tips permanently."
+        ]
+      },
+      {
+        icon: <Share2 className="w-4 h-4 text-blue-500" />,
+        name: "Export Your Timetable",
+        description: "Take the saved week out as an image, a calendar entry, or a printable page.",
+        steps: [
+          "Step 1: 'Download' saves the timetable as JPG or PNG (your default, in settings).",
+          "Step 2: 'Printable View' opens a clean copy for paper.",
+          "Step 3: 'iCal Export' adds every class to Apple/Google Calendar.",
+          "Step 4: The share icon (top of the planner) copies a link carrying this exact plan — opening it shows the week, ready to load into their planner.",
+          "Step 5: 'Backup' exports all planner data as JSON; 'Restore' brings it back."
+        ]
+      }
+    ]
   }
 };
 
