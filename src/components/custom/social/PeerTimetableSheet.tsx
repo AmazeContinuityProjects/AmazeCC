@@ -49,23 +49,26 @@ export default function PeerTimetableSheet({
   );
 
   return (
-    <BottomSheet onClose={onClose} overlayId="social-peer-sheet" maxWidth="max-w-md">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="social-peer-sheet"
+      maxWidth="max-w-md"
+      title={peer.name}
+      subtitle={
+        <>
+          {peer.handle} · published {relativePublished(peer.publishedAt)}
+          {peer.stale && (
+            <span className="ml-1.5 inline-block align-middle bg-amber-100 text-amber-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-amber-900/30 dark:text-amber-400">
+              Stale
+            </span>
+          )}
+        </>
+      }
+      icon={<span className="text-[11px] font-black font-outfit">{initials(peer.name)}</span>}
+      accent="border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+      closeLabel="Close peer timetable"
+    >
       <div className="text-left space-y-5">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl flex items-center justify-center text-[11px] font-black font-outfit border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-            {initials(peer.name)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit leading-tight truncate">
-              {peer.name}
-            </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate">
-              {peer.handle} · published {relativePublished(peer.publishedAt)}
-            </p>
-          </div>
-          {peer.stale && <span className={`${CHIP} shrink-0 border-amber-500/20 text-amber-600 dark:text-amber-400`}>Stale</span>}
-        </div>
-
         {peer.noGrant ? (
           <div className="p-5 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-800 text-center">
             <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">

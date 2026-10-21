@@ -191,19 +191,13 @@ export default function AssessmentRegimenEditor({
       onClose={onClose}
       overlayId={`predictor-regimen-${courseCode}`}
       maxWidth="max-w-md"
+      title="Assessment Regimen Editor"
+      subtitle={`Configure weightages for ${courseCode} · apply to save, swipe down to discard`}
+      icon={<Sliders className="w-4 h-4" />}
+      accent={TONE_ICON_TILE.indigo}
+      closeLabel="Close regimen editor"
     >
       <div className="space-y-4 pb-2">
-        {/* Header — the sheet carries the X, grabber and dismissal gestures */}
-        <div className="flex items-center gap-3 min-w-0">
-          <span className={`h-9 w-9 rounded-2xl border flex items-center justify-center shrink-0 ${TONE_ICON_TILE.indigo}`}>
-            <Sliders className="w-4 h-4" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit truncate">Assessment Regimen Editor</h3>
-            <p className="text-[11px] text-zinc-400 font-medium truncate">Configure weightages for {courseCode} · apply to save, swipe down to discard</p>
-          </div>
-        </div>
-
       {isEmbedded && (
         <SegmentedControl
           value={activeTab}

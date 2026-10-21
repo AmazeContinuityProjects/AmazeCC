@@ -57,20 +57,11 @@ export default function AssessmentMarkSheet({
       overlayId={`predictor-mark-${asm.component}-${asm.id}`}
       maxWidth="max-w-md"
       avoidKeyboard
+      title={asm.title}
+      closeLabel="Close mark entry"
     >
       <div className="space-y-4 pb-2">
-        {/* Header */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <span
-              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                tone === "blue" ? "bg-indigo-500" : tone === "emerald" ? "bg-emerald-500" : "bg-violet-500"
-              }`}
-            />
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight truncate min-w-0">
-              {asm.title}
-            </h3>
-          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <ToneBadge tone="zinc">
               Max {maxMark} · wt {asm.weightagePercent}%

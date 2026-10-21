@@ -1615,6 +1615,7 @@ export default function LoginPage() {
       { id: "tool-social", label: "Social Timetable Sharing", description: "Events, friends & timetables", icon: "👥", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("social"); } },
       { id: "tool-cabshare", label: "Cab Share", description: "Find & share cab rides", icon: "🚕", category: "Tools", onSelect: () => { setActiveTab("tools"); setActiveToolsSubTab("cabshare"); } },
       { id: "tool-free-class", label: "Search Free Classrooms", description: "Find an empty classroom or lab", icon: "🏫", category: "Campus", onSelect: () => { setActiveTab("free-class"); } },
+      { id: "tool-faculty-schedule", label: "Find Faculty Schedule", description: "See any faculty member's full weekly classes", icon: "📅", category: "Campus", onSelect: () => { setActiveTab("faculty-schedule"); } },
       { id: "events", label: "Event Hub", description: "Registered events & campus activities", icon: "🎉", category: "Campus", onSelect: () => { setActiveTab("events"); } },
       { id: "clubs", label: "Club Hub", description: "Discover student clubs & chapters", icon: "🏛️", category: "Campus", onSelect: () => { setActiveTab("clubs"); } },
     { id: "community", label: "Community Feed", description: "Announcements from clubs & chapters", icon: "📣", category: "Campus", onSelect: () => { setActiveTab("community"); } },
@@ -2834,16 +2835,16 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <BottomSheet onClose={onClose} overlayId="shortcuts-help-sheet" maxWidth="max-w-lg">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="shortcuts-help-sheet"
+      maxWidth="max-w-lg"
+      title="Keyboard Shortcuts"
+      icon={<Keyboard className="w-5 h-5" />}
+      accent="bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+      closeLabel="Close shortcuts help"
+    >
       <div className="flex flex-col min-h-0">
-        <div className="pb-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-            <Keyboard className="w-5 h-5" />
-          </div>
-          <h3 className="font-black text-base text-zinc-900 dark:text-white font-outfit">
-            Keyboard Shortcuts
-          </h3>
-        </div>
         <div className="space-y-5">
           {categories.map((cat, idx) => (
             <div key={idx} className="space-y-2">

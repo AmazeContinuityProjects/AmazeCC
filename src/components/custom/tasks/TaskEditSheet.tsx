@@ -231,25 +231,17 @@ export default function TaskEditSheet({
   if (!isOpen) return null;
 
   return (
-    <BottomSheet onClose={onClose} overlayId="task-edit-sheet" maxWidth="max-w-xl">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="task-edit-sheet"
+      maxWidth="max-w-xl"
+      title={task ? "Edit Task" : "New Task"}
+      subtitle="Course-linked homework, tests & study items"
+      icon={<Layers className="w-5 h-5" />}
+      accent="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30"
+      closeLabel={task ? "Close edit task" : "Close new task"}
+    >
       <div className="flex flex-col max-h-[85vh] text-left">
-        {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-200/70 dark:border-zinc-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                {task ? "Edit Task" : "New Task"}
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Course-linked homework, tests & study items
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Scrollable Form Body */}
         <div className="p-4 sm:p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
           {error && (

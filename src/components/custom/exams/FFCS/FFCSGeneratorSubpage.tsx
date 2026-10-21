@@ -1,21 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
-import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from '../../types';
+import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
 import { sortTimetables, timetableMetrics, formatHours } from '@/lib/timetableMetrics';
 import { periodsForSlot } from '@/lib/slots';
-import { generateTimetablesAsync, type GeneratorErrorCode } from '../../logic/generator';
-import SearchInput from "../../../../shared/SearchInput";
-import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../../../FFCSTimetableTab';
-import { COLORS, DAYS } from '../../constants';
-import { TimetableGrid, GapDetail } from '../TimetableGrid';
-import { TargetCoursesModal } from './TargetCoursesModal';
-import { TimetablePeriod } from '../../types';
-import { SegmentedControl } from "../../../../shared/primitives";
+import { useOverlayBack } from '@/lib/overlayStack';
+import { type GeneratorErrorCode } from './logic/generator';
+import { useGenerationRun } from './hooks/useGenerationRun';
+import { RANKING_MODES, type RankingMode } from '@/lib/ffcsRanking';
+import SearchInput from "../../shared/SearchInput";
+import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../FFCSTimetableTab';
+import { COLORS, DAYS } from './constants';
+import { TimetableGrid, GapDetail } from './components/TimetableGrid';
+import { TimetablePeriod } from './types';
+import { SegmentedControl } from "../../shared/primitives";
+import { AnimatePresence } from 'framer-motion';
+import BottomSheet from "../../shared/BottomSheet";
+import SubpageLayout from "../../shared/SubpageLayout";
 
 
-export interface AutoGeneratorModalProps {
-  isOpen: boolean;
+export interface FFCSGeneratorSubpageProps {
   onClose: () => void;
   courseLocks: CourseLock[];
   setCourseLocks: React.Dispatch<React.SetStateAction<CourseLock[]>>;
@@ -39,15 +43,20 @@ export interface AutoGeneratorModalProps {
   toggleBlockSlot: (slot: string) => void;
 }
 
-export function AutoGeneratorModal({
-  isOpen, onClose, courseLocks, setCourseLocks, friends, socialScoreGroupMethod, friendGroups,
+export function FFCSGeneratorSubpage({
+  onClose, courseLocks, setCourseLocks, friends, socialScoreGroupMethod, friendGroups,
   masterCourses, blockedSlots, timetables, setTimetables, setActiveTimetableId,
   error, setError, successMsg, setSuccessMsg, renderTypeChips, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
-}: AutoGeneratorModalProps) {
+}: FFCSGeneratorSubpageProps) {
   const [generatorPreference, setGeneratorPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
   const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  // The generator now streams: `run` hands back batches while the search is
+  // still going, and `cancel` stops a worker the old awaited promise could not
+  // have interrupted.
+  const generation = useGenerationRun();
+  const { isGenerating } = generation;
+  const [rankingMode, setRankingMode] = useState<RankingMode | null>(null);
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
   const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(0);
   const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>("08:00");
@@ -64,10 +73,14 @@ export function AutoGeneratorModal({
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [selectedDashDetails, setSelectedDashDetails] = useState<NonNullable<TimetableState['metrics']>['dashDetails'] | null>(null);
   const [selectedGapDetails, setSelectedGapDetails] = useState<GapDetail[] | null>(null);
-  const [isTargetCoursesModalOpen, setIsTargetCoursesModalOpen] = useState(false);
-  const isGeneratorOpen = isOpen;
-  const setIsGeneratorOpen = (v: boolean) => { if (!v) onClose(); };
   const courses: AddedCourse[] = []; // Fallback empty active courses for the Compare Modal grid, as it previews staged.
+
+  // System back pops this screen instead of leaving it behind, the same job the
+  // overlay stack did while this was a bottom sheet. `open` is unconditionally
+  // true: the component only mounts while the subpage is on show, and the
+  // nested sheets (dash, gap, variant) push their own entries on top, so a back
+  // gesture still dismisses them first.
+  useOverlayBack("ffcs-auto-generator", true, onClose);
 
   const timeToMinutes = (timeStr: string) => {
     if (!timeStr) return 0;
@@ -139,15 +152,17 @@ export function AutoGeneratorModal({
   };
 
   const generateTimetables = async () => {
-    setIsGenerating(true);
     setStagedTimetables([]);
     setSelectedStagedIds(new Set());
     setSelectedTimetablesToCompare([]);
 
-    try {
-      // Off the main thread where the browser will let us. The spinner above
-      // paints because this thread is no longer the one doing the work.
-      const outcome = await generateTimetablesAsync({
+    // Off the main thread where the browser will let us, and reported back as
+    // it goes. Each batch gets a number as it lands so the list reads as a
+    // ranking while it is still being discovered; the settled result renumbers
+    // them once variants have been grouped, which is the answer that counts.
+    let shown = 0;
+    const outcome = await generation.run(
+      {
         schema: getTimetableSchema(),
         masterCourses,
         courseLocks,
@@ -162,68 +177,124 @@ export function AutoGeneratorModal({
         noLimit: generatorNoLimit,
         minHalfDays: generatorMinHalfDays,
         sortBy: generatorSortBy,
-      });
-
-      if (outcome.kind === "error") {
-        setError(errorFor(outcome.code, outcome.subjectCode));
-        return;
+        // Only sent when one is picked: with no profile the solver does no
+        // extra work and ranks exactly as it did before the profiles existed.
+        ...(rankingMode ? { rankingMode } : {}),
+      },
+      (batch) => {
+        const labelled = batch.map((tt, i) => ({ ...tt, name: `Option ${shown + i + 1}` }));
+        shown += batch.length;
+        setStagedTimetables((prev) => [...prev, ...labelled]);
       }
+    );
 
-      const timetables = outcome.timetables;
-      setStagedTimetables(timetables);
-      const variantCount = timetables.reduce(
-        (n, t) => n + (t.variants?.length ?? 1),
-        0
-      );
-      setSuccessMsg(
-        `Found ${timetables.length} unique timetables (${variantCount} total variants). Review them below!`
-      );
-      // We do NOT close generator immediately so they can review.
-    } catch {
-      setError("An error occurred while generating timetables.");
-    } finally {
-      setIsGenerating(false);
+    if (outcome.kind === "error") {
+      setError(errorFor(outcome.code, outcome.subjectCode));
+      return;
     }
+
+    if (outcome.kind === "cancelled") {
+      // Partial results are kept rather than thrown away — a stop that shows
+      // nothing is worse than a stop that shows what it managed to find.
+      const partial = outcome.timetables.map((tt, i) => ({ ...tt, name: `Option ${i + 1}` }));
+      setStagedTimetables(partial);
+      if (partial.length) {
+        setSuccessMsg(
+          `Stopped early. ${partial.length} option${partial.length === 1 ? "" : "s"} had been found before the search ended.`
+        );
+      } else {
+        setSuccessMsg("Generation stopped before anything was found.");
+      }
+      return;
+    }
+
+    const timetables = outcome.timetables;
+    setStagedTimetables(timetables);
+    const variantCount = timetables.reduce(
+      (n, t) => n + (t.variants?.length ?? 1),
+      0
+    );
+    setSuccessMsg(
+      `Found ${timetables.length} unique timetables (${variantCount} total variants). Review them below!` +
+        // Worth saying out loud: the cap is a real limit, and a student who
+        // reads "50 found" as "there are 50" would be wrong.
+        (outcome.capped ? " More may exist — try allowing unlimited results." : "")
+    );
+    // We do NOT close generator immediately so they can review.
   };
 
   // File upload and clear master handlers removed as database is preloaded.
 
+  /*
+    A subpage, not a sheet: the generator is a workspace with its own toolbar,
+    its own notices and its own back gesture, and the planner's screen behind it
+    keeps running — the state is passed down from the tab, so leaving and
+    returning costs nothing. `SubpageLayout` supplies the back button and title;
+    the controls sit in a sticky bar rather than the layout's `action` slot
+    because that slot is a shrink-0 box beside the title, and Generate + Stop +
+    the live count would squeeze a phone's title to nothing.
+
+    The nested popups stay sheets — they are dialogs summoned from inside this
+    screen — and keep z-indexes clear of the tab's own fullscreen `z-[100]`,
+    which they portal out of: 210/205 (dash and gap) and 220/215 (variant) are
+    still the top of the stack.
+  */
   return (
     <>
-      {isGeneratorOpen && (
-        <div className="fixed inset-0 z-[200] bg-background flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="p-4 border-b border-border flex flex-wrap justify-between items-center gap-4 bg-muted/30  sticky top-0 z-10">
-            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-center lg:justify-start">
+      <SubpageLayout
+        title="Advanced Timetable Generator"
+        subtitle="Rank, compare and save conflict-free weeks"
+        onBack={onClose}
+      >
+        {/* One column for the whole workspace: sticky toolbar, notices, stage. */}
+        <div className="space-y-4">
+          <div
+            className="sticky top-0 z-10 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 rounded-2xl border border-border bg-background/95 p-3 shadow-sm backdrop-blur"
+            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+          >
+            <div className="flex items-stretch gap-2">
               <button 
-                onClick={() => setIsGeneratorOpen(false)} 
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 py-1.5 px-3 rounded-lg transition-all"
+                onClick={generateTimetables}
+                disabled={isGenerating || courseLocks.length === 0}
+                className="flex-1 lg:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <X className="w-5 h-5" />
-                <span className="font-medium text-sm">Back</span>
+                {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
+                {isGenerating ? "Generating…" : "Generate Timetables"}
               </button>
-              <div className="hidden sm:block w-px h-6 bg-border mx-2"></div>
-              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 text-foreground">
-                <Wand2 className="text-amber-500 w-5 h-5 sm:w-6 sm:h-6" /> Advanced Timetable Generator
-              </h2>
+              {isGenerating && (
+                <button
+                  type="button"
+                  onClick={generation.cancel}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2.5 px-5 rounded-xl border border-red-500/20 transition-all flex items-center justify-center gap-2 shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                  Stop
+                </button>
+              )}
             </div>
-            <button 
-              onClick={generateTimetables}
-              disabled={isGenerating || courseLocks.length === 0}
-              className="w-full lg:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
-              {isGenerating ? "Processing Millions of Combinations..." : "Generate Timetables"}
-            </button>
+            {/* Live counts, not a slogan. `aria-live` so a screen reader hears
+                the search move rather than being told only when it ends. */}
+            {isGenerating && (
+              <p className="w-full text-right text-[11px] text-muted-foreground lg:w-auto" aria-live="polite">
+                {generation.progress
+                  ? `${generation.progress.found} conflict-free weeks found, ${generation.progress.accepted} usable…`
+                  : "Searching for conflict-free weeks…"}
+              </p>
+            )}
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border-b border-red-500/20 text-red-500 px-6 py-3 flex items-center justify-center gap-2 text-sm font-medium z-10">
-              <AlertTriangle className="w-4 h-4" />
-              {error}
+          {/* Both notices, or neither — the same rule the planner's banner uses.
+              The run's own messages ("…review them below!") were previously set
+              but never rendered here: they landed in the planner's banner, which
+              the sheet covered, and outlived the results they pointed at. */}
+          {(error || successMsg) && (
+            <div className={`z-10 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${error ? "border-red-500/20 bg-red-500/10 text-red-500" : "border-green-500/20 bg-green-500/10 text-green-500"}`}>
+              {error ? <AlertTriangle className="w-4 h-4 shrink-0" /> : <Info className="w-4 h-4 shrink-0" />}
+              {error || successMsg}
             </div>
           )}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 flex justify-center bg-muted/5">
+
+          <div className="flex justify-center p-4 sm:p-6 lg:p-10">
             {generatorPreviewTimetable ? (
               <>
               <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -269,7 +340,7 @@ export function AutoGeneratorModal({
                       setStagedTimetables([]);
                       setSelectedStagedIds(new Set());
                       setGeneratorPreviewTimetable(null);
-                      setIsGeneratorOpen(false);
+                      onClose();
                       setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
                     }}
                     className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors shadow-lg"
@@ -406,21 +477,18 @@ export function AutoGeneratorModal({
 
 
               {/* Dash Details Modal */}
-              {selectedDashDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 ">
-                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-                      <h3 className="font-bold text-foreground flex items-center gap-2">
-                        <span className="text-xl"></span> Block Dash Details
-                      </h3>
-                      <button 
-                        onClick={() => setSelectedDashDetails(null)}
-                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="p-4 overflow-y-auto">
+              <AnimatePresence>{selectedDashDetails && (
+                <BottomSheet
+                  onClose={() => setSelectedDashDetails(null)}
+                  overlayId="ffcs-dash-details"
+                  maxWidth="max-w-md"
+                  panelZIndex={210}
+                  backdropZIndex={205}
+                >
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    <span className="text-xl"></span> Block Dash Details
+                  </h3>
+                  <div>
                       {selectedDashDetails.length === 0 ? (
                         <p className="text-muted-foreground text-center py-4">No block dashes in this timetable. Great!</p>
                       ) : (
@@ -446,27 +514,23 @@ export function AutoGeneratorModal({
                           ))}
                         </div>
                       )}
-                    </div>
                   </div>
-                </div>
-              )}
+                </BottomSheet>
+              )}</AnimatePresence>
 
               {/* Gap Details Modal */}
-              {selectedGapDetails && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 ">
-                  <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
-                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-                      <h3 className="font-bold text-foreground flex items-center gap-2">
-                        Gap Hours Detail
-                      </h3>
-                      <button 
-                        onClick={() => setSelectedGapDetails(null)}
-                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="p-4 overflow-y-auto">
+              <AnimatePresence>{selectedGapDetails && (
+                <BottomSheet
+                  onClose={() => setSelectedGapDetails(null)}
+                  overlayId="ffcs-gap-details"
+                  maxWidth="max-w-lg"
+                  panelZIndex={210}
+                  backdropZIndex={205}
+                >
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    Gap Hours Detail
+                  </h3>
+                  <div>
                       <p className="text-sm text-muted-foreground mb-4">
                         We have highlighted the empty gap slots in <span className="text-yellow-500 font-bold">yellow</span> on the unified schedule grid behind this modal!
                       </p>
@@ -523,10 +587,9 @@ export function AutoGeneratorModal({
                           })()}
                         </div>
                       )}
-                    </div>
                   </div>
-                </div>
-              )}
+                </BottomSheet>
+              )}</AnimatePresence>
               </>
             ) : isCompareModalOpen ? (
               <div className="w-full flex flex-col h-full animate-in slide-in-from-right duration-300">
@@ -607,7 +670,13 @@ export function AutoGeneratorModal({
                         if (selected.length > 0) setActiveTimetableId(selected[0].id);
                         setStagedTimetables([]);
                         setSelectedStagedIds(new Set());
-                        setIsGeneratorOpen(false);
+                        onClose();
+                        // Set after closing on purpose: leaving clears the run's
+                        // own notices (they describe results that live on this
+                        // screen), and this one is the planner's to show.
+                        setSuccessMsg(
+                          `Saved ${selected.length} timetable${selected.length === 1 ? "" : "s"} to the planner.`
+                        );
                       }}
                       className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
                     >
@@ -997,6 +1066,33 @@ export function AutoGeneratorModal({
                       </div>
                     </div>
 
+                    <div>
+                      <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
+                        Ranking Profile
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
+                          Optional
+                        </span>
+                      </label>
+                      <SegmentedControl
+                        value={rankingMode ?? "default"}
+                        onChange={(val) =>
+                          setRankingMode(val === "default" ? null : (val as RankingMode))
+                        }
+                        options={[
+                          { value: "default", label: "Sort Order Only" },
+                          ...RANKING_MODES.map((mode) => ({ value: mode, label: mode })),
+                        ]}
+                      />
+                      {/* Named so a student can tell this from the sort above: the
+                          sort is a fixed opinion, the profile is a reweighting
+                          that also shows where its points came from. */}
+                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                        {rankingMode
+                          ? `Ranked by the "${rankingMode}" profile. Your sort order above still breaks ties.`
+                          : "Off — options are ranked by the sort order above, exactly as they always have been."}
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-foreground block mb-1.5 flex items-center gap-2">
@@ -1157,29 +1253,28 @@ export function AutoGeneratorModal({
             )}
           </div>
         </div>
-      )}
+      </SubpageLayout>
 
-      {/* Variant Search Modal inside AutoGeneratorModal */}
-      {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Search className="w-5 h-5 text-amber-500" /> Select Variant
-              </h3>
-              <button 
-                onClick={() => setIsVariantSearchOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-4 border-b border-border bg-background">
-              <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
-            </div>
-            
-            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+      {/* Variant picker: a sheet inside the subpage, one level deeper in the
+          overlay stack than the generator's own back entry. */}
+      <AnimatePresence>{isVariantSearchOpen && generatorPreviewTimetable?.variants && (
+        <BottomSheet
+          onClose={() => setIsVariantSearchOpen(false)}
+          overlayId="ffcs-generator-variant-search"
+          maxWidth="max-w-lg"
+          panelZIndex={220}
+          backdropZIndex={215}
+          contentClassName="flex flex-col gap-3"
+        >
+          <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+            <Search className="w-5 h-5 text-amber-500" /> Select Variant
+          </h3>
+          
+          <div>
+            <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
+          </div>
+          
+          <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
               {(() => {
                 const differingCourseCodes: string[] = [];
                 const firstV = generatorPreviewTimetable.variants![0];
@@ -1247,9 +1342,8 @@ export function AutoGeneratorModal({
                 });
               })()}
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+      )}</AnimatePresence>
     </>
   );
 }

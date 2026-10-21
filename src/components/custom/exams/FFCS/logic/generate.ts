@@ -4,9 +4,10 @@
  * ## Why this is a pure function
  *
  * It used to exist three times: inline in `FFCSTimetableTab`, inline again in
- * `AutoGeneratorModal`, and in a web worker. The two inline copies were
+ * `FFCSGeneratorSubpage` (then `AutoGeneratorModal`), and in a web worker. The
+ * two inline copies were
  * byte-for-byte identical, and the worker was reachable only through a function
- * that `AutoGeneratorModal` imported and never called — so it had never run.
+ * that the generator screen imported and never called — so it had never run.
  *
  * All three are now this function. The UI call sites set state and render
  * whatever comes back; the worker posts the result across. Nothing here touches
@@ -43,6 +44,7 @@ import {
   timetableMetrics,
   type SortBy,
 } from "@/lib/timetableMetrics";
+import { rankCourses, type RankingMode, type RankingScore } from "@/lib/ffcsRanking";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
 /** The eight ways a narrowing can end with nothing to offer. */
@@ -106,8 +108,28 @@ export interface GenerateParams {
   maxEndTime?: string | null;
   uniqueFaculties: boolean;
   noLimit: boolean;
+  /**
+   * How many timetables the search keeps when it is not running unlimited.
+   *
+   * Optional and unset by default, which reads as {@link DEFAULT_RESULT_LIMIT} —
+   * the same fifty the planner has always stopped at. It exists so the result
+   * cap in settings is a real ceiling on the search rather than a display
+   * number trimmed after the fact; `noLimit` still outranks it, because the
+   * per-run switch is the more recent thing the student chose.
+   */
+  resultCap?: number;
   minHalfDays: number;
   sortBy: SortBy;
+  /**
+   * Order by a weighted ranking profile instead of by `sortBy` alone.
+   *
+   * Optional, and **unset by default** — with no mode the pipeline is exactly
+   * the one it has always been, in the same order, at the same cost. Setting it
+   * is a preference the student picked, so it wins over `sortBy`, with `sortBy`
+   * deciding ties (the sort is stable, so the second pass cannot scramble
+   * anything the first one established).
+   */
+  rankingMode?: RankingMode;
 }
 
 /**
@@ -120,13 +142,82 @@ export interface GenerateParams {
  * and it also reads better in a debugger.
  */
 export type GenerateResult =
-  | { kind: "ok"; timetables: TimetableState[] }
+  | {
+      kind: "ok";
+      timetables: TimetableState[];
+      /**
+       * The search stopped before it had seen everything.
+       *
+       * Either it hit the result cap, or the caller cancelled it. Both mean the
+       * same thing to a student: there are almost certainly more options than
+       * the ones on screen, which is the difference between "these five are all
+       * there is" and "these five are what I looked at first".
+       */
+      capped: boolean;
+    }
+  /**
+   * The caller abandoned the search.
+   *
+   * Carries whatever had been accepted rather than nothing, because a cancel
+   * that throws away ten seconds of results is worse than a cancel that shows
+   * them labelled as incomplete. `kind` stays a string for the same
+   * non-strict-mode reason `GenerateResult` has always used one.
+   */
+  | { kind: "cancelled"; timetables: TimetableState[] }
   | {
       kind: "error";
       code: GeneratorErrorCode;
       /** The course code, for `no_valid_slots`. */
       subjectCode?: string;
     };
+
+/**
+ * How far a streaming search has got.
+ *
+ * Reported rather than computed by the caller because only the solver knows
+ * either number: the caller cannot see inside the backtrack, and guessing at
+ * "combinations examined" from wall-clock time is how progress bars end up
+ * lying.
+ */
+export interface GenerateProgress {
+  /** Nodes visited in the search tree. Grows faster than `found`, by design. */
+  nodes: number;
+  /** Conflict-free combinations reached, before any filtering. */
+  found: number;
+  /** Timetables that survived every filter — what a UI can actually show. */
+  accepted: number;
+}
+
+/**
+ * Progress and cancellation for a run the caller wants to watch.
+ *
+ * All three are optional, and omitting all of them is exactly what
+ * `generateTimetables` does — which is why the non-streaming entry point is the
+ * streaming one with no hooks, rather than a second implementation.
+ */
+export interface GenerateStreamHooks {
+  /**
+   * Each accepted timetable, in search order.
+   *
+   * Not sorted, not grouped, and not deduped: those are whole-result
+   * operations, and running them per batch would either be quadratic or would
+   * renumber options under the reader. A caller that wants the settled order
+   * reads it from the `GenerateResult` when the run finishes.
+   */
+  onBatch?: (timetables: TimetableState[]) => void;
+  /** Roughly every few thousand nodes. */
+  onProgress?: (progress: GenerateProgress) => void;
+  /**
+   * Return true to abandon the search.
+   *
+   * Polled on the progress cadence rather than per node, so honouring it costs
+   * a comparison every few thousand nodes instead of one per node in the
+   * innermost loop of a search that can run to millions.
+   */
+  shouldStop?: () => boolean;
+  /** How many accepted timetables to hold before flushing a batch. */
+  batchSize?: number;
+}
 
 /** Colours cycled across the courses of one timetable. */
 const COURSE_COLORS = [
@@ -152,7 +243,17 @@ const COURSE_COLORS = [
 
 /** What a limit of 50 is; "no limit" is not really unlimited, it is just large. */
 const UNLIMITED_RESULTS = 999999;
-const DEFAULT_RESULT_LIMIT = 50;
+/** Exported because the settings sheet offers it as the cap to come back to. */
+export const DEFAULT_RESULT_LIMIT = 50;
+/**
+ * Accepted timetables per streamed batch.
+ *
+ * Deliberately the same 50 as the default cap: the first thing a student asked
+ * for is fifty choices, so the first flush is fifty choices. Searches that
+ * finish below the threshold flush once at the end, which is indistinguishable
+ * to the reader because the run is over either way.
+ */
+const DEFAULT_BATCH_SIZE = 50;
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
@@ -336,40 +437,96 @@ function clashes(a: readonly SlotPeriod[], b: readonly SlotPeriod[]): boolean {
 }
 
 /**
+ * How often the walk checks whether its caller wants to stop.
+ *
+ * Every node would be the honest number, and it is a function call in the
+ * innermost loop of a search that can visit millions. A few thousand is finer
+ * than a person can perceive a cancellation and costs nothing measurable —
+ * the same trade `conflictAnalyzer` makes for its own budget.
+ */
+const TICK_INTERVAL = 4096;
+
+interface WalkHooks {
+  /** One complete, conflict-free combination, in the report's order. */
+  visit: (combination: ParsedCourse[]) => void;
+  /** Polled every `TICK_INTERVAL` nodes; return true to abandon the search. */
+  tick?: (nodes: number, found: number) => boolean;
+}
+
+interface WalkOutcome {
+  /** Complete combinations reached, before any filtering. */
+  found: number;
+  /** `tick` asked to stop, so the remaining tree was never walked. */
+  cancelled: boolean;
+}
+
+/**
  * Every combination of one offering per course that does not collide.
  *
  * Depth-first, in the report's order, stopping once `limit` have been found.
  * `options` is pre-indexed by slot string so the conflict test is a lookup
  * rather than a schema walk on every node — which is the difference between this
  * running at all on a wide selection and not.
+ *
+ * ## Why this is a visitor rather than a collector
+ *
+ * It used to build an array of combinations and return it, which meant nothing
+ * could be shown until the whole search was over. Handing each combination to a
+ * visitor as it is found is the same walk in the same order with the same
+ * stopping rule — the caller decides what to do with them, which for a
+ * progressive UI is "show them".
  */
-function backtrack(
+function walkCombinations(
   options: ParsedCourse[][],
-  windows: SlotPeriod[][],
-  limit: number
-): ParsedCourse[][] {
-  const found: ParsedCourse[][] = [];
+  windows: SlotPeriod[][][],
+  limit: number,
+  hooks: WalkHooks
+): WalkOutcome {
   const chosen: ParsedCourse[] = [];
   const chosenWindows: SlotPeriod[] = [];
+  let found = 0;
+  let nodes = 0;
+  let cancelled = false;
+  let halted = false;
 
-  const walk = (index: number) => {
-    if (found.length >= limit) return;
-    if (index === options.length) {
-      found.push([...chosen]);
+  const walk = (index: number): void => {
+    if (halted) return;
+    if (found >= limit) {
+      halted = true;
       return;
     }
-    for (const opt of options[index]) {
-      if (clashes(windows[index], chosenWindows)) continue;
-      chosen.push(opt);
-      chosenWindows.push(...windows[index]);
+    if (index === options.length) {
+      found++;
+      // Copied, because `chosen` is the walker's scratch space and is popped as
+      // soon as this returns. The old collector copied for the same reason.
+      hooks.visit([...chosen]);
+      return;
+    }
+    if (hooks.tick && ++nodes % TICK_INTERVAL === 0 && hooks.tick(nodes, found)) {
+      cancelled = true;
+      halted = true;
+      return;
+    }
+    const offeringWindows = windows[index];
+    for (let i = 0; i < options[index].length; i++) {
+      // Per offering, not per course. A course offered on two slots offers two
+      // *choices*; only the one actually taken can clash with what is already
+      // in the week. Collapsing them into one array used to test both against
+      // both, so the moment one of them clashed the whole course was skipped —
+      // silently dropping the alternatives that had never been tried.
+      const periods = offeringWindows[i];
+      if (clashes(periods, chosenWindows)) continue;
+      chosen.push(options[index][i]);
+      chosenWindows.push(...periods);
       walk(index + 1);
-      chosenWindows.length = chosenWindows.length - windows[index].length;
+      chosenWindows.length = chosenWindows.length - periods.length;
       chosen.pop();
+      if (halted) return;
     }
   };
 
   walk(0);
-  return found;
+  return { found, cancelled };
 }
 
 /* ── scoring ────────────────────────────────────────────────────────────── */
@@ -511,13 +668,64 @@ function groupVariants(timetables: TimetableState[]): TimetableState[] {
 /* ── entry point ────────────────────────────────────────────────────────── */
 
 /**
- * Generate conflict-free timetables for a set of locked courses.
+ * Score one combination. Split out because both the streaming path and the
+ * progress reporting need to describe it, and because the half-days test is
+ * the one filter that runs *after* the search rather than during it.
+ */
+function scoreCombination(
+  params: GenerateParams,
+  combination: ParsedCourse[],
+  scoredFriends: readonly Friend[]
+): TimetableState {
+  const courses = combination.map(toAddedCourse);
+  const base = timetableMetrics(courses, params.schema);
+  const social = socialScoreAgainst(courses, scoredFriends, params.schema);
+  const timetable: TimetableState = {
+    id: newId(),
+    name: "Generated Option",
+    courses,
+    metrics: { ...base, ...social },
+  };
+
+  // Only when a profile was asked for: the second day-walk `rankCourses` does
+  // is real work, and the default path has no opinion to express with it.
+  if (params.rankingMode) {
+    const ranked: RankingScore = rankCourses(courses, params.schema, params.rankingMode);
+    timetable.rankingScore = ranked.score;
+    timetable.rankingBreakdown = ranked.breakdown;
+  }
+
+  return timetable;
+}
+
+/**
+ * Generate conflict-free timetables for a set of locked courses, optionally
+ * reporting them as they are found.
  *
  * Pure: the same params always give the same result, and nothing here reads or
  * writes anything outside its arguments. That is what lets it run in a worker,
  * and what lets a test pin the output.
+ *
+ * ## Order of operations, and why it must not change
+ *
+ * The pipeline is filter options → backtrack → score → drop under the
+ * half-days minimum → sort → dedupe faculty → group variants. That order is the
+ * product's behaviour: an earlier stage's contract is only meaningful relative
+ * to the ones around it. Adding hooks does not reorder it — hooks only observe.
+ * The batches a streaming caller sees are the scored-and-half-days-filtered
+ * list mid-flight; the `GenerateResult` that ends the run is the settled one.
+ *
+ * ## What `hooks` does not affect
+ *
+ * With no hooks the walk is byte-for-byte the walk `backtrack` used to do:
+ * same visit order, same `limit`, same early exit. `generateTimetables` is this
+ * function called with `{}`, which is the whole reason the two entry points
+ * cannot drift apart.
  */
-export function generateTimetables(params: GenerateParams): GenerateResult {
+export function generateTimetablesStream(
+  params: GenerateParams,
+  hooks: GenerateStreamHooks = {}
+): GenerateResult {
   const { schema } = params;
 
   if (!params.courseLocks.length) {
@@ -532,7 +740,7 @@ export function generateTimetables(params: GenerateParams): GenerateResult {
   }
 
   const optionsPerCourse: ParsedCourse[][] = [];
-  const windowsPerCourse: SlotPeriod[][] = [];
+  const windowsPerCourse: SlotPeriod[][][] = [];
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -542,50 +750,104 @@ export function generateTimetables(params: GenerateParams): GenerateResult {
     optionsPerCourse.push(options);
 
     // The periods each offering occupies, resolved once here rather than at
-    // every backtrack node — the whole point of precomputing.
-    const windows: SlotPeriod[] = [];
-    for (const opt of options) {
-      for (const slot of splitSlots(opt.SLOT)) {
-        windows.push(...periodsForSlot(schema, slot));
-      }
-    }
-    windowsPerCourse.push(windows);
+    // every backtrack node — the whole point of precomputing. One entry per
+    // *offering*, so the walk can test the one it is about to take rather than
+    // the union of every alternative the course happens to offer.
+    windowsPerCourse.push(
+      options.map((opt) => {
+        const periods: SlotPeriod[] = [];
+        for (const slot of splitSlots(opt.SLOT)) {
+          periods.push(...periodsForSlot(schema, slot));
+        }
+        return periods;
+      })
+    );
   }
 
-  const limit = params.noLimit ? UNLIMITED_RESULTS : DEFAULT_RESULT_LIMIT;
-  const combinations = backtrack(optionsPerCourse, windowsPerCourse, limit);
-
-  if (!combinations.length) {
-    return { kind: "error", code: "no_conflict_free" };
-  }
+  const limit = params.noLimit
+    ? UNLIMITED_RESULTS
+    : params.resultCap ?? DEFAULT_RESULT_LIMIT;
+  const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 
   const scoredFriends = params.maximizeFreeTimeFriends.length
     ? params.friends.filter((f) => params.maximizeFreeTimeFriends.includes(f.id))
     : [];
 
-  let timetables: TimetableState[] = combinations.map((combo) => {
-    const courses = combo.map(toAddedCourse);
-    const base = timetableMetrics(courses, schema);
-    const social = socialScoreAgainst(courses, scoredFriends, schema);
-    return {
-      id: newId(),
-      name: "Generated Option",
-      courses,
-      metrics: { ...base, ...social },
-    };
+  const accepted: TimetableState[] = [];
+  let emitted = 0;
+  const flush = () => {
+    if (accepted.length <= emitted) return;
+    const batch = accepted.slice(emitted);
+    emitted = accepted.length;
+    hooks.onBatch?.(batch);
+  };
+
+  const walk = walkCombinations(optionsPerCourse, windowsPerCourse, limit, {
+    visit: (combination) => {
+      const timetable = scoreCombination(params, combination, scoredFriends);
+      // The half-days floor is a filter on the *result*, not on the search: a
+      // combination can be perfectly conflict-free and still be a week the
+      // student did not ask for.
+      if ((timetable.metrics?.halfDays ?? 0) < params.minHalfDays) return;
+      accepted.push(timetable);
+      if (accepted.length - emitted >= batchSize) flush();
+    },
+    tick: (nodes, found) => {
+      hooks.onProgress?.({ nodes, found, accepted: accepted.length });
+      return hooks.shouldStop ? hooks.shouldStop() : false;
+    },
   });
 
-  timetables = timetables.filter((tt) => (tt.metrics?.halfDays ?? 0) >= params.minHalfDays);
+  // Whatever the last partial batch was, plus everything a cancelled run had
+  // not reached a batch boundary for. A UI that is watching must not be left
+  // holding a subset because the arithmetic of the flush did not divide.
+  flush();
 
-  if (!timetables.length) {
+  if (walk.cancelled) {
+    return { kind: "cancelled", timetables: accepted };
+  }
+
+  // Deliberately in the original order: `found` is "the search never produced
+  // a conflict-free week at all", which is a different failure from "it
+  // produced weeks, none of which met the floor", and a student can act on the
+  // distinction.
+  if (!walk.found) {
+    return { kind: "error", code: "no_conflict_free" };
+  }
+  if (!accepted.length) {
     return { kind: "error", code: "below_min_half_days" };
   }
 
-  timetables = sortTimetables(timetables, params.sortBy);
+  let timetables = sortTimetables(accepted, params.sortBy);
+
+  if (params.rankingMode) {
+    // A second, stable pass: options of equal profile score keep the order the
+    // student's `sortBy` gave them, so turning a profile on refines their
+    // existing answer rather than throwing it away.
+    timetables = [...timetables].sort(
+      (a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1)
+    );
+  }
 
   if (params.uniqueFaculties) {
     timetables = dedupeByFaculty(timetables);
   }
 
-  return { kind: "ok", timetables: groupVariants(timetables) };
+  return {
+    kind: "ok",
+    timetables: groupVariants(timetables),
+    capped: walk.found >= limit,
+  };
+}
+
+/**
+ * Generate conflict-free timetables for a set of locked courses.
+ *
+ * The one-shot form of `generateTimetablesStream`: no hooks, no streaming, no
+ * cancellation. It exists because that is the shape every existing caller and
+ * every existing test wants, and because a solve that must not be watched
+ * should not pay for the ability to be.
+ */
+export function generateTimetables(params: GenerateParams): GenerateResult {
+  return generateTimetablesStream(params);
 }

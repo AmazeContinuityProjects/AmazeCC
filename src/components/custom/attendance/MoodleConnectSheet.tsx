@@ -30,16 +30,15 @@ export default function MoodleConnectSheet({
   return (
     <AnimatePresence>
       {open && (
-        <BottomSheet onClose={onClose} overlayId="moodle-connect" maxWidth="max-w-md">
+        <BottomSheet
+          onClose={onClose}
+          overlayId="moodle-connect"
+          maxWidth="max-w-md"
+          title="Connect Moodle"
+          subtitle="Sign in once to sync assignments into the calendar."
+          closeLabel="Close Moodle connection"
+        >
           <div className="space-y-5">
-            <div>
-              <h2 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                Connect Moodle
-              </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
-                Sign in once to sync assignments into the calendar.
-              </p>
-            </div>
             <MoodleUserPassForm handleFetchMoodle={handleFetchMoodle} IDs={IDs} />
           </div>
         </BottomSheet>

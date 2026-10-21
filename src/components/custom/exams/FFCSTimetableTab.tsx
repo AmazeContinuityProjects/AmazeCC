@@ -6,6 +6,8 @@ import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, D
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
 import { useTheme } from "next-themes";
+import { AnimatePresence } from "framer-motion";
+import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
 import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 
@@ -19,12 +21,13 @@ const CAMPUS_SCHEMAS: Record<string, any> = {
   bhopal: bhopalSchema
 };
 
-import { AutoGeneratorModal } from './FFCS/components/modals/AutoGeneratorModal';
+import { FFCSGeneratorSubpage } from './FFCS/FFCSGeneratorSubpage';
 import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
 import { SocialMatrixModal } from './FFCS/components/modals/SocialMatrixModal';
 import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal';
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
+import { mergeCourses } from '@/features/import/importFile';
 
 export let GLOBAL_CAMPUS = "chennai";
 export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
@@ -32,10 +35,6 @@ export const getTimetableSchema = () => CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
-import {
-  generateTimetablesAsync,
-  type GeneratorErrorCode,
-} from "./FFCS/logic/generator";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
 import {
   MORNING_BEFORE_MIN,
@@ -440,16 +439,11 @@ export default function FFCSTimetableTab() {
   const [isCourseLockOpen, setIsCourseLockOpen] = useState(false);
   const [isFacultyScheduleOpen, setIsFacultyScheduleOpen] = useState(false);
 
-  const [generatorPreference, setGeneratorPreference] = useState<'none' | 'morning' | 'evening'>('none');
-  const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
-  const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
-  const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(0);
-  const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>("08:00");
-  const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>("19:30");
-  const [generatorSortBy, setGeneratorSortBy] = useState<"social" | "halfdays" | "compactness" | "balanced">("balanced");
-  const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
+  // Staged results the Social Matrix can score alongside saved timetables. The
+  // generator subpage saves into `timetables` directly now, so nothing fills
+  // this today — the prop survives because the matrix distinguishes the two
+  // pools, and a revived staged-review flow writes here.
+  const [stagedTimetables] = useState<TimetableState[]>([]);
 
   // Social State
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -462,14 +456,11 @@ export default function FFCSTimetableTab() {
   const [socialTargetId, setSocialTargetId] = useState<string>("");
   const [pendingFriendTimetables, setPendingFriendTimetables] = useState<TimetableState[] | null>(null);
   const [pendingFriendName, setPendingFriendName] = useState("");
-  const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [selectedDashDetails, setSelectedDashDetails] = useState<NonNullable<TimetableState['metrics']>['dashDetails'] | null>(null);
   const [selectedGapDetails, setSelectedGapDetails] = useState<NonNullable<TimetableState['metrics']>['gapDetails'] | null>(null);
   const [isSocialMatrixOpen, setIsSocialMatrixOpen] = useState(false);
   const [selectedFriendTimetablesData, setSelectedFriendTimetablesData] = useState<SelectedFriendTimetableData | null>(null);
-  const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
-  const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isCourseSearchOpen, setIsCourseSearchOpen] = useState(false);
@@ -525,7 +516,14 @@ export default function FFCSTimetableTab() {
           };
         }).filter(c => c.CODE);
 
-        setRawParsedCourses(parsed);
+        // Merge rather than replace, so courses the student imported while
+        // this was still downloading do not vanish the moment it lands. On the
+        // ordinary path this is the first update and the merge is an append;
+        // it only differs when the upload won the race, and there the report
+        // takes back the codes it covers — it holds every offering of them,
+        // where an imported sheet may hold one — while leaving everything it
+        // has never heard of exactly as the student left it.
+        setRawParsedCourses(prev => mergeCourses(prev, parsed));
       } catch (err) {
         console.error(err);
         setError("Error loading course report. Please ensure public/ffcs/ffcsReport.csv exists and is valid.");
@@ -598,6 +596,21 @@ export default function FFCSTimetableTab() {
       localStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
     }
   }, [rawParsedCourses, isLoaded]);
+
+  /**
+   * Add rows brought in from a paste or an uploaded sheet.
+   *
+   * Merged by course code rather than appended: a re-upload of a corrected
+   * sheet should take over the codes it fixes instead of sitting beside the
+   * version it corrects, and courses it does not mention are left alone — which
+   * is what makes importing a partial list safe. Everything downstream is
+   * derived from `rawParsedCourses`, so the catalogue, the faculty groups and
+   * the persisted copy all follow from this one update.
+   */
+  const handleImportCourses = React.useCallback((incoming: ParsedCourse[]) => {
+    if (incoming.length === 0) return;
+    setRawParsedCourses(prev => mergeCourses(prev, incoming));
+  }, []);
 
   useEffect(() => {
     if (isLoaded) {
@@ -731,75 +744,6 @@ export default function FFCSTimetableTab() {
   const generatorDisplayCourses = courseLocks.length > 0 
     ? uniqueCourseCodes.filter(c => courseLocks.some(l => l.code === c.code))
     : uniqueCourseCodes;
-
-  /**
-   * The four ways the generator can come back empty-handed, in the tab's own
-   * words.
-   *
-   * The solver returns a code and not a message, so the wording stays here with
-   * the UI that owns it. The modal keeps its own copy of these strings; both
-   * used to carry their own copy of the entire solve as well.
-   */
-  const errorFor = (code: GeneratorErrorCode, subjectCode?: string): string => {
-    switch (code) {
-      case "no_courses_selected":
-        return "Please select at least one course.";
-      case "no_valid_slots":
-        return `No valid slots found for ${subjectCode} with current preferences and blocked slots.`;
-      case "no_conflict_free":
-        return "Could not generate any conflict-free timetables from the selected options.";
-      case "below_min_half_days":
-        return `No timetables met the minimum half-days requirement (${generatorMinHalfDays}). Try lowering it.`;
-      default:
-        return "An error occurred while generating timetables.";
-    }
-  };
-
-  const generateTimetables = async () => {
-    setIsGenerating(true);
-    setStagedTimetables([]);
-    setSelectedStagedIds(new Set());
-    setSelectedTimetablesToCompare([]);
-
-    try {
-      // Off the main thread where the browser will let us. This used to run the
-      // whole backtrack inline, after a 50ms sleep bought purely to let the
-      // spinner paint — the sleep existed only because the work was synchronous.
-      const outcome = await generateTimetablesAsync({
-        schema: getTimetableSchema(),
-        masterCourses,
-        courseLocks,
-        blockedSlots: [...blockedSlots],
-        friends,
-        preference: generatorPreference,
-        syncFriendClasses: generatorSyncFriendsClasses,
-        maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
-        minStartTime: generatorMinStartTime,
-        maxEndTime: generatorMaxEndTime,
-        uniqueFaculties: generatorUniqueFaculties,
-        noLimit: generatorNoLimit,
-        minHalfDays: generatorMinHalfDays,
-        sortBy: generatorSortBy,
-      });
-
-      if (outcome.kind === "error") {
-        setError(errorFor(outcome.code, outcome.subjectCode));
-        return;
-      }
-
-      const timetables = outcome.timetables;
-      setStagedTimetables(timetables);
-      const variantCount = timetables.reduce((n, t) => n + (t.variants?.length ?? 1), 0);
-      setSuccessMsg(
-        `Found ${timetables.length} unique timetables (${variantCount} total variants). Review them below!`
-      );
-      // We do NOT close generator immediately so they can review.
-    } catch {
-      setError("An error occurred while generating timetables.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // File upload and clear master handlers removed as database is preloaded.
 
@@ -1115,6 +1059,21 @@ export default function FFCSTimetableTab() {
     }
   }
 
+  /**
+   * Leave the generator for the planner.
+   *
+   * The notices earned on that screen — run counts, "no conflict-free weeks" —
+   * describe results which only exist there, so they leave with it: without
+   * this the planner inherits a banner about a screen it is no longer showing.
+   * A save that announces itself sets its own message after calling this, in
+   * the same tick, so the last write is the one that sticks.
+   */
+  const closeGenerator = useCallback(() => {
+    setError(null);
+    setSuccessMsg(null);
+    setIsGeneratorOpen(false);
+  }, []);
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -1127,6 +1086,18 @@ export default function FFCSTimetableTab() {
       }
 
       const key = e.key.toLowerCase();
+
+      // The generator subpage owns the screen while it is open. Every other
+      // shortcut here would only set state that nothing renders until you go
+      // back — and `1`-`9` and Backspace would silently act on the planner
+      // behind it, which is worse than a dead key.
+      if (isGeneratorOpen) {
+        if (key === "g") {
+          e.preventDefault();
+          closeGenerator();
+        }
+        return;
+      }
 
       if (key === "s" || key === "/") {
         e.preventDefault();
@@ -1164,7 +1135,45 @@ export default function FFCSTimetableTab() {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [timetables, createNewTimetable, openPrintablePage, handleClearTimetable]);
+  }, [timetables, createNewTimetable, openPrintablePage, handleClearTimetable, isGeneratorOpen, closeGenerator]);
+
+  /**
+   * The generator is a subpage of this tab rather than a sheet over it: it
+   * takes the screen, keeps every piece of state passed down from here, and
+   * back (button, `g`, system back via the overlay stack) returns to the
+   * planner with nothing lost — including a generation still running, which
+   * the subpage's own unmount cancels. Rendered by an early return so the
+   * planner's own layout and its modals are not mounted behind it.
+   */
+  if (isGeneratorOpen) {
+    return (
+      <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
+        <FFCSGeneratorSubpage
+          onClose={closeGenerator}
+          courseLocks={courseLocks}
+          setCourseLocks={setCourseLocks}
+          friends={friends}
+          socialScoreGroupMethod={socialScoreGroupMethod}
+          friendGroups={friendGroups}
+          masterCourses={masterCourses}
+          blockedSlots={blockedSlots}
+          timetables={timetables}
+          setTimetables={setTimetables}
+          setActiveTimetableId={setActiveTimetableId}
+          error={error}
+          setError={setError}
+          successMsg={successMsg}
+          setSuccessMsg={setSuccessMsg}
+          renderTypeChips={renderTypeChips}
+          getGroupedCourses={getGroupedCourses}
+          generatorDisplayCourses={generatorDisplayCourses}
+          theoryPeriods={theoryPeriods}
+          labPeriods={labPeriods}
+          toggleBlockSlot={toggleBlockSlot}
+        />
+      </div>
+    );
+  }
 
   return (
     <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
@@ -1888,6 +1897,7 @@ export default function FFCSTimetableTab() {
         masterCourses={masterCourses}
         uniqueCourseCodes={uniqueCourseCodes}
         renderTypeChips={renderTypeChips}
+        onImportCourses={handleImportCourses}
       />
 
       <FacultyScheduleModal
@@ -1896,18 +1906,21 @@ export default function FFCSTimetableTab() {
         groups={facultyGroups}
       />
 
-      {isFriendsManagerOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50  p-4">
-          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-4 sm:p-5 border-b border-border flex justify-between items-center bg-muted/30">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                <Users className="text-pink-500 w-6 h-6" /> Friends Manager
-              </h2>
-              <button onClick={() => setIsFriendsManagerOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-4 custom-scrollbar">
+      {/* Friends Manager — a sheet, so it carries its own z rather than the
+          sheet default: the tab can be in fullscreen (z-100) behind it. */}
+      <AnimatePresence>
+        {isFriendsManagerOpen && (
+          <BottomSheet
+            onClose={() => setIsFriendsManagerOpen(false)}
+            overlayId="ffcs-friends-manager"
+            maxWidth="max-w-xl"
+            panelZIndex={200}
+            backdropZIndex={195}
+          >
+            <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
+              <Users className="text-pink-500 w-6 h-6" /> Friends Manager
+            </h2>
+            <div className="flex flex-col gap-4">
               <div className="flex bg-muted/50 p-1 rounded-xl gap-1 shrink-0">
                 <button 
                   onClick={() => setFriendsManagerTab("friends")}
@@ -2064,13 +2077,23 @@ export default function FFCSTimetableTab() {
                 </>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
-      {pendingFriendTimetables && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60  p-4 animate-in fade-in">
-          <div className="bg-background border border-border shadow-2xl rounded-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 gap-4">
+      <AnimatePresence>
+        {pendingFriendTimetables && (
+          <BottomSheet
+            onClose={() => {
+              setPendingFriendTimetables(null);
+              setPendingFriendName("");
+            }}
+            overlayId="ffcs-name-friend"
+            maxWidth="max-w-sm"
+            panelZIndex={250}
+            backdropZIndex={245}
+            contentClassName="flex flex-col gap-4"
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
                 <Users className="w-5 h-5" />
@@ -2106,37 +2129,10 @@ export default function FFCSTimetableTab() {
                 Save Friend
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
-      {/* Auto-Generator Modal */}
-      <AutoGeneratorModal
-          isOpen={isGeneratorOpen}
-          onClose={() => setIsGeneratorOpen(false)}
-          courseLocks={courseLocks}
-          setCourseLocks={setCourseLocks}
-          friends={friends}
-          socialScoreGroupMethod={socialScoreGroupMethod}
-          friendGroups={friendGroups}
-          masterCourses={masterCourses}
-          blockedSlots={blockedSlots}
-          timetables={timetables}
-          setTimetables={setTimetables}
-          setActiveTimetableId={setActiveTimetableId}
-          error={error}
-          setError={setError}
-          successMsg={successMsg}
-          setSuccessMsg={setSuccessMsg}
-          renderTypeChips={renderTypeChips}
-          getGroupedCourses={getGroupedCourses}
-          generatorDisplayCourses={generatorDisplayCourses}
-          theoryPeriods={theoryPeriods}
-          labPeriods={labPeriods}
-          toggleBlockSlot={toggleBlockSlot}
-      />
-
-      {/* Friend Timetable View Modal */}
       {/* Friend Timetable View Modal */}
       <FriendTimetableViewModal
         data={selectedFriendTimetablesData}
@@ -2159,30 +2155,34 @@ export default function FFCSTimetableTab() {
         activeTimetableId={activeTimetableId}
       />
 
-      {isGuideModalOpen && <FFCSGuideModal onClose={() => setIsGuideModalOpen(false)} />}
+      {/* Both stay mounted and are toggled, so their sheets can animate out */}
+      <FFCSGuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} />
 
       {/* Shortcuts Modal */}
-      {isShortcutsModalOpen && <FFCSShortcutsModal onClose={() => setIsShortcutsModalOpen(false)} />}
+      <FFCSShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
 
       {/* Course Search Modal */}
-      {isCourseSearchOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Search className="w-5 h-5 text-blue-500" /> Search Course
-              </h3>
-              <button 
-                onClick={() => setIsCourseSearchOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4 border-b border-border bg-background">
-              <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
-            </div>
-            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+      <AnimatePresence>
+        {isCourseSearchOpen && (
+          <BottomSheet
+            onClose={() => setIsCourseSearchOpen(false)}
+            overlayId="ffcs-course-search"
+            maxWidth="max-w-lg"
+            panelZIndex={400}
+            backdropZIndex={395}
+            contentClassName="flex flex-col gap-3"
+          >
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-500" /> Search Course
+            </h3>
+            <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            {/*
+              The results keep their own scroll box rather than inheriting the
+              sheet's: this used to be `flex-1` inside an `max-h-[85vh]` column,
+              and a capped list is what keeps the search field on screen while
+              you arrow through results.
+            */}
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
               {uniqueCourses.filter(c => 
                 (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
@@ -2248,29 +2248,28 @@ export default function FFCSTimetableTab() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
       {/* Slot Search Modal */}
-      {isSlotSearchOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
-              </h3>
-              <button 
-                onClick={() => setIsSlotSearchOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4 border-b border-border bg-background">
-              <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
-            </div>
-            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+      <AnimatePresence>
+        {isSlotSearchOpen && (
+          <BottomSheet
+            onClose={() => setIsSlotSearchOpen(false)}
+            overlayId="ffcs-slot-search"
+            maxWidth="max-w-lg"
+            panelZIndex={400}
+            backdropZIndex={395}
+            contentClassName="flex flex-col gap-3"
+          >
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-500" /> Search Slot & Faculty
+            </h3>
+            <SearchInput placeholder="Search by slot, faculty, or room..." value={slotSearchQuery} onChange={e => setSlotSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            {/* Capped, like the course search, so the field stays put while the
+                result list scrolls. */}
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
               {availableSlots.map((row, idx) => ({ row, idx })).filter(({ row }) => {
                 if (slotFilter === "all") return true;
                 if (slotFilter === "morning_session") {
@@ -2347,25 +2346,24 @@ export default function FFCSTimetableTab() {
                 />
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
       {/* Timetable Selection Modal */}
-      {isTimetableModalOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                Select Timetable
-              </h3>
-              <button 
-                onClick={() => setIsTimetableModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+      <AnimatePresence>
+        {isTimetableModalOpen && (
+          <BottomSheet
+            onClose={() => setIsTimetableModalOpen(false)}
+            overlayId="ffcs-timetable-select"
+            maxWidth="max-w-lg"
+            panelZIndex={400}
+            backdropZIndex={395}
+            contentClassName="flex flex-col gap-3"
+          >
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              Select Timetable
+            </h3>
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
               {timetables.map(t => {
                 const isActive = t.id === activeTimetableId;
                 return (
@@ -2402,7 +2400,7 @@ export default function FFCSTimetableTab() {
                 </div>
               )}
             </div>
-            <div className="p-3 border-t border-border bg-muted/10 flex justify-between items-center">
+            <div className="pt-3 border-t border-border flex justify-between items-center">
               <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
               <button
                 onClick={() => { createNewTimetable(); setIsTimetableModalOpen(false); }}
@@ -2411,30 +2409,28 @@ export default function FFCSTimetableTab() {
                 <Plus className="w-3 h-3" /> New
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
       {/* Variant Search Modal */}
-      {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Search className="w-5 h-5 text-amber-500" /> Select Variant
-              </h3>
-              <button 
-                onClick={() => setIsVariantSearchOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-4 border-b border-border bg-background">
+      <AnimatePresence>
+        {isVariantSearchOpen && generatorPreviewTimetable?.variants && (
+          <BottomSheet
+            onClose={() => setIsVariantSearchOpen(false)}
+            overlayId="ffcs-variant-search"
+            maxWidth="max-w-lg"
+            panelZIndex={500}
+            backdropZIndex={495}
+            contentClassName="flex flex-col gap-3"
+          >
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              <Search className="w-5 h-5 text-amber-500" /> Select Variant
+            </h3>
+            <div>
               <SearchInput placeholder="Search by faculty name..." value={variantSearchQuery} onChange={e => setVariantSearchQuery(e.target.value)} className="bg-muted/50 border-border pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground" autoFocus />
             </div>
             
-            <div className="p-2 overflow-y-auto custom-scrollbar flex-1 bg-muted/5">
+            <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-muted/5 rounded-xl">
               {(() => {
                 const differingCourseCodes: string[] = [];
                 const firstV = generatorPreviewTimetable.variants![0];
@@ -2502,27 +2498,25 @@ export default function FFCSTimetableTab() {
                 });
               })()}
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
 
       {/* Manual Linker Modal */}
-      {isManualLinkerOpen && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 ">
-          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 rounded-t-2xl">
-              <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                Advanced Course Linker
-              </h3>
-              <button 
-                onClick={() => setIsManualLinkerOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <AnimatePresence>
+        {isManualLinkerOpen && (
+          <BottomSheet
+            onClose={() => setIsManualLinkerOpen(false)}
+            overlayId="ffcs-manual-linker"
+            maxWidth="max-w-2xl"
+            panelZIndex={600}
+            backdropZIndex={595}
+          >
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              Advanced Course Linker
+            </h3>
             
-            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar">
+            <div>
               <p className="text-sm text-muted-foreground mb-4">
                 Use this tool to forcefully pair specific theory and lab slots together. 
                 Paste a CSV with columns: <strong>CODE, TYPE, SLOT, ROOM, FACULTY, LINK_ID</strong>. 
@@ -2586,7 +2580,7 @@ export default function FFCSTimetableTab() {
               )}
             </div>
             
-            <div className="p-4 border-t border-border bg-muted/10 rounded-b-2xl flex justify-end gap-3">
+            <div className="pt-3 border-t border-border flex justify-end gap-3">
               <button
                 onClick={() => setIsManualLinkerOpen(false)}
                 className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors shadow-sm"
@@ -2594,14 +2588,14 @@ export default function FFCSTimetableTab() {
                 Done
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </BottomSheet>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function FFCSShortcutsModal({ onClose }: { onClose: () => void }) {
+function FFCSShortcutsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const shortcuts = [
     { keys: ["S", "/"], desc: "Open Course Search Palette" },
     { keys: ["T"], desc: "Open Target Courses Modal" },
@@ -2614,21 +2608,26 @@ function FFCSShortcutsModal({ onClose }: { onClose: () => void }) {
     { keys: ["Esc"], desc: "Close Active Modals" },
   ];
 
+  /*
+    A sheet like every other FFCS popup, and mounted unconditionally by the tab
+    so the exit animation can run. The z pair matches what the modal used, both
+    for parity with the surrounding FFCS surfaces and because the tab can be in
+    fullscreen (z-100) behind it.
+  */
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-scaleIn">
-        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+    <AnimatePresence>
+      {isOpen && (
+        <BottomSheet
+          onClose={onClose}
+          overlayId="ffcs-shortcuts"
+          maxWidth="max-w-md"
+          panelZIndex={400}
+          backdropZIndex={395}
+          contentClassName="flex flex-col gap-3"
+        >
           <h3 className="font-bold text-base text-foreground flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-indigo-500" /> Keyboard Shortcuts
           </h3>
-          <button 
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="p-4 overflow-y-auto max-h-[70vh] space-y-3">
           <p className="text-xs text-muted-foreground mb-2">
             Boost your timetable drafting speed with these global hotkeys:
           </p>
@@ -2646,16 +2645,16 @@ function FFCSShortcutsModal({ onClose }: { onClose: () => void }) {
               </div>
             ))}
           </div>
-        </div>
-        <div className="p-3 border-t border-border bg-muted/20 text-right">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-          >
-            Got it, thanks!
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="pt-3 border-t border-border text-right">
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+            >
+              Got it, thanks!
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
   );
 }

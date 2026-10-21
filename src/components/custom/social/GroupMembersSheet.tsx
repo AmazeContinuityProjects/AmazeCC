@@ -87,17 +87,14 @@ export default function GroupMembersSheet({
   }, [groupApi, existing, name, selected, onClose]);
 
   return (
-    <BottomSheet overlayId="group-members" onClose={onClose}>
+    <BottomSheet
+      overlayId="group-members"
+      onClose={onClose}
+      title={existing ? "Edit group" : "New group"}
+      subtitle="Campus"
+      closeLabel="Close group editor"
+    >
       <div className="space-y-5">
-        <div className="px-1">
-          <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
-            Campus
-          </p>
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate">
-            {existing ? "Edit group" : "New group"}
-          </h1>
-        </div>
-
         <div className="space-y-1.5">
           <label
             htmlFor="group-name"

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, CalendarDays, ChevronRight, Search, X } from "lucide-react";
 
 import { VerticalTimetableGrid } from "../../../../timetable";
+import BottomSheet from "../../../../shared/BottomSheet";
 import { DAYS } from "../../constants";
 import {
   facultyGroupToAddedCourses,
@@ -12,7 +13,7 @@ import {
   findFirstMatchingGroup,
   type FacultyNameGroup,
 } from "../../logic/facultyGroups";
-import { EmptyPanel, ListSkeleton } from "../../../../shared/primitives";
+import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
 
 /**
  * The faculty schedule browser.
@@ -88,34 +89,51 @@ export function FacultyScheduleModal({
     );
   }, [groups, query]);
 
-  if (!open) return null;
+  return (
+    <AnimatePresence>
+      {open && (
+        <BottomSheet
+          onClose={onClose}
+          overlayId="ffcs-faculty-schedule"
+          maxWidth="max-w-6xl"
+          panelZIndex={300}
+          backdropZIndex={295}
+          showClose={false}
+        >
+          {/*
+            A header card, not a bare heading — the same one the Full Weekly
+            Timetable sheet uses, because a bordered box holding the title, one
+            line saying what you are looking at, and the X beside it reads
+            faster than the sheet's own floating X. `showClose` is off so there
+            is exactly one X and it lives next to the thing it closes. The
+            z-index pair is still passed through rather than left at the sheet
+            default because this modal opens from fullscreen mode, where the tab
+            sits at z-100 and a z-60 sheet would land behind it.
+          */}
+          <div className="space-y-4">
+            <div className="p-4 sm:p-5 border border-border rounded-2xl flex items-center justify-between gap-3 bg-muted/40">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
+                  <CalendarDays className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-black text-foreground truncate">
+                    {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selected
+                      ? `${selected.offerings.length} class${selected.offerings.length === 1 ? "" : "es"} · tap a slot for day, time & venue`
+                      : "Search every faculty, or pick one to see their week"}
+                  </p>
+                </div>
+              </div>
+              <IconButton onClick={onClose} title="Close schedule">
+                <X className="w-4 h-4" />
+              </IconButton>
+            </div>
 
-  const modal = (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
-          <h3 className="font-bold text-lg text-foreground flex items-center gap-2 min-w-0">
-            <CalendarDays className="w-5 h-5 text-blue-500 shrink-0" />
-            <span className="truncate">
-              {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
-            </span>
-            {selected && (
-              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-md shrink-0">
-                {selected.offerings.length} class{selected.offerings.length === 1 ? "" : "es"}
-              </span>
-            )}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1 shrink-0"
-            aria-label="Close faculty schedule"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {selected ? (
-          <div className="p-4 sm:p-6 overflow-auto custom-scrollbar flex-1 space-y-5">
+            {selected ? (
+          <div className="space-y-5">
             <button
               type="button"
               onClick={() => setSelectedKey(null)}
@@ -187,7 +205,7 @@ export function FacultyScheduleModal({
             </div>
           </div>
         ) : (
-          <div className="p-4 sm:p-6 overflow-auto custom-scrollbar flex-1 space-y-4">
+          <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -257,24 +275,12 @@ export function FacultyScheduleModal({
               Schedules come from the FFCS course report. A faculty member appears here only if they teach a class in it.
             </p>
           </div>
-        )}
-      </div>
-    </div>
+            )}
+          </div>
+        </BottomSheet>
+      )}
+    </AnimatePresence>
   );
-
-  /**
-   * Portalled to `<body>` on purpose.
-   *
-   * The pages that host this modal wrap it in an `animate-fadeIn` container, and
-   * that animation persists a `transform`/`filter` with `animation-fill-mode:
-   * both`. Either one makes the container a containing block for `position:
-   * fixed` descendants, so an in-tree overlay is pinned to that (tall) wrapper
-   * instead of the viewport — the backdrop covers the page while the card lands
-   * below the fold, which reads as "only the grey shade". A portal puts the
-   * overlay under `<body>`, which has neither, so `fixed` resolves against the
-   * viewport again.
-   */
-  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
 }
 
 export default FacultyScheduleModal;

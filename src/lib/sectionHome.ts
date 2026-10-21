@@ -39,6 +39,7 @@ export const SINGLE_SCREEN_TABS = [
   "clubs",
   "community",
   "free-class",
+  "faculty-schedule",
   "cabshare",
 ] as const;
 

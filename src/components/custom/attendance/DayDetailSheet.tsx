@@ -246,27 +246,27 @@ export default function DayDetailSheet({
         : "No classes scheduled";
 
   return (
-    <BottomSheet onClose={onClose} overlayId="calendar-day-detail" maxWidth="max-w-xl">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="calendar-day-detail"
+      maxWidth="max-w-xl"
+      title={formatDayHeading(day.fullDate)}
+      subtitle={summary}
+      closeLabel="Close day detail"
+    >
       <div className="space-y-6">
-        {/* ── Header ── */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            {dayType ? <DotPill tone={dayType.tone}>{dayType.label}</DotPill> : null}
-            {papers > 0 ? <ToneBadge tone="amber">Exam day</ToneBadge> : null}
-            {day.dayType === "nonInstructional" ? (
-              <ToneBadge tone="sky">College open</ToneBadge>
-            ) : null}
-            {isToday ? <ToneBadge tone="indigo">Today</ToneBadge> : null}
-            {day.taskCount > 0 ? (
-              <ToneBadge tone="violet">
-                {day.taskCount} task{day.taskCount === 1 ? "" : "s"}
-              </ToneBadge>
-            ) : null}
-          </div>
-          <h2 className="text-lg font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-            {formatDayHeading(day.fullDate)}
-          </h2>
-          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 -mt-1">{summary}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {dayType ? <DotPill tone={dayType.tone}>{dayType.label}</DotPill> : null}
+          {papers > 0 ? <ToneBadge tone="amber">Exam day</ToneBadge> : null}
+          {day.dayType === "nonInstructional" ? (
+            <ToneBadge tone="sky">College open</ToneBadge>
+          ) : null}
+          {isToday ? <ToneBadge tone="indigo">Today</ToneBadge> : null}
+          {day.taskCount > 0 ? (
+            <ToneBadge tone="violet">
+              {day.taskCount} task{day.taskCount === 1 ? "" : "s"}
+            </ToneBadge>
+          ) : null}
         </div>
 
         {/*

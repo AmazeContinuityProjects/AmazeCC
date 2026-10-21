@@ -42,6 +42,7 @@ import ClubHubTab from "./clubs/ClubHubTab";
 import CommunityFeed from "./clubs/CommunityFeed";
 import { loadFrozenPastSemesters } from "@/lib/pastDataSync";
 import FreeClassroomsTab from "./exams/FreeClassroomsTab";
+import FacultyScheduleTab from "./exams/FacultyScheduleTab";
 import CircularsTab from "./exams/CircularsTab";
 import FacultyInfoTab from "./exams/FacultyInfoTab";
 
@@ -358,7 +359,7 @@ function DashboardContent({
     }
   }, [activeTab, loadTransportData]);
 
-  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "free-class", "more", "profile"];
+  const tabsOrder = ["home", "attendance", "academics", "tools", "payments", "libraries", "events", "clubs", "community", "free-class", "faculty-schedule", "more", "profile"];
 
   const [profileData, setProfileData] = useState<any>(null);
   useEffect(() => {
@@ -1098,6 +1099,7 @@ marksData={marksData}
             <div className="animate-fadeIn">
               <EventHubTab
                 IDs={IDs}
+                loginToVTOP={loginToVTOP}
                 onBack={onSystemBack}
                 setIsSubpageOpen={setIsSubpageOpen}
                 registeredEvents={registeredEvents}
@@ -1121,6 +1123,12 @@ marksData={marksData}
           {activeTab === "free-class" && (
             <div className="animate-fadeIn">
               <FreeClassroomsTab onBack={onSystemBack} />
+            </div>
+          )}
+
+          {activeTab === "faculty-schedule" && (
+            <div className="animate-fadeIn">
+              <FacultyScheduleTab onBack={onSystemBack} />
             </div>
           )}
 

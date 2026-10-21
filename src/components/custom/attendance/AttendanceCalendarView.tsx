@@ -143,12 +143,13 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
                 {/* Individual Notes Sheet for Overall Mode */}
                 <AnimatePresence>
                     {selectedOverallDate && (
-                        <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes-compact" maxWidth="max-w-sm">
-                            <div className="flex items-center justify-between gap-3 pb-1">
-                                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                                    {selectedOverallDate.date}
-                                </h3>
-                            </div>
+                        <BottomSheet
+                            onClose={() => setSelectedOverallDate(null)}
+                            overlayId="attendance-date-notes-compact"
+                            maxWidth="max-w-sm"
+                            title={selectedOverallDate.date}
+                            closeLabel="Close date notes"
+                        >
                             <div className="space-y-3 pt-1">
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;
@@ -337,12 +338,13 @@ export default function AttendanceCalendarView({ analyzeCalendars, historyList, 
             {/* Individual Notes Sheet for Overall Mode */}
             <AnimatePresence>
                 {selectedOverallDate && (
-                    <BottomSheet onClose={() => setSelectedOverallDate(null)} overlayId="attendance-date-notes-wide" maxWidth="max-w-sm">
-                            <div className="flex items-center justify-between gap-3 pb-1">
-                                <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                                    {selectedOverallDate.date}
-                                </h3>
-                            </div>
+                    <BottomSheet
+                        onClose={() => setSelectedOverallDate(null)}
+                        overlayId="attendance-date-notes-wide"
+                        maxWidth="max-w-sm"
+                        title={selectedOverallDate.date}
+                        closeLabel="Close date notes"
+                    >
                             <div className="space-y-3 pt-1">
                                 {selectedOverallDate.missedClasses.map((c, idx) => {
                                     const isSecured = notesTracker[c.courseCode]?.[selectedOverallDate.date] === true;

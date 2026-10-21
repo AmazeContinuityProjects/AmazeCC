@@ -293,11 +293,13 @@ export default function LeaveDisplay({ leaveData, handleHostelDetailsFetch }: Le
       {/* Apply Leave Sheet */}
       <AnimatePresence>
       {showApplyModal && (
-        <BottomSheet onClose={() => setShowApplyModal(false)} overlayId="hostel-apply-leave" maxWidth="max-w-md">
-            <div className="flex items-center justify-between gap-3 pb-1">
-              <h4 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider font-outfit">File Outing / Leave</h4>
-            </div>
-
+        <BottomSheet
+          onClose={() => setShowApplyModal(false)}
+          overlayId="hostel-apply-leave"
+          maxWidth="max-w-md"
+          title="File Outing / Leave"
+          closeLabel="Close leave form"
+        >
             <form onSubmit={handleApplySubmit} className="space-y-4 text-xs pt-1">
               <div className="space-y-1">
                 <label className="font-semibold text-gray-300">Leave / Outing Type</label>

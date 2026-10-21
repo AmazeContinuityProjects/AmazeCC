@@ -25,6 +25,7 @@ import {
   Utensils,
   BookOpen,
   CalendarDays,
+  UserSearch,
   Sun,
   CalendarOff,
   Building,
@@ -189,6 +190,10 @@ export default function SimplifiedMobileHome({
 
   const handleOpenFreeClassrooms = () => {
     setActiveTab("free-class");
+  };
+
+  const handleOpenFacultySchedule = () => {
+    setActiveTab("faculty-schedule");
   };
 
   const handleCourseClick = (courseCode: string) => {
@@ -1763,6 +1768,15 @@ export default function SimplifiedMobileHome({
           >
             <DoorOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Find Free Classrooms</span>
+          </button>
+          {/* Spans both columns on sm+ so it sits directly under the two-up row,
+              reading as the next item rather than a lone half-width button. */}
+          <button
+            onClick={handleOpenFacultySchedule}
+            className="sm:col-span-2 w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100/80 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/70 dark:border-indigo-800/50 text-xs font-bold text-indigo-700 dark:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <UserSearch className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Find Faculty Schedule</span>
           </button>
         </div>
       </div>

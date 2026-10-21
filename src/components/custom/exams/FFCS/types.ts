@@ -69,6 +69,16 @@ export type TimetableState = {
   courses: AddedCourse[];
   metrics?: TimetableMetrics;
   variants?: TimetableState[];
+  /**
+   * The weighted ranking profile's verdict, out of 100.
+   *
+   * Optional because it is only computed when a student picks a ranking mode —
+   * see `@/lib/ffcsRanking` for why it lives beside `metrics` rather than
+   * inside it. Absent means "no profile was asked for", not "scored zero".
+   */
+  rankingScore?: number;
+  /** Where the 100 points came from, for the breakdown panel. */
+  rankingBreakdown?: Record<string, number>;
 };
 
 export interface Friend {

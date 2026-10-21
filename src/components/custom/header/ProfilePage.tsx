@@ -2679,41 +2679,53 @@ export default function ProfilePage({
           full list works the same on a phone (swipe-down, system back, no
           centered dialog). */}
       {activeModal === "ept" && creds && (
-        <BottomSheet onClose={closeModal} overlayId="profile-ept-schedule" maxWidth="max-w-2xl">
+        <BottomSheet
+          onClose={closeModal}
+          overlayId="profile-ept-schedule"
+          maxWidth="max-w-2xl"
+          title="EPT Schedule"
+          closeLabel="Close EPT schedule"
+        >
           <div className="space-y-4 pb-2">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              EPT Schedule
-            </h3>
             <GenericApiView endpoint="ept-schedule" title="" creds={creds} refreshKey={refreshKey} />
           </div>
         </BottomSheet>
       )}
       {activeModal === "reg" && creds && (
-        <BottomSheet onClose={closeModal} overlayId="profile-reg-schedule" maxWidth="max-w-sm">
+        <BottomSheet
+          onClose={closeModal}
+          overlayId="profile-reg-schedule"
+          maxWidth="max-w-sm"
+          title="Registration Schedule"
+          closeLabel="Close registration schedule"
+        >
           <div className="space-y-4 pb-2">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Registration Schedule
-            </h3>
             <RegistrationModalContent creds={creds} onClose={closeModal} />
           </div>
         </BottomSheet>
       )}
       {activeModal === "bank" && creds && (
-        <BottomSheet onClose={closeModal} overlayId="profile-bank-info" maxWidth="max-w-md">
+        <BottomSheet
+          onClose={closeModal}
+          overlayId="profile-bank-info"
+          maxWidth="max-w-md"
+          title="Bank Information"
+          closeLabel="Close bank information"
+        >
           <div className="space-y-4 pb-2">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Bank Information
-            </h3>
             <BankDayStatusModal endpoint="bank-info" title="Bank Info" creds={creds} />
           </div>
         </BottomSheet>
       )}
       {activeModal === "day" && creds && (
-        <BottomSheet onClose={closeModal} overlayId="profile-dayboarder" maxWidth="max-w-md">
+        <BottomSheet
+          onClose={closeModal}
+          overlayId="profile-dayboarder"
+          maxWidth="max-w-md"
+          title="Dayboarder Information"
+          closeLabel="Close dayboarder information"
+        >
           <div className="space-y-4 pb-2">
-            <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit tracking-tight">
-              Dayboarder Information
-            </h3>
             <BankDayStatusModal endpoint="dayboarder" title="Dayboarder Info" creds={creds} />
           </div>
         </BottomSheet>

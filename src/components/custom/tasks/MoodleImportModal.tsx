@@ -66,25 +66,17 @@ export default function MoodleImportModal({
   if (!isOpen) return null;
 
   return (
-    <BottomSheet onClose={onClose} overlayId="moodle-import-modal" maxWidth="max-w-lg">
+    <BottomSheet
+      onClose={onClose}
+      overlayId="moodle-import-modal"
+      maxWidth="max-w-lg"
+      title="Import from Moodle LMS"
+      subtitle="Sync pending digital assignments into your timetable tasks"
+      icon={<Download className="w-5 h-5" />}
+      accent="bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
+      closeLabel="Close Moodle import"
+    >
       <div className="flex flex-col max-h-[80vh] text-left">
-        {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-200/70 dark:border-zinc-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30">
-              <Download className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-zinc-900 dark:text-white font-outfit">
-                Import from Moodle LMS
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Sync pending digital assignments into your timetable tasks
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Assignment list */}
         <div className="p-4 sm:p-5 space-y-3 overflow-y-auto min-h-0 flex-1">
           {previews.length === 0 ? (

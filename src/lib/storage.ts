@@ -61,6 +61,9 @@ export const KEYS = {
   FFCS_COURSE_LOCKS: "ffcs_courseLocks",
   FFCS_MANUAL_LINKS: "ffcs_manual_links",
   FFCS_RAW_COURSES: "ffcs_raw_courses",
+  FFCS_SETTINGS: "ffcs_settings",
+  FFCS_TOUR_SEEN: "ffcs_tour_seen",
+  FFCS_TIPS_DISMISSED: "ffcs_tips_dismissed",
   CACHE_PREFIX: "cache_",
   FROZEN_ATT_PREFIX: "frozen_att_",
   FROZEN_MARKS_PREFIX: "frozen_marks_",
@@ -372,6 +375,21 @@ export const storage = {
     get: () => getItem<unknown>(KEYS.FFCS_MANUAL_LINKS),
     set: (data: unknown) => setItem(KEYS.FFCS_MANUAL_LINKS, data),
     remove: () => removeItem(KEYS.FFCS_MANUAL_LINKS),
+  },
+  ffcsSettings: {
+    get: () => getItem<Record<string, unknown>>(KEYS.FFCS_SETTINGS),
+    set: (data: Record<string, unknown>) => setItem(KEYS.FFCS_SETTINGS, data),
+    remove: () => removeItem(KEYS.FFCS_SETTINGS),
+  },
+  ffcsTourSeen: {
+    get: () => getString(KEYS.FFCS_TOUR_SEEN),
+    set: (val: string) => setString(KEYS.FFCS_TOUR_SEEN, val),
+    remove: () => removeItem(KEYS.FFCS_TOUR_SEEN),
+  },
+  ffcsTipsDismissed: {
+    get: () => getItem<string[]>(KEYS.FFCS_TIPS_DISMISSED),
+    set: (data: string[]) => setItem(KEYS.FFCS_TIPS_DISMISSED, data),
+    remove: () => removeItem(KEYS.FFCS_TIPS_DISMISSED),
   },
   vitolUsername: {
     get: () => getString(KEYS.VITOL_USERNAME),

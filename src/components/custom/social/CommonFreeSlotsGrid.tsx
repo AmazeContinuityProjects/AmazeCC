@@ -368,22 +368,21 @@ export default function CommonFreeSlotsGrid({
           variants never run and it vanishes instead of sliding down. */}
       <AnimatePresence>
       {activeCell && (
-        <BottomSheet onClose={() => setActiveCell(null)} overlayId="social-cell-detail" maxWidth="max-w-sm">
+        <BottomSheet
+          onClose={() => setActiveCell(null)}
+          overlayId="social-cell-detail"
+          maxWidth="max-w-sm"
+          title={`${activeCell.day} · ${fmt(activeCell.time.split("-")[0])} – ${fmt(activeCell.time.split("-")[1])}`}
+          subtitle={
+            <span className={`font-bold ${activeCell.busy === 0 ? TONE_TEXT.emerald : TONE_TEXT.amber}`}>
+              {activeCell.free} of {activeCell.total} free
+            </span>
+          }
+          icon={<CalendarRange className="w-4.5 h-4.5" />}
+          accent="border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+          closeLabel="Close cell detail"
+        >
           <div className="text-left space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl flex items-center justify-center border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                <CalendarRange className="w-4.5 h-4.5" />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-sm font-black text-zinc-900 dark:text-white font-outfit leading-tight">
-                  {activeCell.day} · {fmt(activeCell.time.split("-")[0])} – {fmt(activeCell.time.split("-")[1])}
-                </h3>
-                <p className={`text-[11px] font-bold ${activeCell.busy === 0 ? TONE_TEXT.emerald : TONE_TEXT.amber}`}>
-                  {activeCell.free} of {activeCell.total} free
-                </p>
-              </div>
-            </div>
-
             {activeCell.who.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
