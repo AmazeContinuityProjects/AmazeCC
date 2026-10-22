@@ -22,7 +22,6 @@ import { LIST_ROW, SEARCH_FIELD, TILE_CARD, TONE_BADGE } from "@/lib/uiTokens";
 import {
   DAYS_OF_WEEK,
   DAY_LABELS,
-  bestPeriod,
   blockAvailability,
   buildDayIndex,
   buildPeriodSlots,
@@ -38,6 +37,12 @@ import {
   type FreeRooms,
   type PeriodOption,
 } from "@/lib/freeClassrooms";
+import {
+  fetchLiveDay,
+  type LiveDay,
+} from "@/lib/roomAvailability";
+import { mergeDay, type MergedDay } from "@/lib/roomMerge";
+import { getCurrentSemesterId } from "@/lib/officialOd";
 import BottomSheet from "../shared/BottomSheet";
 import {
   ChipTabs,
@@ -93,6 +98,25 @@ const roomNumber = (code: string) => {
   const dash = code.indexOf("-");
   return dash >= 0 ? code.slice(dash + 1) : code;
 };
+
+/**
+ * The period with the most free rooms, from the merged answer.
+ *
+ * The same question the report-only version asked, asked of the merged one:
+ * "where should I walk to" is answered by the emptiest moment of the day, and
+ * that moment can move once the server's classes are in the mix.
+ */
+function bestPeriodOf(
+  merged: MergedDay,
+  periods: PeriodOption[]
+): { period: PeriodOption; free: number } | null {
+  let best: { period: PeriodOption; free: number } | null = null;
+  for (const period of periods) {
+    const free = merged.periods.get(period.key)?.free.rooms.length ?? 0;
+    if (!best || free > best.free) best = { period, free };
+  }
+  return best && best.free > 0 ? best : null;
+}
 
 /**
  * A room chip with two targets.
@@ -248,6 +272,16 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   const [inspectDay, setInspectDay] = useState<DayId>("mon");
   const [copied, setCopied] = useState<string | null>(null);
 
+  /**
+   * The server's answer, per day.
+   *
+   * It is merged with the report rather than replacing it — see
+   * `lib/roomMerge.ts` — so a day with no server data still answers, and a
+   * day with server data does not make the report's rooms disappear.
+   */
+  const [liveDays, setLiveDays] = useState<Partial<Record<DayId, LiveDay>>>({});
+  const [livePending, setLivePending] = useState(false);
+
   // Ticks so "Free right now" cannot sit there claiming to be live hours after
   // the fact. A minute is the finest granularity that means anything here.
   const [tick, setTick] = useState(() => new Date());
@@ -337,6 +371,64 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
   const periodSlots = shown.slots;
   const index = shown.index;
 
+  /* ── the server's half ─────────────────────────────────────────────────── */
+
+  /**
+   * The slots running in each period of a day, as the server is told about it.
+   *
+   * The client owns the period schema, so it is the one that says which VTOP
+   * slot each period is — including the law school's second spelling of the
+   * morning slots, which is what stops every law room reading as free.
+   */
+  const livePlan = useMemo(() => {
+    const plan = week.get(day);
+    if (!plan) return [];
+    return plan.periods.map((p) => ({
+      key: p.key,
+      slots: [...(plan.slots.get(p.key) ?? [])],
+    }));
+  }, [week, day]);
+
+  /**
+   * Ask the server about the day on screen.
+   *
+   * One request per day, because the answer covers every period of that day —
+   * so moving between periods is a lookup rather than another round trip.
+   *
+   * A failure is not an error state: the report is still loaded, and the
+   * answer is the report's. The page says which answer it is showing.
+   */
+  useEffect(() => {
+    const semesterId = getCurrentSemesterId();
+    if (!semesterId || livePlan.length === 0) return;
+
+    let cancelled = false;
+    setLivePending(true);
+
+    fetchLiveDay({
+      semesterId,
+      day,
+      periods: livePlan,
+      runLength: RUN_LENGTH,
+    })
+      .then((live) => {
+        if (cancelled) return;
+        setLiveDays((prev) => {
+          const next = { ...prev };
+          if (live) next[day] = live;
+          else delete next[day];
+          return next;
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLivePending(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [day, livePlan]);
+
   const now = useMemo(() => resolveNow(periods, tick), [periods, tick]);
 
   /**
@@ -387,24 +479,78 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       .map((p) => p.key);
   }, [periods, periodIndex, now, day, livePeriodKey]);
 
-  const runFree = useMemo(
-    () => freeRoomsForRun(index, runKeys),
-    [index, runKeys]
-  );
+  /**
+   * The answer, with the report and the server merged.
+   *
+   * Both sources are used, and neither one is allowed to say a room is free
+   * when the other says it is taken — see `lib/roomMerge.ts` for why that is
+   * the cautious direction. Every day of the week is merged, because the room
+   * inspector browses the week.
+   */
+  const mergedWeek = useMemo(() => {
+    const map = new Map<DayId, MergedDay>();
+    for (const d of DAYS_OF_WEEK) {
+      const plan = week.get(d);
+      if (!plan) continue;
+      map.set(
+        d,
+        mergeDay({
+          index: plan.index,
+          periodKeys: plan.periods.map((p) => p.key),
+          live: liveDays[d] ?? null,
+          runLength: RUN_LENGTH,
+        })
+      );
+    }
+    return map;
+  }, [week, liveDays]);
 
-  const free: FreeRooms = useMemo(
-    () => (runOnly ? runFree : freeRoomsForPeriod(index, activePeriodKey)),
-    [runOnly, runFree, index, activePeriodKey]
-  );
+  const merged = mergedWeek.get(day) ?? mergedWeek.get("mon")!;
+
+  /**
+   * The run, merged the same way.
+   *
+   * A room is free for the run only when both sources say it is free for all
+   * of it, so the answer is the shorter of the two runs.
+   */
+  const runFree: FreeRooms = useMemo(() => {
+    const run = merged.runs.get(runKeys[0] ?? "");
+    if (!run) return freeRoomsForRun(index, runKeys);
+    return {
+      rooms: run.rooms,
+      theory: run.theory,
+      lab: run.lab,
+      runLength: run.runLength,
+    };
+  }, [merged, index, runKeys]);
+
+  const free: FreeRooms = useMemo(() => {
+    if (runOnly) return runFree;
+    const period = merged.periods.get(activePeriodKey);
+    if (!period) return freeRoomsForPeriod(index, activePeriodKey);
+    return period.free;
+  }, [runOnly, runFree, merged, index, activePeriodKey]);
+
+  /** The blocks, from whichever answer is in play. */
+  const blocks = useMemo(() => {
+    const run = merged.runs.get(runKeys[0] ?? "");
+    const period = merged.periods.get(activePeriodKey);
+    if (runOnly) {
+      if (run) return run.blocks;
+    } else if (period) {
+      return period.blocks;
+    }
+    return blockAvailability(index, free);
+  }, [merged, runKeys, runOnly, activePeriodKey, index, free]);
 
   const metrics = useMemo(
     () => ({
       total: free.rooms.length,
       theory: free.theory.length,
       lab: free.lab.length,
-      blocks: blockAvailability(index, free).length,
+      blocks: blocks.length,
     }),
-    [free, index]
+    [free, blocks]
   );
 
   /* ── hero ─────────────────────────────────────────────────────────────── */
@@ -431,7 +577,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
         tone: "sky",
       });
     }
-    const best = bestPeriod(index);
+    const best = bestPeriodOf(merged, periods);
     if (best) {
       slides.push({
         id: "best",
@@ -462,7 +608,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       });
     }
     return slides;
-  }, [metrics, index, runFree, periods, periodIndex]);
+  }, [metrics, merged, runFree, periods, periodIndex]);
 
   const carousel = useCarousel(insightSlides.length, 8000);
 
@@ -470,7 +616,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
 
   const visibleBlocks = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return blockAvailability(index, free)
+    return blocks
       .filter((b) => blockFilter === "All" || b.block === blockFilter)
       .map((b) => {
         const match = (code: string) => !q || code.toLowerCase().includes(q);
@@ -479,17 +625,17 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
         return { ...b, theory, lab, free: theory.length + lab.length };
       })
       .filter((b) => b.free > 0);
-  }, [index, free, blockFilter, query]);
+  }, [blocks, blockFilter, query]);
 
   const blockTabs = useMemo(
     () => [
       { value: "All", label: "All blocks" },
-      ...blockAvailability(index, free).map((b) => ({
+      ...blocks.map((b) => ({
         value: b.block,
         label: `${b.block} · ${b.free}`,
       })),
     ],
-    [index, free]
+    [blocks]
   );
 
   const handleCopy = useCallback((code: string) => {
@@ -518,26 +664,35 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
    * actually looking at.
    */
   const inspect = week.get(inspectDay) ?? shown;
+  const inspectMerged = mergedWeek.get(inspectDay) ?? merged;
+
+  /**
+   * The room's day, from the merged answer.
+   *
+   * The merged occupants already carry both sources, so a room taken by a class
+   * the server knows about shows that class, and a room taken only by the
+   * report shows the report's row.
+   */
   const timeline = useMemo(() => {
     if (!inspectedRoom) return [];
-    const inRoom = inspect.index.courses.get(inspectedRoom) ?? [];
     return inspect.periods.map((p) => {
-      const slots = inspect.slots.get(p.key) ?? new Set<string>();
-      const occupying = inRoom.find((c) =>
-        String(c.SLOT ?? "")
-          .split("+")
-          .map((s) => s.trim().toUpperCase())
-          .some((s) => slots.has(s))
-      );
+      const occupants = inspectMerged.periods.get(p.key)?.occupants.get(inspectedRoom) ?? [];
+      const occupying = occupants[0];
       return {
         period: p,
-        course: occupying ?? null,
+        course: occupying
+          ? {
+              CODE: occupying.courseCode,
+              TITLE: occupying.title,
+              FACULTY: occupying.faculty,
+            }
+          : null,
         // Only meaningful on the day the page is also showing, so browsing the
         // week does not claim a period is "selected" that the list is not on.
         isSelected: inspectDay === day && p.key === activePeriodKey,
       };
     });
-  }, [inspectedRoom, inspect, inspectDay, day, activePeriodKey]);
+  }, [inspectedRoom, inspectMerged, inspect, inspectDay, day, activePeriodKey]);
 
   // Re-sync the sheet's day to the page's whenever the sheet opens, so it
   // never starts on a day you did not choose.
@@ -554,7 +709,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
       onBack={onBack}
       eyebrow="Free Classrooms"
       title="Find an empty room"
-      subtitle="Every room on campus, checked against the FFCS timetable."
+      subtitle="Every room on campus, from the FFCS report and the live timetable."
       actions={
         <IconButton title="Reload timetable" onClick={() => load(true)}>
           <RefreshCcw className={loading ? "animate-spin" : ""} />
@@ -597,6 +752,13 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
             {isLiveSlot
               ? "Live: this is the period running now. A room is free when no course is booked into it for this slot — tap any room number to copy it, or its arrow to see the whole day."
               : "Not the current period, so these are the rooms free for the time you picked. Tap the headline to jump back to now."}
+          </p>
+          <p className="px-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium">
+            {livePending && !liveDays[day]
+              ? "Checking the live timetable…"
+              : liveDays[day]
+                ? "Rooms are merged from the live timetable students sync and the FFCS report. A room is offered only when neither source has a class booked in it."
+                : "Rooms come from the FFCS report. Sync your timetable and the live campus timetable is merged in."}
           </p>
         </>
       )}
@@ -813,7 +975,7 @@ export default function FreeClassroomsTab({ onBack }: { onBack?: () => void }) {
                         <RoomChip
                           key={code}
                           code={code}
-                          kind={index.rooms.get(code)?.kind ?? "theory"}
+                          kind={merged.kinds.get(code) ?? "theory"}
                           onCopy={handleCopy}
                           onInspect={setInspectedRoom}
                           copied={copied === code}

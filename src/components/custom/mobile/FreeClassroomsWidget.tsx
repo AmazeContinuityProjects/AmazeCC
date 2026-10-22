@@ -5,9 +5,18 @@ import { Search, MapPin, Loader2, Clock, CalendarDays, RefreshCw } from "lucide-
 
 import SelectField from "../shared/primitives/SelectField";
 import type { ParsedCourse } from "../exams/FFCS/types";
-import { slotSpellings } from "@/lib/slots";
 import { parseCachedCourses } from "@/lib/freeClassrooms";
-
+import {
+  buildDayIndex,
+  buildPeriodSlots,
+  resolveNow,
+  resolvePeriods,
+  type DayId,
+  type FreeRoomCourse,
+} from "@/lib/freeClassrooms";
+import { fetchLiveDay, type LiveDay } from "@/lib/roomAvailability";
+import { mergeDay } from "@/lib/roomMerge";
+import { getCurrentSemesterId } from "@/lib/officialOd";
 
 // Import schemas
 import chennaiSchema from "@/data/campus/chennai.json";
@@ -21,15 +30,6 @@ const CAMPUS_SCHEMAS: Record<string, any> = {
 };
 
 const GLOBAL_CAMPUS = "chennai"; // Since FFCSTimetableTab hardcodes it
-
-const timeToMinutes = (timeStr: string) => {
-  if (!timeStr) return 0;
-  const [time, period] = timeStr.trim().split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-};
 
 /**
  * `ffcs_raw_courses` has three writers and two shapes. The FFCS timetable tab
@@ -61,74 +61,61 @@ function coursesFromCache(raw: string): ParsedCourse[] {
 const WIDGET_FIELD =
   "[&>button:first-child]:pl-9 [&>button:first-child]:pr-2 [&>button:first-child]:bg-gray-50 dark:[&>button:first-child]:bg-slate-800 [&>button:first-child]:font-semibold";
 
+/**
+ * Free Classrooms, on the home page.
+ *
+ * The answer comes from the same place the full page's does: the FFCS report
+ * merged with the class details students have contributed to the server. The
+ * widget asks the server for the day it is showing and merges the two, so the
+ * two surfaces cannot disagree — including about which day is today.
+ */
 export default function FreeClassroomsWidget() {
   const [courses, setCourses] = useState<ParsedCourse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedDay, setSelectedDay] = useState<string>("mon");
-  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedDay, setSelectedDay] = useState<DayId>("mon");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [selectedBlock, setSelectedBlock] = useState<string>("All");
 
+  /** The server's answer for the day on screen. */
+  const [live, setLive] = useState<LiveDay | null>(null);
+
   const schema = CAMPUS_SCHEMAS[GLOBAL_CAMPUS];
-  
-  // Extract all valid time periods from schema
-  const timePeriods = useMemo(() => {
-    const periods: string[] = [];
-    schema.theory.forEach((p: any) => {
-      if (!p.lunch && p.start && p.end) {
-        periods.push(`${p.start} - ${p.end}`);
-      }
-    });
-    return periods;
-  }, [schema]);
+
+  /**
+   * The periods of the selected day.
+   *
+   * The union of the lecture and lab lists, and the overlapping ones merged —
+   * the same period list the full page shows, so the two agree on what
+   * "8:55 AM" means.
+   */
+  const periods = useMemo(
+    () => resolvePeriods(schema, selectedDay),
+    [schema, selectedDay]
+  );
+
+  /** The VTOP slots running in each period of the day. */
+  const slots = useMemo(() => buildPeriodSlots(periods), [periods]);
 
   // Autofill current day and time
   useEffect(() => {
-    const autofill = () => {
-      const now = new Date();
-      const dayIndex = now.getDay();
-      
-      // Only autofill on Mon-Fri (1-5)
-      if (dayIndex >= 1 && dayIndex <= 5) {
-        const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-        const todayStr = days[dayIndex];
-        
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        let foundPeriod = "";
-        
-        schema.theory.forEach((p: any) => {
-          if (!p.lunch && p.start && p.end) {
-            const startMins = timeToMinutes(p.start);
-            const endMins = timeToMinutes(p.end);
-            // If current time is within or slightly before the slot
-            if (nowMinutes >= startMins - 15 && nowMinutes <= endMins) {
-              foundPeriod = `${p.start} - ${p.end}`;
-            }
-          }
-        });
-
-        if (foundPeriod) {
-          setSelectedDay(todayStr);
-          setSelectedTime(foundPeriod);
-        } else if (timePeriods.length > 0) {
-          setSelectedDay(todayStr);
-          setSelectedTime(timePeriods[0]);
-        }
-      } else if (timePeriods.length > 0) {
-        setSelectedDay("mon");
-        setSelectedTime(timePeriods[0]);
-      }
-    };
-    autofill();
-  }, [schema, timePeriods]);
+    const now = resolveNow(periods);
+    if (periods.length === 0) return;
+    setSelectedDay(now.day);
+    setSelectedPeriod((current) =>
+      periods.some((p) => p.key === current)
+        ? current
+        : (now.period?.key ?? periods[0].key)
+    );
+  }, [periods]);
 
   // Load CSV data
   useEffect(() => {
     const loadCourses = async () => {
       setLoading(true);
       setError(null);
-      
+
       // Try local cache first to avoid re-parsing if they visited FFCS tab
       try {
         const cached = localStorage.getItem("ffcs_raw_courses");
@@ -151,7 +138,7 @@ export default function FreeClassroomsWidget() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
-        
+
         const parsed: ParsedCourse[] = jsonData.map((row: any) => {
           const cleanRow: any = {};
           for (const k in row) {
@@ -180,80 +167,74 @@ export default function FreeClassroomsWidget() {
     loadCourses();
   }, []);
 
+  /**
+   * Ask the server about the day on screen.
+   *
+   * A failure is not an error state: the report is still here, and the answer
+   * is the report's.
+   */
+  useEffect(() => {
+    const semesterId = getCurrentSemesterId();
+    if (!semesterId || periods.length === 0) return;
+
+    let cancelled = false;
+    fetchLiveDay({
+      semesterId,
+      day: selectedDay,
+      periods: periods.map((p) => ({
+        key: p.key,
+        slots: [...(slots.get(p.key) ?? [])],
+      })),
+      runLength: 1,
+    })
+      .then((res) => {
+        if (!cancelled) setLive(res);
+      })
+      .catch(() => {
+        if (!cancelled) setLive(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDay, periods, slots]);
+
+  /**
+   * The free rooms, from the report and the server merged.
+   *
+   * A room is offered only when neither source has a class booked in it.
+   */
   const freeVenuesByBlock = useMemo(() => {
-    if (!selectedTime || !selectedDay || courses.length === 0) return {};
+    if (!selectedPeriod || courses.length === 0 || periods.length === 0) return {};
 
-    const [reqStart, reqEnd] = selectedTime.split(" - ");
-    
-    // Find the slots that correspond to this time for the selected day
-    let targetSlots = new Set<string>();
-
-    const theoryPeriod = schema.theory.find((p: any) => p.start === reqStart && p.end === reqEnd);
-    if (theoryPeriod && theoryPeriod.days && theoryPeriod.days[selectedDay]) {
-      // Law courses are booked "A+TA+TAA", with no period number, so the law
-      // school's morning slots would never match the schema's "A1"/"TA1"/"TAA1"
-      // and every AB5 room would read as free. See `slotSpellings`.
-      slotSpellings(theoryPeriod.days[selectedDay]).forEach((s) => targetSlots.add(s));
-    }
-
-    const labPeriod = schema.lab.find((p: any) => p.start === reqStart && p.end === reqEnd);
-    if (labPeriod && labPeriod.days && labPeriod.days[selectedDay]) {
-      targetSlots.add(labPeriod.days[selectedDay]);
-    }
-
-    if (targetSlots.size === 0) return {};
-
-    const roomTypes = new Map<string, { theory: number, lab: number }>();
-
-    // Get all valid unique rooms
-    const allRooms = new Set<string>();
-    const occupiedRooms = new Set<string>();
-
-    courses.forEach(course => {
-      const room = String(course?.ROOM ?? "").trim().toUpperCase();
-      if (!room || room === "NIL" || room === "UNK-UNK" || room.includes("ONLINE") || room === "N/A") return;
-      
-      allRooms.add(room);
-
-      if (!roomTypes.has(room)) roomTypes.set(room, { theory: 0, lab: 0 });
-      const t = String(course?.TYPE ?? "").trim().toUpperCase();
-      const rawSlot = String(course?.SLOT ?? "");
-      if (t.includes("LA") || t === "LO" || rawSlot.toUpperCase().includes("L")) {
-        roomTypes.get(room)!.lab++;
-      } else {
-        roomTypes.get(room)!.theory++;
-      }
-
-      const courseSlots = rawSlot.split("+").map(s => s.trim().toUpperCase());
-      const isOccupied = [...targetSlots].some(ts => courseSlots.includes(ts.toUpperCase()));
-      if (isOccupied) {
-        occupiedRooms.add(room);
-      }
+    const index = buildDayIndex(courses as FreeRoomCourse[], periods, slots);
+    const merged = mergeDay({
+      index,
+      periodKeys: periods.map((p) => p.key),
+      live,
+      runLength: 1,
     });
 
-    const freeRooms = [...allRooms].filter(r => !occupiedRooms.has(r));
+    const period = merged.periods.get(selectedPeriod);
+    if (!period) return {};
 
-    // Group by block (everything before the hyphen, e.g., "AB5-208" -> "AB5")
+    const roomByCode = new Map(merged.rooms.map((r) => [r.code, r]));
     const grouped: Record<string, { theory: string[], lab: string[] }> = {};
-    freeRooms.forEach(room => {
-      const parts = room.split("-");
-      const block = parts.length > 1 ? parts[0] : "Other";
+    for (const code of period.free.rooms) {
+      const room = roomByCode.get(code);
+      if (!room) continue;
+      const block = room.block || "Other";
       if (!grouped[block]) grouped[block] = { theory: [], lab: [] };
-      
-      const counts = roomTypes.get(room)!;
-      const type = counts.lab > counts.theory ? "lab" : "theory";
-      
-      grouped[block][type].push(room);
-    });
+      (room.kind === "lab" ? grouped[block].lab : grouped[block].theory).push(code);
+    }
 
-    // Sort blocks and rooms
     Object.keys(grouped).forEach(block => {
       grouped[block].theory.sort();
       grouped[block].lab.sort();
     });
 
     return grouped;
-  }, [courses, selectedTime, selectedDay, schema]);
+  }, [courses, selectedPeriod, periods, slots, live]);
 
   return (
     <div className="card-surface border border-border-strong dark:border-border rounded-[24px] p-5 shadow-sm mt-6">
@@ -274,7 +255,7 @@ export default function FreeClassroomsWidget() {
           <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <SelectField
             value={selectedDay}
-            onChange={(val) => setSelectedDay(val)}
+            onChange={(val) => setSelectedDay(val as DayId)}
             options={[
               { value: "mon", label: "Monday" },
               { value: "tue", label: "Tuesday" },
@@ -293,9 +274,9 @@ export default function FreeClassroomsWidget() {
         <div className="relative">
           <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <SelectField
-            value={selectedTime}
-            onChange={(val) => setSelectedTime(val)}
-            options={timePeriods.map((time) => ({ value: time, label: time }))}
+            value={selectedPeriod}
+            onChange={(val) => setSelectedPeriod(val)}
+            options={periods.map((p) => ({ value: p.key, label: p.label }))}
             searchable={false}
             size="md"
             stacked
@@ -351,13 +332,13 @@ export default function FreeClassroomsWidget() {
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                   {block} Block ({theory.length + lab.length})
                 </h4>
-                
+
                 {theory.length > 0 && (
                   <div className="mb-2">
                     <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Theory</p>
                     <div className="flex flex-wrap gap-1.5">
                       {theory.map(room => (
-                        <span 
+                        <span
                           key={room}
                           className="px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-300 shadow-sm"
                         >
@@ -367,13 +348,13 @@ export default function FreeClassroomsWidget() {
                     </div>
                   </div>
                 )}
-                
+
                 {lab.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Lab</p>
                     <div className="flex flex-wrap gap-1.5">
                       {lab.map(room => (
-                        <span 
+                        <span
                           key={room}
                           className="px-2 py-1 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg text-[11px] font-bold text-blue-600 dark:text-blue-400 shadow-sm"
                         >
