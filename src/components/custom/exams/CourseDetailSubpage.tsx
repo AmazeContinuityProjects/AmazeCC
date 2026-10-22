@@ -1881,6 +1881,11 @@ export default function CourseDetailSubpage({
             courseTitle: selectedGroup.courseTitle ?? "",
             courseType: mainCourse?.courseType ?? "Theory Only",
             credits: Number(mainCourse?.credits ?? 0) || (isEmbedded ? 4 : 3),
+            // The engine curves the ladder around `courseSystem`; omitting it
+            // read ACE-embedded courses as absolute, so the predictor showed
+            // the fixed ladder where marks curved the same course's bands.
+            // Same expression the marks page feeds `checkIsRelative`.
+            courseSystem: mainCourse?.courseSystem,
             theoryCourse: selectedGroup.theory,
             labCourse: selectedGroup.lab,
           }}
