@@ -28,6 +28,9 @@ const basePath = '';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    agentUpgrade: 'security',
+  },
   output: 'export',
   basePath: basePath,
   trailingSlash: true,
