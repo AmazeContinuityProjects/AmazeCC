@@ -54,8 +54,27 @@ import {
   slotsOverlap,
 } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
-import { getBatchColorClass } from "@/lib/utils";
+import { getBatchColorClass, getAssetPath } from "@/lib/utils";
 import { TimetableView } from "../timetable";
+
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return null;
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        localStorage.setItem(key, value);
+      }
+    } catch {}
+  },
+};
+
 
 
 
@@ -173,7 +192,8 @@ const isEveningSlot = (slot: string) => {
 const isOverlap = (theorySlotStr: string, labSlotStr: string) =>
   slotsOverlap(theorySlotStr, labSlotStr, getTimetableSchema());
 
-const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
+// Only exported for the tests; callers inside the app go through masterCourses.
+export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
   // 1. Find all codes that end with L or P
   const hasL = new Set<string>();
   const hasP = new Set<string>();
@@ -227,9 +247,12 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
 
   byCode.forEach((coursesList, codeKey) => {
     const isMergedLPBase = mergeableBases.has(codeKey);
+    // A blank type is embedded too: the winter report carries no TYPE column at
+    // all, so its rows are unlabeled halves, and the pairing below is what
+    // infers which theory belongs to which lab.
     const hasEmbedded = isMergedLPBase || coursesList.some(c => {
       const t = c.TYPE.trim().toUpperCase();
-      return t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED");
+      return !t || t === "ETH" || t === "ELA" || t === "EPJ" || t.includes("EMBEDDED");
     });
 
     if (hasEmbedded) {
@@ -260,7 +283,7 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
             lMatches.forEach(l => {
               const tType = t.TYPE.trim().toUpperCase();
               const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = `${tType}+${lType}`;
+              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
 
               let combinedTitle = t.TITLE;
               if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
@@ -285,7 +308,7 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
                                 Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
                                 parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
-                ROOM: `${t.ROOM} / ${l.ROOM}`,
+                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
                 ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE,
                 FACULTY: combinedFac
               } as any);
@@ -307,30 +330,46 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
       // 2. Normal processing for the rest
       const byFac = new Map<string, ParsedCourse[]>();
       remainingCourses.forEach(c => {
-        if (!byFac.has(c.FACULTY)) byFac.set(c.FACULTY, []);
-        byFac.get(c.FACULTY)!.push(c);
+        // The employee id decides who "the same faculty" is wherever the report
+        // has one; without it a name keys the grouping, as it always has.
+        const facKey = c.ERP_ID || c.FACULTY;
+        if (!byFac.has(facKey)) byFac.set(facKey, []);
+        byFac.get(facKey)!.push(c);
       });
 
       byFac.forEach((facCourses) => {
+        // The code-suffix branches describe the L/P lab variant, and only
+        // carry meaning where the report labels rows the old way (a typed
+        // row, any report before winter) or where the merge above rewrote
+        // the code (ORIGINAL_CODE). A lone `P` code with a blank type — the
+        // winter report's pooled thesis lists, no `L` sibling anywhere — is
+        // otherwise a theory half by slot shape and a lab half by suffix on
+        // every row at once, which blows the matching below up into an
+        // unbounded search; unlabeled rows stand on their slot shape alone.
         const theorySlots = facCourses.filter(c => {
           const t = c.TYPE.trim().toUpperCase();
           const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-          return t === "ETH" || t === "TH" || origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
+          return t === "ETH" || t === "TH" || ((c as any).ORIGINAL_CODE || t) && origCode.endsWith('L') || (!c.SLOT.startsWith('L') && c.SLOT !== 'NIL');
         });
         const labSlots = facCourses.filter(c => {
           const t = c.TYPE.trim().toUpperCase();
           const origCode = (c as any).ORIGINAL_CODE || c.CODE;
-          return t === "ELA" || t === "LO" || origCode.endsWith('P') || c.SLOT.startsWith('L');
+          return t === "ELA" || t === "LO" || ((c as any).ORIGINAL_CODE || t) && origCode.endsWith('P') || c.SLOT.startsWith('L');
         });
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
           let bestMatch: { tIdx: number, lIdx: number }[] = [];
+          const maxPossible = Math.min(theorySlots.length, labSlots.length);
+          let steps = 0;
 
           const backtrack = (tIdx: number, currentMatch: { tIdx: number, lIdx: number }[], usedLabs: Set<number>) => {
             if (currentMatch.length > bestMatch.length) {
               bestMatch = [...currentMatch];
             }
+            if (bestMatch.length === maxPossible) return;
             if (tIdx >= theorySlots.length) return;
+            if (currentMatch.length + (theorySlots.length - tIdx) <= bestMatch.length) return;
+            if (++steps > 20000) return;
 
             const t = theorySlots[tIdx];
 
@@ -344,6 +383,7 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
                 backtrack(tIdx + 1, currentMatch, usedLabs);
                 currentMatch.pop();
                 usedLabs.delete(j);
+                if (bestMatch.length === maxPossible) return;
               }
             }
             
@@ -362,7 +402,7 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
               
               const tType = t.TYPE.trim().toUpperCase();
               const lType = l.TYPE.trim().toUpperCase();
-              const combinedType = `${tType}+${lType}`;
+              const combinedType = tType && lType ? `${tType}+${lType}` : "ETH+ELA";
 
               let combinedTitle = t.TITLE;
               if ((t as any).ORIGINAL_CODE?.endsWith('L') && (l as any).ORIGINAL_CODE?.endsWith('P')) {
@@ -382,7 +422,7 @@ const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] 
                                 Math.max(parseFloat(t.CREDITS || "0"), parseFloat(l.CREDITS || "0")) : 
                                 parseFloat(t.CREDITS || "0") + parseFloat(l.CREDITS || "0")),
                 SLOT: `${t.SLOT}+${l.SLOT}`,
-                ROOM: `${t.ROOM} / ${l.ROOM}`,
+                ROOM: t.ROOM && l.ROOM ? `${t.ROOM} / ${l.ROOM}` : (t.ROOM || l.ROOM),
                 ORIGINAL_CODE: (t as any).ORIGINAL_CODE || t.CODE
               } as any);
             });
@@ -519,8 +559,9 @@ export default function FFCSTimetableTab() {
 
     try {
       const XLSX = await import("xlsx");
-      const response = await fetch(semester.path);
-      if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
+      const assetPath = getAssetPath(semester.path);
+      const response = await fetch(assetPath);
+      if (!response.ok) throw new Error(`Failed to fetch ${assetPath}`);
 
       const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -577,11 +618,7 @@ export default function FFCSTimetableTab() {
         return;
       }
 
-      try {
-        localStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
-      } catch {
-        // Private mode or a full quota: the switch still works this session.
-      }
+      safeStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
     },
     [semesterId, loadSemesterReport]
   );
@@ -589,39 +626,43 @@ export default function FFCSTimetableTab() {
   // Load from local storage on mount and fetch the selected semester's report.
   useEffect(() => {
     let initialSemester: FFCSSemesterId = DEFAULT_FFCS_SEMESTER;
-    try {
-      const savedSemester = localStorage.getItem(FFCS_SEMESTER_STORAGE_KEY);
-      if (isFFCSSemesterId(savedSemester)) initialSemester = savedSemester;
-    } catch {
-      // No readable storage: fall back to the semester this build ships for.
-    }
+    const savedSemester = safeStorage.getItem(FFCS_SEMESTER_STORAGE_KEY);
+    if (isFFCSSemesterId(savedSemester)) initialSemester = savedSemester;
 
     setSemesterId(initialSemester);
     void loadSemesterReport(initialSemester);
 
-    const savedTimetables = localStorage.getItem("ffcs_timetables");
+    const savedTimetables = safeStorage.getItem("ffcs_timetables");
     if (savedTimetables) {
-      const parsed = JSON.parse(savedTimetables);
-      if (parsed && parsed.length > 0) {
-        setTimetables(parsed);
-        setActiveTimetableId(parsed[0].id);
-      }
+      try {
+        const parsed = JSON.parse(savedTimetables);
+        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+          setTimetables(parsed);
+          setActiveTimetableId(parsed[0].id);
+        }
+      } catch {}
     }
-    const savedFriends = localStorage.getItem("ffcs_friends");
-    if (savedFriends) setFriends(JSON.parse(savedFriends));
-    const savedFriendGroups = localStorage.getItem("ffcs_friendGroups");
-    if (savedFriendGroups) setFriendGroups(JSON.parse(savedFriendGroups));
-    const savedMethod = localStorage.getItem("ffcs_socialScoreGroupMethod");
+    const savedFriends = safeStorage.getItem("ffcs_friends");
+    if (savedFriends) {
+      try { setFriends(JSON.parse(savedFriends)); } catch {}
+    }
+    const savedFriendGroups = safeStorage.getItem("ffcs_friendGroups");
+    if (savedFriendGroups) {
+      try { setFriendGroups(JSON.parse(savedFriendGroups)); } catch {}
+    }
+    const savedMethod = safeStorage.getItem("ffcs_socialScoreGroupMethod");
     if (savedMethod) setSocialScoreGroupMethod(savedMethod as "intersection" | "cumulative");
-    const savedCourseLocks = localStorage.getItem("ffcs_courseLocks");
-    if (savedCourseLocks) setCourseLocks(JSON.parse(savedCourseLocks));
-    const savedManualLinks = localStorage.getItem("ffcs_manual_links");
+    const savedCourseLocks = safeStorage.getItem("ffcs_courseLocks");
+    if (savedCourseLocks) {
+      try { setCourseLocks(JSON.parse(savedCourseLocks)); } catch {}
+    }
+    const savedManualLinks = safeStorage.getItem("ffcs_manual_links");
     if (savedManualLinks) {
       try {
         const parsed = JSON.parse(savedManualLinks);
         setManualLinks(parsed);
         setManualLinkCsvText(parsed.map((l: ManualLink) => `${l.CODE},${l.TYPE},${l.SLOT},${l.ROOM},${l.FACULTY},${l.LINK_ID}`).join('\n'));
-      } catch(e) {}
+      } catch {}
     }
 
     setIsLoaded(true);
@@ -664,7 +705,7 @@ export default function FFCSTimetableTab() {
   // consumers exactly as they were before this switch existed.
   useEffect(() => {
     if (isLoaded && semesterId === "previous") {
-      localStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
+      safeStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
     }
   }, [rawParsedCourses, isLoaded, semesterId]);
 
@@ -685,27 +726,27 @@ export default function FFCSTimetableTab() {
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
+      safeStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
     }
   }, [timetables, isLoaded]);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("ffcs_friends", JSON.stringify(friends));
-      localStorage.setItem("ffcs_friendGroups", JSON.stringify(friendGroups));
-      localStorage.setItem("ffcs_socialScoreGroupMethod", socialScoreGroupMethod);
+      safeStorage.setItem("ffcs_friends", JSON.stringify(friends));
+      safeStorage.setItem("ffcs_friendGroups", JSON.stringify(friendGroups));
+      safeStorage.setItem("ffcs_socialScoreGroupMethod", socialScoreGroupMethod);
     }
   }, [friends, friendGroups, socialScoreGroupMethod, isLoaded]);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("ffcs_courseLocks", JSON.stringify(courseLocks));
+      safeStorage.setItem("ffcs_courseLocks", JSON.stringify(courseLocks));
     }
   }, [courseLocks, isLoaded]);
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("ffcs_manual_links", JSON.stringify(manualLinks));
+      safeStorage.setItem("ffcs_manual_links", JSON.stringify(manualLinks));
     }
   }, [manualLinks, isLoaded]);
 

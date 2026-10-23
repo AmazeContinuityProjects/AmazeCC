@@ -198,7 +198,7 @@ export default function FFCSShareView() {
             {isDownloading ? "Capturing…" : "Download as PNG"}
           </button>
           <Link
-            href="/"
+            href="/ffcs"
             onClick={openInPlanner}
             className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-3 rounded-xl transition-colors"
           >

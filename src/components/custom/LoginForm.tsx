@@ -356,6 +356,14 @@ export default function LoginForm({
             )}
           </div>
           <div className="flex items-center gap-3">
+            <a
+              href="/ffcs"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40"
+              title="Open FFCS Planner without login"
+            >
+              <Calendar size={13} />
+              <span>FFCS Planner</span>
+            </a>
             <ThemeToggle />
             <button
               onClick={handleDemoClick}
@@ -1202,6 +1210,8 @@ export default function LoginForm({
             <span className="font-bold text-slate-900 dark:text-white font-[family-name:var(--font-outfit)]">AmazeCC</span>
           </div>
           <div className="flex gap-4">
+            <a href="/ffcs" className="hover:text-slate-900 dark:hover:text-white transition-colors">FFCS Planner</a>
+            <span className="text-slate-300 dark:text-neutral-800">•</span>
             <a href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a>
             <span className="text-slate-300 dark:text-neutral-800">•</span>
             <a href="/terms" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms</a>
