@@ -14,7 +14,7 @@
  * instead — the cell stays compact, the sheet tells the full truth.
  *
  * Modelled on the existing free-slot cell inspector in
- * `social/CommonFreeSlotsGrid.tsx`.
+ * `social/CommonFreeTimetableGrid.tsx`.
  */
 
 import { useMemo } from "react";

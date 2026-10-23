@@ -8,10 +8,11 @@
  *
  *   1. `lookupPerson(handle)` confirms the handle exists, so the user gets a real
  *      answer before a grant is minted rather than a 404 afterwards.
- *   2. `claimPair(handle, visibility)` mints the grant. Pairing is MUTUAL — the
+ *   2. `claimPair(handle, "full")` mints the grant. Pairing is MUTUAL — the
  *      other student is not asked to accept, and both sides end up able to read
  *      each other. That is disclosed here, before the claim, because it is the
- *      one part of this screen the user cannot undo by clicking cancel.
+ *      one part of this screen the user cannot undo by clicking cancel. Sharing
+ *      is always full detail; there is no granularity choice to make.
  *   3. `markDirty()` schedules the debounced push, so the peer and the secret
  *      arrive in the UI without a second manual sync.
  */
@@ -26,8 +27,6 @@ import { isSelfHandle, isValidHandle, normaliseHandle } from "@/lib/social/handl
 import { credentialManager } from "@/lib/sync-engine/credential-manager";
 import { AuthError } from "@/lib/sync-engine/errors";
 import { useSocialData } from "@/lib/social/useSocialData";
-import type { SocialVisibility } from "@/lib/social/types";
-
 
 export default function AddPeerSheet({
   onClose,
@@ -38,7 +37,6 @@ export default function AddPeerSheet({
 }) {
   const { markDirty, handle: myHandle } = useSocialData();
   const [handle, setHandle] = useState("");
-  const [visibility, setVisibility] = useState<SocialVisibility>("coarse");
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<"idle" | "checking" | "ready" | "claimed">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +47,6 @@ export default function AddPeerSheet({
 
   const reset = useCallback(() => {
     setHandle("");
-    setVisibility("coarse");
     setBusy(false);
     setStage("idle");
     setError(null);
@@ -143,7 +140,7 @@ export default function AddPeerSheet({
     setError(null);
     setNotFound(false);
     try {
-      const res = await claimPair(handle, visibility);
+      const res = await claimPair(handle, "full");
       setStage("claimed");
       setFoundName(res.peer?.name || foundName);
       markDirty();
@@ -170,15 +167,15 @@ export default function AddPeerSheet({
         setError("Could not reach the server. Try again.");
       }
     }
-  }, [handle, visibility, foundName, markDirty, onPaired, close]);
+  }, [handle, foundName, markDirty, onPaired, close]);
 
   return (
-    // No `avoidKeyboard` here on purpose. This sheet is tall (input, two
-    // visibility cards, the mutuality disclosure, two buttons), so lifting it
-    // clear of the keyboard left a short scrolling box and the Pair button
-    // below the fold. Letting the keyboard win — the browser resizes the
-    // viewport and the content scrolls under it — is what the other 33 sheets
-    // do, and it is the behaviour that actually works on a phone.
+    // No `avoidKeyboard` here on purpose. This sheet is tall (input, the
+    // mutuality and sharing disclosures, two buttons), so lifting it clear of
+    // the keyboard left a short scrolling box and the Pair button below the
+    // fold. Letting the keyboard win — the browser resizes the viewport and the
+    // content scrolls under it — is what the other 33 sheets do, and it is the
+    // behaviour that actually works on a phone.
     <BottomSheet
       onClose={close}
       overlayId="social-add-peer"
@@ -290,46 +287,15 @@ export default function AddPeerSheet({
           </p>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-outfit block">
-            What you share
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {(
-              [
-                { value: "coarse", label: "Coarse", desc: "Free / busy only" },
-                { value: "full", label: "Full", desc: "Course, venue, title" },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setVisibility(opt.value)}
-                aria-pressed={visibility === opt.value}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                  visibility === opt.value
-                    ? "border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-950/40"
-                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:border-zinc-300"
-                }`}
-              >
-                <p
-                  className={`text-xs font-black font-outfit ${
-                    visibility === opt.value
-                      ? "text-indigo-700 dark:text-indigo-300"
-                      : "text-zinc-700 dark:text-zinc-300"
-                  }`}
-                >
-                  {opt.label}
-                </p>
-                <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-                  {opt.desc}
-                </p>
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed">
-            This applies to both of you. You can change it later from Pairs, and it takes effect for
-            both directions at once.
+        <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 space-y-1.5">
+          <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+            Full timetable detail
+          </p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+            Timetable sharing is always full detail: course, venue and title are visible to
+            everyone you pair with. That applies to both of you, and either side can end the
+            pairing at any time.
           </p>
         </div>
 

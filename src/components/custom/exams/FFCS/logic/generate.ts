@@ -45,6 +45,7 @@ import {
   type SortBy,
 } from "@/lib/timetableMetrics";
 import { rankCourses, type RankingMode, type RankingScore } from "@/lib/ffcsRanking";
+import { offeringMatches } from "../reports";
 import type { ParsedCourse, TimetableState, Friend, CourseLock, AddedCourse } from "../types";
 
 /** The eight ways a narrowing can end with nothing to offer. */
@@ -347,11 +348,12 @@ function optionsFor(
     options = options.filter((opt) => lock.allowedFaculty!.includes(opt.FACULTY));
   }
 
-  // 3. The student picked exact offerings — "FACULTY|SLOT|ROOM", which is how
-  //    the picker identifies a row it cannot otherwise name.
+  // 3. The student picked exact offerings — "FACULTY|SLOT|ROOM", plus the
+  //    employee's ERP ID when the report has one. The id is what distinguishes
+  //    two people with the same name, and the legacy form keeps a lock saved
+  //    against the previous semester matching its equivalent row.
   if (lock.offerings?.length) {
-    const offerings = new Set(lock.offerings);
-    options = options.filter((opt) => offerings.has(`${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`));
+    options = options.filter((opt) => offeringMatches(opt, lock.offerings!));
   }
 
   // 4. Embedded rows need both halves.
@@ -559,6 +561,7 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
     code: course.CODE,
     title: course.TITLE,
     faculty: course.FACULTY,
+    employeeId: course.ERP_ID,
     venue: course.ROOM,
     slots: splitSlots(course.SLOT),
     credits: course.CREDITS,
@@ -615,12 +618,18 @@ function socialScoreAgainst(
  * Greedy and order-dependent, which is inherent: it is a dedupe, not a search.
  */
 function dedupeByFaculty(timetables: TimetableState[]): TimetableState[] {
+  // An employee id separates two people who share a name; a name alone still
+  // separates people when the report has no id, which is every row of the
+  // previous semester's report.
+  const facultyIdentity = (course: AddedCourse): string =>
+    course.employeeId ? `erp:${course.employeeId}` : course.faculty;
+
   const used = new Map<string, Set<string>>();
   return timetables.filter((tt) => {
     let unique = true;
     for (const c of tt.courses) {
       const seen = used.get(c.code);
-      if (seen?.has(c.faculty)) {
+      if (seen?.has(facultyIdentity(c))) {
         unique = false;
         break;
       }
@@ -628,8 +637,8 @@ function dedupeByFaculty(timetables: TimetableState[]): TimetableState[] {
     if (!unique) return false;
     for (const c of tt.courses) {
       const seen = used.get(c.code);
-      if (seen) seen.add(c.faculty);
-      else used.set(c.code, new Set([c.faculty]));
+      if (seen) seen.add(facultyIdentity(c));
+      else used.set(c.code, new Set([facultyIdentity(c)]));
     }
     return true;
   });

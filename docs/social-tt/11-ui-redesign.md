@@ -66,7 +66,7 @@ Constant chrome, identical to Libraries: `BackButton` returning to the landing, 
 
 **People.** Search lives here, not on the landing. Rows: avatar with a free/busy dot, name, then **real** meta — `N common free slots · last published 3d ago`. A peer past 14 days carries a stale badge; a peer with no record for the current semester reads "not published" rather than showing an empty row. The row is a `<div>` with an inner `<button>`, fixing the nesting at `SocialTab.tsx:596-645`.
 
-**Pairs.** Grants rather than groups — the server has no group concept, because a group is a client-side view over the grant list and a second source of truth would be worse. Shows `visibility` per pair with a toggle, `createdAt`, and revoke. "New pair" lives in the header slot, which fixes the current `hidden sm:flex` button (`:526`) that is unreachable on mobile.
+**Pairs.** Grants rather than groups — the server has no group concept, because a group is a client-side view over the grant list and a second source of truth would be worse. Every pair shares full detail; the row shows `createdAt` and revoke. "New pair" lives in the header slot, which fixes the current `hidden sm:flex` button (`:526`) that is unreachable on mobile.
 
 **Free Right Now.** A single `LIST_SHELL` of peers currently free, with a slot/venue column when the grant is `full`. Empty state explains the timezone rather than showing "No friends added yet".
 

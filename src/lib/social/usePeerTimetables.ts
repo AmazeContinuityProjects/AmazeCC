@@ -76,6 +76,15 @@ export function usePeerTimetables() {
     return map;
   }, [grants]);
 
+  /** handle -> grant visibility, used to spot a stale coarse cache. */
+  const visibilityFor = useMemo(() => {
+    const map = new Map<string, SocialVisibility>();
+    for (const g of grants ?? []) {
+      if (g.peerHandle) map.set(g.peerHandle, g.visibility);
+    }
+    return map;
+  }, [grants]);
+
   // Seed from cache on every identity change so the first paint has data.
   const seed = useMemo(() => {
     const next: Record<string, PeerTimetable> = {};
@@ -103,7 +112,14 @@ export function usePeerTimetables() {
 
   // Fill anything missing, in the background.
   useEffect(() => {
-    const targets = Object.values(seed).filter((p) => !p.loaded && !p.noGrant);
+    const targets = Object.values(seed).filter((p) => {
+      if (p.noGrant) return false;
+      if (!p.loaded) return true;
+      // A coarse read was cached without course, venue or title. If the grant
+      // has since been raised to full, that cache is a redacted answer to a
+      // question we can now ask properly — refetch it even though it is loaded.
+      return p.visibility === "coarse" && visibilityFor.get(p.handle) === "full";
+    });
     if (!targets.length) {
       setLoading(false);
       return;
@@ -163,7 +179,7 @@ export function usePeerTimetables() {
     return () => {
       cancelled = true;
     };
-  }, [seed, secretFor, nonce]);
+  }, [seed, secretFor, visibilityFor, nonce]);
 
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
 

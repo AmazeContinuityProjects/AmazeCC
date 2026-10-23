@@ -19,7 +19,7 @@
 
 import { useMemo } from "react";
 import BottomSheet from "../shared/BottomSheet";
-import CommonFreeSlotsGrid from "./CommonFreeSlotsGrid";
+import CommonFreeTimetableGrid from "./CommonFreeTimetableGrid";
 import { Friend } from "@/lib/socialUtils";
 import { buildBusyMap, busyMapFromClassSlots } from "@/lib/social/schedule";
 import type { BusyMap } from "@/lib/social/types";
@@ -74,7 +74,7 @@ export default function CommonFreeSlotsModal({
     >
       <div className="flex flex-col min-h-0 space-y-4">
         <div className="px-1 pb-1">
-          <CommonFreeSlotsGrid ownBusyMap={ownBusyMap} peers={peers} />
+          <CommonFreeTimetableGrid ownBusyMap={ownBusyMap} peers={peers} />
         </div>
       </div>
     </BottomSheet>

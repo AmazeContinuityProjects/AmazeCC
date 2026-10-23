@@ -32,7 +32,8 @@ import type { BusyMap } from "../lib/social/types";
  * Equivalence with the three parsers this module replaces
  * ------------------------------------------------------------------ */
 
-// Byte-for-byte the rule in CommonFreeSlotsGrid.tsx:17 and TimetableGrid.tsx:64.
+// Byte-for-byte the rule in the old CommonFreeSlotsGrid.tsx:17 and
+// TimetableGrid.tsx:64.
 const gridRule = (t: string) => {
   const [hs = "0", ms = "0"] = String(t || "").split(":");
   let h = parseInt(hs || "0", 10);

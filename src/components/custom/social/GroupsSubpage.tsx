@@ -16,7 +16,7 @@ import type { BusyMap } from "@/lib/social/types";
  * Groups, and the common-free grid for each.
  *
  * The list is the entry point and the grid is a drill-down onto the same
- * `CommonFreeSlotsGrid` the "everyone" view uses, narrowed to the group's
+ * `CommonFreeTimetableGrid` the "everyone" view uses, narrowed to the group's
  * members. Nothing about the grid is duplicated for groups, which is why adding
  * this surface was small.
  *

@@ -109,12 +109,11 @@ export default function PeerTimetableSheet({
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/70 dark:border-zinc-800 space-y-2">
                 <p className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                   <EyeOff className="w-3.5 h-3.5 text-zinc-400" />
-                  Coarse sharing
+                  Free / busy only
                 </p>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-                  This pair shares free/busy only. Course codes, titles and venues are withheld by
-                  the server, so there is nothing more to show here. Either of you can switch the
-                  pair to full detail from Pairs.
+                  This pair is still returning free/busy only. Course codes, titles and venues are
+                  withheld by the server, so there is nothing more to show here.
                 </p>
               </div>
             ) : peer.courses.length > 0 ? (

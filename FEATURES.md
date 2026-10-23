@@ -494,7 +494,7 @@ Hub for miscellaneous features with sub-tabs:
 - `ShareScheduleModal.tsx` — Share your schedule
 
 **Social Features:**
-- Common free slots grid (`CommonFreeSlotsGrid.tsx`)
+- Common free timetable (`CommonFreeTimetableGrid.tsx`) — the week's bands × days grid
 - Friend list with timetables
 - Group scheduling
 

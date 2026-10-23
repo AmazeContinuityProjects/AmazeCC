@@ -161,6 +161,37 @@ export type VerticalGrid = {
   cells: Record<string, (Cell | null)[]>;
 };
 
+/**
+ * The band rows of a grid, derived from the period skeleton alone.
+ *
+ * Split out of `buildVerticalGrid` because the row skeleton is needed by
+ * anything that draws a band-per-row grid — including the social grid, which
+ * has occupancy rather than courses and so never calls `buildVerticalGrid` at
+ * all. Both must agree on what a band is, or the same slot would land in two
+ * different rows depending on which surface is showing it.
+ */
+export function buildBandRows(theoryPeriods: TimetablePeriod[]): Band[] {
+  return (theoryPeriods ?? []).map((period, index) => {
+    const isLunch = Boolean(period?.lunch);
+    const times = isLunch ? null : timesOf(period);
+    const startLabel = isLunch || !times ? "" : fmt(period?.start);
+    const endLabel = isLunch || !times ? "" : fmt(period?.end);
+    return {
+      index,
+      isLunch,
+      hasTime: times !== null,
+      start: isLunch ? "" : (period?.start ?? ""),
+      end: isLunch ? "" : (period?.end ?? ""),
+      startMin: times?.startMin ?? 0,
+      endMin: times?.endMin ?? 0,
+      label: isLunch ? "Lunch" : times ? `${startLabel} – ${endLabel}` : "—",
+      startLabel,
+      endLabel,
+      shortLabel: startLabel.replace(/\s?[AP]M$/, "") || "—",
+    };
+  });
+}
+
 export const DEFAULT_DAYS: { id: string; name: string }[] = [
   { id: "mon", name: "Monday" },
   { id: "tue", name: "Tuesday" },
@@ -245,25 +276,7 @@ export function buildVerticalGrid({
   const lab = labPeriods ?? [];
   const gaps = selectedGapDetails ?? [];
 
-  const bands: Band[] = theory.map((period, index) => {
-    const isLunch = Boolean(period?.lunch);
-    const times = isLunch ? null : timesOf(period);
-    const startLabel = isLunch || !times ? "" : fmt(period?.start);
-    const endLabel = isLunch || !times ? "" : fmt(period?.end);
-    return {
-      index,
-      isLunch,
-      hasTime: times !== null,
-      start: isLunch ? "" : (period?.start ?? ""),
-      end: isLunch ? "" : (period?.end ?? ""),
-      startMin: times?.startMin ?? 0,
-      endMin: times?.endMin ?? 0,
-      label: isLunch ? "Lunch" : times ? `${startLabel} – ${endLabel}` : "—",
-      startLabel,
-      endLabel,
-      shortLabel: startLabel.replace(/\s?[AP]M$/, "") || "—",
-    };
-  });
+  const bands: Band[] = buildBandRows(theory);
 
   const cells: Record<string, (Cell | null)[]> = {};
 

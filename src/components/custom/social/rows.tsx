@@ -13,7 +13,7 @@
  */
 
 import React from "react";
-import { ChevronRight, Eye, EyeOff, Pencil, Trash2, Users } from "lucide-react";
+import { ChevronRight, Pencil, Trash2, Users } from "lucide-react";
 import {
   CHIP,
   LIST_ROW,
@@ -122,8 +122,8 @@ export function PeopleRow({
   );
 
   // A <div> with an inner <button>, not a <button> with a nested <button>. The
-  // old row nested a visibility toggle inside the row button, which is invalid
-  // HTML and dropped clicks unpredictably.
+  // old row nested an action inside the row button, which is invalid HTML and
+  // dropped clicks unpredictably.
   if (!right) {
     return (
       <button type="button" onClick={onOpen} className={`${LIST_ROW} cursor-pointer`}>
@@ -147,7 +147,6 @@ export function PairRow({
   handle,
   visibility,
   createdAt,
-  onToggleVisibility,
   onRevoke,
   busy,
 }: {
@@ -155,7 +154,6 @@ export function PairRow({
   handle: string;
   visibility: SocialVisibility;
   createdAt: string;
-  onToggleVisibility: () => void;
   onRevoke: () => void;
   busy?: boolean;
 }) {
@@ -176,20 +174,6 @@ export function PairRow({
       >
         {visibility === "full" ? "Full" : "Coarse"}
       </span>
-      <button
-        type="button"
-        onClick={onToggleVisibility}
-        disabled={busy}
-        title={
-          visibility === "full"
-            ? "Switch to coarse: hide course, venue and title"
-            : "Switch to full: share course, venue and title"
-        }
-        aria-label={visibility === "full" ? "Switch to coarse visibility" : "Switch to full visibility"}
-        className="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer shadow-2xs shrink-0 disabled:opacity-50"
-      >
-        {visibility === "full" ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-      </button>
       <button
         type="button"
         onClick={onRevoke}

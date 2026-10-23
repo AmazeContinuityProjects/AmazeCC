@@ -9,9 +9,8 @@
  * grouping is wanted later it should be derived from this list, not stored
  * beside it.
  *
- * Visibility is per-pair and shared: a grant is one row covering both
- * directions, so flipping it applies to you and your peer at the same time. The
- * button's tooltip says so, because that is the surprising part.
+ * Visibility is no longer a choice: every pair shares full detail. A grant is
+ * one row covering both directions, so this is the same for you and your peer.
  */
 
 import { useState } from "react";
@@ -19,9 +18,8 @@ import { Link2, Loader2, ShieldCheck } from "lucide-react";
 import BackButton from "../shared/BackButton";
 import { EMPTY_STATE, LIST_SHELL } from "@/lib/libraries/ui";
 import { PairRow, SectionHeader } from "./rows";
-import { revokeGrant, setGrantVisibility } from "@/lib/social/client";
+import { revokeGrant } from "@/lib/social/client";
 import { useSocialData } from "@/lib/social/useSocialData";
-import type { SocialVisibility } from "@/lib/social/types";
 
 /** Confirmation instead of `confirm()`, which is blocked in some in-app browsers. */
 function ConfirmRevoke({ name, onYes, onNo }: { name: string; onYes: () => void; onNo: () => void }) {
@@ -68,19 +66,6 @@ export default function PairsSubpage({
 
   const nameFor = (handle: string | null) =>
     peers.find((p) => p.handle === handle)?.name || handle || "Unknown";
-
-  const toggle = async (grantId: string, current: SocialVisibility) => {
-    setBusyId(grantId);
-    setError(null);
-    try {
-      await setGrantVisibility(grantId, current === "full" ? "coarse" : "full");
-      markDirty();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not change visibility.");
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   const revoke = async (grantId: string, secret: string) => {
     setBusyId(grantId);
@@ -163,7 +148,6 @@ export default function PairsSubpage({
                     visibility={g.visibility}
                     createdAt={g.createdAt}
                     busy={busyId === g.grantId}
-                    onToggleVisibility={() => void toggle(g.grantId, g.visibility)}
                     onRevoke={() => setConfirming(g.grantId)}
                   />
                 )}
@@ -177,11 +161,16 @@ export default function PairsSubpage({
                 <Loader2 className="w-3 h-3 animate-spin mt-px shrink-0" />
                 Updating…
               </>
+            ) : grants.some((g) => g.visibility !== "full") ? (
+              <>
+                <ShieldCheck className="w-3 h-3 mt-px shrink-0" />
+                A legacy free/busy-only pair is being raised to full detail automatically.
+              </>
             ) : (
               <>
                 <ShieldCheck className="w-3 h-3 mt-px shrink-0" />
-                Visibility is per-pair and shared — changing it applies to both of you at once.
-                Coarse hides course, venue and title; full shows them.
+                Every pairing shares full detail — course, venue and title. Either of you can end
+                it at any time.
               </>
             )}
           </p>

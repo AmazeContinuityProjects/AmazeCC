@@ -142,8 +142,8 @@ export default function ShareHandleSheet({ onClose }: { onClose: () => void }) {
                 Nothing. The handle identifies you, not your schedule. A student who enters it can
                 request a pairing, and{" "}
                 <strong className="text-zinc-700 dark:text-zinc-200">that grants them your
-                timetable for this term</strong> — pairing is mutual, and you choose coarse or full
-                detail before it happens. End it any time from Pairs.
+                timetable for this term</strong> — pairing is mutual, and every pair shares full
+                detail: course, venue and title. End it any time from Pairs.
               </p>
             </div>
           </>
