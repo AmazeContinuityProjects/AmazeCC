@@ -115,7 +115,7 @@ export default function FreeNowSubpage({
       {freeNow.length > 0 && (
         <p className="px-1 -mt-3 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500 font-medium flex items-start gap-1.5">
           <Sparkles className="w-3 h-3 mt-px shrink-0" />
-          A peer on a coarse pair shows no venue — the server withholds it, not this screen.
+          A legacy free/busy-only pair shows no venue — the server withholds it, not this screen.
         </p>
       )}
     </div>

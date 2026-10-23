@@ -25,7 +25,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Download, Printer } from "lucide-react";
-import type { AddedCourse, TimetablePeriod } from "@amazecontinuityprojects/amazeui";
+import type { AddedCourse } from "@amazecontinuityprojects/amazeui";
 import config from "../../../../config.json";
 import {
   downloadTimetableImage,
@@ -34,11 +34,7 @@ import {
 } from "@/lib/exportTimetable";
 import { useTheme } from "next-themes";
 import { TimetableView, type AttendanceTone } from "../timetable";
-// The one time parser. This file used to carry three private copies
-// (`toMinutes`, `minutesToTimeStr` and `fmt`) which agreed only by coincidence
-// with the two other implementations elsewhere in the app. See
-// docs/social-tt/09-schedule-math.md §4.
-import { toMinutes } from "@/lib/social/schedule";
+import { buildPeriodSkeleton } from "../timetable/periodSkeleton";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -136,63 +132,11 @@ export default function TimetableVtop({ attendance }: { attendance?: any[] }) {
    * ---------------------------------------------------------------- */
 
   const { theoryPeriods, labPeriods } = useMemo(() => {
-    const mon = slotMap["MON"] || {};
-
-    const theory: { slot: string; time: string; start: number }[] = [];
-    const lab: { slot: string; time: string; start: number }[] = [];
-    Object.keys(mon).forEach((slot) => {
-      const time = mon[slot]?.time;
-      if (!time) return;
-      const entry = { slot, time, start: toMinutes(time.split("-")[0]) };
-      // `L` is the only lab discriminator anywhere in the codebase.
-      if (slot.startsWith("L")) lab.push(entry);
-      else theory.push(entry);
-    });
-    theory.sort((a, b) => a.start - b.start);
-    lab.sort((a, b) => a.start - b.start);
-
-    /** Every day's slot ids that sit at the same times as this Monday pair. */
-    const slotsMatchingTimes = (day: string, pair: (typeof theory)[number] | undefined, isLab: boolean) => {
-      if (!pair) return undefined;
-      const wanted = toMinutes(pair.time.split("-")[0]);
-      const daySlots = slotMap[day] || {};
-
-      const byTime = Object.keys(daySlots).filter(
-        (s) =>
-          !s.startsWith("L") === !isLab &&
-          daySlots[s]?.time?.replace(/\s+/g, "") === pair.time.replace(/\s+/g, "")
-      );
-      if (byTime.length > 0) return byTime[0];
-
-      // A safety net for a rounding difference in a future config edit.
-      const byStart = Object.keys(daySlots).find((s) => {
-        if (s.startsWith("L") !== isLab) return false;
-        const time = daySlots[s]?.time;
-        if (!time) return false;
-        return Math.abs(toMinutes(time.split("-")[0]) - wanted) <= 7;
-      });
-      return byStart;
-    };
-
-    const pairs = Array.from({ length: Math.max(theory.length, lab.length) }, (_, i) => ({
-      theory: theory[i] || null,
-      lab: lab[i] || null,
-    }));
-
-    const build = (isLab: boolean): TimetablePeriod[] =>
-      pairs.map((pair) => {
-        const entry = isLab ? pair.lab : pair.theory;
-        if (!entry) return { start: "", end: "", days: {} };
-        const [start, end] = entry.time.split("-");
-        const days: Record<string, string> = {};
-        DAYS.forEach((d) => {
-          const match = slotsMatchingTimes(d, entry, isLab);
-          if (match) days[d.toLowerCase()] = match;
-        });
-        return { start, end, days };
-      });
-
-    return { theoryPeriods: build(false), labPeriods: build(true) };
+    // The one projection of `config.json` onto a period skeleton. The social
+    // grid draws the same week through the same skeleton, so it lives in one
+    // place — see `timetable/periodSkeleton.ts`.
+    const skeleton = buildPeriodSkeleton(slotMap);
+    return { theoryPeriods: skeleton.theoryPeriods, labPeriods: skeleton.labPeriods };
   }, [slotMap]);
 
   const addedCourses = useMemo(() => convertToAddedCourses(attendance || []), [attendance]);

@@ -164,7 +164,7 @@ export async function lookupPerson(handle: string): Promise<PersonResponse> {
 
 export async function claimPair(
   handle: string,
-  visibility: SocialVisibility = "coarse"
+  visibility: SocialVisibility = "full"
 ): Promise<ClaimResponse> {
   const json = await api("social/pair/claim", {
     method: "POST",

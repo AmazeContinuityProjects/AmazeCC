@@ -104,6 +104,15 @@ describe("genuine successes still resolve", () => {
     expect(res.secret).toHaveLength(43);
   });
 
+  it("defaults a new pairing to full detail", async () => {
+    respond({ success: true, grantId: "gr_1", secret: "s".repeat(43), created: true, visibility: "full", peer: { handle: "AMZ-7K2P-9RTW", name: "Neha", lastPublishedAt: null, semesters: [] } });
+    await claimPair("AMZ-7K2P-9RTW");
+    expect(fetchMock).toHaveBeenCalledWith("social/pair/claim", {
+      method: "POST",
+      body: { handle: "AMZ-7K2P-9RTW", visibility: "full" },
+    });
+  });
+
   it("rejects a claim response with no secret rather than handing back a broken one", async () => {
     respond({ success: true, grantId: "gr_1" });
     await expect(claimPair("AMZ-7K2P-9RTW")).rejects.toMatchObject({ code: "unexpected_response" });

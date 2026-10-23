@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { CalendarRange } from "lucide-react";
 import BackButton from "../shared/BackButton";
 import { SectionHeader } from "./rows";
-import CommonFreeSlotsGrid from "./CommonFreeSlotsGrid";
+import CommonFreeTimetableGrid from "./CommonFreeTimetableGrid";
 import { usePeerTimetables } from "@/lib/social/usePeerTimetables";
 import { useSocialData } from "@/lib/social/useSocialData";
 
@@ -66,7 +66,7 @@ export default function CommonFreeGridSubpage({
           Nobody in this group has published a timetable yet.
         </p>
       ) : (
-        <CommonFreeSlotsGrid
+        <CommonFreeTimetableGrid
           ownBusyMap={ownBusyMap}
           peers={scoped}
           onOpenPeer={onOpenPeer}

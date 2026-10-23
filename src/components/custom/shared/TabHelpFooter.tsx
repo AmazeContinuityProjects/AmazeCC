@@ -223,12 +223,12 @@ export const TAB_GUIDES: Record<string, TabGuideData> = {
       },
       {
         icon: <Users className="w-4 h-4 text-purple-500" />,
-        name: "Group Common Free Grid Matrix",
-        description: "Visual 7-day matrix showing overlapping free slots across project team members.",
+        name: "Group Common Free Timetable",
+        description: "Your week drawn as a timetable, showing who is free in every band across the team.",
         steps: [
           "Step 1: Tap Social -> '📊 Common Free Grid Matrix' sub-tab.",
           "Step 2: Select a project group or select all friends.",
-          "Step 3: Inspect green slot highlights indicating when everyone in the team is free."
+          "Step 3: Read each cell for how many people are free, and tap one for the detail."
         ]
       }
     ]

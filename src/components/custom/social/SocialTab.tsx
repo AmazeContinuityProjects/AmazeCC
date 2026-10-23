@@ -52,7 +52,8 @@ import CommonFreeGridSubpage from "./CommonFreeGridSubpage";
 import ShareHandleSheet from "./ShareHandleSheet";
 import AddPeerSheet from "./AddPeerSheet";
 import PeerTimetableSheet from "./PeerTimetableSheet";
-import { useSocialData } from "@/lib/social/useSocialData";
+import { useSocialData, useSocialWriters } from "@/lib/social/useSocialData";
+import { upgradeGrantsToFull } from "@/lib/social/visibility";
 import { useOverlap, usePeerTimetables, relativePublished } from "@/lib/social/usePeerTimetables";
 import { syncEngine } from "@/lib/sync-engine";
 import { slotCoveringNow } from "@/lib/social/schedule";
@@ -80,6 +81,7 @@ export default function SocialTab({
     lastSyncedAt,
     syncing: syncingInFlight,
   } = useSocialData();
+  const { setGrants } = useSocialWriters();
   const { peers: peerTimetables, loading: loadingPeers } = usePeerTimetables();
   const overlap = useOverlap(ownBusyMap, peerTimetables);
 
@@ -105,6 +107,33 @@ export default function SocialTab({
 
   /** True while either a background push or the manual button is in flight. */
   const syncing = syncingNow || syncingInFlight;
+
+  /**
+   * Sharing is full-detail only.
+   *
+   * A grant minted under the old coarse/full choice stays coarse on the server
+   * until something raises it. Do that here, once, instead of making the user
+   * hunt for a setting that no longer exists. The local list is updated
+   * optimistically so Pairs and the peer sheet stop saying "Coarse" the moment
+   * the change lands; the scheduled sync then confirms it from server truth.
+   *
+   * `usePeerTimetables` notices the raised grant and re-reads a cached coarse
+   * peer, so the redacted copy cannot outlive the upgrade.
+   */
+  useEffect(() => {
+    if (isDemo) return;
+    if (!grants.some((grant) => grant.visibility !== "full")) return;
+    void upgradeGrantsToFull(grants).then((upgraded) => {
+      if (!upgraded.length) return;
+      const ids = new Set(upgraded.map((grant) => grant.grantId));
+      setGrants((prev) =>
+        prev.map((grant) =>
+          ids.has(grant.grantId) ? { ...grant, visibility: "full" as const } : grant
+        )
+      );
+      markDirty();
+    });
+  }, [grants, isDemo, markDirty, setGrants]);
 
   /**
    * Log in if needed, then sync.
@@ -305,7 +334,7 @@ export default function SocialTab({
           {(
             [
               { id: "people" as Screen, icon: Users, title: "People", desc: "Everyone you are paired with", count: peers.length, suffix: "paired", tone: "indigo" },
-              { id: "pairs" as Screen, icon: Link2, title: "Pairs", desc: "Visibility and revocation", count: grants.length, suffix: "pairs", tone: "sky" },
+              { id: "pairs" as Screen, icon: Link2, title: "Pairs", desc: "Full-detail sharing and revocation", count: grants.length, suffix: "pairs", tone: "sky" },
               { id: "freeNow" as Screen, icon: Clock, title: "Free Right Now", desc: currentSlot ? `Free in ${currentSlot.split(":")[0]}` : "Outside class hours", count: freeNowHandles.size, suffix: "free", tone: "emerald" },
               { id: "grid" as Screen, icon: CalendarRange, title: "Common Free Grid", desc: "Where everyone's free", count: 0, suffix: "", tone: "amber" },
             ] as const

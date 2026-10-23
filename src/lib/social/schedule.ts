@@ -4,7 +4,7 @@
  * Before this module there were **three** `toMinutes` copies that agreed only by
  * coincidence:
  *
- *   - `CommonFreeSlotsGrid.tsx:17` — `isPM = h === 12 || (h >= 1 && h <= 7)`
+ *   - the old `CommonFreeSlotsGrid.tsx` — `isPM = h === 12 || (h >= 1 && h <= 7)`
  *   - `attendance/TimetableGrid.tsx:64` — a byte-identical copy of the above
  *   - `lib/attendanceTimetable.ts:8` — `if (h < 8) h += 12`
  *

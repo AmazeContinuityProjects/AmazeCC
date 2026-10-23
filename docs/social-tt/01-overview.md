@@ -48,7 +48,7 @@ The steady state is fully server-derived. Nothing is wrong with a client because
 | Pairing direction | **Mutual, both directions, one grant** | A one-way "follow" would need two grants and two revocation paths for no benefit. `least()/greatest()` on the participant pair makes one grant per pair structurally |
 | Semester | Calendar semester, campus-wide, server-resolved | VIT's `semesterSubId` is a calendar term, not a per-cohort term. Keyed `(owner_key, semester_id)` anyway so a mid-term change versions cleanly and the schema survives if the model turns out to be per-cohort |
 | Reader's semester | The server's current semester, with a visible badge | Follows from the decision above. The viewer's existing global semester switch pins everyone at once |
-| Visibility | Per-grant `coarse` or `full`, owner's choice | Coarse is slot occupancy only; full adds course, code and venue |
+| Visibility | Full detail for every pair; the grant row still records `coarse` or `full` | The UI no longer offers a granularity choice. Coarse remains a server capability, and grants minted under the old choice are raised to full when the sharing tab mounts. Full adds course, code and venue |
 | Comparison math | Client-side | Two small `(day, slotId)` sets. No round trip, and it works against cache while offline |
 | Push trigger | Global sync button **and** a ~5s debounced auto-push | The button is the explicit path the user asked for; the debounce keeps the UI feeling instant without a round trip per click |
 | Existing friends | Kept read-only with a re-share prompt | They cannot become verified server records. Nothing is lost, nothing silently wrong |

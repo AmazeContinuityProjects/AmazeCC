@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { projectColumns } from "../components/custom/social/CommonFreeSlotsGrid";
 import { initials } from "../components/custom/social/rows";
+import { projectColumns } from "../components/custom/timetable/periodSkeleton";
 import { relativePublished } from "../lib/social/usePeerTimetables";
 import { DAYS, slotMap, totalSlotsAcrossDay } from "../lib/social/schedule";
 
 /**
  * The grid is the one place where a `config.json` edit can silently move every
- * cell, because the 12 columns are re-derived at render time from Monday and
- * projected onto the other days by matching time strings. So the projection is
- * asserted rather than trusted.
+ * cell, because the 12 bands of a week are re-derived at render time from
+ * Monday and projected onto the other days by matching time strings. So the
+ * projection is asserted rather than trusted.
+ *
+ * The projection now lives in `timetable/periodSkeleton.ts`, because the
+ * attendance timetable and the social grid draw the same week and must put a
+ * slot in the same row.
  */
 describe("the 7x12 projection is complete and lossless", () => {
   const columns = projectColumns();
