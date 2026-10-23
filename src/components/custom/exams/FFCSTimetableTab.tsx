@@ -35,6 +35,15 @@ import Switch from "../shared/primitives/Switch";
 import { ChipTabs, SegmentedControl } from "../shared/primitives";
 
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
+import {
+  DEFAULT_FFCS_SEMESTER,
+  FFCS_SEMESTER_REPORTS,
+  FFCS_SEMESTER_STORAGE_KEY,
+  getFFCSSemester,
+  isFFCSSemesterId,
+  parseReportRows,
+  type FFCSSemesterId,
+} from "./FFCS/reports";
 import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
@@ -405,6 +414,12 @@ export default function FFCSTimetableTab() {
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);
+  const [semesterId, setSemesterId] = useState<FFCSSemesterId>(DEFAULT_FFCS_SEMESTER);
+  const activeSemester = useMemo(() => getFFCSSemester(semesterId), [semesterId]);
+  const reportCodesRef = useRef<Set<string>>(new Set());
+  const reportRequestRef = useRef(0);
+  const loadedSemesterRef = useRef<FFCSSemesterId>(DEFAULT_FFCS_SEMESTER);
+  const semesterSwitchRef = useRef(0);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [isGroupingEnabled, setIsGroupingEnabled] = useState(true);
   const [blockedSlots, setBlockedSlots] = useState<Set<string>>(new Set());
@@ -487,62 +502,102 @@ export default function FFCSTimetableTab() {
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
-  // Load from local storage on mount and fetch course list
-  useEffect(() => {
-    const loadHardcodedCSV = async () => {
-      setIsLoadingCourses(true);
-      setError(null);
-       try {
-         const XLSX = await import("xlsx");
-         const response = await fetch("/ffcs/ffcsReport.csv");
-        if (!response.ok) throw new Error("Failed to fetch /ffcs/ffcsReport.csv");
-        const arrayBuffer = await response.arrayBuffer();
-        const data = new Uint8Array(arrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<any>(sheet);
-        
-        if (jsonData.length === 0) {
-          setError("The course report file is empty.");
-          return;
-        }
+  /**
+   * Fetch one semester's report and replace the rows from the report that was
+   * loaded before it.
+   *
+   * Replacing only the previous report's codes is deliberate: a course the
+   * student imported by hand is not part of either shipped report, so a switch
+   * must not throw it away. A report row still wins over an imported row with
+   * the same code, because the report has every offering of that course.
+   */
+  const loadSemesterReport = useCallback(async (nextSemesterId: FFCSSemesterId): Promise<boolean> => {
+    const semester = getFFCSSemester(nextSemesterId);
+    const requestId = ++reportRequestRef.current;
+    setIsLoadingCourses(true);
+    setError(null);
 
-        const parsed: ParsedCourse[] = jsonData.map((row: any) => {
-          const cleanRow: any = {};
-          for (const k in row) {
-            const cleanKey = k.replace(/^\uFEFF/, '').trim().toUpperCase();
-            cleanRow[cleanKey] = row[k];
-          }
-          return {
-            CODE: String(cleanRow.CODE || cleanRow["COURSE CODE"] || cleanRow.COURSE_CODE || "").trim(),
-            TITLE: String(cleanRow.TITLE || cleanRow["COURSE TITLE"] || cleanRow.COURSE_TITLE || "").trim(),
-            TYPE: String(cleanRow.TYPE || "").trim(),
-            CREDITS: String(cleanRow.CREDITS || "0").trim(),
-            ROOM: String(cleanRow.VENUE || cleanRow.ROOM || "").trim(),
-            SLOT: String(cleanRow.SLOT || "").trim(),
-            FACULTY: String(cleanRow.FACULTY || "").trim(),
-            BATCH: String(cleanRow.BATCH || "").trim()
-          };
-        }).filter(c => c.CODE);
+    try {
+      const XLSX = await import("xlsx");
+      const response = await fetch(semester.path);
+      if (!response.ok) throw new Error(`Failed to fetch ${semester.path}`);
 
-        // Merge rather than replace, so courses the student imported while
-        // this was still downloading do not vanish the moment it lands. On the
-        // ordinary path this is the first update and the merge is an append;
-        // it only differs when the upload won the race, and there the report
-        // takes back the codes it covers — it holds every offering of them,
-        // where an imported sheet may hold one — while leaving everything it
-        // has never heard of exactly as the student left it.
-        setRawParsedCourses(prev => mergeCourses(prev, parsed));
-      } catch (err) {
-        console.error(err);
-        setError("Error loading course report. Please ensure public/ffcs/ffcsReport.csv exists and is valid.");
-      } finally {
-        setIsLoadingCourses(false);
+      const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+      if (requestId !== reportRequestRef.current) return false;
+      if (jsonData.length === 0) {
+        setError(`The ${semester.name} is empty.`);
+        return false;
       }
-    };
 
-    loadHardcodedCSV();
+      const parsed = parseReportRows(jsonData);
+      if (parsed.length === 0) {
+        setError(`No courses could be read from the ${semester.name}.`);
+        return false;
+      }
+
+      const previousReportCodes = reportCodesRef.current;
+      setRawParsedCourses((current) =>
+        mergeCourses(current.filter((course) => !previousReportCodes.has(course.CODE)), parsed)
+      );
+      reportCodesRef.current = new Set(parsed.map((course) => course.CODE));
+      loadedSemesterRef.current = nextSemesterId;
+
+      setSelectedCourseCode("");
+      setSelectedSlotIndex("-1");
+      return true;
+    } catch (err) {
+      console.error(err);
+      if (requestId === reportRequestRef.current) {
+        setError(
+          `Error loading the ${semester.name}. Please ensure public${semester.path} exists and is valid.`
+        );
+      }
+      return false;
+    } finally {
+      if (requestId === reportRequestRef.current) setIsLoadingCourses(false);
+    }
+  }, []);
+
+  const handleSemesterChange = useCallback(
+    async (nextSemesterId: FFCSSemesterId) => {
+      if (nextSemesterId === semesterId) return;
+
+      // Two quick clicks race each other: the older request may fail after the
+      // newer one has already started, and it must not drag the label back to a
+      // semester whose data the newer request is still replacing.
+      const switchId = ++semesterSwitchRef.current;
+      setSemesterId(nextSemesterId);
+      const loaded = await loadSemesterReport(nextSemesterId);
+      if (switchId !== semesterSwitchRef.current) return;
+      if (!loaded) {
+        setSemesterId(loadedSemesterRef.current);
+        return;
+      }
+
+      try {
+        localStorage.setItem(FFCS_SEMESTER_STORAGE_KEY, nextSemesterId);
+      } catch {
+        // Private mode or a full quota: the switch still works this session.
+      }
+    },
+    [semesterId, loadSemesterReport]
+  );
+
+  // Load from local storage on mount and fetch the selected semester's report.
+  useEffect(() => {
+    let initialSemester: FFCSSemesterId = DEFAULT_FFCS_SEMESTER;
+    try {
+      const savedSemester = localStorage.getItem(FFCS_SEMESTER_STORAGE_KEY);
+      if (isFFCSSemesterId(savedSemester)) initialSemester = savedSemester;
+    } catch {
+      // No readable storage: fall back to the semester this build ships for.
+    }
+
+    setSemesterId(initialSemester);
+    void loadSemesterReport(initialSemester);
 
     const savedTimetables = localStorage.getItem("ffcs_timetables");
     if (savedTimetables) {
@@ -570,7 +625,7 @@ export default function FFCSTimetableTab() {
     }
 
     setIsLoaded(true);
-  }, []);
+  }, [loadSemesterReport]);
 
   // Compute masterCourses whenever rawParsedCourses or isGroupingEnabled changes
   useEffect(() => {
@@ -600,12 +655,18 @@ export default function FFCSTimetableTab() {
     [rawParsedCourses]
   );
 
-  // Save to local storage on change
+  // Save to local storage on change.
+  //
+  // `ffcs_raw_courses` is shared with the Free Classrooms surfaces, which read
+  // the previous report's VENUE/TYPE columns. The winter registration list has
+  // neither, so publishing it there would make every winter class look roomless
+  // outside this tab. Only the previous dataset is published, leaving those
+  // consumers exactly as they were before this switch existed.
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && semesterId === "previous") {
       localStorage.setItem("ffcs_raw_courses", JSON.stringify(rawParsedCourses));
     }
-  }, [rawParsedCourses, isLoaded]);
+  }, [rawParsedCourses, isLoaded, semesterId]);
 
   /**
    * Add rows brought in from a paste or an uploaded sheet.
@@ -1272,10 +1333,22 @@ export default function FFCSTimetableTab() {
                 <Share2 className="w-5 h-5" />
               </button>
             </h2>
-            <p className="text-muted-foreground text-sm mt-1">Upload the master spreadsheet and plan your perfect semester.</p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Plan your semester from the {activeSemester.label.toLowerCase()} slot timetable.
+            </p>
           </div>
           
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto mt-4 md:mt-0">
+            <SegmentedControl
+              value={semesterId}
+              onChange={(value) => { void handleSemesterChange(value); }}
+              options={FFCS_SEMESTER_REPORTS.map((report) => ({
+                value: report.id,
+                label: report.shortLabel,
+                title: `Load the ${report.label} slot timetable`,
+              }))}
+            />
+
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="hidden md:flex items-center gap-2 bg-surface-secondary hover:border-border-strong text-text-heading px-4 py-2.5 rounded-xl border border-border-strong transition-colors shadow-lg"
@@ -1288,12 +1361,12 @@ export default function FFCSTimetableTab() {
               {isLoadingCourses ? (
                 <span className="text-amber-400 text-sm font-medium flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
-                  Loading course database...
+                  Loading {activeSemester.shortLabel} report...
                 </span>
               ) : masterCourses.length > 0 ? (
                 <span className="text-green-400 text-sm font-medium flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  Course report loaded ({masterCourses.length} slots)
+                  {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
                 </span>
               ) : (
                 <span className="text-red-400 text-sm font-medium flex items-center gap-1">

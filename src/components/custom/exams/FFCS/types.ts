@@ -39,6 +39,18 @@ export type ParsedCourse = {
   ORIGINAL_CODE?: string;
   LINK_ID?: string;
   BATCH?: string;
+  /** The registration list's class/section id, when the report carries one. */
+  CLASS_ID?: string;
+  /**
+   * The employee id behind FACULTY.
+   *
+   * Names are not unique and can be spelled differently on different rows, so
+   * the generator uses this when the report supplies it to identify an
+   * offering and to keep one person's rows together.
+   */
+  ERP_ID?: string;
+  /** The school that employs FACULTY, when the report carries it. */
+  EMPLOYEE_SCHOOL?: string;
 };
 
 export interface ManualLink {
@@ -56,6 +68,8 @@ export type AddedCourse = {
   title: string;
   slots: string[];
   faculty: string;
+  /** The faculty member's employee id, when the report carried one. */
+  employeeId?: string;
   venue: string;
   credits: string;
   type: string;
@@ -98,7 +112,8 @@ export interface CourseLock {
   title: string;
   allowedSlots: string[]; // empty array means all slots are allowed
   allowedFaculty: string[]; // empty array means all faculty are allowed
-  offerings?: string[]; // array of 'FACULTY|SLOT|ROOM'
+  /** Exact offerings, as `FACULTY|SLOT|ROOM` plus `|ERP_ID` when the report has one. */
+  offerings?: string[];
 }
 
 

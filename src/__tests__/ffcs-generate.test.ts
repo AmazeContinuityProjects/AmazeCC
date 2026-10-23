@@ -171,6 +171,32 @@ describe("the filters", () => {
     expect(layouts(r)).toEqual(["B1|TB1"]);
   });
 
+  it("keeps only the offering with the selected employee id", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "A1+TA1", FACULTY: "A SHARED NAME", ERP_ID: "1" }),
+          row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "A SHARED NAME", ERP_ID: "2" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101", offerings: ["A SHARED NAME|B1+TB1|AB1-101|2"] })],
+      })
+    );
+    expect(layouts(r)).toEqual(["B1|TB1"]);
+  });
+
+  it("still matches an offering id saved before employee ids were used", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "A1+TA1", FACULTY: "A SHARED NAME", ERP_ID: "1" }),
+          row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "A SHARED NAME", ERP_ID: "2" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101", offerings: ["A SHARED NAME|B1+TB1|AB1-101"] })],
+      })
+    );
+    expect(layouts(r)).toEqual(["B1|TB1"]);
+  });
+
   it("drops an offering blocked under either spelling of the period", () => {
     // The student blocked "A" — the law school's spelling. The schema calls that
     // period "A1", and the offering is booked "A1", so this only works because
@@ -540,6 +566,20 @@ describe("deduplicating by faculty", () => {
         masterCourses: [
           row({ CODE: "BCSE101", SLOT: "A1+TA1", FACULTY: "One" }),
           row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "Two", ROOM: "AB2-202" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" })],
+        uniqueFaculties: true,
+      })
+    );
+    expect(layouts(r)).toHaveLength(2);
+  });
+
+  it("uses employee ids to tell two people with one name apart", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "A1+TA1", FACULTY: "A SHARED NAME", ERP_ID: "1" }),
+          row({ CODE: "BCSE101", SLOT: "B1+TB1", FACULTY: "A SHARED NAME", ERP_ID: "2" }),
         ],
         courseLocks: [lock({ code: "BCSE101" })],
         uniqueFaculties: true,

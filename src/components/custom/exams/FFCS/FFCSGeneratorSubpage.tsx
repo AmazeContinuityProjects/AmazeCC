@@ -13,6 +13,7 @@ import type { FFCSSettings } from '@/lib/ffcsSettings';
 import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
+import { offeringId, offeringMatches } from './reports';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import { TimetablePeriod } from './types';
 import { SegmentedControl } from "../../shared/primitives";
@@ -901,9 +902,22 @@ export function FFCSGeneratorSubpage({
                           
                           const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
                           const uniqueOfferings = Array.from(new Map(courseOpts.map(opt => {
-                            const id = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
-                            return [id, { faculty: opt.FACULTY, slot: opt.SLOT, venue: opt.ROOM, id }];
-                          })).values()).sort((a, b) => a.faculty.localeCompare(b.faculty));
+                            const legacyId = `${opt.FACULTY}|${opt.SLOT}|${opt.ROOM}`;
+                            const id = offeringId(opt);
+                            return [id, {
+                              faculty: opt.FACULTY,
+                              slot: opt.SLOT,
+                              venue: opt.ROOM,
+                              employeeId: opt.ERP_ID || "",
+                              classId: opt.CLASS_ID || "",
+                              legacyId,
+                              id,
+                            }];
+                          })).values()).sort((a, b) =>
+                            a.faculty.localeCompare(b.faculty) ||
+                            a.slot.localeCompare(b.slot) ||
+                            a.employeeId.localeCompare(b.employeeId)
+                          );
 
                           const offeringsByFac = uniqueOfferings.reduce((acc, curr) => {
                             if (!acc[curr.faculty]) acc[curr.faculty] = [];
@@ -956,8 +970,13 @@ export function FFCSGeneratorSubpage({
                                               const firstSlot = o.slot.split('+')[0].trim().toUpperCase();
                                               const match = firstSlot.match(/^[T]?([A-G])/);
                                               return match && match[1] === series;
-                                            }).map(o => o.id);
-                                            const allSelected = seriesOfferings.every(id => sel.offerings?.includes(id));
+                                            });
+                                            const allSelected = seriesOfferings.every(o =>
+                                              offeringMatches(
+                                                { FACULTY: o.faculty, SLOT: o.slot, ROOM: o.venue, ERP_ID: o.employeeId },
+                                                sel.offerings || []
+                                              )
+                                            );
                                             
                                             return (
                                               <button
@@ -970,10 +989,11 @@ export function FFCSGeneratorSubpage({
                                                     if (p.code !== c.code) return p;
                                                     let newOfferings = [...(p.offerings || [])];
                                                     if (allSelected) {
-                                                      newOfferings = newOfferings.filter(id => !seriesOfferings.includes(id));
+                                                      const removing = new Set(seriesOfferings.flatMap(o => [o.id, o.legacyId]));
+                                                      newOfferings = newOfferings.filter(id => !removing.has(id));
                                                     } else {
-                                                      seriesOfferings.forEach(id => {
-                                                        if (!newOfferings.includes(id)) newOfferings.push(id);
+                                                      seriesOfferings.forEach(o => {
+                                                        if (!newOfferings.includes(o.id)) newOfferings.push(o.id);
                                                       });
                                                     }
                                                     return { ...p, offerings: newOfferings };
@@ -998,9 +1018,16 @@ export function FFCSGeneratorSubpage({
                                       <div key={fac} className="flex flex-col gap-1.5">
                                         <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50">{fac}</div>
                                         {offeringsByFac[fac].map(offering => {
-                                          const isOffChecked = sel.offerings?.includes(offering.id) || false;
+                                          const isOffChecked = offeringMatches(
+                                            { FACULTY: offering.faculty, SLOT: offering.slot, ROOM: offering.venue, ERP_ID: offering.employeeId },
+                                            sel.offerings || []
+                                          );
                                           return (
-                                            <label key={offering.id} className="flex items-start gap-2 cursor-pointer hover:bg-surface-secondary/50 p-1.5 rounded-md transition-colors">
+                                            <label
+                                              key={offering.id}
+                                              className="flex items-start gap-2 cursor-pointer hover:bg-surface-secondary/50 p-1.5 rounded-md transition-colors"
+                                              title={offering.classId ? `Class ${offering.classId}` : undefined}
+                                            >
                                               <input 
                                                 type="checkbox" 
                                                 className="mt-0.5 rounded w-3.5 h-3.5 border-border-strong text-amber-500 focus:ring-amber-500/30"
@@ -1008,14 +1035,24 @@ export function FFCSGeneratorSubpage({
                                                 onChange={(e) => {
                                                   setCourseLocks(prev => prev.map(p => {
                                                     if (p.code !== c.code) return p;
-                                                    if (e.target.checked) return { ...p, offerings: [...(p.offerings || []), offering.id] };
-                                                    return { ...p, offerings: (p.offerings || []).filter(o => o !== offering.id) };
+                                                    if (e.target.checked) {
+                                                      const next = (p.offerings || []).filter(id => id !== offering.id);
+                                                      return { ...p, offerings: [...next, offering.id] };
+                                                    }
+                                                    return {
+                                                      ...p,
+                                                      offerings: (p.offerings || []).filter(
+                                                        id => id !== offering.id && id !== offering.legacyId
+                                                      ),
+                                                    };
                                                   }));
                                                 }}
                                               />
                                               <div className="flex flex-col">
                                                 <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-text-heading/80'}`}>{offering.slot}</span>
-                                                <span className="text-[10px] text-muted-foreground">{offering.venue}</span>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                  {offering.venue || (offering.employeeId ? `ERP ${offering.employeeId}` : "TBA")}
+                                                </span>
                                               </div>
                                             </label>
                                           );
