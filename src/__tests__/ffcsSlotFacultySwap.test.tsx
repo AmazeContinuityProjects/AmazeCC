@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import * as htmlToImage from "html-to-image";
 import SlotFacultySwapSheet from "../components/custom/exams/FFCS/components/SlotFacultySwapSheet";
 import { sameSlotFacultyAlternatives } from "../components/custom/exams/FFCS/logic/generate";
 import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
@@ -193,5 +194,51 @@ describe("SlotFacultySwapSheet", () => {
     });
     expect(screen.getByText(/No faculty matches/)).toBeTruthy();
     expect(screen.queryByText("No other faculty at this time slot")).toBeNull();
+  });
+
+  it("renders the Download JPEG button and How to Pick It Out guide", () => {
+    sheet();
+    expect(screen.getByText("Download JPEG")).toBeTruthy();
+    expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
+    expect(screen.getByText(/Search course code/)).toBeTruthy();
+  });
+
+  it("triggers JPEG generation and download on button click", async () => {
+    const spy = vi
+      .spyOn(htmlToImage, "toJpeg")
+      .mockResolvedValue("data:image/jpeg;base64,mockjpegdata");
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    sheet();
+    const btn = screen.getByText("Download JPEG");
+    await act(async () => {
+      fireEvent.click(btn);
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+    clickSpy.mockRestore();
+  });
+
+  it("supports read-only mode without onSwap and custom z-indices", () => {
+    render(
+      <SlotFacultySwapSheet
+        code="BACSE104"
+        courseTitle="Object Oriented Analysis And Design"
+        halves={[half]}
+        masterCourses={[
+          course({ FACULTY: "SHINY E", SLOT: "G1+L31+L32" }),
+        ]}
+        onClose={() => {}}
+        panelZIndex={450}
+        backdropZIndex={445}
+      />
+    );
+
+    expect(screen.getByText("Faculty in this Slot")).toBeTruthy();
+    expect(screen.getByText("Download JPEG")).toBeTruthy();
+    expect(screen.getByText("SHINY E")).toBeTruthy();
   });
 });

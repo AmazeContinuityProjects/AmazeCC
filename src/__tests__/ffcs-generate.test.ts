@@ -654,3 +654,115 @@ describe("the real report", () => {
     }
   });
 });
+
+describe("labs on separate days", () => {
+  /**
+   * The rule is about which DAYS lab bookings fall on, so the fixtures use
+   * the morning lab ladder from the real chennai schema: L1 is Monday 08:00,
+   * L2 Monday 08:50, L7 Tuesday 08:00, L8 Tuesday 08:50, L13 Wednesday 08:00.
+   * Adjacent lab periods do not conflict time-wise, which matters: a week that
+   * pairs them is conflict-free and must still be ruled out when the option
+   * asks for one lab per day.
+   */
+
+  it("keeps two labs that fall on different days", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE102", SLOT: "L7" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        separateLabDays: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+    expect(layouts(r)).toHaveLength(1);
+  });
+
+  it("keeps one lab that spans two days on its own", () => {
+    // A single booking's lab periods are one lab, not two: `L1+L7` runs
+    // Monday and Tuesday and never pairs with another lab.
+    const r = generateTimetables(
+      params({
+        masterCourses: [row({ CODE: "BCSE101", SLOT: "L1+L7" })],
+        courseLocks: [lock({ code: "BCSE101" })],
+        separateLabDays: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+    expect(layouts(r)).toHaveLength(1);
+  });
+
+  it("with the option off, back-to-back labs on one day are fine as before", () => {
+    // L1 and L2 are adjacent, so they are conflict-free; the unset option
+    // changes nothing about weeks like this.
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE102", SLOT: "L2" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+      })
+    );
+    expect(r.kind).toBe("ok");
+    expect(layouts(r)).toHaveLength(1);
+  });
+
+  it("drops a week that puts two labs on the same day, and names why", () => {
+    // L1 and L2 are adjacent — monday 08:00 and 08:50 — so the search finds
+    // them, and the lab rule is what rejects them. The failure must not read
+    // as "no conflict-free week exists".
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE102", SLOT: "L2" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        separateLabDays: true,
+      })
+    );
+    expect(r.kind).toBe("error");
+    if (r.kind === "error") expect(r.code).toBe("no_separate_labs");
+  });
+
+  it("picks the mixed-day pairings when two sections each are offered", () => {
+    // Each course has a Monday section and a Tuesday one. Of the four
+    // conflict-free pairings, two put both labs on one day (L1+L2, L7+L8) and
+    // must not be kept; the mixed pairings are.
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1", ROOM: "AB1-101" }),
+          row({ CODE: "BCSE101", SLOT: "L7", ROOM: "AB1-102" }),
+          row({ CODE: "BCSE102", SLOT: "L2", ROOM: "AB1-201" }),
+          row({ CODE: "BCSE102", SLOT: "L8", ROOM: "AB1-202" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE102" })],
+        separateLabDays: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+    expect(layouts(r)).toHaveLength(2);
+  });
+
+  it("still judges theory-heavy weeks normally when the option is on", () => {
+    // A theory course the same day as a lab is not "two labs on a day": the
+    // rule only counts lab halves. F1 is Monday 08:55, the same day as L1 and
+    // not same period.
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "L1" }),
+          row({ CODE: "BCSE103", SLOT: "F1" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" }), lock({ code: "BCSE103" })],
+        separateLabDays: true,
+      })
+    );
+    expect(r.kind).toBe("ok");
+    expect(layouts(r)).toHaveLength(1);
+  });
+});

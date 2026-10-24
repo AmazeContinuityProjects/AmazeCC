@@ -83,6 +83,80 @@ describe("blank types take the embedded pairing path", () => {
     expect(slots).toContain("G2+L3+L4+L23+L24");
   });
 
+  it("optimally pairs multi-section offerings respecting session shifts (Muthulakshmi S)", () => {
+    // When a faculty member teaches both morning and evening theories (A1+TA1 and A2+TA2)
+    // with multiple lab sections (L15+L16 on Wednesday morning and L11+L12 on Tuesday),
+    // A2+TA2 (evening theory) must take the morning lab L15+L16, while A1+TA1 pairs with
+    // L11+L12 to avoid placing both theory and lab during morning theory hours.
+    const grouped = processParsedCourses([
+      winterRow({ CODE: "BAECE204", SLOT: "A1+TA1", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270501459" }),
+      winterRow({ CODE: "BAECE204", SLOT: "A2+TA2", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270501461" }),
+      winterRow({ CODE: "BAECE204", SLOT: "L15+L16", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270502817" }),
+      winterRow({ CODE: "BAECE204", SLOT: "L11+L12", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407", CLASS_ID: "CH2026270503049" }),
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    const slots = grouped.map((c) => c.SLOT);
+    expect(slots).toContain("A1+TA1+L11+L12");
+    expect(slots).toContain("A2+TA2+L15+L16");
+  });
+
+  it("prioritizes Priority 1 (8:00-11:40 for evening theory, 2:00-5:30 for morning theory) over Priority 2 & 3", () => {
+    // A faculty has:
+    // Theory: Morning (A1+TA1) and Evening (A2+TA2)
+    // Labs:
+    // - L15+L16 (Wed 9:50-11:30 AM -> 8:00-11:40 core morning lab)
+    // - L11+L12 (Tue 11:40-1:20 PM -> 11:40-1:20 late morning lab)
+    // Under Priority 1, A2+TA2 gets L15+L16.
+    // Under Priority 2, A1+TA1 gets L11+L12.
+    const grouped = processParsedCourses([
+      winterRow({ CODE: "BAECE204", SLOT: "A1+TA1", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407" }),
+      winterRow({ CODE: "BAECE204", SLOT: "A2+TA2", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407" }),
+      winterRow({ CODE: "BAECE204", SLOT: "L15+L16", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407" }),
+      winterRow({ CODE: "BAECE204", SLOT: "L11+L12", FACULTY: "MUTHULAKSHMI S", ERP_ID: "50407" }),
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    const slots = grouped.map((c) => c.SLOT);
+    expect(slots).toContain("A2+TA2+L15+L16"); // Priority 1 (Evening Theory + 8:00-11:40 lab)
+    expect(slots).toContain("A1+TA1+L11+L12"); // Priority 2 (Morning Theory + 11:40-1:20 lab)
+  });
+
+  it("prioritizes above-30 lab over 11:40-1:20 lab for morning theory", () => {
+    // If morning theory has both an above-30 lab (e.g. L43+L44) and an 11:40-1:20 lab (e.g. L11+L12),
+    // it must prioritize the above-30 lab first.
+    const grouped = processParsedCourses([
+      winterRow({ CODE: "BACSE201", SLOT: "A1+TA1", FACULTY: "TEST FACULTY", ERP_ID: "99991" }),
+      winterRow({ CODE: "BACSE201", SLOT: "B1+TB1", FACULTY: "TEST FACULTY", ERP_ID: "99991" }),
+      winterRow({ CODE: "BACSE201", SLOT: "L11+L12", FACULTY: "TEST FACULTY", ERP_ID: "99991" }),
+      winterRow({ CODE: "BACSE201", SLOT: "L43+L44", FACULTY: "TEST FACULTY", ERP_ID: "99991" }),
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    const slots = grouped.map((c) => c.SLOT);
+    // Both are morning theories, one gets above-30 lab, one gets 11:40-1:20 lab
+    expect(slots.some((s) => s.includes("L43+L44"))).toBe(true);
+    expect(slots.some((s) => s.includes("L11+L12"))).toBe(true);
+  });
+
+  it("pairs evening theory with 5:30-7:20 evening lab over earlier evening lab", () => {
+    // When forced to pair evening theory with evening labs, 5:30-7:20 (e.g. L47+L48)
+    // is preferred over core afternoon/evening labs (e.g. L31+L32).
+    const grouped = processParsedCourses([
+      winterRow({ CODE: "BACSE202", SLOT: "A2+TA2", FACULTY: "TEST FACULTY", ERP_ID: "99992" }),
+      winterRow({ CODE: "BACSE202", SLOT: "C1+TC1", FACULTY: "TEST FACULTY", ERP_ID: "99992" }),
+      winterRow({ CODE: "BACSE202", SLOT: "L31+L32", FACULTY: "TEST FACULTY", ERP_ID: "99992" }),
+      winterRow({ CODE: "BACSE202", SLOT: "L47+L48", FACULTY: "TEST FACULTY", ERP_ID: "99992" }),
+    ]);
+
+    expect(grouped).toHaveLength(2);
+    const slots = grouped.map((c) => c.SLOT);
+    // C1+TC1 (morning theory) gets L31+L32 (above 30)
+    // A2+TA2 (evening theory) gets L47+L48 (5:30-7:20 evening lab)
+    expect(slots).toContain("C1+TC1+L31+L32");
+    expect(slots).toContain("A2+TA2+L47+L48");
+  });
+
   it("pairs the same person across two different name spellings", () => {
     const grouped = processParsedCourses([
       winterRow({ CODE: "BAXXX101", SLOT: "A1", FACULTY: "S SARAVANAN", ERP_ID: "12345" }),

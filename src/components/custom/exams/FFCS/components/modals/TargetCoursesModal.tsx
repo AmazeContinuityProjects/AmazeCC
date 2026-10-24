@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ClipboardPaste, FileSpreadsheet, Lock, Search, X } from "lucide-react";
+import { ClipboardPaste, FileSpreadsheet, Lock, Search, Users, X } from "lucide-react";
 import SearchInput from "../../../../shared/SearchInput";
 import BottomSheet from "../../../../shared/BottomSheet";
-import { CourseLock, ParsedCourse } from "../../types";
+import { CourseLock, ParsedCourse, AddedCourse } from "../../types";
 import { getBatchColorClass } from "@/lib/utils";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
 import { CourseImportPanel, type ImportMode } from "../CourseImportPanel";
@@ -18,6 +18,8 @@ interface TargetCoursesModalProps {
   renderTypeChips: (typesInput: string | string[], size?: 'sm' | 'md') => React.ReactNode;
   /** Adds rows to the master list. Owns merging; this modal does not mutate it. */
   onImportCourses: (courses: ParsedCourse[]) => void;
+  /** Optional callback to also load imported courses directly into active timetable */
+  onImportToTimetable?: (courses: AddedCourse[]) => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
   uniqueCourseCodes,
   renderTypeChips,
   onImportCourses,
+  onImportToTimetable,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<ImportMode | "search">("search");
@@ -235,6 +238,22 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
                                 }}
                               />
                               <span className="text-xs font-bold">{slot}</span>
+                              {(() => {
+                                const facultyCount = new Set(
+                                  masterCourses
+                                    .filter((m) => m.CODE === c.code && m.SLOT === slot)
+                                    .map((m) => m.FACULTY.trim().toLowerCase())
+                                ).size || 1;
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-1 py-0.2 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                                    title={`${facultyCount} ${facultyCount === 1 ? 'faculty' : 'faculties'} teaching this slot`}
+                                  >
+                                    <Users className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
+                                    <span>{facultyCount}</span>
+                                  </span>
+                                );
+                              })()}
                             </label>
                           );
                         })}
@@ -247,7 +266,7 @@ export const TargetCoursesModal: React.FC<TargetCoursesModalProps> = ({
           </div>
             </>
           ) : (
-            <CourseImportPanel mode={mode} onImport={onImportCourses} />
+            <CourseImportPanel mode={mode} onImport={onImportCourses} onImportToTimetable={onImportToTimetable} />
           )}
           <div className="pt-3 mt-1 border-t border-border-strong bg-surface-secondary/20 flex justify-between items-center">
             <span className="text-sm font-medium text-text-heading">

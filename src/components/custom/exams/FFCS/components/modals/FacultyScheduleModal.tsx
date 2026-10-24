@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, CalendarDays, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, Search, Users, X, ExternalLink } from "lucide-react";
 
 import { VerticalTimetableGrid } from "../../../../timetable";
 import BottomSheet from "../../../../shared/BottomSheet";
@@ -12,8 +12,14 @@ import {
   facultySchedulePeriods,
   findFirstMatchingGroup,
   type FacultyNameGroup,
+  type FacultyOffering,
 } from "../../logic/facultyGroups";
+import { sameSlotFacultyAlternatives, splitSlots } from "../../logic/generate";
+import type { ParsedCourse } from "../../types";
+import SlotFacultySwapSheet from "../SlotFacultySwapSheet";
 import { EmptyPanel, IconButton, ListSkeleton } from "../../../../shared/primitives";
+import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "../FacultyReviewSheet";
+import { ENABLE_VITFAC_INTEGRATION } from "@/lib/vitfacService";
 
 /**
  * The faculty schedule browser.
@@ -39,6 +45,8 @@ export interface FacultyScheduleModalProps {
   initialFaculty?: string;
   /** True while the report is still being read (Faculty Explorer fetches it). */
   loading?: boolean;
+  /** Master parsed courses list if available from caller */
+  masterCourses?: ParsedCourse[];
 }
 
 export function FacultyScheduleModal({
@@ -47,10 +55,30 @@ export function FacultyScheduleModal({
   groups,
   initialFaculty,
   loading = false,
+  masterCourses,
 }: FacultyScheduleModalProps) {
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ name: string; employeeId?: string } | null>(null);
+  const [selectedSwapOffering, setSelectedSwapOffering] = useState<FacultyOffering | null>(null);
   const autoSelectedRef = useRef(false);
+
+  const allMasterCourses: ParsedCourse[] = useMemo(() => {
+    if (masterCourses && masterCourses.length > 0) return masterCourses;
+    return groups.flatMap((group) =>
+      group.offerings.map((off) => ({
+        CODE: off.CODE,
+        TITLE: off.TITLE,
+        TYPE: off.TYPE,
+        CREDITS: off.CREDITS,
+        SLOT: off.SLOT,
+        VENUE: off.VENUE || off.ROOM || "TBA",
+        ROOM: off.ROOM || off.VENUE || "TBA",
+        FACULTY: off.FACULTY,
+        ERP_ID: off.ERP_ID,
+      }))
+    );
+  }, [groups, masterCourses]);
 
   // Opening the modal is a fresh session: clear the search and, when a name was
   // supplied, resolve it to the first matching group. The ref keeps a later
@@ -113,13 +141,37 @@ export function FacultyScheduleModal({
           <div className="space-y-4">
             <div className="p-4 sm:p-5 border border-border-strong rounded-2xl flex items-center justify-between gap-3 bg-surface-secondary/40">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
-                  <CalendarDays className="w-5 h-5" />
-                </div>
+                {selected ? (
+                  <FacultyAvatar
+                    employeeId={selected.offerings.find((o) => o.ERP_ID)?.ERP_ID}
+                    name={selected.canonical}
+                    size="md"
+                    tone="blue"
+                  />
+                ) : (
+                  <div className="p-2 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 shrink-0">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                )}
                 <div className="min-w-0">
-                  <h2 className="text-base font-black text-text-heading truncate">
-                    {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
-                  </h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-text-heading truncate">
+                      {selected ? `${selected.canonical}'s Schedule` : "Faculty Schedule"}
+                    </h2>
+                    {selected && (
+                      <VitfacReviewPill
+                        employeeId={selected.offerings.find((o) => o.ERP_ID)?.ERP_ID}
+                        name={selected.canonical}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReviewTarget({
+                            name: selected.canonical,
+                            employeeId: selected.offerings.find((o) => o.ERP_ID)?.ERP_ID,
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {selected
                       ? `${selected.offerings.length} class${selected.offerings.length === 1 ? "" : "es"} · tap a slot for day, time & venue`
@@ -187,19 +239,47 @@ export function FacultyScheduleModal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {selected.offerings.map((offering, index) => (
-                    <tr key={`${offering.CODE}-${offering.SLOT}-${index}`} className="hover:bg-surface-secondary/20 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
-                        <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
-                          {offering.TITLE}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
-                      <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">{offering.SLOT}</td>
-                      <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.ROOM || offering.VENUE || "TBA"}</td>
-                    </tr>
-                  ))}
+                  {selected.offerings.map((offering, index) => {
+                    const slotTokens = splitSlots(offering.SLOT);
+                    const alts = sameSlotFacultyAlternatives(
+                      offering.CODE,
+                      slotTokens,
+                      { faculty: offering.FACULTY, employeeId: offering.ERP_ID },
+                      allMasterCourses
+                    );
+                    const count = 1 + alts.length;
+                    const countTitle =
+                      count === 1
+                        ? "1 faculty teaching this slot"
+                        : `${count} faculties teaching this slot · Click to view`;
+
+                    return (
+                      <tr key={`${offering.CODE}-${offering.SLOT}-${index}`} className="hover:bg-surface-secondary/20 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-xs text-text-heading">{offering.CODE}</span>
+                          <span className="block text-xs text-muted-foreground truncate max-w-[220px]">
+                            {offering.TITLE}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.TYPE}</td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-text-heading/80">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{offering.SLOT}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSwapOffering(offering)}
+                              title={countTitle}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-amber-500 hover:border-amber-500/40 transition-colors shrink-0 cursor-pointer"
+                            >
+                              <Users className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-amber-500 shrink-0" />
+                              <span>{count}</span>
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-xs text-text-heading/80">{offering.ROOM || offering.VENUE || "TBA"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -244,39 +324,103 @@ export function FacultyScheduleModal({
               />
             ) : (
               <div className="rounded-xl border border-border-strong overflow-hidden divide-y divide-border">
-                {filtered.map((group) => (
-                  <button
-                    key={group.key}
-                    type="button"
-                    onClick={() => setSelectedKey(group.key)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
-                  >
-                    <span className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-bold shrink-0">
-                      {group.canonical.charAt(0).toUpperCase()}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-bold text-text-heading truncate">
-                        {group.canonical}
+                {filtered.map((group) => {
+                  const empId = group.offerings.find((o) => o.ERP_ID)?.ERP_ID;
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      onClick={() => setSelectedKey(group.key)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-secondary/30 transition-colors cursor-pointer"
+                    >
+                      <FacultyAvatar
+                        employeeId={empId}
+                        name={group.canonical}
+                        size="sm"
+                        tone="blue"
+                      />
+                      <span className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-text-heading truncate">
+                            {group.canonical}
+                          </span>
+                          <VitfacReviewPill
+                            employeeId={empId}
+                            name={group.canonical}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReviewTarget({
+                                name: group.canonical,
+                                employeeId: empId,
+                              });
+                            }}
+                          />
+                        </div>
+                        <span className="block text-xs text-muted-foreground truncate">
+                          {group.offerings.length} class{group.offerings.length === 1 ? "" : "es"}
+                          {group.names.length > 1
+                            ? ` · ${group.names.length} spelling${group.names.length === 1 ? "" : "s"}`
+                            : ""}
+                        </span>
                       </span>
-                      <span className="block text-xs text-muted-foreground truncate">
-                        {group.offerings.length} class{group.offerings.length === 1 ? "" : "es"}
-                        {group.names.length > 1
-                          ? ` · ${group.names.length} spelling${group.names.length === 1 ? "" : "s"}`
-                          : ""}
-                      </span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                  </button>
-                ))}
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            <p className="text-[11px] text-muted-foreground">
-              Schedules come from the FFCS course report. A faculty member appears here only if they teach a class in it.
-            </p>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
+              <span>Schedules come from the FFCS course report. A faculty member appears here only if they teach a class in it.</span>
+              {ENABLE_VITFAC_INTEGRATION && (
+                <a
+                  href="https://vitfac.pages.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+                >
+                  <span>Leave a review on vitfac</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
           </div>
             )}
           </div>
+
+          <FacultyReviewSheet
+            open={!!reviewTarget}
+            onClose={() => setReviewTarget(null)}
+            facultyName={reviewTarget?.name || ""}
+            employeeId={reviewTarget?.employeeId}
+          />
+
+          <AnimatePresence>
+            {selectedSwapOffering && (
+              <SlotFacultySwapSheet
+                code={selectedSwapOffering.CODE}
+                courseTitle={selectedSwapOffering.TITLE}
+                halves={[
+                  {
+                    id: `fac-sched-${selectedSwapOffering.CODE}-${selectedSwapOffering.SLOT}`,
+                    code: selectedSwapOffering.CODE,
+                    title: selectedSwapOffering.TITLE,
+                    type: selectedSwapOffering.TYPE,
+                    credits: selectedSwapOffering.CREDITS,
+                    slots: splitSlots(selectedSwapOffering.SLOT),
+                    venue: selectedSwapOffering.ROOM || selectedSwapOffering.VENUE || "TBA",
+                    faculty: selectedSwapOffering.FACULTY,
+                    employeeId: selectedSwapOffering.ERP_ID,
+                    color: "bg-blue-500",
+                  },
+                ]}
+                masterCourses={allMasterCourses}
+                onClose={() => setSelectedSwapOffering(null)}
+                backdropZIndex={450}
+                panelZIndex={455}
+              />
+            )}
+          </AnimatePresence>
         </BottomSheet>
       )}
     </AnimatePresence>

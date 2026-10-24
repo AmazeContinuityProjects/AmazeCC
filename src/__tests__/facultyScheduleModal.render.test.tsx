@@ -77,4 +77,35 @@ describe("FacultyScheduleModal", () => {
     expect(document.body.textContent).toContain("Monday");
     expect(document.body.textContent).toContain("AB3-101");
   });
+
+  it("renders the faculty count badge next to slot and opens SlotFacultySwapSheet with Download JPEG", () => {
+    const offering1 = offering({ FACULTY: "PARTHIBAN V", SLOT: "A1", ERP_ID: "1001" });
+    const offering2 = offering({ FACULTY: "SURESH K", SLOT: "A1", ERP_ID: "1002" });
+    const groups = buildFacultyNameGroups([offering1, offering2]);
+
+    render(
+      <FacultyScheduleModal
+        open
+        onClose={() => {}}
+        groups={groups}
+        initialFaculty="PARTHIBAN V"
+      />
+    );
+
+    // Should display count '2' in the badge for slot A1
+    const countBadge = Array.from(document.body.querySelectorAll("button")).find((button) =>
+      button.title?.includes("2 faculties teaching this slot")
+    );
+    expect(countBadge).toBeTruthy();
+    expect(countBadge?.textContent).toContain("2");
+
+    // Click the badge to open SlotFacultySwapSheet
+    fireEvent.click(countBadge!);
+
+    // Should open sheet and display download button and guide
+    expect(document.body.textContent).toContain("Faculty in this Slot");
+    expect(document.body.textContent).toContain("How to Pick It Out in FFCS");
+    expect(document.body.querySelector("[data-testid='download-faculty-jpeg-btn']")).toBeTruthy();
+    expect(document.body.textContent).toContain("SURESH K");
+  });
 });

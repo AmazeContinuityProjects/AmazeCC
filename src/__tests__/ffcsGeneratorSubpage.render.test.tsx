@@ -11,6 +11,7 @@ import { periodsForSlot, type SlotPeriod } from "../lib/slots";
 import chennai from "../data/campus/chennai.json";
 import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
 import { installLocalStorage } from "./helpers/localStorage";
+import { clearSessionPreferences, saveSessionPreferences } from "../lib/ffcsGeneratorSessionPrefs";
 
 // The generator persists its private picks under "ffcs_generator_targets", and
 // this jsdom environment ships without a localStorage — the repo stub fills it
@@ -142,6 +143,7 @@ describe("FFCSGeneratorSubpage", () => {
     // So is the generator's private picks key: one test's tick must not seed
     // another test's mount.
     storage.clear();
+    clearSessionPreferences();
   });
 
   it("renders as the tab's screen, with the layout's own back chrome", () => {
@@ -294,5 +296,121 @@ describe("FFCSGeneratorSubpage", () => {
     unmount();
     expect(hasOpenOverlays()).toBe(false);
     expect(closeTopOverlayFromPop()).toBe(false);
+  });
+
+  it("renders the faculty count badge next to faculty name in preview mode", async () => {
+    const pool = nonClashingSlots(3);
+    const masterCourses: ParsedCourse[] = [
+      { ...courseRow("BCSE101", pool[0], "AB1-101"), FACULTY: "Prof Alpha" },
+      { ...courseRow("BCSE101", pool[0], "AB1-102"), FACULTY: "Prof Beta" },
+    ];
+    const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
+
+    const Harness = () => {
+      const [msg, setMsg] = useState<string | null>(null);
+      return (
+        <FFCSGeneratorSubpage
+          {...props({
+            successMsg: msg,
+            setSuccessMsg: setMsg,
+            courseLocks: [courseLock("BCSE101")],
+            generatorDisplayCourses: courses,
+            masterCourses,
+            getGroupedCourses: (list) => {
+              return list.map((c) => ({
+                id: c.id,
+                code: c.code,
+                title: c.title,
+                type: c.type,
+                faculty: c.faculty,
+                slots: c.slots,
+                venue: c.venue,
+                credits: c.credits,
+                color: c.color,
+                ids: [c.id],
+              }));
+            },
+          })}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    fireEvent.click(generateButton());
+    await screen.findByText(/Found \d+ unique timetables/, {}, { timeout: 15_000 });
+
+    const optionCard = screen.getByText("Option 1").closest(".cursor-pointer")!;
+    fireEvent.doubleClick(optionCard);
+
+    // Enters preview mode
+    await screen.findByText("Selected Courses");
+
+    // The badge next to the faculty should show 2 (both Prof Alpha and Prof Beta teach this slot)
+    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getAllByTitle("2 faculties teaching this slot · Click to switch").length).toBeGreaterThan(0);
+  }, 20_000);
+
+  it("navigates back to the generator options page when Back to Options is clicked after generating", async () => {
+    const pool = nonClashingSlots(1);
+    const masterCourses: ParsedCourse[] = [courseRow("BCSE101", pool[0], "AB1-101")];
+    const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
+
+    const Harness = () => {
+      const [msg, setMsg] = useState<string | null>(null);
+      return (
+        <FFCSGeneratorSubpage
+          {...props({
+            successMsg: msg,
+            setSuccessMsg: setMsg,
+            courseLocks: [courseLock("BCSE101")],
+            generatorDisplayCourses: courses,
+            masterCourses,
+          })}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    fireEvent.click(generateButton());
+    await screen.findByText(/Found \d+ unique timetables/, {}, { timeout: 15_000 });
+
+    // Review screen should be active
+    expect(screen.getAllByText("Review Timetables").length).toBeGreaterThan(0);
+
+    // Click "Back to Options"
+    const backToOptionsButtons = screen.getAllByRole("button", { name: /back to options/i });
+    expect(backToOptionsButtons.length).toBeGreaterThan(0);
+    fireEvent.click(backToOptionsButtons[0]);
+
+    // Options view should now be displayed again with target courses
+    expect(screen.getByText("Target Courses")).toBeTruthy();
+    expect(screen.getByText("Results (1)")).toBeTruthy();
+
+    // Clicking "Results (1)" brings the user back to the review view
+    fireEvent.click(screen.getByRole("button", { name: /results \(1\)/i }));
+    expect(screen.getAllByText("Review Timetables").length).toBeGreaterThan(0);
+  }, 20_000);
+
+  it("persists session preferences statefully across subpage mounts in sessionStorage", () => {
+    saveSessionPreferences({
+      preference: "morning",
+      uniqueFaculties: true,
+      minStartTime: "09:00",
+      maxEndTime: "17:00",
+      minHalfDays: 3,
+    });
+
+    const { unmount } = render(<FFCSGeneratorSubpage {...props()} />);
+
+    // Unique faculties switch should be checked
+    const uniqueSwitch = screen.getByRole("checkbox", { name: /unique faculties/i }) as HTMLInputElement;
+    expect(uniqueSwitch.checked).toBe(true);
+
+    // Min half days should be 3
+    expect(screen.getByDisplayValue("3")).toBeTruthy();
+
+    unmount();
   });
 });

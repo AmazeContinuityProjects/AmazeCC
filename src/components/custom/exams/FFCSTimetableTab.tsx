@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -21,7 +21,12 @@ import { FFCSGeneratorSubpage } from './FFCS/FFCSGeneratorSubpage';
 import { FriendTimetableViewModal, SelectedFriendTimetableData } from './FFCS/components/modals/FriendTimetableViewModal';
 import { SocialMatrixModal } from './FFCS/components/modals/SocialMatrixModal';
 import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal';
+import PasteRegisteredCoursesModal from './FFCS/components/modals/PasteRegisteredCoursesModal';
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
+import SlotFacultySwapSheet from './FFCS/components/SlotFacultySwapSheet';
+import { sameSlotFacultyAlternatives, splitSlots } from './FFCS/logic/generate';
+import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyReviewSheet';
+import { ENABLE_VITFAC_INTEGRATION } from '@/lib/vitfacService';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
 import { track } from "@/lib/analytics";
@@ -52,6 +57,7 @@ import {
   courseInPeriod,
   periodsForSlot,
   slotsOverlap,
+  type SlotPeriod,
 } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
@@ -182,20 +188,145 @@ export const calculatePairwiseSocialScore = (
 const getPeriodsForSlotOuter = (slotName: string) =>
   periodsForSlot(getTimetableSchema(), slotName);
 
+const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
+  const parts = String(slotStr ?? "")
+    .split("+")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s && s !== "NIL");
+  return parts.flatMap(getPeriodsForSlotOuter);
+};
+
 const isMorningSlot = (slot: string) => {
-  const periods = getPeriodsForSlotOuter(slot);
+  const periods = getPeriodsForSlotsOuter(slot);
   if (periods.length === 0) return true; // e.g., NIL
   return periods.some(p => p.startMin < MORNING_BEFORE_MIN);
 };
 
 const isEveningSlot = (slot: string) => {
-  const periods = getPeriodsForSlotOuter(slot);
+  const periods = getPeriodsForSlotsOuter(slot);
   if (periods.length === 0) return true;
   return periods.some(p => p.startMin >= MORNING_BEFORE_MIN);
 };
 
 const isOverlap = (theorySlotStr: string, labSlotStr: string) =>
   slotsOverlap(theorySlotStr, labSlotStr, getTimetableSchema());
+
+// Core morning lab slots (8:00 AM - 11:40 AM: periods 1 to 4)
+const CORE_MORNING_LABS = new Set([
+  "L1", "L2", "L3", "L4", "L7", "L8", "L9", "L10", "L13", "L14", "L15", "L16", "L19", "L20", "L21", "L22", "L25", "L26", "L27", "L28"
+]);
+
+// Core afternoon/evening lab slots (2:00 PM - 5:30 PM: periods 7 to 10)
+const CORE_EVENING_LABS = new Set([
+  "L31", "L32", "L33", "L34", "L37", "L38", "L39", "L40", "L43", "L44", "L45", "L46", "L49", "L50", "L51", "L52", "L55", "L56", "L57", "L58"
+]);
+
+// Late morning window lab slots (11:40 AM - 1:20 PM: periods 5 and 6)
+const LATE_MORNING_LABS = new Set([
+  "L5", "L6", "L11", "L12", "L17", "L18", "L23", "L24", "L29", "L30"
+]);
+
+// Late evening window lab slots (5:40 PM - 7:20 PM: periods 11 and 12)
+const LATE_EVENING_LABS = new Set([
+  "L35", "L36", "L41", "L42", "L47", "L48", "L53", "L54", "L59", "L60"
+]);
+
+const isCoreMorningLab = (slotStr: string) => {
+  const parts = String(slotStr ?? "")
+    .split("+")
+    .map(s => s.trim().toUpperCase())
+    .filter(Boolean);
+  return parts.length > 0 && parts.every(s => CORE_MORNING_LABS.has(s));
+};
+
+const isCoreEveningLab = (slotStr: string) => {
+  const parts = String(slotStr ?? "")
+    .split("+")
+    .map(s => s.trim().toUpperCase())
+    .filter(Boolean);
+  return parts.length > 0 && parts.every(s => CORE_EVENING_LABS.has(s));
+};
+
+const isLateMorningLab = (slotStr: string) => {
+  const parts = String(slotStr ?? "")
+    .split("+")
+    .map(s => s.trim().toUpperCase())
+    .filter(Boolean);
+  return parts.length > 0 && parts.every(s => LATE_MORNING_LABS.has(s));
+};
+
+const isLateEveningLab = (slotStr: string) => {
+  const parts = String(slotStr ?? "")
+    .split("+")
+    .map(s => s.trim().toUpperCase())
+    .filter(Boolean);
+  return parts.length > 0 && parts.every(s => LATE_EVENING_LABS.has(s));
+};
+
+const computePairScore = (t: ParsedCourse, l: ParsedCourse): number => {
+  let score = 0;
+  const tPeriods = getPeriodsForSlotsOuter(t.SLOT);
+  const lPeriods = getPeriodsForSlotsOuter(l.SLOT);
+
+  const tMorning = tPeriods.some(p => p.startMin < MORNING_BEFORE_MIN);
+  const tEvening = tPeriods.some(p => p.startMin >= MORNING_BEFORE_MIN);
+
+  // Analyze whether the lab tokens are below 30 (morning) or above 30 (evening)
+  const labParts = String(l.SLOT ?? "")
+    .split("+")
+    .map(s => parseInt(s.replace(/[^0-9]/g, ""), 10))
+    .filter(n => !isNaN(n));
+  const hasBelow30 = labParts.some(n => n <= 30);
+  const hasAbove30 = labParts.some(n => n > 30);
+  const isBelow30Only = labParts.length > 0 && labParts.every(n => n <= 30);
+  const isAbove30Only = labParts.length > 0 && labParts.every(n => n > 30);
+
+  // Priority 1: 8:00-11:40 morning lab for evening theory, and 2:00-5:30 evening lab for morning theory
+  if ((tEvening && isCoreMorningLab(l.SLOT)) || (tMorning && isCoreEveningLab(l.SLOT))) {
+    score += 2000;
+  }
+  // Priority 2: 11:40-1:20 morning lab for morning theory, and 5:30-7:20 evening lab for evening theory
+  else if ((tMorning && isLateMorningLab(l.SLOT)) || (tEvening && isLateEveningLab(l.SLOT))) {
+    score += 1000;
+  }
+  // Priority 3 (Current Priority 1 fallback): general cross-shift / above-30 & below-30
+  // (e.g. evening theory with late morning lab, morning theory with late evening lab / mixed)
+  else if ((tEvening && isBelow30Only) || (tMorning && isAbove30Only)) {
+    score += 500;
+  } else if (hasBelow30 && hasAbove30) {
+    score += 200;
+  }
+  // Priority 4: strongly penalize same-shift pairings outside the permitted late-window slots
+  else {
+    score -= 1000;
+  }
+
+  // Penalize clustering theory and lab on the same day in the same half-day
+  for (const tp of tPeriods) {
+    for (const lp of lPeriods) {
+      if (tp.day === lp.day) {
+        const tpMorning = tp.startMin < MORNING_BEFORE_MIN;
+        const lpMorning = lp.startMin < MORNING_BEFORE_MIN;
+        if (tpMorning === lpMorning) {
+          score -= 30;
+        }
+      }
+    }
+  }
+
+  // If class numbers / IDs are available, reward proximity (sections registered together)
+  if (t.CLASS_ID && l.CLASS_ID) {
+    const tNum = parseInt(t.CLASS_ID.replace(/[^0-9]/g, ""), 10);
+    const lNum = parseInt(l.CLASS_ID.replace(/[^0-9]/g, ""), 10);
+    if (!isNaN(tNum) && !isNaN(lNum)) {
+      const diff = Math.abs(tNum - lNum);
+      if (diff <= 2) score += 20;
+      else if (diff <= 10) score += 10;
+    }
+  }
+
+  return score;
+};
 
 // Only exported for the tests; callers inside the app go through masterCourses.
 export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: ManualLink[] = []): ParsedCourse[] => {
@@ -363,39 +494,49 @@ export const processParsedCourses = (parsed: ParsedCourse[], manualLinks: Manual
         });
 
         if (theorySlots.length > 0 && labSlots.length > 0) {
-          let bestMatch: { tIdx: number, lIdx: number }[] = [];
+          let bestMatch: { tIdx: number; lIdx: number }[] = [];
+          let bestScore = -Infinity;
           const maxPossible = Math.min(theorySlots.length, labSlots.length);
           let steps = 0;
 
-          const backtrack = (tIdx: number, currentMatch: { tIdx: number, lIdx: number }[], usedLabs: Set<number>) => {
-            if (currentMatch.length > bestMatch.length) {
+          const backtrack = (
+            tIdx: number,
+            currentMatch: { tIdx: number; lIdx: number }[],
+            usedLabs: Set<number>,
+            currentScore: number
+          ) => {
+            if (
+              currentMatch.length > bestMatch.length ||
+              (currentMatch.length === bestMatch.length && currentScore > bestScore)
+            ) {
               bestMatch = [...currentMatch];
+              bestScore = currentScore;
             }
-            if (bestMatch.length === maxPossible) return;
             if (tIdx >= theorySlots.length) return;
-            if (currentMatch.length + (theorySlots.length - tIdx) <= bestMatch.length) return;
+            if (currentMatch.length + (theorySlots.length - tIdx) < bestMatch.length) return;
+            const maxRemaining = (maxPossible - currentMatch.length) * 2100;
+            if (bestMatch.length === maxPossible && currentScore + maxRemaining <= bestScore) return;
             if (++steps > 20000) return;
 
             const t = theorySlots[tIdx];
 
-            for (let j = 0; j < labSlots.length; j++) {
-              if (usedLabs.has(j)) continue;
-              const l = labSlots[j];
+            const candidates = labSlots
+              .map((l, j) => ({ l, j, score: computePairScore(t, l) }))
+              .filter(({ l, j }) => !usedLabs.has(j) && !isOverlap(t.SLOT, l.SLOT))
+              .sort((a, b) => b.score - a.score);
 
-              if (!isOverlap(t.SLOT, l.SLOT)) {
-                usedLabs.add(j);
-                currentMatch.push({ tIdx, lIdx: j });
-                backtrack(tIdx + 1, currentMatch, usedLabs);
-                currentMatch.pop();
-                usedLabs.delete(j);
-                if (bestMatch.length === maxPossible) return;
-              }
+            for (const { j, score } of candidates) {
+              usedLabs.add(j);
+              currentMatch.push({ tIdx, lIdx: j });
+              backtrack(tIdx + 1, currentMatch, usedLabs, currentScore + score);
+              currentMatch.pop();
+              usedLabs.delete(j);
             }
             
-            backtrack(tIdx + 1, currentMatch, usedLabs);
+            backtrack(tIdx + 1, currentMatch, usedLabs, currentScore);
           };
 
-          backtrack(0, [], new Set<number>());
+          backtrack(0, [], new Set<number>(), 0);
 
           if (bestMatch.length > 0) {
             const matchedT = new Set(bestMatch.map(m => m.tIdx));
@@ -478,6 +619,12 @@ export default function FFCSTimetableTab() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
+  // Row-scoped rename for the Select Timetable sheet. Deliberately separate
+  // from the header's isEditingName/editNameValue pair, which is bound to the
+  // ACTIVE timetable only — here any row is renamed without first becoming
+  // the active one, which is the point of managing the list in the sheet.
+  const [sheetEditingId, setSheetEditingId] = useState<string | null>(null);
+  const [sheetEditValue, setSheetEditValue] = useState("");
 
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
 
@@ -507,7 +654,53 @@ export default function FFCSTimetableTab() {
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [isCourseLockOpen, setIsCourseLockOpen] = useState(false);
+  const [isPasteRegisteredModalOpen, setIsPasteRegisteredModalOpen] = useState(false);
   const [isFacultyScheduleOpen, setIsFacultyScheduleOpen] = useState(false);
+  const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
+
+  const swapSlotFaculty = useCallback((courseId: string, offering: ParsedCourse) => {
+    if (generatorPreviewTimetable) {
+      setGeneratorPreviewTimetable((prev) =>
+        prev
+          ? {
+              ...prev,
+              courses: prev.courses.map((c) =>
+                c.id === courseId
+                  ? {
+                      ...c,
+                      title: offering.TITLE,
+                      faculty: offering.FACULTY,
+                      employeeId: offering.ERP_ID,
+                      venue: offering.ROOM || (offering as any).VENUE || c.venue,
+                    }
+                  : c
+              ),
+            }
+          : null
+      );
+    } else {
+      setTimetables((prev) =>
+        prev.map((t) =>
+          t.id === activeTimetableId
+            ? {
+                ...t,
+                courses: t.courses.map((c) =>
+                  c.id === courseId
+                    ? {
+                        ...c,
+                        title: offering.TITLE,
+                        faculty: offering.FACULTY,
+                        employeeId: offering.ERP_ID,
+                        venue: offering.ROOM || (offering as any).VENUE || c.venue,
+                      }
+                    : c
+                ),
+              }
+            : t
+        )
+      );
+    }
+  }, [activeTimetableId, generatorPreviewTimetable]);
 
   // Staged results the Social Matrix can score alongside saved timetables. The
   // generator subpage saves into `timetables` directly now, so nothing fills
@@ -543,6 +736,7 @@ export default function FFCSTimetableTab() {
   const [manualLinks, setManualLinks] = useState<ManualLink[]>([]);
   const [isManualLinkerOpen, setIsManualLinkerOpen] = useState(false);
   const [manualLinkCsvText, setManualLinkCsvText] = useState("");
+  const [facultyReviewTarget, setFacultyReviewTarget] = useState<{ name: string; employeeId?: string; courseCode?: string } | null>(null);
 
   const captureRef = useRef<HTMLDivElement>(null);
   const pdfCaptureRef = useRef<HTMLDivElement>(null);
@@ -729,6 +923,37 @@ export default function FFCSTimetableTab() {
     setRawParsedCourses(prev => mergeCourses(prev, incoming));
   }, []);
 
+  const updateActiveTimetableCourses = useCallback((newCourses: AddedCourse[]) => {
+    setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
+  }, [activeTimetableId, setTimetables]);
+
+  const handleLoadRegisteredCourses = useCallback((
+    addedCourses: AddedCourse[],
+    parsedCourses: ParsedCourse[],
+    replaceExisting: boolean
+  ) => {
+    if (addedCourses.length === 0) return;
+
+    if (replaceExisting) {
+      updateActiveTimetableCourses(addedCourses);
+    } else {
+      const existing = activeTimetable?.courses || [];
+      const toAdd = addedCourses.filter(
+        (ac) => !existing.some((ec) => ec.code === ac.code && ec.slots.join("+") === ac.slots.join("+"))
+      );
+      updateActiveTimetableCourses([...existing, ...toAdd]);
+    }
+
+    if (parsedCourses.length > 0) {
+      setRawParsedCourses((prev) => mergeCourses(prev, parsedCourses));
+    }
+
+    setSuccessMsg(
+      `Loaded ${addedCourses.length} course offering${addedCourses.length === 1 ? "" : "s"} into ${activeTimetable.name}.`
+    );
+    setTimeout(() => setSuccessMsg(null), 4000);
+  }, [activeTimetable, updateActiveTimetableCourses]);
+
   useEffect(() => {
     if (isLoaded) {
       safeStorage.setItem("ffcs_timetables", JSON.stringify(timetables));
@@ -759,10 +984,6 @@ export default function FFCSTimetableTab() {
     setSlotFilter("all");
     setSelectedSlotIndex("-1");
   }, [selectedCourseCode, isGroupingEnabled]);
-
-  const updateActiveTimetableCourses = (newCourses: AddedCourse[]) => {
-    setTimetables(prev => prev.map(t => t.id === activeTimetableId ? { ...t, courses: newCourses } : t));
-  };
 
   const theoryPeriods = (getTimetableSchema().theory as TimetablePeriod[]).filter(p => !p.lunch);
   const labPeriods = (getTimetableSchema().lab as TimetablePeriod[]).filter(p => !p.lunch);
@@ -896,6 +1117,19 @@ export default function FFCSTimetableTab() {
         setActiveTimetableId(newTimetables[0].id);
       }
     }
+  };
+
+  /**
+   * Confirm a row's rename in the Select Timetable sheet — the same
+   * trim-and-drop-empty rule the header's rename follows, applied to the id
+   * the row owns instead of the active one. Esc and the X both cancel.
+   */
+  const submitSheetRename = (id: string) => {
+    const name = sheetEditValue.trim();
+    if (name) {
+      setTimetables(prev => prev.map(t => (t.id === id ? { ...t, name } : t)));
+    }
+    setSheetEditingId(null);
   };
 
   const exportTimetables = () => {
@@ -1456,9 +1690,11 @@ export default function FFCSTimetableTab() {
             <div className="space-y-4">
               {/* Timetable Selector as Modal Trigger */}
               <div className="flex gap-2">
+                {/* A fresh open starts with no row in edit mode: a pencil left
+                    hanging when the sheet closed carries no claim back in. */}
                 <button
                   type="button"
-                  onClick={() => setIsTimetableModalOpen(true)}
+                  onClick={() => { setSheetEditingId(null); setIsTimetableModalOpen(true); }}
                   className="flex-1 bg-surface border border-border-strong rounded-xl pl-4 pr-3 py-2.5 text-sm text-text-heading hover:bg-surface-secondary/50 transition-all flex items-center justify-between gap-2 shadow-sm"
                 >
                   <span className="truncate font-medium">{activeTimetable?.name || 'Select Timetable'}</span>
@@ -1601,6 +1837,17 @@ export default function FFCSTimetableTab() {
                 </button>
               </div>
 
+              {/* Paste Registered Courses from VTOP */}
+              <button
+                type="button"
+                onClick={() => setIsPasteRegisteredModalOpen(true)}
+                className="w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold py-2.5 rounded-xl border border-purple-500/20 transition-all flex items-center justify-center gap-2 shadow-xs"
+                title="Paste registered courses from VTOP View/Modify page to display on your timetable"
+              >
+                <ClipboardPaste className="w-4 h-4" />
+                <span>Paste Registered Courses</span>
+              </button>
+
               {/* Faculty Schedule: the registration list, grouped by name. */}
               <button
                 type="button"
@@ -1616,6 +1863,30 @@ export default function FFCSTimetableTab() {
                   </span>
                 )}
               </button>
+
+              {/* Vitfac Community Review Link */}
+              {ENABLE_VITFAC_INTEGRATION && (
+                <div className="flex flex-col gap-1">
+                  <a
+                    href="https://vitfac.pages.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold py-2.5 px-3 rounded-xl border border-emerald-500/20 transition-all flex items-center justify-between gap-2 shadow-xs group"
+                    title="Leave faculty reviews on vitfac.pages.dev to help other students"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                        ★
+                      </span>
+                      <span className="truncate">Reviewed your profs? Leave a review on vitfac!</span>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                  <p className="text-[10px] text-muted-foreground/60 px-1 leading-tight">
+                    Disclaimer: Ratings are sourced from third-party platform <a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground">vitfac.pages.dev</a>. AmazeCC provides this integration solely as a provider for student convenience.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1643,13 +1914,24 @@ export default function FFCSTimetableTab() {
                       label="Group Embedded Courses"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsManualLinkerOpen(true)}
-                    className="text-xs px-2 py-1 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-md transition-colors border border-border-strong"
-                  >
-                    Advanced Linker
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPasteRegisteredModalOpen(true)}
+                      className="text-xs px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold rounded-md transition-colors border border-purple-500/30 flex items-center gap-1.5"
+                      title="Paste courses directly from VTOP"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                      <span>Paste VTOP</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsManualLinkerOpen(true)}
+                      className="text-xs px-2 py-1 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-md transition-colors border border-border-strong"
+                    >
+                      Advanced Linker
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -1725,11 +2007,53 @@ export default function FFCSTimetableTab() {
                         onClick={() => setIsSlotSearchOpen(true)}
                         className="w-2/3 bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-sm"
                       >
-                        <span className="truncate text-sm font-medium">
+                        <span className="truncate text-sm font-medium flex items-center gap-1.5 min-w-0">
                           {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
                             ? (() => {
                                 const row = availableSlots[parseInt(selectedSlotIndex)];
-                                return `${row.SLOT} - ${row.FACULTY}`;
+                                const rowSlots = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
+                                const facultyAlts = sameSlotFacultyAlternatives(
+                                  selectedCourseCode,
+                                  rowSlots,
+                                  { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
+                                  masterCourses
+                                );
+                                const facultyCount = 1 + facultyAlts.length;
+                                const facultyCountTitle =
+                                  facultyCount === 1
+                                    ? "1 faculty teaching this slot"
+                                    : `${facultyCount} faculties teaching this slot`;
+
+                                return (
+                                  <>
+                                    <FacultyAvatar
+                                      employeeId={row.ERP_ID}
+                                      name={row.FACULTY}
+                                      size="xs"
+                                      tone="blue"
+                                    />
+                                    <span className="truncate">{row.SLOT} - {row.FACULTY}</span>
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                                      title={facultyCountTitle}
+                                    >
+                                      <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+                                      <span>{facultyCount}</span>
+                                    </span>
+                                    <VitfacReviewPill
+                                      employeeId={row.ERP_ID}
+                                      name={row.FACULTY}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFacultyReviewTarget({
+                                          name: row.FACULTY,
+                                          employeeId: row.ERP_ID,
+                                          courseCode: selectedCourseCode || undefined,
+                                        });
+                                      }}
+                                    />
+                                  </>
+                                );
                               })()
                             : <span className="text-muted-foreground">-- Search & Choose Slot --</span>}
                         </span>
@@ -1900,7 +2224,29 @@ export default function FFCSTimetableTab() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {getGroupedCourses(courses).map(c => (
+                      {getGroupedCourses(courses).map(c => {
+                        const halves: AddedCourse[] = courses.filter((course) =>
+                          (c.ids ?? [c.id]).includes(course.id)
+                        );
+                        const counts = halves.map((half) => {
+                          const alts = sameSlotFacultyAlternatives(
+                            half.code,
+                            half.slots,
+                            { faculty: half.faculty, employeeId: half.employeeId },
+                            masterCourses
+                          );
+                          return 1 + alts.length;
+                        });
+                        const facultyCountDisplay =
+                          counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                            ? counts.join(" / ")
+                            : String(counts[0] ?? 1);
+                        const facultyCountTitle =
+                          counts.length === 1 && counts[0] === 1
+                            ? "1 faculty teaching this slot"
+                            : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
+
+                        return (
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-3">
@@ -1918,7 +2264,45 @@ export default function FFCSTimetableTab() {
                           <td className="py-3 px-2 text-sm text-text-heading/80">
                             {renderTypeChips(c.type)}
                           </td>
-                          <td className="py-3 px-2 text-sm text-text-heading/80">{c.faculty}</td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <FacultyAvatar
+                                employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                name={c.faculty}
+                                size="xs"
+                                tone="blue"
+                              />
+                              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                  title={facultyCountTitle}
+                                  className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-blue-500 transition-colors cursor-pointer max-w-full"
+                                >
+                                  <span className="truncate">{c.faculty}</span>
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-blue-500 group-hover:border-blue-500/40 transition-colors shrink-0"
+                                    title={facultyCountTitle}
+                                  >
+                                    <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-blue-500 shrink-0" />
+                                    <span>{facultyCountDisplay}</span>
+                                  </span>
+                                </button>
+                                <VitfacReviewPill
+                                  employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                  name={c.faculty}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFacultyReviewTarget({
+                                      name: c.faculty,
+                                      employeeId: halves[0]?.employeeId || (c as any).employeeId,
+                                      courseCode: c.code,
+                                    });
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </td>
                           <td className="py-3 px-2">
                             <div className="flex flex-wrap gap-1">
                               {c.slots.map(s => (
@@ -1942,7 +2326,8 @@ export default function FFCSTimetableTab() {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2044,8 +2429,19 @@ export default function FFCSTimetableTab() {
 
         {/* Selected Courses Table */}
         <div className="mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-text-heading">Course List</h2>
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl font-bold text-text-heading">Course List</h2>
+              <button
+                type="button"
+                onClick={() => setIsPasteRegisteredModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
+                title="Paste registered courses from VTOP View/Modify page to display on your timetable"
+              >
+                <ClipboardPaste className="w-3.5 h-3.5" />
+                <span>Paste Registered Courses</span>
+              </button>
+            </div>
             <p className="text-muted-foreground font-medium">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
           </div>
           <table className="w-full text-sm text-left border-collapse">
@@ -2062,7 +2458,19 @@ export default function FFCSTimetableTab() {
             <tbody>
               {courses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-foreground">No courses selected</td>
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2.5">
+                      <p className="text-sm">No courses selected in your timetable yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsPasteRegisteredModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-sm transition-all active:scale-95"
+                      >
+                        <ClipboardPaste className="w-4 h-4" />
+                        <span>Paste VTOP Registered Courses</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 getGroupedCourses(courses).map((c, i) => (
@@ -2093,10 +2501,15 @@ export default function FFCSTimetableTab() {
           </table>
         </div>
 
-        <div className="text-center mt-12 pt-4 border-t border-border-strong">
+        <div className="text-center mt-12 pt-4 border-t border-border-strong space-y-1">
           <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
             Generated by AmazeCC <MapIcon className="w-4 h-4 text-blue-500" />
           </p>
+          {ENABLE_VITFAC_INTEGRATION && (
+            <p className="text-[10px] text-muted-foreground/60 max-w-lg mx-auto">
+              Disclaimer: Faculty ratings are sourced from a third-party platform (<a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground font-medium">vitfac.pages.dev</a>). AmazeCC is not affiliated with nor responsible for these user reviews; we provide this integration solely as a third-party provider for student convenience.
+            </p>
+          )}
         </div>
       </div>
 
@@ -2112,13 +2525,44 @@ export default function FFCSTimetableTab() {
         uniqueCourseCodes={uniqueCourseCodes}
         renderTypeChips={renderTypeChips}
         onImportCourses={handleImportCourses}
+        onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
+      />
+
+      <PasteRegisteredCoursesModal
+        isOpen={isPasteRegisteredModalOpen}
+        onClose={() => setIsPasteRegisteredModalOpen(false)}
+        onLoadCourses={handleLoadRegisteredCourses}
       />
 
       <FacultyScheduleModal
         open={isFacultyScheduleOpen}
         onClose={() => setIsFacultyScheduleOpen(false)}
         groups={facultyGroups}
+        masterCourses={masterCourses}
       />
+
+      <FacultyReviewSheet
+        open={!!facultyReviewTarget}
+        onClose={() => setFacultyReviewTarget(null)}
+        facultyName={facultyReviewTarget?.name || ""}
+        employeeId={facultyReviewTarget?.employeeId}
+        courseCode={facultyReviewTarget?.courseCode}
+      />
+
+      <AnimatePresence>
+        {slotSwapRow && (
+          <SlotFacultySwapSheet
+            code={slotSwapRow.code}
+            courseTitle={slotSwapRow.title}
+            halves={courses.filter((c) => slotSwapRow.ids.includes(c.id))}
+            masterCourses={masterCourses}
+            onSwap={swapSlotFaculty}
+            onClose={() => setSlotSwapRow(null)}
+            backdropZIndex={450}
+            panelZIndex={455}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Friends Manager — a sheet, so it carries its own z rather than the
           sheet default: the tab can be in fullscreen (z-100) behind it. */}
@@ -2508,6 +2952,17 @@ export default function FFCSTimetableTab() {
                 const slotsArray = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
                 const clashError = checkClashes(slotsArray);
                 const isBlocked = !!clashError;
+                const facultyAlts = sameSlotFacultyAlternatives(
+                  selectedCourseCode,
+                  slotsArray,
+                  { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
+                  masterCourses
+                );
+                const facultyCount = 1 + facultyAlts.length;
+                const facultyCountTitle =
+                  facultyCount === 1
+                    ? "1 faculty teaching this slot"
+                    : `${facultyCount} faculties teaching this slot`;
                 
                 return (
                   <button
@@ -2539,8 +2994,35 @@ export default function FFCSTimetableTab() {
                         </div>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground flex justify-between w-full mt-1 border-t border-border-strong/30 pt-1.5">
-                      <span className="truncate pr-2">{row?.FACULTY}</span>
+                    <span className="text-xs text-muted-foreground flex justify-between items-center w-full mt-1 border-t border-border-strong/30 pt-1.5">
+                      <span className="flex items-center gap-1.5 min-w-0 pr-2">
+                        <FacultyAvatar
+                          employeeId={row?.ERP_ID}
+                          name={row?.FACULTY}
+                          size="xs"
+                          tone="blue"
+                        />
+                        <span className="truncate">{row?.FACULTY}</span>
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                          title={facultyCountTitle}
+                        >
+                          <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+                          <span>{facultyCount}</span>
+                        </span>
+                        <VitfacReviewPill
+                          employeeId={row?.ERP_ID}
+                          name={row?.FACULTY}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFacultyReviewTarget({
+                              name: row?.FACULTY || "",
+                              employeeId: row?.ERP_ID,
+                              courseCode: selectedCourseCode || undefined,
+                            });
+                          }}
+                        />
+                      </span>
                       <span className="font-medium text-text-heading/70 shrink-0">{row?.ROOM}</span>
                     </span>
                   </button>
@@ -2580,32 +3062,94 @@ export default function FFCSTimetableTab() {
             <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {timetables.map(t => {
                 const isActive = t.id === activeTimetableId;
+                const isEditingThis = sheetEditingId === t.id;
                 return (
-                  <button
+                  <div
                     key={t.id}
-                    onClick={() => {
-                      setActiveTimetableId(t.id);
-                      setIsTimetableModalOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex items-center justify-between gap-3 ${
-                      isActive 
-                        ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' 
+                    className={`w-full px-4 py-3 my-0.5 rounded-xl transition-colors flex items-center justify-between gap-2 ${
+                      isActive
+                        ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm'
                         : 'border border-transparent hover:bg-surface-secondary/80'
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-blue-500' : 'bg-muted-foreground/30'}`} />
-                      <div className="min-w-0">
-                        <span className={`font-bold text-sm block truncate ${isActive ? 'text-text-heading' : 'text-text-heading/80'}`}>
-                          {t.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{t.courses.length} course{t.courses.length !== 1 ? 's' : ''}</span>
-                      </div>
-                    </div>
-                    {isActive && (
-                      <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Active</span>
+                    {isEditingThis ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={sheetEditValue}
+                          onChange={e => setSheetEditValue(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') submitSheetRename(t.id);
+                            if (e.key === 'Escape') setSheetEditingId(null);
+                          }}
+                          className="flex-1 min-w-0 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                          placeholder="New name..."
+                          aria-label="Timetable name"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => submitSheetRename(t.id)}
+                          className="shrink-0 bg-green-500/20 text-green-400 p-1.5 rounded-lg border border-green-500/20 hover:bg-green-500/30"
+                          title="Save name"
+                          aria-label="Save name"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSheetEditingId(null)}
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
+                          title="Cancel rename"
+                          aria-label="Cancel rename"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTimetableId(t.id);
+                            setIsTimetableModalOpen(false);
+                          }}
+                          className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                        >
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-blue-500' : 'bg-muted-foreground/30'}`} />
+                          <div className="min-w-0">
+                            <span className={`font-bold text-sm block truncate ${isActive ? 'text-text-heading' : 'text-text-heading/80'}`}>
+                              {t.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{t.courses.length} course{t.courses.length !== 1 ? 's' : ''}</span>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {isActive && (
+                            <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md shrink-0">Active</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => { setSheetEditValue(t.name); setSheetEditingId(t.id); }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-text-heading hover:bg-surface-secondary transition-colors"
+                            title={`Rename ${t.name}`}
+                            aria-label={`Rename ${t.name}`}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteTimetable(t.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                            title={`Delete ${t.name}`}
+                            aria-label={`Delete ${t.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
                     )}
-                  </button>
+                  </div>
                 );
               })}
               {timetables.length === 0 && (
@@ -2701,7 +3245,21 @@ export default function FFCSTimetableTab() {
                             return c ? (
                               <div key={code} className="flex justify-between items-center text-xs">
                                 <span className="font-medium text-muted-foreground">{code}</span>
-                                <span className="text-text-heading">{c.faculty}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-text-heading">{c.faculty}</span>
+                                  <VitfacReviewPill
+                                    employeeId={c.employeeId}
+                                    name={c.faculty}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFacultyReviewTarget({
+                                        name: c.faculty,
+                                        employeeId: c.employeeId,
+                                        courseCode: code,
+                                      });
+                                    }}
+                                  />
+                                </div>
                               </div>
                             ) : null;
                           })}

@@ -36,6 +36,7 @@ import {
   periodsForSlot,
   slotSpellings,
   type CampusSchema,
+  type DayId,
   type SlotPeriod,
 } from "@/lib/slots";
 import {
@@ -54,6 +55,7 @@ export type GeneratorErrorCode =
   | "no_valid_slots"
   | "no_conflict_free"
   | "below_min_half_days"
+  | "no_separate_labs"
   /**
    * The solver itself threw. Not a filtering outcome — the worker catches it and
    * reports it under this code so the caller can tell "nothing matched" from
@@ -132,6 +134,18 @@ export interface GenerateParams {
    * anything the first one established).
    */
   rankingMode?: RankingMode;
+  /**
+   * Keep every lab on its own day.
+   *
+   * A week that books two labs onto one day — even in adjacent periods, which
+   * the overlap rule rightly allows — is dropped after the search, like the
+   * half-days floor. One lab that runs several lab periods, even across two
+   * days, is still one lab and never trips this. Optional and unset by
+   * default: with no value the pipeline is exactly the one it has always
+   * been. When the whole search space fails the rule, the run fails with
+   * `no_separate_labs`, an emptiness worded for the toggle that caused it.
+   */
+  separateLabDays?: boolean;
 }
 
 /**
@@ -456,6 +470,32 @@ function clashes(a: readonly SlotPeriod[], b: readonly SlotPeriod[]): boolean {
     for (const y of b) {
       if (x.day !== y.day) continue;
       if (Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Does this week put two lab bookings on one day?
+ *
+ * One lab's own lab periods are a single booking, not two — a lab that runs
+ * `L1+L2` in adjacent periods, or even reaches across two days, vacates the
+ * rule. What trips it is two *different* courses' lab halves sharing a day:
+ * two labs in adjacent periods are every overlap check's "disjoint" and still
+ * swallow an afternoon. Offerings with no lab half contribute nothing, which
+ * is also how a combination survives when only some of its courses have labs.
+ */
+function labsShareADay(
+  combination: readonly ParsedCourse[],
+  labDaysByOffering: ReadonlyMap<ParsedCourse, ReadonlySet<DayId>>
+): boolean {
+  const taken = new Set<DayId>();
+  for (const offering of combination) {
+    const labDays = labDaysByOffering.get(offering);
+    if (!labDays) continue;
+    for (const day of labDays) {
+      if (taken.has(day)) return true;
+      taken.add(day);
     }
   }
   return false;
@@ -796,7 +836,8 @@ function scoreCombination(
  *
  * ## Order of operations, and why it must not change
  *
- * The pipeline is filter options → backtrack → score → drop under the
+ * The pipeline is filter options → backtrack → score → drop weeks that put
+ * two labs on one day (only when the run asked for that) → drop under the
  * half-days minimum → sort → dedupe faculty → group variants. That order is the
  * product's behaviour: an earlier stage's contract is only meaningful relative
  * to the ones around it. Adding hooks does not reorder it — hooks only observe.
@@ -829,6 +870,14 @@ export function generateTimetablesStream(
 
   const optionsPerCourse: ParsedCourse[][] = [];
   const windowsPerCourse: SlotPeriod[][][] = [];
+  /**
+   * Which days each offering's lab periods land on, by offering reference —
+   * collected while the windows are built because only here are the periods
+   * in hand (a second schema walk per visited combination would be the cost
+   * this precompute exists to avoid). Empty unless the run rules lab days
+   * apart; the rule reads absence as "never".
+   */
+  const labDaysByOffering = new Map<ParsedCourse, Set<DayId>>();
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -844,9 +893,18 @@ export function generateTimetablesStream(
     windowsPerCourse.push(
       options.map((opt) => {
         const periods: SlotPeriod[] = [];
+        const labDays = new Set<DayId>();
         for (const slot of splitSlots(opt.SLOT)) {
-          periods.push(...periodsForSlot(schema, slot));
+          for (const period of periodsForSlot(schema, slot)) {
+            periods.push(period);
+            // The schema's own lab/theory split, not a slot-name convention:
+            // the lab list is what makes a period a lab.
+            if (params.separateLabDays && period.type === "lab") {
+              labDays.add(period.day);
+            }
+          }
         }
+        if (params.separateLabDays) labDaysByOffering.set(opt, labDays);
         return periods;
       })
     );
@@ -862,6 +920,10 @@ export function generateTimetablesStream(
     : [];
 
   const accepted: TimetableState[] = [];
+  // Whether any complete, conflict-free combination was rejected by the lab
+  // rule. Only read when the run ends with nothing accepted, to name which
+  // result filter ate the search.
+  let labDayRejected = false;
   let emitted = 0;
   const flush = () => {
     if (accepted.length <= emitted) return;
@@ -872,6 +934,15 @@ export function generateTimetablesStream(
 
   const walk = walkCombinations(optionsPerCourse, windowsPerCourse, limit, {
     visit: (combination) => {
+      // A week that puts two labs on one day is dropped before it is scored:
+      // the rule is about the shape of the week, so scoring it for the bin is
+      // money spent for nothing. It is a filter on the *result*, not on the
+      // search — the walk's own `found` keeps counting all conflict-free
+      // combinations, exactly as it does for the half-days floor.
+      if (params.separateLabDays && labsShareADay(combination, labDaysByOffering)) {
+        labDayRejected = true;
+        return;
+      }
       const timetable = scoreCombination(params, combination, scoredFriends);
       // The half-days floor is a filter on the *result*, not on the search: a
       // combination can be perfectly conflict-free and still be a week the
@@ -903,6 +974,12 @@ export function generateTimetablesStream(
     return { kind: "error", code: "no_conflict_free" };
   }
   if (!accepted.length) {
+    // When both result filters contributed rejections, the lab rule wins the
+    // wording: it is the newer and more specific constraint, and the
+    // half-days floor was already in effect while the search ran.
+    if (labDayRejected) {
+      return { kind: "error", code: "no_separate_labs" };
+    }
     return { kind: "error", code: "below_min_half_days" };
   }
 

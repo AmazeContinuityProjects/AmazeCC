@@ -20,7 +20,8 @@
  * preview with per-line confidence and errors, and only then imports.
  */
 
-import type { ParsedCourse } from "@/components/custom/exams/FFCS/types";
+import type { ParsedCourse, AddedCourse } from "@/components/custom/exams/FFCS/types";
+import { COLORS } from "@/components/custom/exams/FFCS/constants";
 
 export interface PastedCourseOption {
   /** Exactly what was pasted, so the preview can echo it back unaltered. */
@@ -35,6 +36,22 @@ export interface PastedCourseOption {
   credits: number | null;
   confidence: "high" | "medium" | "low";
   errors: string[];
+  venue?: string | null;
+  type?: string | null;
+  classId?: string | null;
+  employeeId?: string | null;
+}
+
+export interface VtopCourseRow {
+  code: string;
+  title: string;
+  type: string;
+  credits: string;
+  slot: string;
+  venue: string;
+  faculty: string;
+  employeeId?: string;
+  classId?: string;
 }
 
 /**
@@ -58,16 +75,14 @@ const COURSE_CODE_RE = /\b([A-Z]{2,6}\d{2,4}[A-Z]?)\b/i;
  * Slots this schema can hold: `A1`…`TAA1`, law's `S11`/`S15`, and any
  * `X1+Y1` chain of them.
  *
- * `S\d{1,2}` is carried over from the reference precisely because law spells
- * two of its periods `S11` and `S15` rather than as a letter, and dropping it
- * would drop the whole law catalogue from a paste.
+ * Matches valid theory slots while avoiding room patterns like `AB4-305`.
  */
 const THEORY_RE =
-  /\b(?:T?[A-G]{1,2}\d{1,2}|S\d{1,2})(?:\s*\+\s*(?:T?[A-G]{1,2}\d{1,2}|S\d{1,2}))*\b/gi;
-const LAB_RE = /\bL\d{1,2}(?:\s*\+\s*L\d{1,2})*\b/gi;
+  /\b(?:T?(?:AA|BB|CC|DD|[A-G])\d{1,2}|S\d{1,2}|V\d{1,2})(?:\s*\+\s*(?:T?(?:AA|BB|CC|DD|[A-G])\d{1,2}|S\d{1,2}|V\d{1,2}))*\b/gi;
+const LAB_RE = /\bL\d{1,3}(?:\s*\+\s*L\d{1,3})*\b/gi;
 const THEORY_TEST_RE =
-  /\b(?:T?[A-G]{1,2}[1-9]|S\d{1,2})(?:\s*\+\s*(?:T?[A-G]{1,2}[1-9]|S\d{1,2}))*\b/i;
-const LAB_TEST_RE = /\bL\d{1,2}(?:\s*\+\s*L\d{1,2})*\b/i;
+  /\b(?:T?(?:AA|BB|CC|DD|[A-G])[1-9]|S\d{1,2}|V\d{1,2})(?:\s*\+\s*(?:T?(?:AA|BB|CC|DD|[A-G])[1-9]|S\d{1,2}|V\d{1,2}))*\b/i;
+const LAB_TEST_RE = /\bL\d{1,3}(?:\s*\+\s*L\d{1,3})*\b/i;
 
 /** Wording that means "this course has both halves", for the TYPE below. */
 const EMBEDDED_RE = /\bembedded\b/i;
@@ -252,7 +267,186 @@ function parseLine(
   };
 }
 
+const VALID_SLOT_TOKEN = /^(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3})$/i;
+
+function isValidSlot(slot: string): boolean {
+  if (!slot) return false;
+  const parts = slot.split("+").map((s) => s.trim().toUpperCase());
+  return parts.length > 0 && parts.every((p) => VALID_SLOT_TOKEN.test(p));
+}
+
+/** Check if text is copied from VTOP registration or View/Modify page */
+export function isVtopRegistrationText(raw: string): boolean {
+  const lower = String(raw ?? "").toLowerCase();
+  return (
+    lower.includes("registered and") ||
+    (lower.includes("course details") && lower.includes("class detail")) ||
+    (lower.includes("embedded theory") && lower.includes("embedded lab")) ||
+    lower.includes("winter semester registration") ||
+    lower.includes("fall semester registration") ||
+    lower.includes("software development cell, vit")
+  );
+}
+
+/** Parse full course entries from VTOP registration page */
+export function parseVtopRegistrationText(raw: string): VtopCourseRow[] {
+  const cleanedText = String(raw ?? "")
+    .replace(/(?:WINTER|FALL)\s+SEMESTER\s+REGISTRATION[^\n]*/gi, "")
+    .replace(/VIT\s*-\s*CHENNAI\s+CAMPUS/gi, "")
+    .replace(/Home\s+View\s*\/\s*Modify/gi, "")
+    .replace(/SignOut/gi, "")
+    .replace(/Copyright\s+©[^\n]*/gi, "")
+    .replace(/Course\s+Details\s+Credit\s+Course\s+Category\s+Course\s*Option\s*Class\s+Detail\s+Slot\s+Faculty\s+Status\s+Modify\s+Delete/gi, "")
+    .replace(/Course\s+Details\s+Credit\s+Course\s+Category\s+Course/gi, "")
+    .replace(/Option\s*Class\s+Detail\s+Slot\s+Faculty\s+Status\s+Modify\s+Delete/gi, "");
+
+  const courseCodePattern = /(?:^|\n)\s*([A-Z]{2,6}\d{2,4}[A-Z]?)\s*-\s*/g;
+  const matches: { index: number; code: string }[] = [];
+  let m: RegExpExecArray | null;
+
+  while ((m = courseCodePattern.exec(cleanedText)) !== null) {
+    matches.push({ index: m.index, code: m[1] });
+  }
+
+  const results: VtopCourseRow[] = [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : cleanedText.length;
+    const chunk = cleanedText.slice(start, end).trim();
+    const code = matches[i].code.toUpperCase();
+
+    // 1. Credits
+    const creditsMatch =
+      chunk.match(/\b([0-4](?:\.[0-5])?)\s*(?:Concentration|Programme|University|Open Elective|Regular)/i) ||
+      chunk.match(/\b([0-4]\.0)\b/);
+    const credits = creditsMatch ? creditsMatch[1] : "0";
+
+    // 2. Type
+    let type = "TH";
+    if (/embedded\s*theory/i.test(chunk)) {
+      type = "ETH";
+    } else if (/embedded\s*lab/i.test(chunk)) {
+      type = "ELA";
+    } else if (/theory\s*only/i.test(chunk)) {
+      type = "TH";
+    } else if (/lab\s*only/i.test(chunk)) {
+      type = "LO";
+    } else if (/soft\s*skill/i.test(chunk)) {
+      type = "SS";
+    }
+
+    // 3. Title
+    let title = "";
+    const typeWordMatch = chunk.match(
+      /(?:-\s*)?(Embedded\s+Theory|Embedded\s+Lab|Theory\s+Only|Lab\s+Only|Soft\s+Skill)/i
+    );
+    if (typeWordMatch && typeWordMatch.index) {
+      const titlePortion = chunk.slice(0, typeWordMatch.index);
+      title = titlePortion
+        .replace(new RegExp(`^\\s*${code}\\s*-\\s*`, "i"), "")
+        .replace(/-\s*$/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    } else {
+      const firstLine = chunk.split("\n")[0];
+      const parts = firstLine.split("-").map((s) => s.trim());
+      title = parts[1] || "";
+    }
+
+    // 4. Venue
+    const venueMatches = Array.from(chunk.matchAll(/[A-Z]{1,4}\d*[-_]\d+[A-Z]?/gi)).map((match) => match[0]);
+    const venue = venueMatches.length > 0 ? venueMatches[venueMatches.length - 1] : "TBA";
+
+    // 5. Slot
+    const slotMatches = Array.from(
+      chunk.matchAll(
+        /\b(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3})(?:\+(?:T?(?:AA|BB|CC|DD|[A-G])[12]|S\d{1,2}|V\d{1,2}|L\d{1,3}))*\b/gi
+      )
+    ).map((match) => match[0]);
+    const validSlots = slotMatches.filter(isValidSlot);
+    const slot = validSlots[0] || "";
+
+    // 6. Class ID
+    const classIdMatch = chunk.match(/\b([A-Z]{2}\d{12,14})\b/);
+    const classId = classIdMatch ? classIdMatch[1] : undefined;
+
+    // 7. Faculty & Employee ID
+    let faculty = "";
+    let employeeId: string | undefined;
+
+    if (slot) {
+      const slotIndex = chunk.indexOf(slot);
+      const afterSlot = chunk.slice(slotIndex + slot.length);
+      const statusIndex = afterSlot.search(/Registered\s+and|Registered|Status/i);
+      const facultyBlock = (statusIndex >= 0 ? afterSlot.slice(0, statusIndex) : afterSlot).trim();
+
+      const inlineEmpMatch = facultyBlock.match(/[-–—]\s*(\d{4,6}|[A-Z]{3}\d{2})\b/);
+      if (inlineEmpMatch) {
+        employeeId = inlineEmpMatch[1];
+      }
+
+      const facultyLines = facultyBlock
+        .replace(/[-–—]\s*(\d{4,6}|[A-Z]{3}\d{2})\b/g, "")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      if (facultyLines.length > 1) {
+        const lastLine = facultyLines[facultyLines.length - 1];
+        if (/^(\d{4,6}|[A-Z]{2,4}\d{1,4}|[A-Z0-9_-]+)$/i.test(lastLine)) {
+          if (!employeeId) employeeId = lastLine;
+          facultyLines.pop();
+        }
+      }
+
+      faculty = facultyLines
+        .join(" ")
+        .replace(/\b(\d{4,6}|[A-Z]{3}\d{2})\b/g, "")
+        .replace(/-\s*$/, "")
+        .replace(/^-\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    results.push({
+      code,
+      title,
+      type,
+      credits,
+      slot,
+      venue,
+      faculty,
+      employeeId,
+      classId,
+    });
+  }
+
+  return results;
+}
+
 export function parsePastedText(raw: string): PastedCourseOption[] {
+  if (isVtopRegistrationText(raw)) {
+    const vtopRows = parseVtopRegistrationText(raw);
+    if (vtopRows.length > 0) {
+      return vtopRows.map((row) => ({
+        rawLine: `${row.code} - ${row.title} - ${row.type} - ${row.slot} - ${row.venue} - ${row.faculty}`,
+        courseCode: row.code,
+        courseName: row.title,
+        professorName: row.faculty,
+        theorySlotRaw: row.type === "ELA" || row.type === "LO" ? null : row.slot,
+        labSlotRaw: row.type === "ELA" || row.type === "LO" ? row.slot : null,
+        credits: row.credits ? parseFloat(row.credits) : null,
+        confidence: "high",
+        errors: [],
+        venue: row.venue,
+        type: row.type,
+        classId: row.classId,
+        employeeId: row.employeeId,
+      }));
+    }
+  }
+
   const lines = String(raw ?? "")
     .split(/\r?\n/)
     .map(cleanLine)
@@ -370,23 +564,89 @@ export function toParsedCourses(options: readonly PastedCourseOption[]): ParsedC
       // `L…` slot and a non-`L` one, which is the solver's own test.
       const hasLab = tokens.some((token) => token.startsWith("L"));
       const hasTheory = tokens.some((token) => !token.startsWith("L"));
-      const type =
+      const inferredType =
         hasTheory && hasLab ? (isEmbedded(option.rawLine) ? "ETH + ELA" : "TH") : hasLab ? "LO" : "TH";
+      const type = option.type || inferredType;
 
       rows.push({
         CODE: option.courseCode,
         TITLE: option.courseName ?? "",
         TYPE: type,
         CREDITS: option.credits != null ? String(option.credits) : "0",
-        ROOM: "",
+        ROOM: option.venue || "",
         SLOT: slot,
         FACULTY: option.professorName ?? "",
         BATCH: "",
+        CLASS_ID: option.classId,
+        ERP_ID: option.employeeId,
       });
     }
   }
 
   return rows;
+}
+
+/** Convert parsed VTOP rows into complete AddedCourses for the timetable */
+export function vtopRowsToAddedCourses(rows: readonly VtopCourseRow[]): AddedCourse[] {
+  const codeColorMap = new Map<string, string>();
+  let nextColorIndex = 0;
+
+  return rows.map((row) => {
+    if (!codeColorMap.has(row.code)) {
+      codeColorMap.set(row.code, COLORS[nextColorIndex % COLORS.length]);
+      nextColorIndex++;
+    }
+    const color = codeColorMap.get(row.code)!;
+    const slots = row.slot
+      .split("+")
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => s && s !== "NIL");
+
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      code: row.code,
+      title: row.title,
+      slots,
+      faculty: row.faculty,
+      employeeId: row.employeeId,
+      venue: row.venue || "TBA",
+      credits: row.credits || "0",
+      type: row.type || "Theory",
+      color,
+    };
+  });
+}
+
+/** Convert ParsedCourses directly into AddedCourses */
+export function parsedCoursesToAddedCourses(courses: readonly ParsedCourse[]): AddedCourse[] {
+  const codeColorMap = new Map<string, string>();
+  let nextColorIndex = 0;
+
+  return courses.map((course) => {
+    if (!codeColorMap.has(course.CODE)) {
+      codeColorMap.set(course.CODE, COLORS[nextColorIndex % COLORS.length]);
+      nextColorIndex++;
+    }
+    const color = codeColorMap.get(course.CODE)!;
+    const slots = course.SLOT
+      .split("+")
+      .map((s) => s.trim().toUpperCase())
+      .filter((s) => s && s !== "NIL");
+
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      code: course.CODE,
+      title: course.TITLE,
+      slots,
+      faculty: course.FACULTY,
+      employeeId: course.ERP_ID,
+      venue: course.ROOM || "TBA",
+      credits: course.CREDITS || "0",
+      type: course.TYPE || "Theory",
+      color,
+      batch: course.BATCH,
+    };
+  });
 }
 
 /** Paste → rows, in one step, for callers that only want the result. */
