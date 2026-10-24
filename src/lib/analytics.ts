@@ -74,6 +74,8 @@ export interface AnalyticsEventMap {
   tour_step: { step: number; total: number };
   /** A preview course was handed to another faculty at the same slots. */
   slot_faculty_swap: Record<string, never>;
+  /** Registered courses were pasted directly into timetable. */
+  ffcs_paste_registered_courses: { count: number; mode: string; replace: boolean };
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap;

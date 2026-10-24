@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { AlertTriangle, CheckCircle2, ClipboardPaste, FileSpreadsheet, Info, UploadCloud } from "lucide-react";
-import type { ParsedCourse } from "../types";
-import { parsePastedText, toParsedCourses } from "@/features/import/parsePastedText";
+import type { ParsedCourse, AddedCourse } from "../types";
+import { parsePastedText, toParsedCourses, parsedCoursesToAddedCourses } from "@/features/import/parsePastedText";
 import { track } from "@/lib/analytics";
 import { importFile, type FileImport } from "@/features/import/importFile";
 import { SegmentedControl } from "@/components/custom/shared/primitives";
@@ -40,11 +40,14 @@ interface CourseImportPanelProps {
   mode: ImportMode;
   /** Called with the rows to add. The panel does not mutate anything itself. */
   onImport: (courses: ParsedCourse[]) => void;
+  /** Optional callback to also load directly to the active timetable */
+  onImportToTimetable?: (courses: AddedCourse[]) => void;
 }
 
-export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
+export function CourseImportPanel({ mode, onImport, onImportToTimetable }: CourseImportPanelProps) {
   const [text, setText] = useState("");
   const [fileResult, setFileResult] = useState<FileImport | null>(null);
+  const [addToTimetable, setAddToTimetable] = useState(true);
   // Kept only so the import event can name the format; the parser works from
   // bytes and never learns the extension.
   const [fileExt, setFileExt] = useState("unknown");
@@ -84,6 +87,9 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
       track("import_file", { courses: coursesToImport.length, format: fileExt });
     }
     onImport(coursesToImport);
+    if (addToTimetable && onImportToTimetable) {
+      onImportToTimetable(parsedCoursesToAddedCourses(coursesToImport));
+    }
     setText("");
     setFileResult(null);
   };
@@ -103,17 +109,29 @@ export function CourseImportPanel({ mode, onImport }: CourseImportPanelProps) {
       ) : (
         <p className="text-xs text-muted-foreground">
           {mode === "paste"
-            ? "Paste one course per line — a code, a slot, and a name is enough."
+            ? "Paste one course per line or copy-paste directly from VTOP registration."
             : "CSV, TSV or XLSX. Column headings do not have to match ours."}
         </p>
       )}
 
       <div className="flex items-center justify-between gap-3 pt-1 border-t border-border-strong/40">
-        <span className="text-xs text-muted-foreground" aria-live="polite">
-          {canImport
-            ? `${coursesToImport.length} course${coursesToImport.length === 1 ? "" : "s"} ready to add`
-            : "Nothing to add yet"}
-        </span>
+        {onImportToTimetable ? (
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-text-heading font-medium">
+            <input
+              type="checkbox"
+              checked={addToTimetable}
+              onChange={(e) => setAddToTimetable(e.target.checked)}
+              className="rounded border-border-strong text-purple-600 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer"
+            />
+            <span>Also add directly to active timetable</span>
+          </label>
+        ) : (
+          <span className="text-xs text-muted-foreground" aria-live="polite">
+            {canImport
+              ? `${coursesToImport.length} course${coursesToImport.length === 1 ? "" : "s"} ready to add`
+              : "Nothing to add yet"}
+          </span>
+        )}
         <button
           type="button"
           onClick={handleImport}

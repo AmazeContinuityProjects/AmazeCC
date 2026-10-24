@@ -37,6 +37,7 @@ import {
   TONE_ICON_TILE,
 } from "@/lib/uiTokens";
 import FacultyScheduleModal from "./FFCS/components/modals/FacultyScheduleModal";
+import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "./FFCS/components/FacultyReviewSheet";
 import {
   buildFacultyNameGroups,
   loadFacultyOfferings,
@@ -83,12 +84,14 @@ const FacultyCard = ({
   onDetailFetched,
   hasSchedule,
   onViewSchedule,
+  onViewReview,
 }: {
   profile: FacultyProfile;
   onDetailFetched: (p: FacultyProfile) => void;
   /** Whether the FFCS report is loaded, so the affordance is only offered when it can work. */
   hasSchedule?: boolean;
   onViewSchedule?: () => void;
+  onViewReview?: () => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -129,29 +132,31 @@ const FacultyCard = ({
   return (
     <div className={TILE_CARD}>
       <div className="flex items-center gap-3.5">
-        {profile.imageUrl ? (
-          <img
-            src={profile.imageUrl}
-            alt={profile.name}
-            loading="lazy"
-            decoding="async"
-            className="w-12 h-12 rounded-2xl object-cover shrink-0 border border-border-muted"
-            onError={(e: any) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <span
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${TONE_ICON_TILE.indigo}`}
-          >
-            <User className="w-6 h-6" />
-          </span>
-        )}
+        <FacultyAvatar
+          employeeId={profile.employeeId}
+          name={profile.name}
+          fallbackImageUrl={profile.imageUrl}
+          size="md"
+          tone="indigo"
+          className="w-12 h-12 rounded-2xl"
+        />
         <ListRowText
           title={profile.name}
           titleTooltip={profile.name}
           titleTag="h3"
-          subtitle={profile.designation || "Faculty Member"}
+          subtitle={
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span>{profile.designation || "Faculty Member"}</span>
+              <VitfacReviewPill
+                employeeId={profile.employeeId}
+                name={profile.name}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewReview?.();
+                }}
+              />
+            </span>
+          }
           right={
             profile.profileUrl ? (
               <a
@@ -287,6 +292,7 @@ export default function FacultyInfoTab({
   const [scheduleGroups, setScheduleGroups] = useState<FacultyNameGroup[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [scheduleFaculty, setScheduleFaculty] = useState<string | null>(null);
+  const [reviewFaculty, setReviewFaculty] = useState<{ name: string; employeeId?: string } | null>(null);
 
   // Fetch school list on mount (do NOT auto-select so user can pick from pill cards)
   useEffect(() => {
@@ -548,6 +554,7 @@ export default function FacultyInfoTab({
               profile={f}
               hasSchedule={scheduleGroups.length > 0}
               onViewSchedule={() => setScheduleFaculty(f.name)}
+              onViewReview={() => setReviewFaculty({ name: f.name, employeeId: f.employeeId })}
               onDetailFetched={(updated) => {
                 setFaculties((prev) =>
                   prev.map((p) =>
@@ -607,6 +614,13 @@ export default function FacultyInfoTab({
         groups={scheduleGroups}
         loading={scheduleLoading}
         initialFaculty={scheduleFaculty ?? undefined}
+      />
+
+      <FacultyReviewSheet
+        open={reviewFaculty !== null}
+        onClose={() => setReviewFaculty(null)}
+        facultyName={reviewFaculty?.name || ""}
+        employeeId={reviewFaculty?.employeeId}
       />
     </>
   );

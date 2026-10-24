@@ -43,6 +43,7 @@ export interface FacultyOffering {
   FACULTY: string;
   ROOM?: string;
   VENUE?: string;
+  ERP_ID?: string;
 }
 
 /**

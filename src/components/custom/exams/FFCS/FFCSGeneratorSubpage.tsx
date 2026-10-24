@@ -14,13 +14,14 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
 import { offeringId, offeringMatches } from './reports';
-import { splitSlots, HARD_RESULT_LIMIT } from './logic/generate';
+import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
-import { SegmentedControl, RadioGroup } from "../../shared/primitives";
+import { PageShell, SegmentedControl, RadioGroup } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
-import SubpageLayout from "../../shared/SubpageLayout";
+import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
+import FacultyReviewSheet, { VitfacReviewPill } from './components/FacultyReviewSheet';
 
 const GENERATOR_SORT_OPTIONS = [
   {
@@ -150,9 +151,17 @@ export function FFCSGeneratorSubpage({
   masterCourses, blockedSlots, timetables, setTimetables, setActiveTimetableId,
   error, setError, successMsg, setSuccessMsg, renderTypeChips, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
 }: FFCSGeneratorSubpageProps) {
-  const [generatorPreference, setGeneratorPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
-  const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState(false);
-  const [generatorNoLimit, setGeneratorNoLimit] = useState(false);
+  const sessionPrefs = useMemo(() => loadSessionPreferences(), []);
+
+  const [generatorPreference, setGeneratorPreference] = useState<"compact" | "spread" | "morning" | "evening">(
+    () => sessionPrefs.preference ?? "compact"
+  );
+  const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState<boolean>(
+    () => sessionPrefs.uniqueFaculties ?? false
+  );
+  const [generatorNoLimit, setGeneratorNoLimit] = useState<boolean>(
+    () => sessionPrefs.noLimit ?? false
+  );
   // The generator now streams: `run` hands back batches while the search is
   // still going, and `cancel` stops a worker the old awaited promise could not
   // have interrupted.
@@ -162,7 +171,9 @@ export function FFCSGeneratorSubpage({
   // open, so "on mount" is "each time the student opens the generator"), and
   // edited here only — this run's controls never write back to settings.
   const [rankingMode, setRankingMode] = useState<RankingMode | null>(
-    settings.rankingMode === "none" ? null : settings.rankingMode
+    () => sessionPrefs.rankingMode !== undefined
+      ? sessionPrefs.rankingMode
+      : (settings.rankingMode === "none" ? null : settings.rankingMode)
   );
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
   // The render window over `stagedTimetables`. State, not a derived slice
@@ -171,16 +182,26 @@ export function FFCSGeneratorSubpage({
   // anything about the list itself — every option the search kept is still
   // in `stagedTimetables` for the save bar to scan.
   const [stagedVisibleCount, setStagedVisibleCount] = useState<number>(STAGED_RENDER_LIMIT);
-  const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(settings.minHalfDays);
-  const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>("08:00");
-  const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>("19:30");
-  const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(settings.defaultSortBy);
+  const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(
+    () => sessionPrefs.minHalfDays ?? settings.minHalfDays
+  );
+  const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>(
+    () => sessionPrefs.minStartTime ?? "08:00"
+  );
+  const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>(
+    () => sessionPrefs.maxEndTime ?? "19:30"
+  );
+  const [generatorSortBy, setGeneratorSortBy] = useState<SortBy>(
+    () => sessionPrefs.sortBy ?? settings.defaultSortBy
+  );
   const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
   const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
+  const [isReviewing, setIsReviewing] = useState<boolean>(false);
   // The Selected-Courses row whose Faculty cell was tapped — drives the
   // same-slot faculty swap sheet below.
   const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
+  const [reviewSheetTarget, setReviewSheetTarget] = useState<{ name: string; employeeId?: string; courseCode?: string } | null>(null);
   /*
     The generator's picks are its own, not the planner's course locks.
 
@@ -202,6 +223,9 @@ export function FFCSGeneratorSubpage({
   const seededFromLocks = courseLocks.length > 0;
   const [generatorTargets, setGeneratorTargets] = useState<CourseLock[]>(() => {
     if (seededFromLocks) return courseLocks.map((lock) => ({ ...lock }));
+    if (sessionPrefs.targets && sessionPrefs.targets.length > 0) {
+      return sessionPrefs.targets;
+    }
     try {
       const stored = safeStorage.getItem(TARGETS_STORAGE_KEY);
       const parsed = stored ? (JSON.parse(stored) as CourseLock[]) : [];
@@ -215,8 +239,43 @@ export function FFCSGeneratorSubpage({
     if (seededFromLocks) return;
     safeStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(generatorTargets));
   }, [generatorTargets, seededFromLocks]);
-  const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
-  const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
+  const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState<boolean>(
+    () => sessionPrefs.syncFriendsClasses ?? sessionPrefs.syncFriendClasses ?? false
+  );
+  const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>(
+    () => sessionPrefs.maximizeFreeTimeFriends ?? []
+  );
+
+  useEffect(() => {
+    saveSessionPreferences({
+      preference: generatorPreference,
+      uniqueFaculties: generatorUniqueFaculties,
+      noLimit: generatorNoLimit,
+      rankingMode,
+      minHalfDays: generatorMinHalfDays,
+      minStartTime: generatorMinStartTime,
+      maxEndTime: generatorMaxEndTime,
+      sortBy: generatorSortBy,
+      syncFriendsClasses: generatorSyncFriendsClasses,
+      syncFriendClasses: generatorSyncFriendsClasses,
+      maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
+      targets: generatorTargets,
+      isReviewing,
+    });
+  }, [
+    generatorPreference,
+    generatorUniqueFaculties,
+    generatorNoLimit,
+    rankingMode,
+    generatorMinHalfDays,
+    generatorMinStartTime,
+    generatorMaxEndTime,
+    generatorSortBy,
+    generatorSyncFriendsClasses,
+    generatorMaximizeFreeTimeFriends,
+    generatorTargets,
+    isReviewing,
+  ]);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
   const [isVariantSearchOpen, setIsVariantSearchOpen] = useState(false);
   const [variantSearchQuery, setVariantSearchQuery] = useState("");
@@ -230,7 +289,31 @@ export function FFCSGeneratorSubpage({
   // true: the component only mounts while the subpage is on show, and the
   // nested sheets (dash, gap, variant) push their own entries on top, so a back
   // gesture still dismisses them first.
-  useOverlayBack("ffcs-auto-generator", true, onClose);
+  const handleBack = () => {
+    if (reviewSheetTarget) {
+      setReviewSheetTarget(null);
+      return;
+    }
+    if (slotSwapRow) {
+      setSlotSwapRow(null);
+      return;
+    }
+    if (generatorPreviewTimetable) {
+      setGeneratorPreviewTimetable(null);
+      return;
+    }
+    if (isCompareModalOpen) {
+      setIsCompareModalOpen(false);
+      return;
+    }
+    if (isReviewing && stagedTimetables.length > 0) {
+      setIsReviewing(false);
+      return;
+    }
+    onClose();
+  };
+
+  useOverlayBack("ffcs-auto-generator", true, handleBack);
 
   const timeToMinutes = (timeStr: string) => {
     if (!timeStr) return 0;
@@ -343,6 +426,7 @@ export function FFCSGeneratorSubpage({
         const labelled = batch.map((tt, i) => ({ ...tt, name: `Option ${shown + i + 1}` }));
         shown += batch.length;
         setStagedTimetables((prev) => [...prev, ...labelled]);
+        setIsReviewing(true);
       }
     );
 
@@ -355,6 +439,7 @@ export function FFCSGeneratorSubpage({
 
     if (outcome.kind === "error") {
       settle(0, false);
+      setIsReviewing(false);
       setError(errorFor(outcome.code, outcome.subjectCode));
       return;
     }
@@ -366,6 +451,7 @@ export function FFCSGeneratorSubpage({
       const partial = outcome.timetables.map((tt, i) => ({ ...tt, name: `Option ${i + 1}` }));
       setStagedTimetables(partial);
       if (partial.length) {
+        setIsReviewing(true);
         setSuccessMsg(
           `Stopped early. ${partial.length} option${partial.length === 1 ? "" : "s"} had been found before the search ended.`
         );
@@ -378,6 +464,7 @@ export function FFCSGeneratorSubpage({
     const timetables = outcome.timetables;
     settle(timetables.length, outcome.capped);
     setStagedTimetables(timetables);
+    setIsReviewing(true);
     const variantCount = timetables.reduce(
       (n, t) => n + (t.variants?.length ?? 1),
       0
@@ -441,88 +528,196 @@ export function FFCSGeneratorSubpage({
     track("slot_faculty_swap");
   };
 
-  // File upload and clear master handlers removed as database is preloaded.
+  const saveSelectedTimetables = () => {
+    const selected: TimetableState[] = [];
+    stagedTimetables.forEach((t) => {
+      if (t.variants && t.variants.length > 1) {
+        t.variants.forEach((v) => {
+          if (selectedStagedIds.has(v.id)) selected.push(v);
+        });
+      } else if (selectedStagedIds.has(t.id)) {
+        selected.push(t);
+      }
+    });
+    setTimetables((prev) => [...prev, ...selected]);
+    track("timetable_saved", { source: "generator" });
+    if (selected.length > 0) setActiveTimetableId(selected[0].id);
+    setStagedTimetables([]);
+    setSelectedStagedIds(new Set());
+    setIsReviewing(false);
+    onClose();
+    setSuccessMsg(
+      `Saved ${selected.length} timetable${selected.length === 1 ? "" : "s"} to the planner.`
+    );
+  };
 
-  /*
-    A subpage, not a sheet: the generator is a workspace with its own toolbar,
-    its own notices and its own back gesture, and the planner's screen behind it
-    keeps running — the state is passed down from the tab, so leaving and
-    returning costs nothing. `SubpageLayout` supplies the back button and title;
-    the controls sit in a sticky bar rather than the layout's `action` slot
-    because that slot is a shrink-0 box beside the title, and Generate + Stop +
-    the live count would squeeze a phone's title to nothing.
+  const shellEyebrow = "FFCS · Auto-Generator";
+  const shellTitle = generatorPreviewTimetable
+    ? `Preview: ${generatorPreviewTimetable.name}`
+    : isCompareModalOpen
+    ? "Compare Timetables"
+    : isReviewing && stagedTimetables.length > 0
+    ? "Review Timetables"
+    : "Advanced Timetable Generator";
 
-    The nested popups stay sheets — they are dialogs summoned from inside this
-    screen — and keep z-indexes clear of the tab's own fullscreen `z-[100]`,
-    which they portal out of: 210/205 (dash and gap) and 220/215 (variant) are
-    still the top of the stack.
-  */
+  const shellSubtitle = generatorPreviewTimetable
+    ? "Review this schedule or select a faculty variant"
+    : isCompareModalOpen
+    ? "Side-by-side comparison of selected schedules"
+    : isReviewing && stagedTimetables.length > 0
+    ? `${stagedTimetables.length} conflict-free timetable${stagedTimetables.length === 1 ? "" : "s"} found`
+    : "Rank, compare and save conflict-free weeks";
+
+  const shellActions = generatorPreviewTimetable ? (
+    <button
+      type="button"
+      onClick={() => {
+        setTimetables((prev) => [...prev, generatorPreviewTimetable]);
+        track("timetable_saved", { source: "generator" });
+        setActiveTimetableId(generatorPreviewTimetable.id);
+        setStagedTimetables([]);
+        setSelectedStagedIds(new Set());
+        setGeneratorPreviewTimetable(null);
+        setIsReviewing(false);
+        onClose();
+        setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
+      }}
+      className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+    >
+      <Save className="w-3.5 h-3.5" /> Save & Use This
+    </button>
+  ) : isCompareModalOpen ? (
+    <button
+      type="button"
+      onClick={() => setIsCompareModalOpen(false)}
+      className="flex items-center gap-1.5 px-3 py-2 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+    >
+      <ArrowLeft className="w-3.5 h-3.5" /> Back to Review
+    </button>
+  ) : isReviewing && stagedTimetables.length > 0 ? (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setIsReviewing(false)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" /> Back to Options
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setStagedTimetables([]);
+          setSelectedStagedIds(new Set());
+          setIsReviewing(false);
+        }}
+        className="px-2.5 sm:px-3 py-2 text-xs font-bold text-muted-foreground hover:text-red-500 rounded-xl transition-colors cursor-pointer"
+      >
+        Discard All
+      </button>
+      <button
+        type="button"
+        disabled={selectedStagedIds.size === 0}
+        onClick={saveSelectedTimetables}
+        className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+      >
+        <Save className="w-3.5 h-3.5" /> Save Selected ({selectedStagedIds.size})
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      {stagedTimetables.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setIsReviewing(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+        >
+          Results ({stagedTimetables.length})
+        </button>
+      )}
+      {isGenerating && (
+        <button
+          type="button"
+          onClick={generation.cancel}
+          className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs sm:text-sm font-bold py-2 px-3 rounded-xl border border-red-500/20 transition-all cursor-pointer"
+        >
+          <X className="w-3.5 h-3.5" /> Stop
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={generateTimetables}
+        disabled={isGenerating || generatorTargets.length === 0}
+        className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl shadow-md hover:shadow-amber-500/25 transition-all cursor-pointer"
+      >
+        {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-4 h-4" />}
+        <span>{isGenerating ? "Generating…" : "Generate Timetables"}</span>
+      </button>
+    </div>
+  );
+
   return (
     <>
-      <SubpageLayout
-        title="Advanced Timetable Generator"
-        subtitle="Rank, compare and save conflict-free weeks"
-        onBack={onClose}
+      <PageShell
+        selectable
+        layout="actions-above"
+        eyebrow={shellEyebrow}
+        title={shellTitle}
+        subtitle={shellSubtitle}
+        actions={shellActions}
+        onBack={handleBack}
+        className="!max-w-6xl px-4 sm:px-6"
       >
-        {/* One column for the whole workspace: sticky toolbar, notices, stage. */}
         <div className="space-y-4">
-          <div
-            className="sticky top-0 z-10 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 rounded-2xl border border-border-strong bg-surface/95 p-3 shadow-sm backdrop-blur"
-            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-          >
-            <div className="flex items-stretch gap-2">
-              <button 
-                onClick={generateTimetables}
-                disabled={isGenerating || generatorTargets.length === 0}
-                className="flex-1 lg:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
-                {isGenerating ? "Generating…" : "Generate Timetables"}
-              </button>
-              {isGenerating && (
-                <button
-                  type="button"
-                  onClick={generation.cancel}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-2.5 px-5 rounded-xl border border-red-500/20 transition-all flex items-center justify-center gap-2 shrink-0"
-                >
-                  <X className="w-4 h-4" />
-                  Stop
-                </button>
-              )}
-            </div>
-            {/* Live counts, not a slogan. `aria-live` so a screen reader hears
-                the search move rather than being told only when it ends. */}
-            {isGenerating && (
-              <p className="w-full text-right text-[11px] text-muted-foreground lg:w-auto" aria-live="polite">
+          {isGenerating && (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium" aria-live="polite">
+              <div className="w-3.5 h-3.5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin shrink-0" />
+              <span>
                 {generation.progress
                   ? `${generation.progress.found} conflict-free weeks found, ${generation.progress.accepted} usable…`
                   : "Searching for conflict-free weeks…"}
-              </p>
-            )}
-          </div>
-
-          {/* Both notices, or neither — the same rule the planner's banner uses.
-              The run's own messages ("…review them below!") were previously set
-              but never rendered here: they landed in the planner's banner, which
-              the sheet covered, and outlived the results they pointed at. */}
-          {(error || successMsg) && (
-            <div className={`z-10 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${error ? "border-red-500/20 bg-red-500/10 text-red-500" : "border-green-500/20 bg-green-500/10 text-green-500"}`}>
-              {error ? <AlertTriangle className="w-4 h-4 shrink-0" /> : <Info className="w-4 h-4 shrink-0" />}
-              {error || successMsg}
+              </span>
             </div>
           )}
 
-          <div className="flex justify-center p-4 sm:p-6 lg:p-10">
+          {(error || successMsg) && (
+            <div className={`z-10 flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm font-medium ${error ? "border-red-500/20 bg-red-500/10 text-red-500" : "border-green-500/20 bg-green-500/10 text-green-500"}`}>
+              <div className="flex items-center gap-2">
+                {error ? <AlertTriangle className="w-4 h-4 shrink-0" /> : <Info className="w-4 h-4 shrink-0" />}
+                <span>{error || successMsg}</span>
+              </div>
+              {error && (
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              {!error && successMsg && (
+                <button
+                  type="button"
+                  onClick={() => setSuccessMsg(null)}
+                  className="text-green-500 hover:text-green-700 p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-center">
             {generatorPreviewTimetable ? (
               <>
               <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
                   <div className="flex items-center gap-4">
                     <button 
+                      type="button"
                       onClick={() => setGeneratorPreviewTimetable(null)} 
-                      className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-xl transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-xl transition-colors cursor-pointer"
                     >
-                      <ArrowLeft className="w-4 h-4" /> Back to Generator
+                      <ArrowLeft className="w-4 h-4" /> Back to Timetables
                     </button>
                     <div>
                       <h2 className="text-xl font-bold text-text-heading flex items-center gap-2">
@@ -650,7 +845,29 @@ export function FFCSGeneratorSubpage({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
-                            {getGroupedCourses(generatorPreviewTimetable.courses).map((c: any) => (
+                            {getGroupedCourses(generatorPreviewTimetable.courses).map((c: any) => {
+                              const halves: AddedCourse[] = generatorPreviewTimetable.courses.filter((course) =>
+                                (c.ids ?? [c.id]).includes(course.id)
+                              );
+                              const counts = halves.map((half) => {
+                                const alts = sameSlotFacultyAlternatives(
+                                  half.code,
+                                  half.slots,
+                                  { faculty: half.faculty, employeeId: half.employeeId },
+                                  masterCourses
+                                );
+                                return 1 + alts.length;
+                              });
+                              const facultyCountDisplay =
+                                counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                                  ? counts.join(" / ")
+                                  : String(counts[0] ?? 1);
+                              const facultyCountTitle =
+                                counts.length === 1 && counts[0] === 1
+                                  ? "1 faculty teaching this slot"
+                                  : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
+
+                              return (
                               <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                                 <td className="py-3 px-2">
                                   <div className="flex items-center gap-3">
@@ -672,15 +889,35 @@ export function FFCSGeneratorSubpage({
                                   {renderTypeChips(c.type)}
                                 </td>
                                 <td className="py-3 px-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
-                                    title="See who else teaches this course at this exact time slot"
-                                    className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
-                                  >
-                                    <span className="truncate">{c.faculty}</span>
-                                    <Users className="w-3.5 h-3.5 text-muted-foreground/40 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
-                                  </button>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                      title={facultyCountTitle}
+                                      className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
+                                    >
+                                      <span className="truncate">{c.faculty}</span>
+                                      <span
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-amber-500 group-hover:border-amber-500/40 transition-colors shrink-0"
+                                        title={facultyCountTitle}
+                                      >
+                                        <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-amber-500 shrink-0" />
+                                        <span>{facultyCountDisplay}</span>
+                                      </span>
+                                    </button>
+                                    <VitfacReviewPill
+                                      employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                      name={c.faculty}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReviewSheetTarget({
+                                          name: c.faculty,
+                                          employeeId: halves[0]?.employeeId || (c as any).employeeId,
+                                          courseCode: c.code,
+                                        });
+                                      }}
+                                    />
+                                  </div>
                                 </td>
                                 <td className="py-3 px-2">
                                   <div className="flex flex-wrap gap-1">
@@ -694,7 +931,8 @@ export function FFCSGeneratorSubpage({
                                 <td className="py-3 px-2 text-sm text-text-heading/80 max-w-xs">{c.venue}</td>
                                 <td className="py-3 px-2 text-sm text-text-heading/80">{c.credits}</td>
                               </tr>
-                            ))}
+                            );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -867,7 +1105,7 @@ export function FFCSGeneratorSubpage({
                   </div>
                 </div>
               </div>
-            ) : stagedTimetables.length > 0 ? (
+            ) : isReviewing && stagedTimetables.length > 0 ? (
               <div className="w-full max-w-6xl flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
@@ -877,38 +1115,28 @@ export function FFCSGeneratorSubpage({
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <button 
-                      onClick={() => setStagedTimetables([])}
-                      className="px-4 py-2 text-sm font-bold bg-surface-secondary hover:bg-surface-secondary/80 text-muted-foreground rounded-xl transition-colors"
+                      type="button"
+                      onClick={() => setIsReviewing(false)}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading transition-colors cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Back to Options
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setStagedTimetables([]);
+                        setSelectedStagedIds(new Set());
+                        setIsReviewing(false);
+                      }}
+                      className="px-4 py-2 text-sm font-bold bg-surface-secondary hover:bg-surface-secondary/80 text-muted-foreground rounded-xl transition-colors cursor-pointer"
                     >
                       Discard All
                     </button>
                     <button 
+                      type="button"
                       disabled={selectedStagedIds.size === 0}
-                      onClick={() => {
-                        const selected: TimetableState[] = [];
-                        stagedTimetables.forEach(t => {
-                          if (t.variants && t.variants.length > 1) {
-                            t.variants.forEach(v => {
-                              if (selectedStagedIds.has(v.id)) selected.push(v);
-                            });
-                          } else if (selectedStagedIds.has(t.id)) {
-                            selected.push(t);
-                          }
-                        });
-                        setTimetables(prev => [...prev, ...selected]);
-                        track("timetable_saved", { source: "generator" });
-                        if (selected.length > 0) setActiveTimetableId(selected[0].id);
-                        setStagedTimetables([]);
-                        setSelectedStagedIds(new Set());
-                        onClose();
-                        // Set after closing on purpose: leaving clears the run's
-                        // own notices (they describe results that live on this
-                        // screen), and this one is the planner's to show.
-                        setSuccessMsg(
-                          `Saved ${selected.length} timetable${selected.length === 1 ? "" : "s"} to the planner.`
-                        );
-                      }}
-                      className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+                      onClick={saveSelectedTimetables}
+                      className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <Save className="w-4 h-4" /> Save Selected ({selectedStagedIds.size})
                     </button>
@@ -975,7 +1203,7 @@ export function FFCSGeneratorSubpage({
             <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
               
               {/* Left Column: Courses Selection */}
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 min-w-0">
                 <div className="bg-surface rounded-2xl border border-border-strong p-6 shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -1121,7 +1349,21 @@ export function FFCSGeneratorSubpage({
                                     <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-1 bg-surface/50 border border-border-strong/50 rounded-lg p-3">
                                     {sortedFacs.map(fac => (
                                       <div key={fac} className="flex flex-col gap-1.5">
-                                        <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50">{fac}</div>
+                                        <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50 flex items-center justify-between gap-2">
+                                          <span>{fac}</span>
+                                          <VitfacReviewPill
+                                            employeeId={offeringsByFac[fac][0]?.employeeId}
+                                            name={fac}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setReviewSheetTarget({
+                                                name: fac,
+                                                employeeId: offeringsByFac[fac][0]?.employeeId,
+                                                courseCode: c.code,
+                                              });
+                                            }}
+                                          />
+                                        </div>
                                         {offeringsByFac[fac].map(offering => {
                                           const isOffChecked = offeringMatches(
                                             { FACULTY: offering.faculty, SLOT: offering.slot, ROOM: offering.venue, ERP_ID: offering.employeeId },
@@ -1154,7 +1396,27 @@ export function FFCSGeneratorSubpage({
                                                 }}
                                               />
                                               <div className="flex flex-col">
-                                                <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-text-heading/80'}`}>{offering.slot}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                  <span className={`text-[11px] font-medium ${isOffChecked ? 'text-amber-500' : 'text-text-heading/80'}`}>{offering.slot}</span>
+                                                  {(() => {
+                                                    const alts = sameSlotFacultyAlternatives(
+                                                      c.code,
+                                                      splitSlots(offering.slot),
+                                                      { faculty: offering.faculty, employeeId: offering.employeeId },
+                                                      masterCourses
+                                                    );
+                                                    const count = 1 + alts.length;
+                                                    return (
+                                                      <span
+                                                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-1 py-0.2 rounded bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                                                        title={`${count} ${count === 1 ? 'faculty' : 'faculties'} teaching this slot`}
+                                                      >
+                                                        <Users className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
+                                                        <span>{count}</span>
+                                                      </span>
+                                                    );
+                                                  })()}
+                                                </div>
                                                 <span className="text-[10px] text-muted-foreground">
                                                   {offering.venue || (offering.employeeId ? `ERP ${offering.employeeId}` : "TBA")}
                                                 </span>
@@ -1181,15 +1443,19 @@ export function FFCSGeneratorSubpage({
                           </div>
                         )}
                   </div>
-                  <div className="mt-4 text-sm text-muted-foreground bg-amber-500/10 text-amber-500/90 py-2 px-4 rounded-xl w-max border border-amber-500/20 font-bold">
-                    Selected: {generatorTargets.length} target courses
-                    {seededFromLocks && " — from your locked Target Courses; changes here don't write back"}
+                  <div className="mt-4 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 py-2.5 px-4 rounded-xl w-fit max-w-full border border-amber-500/20 leading-relaxed break-words">
+                    <span className="font-bold">Selected: {generatorTargets.length} target courses</span>
+                    {seededFromLocks && (
+                      <span className="text-amber-600/80 dark:text-amber-400/80 font-normal">
+                        {" — from your locked Target Courses; changes here don't write back"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Preferences & Social */}
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 min-w-0">
                 
                 {/* General Preferences */}
                 <div className="bg-surface rounded-2xl border border-border-strong p-6 shadow-sm">
@@ -1402,12 +1668,25 @@ export function FFCSGeneratorSubpage({
                   )}
                 </div>
 
+                {/* Bottom CTA to run generator */}
+                <div className="col-span-1 lg:col-span-2 pt-6 pb-12 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={generateTimetables}
+                    disabled={isGenerating || generatorTargets.length === 0}
+                    className="w-full sm:w-auto min-w-[260px] flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-base font-bold py-3.5 px-8 rounded-2xl shadow-lg hover:shadow-amber-500/25 transition-all cursor-pointer"
+                  >
+                    {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
+                    <span>{isGenerating ? "Generating Timetables…" : "Run Timetable Generator"}</span>
+                  </button>
+                </div>
+
               </div>
             </div>
             )}
           </div>
         </div>
-      </SubpageLayout>
+      </PageShell>
 
       {/* Variant picker: a sheet inside the subpage, one level deeper in the
           overlay stack than the generator's own back entry. */}
@@ -1485,7 +1764,21 @@ export function FFCSGeneratorSubpage({
                             return c ? (
                               <div key={code} className="flex justify-between items-center text-xs">
                                 <span className="font-medium text-muted-foreground">{code}</span>
-                                <span className="text-text-heading">{c.faculty}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-text-heading">{c.faculty}</span>
+                                  <VitfacReviewPill
+                                    employeeId={c.employeeId}
+                                    name={c.faculty}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setReviewSheetTarget({
+                                        name: c.faculty,
+                                        employeeId: c.employeeId,
+                                        courseCode: code,
+                                      });
+                                    }}
+                                  />
+                                </div>
                               </div>
                             ) : null;
                           })}
@@ -1512,6 +1805,14 @@ export function FFCSGeneratorSubpage({
           onClose={() => setSlotSwapRow(null)}
         />
       )}</AnimatePresence>
+
+      <FacultyReviewSheet
+        open={!!reviewSheetTarget}
+        onClose={() => setReviewSheetTarget(null)}
+        facultyName={reviewSheetTarget?.name || ""}
+        employeeId={reviewSheetTarget?.employeeId}
+        courseCode={reviewSheetTarget?.courseCode}
+      />
     </>
   );
 }

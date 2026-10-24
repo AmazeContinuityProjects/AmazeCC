@@ -36,6 +36,7 @@ import {
   periodsForSlot,
   slotSpellings,
   type CampusSchema,
+  type DayId,
   type SlotPeriod,
 } from "@/lib/slots";
 import {
@@ -54,6 +55,7 @@ export type GeneratorErrorCode =
   | "no_valid_slots"
   | "no_conflict_free"
   | "below_min_half_days"
+  | "no_separate_labs"
   /**
    * The solver itself threw. Not a filtering outcome — the worker catches it and
    * reports it under this code so the caller can tell "nothing matched" from
@@ -132,6 +134,18 @@ export interface GenerateParams {
    * anything the first one established).
    */
   rankingMode?: RankingMode;
+  /**
+   * Keep every lab on its own day.
+   *
+   * A week that books two labs onto one day — even in adjacent periods, which
+   * the overlap rule rightly allows — is dropped after the search, like the
+   * half-days floor. One lab that runs several lab periods, even across two
+   * days, is still one lab and never trips this. Optional and unset by
+   * default: with no value the pipeline is exactly the one it has always
+   * been. When the whole search space fails the rule, the run fails with
+   * `no_separate_labs`, an emptiness worded for the toggle that caused it.
+   */
+  separateLabDays?: boolean;
 }
 
 /**
@@ -462,6 +476,32 @@ function clashes(a: readonly SlotPeriod[], b: readonly SlotPeriod[]): boolean {
 }
 
 /**
+ * Does this week put two lab bookings on one day?
+ *
+ * One lab's own lab periods are a single booking, not two — a lab that runs
+ * `L1+L2` in adjacent periods, or even reaches across two days, vacates the
+ * rule. What trips it is two *different* courses' lab halves sharing a day:
+ * two labs in adjacent periods are every overlap check's "disjoint" and still
+ * swallow an afternoon. Offerings with no lab half contribute nothing, which
+ * is also how a combination survives when only some of its courses have labs.
+ */
+function labsShareADay(
+  combination: readonly ParsedCourse[],
+  labDaysByOffering: ReadonlyMap<ParsedCourse, ReadonlySet<DayId>>
+): boolean {
+  const taken = new Set<DayId>();
+  for (const offering of combination) {
+    const labDays = labDaysByOffering.get(offering);
+    if (!labDays) continue;
+    for (const day of labDays) {
+      if (taken.has(day)) return true;
+      taken.add(day);
+    }
+  }
+  return false;
+}
+
+/**
  * How often the walk checks whether its caller wants to stop.
  *
  * Every node would be the honest number, and it is a function call in the
@@ -611,43 +651,169 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
  * one option; the employee id stays in that key so two people who share a
  * name both appear. Sorted by faculty, then room.
  */
+/**
+ * If an `AddedCourse` is an embedded course combining both theory and lab slots,
+ * expand it into two virtual halves (theory and lab) so that alternatives for each
+ * half can be matched and swapped independently.
+ *
+ * If a course is already a single component (pure theory or pure lab), it is returned
+ * as-is.
+ */
+export function expandCourseHalves(halves: readonly AddedCourse[]): AddedCourse[] {
+  const result: AddedCourse[] = [];
+  for (const h of halves) {
+    const rawSlots = h.slots ?? [];
+    const theorySlots = rawSlots.filter(
+      (s) => !s.trim().toUpperCase().startsWith("L") && s.trim().toUpperCase() !== "NIL"
+    );
+    const labSlots = rawSlots.filter((s) => s.trim().toUpperCase().startsWith("L"));
+
+    if (theorySlots.length > 0 && labSlots.length > 0) {
+      const facs = (h.faculty || "").split(/\s*\/\s*/);
+      const venues = (h.venue || "").split(/\s*\/\s*/);
+
+      const theoryHalf: AddedCourse = {
+        ...h,
+        id: `${h.id}:theory`,
+        type: h.type && h.type.includes("Embedded") ? "Embedded Theory" : "ETH",
+        slots: theorySlots,
+        faculty: facs[0]?.trim() || h.faculty,
+        venue: venues[0]?.trim() || h.venue,
+        employeeId: h.employeeId,
+      };
+
+      const labHalf: AddedCourse = {
+        ...h,
+        id: `${h.id}:lab`,
+        type: h.type && h.type.includes("Embedded") ? "Embedded Lab" : "ELA",
+        slots: labSlots,
+        faculty: (facs[1] || facs[0])?.trim() || h.faculty,
+        venue: (venues[1] || venues[0])?.trim() || h.venue,
+        employeeId: facs.length > 1 ? undefined : h.employeeId,
+      };
+
+      result.push(theoryHalf, labHalf);
+    } else {
+      result.push(h);
+    }
+  }
+  return result;
+}
+
 export function sameSlotFacultyAlternatives(
   code: string,
   slots: readonly string[],
   current: { faculty: string; employeeId?: string },
   masterCourses: readonly ParsedCourse[]
 ): ParsedCourse[] {
-  const want = [...slots]
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean)
-    .sort()
-    .join("+");
-  const currentIdentity = current.employeeId
-    ? `erp:${current.employeeId}`
-    : current.faculty;
-  const identity = (c: ParsedCourse): string =>
-    c.ERP_ID ? `erp:${c.ERP_ID}` : c.FACULTY;
-  // Raw SLOT strings spell the same booking in different orders; the sorted
-  // tokens are the stable half of this key. `offeringId` would keep both
-  // spellings, which reads as two teachers in the picker.
-  const dedupeKey = (c: ParsedCourse): string =>
-    `${c.FACULTY}|${splitSlots(c.SLOT).sort().join("+")}|${c.ROOM}|${c.ERP_ID ?? ""}`;
-  const seen = new Set<string>();
-  return masterCourses
-    .filter((c) => c.CODE === code)
-    .filter((c) => splitSlots(c.SLOT).sort().join("+") === want)
-    .filter((c) => identity(c) !== currentIdentity)
-    .filter((c) => {
-      const key = dedupeKey(c);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort(
-      (a, b) =>
-        a.FACULTY.localeCompare(b.FACULTY) ||
-        String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+  const normalizedCode = code.trim().toUpperCase();
+  const baseCode = (normalizedCode.endsWith('L') || normalizedCode.endsWith('P'))
+    ? normalizedCode.slice(0, -1)
+    : normalizedCode;
+
+  const codeMatches = (c: ParsedCourse): boolean => {
+    const cCode = c.CODE.trim().toUpperCase();
+    const cOrig = (c as any).ORIGINAL_CODE?.trim()?.toUpperCase();
+    const cBase = (cCode.endsWith('L') || cCode.endsWith('P')) ? cCode.slice(0, -1) : cCode;
+    return (
+      cCode === normalizedCode ||
+      cOrig === normalizedCode ||
+      cBase === baseCode ||
+      cBase === normalizedCode
     );
+  };
+
+  const wantTokens = [...slots]
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => Boolean(s) && s !== "NIL");
+  if (wantTokens.length === 0) return [];
+
+  const wantExact = [...wantTokens].sort().join("+");
+  const wantTheoryTokens = wantTokens.filter((s) => !s.startsWith("L")).sort().join("+");
+  const wantLabTokens = wantTokens.filter((s) => s.startsWith("L")).sort().join("+");
+
+  const isPureTheory = wantTokens.length > 0 && wantTokens.every((s) => !s.startsWith("L"));
+  const isPureLab = wantTokens.length > 0 && wantTokens.every((s) => s.startsWith("L"));
+
+  const currentFacultyNorm = (current.faculty || "").trim().toLowerCase();
+  const currentFacultyHalfNorm = isPureTheory
+    ? currentFacultyNorm.split(/\s*\/\s*/)[0].trim()
+    : isPureLab
+    ? (currentFacultyNorm.split(/\s*\/\s*/)[1] || currentFacultyNorm.split(/\s*\/\s*/)[0]).trim()
+    : currentFacultyNorm;
+
+  const dedupeKey = (c: ParsedCourse): string =>
+    `${c.FACULTY.trim().toLowerCase()}|${splitSlots(c.SLOT).sort().join("+")}|${(c.ROOM ?? "").trim().toLowerCase()}|${c.ERP_ID ?? ""}`;
+
+  const seen = new Set<string>();
+  const results: ParsedCourse[] = [];
+
+  for (const c of masterCourses) {
+    if (!codeMatches(c)) continue;
+
+    const cTokens = splitSlots(c.SLOT).map((s) => s.trim().toUpperCase()).filter((s) => Boolean(s) && s !== "NIL");
+    const cExact = [...cTokens].sort().join("+");
+    const cTheory = cTokens.filter((s) => !s.startsWith("L")).sort().join("+");
+    const cLab = cTokens.filter((s) => s.startsWith("L")).sort().join("+");
+
+    let isMatch = false;
+    let effectiveOffering: ParsedCourse;
+
+    if (isPureTheory && cTheory && cTheory === wantTheoryTokens) {
+      isMatch = true;
+      const facParts = (c.FACULTY || "").split(/\s*\/\s*/);
+      const roomParts = (c.ROOM || "").split(/\s*\/\s*/);
+      const typeParts = (c.TYPE || "").split(/\s*\+\s*/);
+      effectiveOffering = {
+        ...c,
+        FACULTY: facParts[0]?.trim() || c.FACULTY,
+        ROOM: roomParts[0]?.trim() || c.ROOM,
+        SLOT: wantTheoryTokens,
+        TYPE: typeParts[0]?.trim() || "ETH",
+        ERP_ID: c.ERP_ID,
+      };
+    } else if (isPureLab && cLab && cLab === wantLabTokens) {
+      isMatch = true;
+      const facParts = (c.FACULTY || "").split(/\s*\/\s*/);
+      const roomParts = (c.ROOM || "").split(/\s*\/\s*/);
+      const typeParts = (c.TYPE || "").split(/\s*\+\s*/);
+      effectiveOffering = {
+        ...c,
+        FACULTY: (facParts[1] || facParts[0])?.trim() || c.FACULTY,
+        ROOM: (roomParts[1] || roomParts[0])?.trim() || c.ROOM,
+        SLOT: wantLabTokens,
+        TYPE: typeParts[1]?.trim() || "ELA",
+        ERP_ID: facParts.length > 1 ? undefined : c.ERP_ID,
+      };
+    } else if (cExact === wantExact) {
+      isMatch = true;
+      effectiveOffering = { ...c };
+    }
+
+    if (!isMatch) continue;
+
+    const altFacultyNorm = effectiveOffering!.FACULTY.trim().toLowerCase();
+
+    // Check identity against current teacher
+    const isSameFaculty =
+      current.employeeId && effectiveOffering!.ERP_ID
+        ? current.employeeId === effectiveOffering!.ERP_ID
+        : currentFacultyHalfNorm === altFacultyNorm || currentFacultyNorm === altFacultyNorm;
+
+    if (isSameFaculty) continue;
+
+    const key = dedupeKey(effectiveOffering!);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    results.push(effectiveOffering!);
+  }
+
+  return results.sort(
+    (a, b) =>
+      a.FACULTY.localeCompare(b.FACULTY) ||
+      String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+  );
 }
 
 /**
@@ -796,7 +962,8 @@ function scoreCombination(
  *
  * ## Order of operations, and why it must not change
  *
- * The pipeline is filter options → backtrack → score → drop under the
+ * The pipeline is filter options → backtrack → score → drop weeks that put
+ * two labs on one day (only when the run asked for that) → drop under the
  * half-days minimum → sort → dedupe faculty → group variants. That order is the
  * product's behaviour: an earlier stage's contract is only meaningful relative
  * to the ones around it. Adding hooks does not reorder it — hooks only observe.
@@ -829,6 +996,14 @@ export function generateTimetablesStream(
 
   const optionsPerCourse: ParsedCourse[][] = [];
   const windowsPerCourse: SlotPeriod[][][] = [];
+  /**
+   * Which days each offering's lab periods land on, by offering reference —
+   * collected while the windows are built because only here are the periods
+   * in hand (a second schema walk per visited combination would be the cost
+   * this precompute exists to avoid). Empty unless the run rules lab days
+   * apart; the rule reads absence as "never".
+   */
+  const labDaysByOffering = new Map<ParsedCourse, Set<DayId>>();
 
   for (const lock of params.courseLocks) {
     const options = optionsFor(schema, params, lock, byCode.get(lock.code) ?? []);
@@ -844,9 +1019,18 @@ export function generateTimetablesStream(
     windowsPerCourse.push(
       options.map((opt) => {
         const periods: SlotPeriod[] = [];
+        const labDays = new Set<DayId>();
         for (const slot of splitSlots(opt.SLOT)) {
-          periods.push(...periodsForSlot(schema, slot));
+          for (const period of periodsForSlot(schema, slot)) {
+            periods.push(period);
+            // The schema's own lab/theory split, not a slot-name convention:
+            // the lab list is what makes a period a lab.
+            if (params.separateLabDays && period.type === "lab") {
+              labDays.add(period.day);
+            }
+          }
         }
+        if (params.separateLabDays) labDaysByOffering.set(opt, labDays);
         return periods;
       })
     );
@@ -862,6 +1046,10 @@ export function generateTimetablesStream(
     : [];
 
   const accepted: TimetableState[] = [];
+  // Whether any complete, conflict-free combination was rejected by the lab
+  // rule. Only read when the run ends with nothing accepted, to name which
+  // result filter ate the search.
+  let labDayRejected = false;
   let emitted = 0;
   const flush = () => {
     if (accepted.length <= emitted) return;
@@ -872,6 +1060,15 @@ export function generateTimetablesStream(
 
   const walk = walkCombinations(optionsPerCourse, windowsPerCourse, limit, {
     visit: (combination) => {
+      // A week that puts two labs on one day is dropped before it is scored:
+      // the rule is about the shape of the week, so scoring it for the bin is
+      // money spent for nothing. It is a filter on the *result*, not on the
+      // search — the walk's own `found` keeps counting all conflict-free
+      // combinations, exactly as it does for the half-days floor.
+      if (params.separateLabDays && labsShareADay(combination, labDaysByOffering)) {
+        labDayRejected = true;
+        return;
+      }
       const timetable = scoreCombination(params, combination, scoredFriends);
       // The half-days floor is a filter on the *result*, not on the search: a
       // combination can be perfectly conflict-free and still be a week the
@@ -903,6 +1100,12 @@ export function generateTimetablesStream(
     return { kind: "error", code: "no_conflict_free" };
   }
   if (!accepted.length) {
+    // When both result filters contributed rejections, the lab rule wins the
+    // wording: it is the newer and more specific constraint, and the
+    // half-days floor was already in effect while the search ran.
+    if (labDayRejected) {
+      return { kind: "error", code: "no_separate_labs" };
+    }
     return { kind: "error", code: "below_min_half_days" };
   }
 
