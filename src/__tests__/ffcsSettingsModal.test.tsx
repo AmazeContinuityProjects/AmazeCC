@@ -64,6 +64,26 @@ describe("FFCSSettingsModal", () => {
     expect(p.update).toHaveBeenCalledWith("resultCap", 250);
   });
 
+  it("selects default sort order and ranking profile through radio button rows", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    // Click "Social" radio row
+    const socialRadio = screen.getByDisplayValue("social");
+    act(() => socialRadio.click());
+    expect(p.update).toHaveBeenCalledWith("defaultSortBy", "social");
+
+    // Click "Half Days" ranking profile radio row
+    const halfDaysRadio = screen.getByDisplayValue("Half Days");
+    act(() => halfDaysRadio.click());
+    expect(p.update).toHaveBeenCalledWith("rankingMode", "Half Days");
+
+    // Click "Cumulative" group social score radio row
+    const cumulativeRadio = screen.getByDisplayValue("cumulative");
+    act(() => cumulativeRadio.click());
+    expect(p.setSocialScoreGroupMethod).toHaveBeenCalledWith("cumulative");
+  });
+
   it("edits the tab's own state for grouping, not a copy in settings", () => {
     const p = props({ isGroupingEnabled: false });
     render(<FFCSSettingsModal {...p} />);

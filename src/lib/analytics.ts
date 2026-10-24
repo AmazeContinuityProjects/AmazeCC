@@ -72,6 +72,8 @@ export interface AnalyticsEventMap {
   settings_changed: { key: string };
   /** A tour step was shown or advanced. */
   tour_step: { step: number; total: number };
+  /** A preview course was handed to another faculty at the same slots. */
+  slot_faculty_swap: Record<string, never>;
 }
 
 export type AnalyticsEvent = keyof AnalyticsEventMap;

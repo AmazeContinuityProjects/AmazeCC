@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, LogIn } from "lucide-react";
+import { Calendar, LogIn } from "lucide-react";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import FFCSTimetableTab from "@/components/custom/exams/FFCSTimetableTab";
+import { getAssetPath } from "@/lib/utils";
 
 export default function FFCSPageView() {
   const [mounted, setMounted] = useState(false);
@@ -15,40 +16,43 @@ export default function FFCSPageView() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-850 dark:bg-[#03060F] dark:text-gray-100 flex flex-col font-sans transition-colors duration-300">
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar - non-sticky so it scrolls with the page */}
       <nav
-        className="sticky top-0 left-0 right-0 z-40 bg-white/85 dark:bg-[#03060F]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08]"
+        className="w-full bg-white/85 dark:bg-[#03060F]/85 border-b border-slate-200/80 dark:border-white/[0.08]"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1.5 px-3 rounded-xl bg-slate-100/90 dark:bg-neutral-900/70 border border-slate-200/70 dark:border-white/[0.08]"
-              title="Back to AmazeCC Home"
+              className="flex items-center gap-2.5 group transition-transform active:scale-95"
+              title="AmazeCC Home"
             >
-              <ArrowLeft size={14} />
-              <span className="hidden sm:inline">AmazeCC Home</span>
-              <span className="sm:hidden">Home</span>
+              <img
+                src={getAssetPath("/logo.png")}
+                alt="AmazeCC"
+                className="h-8 w-8 rounded-xl object-contain shadow-xs border border-zinc-200/60 dark:border-zinc-800/80 p-0.5 bg-white dark:bg-zinc-900"
+              />
+              <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
+                AmazeCC
+              </span>
             </Link>
 
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/[0.08]">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <Calendar size={16} />
-              </div>
-              <span className="font-bold text-sm text-slate-900 dark:text-white">
-                FFCS Planner
-              </span>
+            <div className="h-4 w-px bg-slate-200 dark:border-white/[0.08] dark:bg-white/[0.08]" />
+
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-zinc-400">
+              <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span>FFCS Planner</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-900"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
             >
               <LogIn size={13} />
-              <span>VTOP Login</span>
+              <span>Login to AmazeCC</span>
             </Link>
             {mounted && <ThemeToggle />}
           </div>

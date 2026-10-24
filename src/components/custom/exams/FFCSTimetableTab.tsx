@@ -32,7 +32,7 @@ import { TourProvider, useTour } from "./FFCS/features/tour/TourProvider";
 import { useTips } from "./FFCS/features/tour/useTips";
 import { Tip } from "./FFCS/features/tour/Tip";
 import Switch from "../shared/primitives/Switch";
-import { ChipTabs, SegmentedControl } from "../shared/primitives";
+import { ChipTabs, SegmentedControl, IconButton } from "../shared/primitives";
 
 import { GenCourseSelection, SlotMap, TimetablePeriod, ParsedCourse, AddedCourse, TimetableState, Friend, FriendGroup, CourseLock, ManualLink } from "./FFCS/types";
 import {
@@ -57,7 +57,12 @@ import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
 import { TimetableView } from "../timetable";
 
-const safeStorage = {
+/**
+ * localStorage with the SSR guard and the quota throw handled once. The
+ * generator imports this too: its own course picks persist under their own
+ * key, never under the planner's locks.
+ */
+export const safeStorage = {
   getItem: (key: string): string | null => {
     try {
       if (typeof window === "undefined" || !window.localStorage) return null;
@@ -1312,7 +1317,6 @@ export default function FFCSTimetableTab() {
           onClose={closeGenerator}
           settings={settings}
           courseLocks={courseLocks}
-          setCourseLocks={setCourseLocks}
           friends={friends}
           socialScoreGroupMethod={socialScoreGroupMethod}
           friendGroups={friendGroups}
@@ -1339,88 +1343,92 @@ export default function FFCSTimetableTab() {
   return (
     <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
       
-      {/* Top Banner / Upload Area */}
-      <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-6" data-tour-id="ffcs-banner">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-text-heading flex items-center gap-2">
-              <MapIcon className="text-blue-400 w-6 h-6" /> FFCS Planner
-              <button 
-                onClick={() => setIsGuideModalOpen(true)}
-                className="ml-2 text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
-                title="How does this work?"
-              >
-                <HelpCircle className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => setIsShortcutsModalOpen(true)}
-                className="text-muted-foreground hover:text-indigo-500 transition-colors p-1 rounded-full hover:bg-indigo-500/10 cursor-pointer"
-                title="Keyboard Shortcuts"
-              >
-                <Keyboard className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
-                title="Planner Settings"
-              >
-                <Settings2 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => { void handleSharePlan(); }}
-                className="text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-500/10 cursor-pointer"
-                title="Share this plan"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
+      {/* ── TOP HEADER BLOCK: EYEBROW, TITLE, ACTIONS & CONTROLS (AmazeCC pattern) ── */}
+      <div className="space-y-4 px-1" data-tour-id="ffcs-banner">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col items-start min-w-0 text-left">
+            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 leading-none mb-1">
+              Academics · Registration
+            </p>
+            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight font-outfit truncate flex items-center gap-2">
+              <MapIcon className="text-indigo-600 dark:text-indigo-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+              <span>FFCS Planner</span>
+            </h1>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">
               Plan your semester from the {activeSemester.label.toLowerCase()} slot timetable.
             </p>
           </div>
-          
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 w-full md:w-auto mt-4 md:mt-0">
-            <SegmentedControl
-              value={semesterId}
-              onChange={(value) => { void handleSemesterChange(value); }}
-              options={FFCS_SEMESTER_REPORTS.map((report) => ({
-                value: report.id,
-                label: report.shortLabel,
-                title: `Load the ${report.label} slot timetable`,
-              }))}
-            />
 
-            <button 
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="hidden md:flex items-center gap-2 bg-surface-secondary hover:border-border-strong text-text-heading px-4 py-2.5 rounded-xl border border-border-strong transition-colors shadow-lg"
-              title="Toggle Fullscreen"
+          {/* Action cluster on top-right */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5 shrink-0">
+            <IconButton
+              onClick={() => setIsGuideModalOpen(true)}
+              title="How does this work?"
             >
-              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
+              <HelpCircle className="w-4 h-4" />
+            </IconButton>
+            <IconButton
+              onClick={() => setIsShortcutsModalOpen(true)}
+              title="Keyboard Shortcuts"
+            >
+              <Keyboard className="w-4 h-4" />
+            </IconButton>
+            <IconButton
+              onClick={() => setIsSettingsOpen(true)}
+              title="Planner Settings"
+            >
+              <Settings2 className="w-4 h-4" />
+            </IconButton>
+            <IconButton
+              onClick={() => { void handleSharePlan(); }}
+              title="Share this plan"
+            >
+              <Share2 className="w-4 h-4" />
+            </IconButton>
+            <IconButton
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title={isFullscreen ? "Exit Fullscreen" : "Toggle Fullscreen"}
+              className="hidden sm:inline-flex"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </IconButton>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-3 bg-surface px-4 py-2 rounded-xl border border-border-strong">
-              {isLoadingCourses ? (
-                <span className="text-amber-400 text-sm font-medium flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
-                  Loading {activeSemester.shortLabel} report...
-                </span>
-              ) : masterCourses.length > 0 ? (
-                <span className="text-green-400 text-sm font-medium flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
-                </span>
-              ) : (
-                <span className="text-red-400 text-sm font-medium flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4" />
-                  No course report loaded
-                </span>
-              )}
-            </div>
+        {/* Secondary controls row: Segmented control + report status badge */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <SegmentedControl
+            value={semesterId}
+            onChange={(value) => { void handleSemesterChange(value); }}
+            options={FFCS_SEMESTER_REPORTS.map((report) => ({
+              value: report.id,
+              label: report.shortLabel,
+              title: `Load the ${report.label} slot timetable`,
+            }))}
+          />
+
+          <div className="flex items-center gap-2">
+            {isLoadingCourses ? (
+              <span className="text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-2xs">
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+                Loading {activeSemester.shortLabel}...
+              </span>
+            ) : masterCourses.length > 0 ? (
+              <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {activeSemester.shortLabel} loaded ({masterCourses.length} slots)
+              </span>
+            ) : (
+              <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 shadow-2xs">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                No course report loaded
+              </span>
+            )}
           </div>
         </div>
 
         {(error || successMsg) && (
-          <div className={`mt-4 p-3 rounded-xl flex items-start gap-2 text-sm border ${error ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-green-500/10 border-green-500/50 text-green-400'}`}>
+          <div className={`p-3 rounded-xl flex items-start gap-2 text-xs font-medium border shadow-2xs ${error ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'}`}>
             {error ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> : <Info className="w-4 h-4 mt-0.5 shrink-0" />}
             <span>{error || successMsg}</span>
           </div>

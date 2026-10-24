@@ -6,7 +6,7 @@ import { Settings2, Play, RotateCcw, Info } from "lucide-react";
 import BottomSheet from "../../../../shared/BottomSheet";
 import SettingRow from "../../../../shared/primitives/SettingRow";
 import Switch from "../../../../shared/primitives/Switch";
-import { ChipTabs, SegmentedControl } from "../../../../shared/primitives";
+import { ChipTabs, SegmentedControl, RadioGroup } from "../../../../shared/primitives";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/lib/analytics";
 import {
   FFCSSettingsDefaults,
@@ -38,19 +38,72 @@ import type { SortBy } from "@/lib/timetableMetrics";
  */
 
 const RANKING_OPTIONS = [
-  { value: "none" as DefaultRankingMode, label: "None", title: "Plain sort order, no profile" },
-  ...RANKING_MODES.map((mode) => ({
-    value: mode as DefaultRankingMode,
-    label: mode,
-    title: `Start the generator ranked by the "${mode}" profile`,
-  })),
+  {
+    value: "none" as DefaultRankingMode,
+    label: "None",
+    description: "No profile — results are ordered purely by the sort order below.",
+  },
+  {
+    value: "Balanced" as DefaultRankingMode,
+    label: "Balanced",
+    description: "Overall balance across gaps, early finishes, and daily workload.",
+  },
+  {
+    value: "Half Days" as DefaultRankingMode,
+    label: "Half Days",
+    description: "Maximizes 4-hour compact days and whole mornings or afternoons off.",
+  },
+  {
+    value: "Minimize Gaps" as DefaultRankingMode,
+    label: "Minimize Gaps",
+    description: "Minimizes dead waiting time between classes throughout the day.",
+  },
+  {
+    value: "Early Finish" as DefaultRankingMode,
+    label: "Early Finish",
+    description: "Prioritizes classes that end earlier so your afternoons/evenings are free.",
+  },
+  {
+    value: "Late Start" as DefaultRankingMode,
+    label: "Late Start",
+    description: "Prioritizes classes that start later in the morning.",
+  },
 ];
 
-const SORT_OPTIONS: readonly { value: SortBy; label: string }[] = [
-  { value: "balanced", label: "Balanced" },
-  { value: "social", label: "Social" },
-  { value: "halfdays", label: "Half-days" },
-  { value: "compactness", label: "Compact" },
+const SORT_OPTIONS: readonly { value: SortBy; label: string; description: string }[] = [
+  {
+    value: "balanced",
+    label: "Balanced",
+    description: "Best overall mix of free time, fewer gaps, and social score.",
+  },
+  {
+    value: "social",
+    label: "Social",
+    description: "Maximizes shared course periods with friends in your group.",
+  },
+  {
+    value: "halfdays",
+    label: "Half-days",
+    description: "Prioritizes schedules with the most full mornings or afternoons off.",
+  },
+  {
+    value: "compactness",
+    label: "Compact",
+    description: "Minimizes idle gaps between classes throughout the day.",
+  },
+];
+
+const SOCIAL_METHOD_OPTIONS = [
+  {
+    value: "intersection" as const,
+    label: "Intersection",
+    description: "One combined week: the whole group's slots counted once together.",
+  },
+  {
+    value: "cumulative" as const,
+    label: "Cumulative",
+    description: "Each friend scored on their own, then added together.",
+  },
 ];
 
 const HALF_DAY_OPTIONS = [
@@ -142,13 +195,10 @@ export function FFCSSettingsModal({
             <SettingRow
               stacked
               title="Ranking profile"
-              description={
-                settings.rankingMode === "none"
-                  ? "No profile: results come in the order of the sort below."
-                  : `New generator runs start ranked by "${settings.rankingMode}".`
-              }
+              description="New generator runs start ranked by this weighted profile."
               control={
-                <ChipTabs
+                <RadioGroup
+                  name="rankingMode"
                   options={RANKING_OPTIONS}
                   value={settings.rankingMode}
                   onChange={(value) => update("rankingMode", value)}
@@ -160,7 +210,8 @@ export function FFCSSettingsModal({
               title="Default sort order"
               description="How the generator orders results; it also breaks ties between ranked ones."
               control={
-                <SegmentedControl
+                <RadioGroup
+                  name="defaultSortBy"
                   options={SORT_OPTIONS}
                   value={settings.defaultSortBy}
                   onChange={(value) => update("defaultSortBy", value)}
@@ -219,23 +270,14 @@ export function FFCSSettingsModal({
             <SettingRow
               stacked
               title="Group social score"
-              description="How a friend group's score is combined."
+              description="How a friend group's score is combined across friends."
               control={
-                <div className="w-full">
-                  <SegmentedControl
-                    options={[
-                      { value: "intersection" as const, label: "Intersection" },
-                      { value: "cumulative" as const, label: "Cumulative" },
-                    ]}
-                    value={socialScoreGroupMethod}
-                    onChange={setSocialScoreGroupMethod}
-                  />
-                  <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
-                    {socialScoreGroupMethod === "intersection"
-                      ? "One combined week: the whole group's slots counted once."
-                      : "Each friend scored on their own, then added together."}
-                  </p>
-                </div>
+                <RadioGroup
+                  name="socialScoreGroupMethod"
+                  options={SOCIAL_METHOD_OPTIONS}
+                  value={socialScoreGroupMethod}
+                  onChange={setSocialScoreGroupMethod}
+                />
               }
             />
             <SettingRow

@@ -116,7 +116,8 @@ export interface GenerateParams {
    * the same fifty the planner has always stopped at. It exists so the result
    * cap in settings is a real ceiling on the search rather than a display
    * number trimmed after the fact; `noLimit` still outranks it, because the
-   * per-run switch is the more recent thing the student chose.
+   * per-run switch is the more recent thing the student chose — and the switch
+   * is itself bounded by {@link HARD_RESULT_LIMIT}, so no run is unbounded.
    */
   resultCap?: number;
   minHalfDays: number;
@@ -242,8 +243,24 @@ const COURSE_COLORS = [
   "bg-magenta-500",
 ];
 
-/** What a limit of 50 is; "no limit" is not really unlimited, it is just large. */
-const UNLIMITED_RESULTS = 999999;
+/**
+ * "No limit" is not unlimited — it is this ceiling.
+ *
+ * The bound used to be 999999, which stopped nothing: a wide search found its
+ * tens of thousands and streamed every one into the page, whose render could
+ * not keep pace with a list growing past what a browser can paint — the
+ * screen sat on "Searching for conflict-free weeks" and looked infinite even
+ * though the solve itself ran on a background thread. A ceiling answers both
+ * the paint problem and the posterion of no result ever arriving: the walk
+ * halts here, the kept list still streams in batches as it was found, and the
+ * run's answer says it was capped.
+ *
+ * Exported so the streaming test can pin the exact stop, and so it reads as a
+ * product number next to the settings cap: 30,000 is tens of grips above the
+ * 1,000 a student can set, so the switch still means "much wider", never
+ * "nothing can stop this".
+ */
+export const HARD_RESULT_LIMIT = 30_000;
 /** Exported because the settings sheet offers it as the cap to come back to. */
 export const DEFAULT_RESULT_LIMIT = 50;
 /**
@@ -259,7 +276,13 @@ const DEFAULT_BATCH_SIZE = 50;
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
 /** Split `"A1+TA1"` into its slots, upper-cased and trimmed. */
-const splitSlots = (slot: string): string[] =>
+/**
+ * "G1+L31+L32" → ["G1", "L31", "L32"].
+ *
+ * Shared with the generator screen, which needs the same tokenization when it
+ * hands a preview course to a same-slot faculty alternative.
+ */
+export const splitSlots = (slot: string): string[] =>
   String(slot ?? "")
     .split("+")
     .map((s) => s.trim().toUpperCase())
@@ -572,6 +595,62 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
 }
 
 /**
+ * Every faculty who teaches `code` at exactly the set of slot tokens `slots`.
+ *
+ * The generator discovers these people once per full timetable — `groupVariants`
+ * picks them out when a whole week shares one physical layout — but the
+ * preview's Selected Courses table wants them per course: tap a teacher's name,
+ * and hand the same time to someone else. Matching uses the sorted *split*
+ * tokens, stricter than overlap on purpose: a same-time swap must not move a
+ * single period, or the clash-free guarantee behind the preview quietly stops
+ * holding.
+ *
+ * The current teacher is excluded by identity — employee id when the report
+ * carries one, the name otherwise — the same rule `dedupeByFaculty` applies.
+ * Duplicate report rows (same person, same tokens, same room) collapse into
+ * one option; the employee id stays in that key so two people who share a
+ * name both appear. Sorted by faculty, then room.
+ */
+export function sameSlotFacultyAlternatives(
+  code: string,
+  slots: readonly string[],
+  current: { faculty: string; employeeId?: string },
+  masterCourses: readonly ParsedCourse[]
+): ParsedCourse[] {
+  const want = [...slots]
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join("+");
+  const currentIdentity = current.employeeId
+    ? `erp:${current.employeeId}`
+    : current.faculty;
+  const identity = (c: ParsedCourse): string =>
+    c.ERP_ID ? `erp:${c.ERP_ID}` : c.FACULTY;
+  // Raw SLOT strings spell the same booking in different orders; the sorted
+  // tokens are the stable half of this key. `offeringId` would keep both
+  // spellings, which reads as two teachers in the picker.
+  const dedupeKey = (c: ParsedCourse): string =>
+    `${c.FACULTY}|${splitSlots(c.SLOT).sort().join("+")}|${c.ROOM}|${c.ERP_ID ?? ""}`;
+  const seen = new Set<string>();
+  return masterCourses
+    .filter((c) => c.CODE === code)
+    .filter((c) => splitSlots(c.SLOT).sort().join("+") === want)
+    .filter((c) => identity(c) !== currentIdentity)
+    .filter((c) => {
+      const key = dedupeKey(c);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(
+      (a, b) =>
+        a.FACULTY.localeCompare(b.FACULTY) ||
+        String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+    );
+}
+
+/**
  * The best percentage this timetable scores against any of the named friends.
  *
  * Taking the best per friend rather than the sum is the same rule the UI used: a
@@ -774,7 +853,7 @@ export function generateTimetablesStream(
   }
 
   const limit = params.noLimit
-    ? UNLIMITED_RESULTS
+    ? HARD_RESULT_LIMIT
     : params.resultCap ?? DEFAULT_RESULT_LIMIT;
   const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { m } from "framer-motion";
+import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 
 export function animateThemeCircularExpansion(
@@ -69,7 +69,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
   };
 
   return (
-    <m.button
+    <motion.button
       whileTap={{ scale: 0.9 }}
       whileHover={{ scale: 1.05 }}
       onClick={handleToggle}
@@ -81,7 +81,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       title={`Switch to ${isDark ? "Light" : "Dark"} mode`}
     >
       <div className="relative flex items-center justify-center gap-2 px-0.5">
-        <m.div
+        <motion.div
           key={theme}
           initial={{ rotate: -90, scale: 0.6, opacity: 0 }}
           animate={{ rotate: 0, scale: 1, opacity: 1 }}
@@ -93,7 +93,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           ) : (
             <Moon className="h-4.5 w-4.5 stroke-[2.2] text-indigo-600" />
           )}
-        </m.div>
+        </motion.div>
 
         {showLabel && (
           <span className="text-xs font-bold capitalize tracking-wide pr-1">
@@ -101,6 +101,6 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           </span>
         )}
       </div>
-    </m.button>
+    </motion.button>
   );
 }

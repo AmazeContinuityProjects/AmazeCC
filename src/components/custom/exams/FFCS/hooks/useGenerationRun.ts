@@ -42,6 +42,12 @@ export function useGenerationRun(): GenerationRun {
   const handleRef = useRef<GenerationHandle | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerateProgress | null>(null);
+  // `performance.now()` of the last progress that made it to state. The walk
+  // ticks every 4,096 nodes, so a wide search produces thousands of progress
+  // updates a second — each one a set-state the page has to reply to, which
+  // is how a watched run used to starve the very paint it existed to feed.
+  // A display-rate ceiling keeps the re-render budget human.
+  const lastProgressAtRef = useRef(0);
 
   // A screen that unmounts mid-run must not leave a worker churning: there is
   // nobody left to render the answer, so the work has no purpose.
@@ -66,14 +72,21 @@ export function useGenerationRun(): GenerationRun {
       handleRef.current = null;
       setIsGenerating(true);
       setProgress(null);
+      // Fresh run, fresh budget: a restart must not have to wait out the
+      // previous run's remaining throttle window.
+      lastProgressAtRef.current = 0;
 
       try {
         const handle = startGeneration(params, {
           onBatch,
-          // Always watching, even when the caller only wants the final answer:
-          // the cost is one message per few thousand nodes, and it is what keeps
-          // a long search from looking wedged.
-          onProgress: setProgress,
+          // Always watching, even when the caller only wants the final answer —
+          // but at a display rate, not the walk's tick rate (see the ref above).
+          onProgress: (tick) => {
+            const now = performance.now();
+            if (now - lastProgressAtRef.current < 100) return;
+            lastProgressAtRef.current = now;
+            setProgress(tick);
+          },
         });
         handleRef.current = handle;
         return await handle.result;

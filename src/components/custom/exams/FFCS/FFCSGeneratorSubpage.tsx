@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { memo, useState, useMemo, useEffect } from 'react';
 import { X, Wand2, Info, ChevronDown, Check, Beaker, Play, Lock, Hash, ArrowRight, Search, AlertTriangle, ArrowLeft, Save, Users } from 'lucide-react';
 import { TimetableState, CourseLock, Friend, FriendGroup, ParsedCourse, AddedCourse } from './types';
 import { getBatchColorClass } from '@/lib/utils';
@@ -11,15 +11,105 @@ import { RANKING_MODES, type RankingMode } from '@/lib/ffcsRanking';
 import { track } from '@/lib/analytics';
 import type { FFCSSettings } from '@/lib/ffcsSettings';
 import SearchInput from "../../shared/SearchInput";
-import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../FFCSTimetableTab';
+import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
 import { offeringId, offeringMatches } from './reports';
+import { splitSlots, HARD_RESULT_LIMIT } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
-import { TimetablePeriod } from './types';
-import { SegmentedControl } from "../../shared/primitives";
+import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
+import { SegmentedControl, RadioGroup } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import SubpageLayout from "../../shared/SubpageLayout";
+
+const GENERATOR_SORT_OPTIONS = [
+  {
+    value: "balanced" as const,
+    label: "Balanced (All Metrics)",
+    description: "Best overall blend of gaps, free time, and friends.",
+  },
+  {
+    value: "compactness" as const,
+    label: "Max Compactness (Fewer Gaps)",
+    description: "Minimizes dead waiting time between classes.",
+  },
+  {
+    value: "halfdays" as const,
+    label: "Max Free Half-Days",
+    description: "Packs classes together to free whole mornings or afternoons.",
+  },
+  {
+    value: "social" as const,
+    label: "Max Social Score",
+    description: "Maximizes overlapping class hours with friends.",
+  },
+] as const;
+
+const GENERATOR_TIME_PREFERENCE_OPTIONS = [
+  {
+    value: "none" as const,
+    label: "No Preference",
+    description: "Accept any combination of morning or evening slots.",
+  },
+  {
+    value: "morning" as const,
+    label: "Morning Theory Preferred",
+    description: "Prioritize theory lectures in the morning and labs in the afternoon.",
+  },
+  {
+    value: "evening" as const,
+    label: "Evening Theory Preferred",
+    description: "Prioritize theory lectures in the afternoon/evening and labs in the morning.",
+  },
+] as const;
+
+const GENERATOR_RANKING_OPTIONS = [
+  {
+    value: "default" as const,
+    label: "Sort Order Only (Off)",
+    description: "No weighted profile — options are ordered purely by the sort order above.",
+  },
+  {
+    value: "Balanced" as const,
+    label: "Balanced",
+    description: "Overall balance across gaps, early finishes, and daily workload.",
+  },
+  {
+    value: "Half Days" as const,
+    label: "Half Days",
+    description: "Maximizes 4-hour compact days and whole mornings or afternoons off.",
+  },
+  {
+    value: "Minimize Gaps" as const,
+    label: "Minimize Gaps",
+    description: "Minimizes dead waiting time between classes throughout the day.",
+  },
+  {
+    value: "Early Finish" as const,
+    label: "Early Finish",
+    description: "Prioritizes classes that end earlier so your afternoons/evenings are free.",
+  },
+  {
+    value: "Late Start" as const,
+    label: "Late Start",
+    description: "Prioritizes classes that start later in the morning.",
+  },
+] as const;
+
+/**
+ * How many option cards the review grid paints before it pauses for a
+ * "Show more".
+ *
+ * The list state keeps every option the search found — the save bar and the
+ * export read the whole thing — but the paint cannot: tens of thousands of
+ * cards is what made an unlimited run freeze the page mid-search, and even a
+ * settled one paints for seconds then drags. Sixty covers what a student
+ * scans; `STAGED_RENDER_STEP` is what "Show more" adds per click, and the
+ * stream's own batches are usually larger than one step, so an expanded view
+ * does not grow a card per frame while the search is still running.
+ */
+const STAGED_RENDER_LIMIT = 60;
+const STAGED_RENDER_STEP = 240;
 
 
 export interface FFCSGeneratorSubpageProps {
@@ -29,8 +119,12 @@ export interface FFCSGeneratorSubpageProps {
    * can still change any of them here; nothing is read back into settings.
    */
   settings: FFCSSettings;
+  /**
+   * The planner's locked Target Courses — read-only here. When any exist they
+   * seed this run's picks, as copies; nothing on this screen writes back to
+   * them. With none, the generator's picks are its own private state.
+   */
   courseLocks: CourseLock[];
-  setCourseLocks: React.Dispatch<React.SetStateAction<CourseLock[]>>;
   friends: Friend[];
   socialScoreGroupMethod: 'cumulative' | 'intersection' | 'average' | 'min' | 'max' | string;
   friendGroups: FriendGroup[];
@@ -52,7 +146,7 @@ export interface FFCSGeneratorSubpageProps {
 }
 
 export function FFCSGeneratorSubpage({
-  onClose, settings, courseLocks, setCourseLocks, friends, socialScoreGroupMethod, friendGroups,
+  onClose, settings, courseLocks, friends, socialScoreGroupMethod, friendGroups,
   masterCourses, blockedSlots, timetables, setTimetables, setActiveTimetableId,
   error, setError, successMsg, setSuccessMsg, renderTypeChips, getGroupedCourses, generatorDisplayCourses, theoryPeriods, labPeriods, toggleBlockSlot
 }: FFCSGeneratorSubpageProps) {
@@ -71,6 +165,12 @@ export function FFCSGeneratorSubpage({
     settings.rankingMode === "none" ? null : settings.rankingMode
   );
   const [stagedTimetables, setStagedTimetables] = useState<TimetableState[]>([]);
+  // The render window over `stagedTimetables`. State, not a derived slice
+  // length: the student expands it ("Show more") and a fresh run folds it
+  // back to the default, so the paint stays bounded without ever deciding
+  // anything about the list itself — every option the search kept is still
+  // in `stagedTimetables` for the save bar to scan.
+  const [stagedVisibleCount, setStagedVisibleCount] = useState<number>(STAGED_RENDER_LIMIT);
   const [generatorMinHalfDays, setGeneratorMinHalfDays] = useState<number>(settings.minHalfDays);
   const [generatorMinStartTime, setGeneratorMinStartTime] = useState<string>("08:00");
   const [generatorMaxEndTime, setGeneratorMaxEndTime] = useState<string>("19:30");
@@ -78,6 +178,43 @@ export function FFCSGeneratorSubpage({
   const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
   const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
+  // The Selected-Courses row whose Faculty cell was tapped — drives the
+  // same-slot faculty swap sheet below.
+  const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
+  /*
+    The generator's picks are its own, not the planner's course locks.
+
+    They used to share one state: the step-1 checkbox wrote a CourseLock the
+    moment it flipped, so a student who picked a few codes to generate with —
+    having never locked a target in the planner — found the Target Courses
+    button outside counting those codes and the modal listing them: locks
+    they never made, persisted to storage all the same.
+
+    The seed decides the relationship. When the plan already has locked
+    targets, this run starts from copies of them and is read-only — no tick
+    or tweak here writes back, which is what the Target Courses modal
+    promises ("the auto-generator will filter results based on your target
+    courses"). When there are none, the picks belong to the generator alone,
+    remembered across opens under their own key so the selection memory the
+    lock storage used to provide incidentally carries over without the leak.
+  */
+  const TARGETS_STORAGE_KEY = "ffcs_generator_targets";
+  const seededFromLocks = courseLocks.length > 0;
+  const [generatorTargets, setGeneratorTargets] = useState<CourseLock[]>(() => {
+    if (seededFromLocks) return courseLocks.map((lock) => ({ ...lock }));
+    try {
+      const stored = safeStorage.getItem(TARGETS_STORAGE_KEY);
+      const parsed = stored ? (JSON.parse(stored) as CourseLock[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (seededFromLocks) return;
+    safeStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(generatorTargets));
+  }, [generatorTargets, seededFromLocks]);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
@@ -167,7 +304,11 @@ export function FFCSGeneratorSubpage({
     setStagedTimetables([]);
     setSelectedStagedIds(new Set());
     setSelectedTimetablesToCompare([]);
-    track("generation_started", { courses: courseLocks.length, ranking: rankingMode ?? "none" });
+    // A new run paints from the default window again: yesterday's "show be
+    // everything" click has no claim on a run whose options have not been
+    // found yet, and the bounded paint is the point of the feature.
+    setStagedVisibleCount(STAGED_RENDER_LIMIT);
+    track("generation_started", { courses: generatorTargets.length, ranking: rankingMode ?? "none" });
     const startedAt = performance.now();
 
     // Off the main thread where the browser will let us, and reported back as
@@ -179,7 +320,7 @@ export function FFCSGeneratorSubpage({
       {
         schema: getTimetableSchema(),
         masterCourses,
-        courseLocks,
+        courseLocks: generatorTargets,
         blockedSlots: [...blockedSlots],
         friends,
         preference: generatorPreference,
@@ -244,10 +385,60 @@ export function FFCSGeneratorSubpage({
     setSuccessMsg(
       `Found ${timetables.length} unique timetables (${variantCount} total variants). Review them below!` +
         // Worth saying out loud: the cap is a real limit, and a student who
-        // reads "50 found" as "there are 50" would be wrong.
-        (outcome.capped ? " More may exist — try allowing unlimited results." : "")
+        // reads "50 found" as "there are 50" would be wrong. The two caps get
+        // different words: the settings one can truly be widened by the
+        // switch, while the switch's own ceiling cannot be widened by itself.
+        (outcome.capped
+          ? generatorNoLimit
+            ? ` The "unlimited" search stopped at its ${HARD_RESULT_LIMIT.toLocaleString()}-result ceiling — filters like the time window or a half-days floor will narrow what exists.`
+            : " More may exist — try allowing unlimited results."
+          : "")
     );
     // We do NOT close generator immediately so they can review.
+  };
+
+  /**
+   * Hand one preview course to a different faculty at the exact same slots.
+   *
+   * Same tokens means same periods, so the week's layout — and with it every
+   * metric on the preview, gaps through social scores — is untouched; only the
+   * teacher changes. Colors and ids stay put: the id keeps the row and the
+   * grid keys stable, the color keeps the swap invisible to everything that
+   * keyed off the original assignment. The swap is written back into the
+   * staged option the preview came from, too, so returning to the list shows
+   * the same teacher. A preview built from a variant is copied, so the staged
+   * update no-ops there by id.
+   */
+  const swapSlotFaculty = (courseId: string, offering: ParsedCourse) => {
+    if (!generatorPreviewTimetable) return;
+    const swapped: TimetableState = {
+      ...generatorPreviewTimetable,
+      courses: generatorPreviewTimetable.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              title: offering.TITLE,
+              faculty: offering.FACULTY,
+              employeeId: offering.ERP_ID,
+              venue: offering.ROOM,
+              credits: offering.CREDITS,
+              type: offering.TYPE,
+              slots: splitSlots(offering.SLOT),
+            }
+          : c
+      ),
+    };
+    setGeneratorPreviewTimetable(swapped);
+    setStagedTimetables((prev) =>
+      prev.some((t) => t.id === swapped.id)
+        ? prev.map((t) => (t.id === swapped.id ? swapped : t))
+        : prev
+    );
+    setSuccessMsg(
+      `${offering.CODE}: ${offering.FACULTY} now takes this slot — the week's times did not change.`
+    );
+    setSlotSwapRow(null);
+    track("slot_faculty_swap");
   };
 
   // File upload and clear master handlers removed as database is preloaded.
@@ -282,7 +473,7 @@ export function FFCSGeneratorSubpage({
             <div className="flex items-stretch gap-2">
               <button 
                 onClick={generateTimetables}
-                disabled={isGenerating || courseLocks.length === 0}
+                disabled={isGenerating || generatorTargets.length === 0}
                 className="flex-1 lg:flex-none bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Wand2 className="w-5 h-5" />}
@@ -480,7 +671,17 @@ export function FFCSGeneratorSubpage({
                                 <td className="py-3 px-2 text-sm text-text-heading/80">
                                   {renderTypeChips(c.type)}
                                 </td>
-                                <td className="py-3 px-2 text-sm text-text-heading/80">{c.faculty}</td>
+                                <td className="py-3 px-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                    title="See who else teaches this course at this exact time slot"
+                                    className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
+                                  >
+                                    <span className="truncate">{c.faculty}</span>
+                                    <Users className="w-3.5 h-3.5 text-muted-foreground/40 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
+                                  </button>
+                                </td>
                                 <td className="py-3 px-2">
                                   <div className="flex flex-wrap gap-1">
                                     {c.slots.map((s: string) => (
@@ -716,134 +917,38 @@ export function FFCSGeneratorSubpage({
 
                 {/* Grid of Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                  {stagedTimetables.map(tt => (
-                    <div 
-                      key={tt.id} 
-                      className={`relative flex flex-col bg-surface rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedStagedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border-strong hover:border-amber-500/50 hover:shadow-lg'}`}
-                      onClick={() => {
-                        const newSet = new Set(selectedStagedIds);
-                        if (newSet.has(tt.id)) {
-                          newSet.delete(tt.id);
-                          if (tt.variants) tt.variants.forEach(v => newSet.delete(v.id));
-                        } else {
-                          newSet.add(tt.id);
-                          if (tt.variants) tt.variants.forEach(v => newSet.add(v.id));
-                        }
-                        setSelectedStagedIds(newSet);
-                      }}
-                      onDoubleClick={(e) => {
-                        e.preventDefault();
-                        setGeneratorPreviewTimetable(tt);
-                      }}
-                    >
-                      <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="font-bold text-lg text-text-heading">{tt.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedTimetablesToCompare(prev => {
-                                  if (prev.includes(tt.id)) return prev.filter(id => id !== tt.id);
-                                  if (prev.length >= 3) return prev; // max 3
-                                  return [...prev, tt.id];
-                                });
-                              }}
-                              className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${selectedTimetablesToCompare.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50'}`}
-                            >
-                              Compare
-                            </button>
-                            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedStagedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
-                              {selectedStagedIds.has(tt.id) && <Check className="w-4 h-4" />}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
-                          <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
-                            <span className="text-2xl font-black text-text-heading">{tt.metrics?.halfDays}</span>
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
-                          </div>
-                          <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
-                            <span className="text-2xl font-black text-text-heading">{formatHours(tt.metrics?.gaps ?? 0)}h</span>
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
-                              {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
-                                <div key={day} className="flex justify-between gap-3">
-                                  <span className="font-bold text-slate-400 uppercase">{day}</span>
-                                  <span>{formatHours(gap)}h</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {tt.metrics?.isLongWeekend && (
-                          <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
-                             Long Weekend!
-                          </div>
-                        )}
-                        {(tt.metrics?.buildingDashes ?? 0) > 0 && (
-                          <div className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
-                             {tt.metrics?.buildingDashes} Block Dash{(tt.metrics?.buildingDashes ?? 0) > 1 ? 'es' : ''}
-                          </div>
-                        )}
-
-                        {generatorMaximizeFreeTimeFriends.length > 0 && (
-                          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
-                            <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
-                              <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate" title={tt.metrics?.bestFriendMatches.join(', ')}>
-                              Matches best with: <span className="font-medium text-text-heading">{tt.metrics?.bestFriendMatches.join(', ') || 'None'}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {tt.variants && tt.variants.length > 1 && (
-                          <div className="mt-auto pt-4 border-t border-border-strong/50">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
-                              <span className="text-[10px] bg-surface-secondary px-2 py-0.5 rounded-full">{tt.variants.length} available</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
-                              {tt.variants.slice(0, 50).map((v, vIdx) => {
-                                const isSelected = selectedStagedIds.has(v.id);
-                                return (
-                                  <div 
-                                    key={v.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const newSet = new Set(selectedStagedIds);
-                                      if (isSelected) newSet.delete(v.id);
-                                      else newSet.add(v.id);
-                                      
-                                      if (isSelected && newSet.has(tt.id)) newSet.delete(tt.id);
-                                      if (!isSelected && !newSet.has(tt.id)) newSet.add(tt.id);
-                                      
-                                      setSelectedStagedIds(newSet);
-                                    }}
-                                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? 'bg-amber-500/10 border-amber-500/50 text-text-heading' : 'bg-surface border-border-strong text-muted-foreground hover:border-amber-500/30'}`}
-                                  >
-                                    <span className="font-medium">Variant {vIdx + 1}</span>
-                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
-                                      {isSelected && <Check className="w-3 h-3" />}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {tt.variants.length > 50 && (
-                                <div className="p-2 text-xs text-center text-muted-foreground bg-surface-secondary/20 rounded-lg">
-                                  + {tt.variants.length - 50} more variations
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  {stagedTimetables.slice(0, stagedVisibleCount).map(tt => (
+                    <StagedCard
+                      key={tt.id}
+                      tt={tt}
+                      selectedIds={selectedStagedIds}
+                      setSelectedIds={setSelectedStagedIds}
+                      compareIds={selectedTimetablesToCompare}
+                      setCompareIds={setSelectedTimetablesToCompare}
+                      socialOn={generatorMaximizeFreeTimeFriends.length > 0}
+                      onPreview={setGeneratorPreviewTimetable}
+                    />
                   ))}
                 </div>
+
+                {/* Render-window footer. The state keeps every option the
+                    search kept; only the paint is bounded. The grid's own
+                    bottom padding is the visual gap above, so this block's
+                    bottom padding stays the Saved bar's scroll clearance. */}
+                {stagedTimetables.length > stagedVisibleCount && (
+                  <div className="flex flex-col items-center gap-3 pb-20 -mt-14">
+                    <p className="text-xs text-muted-foreground text-center max-w-md">
+                      Showing the first {stagedVisibleCount.toLocaleString()} of {stagedTimetables.length.toLocaleString()} options.
+                      Everything is kept — &ldquo;Save Selected&rdquo; scans the whole list, and the ranked order keeps the best ones here.
+                    </p>
+                    <button
+                      onClick={() => setStagedVisibleCount(count => count + STAGED_RENDER_STEP)}
+                      className="px-5 py-2 text-sm font-bold bg-surface hover:bg-surface-secondary text-text-heading rounded-xl border border-border-strong transition-colors"
+                    >
+                      Show {Math.min(STAGED_RENDER_STEP, stagedTimetables.length - stagedVisibleCount).toLocaleString()} more
+                    </button>
+                  </div>
+                )}
 
                 {/* Floating Compare Bar */}
                 {selectedTimetablesToCompare.length > 0 && (
@@ -897,7 +1002,7 @@ export function FFCSGeneratorSubpage({
                       c.code.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase()) || 
                       c.title.toLowerCase().includes(generatorCourseSearchQuery.toLowerCase())
                     ).map(c => {
-                      const sel = courseLocks.find(s => s.code === c.code);
+                      const sel = generatorTargets.find(s => s.code === c.code);
                           const isSelected = !!sel;
                           
                           const courseOpts = masterCourses.filter(mc => mc.CODE === c.code);
@@ -935,8 +1040,8 @@ export function FFCSGeneratorSubpage({
                                   className="mt-1 rounded bg-surface border-border-strong text-amber-500 focus:ring-amber-500/30"
                                   checked={isSelected}
                                   onChange={(e) => {
-                                    if (e.target.checked) setCourseLocks(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
-                                    else setCourseLocks(prev => prev.filter(s => s.code !== c.code));
+                                    if (e.target.checked) setGeneratorTargets(prev => [...prev, { code: c.code, title: c.title, allowedSlots: [], allowedFaculty: [], offerings: [] }]);
+                                    else setGeneratorTargets(prev => prev.filter(s => s.code !== c.code));
                                   }}
                                 />
                                 <div className="flex flex-col flex-1">
@@ -985,7 +1090,7 @@ export function FFCSGeneratorSubpage({
                                                 onClick={(e) => {
                                                   e.preventDefault();
                                                   e.stopPropagation();
-                                                  setCourseLocks(prev => prev.map(p => {
+                                                  setGeneratorTargets(prev => prev.map(p => {
                                                     if (p.code !== c.code) return p;
                                                     let newOfferings = [...(p.offerings || [])];
                                                     if (allSelected) {
@@ -1033,7 +1138,7 @@ export function FFCSGeneratorSubpage({
                                                 className="mt-0.5 rounded w-3.5 h-3.5 border-border-strong text-amber-500 focus:ring-amber-500/30"
                                                 checked={isOffChecked}
                                                 onChange={(e) => {
-                                                  setCourseLocks(prev => prev.map(p => {
+                                                  setGeneratorTargets(prev => prev.map(p => {
                                                     if (p.code !== c.code) return p;
                                                     if (e.target.checked) {
                                                       const next = (p.offerings || []).filter(id => id !== offering.id);
@@ -1077,7 +1182,8 @@ export function FFCSGeneratorSubpage({
                         )}
                   </div>
                   <div className="mt-4 text-sm text-muted-foreground bg-amber-500/10 text-amber-500/90 py-2 px-4 rounded-xl w-max border border-amber-500/20 font-bold">
-                    Selected: {courseLocks.length} target courses
+                    Selected: {generatorTargets.length} target courses
+                    {seededFromLocks && " — from your locked Target Courses; changes here don't write back"}
                   </div>
                 </div>
               </div>
@@ -1093,25 +1199,19 @@ export function FFCSGeneratorSubpage({
                   </h3>
                   
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-text-heading block mb-1.5">Sort Timetables By</label>
-                            {/* Segmented, not a dropdown: this panel is itself an overlay
-                                (z-200), and the option-picker portal paints at z-50 —
-                                underneath it, untappable. A control with no popup cannot
-                                be buried. */}
-                            <SegmentedControl
-                              value={generatorSortBy}
-                              onChange={setGeneratorSortBy}
-                              options={[
-                                { value: "balanced", label: "Balanced (All Metrics)" },
-                                { value: "compactness", label: "Max Compactness (Fewer Gaps)" },
-                                { value: "halfdays", label: "Max Free Half-Days" },
-                                { value: "social", label: "Max Social Score" },
-                              ]}
-                            />
-                      </div>
+                    <div>
+                      <label className="text-sm font-medium text-text-heading block mb-2">
+                        Sort Timetables By
+                      </label>
+                      <RadioGroup
+                        name="generatorSortBy"
+                        options={GENERATOR_SORT_OPTIONS}
+                        value={generatorSortBy}
+                        onChange={setGeneratorSortBy}
+                      />
+                    </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
                           Min Free Half-Days
@@ -1132,30 +1232,20 @@ export function FFCSGeneratorSubpage({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
+                      <label className="text-sm font-medium text-text-heading block mb-2 flex items-center gap-2">
                         Ranking Profile
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
                           Optional
                         </span>
                       </label>
-                      <SegmentedControl
+                      <RadioGroup
+                        name="generatorRankingProfile"
+                        options={GENERATOR_RANKING_OPTIONS}
                         value={rankingMode ?? "default"}
                         onChange={(val) =>
                           setRankingMode(val === "default" ? null : (val as RankingMode))
                         }
-                        options={[
-                          { value: "default", label: "Sort Order Only" },
-                          ...RANKING_MODES.map((mode) => ({ value: mode, label: mode })),
-                        ]}
                       />
-                      {/* Named so a student can tell this from the sort above: the
-                          sort is a fixed opinion, the profile is a reweighting
-                          that also shows where its points came from. */}
-                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                        {rankingMode
-                          ? `Ranked by the "${rankingMode}" profile. Your sort order above still breaks ties.`
-                          : "Off — options are ranked by the sort order above, exactly as they always have been."}
-                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1184,16 +1274,15 @@ export function FFCSGeneratorSubpage({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-text-heading block mb-1.5">Time Preference</label>
-                          <SegmentedControl
-                            value={generatorPreference as "none" | "morning" | "evening"}
-                            onChange={(val) => setGeneratorPreference(val as any)}
-                            options={[
-                              { value: "none", label: "No Preference (Any combinations)" },
-                              { value: "morning", label: "Morning Theory Preferred" },
-                              { value: "evening", label: "Evening Theory Preferred" },
-                            ]}
-                          />
+                      <label className="text-sm font-medium text-text-heading block mb-2">
+                        Time Preference
+                      </label>
+                      <RadioGroup
+                        name="generatorPreference"
+                        options={GENERATOR_TIME_PREFERENCE_OPTIONS}
+                        value={generatorPreference}
+                        onChange={(val) => setGeneratorPreference(val as any)}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-3">
@@ -1409,6 +1498,181 @@ export function FFCSGeneratorSubpage({
             </div>
           </BottomSheet>
       )}</AnimatePresence>
+
+      {/* Same-slot faculty swap: tapped from a Faculty cell in the Selected
+          Courses table — one sheet level deeper in the overlay stack, the same
+          z pair as the variant search above. */}
+      <AnimatePresence>{slotSwapRow && generatorPreviewTimetable && (
+        <SlotFacultySwapSheet
+          code={slotSwapRow.code}
+          courseTitle={slotSwapRow.title}
+          halves={generatorPreviewTimetable.courses.filter((c) => slotSwapRow.ids.includes(c.id))}
+          masterCourses={masterCourses}
+          onSwap={swapSlotFaculty}
+          onClose={() => setSlotSwapRow(null)}
+        />
+      )}</AnimatePresence>
     </>
   );
 }
+
+/* ── one option card ───────────────────────────────────────────────────── */
+
+/**
+ * A single staged option card.
+ *
+ * Extracted from the grid's inline map as the render-side half of the
+ * streaming freeze fix, alongside the render window: a watched run moved the
+ * progress line and the option list many times a second, and the inline map
+ * re-diffed every card on every tick — reading thousands of subtrees for
+ * content that had not changed.
+ *
+ * Its props are chosen so that streaming re-renders cannot reach here at all:
+ * the timetable object is replaced only when a run settles or a faculty swap
+ * writes back into it, the selection set and compare set are replaced only
+ * when the student clicks, and the state setters are stable — so a batch or
+ * progress tick re-renders nothing, while a click still lands on exactly the
+ * cards whose selection it changed.
+ */
+interface StagedCardProps {
+  tt: TimetableState;
+  selectedIds: Set<string>;
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  compareIds: string[];
+  setCompareIds: React.Dispatch<React.SetStateAction<string[]>>;
+  /** `generatorMaximizeFreeTimeFriends.length > 0`, flattened to a boolean so
+   * the array's identity cannot mark the card dirty. */
+  socialOn: boolean;
+  onPreview: (tt: TimetableState) => void;
+}
+
+const StagedCard = memo(function StagedCard({
+  tt, selectedIds, setSelectedIds, compareIds, setCompareIds, socialOn, onPreview,
+}: StagedCardProps) {
+  return (
+    <div
+      className={`relative flex flex-col bg-surface rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedIds.has(tt.id) ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'border-border-strong hover:border-amber-500/50 hover:shadow-lg'}`}
+      onClick={() => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(tt.id)) {
+          newSet.delete(tt.id);
+          if (tt.variants) tt.variants.forEach(v => newSet.delete(v.id));
+        } else {
+          newSet.add(tt.id);
+          if (tt.variants) tt.variants.forEach(v => newSet.add(v.id));
+        }
+        setSelectedIds(newSet);
+      }}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        onPreview(tt);
+      }}
+    >
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="font-bold text-lg text-text-heading">{tt.name}</h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCompareIds(prev => {
+                  if (prev.includes(tt.id)) return prev.filter(id => id !== tt.id);
+                  if (prev.length >= 3) return prev; // max 3
+                  return [...prev, tt.id];
+                });
+              }}
+              className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border transition-colors ${compareIds.includes(tt.id) ? 'bg-purple-500 text-white border-purple-500' : 'bg-transparent text-muted-foreground border-border-strong hover:border-purple-500/50'}`}
+            >
+              Compare
+            </button>
+            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${selectedIds.has(tt.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
+              {selectedIds.has(tt.id) && <Check className="w-4 h-4" />}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-4 flex-1 content-start">
+          <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+            <span className="text-2xl font-black text-text-heading">{tt.metrics?.halfDays}</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Free Half-Days</span>
+          </div>
+          <div className="bg-surface-secondary/30 rounded-xl p-3 flex flex-col items-center justify-center text-center group relative">
+            <span className="text-2xl font-black text-text-heading">{formatHours(tt.metrics?.gaps ?? 0)}h</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total Gaps</span>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max max-w-[200px] bg-slate-900 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 active:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl grid grid-cols-2 gap-x-3 gap-y-1">
+              {Object.entries(tt.metrics?.gapsPerDay || {}).map(([day, gap]) => (
+                <div key={day} className="flex justify-between gap-3">
+                  <span className="font-bold text-slate-400 uppercase">{day}</span>
+                  <span>{formatHours(gap)}h</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {tt.metrics?.isLongWeekend && (
+          <div className="bg-green-500/10 text-green-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+             Long Weekend!
+          </div>
+        )}
+        {(tt.metrics?.buildingDashes ?? 0) > 0 && (
+          <div className="bg-red-500/10 text-red-500 text-xs font-bold px-3 py-2 rounded-xl w-full mb-3 flex items-center justify-center gap-1.5">
+             {tt.metrics?.buildingDashes} Block Dash{(tt.metrics?.buildingDashes ?? 0) > 1 ? 'es' : ''}
+          </div>
+        )}
+
+        {socialOn && (
+          <div className="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3 mt-auto mb-3">
+            <div className="text-xs font-bold text-pink-500 mb-1 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" /> Social Score: {tt.metrics?.socialScore}
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate" title={tt.metrics?.bestFriendMatches.join(', ')}>
+              Matches best with: <span className="font-medium text-text-heading">{tt.metrics?.bestFriendMatches.join(', ') || 'None'}</span>
+            </div>
+          </div>
+        )}
+
+        {tt.variants && tt.variants.length > 1 && (
+          <div className="mt-auto pt-4 border-t border-border-strong/50">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-muted-foreground uppercase">Faculty Variants</span>
+              <span className="text-[10px] bg-surface-secondary px-2 py-0.5 rounded-full">{tt.variants.length} available</span>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
+              {tt.variants.slice(0, 50).map((v, vIdx) => {
+                const isSelected = selectedIds.has(v.id);
+                return (
+                  <div
+                    key={v.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newSet = new Set(selectedIds);
+                      if (isSelected) newSet.delete(v.id);
+                      else newSet.add(v.id);
+
+                      if (isSelected && newSet.has(tt.id)) newSet.delete(tt.id);
+                      if (!isSelected && !newSet.has(tt.id)) newSet.add(tt.id);
+
+                      setSelectedIds(newSet);
+                    }}
+                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isSelected ? 'bg-amber-500/10 border-amber-500/50 text-text-heading' : 'bg-surface border-border-strong text-muted-foreground hover:border-amber-500/30'}`}
+                  >
+                    <span className="font-medium">Variant {vIdx + 1}</span>
+                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted-foreground/30'}`}>
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </div>
+                  </div>
+                );
+              })}
+              {tt.variants.length > 50 && (
+                <div className="p-2 text-xs text-center text-muted-foreground bg-surface-secondary/20 rounded-lg">
+                  + {tt.variants.length - 50} more variations
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
