@@ -216,3 +216,98 @@ export function ChipTabs<T extends string>({
     </div>
   );
 }
+
+/**
+ * Vertical radio group with each option on its own line.
+ *
+ * Each option is rendered as a clean card row with an accessible radio
+ * indicator, title, and optional description.
+ */
+export function RadioGroup<T extends string>({
+  options,
+  value,
+  onChange,
+  name,
+  className = "",
+}: {
+  options: readonly {
+    value: T;
+    label: ReactNode;
+    description?: ReactNode;
+    title?: string;
+    icon?: ReactNode;
+  }[];
+  value: T;
+  onChange: (value: NoInfer<T>) => void;
+  name?: string;
+  className?: string;
+}) {
+  return (
+    <div role="radiogroup" className={cn("flex flex-col gap-2 w-full", className)}>
+      {options.map((opt) => {
+        const isSelected = opt.value === value;
+        return (
+          <label
+            key={opt.value}
+            title={opt.title}
+            className={cn(
+              "flex items-start gap-3 p-3 rounded-2xl border transition-all cursor-pointer select-none text-left",
+              isSelected
+                ? "bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500/40 dark:border-indigo-500/30 shadow-2xs"
+                : "bg-surface dark:bg-surface-secondary border-border-muted dark:border-border hover:bg-surface-secondary dark:hover:bg-surface-hover/60"
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={opt.value}
+              checked={isSelected}
+              onChange={() => onChange(opt.value)}
+              className="sr-only"
+            />
+            <span
+              className={cn(
+                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
+                isSelected
+                  ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:border-indigo-400"
+                  : "border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900"
+              )}
+              aria-hidden="true"
+            >
+              {isSelected ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-950" />
+              ) : null}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {opt.icon ? <span className="shrink-0">{opt.icon}</span> : null}
+                <span
+                  className={cn(
+                    "text-xs sm:text-sm font-bold tracking-tight block truncate",
+                    isSelected
+                      ? "text-indigo-950 dark:text-indigo-100"
+                      : "text-text-heading"
+                  )}
+                >
+                  {opt.label}
+                </span>
+              </div>
+              {opt.description ? (
+                <p
+                  className={cn(
+                    "text-[11px] leading-relaxed mt-0.5",
+                    isSelected
+                      ? "text-indigo-700/80 dark:text-indigo-300/80"
+                      : "text-text-secondary dark:text-text-muted"
+                  )}
+                >
+                  {opt.description}
+                </p>
+              ) : null}
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  );
+}

@@ -17,11 +17,84 @@ import { offeringId, offeringMatches } from './reports';
 import { splitSlots, HARD_RESULT_LIMIT } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
-import { TimetablePeriod } from './types';
-import { SegmentedControl } from "../../shared/primitives";
+import { SegmentedControl, RadioGroup } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import SubpageLayout from "../../shared/SubpageLayout";
+
+const GENERATOR_SORT_OPTIONS = [
+  {
+    value: "balanced" as const,
+    label: "Balanced (All Metrics)",
+    description: "Best overall blend of gaps, free time, and friends.",
+  },
+  {
+    value: "compactness" as const,
+    label: "Max Compactness (Fewer Gaps)",
+    description: "Minimizes dead waiting time between classes.",
+  },
+  {
+    value: "halfdays" as const,
+    label: "Max Free Half-Days",
+    description: "Packs classes together to free whole mornings or afternoons.",
+  },
+  {
+    value: "social" as const,
+    label: "Max Social Score",
+    description: "Maximizes overlapping class hours with friends.",
+  },
+] as const;
+
+const GENERATOR_TIME_PREFERENCE_OPTIONS = [
+  {
+    value: "none" as const,
+    label: "No Preference",
+    description: "Accept any combination of morning or evening slots.",
+  },
+  {
+    value: "morning" as const,
+    label: "Morning Theory Preferred",
+    description: "Prioritize theory lectures in the morning and labs in the afternoon.",
+  },
+  {
+    value: "evening" as const,
+    label: "Evening Theory Preferred",
+    description: "Prioritize theory lectures in the afternoon/evening and labs in the morning.",
+  },
+] as const;
+
+const GENERATOR_RANKING_OPTIONS = [
+  {
+    value: "default" as const,
+    label: "Sort Order Only (Off)",
+    description: "No weighted profile — options are ordered purely by the sort order above.",
+  },
+  {
+    value: "Balanced" as const,
+    label: "Balanced",
+    description: "Overall balance across gaps, early finishes, and daily workload.",
+  },
+  {
+    value: "Half Days" as const,
+    label: "Half Days",
+    description: "Maximizes 4-hour compact days and whole mornings or afternoons off.",
+  },
+  {
+    value: "Minimize Gaps" as const,
+    label: "Minimize Gaps",
+    description: "Minimizes dead waiting time between classes throughout the day.",
+  },
+  {
+    value: "Early Finish" as const,
+    label: "Early Finish",
+    description: "Prioritizes classes that end earlier so your afternoons/evenings are free.",
+  },
+  {
+    value: "Late Start" as const,
+    label: "Late Start",
+    description: "Prioritizes classes that start later in the morning.",
+  },
+] as const;
 
 /**
  * How many option cards the review grid paints before it pauses for a
@@ -1126,25 +1199,19 @@ export function FFCSGeneratorSubpage({
                   </h3>
                   
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-text-heading block mb-1.5">Sort Timetables By</label>
-                            {/* Segmented, not a dropdown: this panel is itself an overlay
-                                (z-200), and the option-picker portal paints at z-50 —
-                                underneath it, untappable. A control with no popup cannot
-                                be buried. */}
-                            <SegmentedControl
-                              value={generatorSortBy}
-                              onChange={setGeneratorSortBy}
-                              options={[
-                                { value: "balanced", label: "Balanced (All Metrics)" },
-                                { value: "compactness", label: "Max Compactness (Fewer Gaps)" },
-                                { value: "halfdays", label: "Max Free Half-Days" },
-                                { value: "social", label: "Max Social Score" },
-                              ]}
-                            />
-                      </div>
+                    <div>
+                      <label className="text-sm font-medium text-text-heading block mb-2">
+                        Sort Timetables By
+                      </label>
+                      <RadioGroup
+                        name="generatorSortBy"
+                        options={GENERATOR_SORT_OPTIONS}
+                        value={generatorSortBy}
+                        onChange={setGeneratorSortBy}
+                      />
+                    </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
                           Min Free Half-Days
@@ -1165,30 +1232,20 @@ export function FFCSGeneratorSubpage({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-text-heading block mb-1.5 flex items-center gap-2">
+                      <label className="text-sm font-medium text-text-heading block mb-2 flex items-center gap-2">
                         Ranking Profile
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20">
                           Optional
                         </span>
                       </label>
-                      <SegmentedControl
+                      <RadioGroup
+                        name="generatorRankingProfile"
+                        options={GENERATOR_RANKING_OPTIONS}
                         value={rankingMode ?? "default"}
                         onChange={(val) =>
                           setRankingMode(val === "default" ? null : (val as RankingMode))
                         }
-                        options={[
-                          { value: "default", label: "Sort Order Only" },
-                          ...RANKING_MODES.map((mode) => ({ value: mode, label: mode })),
-                        ]}
                       />
-                      {/* Named so a student can tell this from the sort above: the
-                          sort is a fixed opinion, the profile is a reweighting
-                          that also shows where its points came from. */}
-                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                        {rankingMode
-                          ? `Ranked by the "${rankingMode}" profile. Your sort order above still breaks ties.`
-                          : "Off — options are ranked by the sort order above, exactly as they always have been."}
-                      </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1217,16 +1274,15 @@ export function FFCSGeneratorSubpage({
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-text-heading block mb-1.5">Time Preference</label>
-                          <SegmentedControl
-                            value={generatorPreference as "none" | "morning" | "evening"}
-                            onChange={(val) => setGeneratorPreference(val as any)}
-                            options={[
-                              { value: "none", label: "No Preference (Any combinations)" },
-                              { value: "morning", label: "Morning Theory Preferred" },
-                              { value: "evening", label: "Evening Theory Preferred" },
-                            ]}
-                          />
+                      <label className="text-sm font-medium text-text-heading block mb-2">
+                        Time Preference
+                      </label>
+                      <RadioGroup
+                        name="generatorPreference"
+                        options={GENERATOR_TIME_PREFERENCE_OPTIONS}
+                        value={generatorPreference}
+                        onChange={(val) => setGeneratorPreference(val as any)}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-3">

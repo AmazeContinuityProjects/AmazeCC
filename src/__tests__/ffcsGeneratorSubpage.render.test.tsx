@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
   FFCSGeneratorSubpage,
@@ -6,6 +7,9 @@ import {
 } from "../components/custom/exams/FFCS/FFCSGeneratorSubpage";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
+import { periodsForSlot, type SlotPeriod } from "../lib/slots";
+import chennai from "../data/campus/chennai.json";
+import type { CourseLock, ParsedCourse } from "../components/custom/exams/FFCS/types";
 import { installLocalStorage } from "./helpers/localStorage";
 
 // The generator persists its private picks under "ffcs_generator_targets", and
@@ -36,6 +40,56 @@ const courseLock = (code: string) => ({
   title: `${code} course`,
   allowedSlots: [],
   allowedFaculty: [],
+});
+
+/**
+ * Slot ids derived from the schema, never written by hand — a slot that
+ * "looks free" but quietly runs on a second day is how a fixture drifts from
+ * the solver. Same approach as the streaming test, so both files read the
+ * same truth about the campus.
+ */
+const declaredSlotIds = (): string[] => {
+  const ids = new Set<string>();
+  for (const period of [...(chennai.theory ?? []), ...(chennai.lab ?? [])]) {
+    for (const slot of Object.values(period?.days ?? {})) {
+      if (slot) ids.add(String(slot));
+    }
+  }
+  return [...ids].sort();
+};
+
+const collide = (a: SlotPeriod[], b: SlotPeriod[]): boolean =>
+  a.some((x) =>
+    b.some((y) => x.day === y.day && Math.max(x.startMin, y.startMin) < Math.min(x.endMin, y.endMin))
+  );
+
+const nonClashingSlots = (count: number): string[] => {
+  const chosen: string[] = [];
+  const windows: SlotPeriod[][] = [];
+  for (const id of declaredSlotIds()) {
+    const periods = periodsForSlot(chennai as never, id);
+    if (!periods.length) continue;
+    // Fully inside the generator's own default time window (08:00–19:30):
+    // a slot the run window would filter out cannot participate in the
+    // arithmetic the test asserts on.
+    const inRunWindow = periods.every((p) => p.startMin >= 480 && p.endMin <= 1170);
+    if (!inRunWindow) continue;
+    if (windows.some((taken) => collide(taken, periods))) continue;
+    chosen.push(id);
+    windows.push(periods);
+    if (chosen.length === count) break;
+  }
+  return chosen;
+};
+
+const courseRow = (code: string, slot: string, room: string): ParsedCourse => ({
+  CODE: code,
+  TITLE: "Course",
+  TYPE: "TH",
+  CREDITS: "3",
+  ROOM: room,
+  SLOT: slot,
+  FACULTY: "Dr Someone",
 });
 
 const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubpageProps => ({
@@ -142,6 +196,66 @@ describe("FFCSGeneratorSubpage", () => {
     // generator's private key either — it owns nothing yet.
     expect(storage.getItem("ffcs_generator_targets")).toBeNull();
   });
+
+  it("paints a bounded window of a long result list, expanding on demand", async () => {
+    // Four courses, each with three options from disjoint stretches of the
+    // non-clashing, run-window pool. A week needs every course in a distinct
+    // window or the pairs clash, and with disjoint pools each of the 3^4 = 81
+    // weeks owns a layout no other week shares — 81 distinct options, above
+    // the render window, with the solver's own cap (here raised to 5000, the
+    // settings sheet cannot ask for that, but nothing re-sanitises on the way
+    // in) never stopping the run.
+    const pool = nonClashingSlots(12);
+    const masterCourses: ParsedCourse[] = [];
+    const courseLocksState: CourseLock[] = [0, 1, 2, 3].map((courseIndex) => {
+      const code = `BCSE4${courseIndex}0`;
+      for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+        masterCourses.push(
+          courseRow(code, pool[courseIndex * 3 + slotIndex], `AB1-${100 + courseIndex * 3 + slotIndex}`)
+        );
+      }
+      return courseLock(code);
+    });
+
+    // The success message is written through the parent-held setter, so the
+    // only way to await the settle on the settled message is a host that
+    // keeps that state for real — `props`' `vi.fn` would swallow it.
+    const Harness = () => {
+      const [msg, setMsg] = useState<string | null>(null);
+      return (
+        <FFCSGeneratorSubpage
+          {...props({
+            successMsg: msg,
+            setSuccessMsg: setMsg,
+            settings: { ...FFCSSettingsDefaults, resultCap: 5000 },
+            courseLocks: courseLocksState,
+            masterCourses,
+          })}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    fireEvent.click(generateButton());
+
+    // The settle is the anchor for everything after it: the success message
+    // and the final (renumbered, ranked) list land in the same commit, so
+    // once the message is readable the window below is the settled one.
+    await screen.findByText(/Found \d+ unique timetables/, {}, { timeout: 15_000 });
+
+    expect(screen.getAllByText(/^Option \d+$/)).toHaveLength(60);
+    expect(document.body.textContent).toContain("Showing the first 60 of 81 options.");
+
+    // The step is what the window still misses, so 21 of the 240 asked for.
+    fireEvent.click(screen.getByRole("button", { name: /Show 21 more/ }));
+    expect(screen.getAllByText(/^Option \d+$/)).toHaveLength(81);
+    // ...and once every option is painted, the headline goes with it.
+    expect(document.body.textContent).not.toContain("Showing the first 60 of 81");
+    // Raised past the 5s default: the run itself is fast, but this is the one
+    // test that runs the real solver through the real subpage, and a busy
+    // suite is not a reason to fail a timing-budget that a phone would miss.
+  }, 20_000);
 
   it("shows the run's own message on the screen that produced it", () => {
     render(

@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   generateTimetables,
   generateTimetablesStream,
+  HARD_RESULT_LIMIT,
   type GenerateParams,
   type GenerateProgress,
   type GenerateResult,
@@ -240,6 +241,77 @@ describe("watching a search", () => {
     expect(result.timetables).toHaveLength(1);
     expect(result.timetables[0].variants).toHaveLength(5040);
     expect(result.timetables[0].name).toBe("Option 1");
+  });
+});
+
+/**
+ * The ceiling itself.
+ *
+ * `noLimit` used to sit at an unreachable 999,999 — which stopped nothing: a
+ * wide search streamed every combination it found onto a page that had to
+ * paint each one, and the student watched a frozen screen while the solver ran
+ * on. The ceiling is a real number now, and it has to be met here rather than
+ * trusted: this fixture resolves millions of combinations when allowed, so
+ * the only thing that can end the run is the ceiling, not the space itself.
+ */
+describe("the unlimited search stops at the ceiling", () => {
+  let batches: TimetableState[][] = [];
+  let progress: GenerateProgress[] = [];
+  let result: GenerateResult;
+
+  beforeAll(() => {
+    // Ten courses, each with three options drawn from disjoint stretches of
+    // the non-clashing pool. The three windows are distinct per course — a
+    // week needs every course in a different one or the pairs clash — so the
+    // space is 3^10 = 59,049 complete weeks and the walk has somewhere far
+    // past `HARD_RESULT_LIMIT` to stop.
+    const pool = nonClashingSlots(30);
+    const masterCourses: ParsedCourse[] = [];
+    const courseLocks: CourseLock[] = [];
+    for (let courseIndex = 0; courseIndex < 10; courseIndex++) {
+      const code = `BCSE3${courseIndex}0`;
+      courseLocks.push(lock({ code }));
+      for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+        masterCourses.push(
+          row({
+            CODE: code,
+            SLOT: pool[(courseIndex * 3 + slotIndex) % pool.length],
+            ROOM: `AB1-${200 + courseIndex * 3 + slotIndex}`,
+          })
+        );
+      }
+    }
+
+    batches = [];
+    progress = [];
+    result = generateTimetablesStream(
+      params({ masterCourses, courseLocks, noLimit: true }),
+      {
+        batchSize: 100,
+        onBatch: (batch) => batches.push(batch),
+        onProgress: (p) => progress.push(p),
+      }
+    );
+  }, 60_000);
+
+  it("answers rather than cancels, and says it was capped", () => {
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    // A ceiling is an answer — the walk was never asked to stop, so the
+    // cancelled shape (with its "stopped early" wording) must not appear.
+    expect(result.capped).toBe(true);
+  });
+
+  it("keeps exactly the ceiling's worth of timetables", () => {
+    // The batches carry the pre-grouping list, so this is the count the walk
+    // accepted — the grouped result collapses these into layouts.
+    expect(batches.flat()).toHaveLength(HARD_RESULT_LIMIT);
+    // Progress is polled on nodes, whose last tick can land before the final
+    // combinations are counted — it must never overshoot the ceiling, but
+    // it may read a little under.
+    for (const p of progress) {
+      expect(p.accepted).toBeLessThanOrEqual(HARD_RESULT_LIMIT);
+    }
   });
 });
 
