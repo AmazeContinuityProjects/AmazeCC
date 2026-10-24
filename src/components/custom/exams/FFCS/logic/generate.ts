@@ -116,7 +116,8 @@ export interface GenerateParams {
    * the same fifty the planner has always stopped at. It exists so the result
    * cap in settings is a real ceiling on the search rather than a display
    * number trimmed after the fact; `noLimit` still outranks it, because the
-   * per-run switch is the more recent thing the student chose.
+   * per-run switch is the more recent thing the student chose — and the switch
+   * is itself bounded by {@link HARD_RESULT_LIMIT}, so no run is unbounded.
    */
   resultCap?: number;
   minHalfDays: number;
@@ -242,8 +243,24 @@ const COURSE_COLORS = [
   "bg-magenta-500",
 ];
 
-/** What a limit of 50 is; "no limit" is not really unlimited, it is just large. */
-const UNLIMITED_RESULTS = 999999;
+/**
+ * "No limit" is not unlimited — it is this ceiling.
+ *
+ * The bound used to be 999999, which stopped nothing: a wide search found its
+ * tens of thousands and streamed every one into the page, whose render could
+ * not keep pace with a list growing past what a browser can paint — the
+ * screen sat on "Searching for conflict-free weeks" and looked infinite even
+ * though the solve itself ran on a background thread. A ceiling answers both
+ * the paint problem and the posterion of no result ever arriving: the walk
+ * halts here, the kept list still streams in batches as it was found, and the
+ * run's answer says it was capped.
+ *
+ * Exported so the streaming test can pin the exact stop, and so it reads as a
+ * product number next to the settings cap: 30,000 is tens of grips above the
+ * 1,000 a student can set, so the switch still means "much wider", never
+ * "nothing can stop this".
+ */
+export const HARD_RESULT_LIMIT = 30_000;
 /** Exported because the settings sheet offers it as the cap to come back to. */
 export const DEFAULT_RESULT_LIMIT = 50;
 /**
@@ -836,7 +853,7 @@ export function generateTimetablesStream(
   }
 
   const limit = params.noLimit
-    ? UNLIMITED_RESULTS
+    ? HARD_RESULT_LIMIT
     : params.resultCap ?? DEFAULT_RESULT_LIMIT;
   const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 

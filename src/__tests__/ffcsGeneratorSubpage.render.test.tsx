@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
   FFCSGeneratorSubpage,
   type FFCSGeneratorSubpageProps,
 } from "../components/custom/exams/FFCS/FFCSGeneratorSubpage";
 import { closeTopOverlayFromPop, hasOpenOverlays } from "../lib/overlayStack";
 import { FFCSSettingsDefaults } from "../lib/ffcsSettings";
+import { installLocalStorage } from "./helpers/localStorage";
+
+// The generator persists its private picks under "ffcs_generator_targets", and
+// this jsdom environment ships without a localStorage — the repo stub fills it
+// in for both `window`'s (which `safeStorage` guards) and `globalThis`'s.
+const storage = installLocalStorage();
 
 /**
  * The generator as a subpage of the FFCS tab rather than a sheet over it.
@@ -36,7 +42,6 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
   onClose: vi.fn(),
   settings: FFCSSettingsDefaults,
   courseLocks: [],
-  setCourseLocks: vi.fn(),
   friends: [],
   socialScoreGroupMethod: "cumulative",
   friendGroups: [],
@@ -61,6 +66,18 @@ const props = (over: Partial<FFCSGeneratorSubpageProps> = {}): FFCSGeneratorSubp
 const generateButton = () =>
   screen.getByRole("button", { name: /generate timetables/i }) as HTMLButtonElement;
 
+/**
+ * The target-course row's checkbox, without an accessible name of its own.
+ *
+ * Scoped through the course row itself because the screen carries several
+ * other checkboxes (`sr-only` inputs inside its segmented controls).
+ */
+const courseCheckbox = () =>
+  {
+    const row = screen.getByText("BCSE101").closest("label");
+    return (row?.querySelector("input[type='checkbox']") ?? null) as HTMLInputElement | null;
+  };
+
 describe("FFCSGeneratorSubpage", () => {
   afterEach(() => {
     // The overlay stack is module-global. An entry leaked by one test would
@@ -68,6 +85,9 @@ describe("FFCSGeneratorSubpage", () => {
     while (closeTopOverlayFromPop()) {
       /* drain */
     }
+    // So is the generator's private picks key: one test's tick must not seed
+    // another test's mount.
+    storage.clear();
   });
 
   it("renders as the tab's screen, with the layout's own back chrome", () => {
@@ -80,13 +100,47 @@ describe("FFCSGeneratorSubpage", () => {
     expect(hasOpenOverlays()).toBe(true);
   });
 
-  it("holds generate back until a target course is chosen", () => {
-    const { rerender } = render(<FFCSGeneratorSubpage {...props()} />);
+  it("holds generate back until a course is picked, and keeps the pick private", () => {
+    const courses = [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }];
+    const { unmount } = render(<FFCSGeneratorSubpage {...props({ generatorDisplayCourses: courses })} />);
 
     expect(generateButton().disabled).toBe(true);
 
-    rerender(<FFCSGeneratorSubpage {...props({ courseLocks: [courseLock("BCSE101")] })} />);
+    // Tick the course in the generator's own list. This used to create a
+    // CourseLock the moment it flipped — a Target Courses entry outside, and a
+    // persisted one at that — which is the leak this state no longer shares.
+    fireEvent.click(courseCheckbox());
     expect(generateButton().disabled).toBe(false);
+    expect(document.body.textContent).toContain("Selected: 1 target courses");
+
+    unmount();
+
+    // The pick is remembered across opens under the generator's own key,
+    // still a private selection: nothing here names a planner lock.
+    render(<FFCSGeneratorSubpage {...props({ generatorDisplayCourses: courses })} />);
+    expect(courseCheckbox()?.checked).toBe(true);
+    expect(generateButton().disabled).toBe(false);
+  });
+
+  it("seeds this run from the planner's locked targets, and never writes back", () => {
+    render(
+      <FFCSGeneratorSubpage
+        {...props({
+          courseLocks: [courseLock("BCSE101")],
+          generatorDisplayCourses: [{ code: "BCSE101", title: "Structured Programming", types: [] as string[] }],
+        })}
+      />
+    );
+
+    // The locked course arrives already ticked, and the counter says where
+    // this run's picks came from: seeded, not recreated.
+    expect(courseCheckbox()?.checked).toBe(true);
+    expect(document.body.textContent).toContain("from your locked Target Courses");
+
+    // The compile already guarantees no write-back: no setCourseLocks prop
+    // exists to call. At runtime, the seeded path must not touch the
+    // generator's private key either — it owns nothing yet.
+    expect(storage.getItem("ffcs_generator_targets")).toBeNull();
   });
 
   it("shows the run's own message on the screen that produced it", () => {

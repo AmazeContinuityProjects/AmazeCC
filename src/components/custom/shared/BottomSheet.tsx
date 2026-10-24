@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { m } from "framer-motion";
+import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { isTopOverlay, useOverlayBack } from "@/lib/overlayStack";
 import { useKeyboardInset } from "@/lib/useKeyboardInset";
@@ -331,7 +331,7 @@ export default function BottomSheet({
     // that took over the page. `w-[calc(100%-2rem)]` is what leaves the gutter —
     // `w-full` with only a max-width would sit flush against the edges on a
     // phone, which is the thing this placement exists to avoid.
-    <m.div
+    <motion.div
       ref={panelRef}
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
@@ -342,9 +342,9 @@ export default function BottomSheet({
       style={panelStyle}
     >
       {panelBody}
-    </m.div>
+    </motion.div>
   ) : (
-    <m.div
+    <motion.div
       ref={panelRef}
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
@@ -355,7 +355,7 @@ export default function BottomSheet({
       style={panelStyle}
     >
       {panelBody}
-    </m.div>
+    </motion.div>
   );
 
   // The keyboard offset lives on a wrapper rather than on the panel: the panel's
@@ -401,7 +401,7 @@ export default function BottomSheet({
 
   return createPortal(
     <>
-      <m.div
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
