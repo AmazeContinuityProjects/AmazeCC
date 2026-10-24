@@ -20,7 +20,7 @@ import { Search, Users, Download, Loader2, Sparkles, AlertCircle } from "lucide-
 import * as htmlToImage from "html-to-image";
 import BottomSheet from "../../../shared/BottomSheet";
 import SearchInput from "../../../shared/SearchInput";
-import { sameSlotFacultyAlternatives } from "../logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves } from "../logic/generate";
 import { offeringId } from "../reports";
 import type { AddedCourse, ParsedCourse } from "../types";
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from "./FacultyReviewSheet";
@@ -208,11 +208,13 @@ export default function SlotFacultySwapSheet({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<{ name: string; employeeId?: string } | null>(null);
 
+  const expandedHalves = useMemo(() => expandCourseHalves(halves), [halves]);
+
   // All alternatives in the exact same slot, unfiltered by search query.
   // Used for both calculating total counts and rendering the downloadable JPEG cheat sheet.
   const allBlocks = useMemo(
     () =>
-      halves.map((half) => ({
+      expandedHalves.map((half) => ({
         half,
         allMatches: sameSlotFacultyAlternatives(
           half.code,
@@ -221,7 +223,7 @@ export default function SlotFacultySwapSheet({
           masterCourses
         ),
       })),
-    [halves, masterCourses]
+    [expandedHalves, masterCourses]
   );
 
   // Filtered by search query for modal interaction.
@@ -253,7 +255,7 @@ export default function SlotFacultySwapSheet({
       container.style.left = "-9999px";
       container.style.top = "0";
       container.style.zIndex = "-1000";
-      container.innerHTML = generateFacultyGuideHtml(code, courseTitle, halves, allBlocks);
+      container.innerHTML = generateFacultyGuideHtml(code, courseTitle, expandedHalves, allBlocks);
       document.body.appendChild(container);
 
       const targetElement = (container.firstElementChild as HTMLElement) || container;
@@ -266,7 +268,7 @@ export default function SlotFacultySwapSheet({
       if (dataUrl) {
         const link = document.createElement("a");
         const cleanCode = code.replace(/[^a-zA-Z0-9_-]/g, "_");
-        const allSlotTokens = halves
+        const allSlotTokens = expandedHalves
           .flatMap((h) => h.slots)
           .filter((v, i, arr) => arr.indexOf(v) === i)
           .join("_");

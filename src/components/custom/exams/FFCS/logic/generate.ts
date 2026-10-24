@@ -651,43 +651,169 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
  * one option; the employee id stays in that key so two people who share a
  * name both appear. Sorted by faculty, then room.
  */
+/**
+ * If an `AddedCourse` is an embedded course combining both theory and lab slots,
+ * expand it into two virtual halves (theory and lab) so that alternatives for each
+ * half can be matched and swapped independently.
+ *
+ * If a course is already a single component (pure theory or pure lab), it is returned
+ * as-is.
+ */
+export function expandCourseHalves(halves: readonly AddedCourse[]): AddedCourse[] {
+  const result: AddedCourse[] = [];
+  for (const h of halves) {
+    const rawSlots = h.slots ?? [];
+    const theorySlots = rawSlots.filter(
+      (s) => !s.trim().toUpperCase().startsWith("L") && s.trim().toUpperCase() !== "NIL"
+    );
+    const labSlots = rawSlots.filter((s) => s.trim().toUpperCase().startsWith("L"));
+
+    if (theorySlots.length > 0 && labSlots.length > 0) {
+      const facs = (h.faculty || "").split(/\s*\/\s*/);
+      const venues = (h.venue || "").split(/\s*\/\s*/);
+
+      const theoryHalf: AddedCourse = {
+        ...h,
+        id: `${h.id}:theory`,
+        type: h.type && h.type.includes("Embedded") ? "Embedded Theory" : "ETH",
+        slots: theorySlots,
+        faculty: facs[0]?.trim() || h.faculty,
+        venue: venues[0]?.trim() || h.venue,
+        employeeId: h.employeeId,
+      };
+
+      const labHalf: AddedCourse = {
+        ...h,
+        id: `${h.id}:lab`,
+        type: h.type && h.type.includes("Embedded") ? "Embedded Lab" : "ELA",
+        slots: labSlots,
+        faculty: (facs[1] || facs[0])?.trim() || h.faculty,
+        venue: (venues[1] || venues[0])?.trim() || h.venue,
+        employeeId: facs.length > 1 ? undefined : h.employeeId,
+      };
+
+      result.push(theoryHalf, labHalf);
+    } else {
+      result.push(h);
+    }
+  }
+  return result;
+}
+
 export function sameSlotFacultyAlternatives(
   code: string,
   slots: readonly string[],
   current: { faculty: string; employeeId?: string },
   masterCourses: readonly ParsedCourse[]
 ): ParsedCourse[] {
-  const want = [...slots]
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean)
-    .sort()
-    .join("+");
-  const currentIdentity = current.employeeId
-    ? `erp:${current.employeeId}`
-    : current.faculty;
-  const identity = (c: ParsedCourse): string =>
-    c.ERP_ID ? `erp:${c.ERP_ID}` : c.FACULTY;
-  // Raw SLOT strings spell the same booking in different orders; the sorted
-  // tokens are the stable half of this key. `offeringId` would keep both
-  // spellings, which reads as two teachers in the picker.
-  const dedupeKey = (c: ParsedCourse): string =>
-    `${c.FACULTY}|${splitSlots(c.SLOT).sort().join("+")}|${c.ROOM}|${c.ERP_ID ?? ""}`;
-  const seen = new Set<string>();
-  return masterCourses
-    .filter((c) => c.CODE === code)
-    .filter((c) => splitSlots(c.SLOT).sort().join("+") === want)
-    .filter((c) => identity(c) !== currentIdentity)
-    .filter((c) => {
-      const key = dedupeKey(c);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort(
-      (a, b) =>
-        a.FACULTY.localeCompare(b.FACULTY) ||
-        String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+  const normalizedCode = code.trim().toUpperCase();
+  const baseCode = (normalizedCode.endsWith('L') || normalizedCode.endsWith('P'))
+    ? normalizedCode.slice(0, -1)
+    : normalizedCode;
+
+  const codeMatches = (c: ParsedCourse): boolean => {
+    const cCode = c.CODE.trim().toUpperCase();
+    const cOrig = (c as any).ORIGINAL_CODE?.trim()?.toUpperCase();
+    const cBase = (cCode.endsWith('L') || cCode.endsWith('P')) ? cCode.slice(0, -1) : cCode;
+    return (
+      cCode === normalizedCode ||
+      cOrig === normalizedCode ||
+      cBase === baseCode ||
+      cBase === normalizedCode
     );
+  };
+
+  const wantTokens = [...slots]
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => Boolean(s) && s !== "NIL");
+  if (wantTokens.length === 0) return [];
+
+  const wantExact = [...wantTokens].sort().join("+");
+  const wantTheoryTokens = wantTokens.filter((s) => !s.startsWith("L")).sort().join("+");
+  const wantLabTokens = wantTokens.filter((s) => s.startsWith("L")).sort().join("+");
+
+  const isPureTheory = wantTokens.length > 0 && wantTokens.every((s) => !s.startsWith("L"));
+  const isPureLab = wantTokens.length > 0 && wantTokens.every((s) => s.startsWith("L"));
+
+  const currentFacultyNorm = (current.faculty || "").trim().toLowerCase();
+  const currentFacultyHalfNorm = isPureTheory
+    ? currentFacultyNorm.split(/\s*\/\s*/)[0].trim()
+    : isPureLab
+    ? (currentFacultyNorm.split(/\s*\/\s*/)[1] || currentFacultyNorm.split(/\s*\/\s*/)[0]).trim()
+    : currentFacultyNorm;
+
+  const dedupeKey = (c: ParsedCourse): string =>
+    `${c.FACULTY.trim().toLowerCase()}|${splitSlots(c.SLOT).sort().join("+")}|${(c.ROOM ?? "").trim().toLowerCase()}|${c.ERP_ID ?? ""}`;
+
+  const seen = new Set<string>();
+  const results: ParsedCourse[] = [];
+
+  for (const c of masterCourses) {
+    if (!codeMatches(c)) continue;
+
+    const cTokens = splitSlots(c.SLOT).map((s) => s.trim().toUpperCase()).filter((s) => Boolean(s) && s !== "NIL");
+    const cExact = [...cTokens].sort().join("+");
+    const cTheory = cTokens.filter((s) => !s.startsWith("L")).sort().join("+");
+    const cLab = cTokens.filter((s) => s.startsWith("L")).sort().join("+");
+
+    let isMatch = false;
+    let effectiveOffering: ParsedCourse;
+
+    if (isPureTheory && cTheory && cTheory === wantTheoryTokens) {
+      isMatch = true;
+      const facParts = (c.FACULTY || "").split(/\s*\/\s*/);
+      const roomParts = (c.ROOM || "").split(/\s*\/\s*/);
+      const typeParts = (c.TYPE || "").split(/\s*\+\s*/);
+      effectiveOffering = {
+        ...c,
+        FACULTY: facParts[0]?.trim() || c.FACULTY,
+        ROOM: roomParts[0]?.trim() || c.ROOM,
+        SLOT: wantTheoryTokens,
+        TYPE: typeParts[0]?.trim() || "ETH",
+        ERP_ID: c.ERP_ID,
+      };
+    } else if (isPureLab && cLab && cLab === wantLabTokens) {
+      isMatch = true;
+      const facParts = (c.FACULTY || "").split(/\s*\/\s*/);
+      const roomParts = (c.ROOM || "").split(/\s*\/\s*/);
+      const typeParts = (c.TYPE || "").split(/\s*\+\s*/);
+      effectiveOffering = {
+        ...c,
+        FACULTY: (facParts[1] || facParts[0])?.trim() || c.FACULTY,
+        ROOM: (roomParts[1] || roomParts[0])?.trim() || c.ROOM,
+        SLOT: wantLabTokens,
+        TYPE: typeParts[1]?.trim() || "ELA",
+        ERP_ID: facParts.length > 1 ? undefined : c.ERP_ID,
+      };
+    } else if (cExact === wantExact) {
+      isMatch = true;
+      effectiveOffering = { ...c };
+    }
+
+    if (!isMatch) continue;
+
+    const altFacultyNorm = effectiveOffering!.FACULTY.trim().toLowerCase();
+
+    // Check identity against current teacher
+    const isSameFaculty =
+      current.employeeId && effectiveOffering!.ERP_ID
+        ? current.employeeId === effectiveOffering!.ERP_ID
+        : currentFacultyHalfNorm === altFacultyNorm || currentFacultyNorm === altFacultyNorm;
+
+    if (isSameFaculty) continue;
+
+    const key = dedupeKey(effectiveOffering!);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    results.push(effectiveOffering!);
+  }
+
+  return results.sort(
+    (a, b) =>
+      a.FACULTY.localeCompare(b.FACULTY) ||
+      String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+  );
 }
 
 /**
