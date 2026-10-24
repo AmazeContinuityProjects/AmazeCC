@@ -14,7 +14,9 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
 import { offeringId, offeringMatches } from './reports';
+import { splitSlots } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
+import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
 import { TimetablePeriod } from './types';
 import { SegmentedControl } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
@@ -78,6 +80,9 @@ export function FFCSGeneratorSubpage({
   const [selectedStagedIds, setSelectedStagedIds] = useState<Set<string>>(new Set());
   const [selectedTimetablesToCompare, setSelectedTimetablesToCompare] = useState<string[]>([]);
   const [generatorPreviewTimetable, setGeneratorPreviewTimetable] = useState<TimetableState | null>(null);
+  // The Selected-Courses row whose Faculty cell was tapped — drives the
+  // same-slot faculty swap sheet below.
+  const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
   const [generatorSyncFriendsClasses, setGeneratorSyncFriendsClasses] = useState(false);
   const [generatorMaximizeFreeTimeFriends, setGeneratorMaximizeFreeTimeFriends] = useState<string[]>([]);
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
@@ -248,6 +253,50 @@ export function FFCSGeneratorSubpage({
         (outcome.capped ? " More may exist — try allowing unlimited results." : "")
     );
     // We do NOT close generator immediately so they can review.
+  };
+
+  /**
+   * Hand one preview course to a different faculty at the exact same slots.
+   *
+   * Same tokens means same periods, so the week's layout — and with it every
+   * metric on the preview, gaps through social scores — is untouched; only the
+   * teacher changes. Colors and ids stay put: the id keeps the row and the
+   * grid keys stable, the color keeps the swap invisible to everything that
+   * keyed off the original assignment. The swap is written back into the
+   * staged option the preview came from, too, so returning to the list shows
+   * the same teacher. A preview built from a variant is copied, so the staged
+   * update no-ops there by id.
+   */
+  const swapSlotFaculty = (courseId: string, offering: ParsedCourse) => {
+    if (!generatorPreviewTimetable) return;
+    const swapped: TimetableState = {
+      ...generatorPreviewTimetable,
+      courses: generatorPreviewTimetable.courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              title: offering.TITLE,
+              faculty: offering.FACULTY,
+              employeeId: offering.ERP_ID,
+              venue: offering.ROOM,
+              credits: offering.CREDITS,
+              type: offering.TYPE,
+              slots: splitSlots(offering.SLOT),
+            }
+          : c
+      ),
+    };
+    setGeneratorPreviewTimetable(swapped);
+    setStagedTimetables((prev) =>
+      prev.some((t) => t.id === swapped.id)
+        ? prev.map((t) => (t.id === swapped.id ? swapped : t))
+        : prev
+    );
+    setSuccessMsg(
+      `${offering.CODE}: ${offering.FACULTY} now takes this slot — the week's times did not change.`
+    );
+    setSlotSwapRow(null);
+    track("slot_faculty_swap");
   };
 
   // File upload and clear master handlers removed as database is preloaded.
@@ -480,7 +529,17 @@ export function FFCSGeneratorSubpage({
                                 <td className="py-3 px-2 text-sm text-text-heading/80">
                                   {renderTypeChips(c.type)}
                                 </td>
-                                <td className="py-3 px-2 text-sm text-text-heading/80">{c.faculty}</td>
+                                <td className="py-3 px-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                    title="See who else teaches this course at this exact time slot"
+                                    className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
+                                  >
+                                    <span className="truncate">{c.faculty}</span>
+                                    <Users className="w-3.5 h-3.5 text-muted-foreground/40 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
+                                  </button>
+                                </td>
                                 <td className="py-3 px-2">
                                   <div className="flex flex-wrap gap-1">
                                     {c.slots.map((s: string) => (
@@ -1408,6 +1467,20 @@ export function FFCSGeneratorSubpage({
               })()}
             </div>
           </BottomSheet>
+      )}</AnimatePresence>
+
+      {/* Same-slot faculty swap: tapped from a Faculty cell in the Selected
+          Courses table — one sheet level deeper in the overlay stack, the same
+          z pair as the variant search above. */}
+      <AnimatePresence>{slotSwapRow && generatorPreviewTimetable && (
+        <SlotFacultySwapSheet
+          code={slotSwapRow.code}
+          courseTitle={slotSwapRow.title}
+          halves={generatorPreviewTimetable.courses.filter((c) => slotSwapRow.ids.includes(c.id))}
+          masterCourses={masterCourses}
+          onSwap={swapSlotFaculty}
+          onClose={() => setSlotSwapRow(null)}
+        />
       )}</AnimatePresence>
     </>
   );

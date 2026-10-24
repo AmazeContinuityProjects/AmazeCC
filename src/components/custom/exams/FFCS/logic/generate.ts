@@ -259,7 +259,13 @@ const DEFAULT_BATCH_SIZE = 50;
 /* ── helpers ────────────────────────────────────────────────────────────── */
 
 /** Split `"A1+TA1"` into its slots, upper-cased and trimmed. */
-const splitSlots = (slot: string): string[] =>
+/**
+ * "G1+L31+L32" → ["G1", "L31", "L32"].
+ *
+ * Shared with the generator screen, which needs the same tokenization when it
+ * hands a preview course to a same-slot faculty alternative.
+ */
+export const splitSlots = (slot: string): string[] =>
   String(slot ?? "")
     .split("+")
     .map((s) => s.trim().toUpperCase())
@@ -569,6 +575,62 @@ function toAddedCourse(course: ParsedCourse, index: number): AddedCourse {
     color: COURSE_COLORS[index % COURSE_COLORS.length],
     batch: course.BATCH,
   };
+}
+
+/**
+ * Every faculty who teaches `code` at exactly the set of slot tokens `slots`.
+ *
+ * The generator discovers these people once per full timetable — `groupVariants`
+ * picks them out when a whole week shares one physical layout — but the
+ * preview's Selected Courses table wants them per course: tap a teacher's name,
+ * and hand the same time to someone else. Matching uses the sorted *split*
+ * tokens, stricter than overlap on purpose: a same-time swap must not move a
+ * single period, or the clash-free guarantee behind the preview quietly stops
+ * holding.
+ *
+ * The current teacher is excluded by identity — employee id when the report
+ * carries one, the name otherwise — the same rule `dedupeByFaculty` applies.
+ * Duplicate report rows (same person, same tokens, same room) collapse into
+ * one option; the employee id stays in that key so two people who share a
+ * name both appear. Sorted by faculty, then room.
+ */
+export function sameSlotFacultyAlternatives(
+  code: string,
+  slots: readonly string[],
+  current: { faculty: string; employeeId?: string },
+  masterCourses: readonly ParsedCourse[]
+): ParsedCourse[] {
+  const want = [...slots]
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean)
+    .sort()
+    .join("+");
+  const currentIdentity = current.employeeId
+    ? `erp:${current.employeeId}`
+    : current.faculty;
+  const identity = (c: ParsedCourse): string =>
+    c.ERP_ID ? `erp:${c.ERP_ID}` : c.FACULTY;
+  // Raw SLOT strings spell the same booking in different orders; the sorted
+  // tokens are the stable half of this key. `offeringId` would keep both
+  // spellings, which reads as two teachers in the picker.
+  const dedupeKey = (c: ParsedCourse): string =>
+    `${c.FACULTY}|${splitSlots(c.SLOT).sort().join("+")}|${c.ROOM}|${c.ERP_ID ?? ""}`;
+  const seen = new Set<string>();
+  return masterCourses
+    .filter((c) => c.CODE === code)
+    .filter((c) => splitSlots(c.SLOT).sort().join("+") === want)
+    .filter((c) => identity(c) !== currentIdentity)
+    .filter((c) => {
+      const key = dedupeKey(c);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(
+      (a, b) =>
+        a.FACULTY.localeCompare(b.FACULTY) ||
+        String(a.ROOM ?? "").localeCompare(String(b.ROOM ?? ""))
+    );
 }
 
 /**
