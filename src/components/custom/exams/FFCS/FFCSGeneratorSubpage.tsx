@@ -885,7 +885,7 @@ export function FFCSGeneratorSubpage({
                   />
 
                   {generatorPreviewTimetable?.courses && generatorPreviewTimetable.courses.length > 0 && (
-                    <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-6 overflow-x-auto">
+                    <div className="bg-transparent md:card-surface border-0 md:border md:border-border-strong rounded-none md:rounded-2xl shadow-none md:shadow-xs text-text-primary p-0 md:p-6 overflow-x-auto">
                       <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
                         <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           Selected Courses

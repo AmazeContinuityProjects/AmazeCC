@@ -62,6 +62,8 @@ export interface AnalyticsEventMap {
   timetable_saved: { source: "generator" | "share" };
   /** An image export finished. */
   export_image: { format: "jpg" | "png"; viewMode?: string; fallback?: boolean };
+  /** A PDF dossier export finished. */
+  export_pdf: { theme?: string; viewMode?: string };
   /** The printable page was opened. */
   export_printable: Record<string, never>;
   /** Smart paste parsed a selection. */

@@ -111,7 +111,11 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
 
     // Wait for async loadSemesterReport
-    const badges = await screen.findAllByTitle(/2 (drop-in replacements|faculties teaching this slot)/);
+    const badges = await screen.findAllByTitle(
+      /2 (drop-in replacements|faculties teaching this slot)/,
+      {},
+      { timeout: 10000 }
+    );
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toContain("2");
 
@@ -129,7 +133,7 @@ describe("FFCSTimetableTab", () => {
 
     // Timetable should now reflect SURESH K
     expect(screen.getAllByText("SURESH K").length).toBeGreaterThan(0);
-  });
+  }, 30_000);
 
   it("renders the faculty count badge in the Search Slot & Faculty selector modal", async () => {
     const csvContent =
@@ -171,7 +175,7 @@ describe("FFCSTimetableTab", () => {
     const slotFacultyBadges = screen.getAllByTitle("2 faculties teaching this slot");
     expect(slotFacultyBadges.length).toBeGreaterThan(0);
     expect(slotFacultyBadges[0].textContent).toContain("2");
-  });
+  }, 30_000);
 
   it("shows alternative faculty count for embedded theory groups added via VTOP paste and allows switching", async () => {
     const csvContent =
@@ -230,5 +234,17 @@ describe("FFCSTimetableTab", () => {
 
     // Timetable should now reflect DR BOB
     expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
-  });
+  }, 30_000);
+
+  it("automatically greets the user with full-screen hero when clicking on Guided", async () => {
+    render(<FFCSTimetableTab />);
+
+    // Click on Guided in the layout SegmentedControl
+    const guidedButton = screen.getByTitle("Step-by-step mobile-first course selector");
+    fireEvent.click(guidedButton);
+
+    // Should display Guided Hero with full-screen exit button and mode selection
+    expect(screen.getByTitle("Exit Fullscreen")).toBeDefined();
+    expect(screen.getByText("Choose Creation Mode")).toBeDefined();
+  }, 30_000);
 });

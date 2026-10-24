@@ -13,6 +13,7 @@ import {
   describeCell,
   type Cell,
 } from "./buildBands";
+import { hasSlot, ensureLunchPeriod } from "@/lib/slots";
 import SlotDetailSheet from "./SlotDetailSheet";
 import type { AttendanceTone } from "./SlotDetailSheet";
 import TimetableGridShell, {
@@ -67,6 +68,7 @@ export default function VerticalTimetableGrid({
   onToggleBlockSlot,
   attendanceByCourse,
   compact = false,
+  showSlotNames = false,
   className,
   backdropZIndex,
   panelZIndex,
@@ -82,6 +84,8 @@ export default function VerticalTimetableGrid({
   attendanceByCourse?: Record<string, AttendanceTone>;
   /** Slot only, no course code, sized to fit the viewport without scrolling. */
   compact?: boolean;
+  /** When true, renders slot names (e.g. A1 / L1) on all cells (empty, blocked, and course). */
+  showSlotNames?: boolean;
   className?: string;
   /**
    * z-index for the slot detail sheet. Defaults to the sheet's own (55/60);
@@ -94,12 +98,15 @@ export default function VerticalTimetableGrid({
   const [activeCell, setActiveCell] = useState<Cell | null>(null);
   const today = useTodayKey();
 
+  const effectiveTheory = useMemo(() => ensureLunchPeriod(theoryPeriods), [theoryPeriods]);
+  const effectiveLab = useMemo(() => ensureLunchPeriod(labPeriods), [labPeriods]);
+
   const grid = useMemo(
     () =>
       buildVerticalGrid({
         courses,
-        theoryPeriods,
-        labPeriods,
+        theoryPeriods: effectiveTheory,
+        labPeriods: effectiveLab,
         days,
         blockedSlots,
         selectedGapDetails,
@@ -107,15 +114,27 @@ export default function VerticalTimetableGrid({
     // `days` is a fresh array literal at some call sites, so key the memo on its
     // contents rather than its identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [courses, theoryPeriods, labPeriods, days?.map((d) => d.id).join(","), blockedSlots, selectedGapDetails]
+    [courses, effectiveTheory, effectiveLab, days?.map((d) => d.id).join(","), blockedSlots, selectedGapDetails]
   );
 
   if (grid.bands.length === 0 || grid.days.length === 0) return null;
 
   const handleTap = (cell: Cell) => {
-    const first = cell.slots[0];
-    if (onToggleBlockSlot && first) onToggleBlockSlot(first);
-    else setActiveCell(cell);
+    if (onToggleBlockSlot) {
+      if (cell.slots.length > 0) {
+        const allBlocked = cell.slots.every((s) => hasSlot(Array.from(blockedSlots || []), s));
+        cell.slots.forEach((s) => {
+          const isB = hasSlot(Array.from(blockedSlots || []), s);
+          if (allBlocked) {
+            if (isB) onToggleBlockSlot(s);
+          } else {
+            if (!isB) onToggleBlockSlot(s);
+          }
+        });
+      }
+    } else {
+      setActiveCell(cell);
+    }
   };
 
   /**
@@ -123,67 +142,134 @@ export default function VerticalTimetableGrid({
    * else reads from colour alone — see the density note in the header comment.
    */
   const cellLabel = (cell: Cell) => {
+    if (showSlotNames) {
+      if (cell.course) return cell.shortLabel || cell.label;
+      return cell.label || (cell.slots.length > 0 ? cell.slots.join(" / ") : "");
+    }
     if (compact) return cell.course ? cell.shortLabel : "";
     return cell.label || "—";
   };
 
   /** The tile's contents. */
-  const cellContent = (cell: Cell, spans: boolean) => (
-    <>
-      {/*
-        A merged run in compact density stacks its real slots down the tile
-        instead of printing `"L31 +1"` on one truncated line. The rowspan has
-        already bought the height, the two halves then carry identical colour,
-        and the eye reads "L31 / +L32" as one sitting rather than a count of
-        hidden slots.
-      */}
-      {compact && cell.kind === "course" && spans ? (
-        <span className="flex flex-col items-center leading-[1.15] px-0.5">
-          {cell.slots.map((slot, i) => (
+  const cellContent = (cell: Cell, spans: boolean) => {
+    if (showSlotNames) {
+      if (cell.kind === "course" && cell.course) {
+        return (
+          <div className="flex flex-col items-center justify-center w-full min-w-0 leading-none px-0.5">
+            <span className="font-black text-[10px] leading-tight truncate w-full text-center">
+              {cell.course.code}
+            </span>
+            <span className="font-mono text-[8.5px] opacity-90 font-bold leading-tight truncate">
+              {cell.slots.join("+")}
+            </span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex flex-col items-center justify-center w-full min-w-0 leading-tight px-0.5 select-none">
+          {cell.slots.length > 0 ? (
+            cell.slots.map((slot, i) => {
+              const isTheory = !slot.startsWith("L") && slot !== "NIL";
+              const isSlotBlocked = blockedSlots ? hasSlot(Array.from(blockedSlots), slot) : false;
+              return (
+                <span
+                  key={`${slot}-${i}`}
+                  role={onToggleBlockSlot ? "button" : undefined}
+                  tabIndex={onToggleBlockSlot ? 0 : undefined}
+                  onClick={(e) => {
+                    if (onToggleBlockSlot) {
+                      e.stopPropagation();
+                      onToggleBlockSlot(slot);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (onToggleBlockSlot && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onToggleBlockSlot(slot);
+                    }
+                  }}
+                  className={cn(
+                    "font-mono font-black tracking-tight rounded px-1 transition-all inline-block",
+                    cell.slots.length === 1 ? "text-[10px]" : i === 0 ? "text-[9px]" : "text-[8px]",
+                    onToggleBlockSlot && "cursor-pointer active:scale-90 hover:ring-1 hover:ring-zinc-400",
+                    isSlotBlocked
+                      ? "text-rose-300 line-through bg-rose-500/20 border border-rose-500/30"
+                      : isTheory
+                      ? "text-zinc-200 dark:text-zinc-100 hover:bg-zinc-800/60"
+                      : "text-zinc-400 dark:text-zinc-400 hover:bg-zinc-800/60"
+                  )}
+                  title={`${slot} (${isTheory ? "Theory" : "Lab"})${isSlotBlocked ? " - Blocked" : " - Available"}${onToggleBlockSlot ? " (Tap to toggle)" : ""}`}
+                >
+                  {slot}
+                </span>
+              );
+            })
+          ) : (
+            <span className="text-[8px] opacity-40 font-mono">—</span>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {/*
+          A merged run in compact density stacks its real slots down the tile
+          instead of printing `"L31 +1"` on one truncated line. The rowspan has
+          already bought the height, the two halves then carry identical colour,
+          and the eye reads "L31 / +L32" as one sitting rather than a count of
+          hidden slots.
+        */}
+        {compact && cell.kind === "course" && spans ? (
+          <span className="flex flex-col items-center leading-[1.15] px-0.5">
+            {cell.slots.map((slot, i) => (
+              <span
+                key={`${slot}-${i}`}
+                className={cn(
+                  "text-[10px] leading-[1.15]",
+                  i === 0 ? "font-black" : "font-bold opacity-75"
+                )}
+              >
+                {i === 0 ? slot : `+${slot}`}
+              </span>
+            ))}
+          </span>
+        ) : (
+          cellLabel(cell) && (
             <span
-              key={`${slot}-${i}`}
               className={cn(
-                "text-[10px] leading-[1.15]",
-                i === 0 ? "font-black" : "font-bold opacity-75"
+                "leading-tight",
+                compact
+                  ? "w-full truncate text-[10px]"
+                  : "break-all text-[11px]",
+                cell.kind === "course" ? "font-black" : "font-bold",
+                cell.kind === "empty" && "opacity-60"
               )}
             >
-              {i === 0 ? slot : `+${slot}`}
+              {cellLabel(cell)}
             </span>
-          ))}
-        </span>
-      ) : (
-        cellLabel(cell) && (
-          <span
-            className={cn(
-              "leading-tight",
-              compact
-                ? "w-full truncate text-[10px]"
-                : "break-all text-[11px]",
-              cell.kind === "course" ? "font-black" : "font-bold",
-              cell.kind === "empty" && "opacity-60"
-            )}
-          >
-            {cellLabel(cell)}
+          )
+        )}
+        {!compact && cell.kind === "course" && cell.course && (
+          <span className="w-full truncate text-center text-[9px] font-semibold leading-tight">
+            {cell.course.code}
           </span>
-        )
-      )}
-      {!compact && cell.kind === "course" && cell.course && (
-        <span className="w-full truncate text-center text-[9px] font-semibold leading-tight">
-          {cell.course.code}
-        </span>
-      )}
-      {!compact && cell.blocked && (
-        <span className="text-[8px] font-black uppercase leading-tight tracking-wider">
-          Blocked
-        </span>
-      )}
-      {!compact && !cell.blocked && cell.partiallyBlocked && (
-        <span className="text-[8px] font-bold uppercase leading-tight tracking-wider opacity-80">
-          Partly blocked
-        </span>
-      )}
-    </>
-  );
+        )}
+        {!compact && cell.blocked && (
+          <span className="text-[8px] font-black uppercase leading-tight tracking-wider">
+            Blocked
+          </span>
+        )}
+        {!compact && !cell.blocked && cell.partiallyBlocked && (
+          <span className="text-[8px] font-bold uppercase leading-tight tracking-wider opacity-80">
+            Partly blocked
+          </span>
+        )}
+      </>
+    );
+  };
 
   const renderCell = (band: (typeof grid.bands)[number], day: ShellDay): ShellCell | null => {
     const cell = grid.cells[day.id]?.[band.index];
@@ -203,6 +289,9 @@ export default function VerticalTimetableGrid({
       tileClassName: cn(
         cell.kind === "blocked" &&
           "border-red-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(239,68,68,0.3)_2px,rgba(239,68,68,0.3)_4px)] bg-red-950/40 text-red-200 shadow-inner",
+        cell.kind !== "blocked" &&
+          cell.partiallyBlocked &&
+          "border-amber-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(245,158,11,0.15)_2px,rgba(245,158,11,0.15)_4px)] bg-amber-950/20 text-amber-200 shadow-inner",
         cell.kind === "course" &&
           cell.course &&
           cn(cell.course.color, "shadow-md text-gray-900 dark:text-gray-100"),

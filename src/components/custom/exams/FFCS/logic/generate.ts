@@ -368,7 +368,11 @@ function optionsFor(
   // 1. The student named specific slots.
   if (lock.allowedSlots?.length) {
     const allowed = new Set(lock.allowedSlots.map((s) => s.trim().toUpperCase()));
-    options = options.filter((opt) => splitSlots(opt.SLOT).some((s) => allowed.has(s)));
+    options = options.filter(
+      (opt) =>
+        allowed.has(opt.SLOT.trim().toUpperCase()) ||
+        splitSlots(opt.SLOT).some((s) => allowed.has(s))
+    );
   }
 
   // 2. The student named specific faculty.

@@ -49,10 +49,12 @@ export default function FFCSPageView() {
           <div className="flex items-center gap-2.5">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
+              title="Login to AmazeCC"
+              aria-label="Login to AmazeCC"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-800 shadow-2xs active:scale-95"
             >
-              <LogIn size={13} />
-              <span>Login to AmazeCC</span>
+              <LogIn size={15} className="shrink-0" />
+              <span className="hidden sm:inline">Login to AmazeCC</span>
             </Link>
             {mounted && <ThemeToggle />}
           </div>

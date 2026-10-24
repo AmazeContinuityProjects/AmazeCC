@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste, Compass, LayoutDashboard, Layers } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Printer, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste, Compass, LayoutDashboard, Clock, BookOpen } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
-import { downloadTimetableImage, downloadModernTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { downloadTimetableImage, downloadModernTimetableImage, openTimetablePrintablePage, openModernPrintableDossier, downloadModernTimetablePdf } from "@/lib/exportTimetable";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 
 // Re-exported because the tab has always been where importers found these;
@@ -24,9 +24,11 @@ import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal'
 import PasteRegisteredCoursesModal from './FFCS/components/modals/PasteRegisteredCoursesModal';
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
 import SlotFacultySwapSheet from './FFCS/components/SlotFacultySwapSheet';
+import FFCSDossierSubpage from './FFCS/components/FFCSDossierSubpage';
+import PdfGenerationBadge from './FFCS/components/PdfGenerationBadge';
 import { sameSlotFacultyAlternatives, expandCourseHalves } from './FFCS/logic/generate';
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyReviewSheet';
-import FFCSGuidedSelector from './FFCS/components/FFCSGuidedSelector';
+import FFCSGuidedSelector, { type GuidedPhase } from './FFCS/components/FFCSGuidedSelector';
 import { ENABLE_VITFAC_INTEGRATION } from '@/lib/vitfacService';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
@@ -664,22 +666,26 @@ export default function FFCSTimetableTab() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
-    if (typeof window !== "undefined") {
-      const saved = safeStorage.getItem("ffcs_layout_mode");
-      if (saved === "guided" || saved === "modern" || saved === "classic") {
-        return saved;
-      }
-      if (window.innerWidth < 768) {
-        return "guided";
-      }
-    }
-    return "modern";
-  });
+  const [layoutMode, setLayoutMode] = useState<"guided" | "modern">("modern");
+  const [isGuidedFullScreen, setIsGuidedFullScreen] = useState(true);
 
   useEffect(() => {
-    safeStorage.setItem("ffcs_layout_mode", layoutMode);
-  }, [layoutMode]);
+    try {
+      const saved = safeStorage.getItem("ffcs_layout_mode");
+      if (saved === "guided" || saved === "modern") {
+        setLayoutMode(saved);
+        if (saved === "guided") {
+          setIsGuidedFullScreen(true);
+        }
+      } else if (typeof window !== "undefined" && window.innerWidth < 768) {
+        setLayoutMode("guided");
+        setIsGuidedFullScreen(true);
+      }
+    } catch {}
+  }, []);
+
+  const [guidedSubView, setGuidedSubView] = useState<"adder" | "timetable">("adder");
+  const [guidedInitialPhase, setGuidedInitialPhase] = useState<GuidedPhase>("setup_mode");
 
   // Preferences live one level above the UI that consumes them: the tab owns
   // the single instance and hands it to the settings sheet, the generator's
@@ -692,9 +698,19 @@ export default function FFCSTimetableTab() {
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfGenerationTheme, setPdfGenerationTheme] = useState<"light" | "dark">("dark");
+  const [pdfBadgeMsg, setPdfBadgeMsg] = useState<string | null>(null);
   const [isCourseLockOpen, setIsCourseLockOpen] = useState(false);
   const [isPasteRegisteredModalOpen, setIsPasteRegisteredModalOpen] = useState(false);
   const [isFacultyScheduleOpen, setIsFacultyScheduleOpen] = useState(false);
+  const [facultyScheduleInitial, setFacultyScheduleInitial] = useState<string | undefined>(undefined);
+
+  const handleOpenFacultySchedule = useCallback((facultyName?: string) => {
+    setFacultyScheduleInitial(facultyName);
+    setIsFacultyScheduleOpen(true);
+  }, []);
   const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
 
   const swapSlotFaculty = useCallback((courseId: string, offering: ParsedCourse) => {
@@ -844,6 +860,13 @@ export default function FFCSTimetableTab() {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isCourseSearchOpen, setIsCourseSearchOpen] = useState(false);
   const [courseSearchQuery, setCourseSearchQuery] = useState("");
+  const [searchLockedOnly, setSearchLockedOnly] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (courseLocks.length > 0) {
+      setSearchLockedOnly(true);
+    }
+  }, [courseLocks.length]);
   const [isSlotSearchOpen, setIsSlotSearchOpen] = useState(false);
   const [slotSearchQuery, setSlotSearchQuery] = useState("");
   const [generatorCourseSearchQuery, setGeneratorCourseSearchQuery] = useState("");
@@ -855,7 +878,6 @@ export default function FFCSTimetableTab() {
   const [facultyReviewTarget, setFacultyReviewTarget] = useState<{ name: string; employeeId?: string; courseCode?: string } | null>(null);
 
   const captureRef = useRef<HTMLDivElement>(null);
-  const pdfCaptureRef = useRef<HTMLDivElement>(null);
 
   /**
    * Fetch one semester's report and replace the rows from the report that was
@@ -1097,6 +1119,12 @@ export default function FFCSTimetableTab() {
   }, [manualLinks, isLoaded]);
 
   useEffect(() => {
+    if (isLoaded) {
+      safeStorage.setItem("ffcs_layout_mode", layoutMode);
+    }
+  }, [layoutMode, isLoaded]);
+
+  useEffect(() => {
     setSlotFilter("all");
     setSelectedSlotIndex("-1");
   }, [selectedCourseCode, isGroupingEnabled]);
@@ -1127,7 +1155,7 @@ export default function FFCSTimetableTab() {
   const getPeriodsForSlot = (slotName: string) =>
     periodsForSlot({ theory: theoryPeriods, lab: labPeriods }, slotName);
 
-  const checkClashes = (newSlots: string[]) => {
+  const checkClashes = (newSlots: string[], excludeCourseCode?: string) => {
     for (const slot of newSlots) {
       if (blockedSlots.has(slot)) {
         return `Slot ${slot} is blocked.`;
@@ -1137,6 +1165,9 @@ export default function FFCSTimetableTab() {
     const newPeriods = newSlots.flatMap(getPeriodsForSlot);
 
     for (const existingCourse of courses) {
+      if (excludeCourseCode && existingCourse.code === excludeCourseCode) {
+        continue;
+      }
       const existingPeriods = existingCourse.slots.flatMap(getPeriodsForSlot);
       const clash = findPeriodClash(newPeriods, existingPeriods);
       if (clash) {
@@ -1419,35 +1450,113 @@ export default function FFCSTimetableTab() {
     }
   }, [activeTimetable]);
 
-  const openPrintablePage = useCallback(() => {
-    if (!pdfCaptureRef.current) return;
-    setIsDownloading(true);
+  const downloadPdfDossier = useCallback(
+    async (forcedTheme?: "light" | "dark") => {
+      if (courses.length === 0) {
+        setError("Please add at least one course before downloading the PDF dossier.");
+        return;
+      }
+      setIsDownloading(true);
+      setIsGeneratingPdf(true);
+      setPdfBadgeMsg(null);
+      const activeView: "vertical" | "horizontal" =
+        (resolvedView ?? (isMobile ? "vertical" : "horizontal")) === "vertical"
+          ? "vertical"
+          : "horizontal";
+      const chosenTheme =
+        forcedTheme ??
+        (currentTheme === "light" || (themeHtmlClass && themeHtmlClass.includes("light")) ? "light" : "dark");
+      setPdfGenerationTheme(chosenTheme);
+      try {
+        await downloadModernTimetablePdf({
+          timetableName: activeTimetable.name,
+          courses,
+          theoryPeriods,
+          labPeriods,
+          days: DAYS,
+          viewMode: activeView,
+          masterCourses,
+          theme: chosenTheme,
+          themeHtmlClass,
+        });
+        track("export_pdf", { theme: chosenTheme, viewMode: activeView });
+        const success = `PDF Dossier (${chosenTheme === "light" ? "Light" : "Dark"} Mode) downloaded successfully!`;
+        setSuccessMsg(success);
+        setPdfBadgeMsg(success);
+        setTimeout(() => {
+          setSuccessMsg(null);
+          setPdfBadgeMsg(null);
+        }, 3500);
+      } catch (err) {
+        console.error("PDF export failed:", err);
+        const errMsg = "Failed to download PDF dossier.";
+        setError(errMsg);
+        setPdfBadgeMsg(errMsg);
+        setTimeout(() => setPdfBadgeMsg(null), 3500);
+      } finally {
+        setIsDownloading(false);
+        setIsGeneratingPdf(false);
+      }
+    },
+    [
+      courses,
+      activeTimetable.name,
+      theoryPeriods,
+      labPeriods,
+      resolvedView,
+      isMobile,
+      masterCourses,
+      currentTheme,
+      themeHtmlClass,
+    ]
+  );
 
+  const openPrintablePage = useCallback(() => {
+    setIsDossierOpen(true);
+    track("export_printable");
+  }, []);
+
+  const openDetachedPrintablePage = useCallback(() => {
     try {
-      const printWindow = openTimetablePrintablePage(
-        pdfCaptureRef.current.innerHTML,
-        activeTimetable.name,
+      const viewToUse: "vertical" | "horizontal" = resolvedView === "vertical" ? "vertical" : "horizontal";
+      const printWindow = openModernPrintableDossier({
+        timetableName: activeTimetable.name,
+        courses: activeTimetable.courses,
+        theoryPeriods,
+        labPeriods,
+        days: DAYS,
+        viewMode: viewToUse,
+        masterCourses,
         themeHtmlClass,
         themeBgColor,
-        themeTextColor
-      );
+        themeTextColor,
+        autoPrint: false,
+      });
 
       if (!printWindow) {
-        setError("Please allow popups to open the printable view.");
-        setIsDownloading(false);
+        setError("Please allow popups to open the standalone printable view.");
         return;
       }
 
-      setSuccessMsg("Printable view opened in new tab!");
-      track("export_printable");
+      setSuccessMsg("Standalone printable view opened in new tab!");
+      track("export_image", { format: "png" });
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);
-      setError("Failed to open printable view.");
-    } finally {
-      setIsDownloading(false);
+      setError("Failed to open standalone printable view.");
     }
-  }, [activeTimetable.name, themeHtmlClass, themeBgColor, themeTextColor]);
+  }, [
+    activeTimetable.name,
+    activeTimetable.courses,
+    theoryPeriods,
+    labPeriods,
+    resolvedView,
+    isMobile,
+    masterCourses,
+    themeHtmlClass,
+    themeBgColor,
+    themeTextColor,
+  ]);
 
   // uniqueCourses moved above.
 
@@ -1555,6 +1664,21 @@ export default function FFCSTimetableTab() {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
+  const handleAddGuidedCourse = useCallback((newCourse: AddedCourse) => {
+    const isReplacing = courses.some(c => c.code === newCourse.code);
+    if (isReplacing) {
+      const remaining = courses.filter(c => c.code !== newCourse.code);
+      updateActiveTimetableCourses([...remaining, newCourse]);
+      setError(null);
+      setSuccessMsg(`Successfully replaced slot for ${newCourse.code} in ${activeTimetable.name}.`);
+    } else {
+      updateActiveTimetableCourses([...courses, newCourse]);
+      setError(null);
+      setSuccessMsg(`Successfully added ${newCourse.code} (${newCourse.type}) to ${activeTimetable.name}.`);
+    }
+    setTimeout(() => setSuccessMsg(null), 3000);
+  }, [courses, updateActiveTimetableCourses, activeTimetable.name]);
+
   const handleRemoveCourse = (id: string) => {
     updateActiveTimetableCourses(courses.filter(c => c.id !== id));
   };
@@ -1659,6 +1783,14 @@ export default function FFCSTimetableTab() {
 
       const key = e.key.toLowerCase();
 
+      if (isDossierOpen) {
+        if (key === "Escape" || key === "p") {
+          e.preventDefault();
+          setIsDossierOpen(false);
+        }
+        return;
+      }
+
       // The generator subpage owns the screen while it is open. Every other
       // shortcut here would only set state that nothing renders until you go
       // back — and `1`-`9` and Backspace would silently act on the planner
@@ -1676,7 +1808,12 @@ export default function FFCSTimetableTab() {
         setIsCourseSearchOpen(true);
       } else if (key === "t") {
         e.preventDefault();
-        setIsCourseLockOpen(true);
+        if (layoutMode === "guided") {
+          setGuidedSubView("adder");
+          setGuidedInitialPhase("setup_locks");
+        } else {
+          setIsCourseLockOpen(true);
+        }
       } else if (key === "g") {
         e.preventDefault();
         setIsGeneratorOpen(true);
@@ -1707,7 +1844,7 @@ export default function FFCSTimetableTab() {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [timetables, createNewTimetable, openPrintablePage, handleClearTimetable, isGeneratorOpen, closeGenerator]);
+  }, [timetables, createNewTimetable, openPrintablePage, handleClearTimetable, isGeneratorOpen, closeGenerator, isDossierOpen]);
 
   /**
    * The generator is a subpage of this tab rather than a sheet over it: it
@@ -1717,6 +1854,21 @@ export default function FFCSTimetableTab() {
    * the subpage's own unmount cancels. Rendered by an early return so the
    * planner's own layout and its modals are not mounted behind it.
    */
+  if (isDossierOpen) {
+    return (
+      <FFCSDossierSubpage
+        timetable={activeTimetable}
+        courses={courses}
+        theoryPeriods={theoryPeriods}
+        labPeriods={labPeriods}
+        days={DAYS}
+        masterCourses={masterCourses}
+        initialViewMode={resolvedView === "vertical" ? "vertical" : "horizontal"}
+        onClose={() => setIsDossierOpen(false)}
+      />
+    );
+  }
+
   if (isGeneratorOpen) {
     return (
       <div data-prevent-swipe="true" className={`w-full space-y-6 transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 p-4 md:p-8 overflow-y-auto' : ''}`}>
@@ -1817,11 +1969,17 @@ export default function FFCSTimetableTab() {
 
             <SegmentedControl
               value={layoutMode}
-              onChange={(value) => setLayoutMode(value as "guided" | "modern" | "classic")}
+              onChange={(value) => {
+                setLayoutMode(value as "guided" | "modern");
+                if (value === "guided") {
+                  setGuidedSubView("adder");
+                  setGuidedInitialPhase("setup_mode");
+                  setIsGuidedFullScreen(true);
+                }
+              }}
               options={[
                 { value: "guided", label: "Guided", icon: <Compass className="w-3.5 h-3.5" />, title: "Step-by-step mobile-first course selector" },
                 { value: "modern", label: "Modern", icon: <LayoutDashboard className="w-3.5 h-3.5" />, title: "Modernized all-in-one planner dashboard" },
-                { value: "classic", label: "Classic", icon: <Layers className="w-3.5 h-3.5" />, title: "Original single-page layout" },
               ]}
             />
           </div>
@@ -1866,244 +2024,443 @@ export default function FFCSTimetableTab() {
 
       <div className="flex flex-col gap-6">
         
-        {/* Top Panel: Course Manager */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Timetable Manager */}
-          <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-5">
-            <h2 className="text-lg font-bold text-text-heading mb-4">Timetable Manager</h2>
-            <div className="space-y-4">
-              {/* Timetable Selector as Modal Trigger */}
-              <div className="flex gap-2">
-                {/* A fresh open starts with no row in edit mode: a pencil left
-                    hanging when the sheet closed carries no claim back in. */}
-                <button
-                  type="button"
-                  onClick={() => { setSheetEditingId(null); setIsTimetableModalOpen(true); }}
-                  className="flex-1 bg-surface border border-border-strong rounded-xl pl-4 pr-3 py-2.5 text-sm text-text-heading hover:bg-surface-secondary/50 transition-all flex items-center justify-between gap-2 shadow-sm"
-                >
-                  <span className="truncate font-medium">{activeTimetable?.name || 'Select Timetable'}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-muted-foreground bg-surface-secondary px-2 py-0.5 rounded-md">{activeTimetable?.courses.length || 0} courses</span>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        {layoutMode === "guided" ? (
+          <div className="space-y-5">
+            {/* Guided Full-Screen Hero & Sub-View Switcher */}
+            <div className="relative overflow-hidden rounded-3xl bg-surface border border-border-strong p-4 sm:p-6 shadow-sm">
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-44 h-44 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-extrabold tracking-wider uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                        Guided Flow
+                      </span>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {activeTimetable?.name} · {courses.length} courses added
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-text-heading tracking-tight">
+                      {guidedSubView === "adder" ? "Full-Screen Course Adder" : "Timetable & Course List"}
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {guidedSubView === "adder"
+                        ? "Discover courses, check slot clashes live, and view faculty ratings."
+                        : "Review your full schedule, weekly hours, and course placements."}
+                    </p>
                   </div>
-                </button>
 
-                <button 
-                  type="button"
-                  onClick={createNewTimetable} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-md shadow-blue-600/10 shrink-0"
-                  title="Create New Timetable"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm font-semibold">New</span>
-                </button>
+                  {/* Sub-view switcher: Adder vs Timetable */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <SegmentedControl
+                      value={guidedSubView}
+                      onChange={(v) => setGuidedSubView(v as "adder" | "timetable")}
+                      options={[
+                        {
+                          value: "adder",
+                          label: "Course Adder",
+                          icon: <PlusCircle className="w-3.5 h-3.5 text-blue-500" />,
+                          title: "Switch to Guided Course Selector",
+                        },
+                        {
+                          value: "timetable",
+                          label: `Timetable (${courses.length})`,
+                          icon: <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />,
+                          title: "Switch to Timetable & Course Schedule",
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-hero Metric & Action Strip */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border-strong/50">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => { setSheetEditingId(null); setIsTimetableModalOpen(true); }}
+                      className="bg-surface-secondary/70 border border-border-strong rounded-xl pl-3 pr-2.5 py-1.5 text-xs text-text-heading hover:bg-surface-secondary transition-all flex items-center gap-1.5 shadow-2xs group cursor-pointer"
+                    >
+                      <span className="font-bold truncate">{activeTimetable?.name || 'Select Timetable'}</span>
+                      <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-text-heading" />
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={createNewTimetable} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-xl transition-all duration-200 flex items-center gap-1 shadow-2xs text-xs shrink-0 cursor-pointer"
+                      title="Create New Timetable"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>New</span>
+                    </button>
+
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400">
+                      {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)} Credits
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (layoutMode === "guided") {
+                          setGuidedSubView("adder");
+                          setGuidedInitialPhase("setup_locks");
+                          setIsGuidedFullScreen(true);
+                        } else {
+                          setIsCourseLockOpen(true);
+                        }
+                      }}
+                      className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-purple-500/20 transition-all flex items-center gap-1.5 shadow-2xs relative cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> 
+                      <span>Target Courses</span>
+                      {courseLocks.length > 0 && (
+                        <span className="bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                          {courseLocks.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setIsGeneratorOpen(true)}
+                      className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-amber-500/20 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" /> 
+                      <span>Auto-Generate</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setIsFacultyScheduleOpen(true)}
+                      className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-xl border border-cyan-500/20 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      <span>Faculty Schedule</span>
+                    </button>
+
+                    {guidedSubView === "adder" ? (
+                      <button
+                        type="button"
+                        onClick={() => setGuidedSubView("timetable")}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        <span>View Timetable ({courses.length})</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGuidedSubView("adder");
+                          setIsGuidedFullScreen(true);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>+ Add More Courses</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
+            </div>
 
-              {/* Active Timetable Actions: Rename, Duplicate, Delete */}
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-secondary/30 border border-border-strong/50 rounded-xl">
-                <button 
-                  type="button"
-                  onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }}
-                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all"
-                  title="Rename Current Timetable"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  <span>Rename</span>
-                </button>
-                
-                <button 
-                  type="button"
-                  onClick={duplicateTimetable}
-                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all"
-                  title="Duplicate Current Timetable"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Duplicate</span>
-                </button>
+            {/* In Guided Mode: Render Adder when guidedSubView is adder */}
+            {guidedSubView === "adder" && (
+              <FFCSGuidedSelector
+                masterCourses={masterCourses}
+                uniqueCourses={uniqueCourses}
+                courses={courses}
+                activeTimetable={activeTimetable}
+                onAddCourse={handleAddGuidedCourse}
+                checkClashes={checkClashes}
+                isGroupingEnabled={isGroupingEnabled}
+                setIsGroupingEnabled={setIsGroupingEnabled}
+                renderTypeChips={renderTypeChips}
+                getBatchColorClass={getBatchColorClass}
+                courseAlternativesPool={courseAlternativesPool}
+                onOpenFacultyReview={(target) => setFacultyReviewTarget(target)}
+                onOpenPasteRegistered={() => setIsPasteRegisteredModalOpen(true)}
+                onOpenManualLinker={() => setIsManualLinkerOpen(true)}
+                onViewTimetable={() => setGuidedSubView("timetable")}
+                isFullScreen={isGuidedFullScreen}
+                onToggleFullScreen={setIsGuidedFullScreen}
+                timetables={timetables}
+                onSelectTimetable={setActiveTimetableId}
+                onCreateNewTimetable={createNewTimetable}
+                onRenameTimetable={(id, newName) => {
+                  const trimmed = newName.trim();
+                  if (trimmed) {
+                    setTimetables((prev) => prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)));
+                  }
+                }}
+                onDeleteTimetable={deleteTimetable}
+                onOpenGenerator={() => setIsGeneratorOpen(true)}
+                onOpenCourseLocks={() => {
+                  setGuidedSubView("adder");
+                  setGuidedInitialPhase("setup_locks");
+                  setIsGuidedFullScreen(true);
+                }}
+                initialGuidedPhase={guidedInitialPhase}
+                courseLocks={courseLocks}
+                setCourseLocks={setCourseLocks}
+                uniqueCourseCodes={uniqueCourseCodes}
+                onImportCourses={handleImportCourses}
+                onImportToTimetable={(added) => handleLoadRegisteredCourses(added, [], false)}
+                onOpenFacultySchedule={handleOpenFacultySchedule}
+                friends={friends}
+                friendGroups={friendGroups}
+                socialScoreGroupMethod={socialScoreGroupMethod}
+                blockedSlots={blockedSlots}
+                setBlockedSlots={setBlockedSlots}
+                onToggleBlockSlot={toggleBlockSlot}
+                settings={settings}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Modern Timetable Manager */}
+            <div className="card-surface border border-border-strong rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-5">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-text-heading flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4 text-blue-500" />
+                    <span>Timetable Manager</span>
+                  </h2>
+                  <span className="text-xs text-muted-foreground bg-surface-secondary/70 border border-border-strong px-2.5 py-1 rounded-full font-medium">
+                    {activeTimetable?.courses.length || 0} courses
+                  </span>
+                </div>
 
-                <button 
-                  type="button"
-                  onClick={() => deleteTimetable(activeTimetableId)}
-                  className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all font-medium"
-                  title="Delete Current Timetable"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
-                </button>
-              </div>
-
-              {isEditingName && (
-                <div className="flex gap-2 mt-2 animate-fadeIn">
-                  <input 
-                    type="text" 
-                    value={editNameValue}
-                    onChange={e => setEditNameValue(e.target.value)}
-                    className="flex-1 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
-                    placeholder="New name..."
-                  />
-                  <button 
-                    onClick={handleRenameSubmit}
-                    className="bg-green-500/20 text-green-400 p-1.5 rounded-lg border border-green-500/20 hover:bg-green-500/30"
+                {/* Timetable Selector as Modal Trigger */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setSheetEditingId(null); setIsTimetableModalOpen(true); }}
+                    className="flex-1 bg-surface border border-border-strong hover:border-blue-500/40 rounded-2xl pl-4 pr-3.5 py-2.5 text-sm text-text-heading hover:bg-surface-secondary/50 transition-all flex items-center justify-between gap-2 shadow-xs group cursor-pointer"
                   >
-                    <Check className="w-4 h-4" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                      <span className="truncate font-semibold">{activeTimetable?.name || 'Select Timetable'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground bg-surface-secondary px-2 py-0.5 rounded-md font-medium">{activeTimetable?.courses.length || 0} courses</span>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-text-heading transition-transform" />
+                    </div>
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={createNewTimetable} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-2xl transition-all duration-200 flex items-center gap-1.5 shadow-md shadow-blue-600/10 shrink-0 cursor-pointer active:scale-95"
+                    title="Create New Timetable"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-semibold">New</span>
                   </button>
                 </div>
-              )}
 
-              {/* Utility Row: Export Calendar, Friends, Backup/Restore */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-tour-id="ffcs-export">
-                <button 
+                {/* Active Timetable Actions: Rename, Duplicate, Delete */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-secondary/40 border border-border-strong/60 rounded-xl">
+                  <button 
+                    type="button"
+                    onClick={() => { setEditNameValue(activeTimetable.name); setIsEditingName(true); }}
+                    className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all font-medium cursor-pointer"
+                    title="Rename Current Timetable"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Rename</span>
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={duplicateTimetable}
+                    className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-muted-foreground hover:text-text-heading hover:bg-surface rounded-lg transition-all font-medium cursor-pointer"
+                    title="Duplicate Current Timetable"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Duplicate</span>
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => deleteTimetable(activeTimetableId)}
+                    className="flex items-center justify-center gap-1.5 py-1.5 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all font-medium cursor-pointer"
+                    title="Delete Current Timetable"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+
+                {isEditingName && (
+                  <div className="flex gap-2 mt-2 animate-fadeIn">
+                    <input 
+                      type="text" 
+                      value={editNameValue}
+                      onChange={e => setEditNameValue(e.target.value)}
+                      className="flex-1 bg-surface border border-border-strong rounded-xl px-3 py-1.5 text-sm text-text-heading focus:outline-none focus:border-blue-500/50"
+                      placeholder="New name..."
+                    />
+                    <button 
+                      onClick={handleRenameSubmit}
+                      className="bg-green-500/20 text-green-400 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/30"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Utility Row: Export Calendar, Friends, Backup/Restore */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-tour-id="ffcs-export">
+                  <button 
+                    type="button"
+                    onClick={() => exportTimetableIcal(activeTimetable, getTimetableSchema(), new Date().toISOString().split('T')[0], new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0])}
+                    className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-blue-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                    title="Export to Apple/Google Calendar"
+                  >
+                    <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+                      <Download className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="truncate w-full text-center">iCal Export</span>
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setIsFriendsManagerOpen(true)}
+                    data-tour-id="ffcs-social"
+                    className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-pink-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                    title="Manage friends and compare schedules"
+                  >
+                    <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500 group-hover:scale-110 transition-transform">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="truncate w-full text-center">Friends</span>
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={exportTimetables}
+                    className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-indigo-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium shadow-2xs group cursor-pointer"
+                    title="Export backup data (JSON)"
+                  >
+                    <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
+                      <Save className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Backup</span>
+                  </button>
+
+                  <label 
+                    className="flex flex-col items-center justify-center gap-1.5 p-2 bg-surface border border-border-strong hover:border-emerald-500/30 rounded-xl hover:bg-surface-secondary/40 transition-all text-[11px] text-text-heading font-medium cursor-pointer shadow-2xs group"
+                    title="Import backup data (JSON)"
+                  >
+                    <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+                      <Upload className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Restore</span>
+                  </label>
+                </div>
+
+                {/* Core Planners: Target Courses, Auto-Generate */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-strong/40">
+                  <button 
+                    type="button"
+                    onClick={() => setIsCourseLockOpen(true)}
+                    data-tour-id="ffcs-add-course"
+                    className="bg-purple-500/10 hover:bg-purple-500/15 text-purple-600 dark:text-purple-400 text-sm font-semibold py-2.5 rounded-xl border border-purple-500/25 transition-all flex items-center justify-center gap-2 relative shadow-2xs group cursor-pointer"
+                  >
+                    <Lock className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
+                    <span>Target Courses</span>
+                    {courseLocks.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-background shadow-xs">
+                        {courseLocks.length}
+                      </span>
+                    )}
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setIsGeneratorOpen(true)}
+                    data-tour-id="ffcs-generate"
+                    className="bg-amber-500/10 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 text-sm font-semibold py-2.5 rounded-xl border border-amber-500/25 transition-all flex items-center justify-center gap-2 shadow-2xs group cursor-pointer"
+                  >
+                    <Wand2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
+                    <span>Auto-Generate</span>
+                  </button>
+                </div>
+
+                {/* Paste Registered Courses from VTOP */}
+                <button
                   type="button"
-                  onClick={() => exportTimetableIcal(activeTimetable, getTimetableSchema(), new Date().toISOString().split('T')[0], new Date(new Date().setMonth(new Date().getMonth() + 4)).toISOString().split('T')[0])}
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
-                  title="Export to Apple/Google Calendar"
+                  onClick={() => setIsPasteRegisteredModalOpen(true)}
+                  className="w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-semibold py-2.5 rounded-xl border border-purple-500/20 transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                  title="Paste registered courses from VTOP View/Modify page to display on your timetable"
                 >
-                  <Download className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <span className="truncate w-full text-center">iCal Export</span>
+                  <ClipboardPaste className="w-4 h-4" />
+                  <span>Paste Registered Courses from VTOP</span>
                 </button>
-                
-                <button 
-                  type="button"
-                  onClick={() => setIsFriendsManagerOpen(true)}
-                  data-tour-id="ffcs-social"
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
-                  title="Manage friends and compare schedules"
-                >
-                  <Users className="w-4 h-4 text-pink-500 group-hover:scale-110 transition-transform" />
-                  <span className="truncate w-full text-center">Friends</span>
-                </button>
 
-                <button 
+                {/* Faculty Schedule */}
+                <button
                   type="button"
-                  onClick={exportTimetables}
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium shadow-sm group"
-                  title="Export backup data (JSON)"
+                  onClick={() => setIsFacultyScheduleOpen(true)}
+                  className="w-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-sm font-semibold py-2.5 rounded-xl border border-cyan-500/20 transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                  title="See the full week taught by any faculty in the course report"
                 >
-                  <Save className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
-                  <span>Backup</span>
-                </button>
-
-                <label 
-                  className="flex flex-col items-center justify-center gap-1 p-2 bg-surface border border-border-strong rounded-xl hover:bg-surface-secondary/30 transition-all text-[11px] text-text-heading font-medium cursor-pointer shadow-sm group"
-                  title="Import backup data (JSON)"
-                >
-                  <input type="file" accept=".json" onChange={importTimetables} className="hidden" />
-                  <Upload className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
-                  <span>Restore</span>
-                </label>
-              </div>
-
-              {/* Core Planners: Target Courses, Auto-Generate */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-strong/30">
-                <button 
-                  type="button"
-                  onClick={() => setIsCourseLockOpen(true)}
-                  data-tour-id="ffcs-add-course"
-                  className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 hover:text-purple-400 text-sm font-semibold py-3 rounded-xl border border-purple-500/20 transition-all flex items-center justify-center gap-2 relative shadow-sm"
-                >
-                  <Lock className="w-4 h-4" /> 
-                  <span>Target Courses</span>
-                  {courseLocks.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-purple-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-background">
-                      {courseLocks.length}
+                  <CalendarDays className="w-4 h-4" />
+                  <span>Faculty Schedule</span>
+                  {facultyGroups.length > 0 && (
+                    <span className="text-xs font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-md">
+                      {facultyGroups.length}
                     </span>
                   )}
                 </button>
-                
-                <button 
-                  type="button"
-                  onClick={() => setIsGeneratorOpen(true)}
-                  data-tour-id="ffcs-generate"
-                  className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 text-sm font-semibold py-3 rounded-xl border border-amber-500/20 transition-all flex items-all justify-center gap-2 shadow-sm"
-                >
-                  <Wand2 className="w-4 h-4" /> 
-                  <span>Auto-Generate</span>
-                </button>
-              </div>
 
-              {/* Paste Registered Courses from VTOP */}
-              <button
-                type="button"
-                onClick={() => setIsPasteRegisteredModalOpen(true)}
-                className="w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm font-semibold py-2.5 rounded-xl border border-purple-500/20 transition-all flex items-center justify-center gap-2 shadow-xs"
-                title="Paste registered courses from VTOP View/Modify page to display on your timetable"
-              >
-                <ClipboardPaste className="w-4 h-4" />
-                <span>Paste Registered Courses</span>
-              </button>
-
-              {/* Faculty Schedule: the registration list, grouped by name. */}
-              <button
-                type="button"
-                onClick={() => setIsFacultyScheduleOpen(true)}
-                className="w-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 hover:text-cyan-400 text-sm font-semibold py-3 rounded-xl border border-cyan-500/20 transition-all flex items-center justify-center gap-2 shadow-sm"
-                title="See the full week taught by any faculty in the course report"
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span>Faculty Schedule</span>
-                {facultyGroups.length > 0 && (
-                  <span className="text-xs font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-md">
-                    {facultyGroups.length}
-                  </span>
-                )}
-              </button>
-
-              {/* Vitfac Community Review Link */}
-              {ENABLE_VITFAC_INTEGRATION && (
-                <div className="flex flex-col gap-1">
-                  <a
-                    href="https://vitfac.pages.dev"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold py-2.5 px-3 rounded-xl border border-emerald-500/20 transition-all flex items-center justify-between gap-2 shadow-xs group"
-                    title="Leave faculty reviews on vitfac.pages.dev to help other students"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 font-bold text-[11px]">
-                        ★
-                      </span>
-                      <span className="truncate">Reviewed your profs? Leave a review on vitfac!</span>
-                    </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
-                  </a>
-                  <p className="text-[10px] text-muted-foreground/60 px-1 leading-tight">
-                    Disclaimer: Ratings are sourced from third-party platform <a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground">vitfac.pages.dev</a>. AmazeCC provides this integration solely as a provider for student convenience.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Course Selector */}
-          <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-5">
-            <h2 className="text-lg font-bold text-text-heading mb-4 flex items-center gap-2">
-              <PlusCircle className="text-blue-400 w-5 h-5" /> Course Selector
-            </h2>
-            
-            {!masterCourses.length ? (
-              <EmptyState
-                title="Please upload a master slots file first."
-                className="bg-surface border border-border-strong rounded-xl"
-              />
-            ) : (
-              <form onSubmit={handleAddCourse} className="space-y-4">
-                <div className="flex items-center justify-between mb-4 bg-surface-secondary/30 p-3 rounded-xl border border-border-strong">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-text-heading flex items-center gap-2">
-                      Group Embedded Courses
-                    </span>
-                    <Switch
-                      checked={isGroupingEnabled}
-                      onCheckedChange={setIsGroupingEnabled}
-                      label="Group Embedded Courses"
-                    />
+                {/* Vitfac Community Review Link */}
+                {ENABLE_VITFAC_INTEGRATION && (
+                  <div className="flex flex-col gap-1">
+                    <a
+                      href="https://vitfac.pages.dev"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold py-2 px-3 rounded-xl border border-emerald-500/20 transition-all flex items-center justify-between gap-2 shadow-2xs group"
+                      title="Leave faculty reviews on vitfac.pages.dev to help other students"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                          ★
+                        </span>
+                        <span className="truncate">Reviewed your profs? Leave a review on vitfac!</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    </a>
+                    <p className="text-[10px] text-muted-foreground/60 px-1 leading-tight">
+                      Disclaimer: Ratings are sourced from third-party platform <a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground">vitfac.pages.dev</a>.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                )}
+              </div>
+            </div>
+
+            {/* Modern Course Selector */}
+            <div className="card-surface border border-border-strong rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden text-text-primary backdrop-blur-xs flex flex-col justify-between gap-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-text-heading flex items-center gap-2">
+                    <PlusCircle className="text-blue-500 w-5 h-5" /> Course Selector
+                  </h2>
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setIsPasteRegisteredModalOpen(true)}
-                      className="text-xs px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold rounded-md transition-colors border border-purple-500/30 flex items-center gap-1.5"
+                      className="text-xs px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-semibold rounded-lg transition-colors border border-purple-500/20 flex items-center gap-1.5"
                       title="Paste courses directly from VTOP"
                     >
                       <ClipboardPaste className="w-3.5 h-3.5" />
@@ -2112,185 +2469,204 @@ export default function FFCSTimetableTab() {
                     <button
                       type="button"
                       onClick={() => setIsManualLinkerOpen(true)}
-                      className="text-xs px-2 py-1 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-md transition-colors border border-border-strong"
+                      className="text-xs px-2 py-1 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-lg transition-colors border border-border-strong"
                     >
                       Advanced Linker
                     </button>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">1. Select Course</label>
-                  <button 
-                    onClick={() => setIsCourseSearchOpen(true)}
-                    className="w-full bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-sm"
-                  >
-                    <span className="truncate text-sm font-medium">
-                      {selectedCourseCode 
-                        ? (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span>{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
-                             {renderTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
-                             {(uniqueCourses.find(c => c.code === selectedCourseCode)?.batches || []).map(b => (
-                               <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
-                                 {b}
-                               </span>
-                             ))}
-                          </div>
-                        )
-                        : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
-                    </span>
-                    <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
-                  </button>
-                </div>
                 
-                {selectedCourseCode && (
-                  <div className="animate-fadeIn">
-                    <label className="block text-xs font-medium text-muted-foreground mb-1 ml-1">2. Select Slot & Faculty</label>
-                    <div className="flex gap-2">
-                      {/* ChipTabs, not a select: this tab goes fullscreen
-                          (`fixed z-[100]`) and OptionPicker's popup is a
-                          portal painted at z-70 — it would open beneath its
-                          own host in fullscreen mode. A scrolling pill strip
-                          has no popup to sink. */}
-                      <div className="w-1/3 min-w-0 flex items-center">
-                        <ChipTabs
-                          size="sm"
-                          className="min-w-0"
-                          value={slotFilter}
-                          onChange={(v) => {
-                            setSlotFilter(v);
-                            setSelectedSlotIndex("-1");
-                          }}
-                          options={[
-                            { value: "all", label: "All" },
-                            ...(isGroupingEnabled
-                              ? [
-                                  { value: "morning_session", label: "Morning Session" },
-                                  { value: "evening_session", label: "Evening Session" },
-                                ]
-                              : [
-                                  ...((!hasLab || hasTheory)
-                                    ? [
-                                        { value: "morning", label: "Morning Theory" },
-                                        { value: "evening", label: "Evening Theory" },
-                                      ]
-                                    : []),
-                                  ...((!hasTheory || hasLab)
-                                    ? [
-                                        { value: "morning_lab", label: "Morning Lab" },
-                                        { value: "evening_lab", label: "Evening Lab" },
-                                      ]
-                                    : []),
-                                ]),
-                          ]}
+                {!masterCourses.length ? (
+                  <EmptyState
+                    title="Please upload a master slots file first."
+                    className="bg-surface border border-border-strong rounded-xl"
+                  />
+                ) : (
+                  <form onSubmit={handleAddCourse} className="space-y-4">
+                    <div className="flex items-center justify-between bg-surface-secondary/30 p-3 rounded-2xl border border-border-strong">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-text-heading flex items-center gap-2">
+                          Group Embedded Courses
+                        </span>
+                        <Switch
+                          checked={isGroupingEnabled}
+                          onCheckedChange={setIsGroupingEnabled}
+                          label="Group Embedded Courses"
                         />
                       </div>
-                      
-                      <button
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 ml-1">1. Select Course</label>
+                      <button 
                         type="button"
-                        onClick={() => setIsSlotSearchOpen(true)}
-                        className="w-2/3 bg-surface border border-border-strong rounded-xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-sm"
+                        onClick={() => setIsCourseSearchOpen(true)}
+                        className="w-full bg-surface border border-border-strong hover:border-blue-500/40 rounded-2xl px-4 py-3 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-xs cursor-pointer"
                       >
-                        <span className="truncate text-sm font-medium flex items-center gap-1.5 min-w-0">
-                          {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
-                            ? (() => {
-                                const row = availableSlots[parseInt(selectedSlotIndex)];
-                                const rowSlots = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
-                                const theorySlots = rowSlots.filter(s => !s.startsWith("L"));
-                                const labSlots = rowSlots.filter(s => s.startsWith("L"));
-                                let facultyCountDisplay = "1";
-                                let facultyCountTitle = "1 faculty teaching this slot";
-
-                                if (theorySlots.length > 0 && labSlots.length > 0) {
-                                  const facParts = (row?.FACULTY || "").split(/\s*\/\s*/);
-                                  const tAlts = sameSlotFacultyAlternatives(
-                                    selectedCourseCode,
-                                    theorySlots,
-                                    { faculty: facParts[0] || row?.FACULTY, employeeId: row?.ERP_ID },
-                                    courseAlternativesPool
-                                  );
-                                  const lAlts = sameSlotFacultyAlternatives(
-                                    selectedCourseCode,
-                                    labSlots,
-                                    { faculty: facParts[1] || facParts[0] || row?.FACULTY },
-                                    courseAlternativesPool
-                                  );
-                                  const tCount = 1 + tAlts.length;
-                                  const lCount = 1 + lAlts.length;
-                                  facultyCountDisplay = tCount === lCount ? `${tCount}` : `${tCount} / ${lCount}`;
-                                  facultyCountTitle = `${tCount} theory / ${lCount} lab faculties teaching this slot`;
-                                } else {
-                                  const facultyAlts = sameSlotFacultyAlternatives(
-                                    selectedCourseCode,
-                                    rowSlots,
-                                    { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
-                                    courseAlternativesPool
-                                  );
-                                  const facultyCount = 1 + facultyAlts.length;
-                                  facultyCountDisplay = `${facultyCount}`;
-                                  facultyCountTitle =
-                                    facultyCount === 1
-                                      ? "1 faculty teaching this slot"
-                                      : `${facultyCount} faculties teaching this slot`;
-                                }
-
-                                return (
-                                  <>
-                                    <FacultyAvatar
-                                      employeeId={row.ERP_ID}
-                                      name={row.FACULTY}
-                                      size="xs"
-                                      tone="blue"
-                                    />
-                                    <span className="truncate">{row.SLOT} - {row.FACULTY}</span>
-                                    <span
-                                      className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
-                                      title={facultyCountTitle}
-                                    >
-                                      <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-                                      <span>{facultyCountDisplay}</span>
-                                    </span>
-                                    <VitfacReviewPill
-                                      employeeId={row.ERP_ID}
-                                      name={row.FACULTY}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setFacultyReviewTarget({
-                                          name: row.FACULTY,
-                                          employeeId: row.ERP_ID,
-                                          courseCode: selectedCourseCode || undefined,
-                                        });
-                                      }}
-                                    />
-                                  </>
-                                );
-                              })()
-                            : <span className="text-muted-foreground">-- Search & Choose Slot --</span>}
+                        <span className="truncate text-sm font-medium">
+                          {selectedCourseCode 
+                            ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-text-heading">{selectedCourseCode} - {uniqueCourses.find(c => c.code === selectedCourseCode)?.title}</span>
+                                 {renderTypeChips(uniqueCourses.find(c => c.code === selectedCourseCode)?.types || [], 'sm')}
+                                 {(uniqueCourses.find(c => c.code === selectedCourseCode)?.batches || []).map(b => (
+                                   <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
+                                     {b}
+                                   </span>
+                                 ))}
+                              </div>
+                            )
+                            : <span className="text-muted-foreground">-- Search & Choose Course --</span>}
                         </span>
                         <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
                       </button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-2 ml-1">
-                      * For embedded courses, theory and lab slots taught by the same faculty are automatically linked (if grouping is enabled). Click cells in the timetable grid to block time slots and narrow down valid options.
-                    </p>
-                  </div>
+                    
+                    {selectedCourseCode && (
+                      <div className="animate-fadeIn space-y-2">
+                        <label className="block text-xs font-semibold text-muted-foreground ml-1">2. Select Slot & Faculty</label>
+                        <div className="flex gap-2">
+                          <div className="w-1/3 min-w-0 flex items-center">
+                            <ChipTabs
+                              size="sm"
+                              className="min-w-0"
+                              value={slotFilter}
+                              onChange={(v) => {
+                                setSlotFilter(v);
+                                setSelectedSlotIndex("-1");
+                              }}
+                              options={[
+                                { value: "all", label: "All" },
+                                ...(isGroupingEnabled
+                                  ? [
+                                      { value: "morning_session", label: "Morning Session" },
+                                      { value: "evening_session", label: "Evening Session" },
+                                    ]
+                                  : [
+                                      ...((!hasLab || hasTheory)
+                                        ? [
+                                            { value: "morning", label: "Morning Theory" },
+                                            { value: "evening", label: "Evening Theory" },
+                                          ]
+                                        : []),
+                                      ...((!hasTheory || hasLab)
+                                        ? [
+                                            { value: "morning_lab", label: "Morning Lab" },
+                                            { value: "evening_lab", label: "Evening Lab" },
+                                          ]
+                                        : []),
+                                    ]),
+                              ]}
+                            />
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => setIsSlotSearchOpen(true)}
+                            className="w-2/3 bg-surface border border-border-strong hover:border-blue-500/40 rounded-2xl px-4 py-2.5 text-left text-text-heading hover:bg-surface-secondary/50 transition-colors flex justify-between items-center group shadow-xs cursor-pointer"
+                          >
+                            <span className="truncate text-sm font-medium flex items-center gap-1.5 min-w-0">
+                              {selectedSlotIndex !== "-1" && availableSlots[parseInt(selectedSlotIndex)]
+                                ? (() => {
+                                    const row = availableSlots[parseInt(selectedSlotIndex)];
+                                    const rowSlots = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
+                                    const theorySlots = rowSlots.filter(s => !s.startsWith("L"));
+                                    const labSlots = rowSlots.filter(s => s.startsWith("L"));
+                                    let facultyCountDisplay = "1";
+                                    let facultyCountTitle = "1 faculty teaching this slot";
+
+                                    if (theorySlots.length > 0 && labSlots.length > 0) {
+                                      const facParts = (row?.FACULTY || "").split(/\s*\/\s*/);
+                                      const tAlts = sameSlotFacultyAlternatives(
+                                        selectedCourseCode,
+                                        theorySlots,
+                                        { faculty: facParts[0] || row?.FACULTY, employeeId: row?.ERP_ID },
+                                        courseAlternativesPool
+                                      );
+                                      const lAlts = sameSlotFacultyAlternatives(
+                                        selectedCourseCode,
+                                        labSlots,
+                                        { faculty: facParts[1] || facParts[0] || row?.FACULTY },
+                                        courseAlternativesPool
+                                      );
+                                      const tCount = 1 + tAlts.length;
+                                      const lCount = 1 + lAlts.length;
+                                      facultyCountDisplay = tCount === lCount ? `${tCount}` : `${tCount} / ${lCount}`;
+                                      facultyCountTitle = `${tCount} theory / ${lCount} lab faculties teaching this slot`;
+                                    } else {
+                                      const facultyAlts = sameSlotFacultyAlternatives(
+                                        selectedCourseCode,
+                                        rowSlots,
+                                        { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
+                                        courseAlternativesPool
+                                      );
+                                      const facultyCount = 1 + facultyAlts.length;
+                                      facultyCountDisplay = `${facultyCount}`;
+                                      facultyCountTitle =
+                                        facultyCount === 1
+                                          ? "1 faculty teaching this slot"
+                                          : `${facultyCount} faculties teaching this slot`;
+                                    }
+
+                                    return (
+                                      <>
+                                        <FacultyAvatar
+                                          employeeId={row.ERP_ID}
+                                          name={row.FACULTY}
+                                          size="xs"
+                                          tone="blue"
+                                        />
+                                        <span className="truncate">{row.SLOT} - {row.FACULTY}</span>
+                                        <span
+                                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground shrink-0"
+                                          title={facultyCountTitle}
+                                        >
+                                          <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+                                          <span>{facultyCountDisplay}</span>
+                                        </span>
+                                        <VitfacReviewPill
+                                          employeeId={row.ERP_ID}
+                                          name={row.FACULTY}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFacultyReviewTarget({
+                                              name: row.FACULTY,
+                                              employeeId: row.ERP_ID,
+                                              courseCode: selectedCourseCode || undefined,
+                                            });
+                                          }}
+                                        />
+                                      </>
+                                    );
+                                  })()
+                                : <span className="text-muted-foreground">-- Search & Choose Slot --</span>}
+                            </span>
+                            <Search className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 ml-1 leading-tight">
+                          * For embedded courses, theory and lab slots taught by the same faculty are automatically linked.
+                        </p>
+                      </div>
+                    )}
+                    
+                    <button 
+                      type="submit" 
+                      disabled={!selectedCourseCode || selectedSlotIndex === "-1"}
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-2xl shadow-md transition-all duration-300 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4" /> Add to Timetable
+                    </button>
+                  </form>
                 )}
-                
-                <button 
-                  type="submit" 
-                  disabled={!selectedCourseCode || selectedSlotIndex === "-1"}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-text-heading font-medium py-2.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mt-2"
-                >
-                  <PlusCircle className="w-4 h-4" /> Add to Timetable
-                </button>
-              </form>
-            )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Panel: The Grid and Export */}
-        <div className="w-full space-y-6">
+        {(layoutMode !== "guided" || guidedSubView === "timetable") && (
+          <div id="ffcs-timetable-grid" className="w-full space-y-6">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
             {/* Social Score Widget */}
             <div className="flex items-center gap-3 bg-surface-secondary/20 border border-border-strong p-2 rounded-xl w-full md:w-auto flex-1 max-w-md print:hidden">
@@ -2339,12 +2715,13 @@ export default function FFCSTimetableTab() {
 
             <div className="flex gap-2 shrink-0 ml-auto">
               <button 
-                onClick={openPrintablePage}
+                onClick={() => downloadPdfDossier()}
                 disabled={isDownloading || courses.length === 0}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-text-heading px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 cursor-pointer"
+                title="Automatically generate and download PDF dossier with current theme"
               >
                 <Download className="w-4 h-4" /> 
-                {isDownloading ? "Opening..." : "Printable View"}
+                <span>Download PDF Dossier</span>
               </button>
               <div className="relative group flex items-center gap-2">
                 <button
@@ -2368,30 +2745,71 @@ export default function FFCSTimetableTab() {
                 >
                   {settings.exportFormat === 'jpg' ? 'PNG' : 'JPG'}
                 </button>
-                <div className="absolute right-0 top-full mt-1 w-56 bg-surface border border-border-strong rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden text-xs">
+                <div className="absolute right-0 top-full mt-1 w-68 bg-surface border border-border-strong rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden text-xs">
+                  <button 
+                    onClick={() => downloadPdfDossier()}
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download className="w-3.5 h-3.5 text-indigo-400" />
+                      Download PDF (Current Theme)
+                    </span>
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">PDF</span>
+                  </button>
+                  <button 
+                    onClick={() => downloadPdfDossier('light')}
+                    className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                  >
+                    ☀️ Download PDF (Ink-Saver Light)
+                  </button>
+                  <button 
+                    onClick={() => downloadPdfDossier('dark')}
+                    className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                  >
+                    🌙 Download PDF (Dark Mode)
+                  </button>
                   <button 
                     onClick={() => downloadImage('jpg')}
-                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
                   >
                     Download JPG (Current: {(resolvedView ?? (isMobile ? 'vertical' : 'horizontal')).toUpperCase()})
                   </button>
                   <button 
                     onClick={() => downloadImage('jpg', 'vertical')}
-                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                    className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
                   >
                     Download JPG (Vertical Heatmap)
                   </button>
                   <button 
                     onClick={() => downloadImage('jpg', 'horizontal')}
-                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                    className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
                   >
                     Download JPG (Horizontal Grid)
                   </button>
                   <button 
                     onClick={() => downloadImage('png')}
-                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
+                    className="w-full text-left px-4 py-2 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
                   >
                     Download PNG (Current View)
+                  </button>
+                  <button 
+                    onClick={() => openPrintablePage()}
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                      Preview Dossier (In-App)
+                    </span>
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.5 rounded">VIEW</span>
+                  </button>
+                  <button 
+                    onClick={() => openDetachedPrintablePage()}
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      Standalone Print Tab
+                    </span>
                   </button>
                 </div>
               </div>
@@ -2418,8 +2836,8 @@ export default function FFCSTimetableTab() {
             />
             
             {/* Bottom Panel: Selected Courses Table inside capture ref to include in image */}
-            {courses.length > 0 && (
-              <div className="card-surface border border-border-strong rounded-2xl shadow-xs text-text-primary p-6">
+            {courses.length > 0 ? (
+              <div className="bg-transparent md:card-surface border-0 md:border md:border-border-strong rounded-none md:rounded-2xl shadow-none md:shadow-xs text-text-primary p-0 md:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     Selected Courses
@@ -2435,7 +2853,145 @@ export default function FFCSTimetableTab() {
                   </button>
                 </div>
                 
-                <div className="overflow-x-auto scrollbar-none">
+                {/* Mobile Cards (on small screens) */}
+                <div className="block md:hidden space-y-3 print:hidden">
+                    {getGroupedCourses(courses).map(c => {
+                      const rawHalves: AddedCourse[] = courses.filter((course) =>
+                        (c.ids ?? [c.id]).includes(course.id)
+                      );
+                      const allSlots = Array.from(new Set(rawHalves.flatMap((h) => h.slots)));
+                      const theorySlots = allSlots.filter((s) => !s.startsWith("L") && s !== "NIL");
+                      const labSlots = allSlots.filter((s) => s.startsWith("L"));
+                      const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
+
+                      const dropIns = isEmbedded
+                        ? sameSlotFacultyAlternatives(
+                            c.code,
+                            allSlots,
+                            { faculty: c.faculty, employeeId: rawHalves[0]?.employeeId || (c as any).employeeId },
+                            courseAlternativesPool
+                          )
+                        : [];
+
+                      const expandedHalves = expandCourseHalves(rawHalves);
+                      const counts = expandedHalves.map((half) => {
+                        const alts = sameSlotFacultyAlternatives(
+                          half.code,
+                          half.slots,
+                          { faculty: half.faculty, employeeId: half.employeeId },
+                          courseAlternativesPool
+                        );
+                        return 1 + alts.length;
+                      });
+
+                      const dropInCount = dropIns.length;
+                      const facultyCountDisplay =
+                        dropInCount > 0
+                          ? `${1 + dropInCount} drop-in`
+                          : isEmbedded
+                          ? "1"
+                          : counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                          ? counts.join(" / ")
+                          : String(counts[0] ?? 1);
+
+                      const facultyCountTitle =
+                        dropInCount > 0
+                          ? `${1 + dropInCount} drop-in replacements · Click to switch`
+                          : isEmbedded
+                          ? "1 faculty teaching this slot · Click to switch to other slots"
+                          : counts.length === 1 && counts[0] === 1
+                          ? "1 faculty teaching this slot · Click to switch"
+                          : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
+
+                      const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
+
+                      return (
+                        <div key={c.id} className="p-3.5 rounded-2xl bg-surface border border-border-strong shadow-2xs space-y-2.5">
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex flex-col gap-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className={badgeProps.className} style={badgeProps.style}>{c.code}</div>
+                                {renderTypeChips(c.type, "sm")}
+                                <span className="text-[10px] text-muted-foreground font-semibold bg-surface-secondary/70 px-1.5 py-0.5 rounded border border-border-strong/50">
+                                  {c.credits} cr
+                                </span>
+                                {c.batches && c.batches.length > 0 && c.batches.map(b => (
+                                  <span key={b} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getBatchColorClass(b)}`}>
+                                    {b}
+                                  </span>
+                                ))}
+                              </div>
+                              <h3 className="text-xs sm:text-sm font-bold text-text-heading leading-snug line-clamp-2">
+                                {c.title}
+                              </h3>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                c.ids.forEach(id => handleRemoveCourse(id));
+                              }}
+                              className="text-muted-foreground hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors shrink-0"
+                              title="Remove Course"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-strong/40">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FacultyAvatar
+                                employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
+                                name={c.faculty}
+                                size="xs"
+                                tone="blue"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                title={facultyCountTitle}
+                                className="flex items-center gap-1.5 text-xs text-text-heading/90 hover:text-blue-500 transition-colors cursor-pointer min-w-0"
+                              >
+                                <span className="truncate max-w-[130px] font-medium">{c.faculty}</span>
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground hover:text-blue-500 shrink-0"
+                                  title={facultyCountTitle}
+                                >
+                                  <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+                                  <span>{facultyCountDisplay}</span>
+                                </span>
+                              </button>
+                            </div>
+                            <VitfacReviewPill
+                              employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
+                              name={c.faculty}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFacultyReviewTarget({
+                                  name: c.faculty,
+                                  employeeId: rawHalves[0]?.employeeId || (c as any).employeeId,
+                                  courseCode: c.code,
+                                });
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {c.slots.map(s => (
+                                <span key={s} className="bg-accent/50 border border-border-strong text-text-heading/80 text-[10px] px-1.5 py-0.5 rounded-md">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-medium truncate shrink-0 max-w-[140px]">
+                              📍 {c.venue}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                <div className="hidden md:block overflow-x-auto scrollbar-none">
                   <table className="w-full text-left min-w-[600px]">
                     <thead>
                       <tr className="border-b border-border-strong">
@@ -2585,195 +3141,38 @@ export default function FFCSTimetableTab() {
                   </table>
                 </div>
               </div>
+            ) : (
+              <div className="card-surface border border-border-strong rounded-2xl p-8 text-center text-text-primary space-y-3 shadow-xs">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-base text-text-heading">No Courses Added to {activeTimetable.name}</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Your timetable grid is currently empty. Use the course adder to search courses, verify conflicts, and schedule your semester.
+                </p>
+                {layoutMode === "guided" && (
+                  <button
+                    type="button"
+                    onClick={() => setGuidedSubView("adder")}
+                    className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Launch Course Adder</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
+      )}
       </div>
 
-      {/* Hidden PDF Capture Container */}
-      <div 
-        ref={pdfCaptureRef} 
-        style={{ 
-          display: 'none', 
-          position: 'absolute', 
-          left: '-9999px', 
-          top: '-9999px', 
-          width: '1200px', 
-          backgroundColor: '#0f172a',
-          color: 'white',
-          padding: '40px'
-        }}
-      >
-        <div className="flex items-center justify-between mb-8 border-b border-border-strong pb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-text-heading mb-2">{activeTimetable.name}</h1>
 
-          </div>
-          <div className="text-right">
-            <h2 className="text-xl font-bold text-blue-400">AmazeCC FFCS</h2>
-            <p className="text-muted-foreground text-sm">VIT Chennai</p>
-          </div>
-        </div>
-
-        {/* Timetable Grid Preview */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold text-text-heading mb-4">Schedule</h2>
-          <div className="border border-border-strong rounded-xl overflow-hidden">
-            <table className="w-full text-xs text-center border-collapse table-fixed">
-              <thead>
-                <tr className="bg-surface-secondary">
-                  <th className="border border-border-strong p-2 w-20 text-muted-foreground">Day</th>
-                  {theoryPeriods.map(p => (
-                    <th key={p.start} className="border border-border-strong p-2 text-text-heading/80">
-                      <div>{p.start}</div>
-                      <div className="text-muted-foreground font-normal">to {p.end}</div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {DAYS.map(day => (
-                  <tr key={day.id} className="border border-border-strong">
-                    <td className="border border-border-strong font-bold bg-surface-secondary/50 uppercase">
-                      {day.id}
-                    </td>
-                    {theoryPeriods.map((tp, idx) => {
-                      const tSlot = tp.days?.[day.id];
-                      const lp = labPeriods[idx];
-                      const lSlot = lp?.days?.[day.id];
-                      
-                      const tCourse = tSlot ? getCourseForSlot(tSlot) : null;
-                      const lCourse = lSlot ? getCourseForSlot(lSlot) : null;
-                      
-                      return (
-                        <td key={idx} className="border border-border-strong p-0 relative h-16 align-top">
-                          {/* Theory Half */}
-                          <div className={`h-1/2 w-full border-b border-border-strong/50 flex flex-col items-center justify-center p-0.5 ${tCourse ? (tCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
-                            {tCourse ? (
-                              <>
-                                <span className="font-bold text-[10px] leading-tight">{tCourse.code}</span>
-                                <span className="text-[8px] text-white/80">{tSlot}</span>
-                              </>
-                            ) : (
-                              <span className="text-[9px]">{tSlot || '-'}</span>
-                            )}
-                          </div>
-                          
-                          {/* Lab Half */}
-                          <div className={`h-1/2 w-full flex flex-col items-center justify-center p-0.5 ${lCourse ? (lCourse.color + ' text-white') : 'bg-transparent text-muted-foreground'}`}>
-                            {lCourse ? (
-                              <>
-                                <span className="font-bold text-[10px] leading-tight">{lCourse.code}</span>
-                                <span className="text-[8px] opacity-75">{lSlot}</span>
-                              </>
-                            ) : (
-                              <span className="text-[9px]">{lSlot || '-'}</span>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Selected Courses Table */}
-        <div className="mb-10">
-          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-xl font-bold text-text-heading">Course List</h2>
-              <button
-                type="button"
-                onClick={() => setIsPasteRegisteredModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 transition-all shadow-2xs hover:scale-[1.02] active:scale-95"
-                title="Paste registered courses from VTOP View/Modify page to display on your timetable"
-              >
-                <ClipboardPaste className="w-3.5 h-3.5" />
-                <span>Paste Registered Courses</span>
-              </button>
-            </div>
-            <p className="text-muted-foreground font-medium">Total Credits: {getGroupedCourses(courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}</p>
-          </div>
-          <table className="w-full text-sm text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-secondary border-b border-border-strong text-text-heading/80">
-                <th className="py-3 px-4 font-semibold">Course Code</th>
-                <th className="py-3 px-4 font-semibold">Title</th>
-                <th className="py-3 px-4 font-semibold">Type</th>
-                <th className="py-3 px-4 font-semibold">Faculty</th>
-                <th className="py-3 px-4 font-semibold">Slots</th>
-                <th className="py-3 px-4 font-semibold text-center">Credits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center justify-center gap-2.5">
-                      <p className="text-sm">No courses selected in your timetable yet.</p>
-                      <button
-                        type="button"
-                        onClick={() => setIsPasteRegisteredModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-sm transition-all active:scale-95"
-                      >
-                        <ClipboardPaste className="w-4 h-4" />
-                        <span>Paste VTOP Registered Courses</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                getGroupedCourses(courses).map((c, i) => {
-                  const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
-                  return (
-                  <tr key={i} className="border-b border-border-strong hover:bg-surface-secondary/20">
-                    <td className="py-3 px-4 font-medium">
-                      <div className={`inline-block ${badgeProps.className}`} style={badgeProps.style}>{c.code}</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{c.title}</span>
-                        {c.batches && c.batches.length > 0 && c.batches.map(b => (
-                          <span key={b} className={`text-xs font-bold px-2 py-0.5 rounded-md border ${getBatchColorClass(b)}`}>
-                            {b}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {renderTypeChips(c.type)}
-                    </td>
-                    <td className="py-3 px-4 text-text-heading/80">{c.faculty}</td>
-                    <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
-                    <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
-                  </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="text-center mt-12 pt-4 border-t border-border-strong space-y-1">
-          <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
-            Generated by AmazeCC <MapIcon className="w-4 h-4 text-blue-500" />
-          </p>
-          {ENABLE_VITFAC_INTEGRATION && (
-            <p className="text-[10px] text-muted-foreground/60 max-w-lg mx-auto">
-              Disclaimer: Faculty ratings are sourced from a third-party platform (<a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground font-medium">vitfac.pages.dev</a>). AmazeCC is not affiliated with nor responsible for these user reviews; we provide this integration solely as a third-party provider for student convenience.
-            </p>
-          )}
-        </div>
-      </div>
 
       {/* Auto-Generator Modal */}
-      {/* Target Courses Modal */}
-      {/* Target Courses Modal */}
+      {/* Target Courses Modal (shown as bottom sheet modal outside of guided mode) */}
       <TargetCoursesModal
-        isOpen={isCourseLockOpen}
+        isOpen={isCourseLockOpen && layoutMode !== "guided"}
         onClose={() => setIsCourseLockOpen(false)}
         courseLocks={courseLocks}
         setCourseLocks={setCourseLocks}
@@ -2792,8 +3191,12 @@ export default function FFCSTimetableTab() {
 
       <FacultyScheduleModal
         open={isFacultyScheduleOpen}
-        onClose={() => setIsFacultyScheduleOpen(false)}
+        onClose={() => {
+          setIsFacultyScheduleOpen(false);
+          setFacultyScheduleInitial(undefined);
+        }}
         groups={facultyGroups}
+        initialFaculty={facultyScheduleInitial}
         masterCourses={masterCourses}
       />
 
@@ -3092,6 +3495,25 @@ export default function FFCSTimetableTab() {
               <Search className="w-5 h-5 text-blue-500" /> Search Course
             </h3>
             <SearchInput placeholder="Search by course code or title..." value={courseSearchQuery} onChange={e => setCourseSearchQuery(e.target.value)} className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-blue-500/50 placeholder:text-muted-foreground" autoFocus />
+            {courseLocks.length > 0 && (
+              <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
+                <span className="flex items-center gap-1.5 text-text-heading font-medium">
+                  <Lock className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                  <span>{searchLockedOnly ? `Locked Courses Only (${courseLocks.length})` : "Any Courses (All)"}</span>
+                </span>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <span className="text-[11px] text-muted-foreground font-semibold">
+                    {searchLockedOnly ? "Locked Only" : "All Courses"}
+                  </span>
+                  <Switch
+                    checked={searchLockedOnly}
+                    onCheckedChange={setSearchLockedOnly}
+                    size="md"
+                    label="Toggle locked courses only in search"
+                  />
+                </label>
+              </div>
+            )}
             {/*
               The results keep their own scroll box rather than inheriting the
               sheet's: this used to be `flex-1` inside an `max-h-[85vh]` column,
@@ -3100,7 +3522,7 @@ export default function FFCSTimetableTab() {
             */}
             <div className="p-2 overflow-y-auto max-h-[50vh] custom-scrollbar bg-surface-secondary/5 rounded-xl">
               {uniqueCourses.filter(c => 
-                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
+                (!searchLockedOnly || courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
                 )
@@ -3119,10 +3541,12 @@ export default function FFCSTimetableTab() {
                   }}
                   className={`w-full text-left px-4 py-3 my-0.5 rounded-xl transition-colors flex flex-col gap-1 ${fullyAdded ? 'opacity-50 cursor-not-allowed bg-surface-secondary/30 border border-border-strong/50' : selectedCourseCode === c.code ? 'bg-blue-500/10 border border-blue-500/20 shadow-sm' : 'border border-transparent hover:bg-surface-secondary/80'}`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                    <div className="flex flex-col gap-1 min-w-0">
                       <span className={`font-bold text-sm ${fullyAdded ? 'text-muted-foreground' : 'text-text-heading'}`}>{c.code}</span>
-                       {renderTypeChips(c.types || [], 'sm')}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {renderTypeChips(c.types || [], 'sm')}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap sm:shrink-0">
                       {c.batches && c.batches.length > 0 && c.batches.map(b => (
@@ -3141,20 +3565,35 @@ export default function FFCSTimetableTab() {
                 </button>
               )})}
               {uniqueCourses.filter(c => 
-                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
+                (!searchLockedOnly || courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
                 )
               ).length === 0 && (
-                <EmptyState
-                  icon={<Search className="w-8 h-8" />}
-                  title="No courses found"
-                  description="Try a different search term"
-                  className="py-12 border border-dashed border-border-strong/50 rounded-xl m-2"
-                />
+                <div className="py-6 text-center flex flex-col items-center">
+                  <EmptyState
+                    icon={<Search className="w-8 h-8" />}
+                    title="No courses found"
+                    description={
+                      searchLockedOnly && courseLocks.length > 0
+                        ? "No locked courses matched your search."
+                        : "Try a different search term"
+                    }
+                    className="py-8 border border-dashed border-border-strong/50 rounded-xl m-2 w-full"
+                  />
+                  {searchLockedOnly && courseLocks.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchLockedOnly(false)}
+                      className="mt-2 text-xs font-semibold text-indigo-500 hover:text-indigo-400 hover:underline cursor-pointer"
+                    >
+                      Show all catalogue courses instead
+                    </button>
+                  )}
+                </div>
               )}
               {uniqueCourses.filter(c => 
-                (courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
+                (!searchLockedOnly || courseLocks.length === 0 || courseLocks.some(lock => lock.code === c.code)) && (
                 c.code.toLowerCase().includes(courseSearchQuery.toLowerCase()) || 
                 c.title.toLowerCase().includes(courseSearchQuery.toLowerCase())
                 )
@@ -3665,6 +4104,14 @@ export default function FFCSTimetableTab() {
           setIsGroupingEnabled={setIsGroupingEnabled}
           socialScoreGroupMethod={socialScoreGroupMethod}
           setSocialScoreGroupMethod={setSocialScoreGroupMethod}
+        />
+        <PdfGenerationBadge
+          isGenerating={isGeneratingPdf}
+          successMessage={pdfBadgeMsg && !pdfBadgeMsg.startsWith("Failed") ? pdfBadgeMsg : undefined}
+          errorMessage={pdfBadgeMsg && pdfBadgeMsg.startsWith("Failed") ? pdfBadgeMsg : undefined}
+          timetableName={activeTimetable.name}
+          theme={pdfGenerationTheme}
+          onDismiss={() => setPdfBadgeMsg(null)}
         />
       </TourProvider>
     </div>

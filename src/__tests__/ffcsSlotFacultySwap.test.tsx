@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as htmlToImage from "html-to-image";
 import SlotFacultySwapSheet from "../components/custom/exams/FFCS/components/SlotFacultySwapSheet";
 import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "../components/custom/exams/FFCS/logic/generate";
 import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
+import { installLocalStorage } from "./helpers/localStorage";
+
+const storage = installLocalStorage();
 
 /**
  * The same-slot faculty swap, in two halves like the feature itself.
@@ -17,6 +20,11 @@ import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/
  */
 
 afterEach(cleanup);
+beforeEach(() => {
+  try {
+    storage?.clear();
+  } catch {}
+});
 
 const course = (over: Partial<ParsedCourse> = {}): ParsedCourse => ({
   CODE: "BACSE104",
@@ -310,6 +318,25 @@ describe("SlotFacultySwapSheet", () => {
     expect(screen.getByText("Download JPEG")).toBeTruthy();
     expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
     expect(screen.getByText(/Search course code/)).toBeTruthy();
+  });
+
+  it("allows dismissing and restoring the How to Pick It Out in FFCS guide with x", () => {
+    sheet();
+    expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
+
+    const dismissBtn = screen.getByTitle("Dismiss guide");
+    fireEvent.click(dismissBtn);
+
+    expect(screen.queryByText("How to Pick It Out in FFCS:")).toBeNull();
+    expect(storage?.getItem("ffcs_dismiss_faculty_guide")).toBe("true");
+
+    // Guide restore button is visible
+    const restoreBtn = screen.getByTitle("Show registration strategy guide");
+    expect(restoreBtn).toBeTruthy();
+    fireEvent.click(restoreBtn);
+
+    expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
+    expect(storage?.getItem("ffcs_dismiss_faculty_guide")).toBeNull();
   });
 
   it("triggers JPEG generation and download on button click", async () => {

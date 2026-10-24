@@ -16,7 +16,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { Search, Users, Download, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Search, Users, Download, Loader2, Sparkles, AlertCircle, X } from "lucide-react";
 import * as htmlToImage from "html-to-image";
 import BottomSheet from "../../../shared/BottomSheet";
 import SearchInput from "../../../shared/SearchInput";
@@ -308,6 +308,32 @@ export default function SlotFacultySwapSheet({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedReview, setSelectedReview] = useState<{ name: string; employeeId?: string } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        return window.localStorage?.getItem("ffcs_dismiss_faculty_guide") !== "true";
+      }
+    } catch {}
+    return true;
+  });
+
+  const handleDismissTutorial = () => {
+    setShowTutorial(false);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage?.setItem("ffcs_dismiss_faculty_guide", "true");
+      }
+    } catch {}
+  };
+
+  const handleRestoreTutorial = () => {
+    setShowTutorial(true);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage?.removeItem("ffcs_dismiss_faculty_guide");
+      }
+    } catch {}
+  };
 
   const allSlots = useMemo(
     () => Array.from(new Set(halves.flatMap((h) => h.slots))),
@@ -533,7 +559,8 @@ export default function SlotFacultySwapSheet({
       maxWidth="max-w-lg"
       panelZIndex={panelZIndex}
       backdropZIndex={backdropZIndex}
-      contentClassName="flex flex-col gap-3"
+      avoidKeyboard={true}
+      contentClassName="flex flex-col gap-3 !pb-0"
       title={onSwap ? "Switch Faculty" : "Faculty in this Slot"}
       subtitle={`${code} — ${courseTitle}`}
       icon={<Users className="w-5 h-5 text-blue-400" />}
@@ -544,26 +571,39 @@ export default function SlotFacultySwapSheet({
             ? "Everyone below teaches this course at the exact same time slot — a swap changes the teacher only."
             : "Everyone below teaches this course at the exact same time slot."}
         </p>
-        <button
-          type="button"
-          onClick={handleDownloadJpeg}
-          disabled={isDownloading}
-          data-testid="download-faculty-jpeg-btn"
-          title="Download a JPEG reference sheet with all faculties in this slot and FFCS picking instructions"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-sm"
-        >
-          {isDownloading ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Generating JPEG...</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-3.5 h-3.5" />
-              <span>Download JPEG</span>
-            </>
+        <div className="flex items-center gap-2 shrink-0">
+          {!showTutorial && (
+            <button
+              type="button"
+              onClick={handleRestoreTutorial}
+              title="Show registration strategy guide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 text-amber-500 border border-amber-500/30 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Guide</span>
+            </button>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={handleDownloadJpeg}
+            disabled={isDownloading}
+            data-testid="download-faculty-jpeg-btn"
+            title="Download a JPEG reference sheet with all faculties in this slot and FFCS picking instructions"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 active:bg-blue-500/30 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-sm"
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Generating JPEG...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" />
+                <span>Download JPEG</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {downloadError && (
@@ -573,28 +613,35 @@ export default function SlotFacultySwapSheet({
         </div>
       )}
 
-      {/* Guide: How to pick it out in FFCS */}
-      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 font-bold text-amber-500 text-xs">
-          <Sparkles className="w-3.5 h-3.5 shrink-0" />
-          <span>How to Pick It Out in FFCS:</span>
+      {/* Guide: How to pick it out in FFCS (Dismissible tutorial) */}
+      {showTutorial && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs flex flex-col gap-1.5 transition-all">
+          <div className="flex items-center justify-between gap-1.5 font-bold text-amber-500 text-xs">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span>How to Pick It Out in FFCS:</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleDismissTutorial}
+              aria-label="Dismiss guide"
+              title="Dismiss guide"
+              className="p-1 -mr-1 -my-1 rounded-md text-amber-500/70 hover:text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px] leading-relaxed pl-0.5">
+            <li>Search course code <strong className="text-text-heading">{code}</strong> in VTOP Course Registration.</li>
+            <li>Look for slot row <strong className="text-text-heading">{halves.map((h) => h.slots.join("+")).join(" & ")}</strong>.</li>
+            <li>Target your primary faculty, or if seats fill up, pick any backup faculty listed below.</li>
+            <li>Since all listed faculties share the exact same slot, your timetable remains 100% clash-free!</li>
+          </ol>
         </div>
-        <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-[11px] leading-relaxed pl-0.5">
-          <li>Search course code <strong className="text-text-heading">{code}</strong> in VTOP Course Registration.</li>
-          <li>Look for slot row <strong className="text-text-heading">{halves.map((h) => h.slots.join("+")).join(" & ")}</strong>.</li>
-          <li>Target your primary faculty, or if seats fill up, pick any backup faculty listed below.</li>
-          <li>Since all listed faculties share the exact same slot, your timetable remains 100% clash-free!</li>
-        </ol>
-      </div>
+      )}
 
-      <SearchInput
-        placeholder="Search by faculty name..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-3 focus:border-amber-500/50 placeholder:text-muted-foreground"
-      />
-
-      <div className="p-2 overflow-y-auto max-h-[55vh] custom-scrollbar bg-surface-secondary/5 rounded-xl flex flex-col gap-3">
+      {/* Unstick faculty list: fully scrollable with upper info */}
+      <div className="flex flex-col gap-3 pb-2">
         {/* SECTION 1: Drop-In Combined Replacements (Shown First & Prioritized!) */}
         {isEmbedded && (filteredDropIns.length > 0 || !query) && (
           <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border border-blue-500/25 rounded-2xl p-3.5 flex flex-col gap-2.5">
@@ -918,6 +965,16 @@ export default function SlotFacultySwapSheet({
             Disclaimer: Ratings are sourced from third-party platform <a href="https://vitfac.pages.dev" target="_blank" rel="noopener noreferrer" className="hover:underline text-muted-foreground font-medium">vitfac.pages.dev</a>. AmazeCC is not affiliated with nor responsible for these user reviews.
           </p>
         )}
+      </div>
+
+      {/* Sticky Bottom Search Box (Mobile-friendly thumb zone) */}
+      <div className="sticky bottom-0 -mx-4 sm:-mx-5 px-4 sm:px-5 py-2.5 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-border-strong/40 z-20 shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.06)] dark:shadow-[0_-8px_20px_-4px_rgba(0,0,0,0.4)] mt-auto">
+        <SearchInput
+          placeholder="Search by faculty name..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="bg-surface-secondary/50 border-border-strong pl-10 pr-4 py-2.5 focus:border-amber-500/50 placeholder:text-muted-foreground w-full"
+        />
       </div>
     </BottomSheet>
 

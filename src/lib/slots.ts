@@ -381,3 +381,35 @@ export function slotsOverlap(
   return periodListsClash(theoryPeriods, labPeriods);
 }
 
+/**
+ * Ensures a periods list contains a lunch spacer (`{ lunch: true, start: "1:20 PM", end: "2:00 PM" }`)
+ * positioned between the morning block (ends 1:20-1:25 PM) and the afternoon block (starts 2:00 PM).
+ */
+export function ensureLunchPeriod<T extends { lunch?: boolean; start?: string; end?: string }>(
+  periods: readonly T[]
+): T[] {
+  if (!periods || periods.length === 0) return [];
+  if (periods.some((p) => p?.lunch)) {
+    return [...periods];
+  }
+
+  // Find where afternoon starts (start time >= 14:00 / 2:00 PM)
+  const afternoonIdx = periods.findIndex((p) => {
+    if (!p?.start) return false;
+    const mins = timeToMinutes(p.start);
+    return mins !== null && mins >= 14 * 60; // 2:00 PM onwards
+  });
+
+  if (afternoonIdx !== -1) {
+    const next = [...periods];
+    next.splice(afternoonIdx, 0, {
+      lunch: true,
+      start: "1:20 PM",
+      end: "2:00 PM",
+    } as unknown as T);
+    return next;
+  }
+
+  return [...periods];
+}
+
