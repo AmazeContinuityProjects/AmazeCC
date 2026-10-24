@@ -14,14 +14,14 @@ import SearchInput from "../../shared/SearchInput";
 import { GLOBAL_CAMPUS, getTimetableSchema, calculatePairwiseSocialScore, safeStorage } from '../FFCSTimetableTab';
 import { COLORS, DAYS } from './constants';
 import { offeringId, offeringMatches } from './reports';
-import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives } from './logic/generate';
+import { splitSlots, HARD_RESULT_LIMIT, sameSlotFacultyAlternatives, expandCourseHalves } from './logic/generate';
 import { TimetableGrid, GapDetail } from './components/TimetableGrid';
 import SlotFacultySwapSheet from './components/SlotFacultySwapSheet';
 import { PageShell, SegmentedControl, RadioGroup } from "../../shared/primitives";
 import { AnimatePresence } from 'framer-motion';
 import BottomSheet from "../../shared/BottomSheet";
 import { loadSessionPreferences, saveSessionPreferences } from "@/lib/ffcsGeneratorSessionPrefs";
-import FacultyReviewSheet, { VitfacReviewPill } from './components/FacultyReviewSheet';
+import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './components/FacultyReviewSheet';
 
 const GENERATOR_SORT_OPTIONS = [
   {
@@ -498,22 +498,105 @@ export function FFCSGeneratorSubpage({
    */
   const swapSlotFaculty = (courseId: string, offering: ParsedCourse) => {
     if (!generatorPreviewTimetable) return;
+    const isTheory = courseId.endsWith(":theory");
+    const isLab = courseId.endsWith(":lab");
+    const baseId = isTheory
+      ? courseId.slice(0, -":theory".length)
+      : isLab
+      ? courseId.slice(0, -":lab".length)
+      : courseId;
+
+    const targetIds = (isTheory || isLab)
+      ? [baseId]
+      : (slotSwapRow?.ids ?? [baseId]);
+
+    const offSlots = splitSlots(offering.SLOT);
+    const theorySlots = offSlots.filter((s) => !s.startsWith("L"));
+    const labSlots = offSlots.filter((s) => s.startsWith("L"));
+    const roomParts = (offering.ROOM || "").split(/\s*\/\s*/);
+    const facParts = (offering.FACULTY || "").split(/\s*\/\s*/);
+
+    const updateCourse = (c: AddedCourse): AddedCourse => {
+      if (!targetIds.includes(c.id)) return c;
+
+      if (isTheory) {
+        const facs = (c.faculty || "").split(/\s*\/\s*/);
+        const venues = (c.venue || "").split(/\s*\/\s*/);
+        const labFaculty = facs[1] || facs[0] || "";
+        const labVenue = venues[1] || venues[0] || "";
+        const newFaculty = labFaculty && labFaculty !== offering.FACULTY
+          ? `${offering.FACULTY} / ${labFaculty}`
+          : offering.FACULTY;
+        const newVenue = labVenue && labVenue !== offering.ROOM
+          ? `${offering.ROOM} / ${labVenue}`
+          : offering.ROOM || c.venue;
+
+        return {
+          ...c,
+          faculty: newFaculty,
+          employeeId: offering.ERP_ID,
+          venue: newVenue,
+        };
+      }
+
+      if (isLab) {
+        const facs = (c.faculty || "").split(/\s*\/\s*/);
+        const venues = (c.venue || "").split(/\s*\/\s*/);
+        const theoryFaculty = facs[0] || "";
+        const theoryVenue = venues[0] || "";
+        const newFaculty = theoryFaculty && theoryFaculty !== offering.FACULTY
+          ? `${theoryFaculty} / ${offering.FACULTY}`
+          : offering.FACULTY;
+        const newVenue = theoryVenue && theoryVenue !== offering.ROOM
+          ? `${theoryVenue} / ${offering.ROOM}`
+          : offering.ROOM || c.venue;
+
+        return {
+          ...c,
+          faculty: newFaculty,
+          venue: newVenue,
+        };
+      }
+
+      // Swapping whole course (drop-in or full alternative offering)
+      const isPureTheoryHalf = c.slots.every((s) => !s.startsWith("L"));
+      const isPureLabHalf = c.slots.every((s) => s.startsWith("L"));
+
+      if (isPureTheoryHalf && theorySlots.length > 0) {
+        return {
+          ...c,
+          title: offering.TITLE || c.title,
+          faculty: facParts[0]?.trim() || offering.FACULTY,
+          employeeId: offering.ERP_ID,
+          venue: roomParts[0]?.trim() || offering.ROOM || c.venue,
+          slots: theorySlots,
+        };
+      }
+
+      if (isPureLabHalf && labSlots.length > 0) {
+        return {
+          ...c,
+          title: offering.TITLE || c.title,
+          faculty: (facParts[1] || facParts[0])?.trim() || offering.FACULTY,
+          employeeId: facParts.length > 1 ? undefined : offering.ERP_ID,
+          venue: (roomParts[1] || roomParts[0])?.trim() || offering.ROOM || c.venue,
+          slots: labSlots,
+        };
+      }
+
+      return {
+        ...c,
+        title: offering.TITLE || c.title,
+        faculty: offering.FACULTY,
+        employeeId: offering.ERP_ID,
+        venue: offering.ROOM || (offering as any).VENUE || c.venue,
+        slots: offSlots.length > 0 ? offSlots : c.slots,
+      };
+    };
+
     const swapped: TimetableState = {
       ...generatorPreviewTimetable,
-      courses: generatorPreviewTimetable.courses.map((c) =>
-        c.id === courseId
-          ? {
-              ...c,
-              title: offering.TITLE,
-              faculty: offering.FACULTY,
-              employeeId: offering.ERP_ID,
-              venue: offering.ROOM,
-              credits: offering.CREDITS,
-              type: offering.TYPE,
-              slots: splitSlots(offering.SLOT),
-            }
-          : c
-      ),
+      courses: generatorPreviewTimetable.courses.map(updateCourse),
     };
     setGeneratorPreviewTimetable(swapped);
     setStagedTimetables((prev) =>
@@ -521,8 +604,17 @@ export function FFCSGeneratorSubpage({
         ? prev.map((t) => (t.id === swapped.id ? swapped : t))
         : prev
     );
+
+    const sameSlots = offSlots.length > 0 && slotSwapRow?.ids && offSlots.every((s) => {
+      const origSlots = generatorPreviewTimetable.courses
+        .filter((c) => slotSwapRow.ids.includes(c.id))
+        .flatMap((c) => c.slots);
+      return origSlots.includes(s);
+    });
     setSuccessMsg(
-      `${offering.CODE}: ${offering.FACULTY} now takes this slot — the week's times did not change.`
+      sameSlots
+        ? `${offering.CODE}: ${offering.FACULTY} now takes this slot — the week's times did not change.`
+        : `${offering.CODE}: Swapped to ${offering.FACULTY} (${offering.SLOT}).`
     );
     setSlotSwapRow(null);
     track("slot_faculty_swap");
@@ -552,16 +644,27 @@ export function FFCSGeneratorSubpage({
   };
 
   const shellEyebrow = "FFCS · Auto-Generator";
-  const shellTitle = generatorPreviewTimetable
-    ? `Preview: ${generatorPreviewTimetable.name}`
-    : isCompareModalOpen
-    ? "Compare Timetables"
-    : isReviewing && stagedTimetables.length > 0
-    ? "Review Timetables"
-    : "Advanced Timetable Generator";
+  const shellTitle = generatorPreviewTimetable ? (
+    <span className="inline-flex items-center gap-2.5 flex-wrap">
+      <span>Preview: {generatorPreviewTimetable.name}</span>
+      {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
+        <span className="text-xs bg-amber-500/10 text-amber-500 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-medium tracking-normal align-middle">
+          {generatorPreviewTimetable.variants.length} Faculty Variants
+        </span>
+      )}
+    </span>
+  ) : isCompareModalOpen ? (
+    "Compare Timetables"
+  ) : isReviewing && stagedTimetables.length > 0 ? (
+    "Review Timetables"
+  ) : (
+    "Advanced Timetable Generator"
+  );
 
   const shellSubtitle = generatorPreviewTimetable
-    ? "Review this schedule or select a faculty variant"
+    ? generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1
+      ? "These variants share the exact same physical time layout (same free time, same schedule), but use different combinations of faculties."
+      : "Review this schedule before saving."
     : isCompareModalOpen
     ? "Side-by-side comparison of selected schedules"
     : isReviewing && stagedTimetables.length > 0
@@ -569,23 +672,35 @@ export function FFCSGeneratorSubpage({
     : "Rank, compare and save conflict-free weeks";
 
   const shellActions = generatorPreviewTimetable ? (
-    <button
-      type="button"
-      onClick={() => {
-        setTimetables((prev) => [...prev, generatorPreviewTimetable]);
-        track("timetable_saved", { source: "generator" });
-        setActiveTimetableId(generatorPreviewTimetable.id);
-        setStagedTimetables([]);
-        setSelectedStagedIds(new Set());
-        setGeneratorPreviewTimetable(null);
-        setIsReviewing(false);
-        onClose();
-        setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
-      }}
-      className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
-    >
-      <Save className="w-3.5 h-3.5" /> Save & Use This
-    </button>
+    <div className="flex items-center gap-2">
+      {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setIsVariantSearchOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-surface-secondary hover:bg-surface-secondary/80 border border-border-strong text-text-heading font-medium rounded-xl text-xs sm:text-sm transition-colors cursor-pointer shadow-xs"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span>Change Variant</span>
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          setTimetables((prev) => [...prev, generatorPreviewTimetable]);
+          track("timetable_saved", { source: "generator" });
+          setActiveTimetableId(generatorPreviewTimetable.id);
+          setStagedTimetables([]);
+          setSelectedStagedIds(new Set());
+          setGeneratorPreviewTimetable(null);
+          setIsReviewing(false);
+          onClose();
+          setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
+        }}
+        className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+      >
+        <Save className="w-3.5 h-3.5" /> Save & Use This
+      </button>
+    </div>
   ) : isCompareModalOpen ? (
     <button
       type="button"
@@ -659,6 +774,7 @@ export function FFCSGeneratorSubpage({
     <>
       <PageShell
         selectable
+        wrap
         layout="actions-above"
         eyebrow={shellEyebrow}
         title={shellTitle}
@@ -710,59 +826,6 @@ export function FFCSGeneratorSubpage({
             {generatorPreviewTimetable ? (
               <>
               <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <button 
-                      type="button"
-                      onClick={() => setGeneratorPreviewTimetable(null)} 
-                      className="flex items-center gap-2 px-4 py-2 bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading font-medium rounded-xl transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back to Timetables
-                    </button>
-                    <div>
-                      <h2 className="text-xl font-bold text-text-heading flex items-center gap-2">
-                        Preview: {generatorPreviewTimetable.name}
-                        {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
-                          <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">
-                            {generatorPreviewTimetable.variants.length} Faculty Variants
-                          </span>
-                        )}
-                      </h2>
-                      {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 ? (
-                        <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-1.5 max-w-xl">
-                          <p>These variants share the <strong>exact same physical time layout</strong> (same free time, same schedule), but use different combinations of <strong>faculties</strong>.</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-bold text-text-heading uppercase tracking-wider">Select Variant:</span>
-                            <button 
-                              onClick={() => setIsVariantSearchOpen(true)}
-                              className="bg-surface-secondary border border-border-strong rounded-lg px-4 py-2 text-text-heading font-medium cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex items-center gap-2 shadow-sm"
-                            >
-                              <Search className="w-4 h-4" /> Change Variant
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">Review this timetable before saving.</p>
-                      )}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setTimetables(prev => [...prev, generatorPreviewTimetable]);
-                      track("timetable_saved", { source: "generator" });
-                      setActiveTimetableId(generatorPreviewTimetable.id);
-                      setStagedTimetables([]);
-                      setSelectedStagedIds(new Set());
-                      setGeneratorPreviewTimetable(null);
-                      onClose();
-                      setSuccessMsg(`Successfully saved and switched to ${generatorPreviewTimetable.name}`);
-                    }}
-                    className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors shadow-lg"
-                  >
-                    <Save className="w-4 h-4" /> Save & Use This
-                  </button>
-                </div>
-                
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-surface rounded-2xl border border-border-strong p-4 flex flex-col justify-center items-center text-center shadow-sm">
                     <span className="text-2xl font-black text-text-heading">{generatorPreviewTimetable.metrics?.halfDays}</span>
@@ -826,10 +889,20 @@ export function FFCSGeneratorSubpage({
                       <div className="flex flex-wrap items-center justify-between gap-4 mb-4 min-w-[600px]">
                         <h2 className="text-xl font-bold text-text-heading flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           Selected Courses
-                          <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap">
+                          <span className="bg-blue-500/20 text-blue-400 text-xs py-1 px-2.5 rounded-full border border-blue-500/20 whitespace-nowrap font-normal">
                             Total Credits: {getGroupedCourses(generatorPreviewTimetable.courses).reduce((sum, c) => sum + parseFloat(c.credits || "0"), 0)}
                           </span>
                         </h2>
+                        {generatorPreviewTimetable.variants && generatorPreviewTimetable.variants.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsVariantSearchOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-secondary hover:bg-surface-secondary/80 text-text-heading border border-border-strong rounded-xl transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                            <span>Change Variant ({generatorPreviewTimetable.variants.length})</span>
+                          </button>
+                        )}
                       </div>
                       
                       <div className="min-w-[600px]">
@@ -846,9 +919,24 @@ export function FFCSGeneratorSubpage({
                           </thead>
                           <tbody className="divide-y divide-white/5">
                             {getGroupedCourses(generatorPreviewTimetable.courses).map((c: any) => {
-                              const halves: AddedCourse[] = generatorPreviewTimetable.courses.filter((course) =>
+                              const rawHalves: AddedCourse[] = generatorPreviewTimetable.courses.filter((course) =>
                                 (c.ids ?? [c.id]).includes(course.id)
                               );
+                              const allSlots = Array.from(new Set(rawHalves.flatMap((h) => h.slots)));
+                              const theorySlots = allSlots.filter((s) => !s.startsWith("L") && s !== "NIL");
+                              const labSlots = allSlots.filter((s) => s.startsWith("L"));
+                              const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
+
+                              const dropIns = isEmbedded
+                                ? sameSlotFacultyAlternatives(
+                                    c.code,
+                                    allSlots,
+                                    { faculty: c.faculty, employeeId: rawHalves[0]?.employeeId || (c as any).employeeId },
+                                    masterCourses
+                                  )
+                                : [];
+
+                              const halves = expandCourseHalves(rawHalves);
                               const counts = halves.map((half) => {
                                 const alts = sameSlotFacultyAlternatives(
                                   half.code,
@@ -858,13 +946,24 @@ export function FFCSGeneratorSubpage({
                                 );
                                 return 1 + alts.length;
                               });
+
+                              const dropInCount = dropIns.length;
                               const facultyCountDisplay =
-                                counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                                dropInCount > 0
+                                  ? `${1 + dropInCount} drop-in`
+                                  : isEmbedded
+                                  ? "1"
+                                  : counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
                                   ? counts.join(" / ")
                                   : String(counts[0] ?? 1);
+
                               const facultyCountTitle =
-                                counts.length === 1 && counts[0] === 1
-                                  ? "1 faculty teaching this slot"
+                                dropInCount > 0
+                                  ? `${1 + dropInCount} drop-in replacements · Click to switch`
+                                  : isEmbedded
+                                  ? "1 faculty teaching this slot · Click to switch to other slots"
+                                  : counts.length === 1 && counts[0] === 1
+                                  ? "1 faculty teaching this slot · Click to switch"
                                   : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
 
                               return (
@@ -889,34 +988,42 @@ export function FFCSGeneratorSubpage({
                                   {renderTypeChips(c.type)}
                                 </td>
                                 <td className="py-3 px-2">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <button
-                                      type="button"
-                                      onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
-                                      title={facultyCountTitle}
-                                      className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
-                                    >
-                                      <span className="truncate">{c.faculty}</span>
-                                      <span
-                                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-amber-500 group-hover:border-amber-500/40 transition-colors shrink-0"
-                                        title={facultyCountTitle}
-                                      >
-                                        <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-amber-500 shrink-0" />
-                                        <span>{facultyCountDisplay}</span>
-                                      </span>
-                                    </button>
-                                    <VitfacReviewPill
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <FacultyAvatar
                                       employeeId={halves[0]?.employeeId || (c as any).employeeId}
                                       name={c.faculty}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setReviewSheetTarget({
-                                          name: c.faculty,
-                                          employeeId: halves[0]?.employeeId || (c as any).employeeId,
-                                          courseCode: c.code,
-                                        });
-                                      }}
+                                      size="xs"
+                                      tone="amber"
                                     />
+                                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => setSlotSwapRow({ code: c.code, title: c.title, ids: c.ids ?? [c.id] })}
+                                        title={facultyCountTitle}
+                                        className="flex items-center gap-1.5 text-sm text-text-heading/80 hover:text-amber-500 transition-colors cursor-pointer max-w-full"
+                                      >
+                                        <span className="truncate">{c.faculty}</span>
+                                        <span
+                                          className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-secondary/70 border border-border-strong/70 text-muted-foreground group-hover:text-amber-500 group-hover:border-amber-500/40 transition-colors shrink-0"
+                                          title={facultyCountTitle}
+                                        >
+                                          <Users className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-amber-500 shrink-0" />
+                                          <span>{facultyCountDisplay}</span>
+                                        </span>
+                                      </button>
+                                      <VitfacReviewPill
+                                        employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                        name={c.faculty}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setReviewSheetTarget({
+                                            name: c.faculty,
+                                            employeeId: halves[0]?.employeeId || (c as any).employeeId,
+                                            courseCode: c.code,
+                                          });
+                                        }}
+                                      />
+                                    </div>
                                   </div>
                                 </td>
                                 <td className="py-3 px-2">
@@ -1350,7 +1457,15 @@ export function FFCSGeneratorSubpage({
                                     {sortedFacs.map(fac => (
                                       <div key={fac} className="flex flex-col gap-1.5">
                                         <div className="text-xs font-semibold text-text-heading/90 pb-1 border-b border-border-strong/50 flex items-center justify-between gap-2">
-                                          <span>{fac}</span>
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <FacultyAvatar
+                                              employeeId={offeringsByFac[fac][0]?.employeeId}
+                                              name={fac}
+                                              size="xs"
+                                              tone="amber"
+                                            />
+                                            <span className="truncate">{fac}</span>
+                                          </div>
                                           <VitfacReviewPill
                                             employeeId={offeringsByFac[fac][0]?.employeeId}
                                             name={fac}
@@ -1765,6 +1880,12 @@ export function FFCSGeneratorSubpage({
                               <div key={code} className="flex justify-between items-center text-xs">
                                 <span className="font-medium text-muted-foreground">{code}</span>
                                 <div className="flex items-center gap-1.5">
+                                  <FacultyAvatar
+                                    employeeId={c.employeeId}
+                                    name={c.faculty}
+                                    size="xs"
+                                    tone="amber"
+                                  />
                                   <span className="text-text-heading">{c.faculty}</span>
                                   <VitfacReviewPill
                                     employeeId={c.employeeId}
@@ -1801,6 +1922,8 @@ export function FFCSGeneratorSubpage({
           courseTitle={slotSwapRow.title}
           halves={generatorPreviewTimetable.courses.filter((c) => slotSwapRow.ids.includes(c.id))}
           masterCourses={masterCourses}
+          allTimetableCourses={generatorPreviewTimetable.courses}
+          blockedSlots={blockedSlots}
           onSwap={swapSlotFaculty}
           onClose={() => setSlotSwapRow(null)}
         />

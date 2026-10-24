@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as htmlToImage from "html-to-image";
 import SlotFacultySwapSheet from "../components/custom/exams/FFCS/components/SlotFacultySwapSheet";
-import { sameSlotFacultyAlternatives } from "../components/custom/exams/FFCS/logic/generate";
+import { sameSlotFacultyAlternatives, expandCourseHalves, allCourseOfferings } from "../components/custom/exams/FFCS/logic/generate";
 import type { AddedCourse, ParsedCourse } from "../components/custom/exams/FFCS/types";
 
 /**
@@ -115,6 +115,116 @@ describe("sameSlotFacultyAlternatives", () => {
       "ZAHID A@",
     ]);
   });
+
+  it("matches embedded theory slots against combined master course offerings", () => {
+    const courses = [
+      course({ FACULTY: "DR ALICE", SLOT: "F1+TF1+L23+L24", ROOM: "SJT101 / SJT102" }),
+      course({ FACULTY: "DR BOB", SLOT: "F1+TF1+L31+L32", ROOM: "SJT103 / SJT104" }),
+      course({ FACULTY: "DR CHARLIE", SLOT: "G1+TG1+L1+L2", ROOM: "SJT105" }),
+    ];
+    const result = sameSlotFacultyAlternatives(
+      "BACSE104",
+      ["F1", "TF1"],
+      { faculty: "CURRENT TEACHER" },
+      courses
+    );
+    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual([
+      "DR ALICE@SJT101",
+      "DR BOB@SJT103",
+    ]);
+    expect(result[0].SLOT).toBe("F1+TF1");
+    expect(result[0].TYPE).toBe("ETH");
+  });
+
+  it("matches embedded lab slots against combined master course offerings", () => {
+    const courses = [
+      course({ FACULTY: "DR ALICE / DR DAVE", SLOT: "F1+TF1+L23+L24", ROOM: "SJT101 / SJT102", TYPE: "ETH+ELA" }),
+      course({ FACULTY: "DR EVE", SLOT: "A1+TA1+L23+L24", ROOM: "SJT201 / SJT202" }),
+    ];
+    const result = sameSlotFacultyAlternatives(
+      "BACSE104",
+      ["L23", "L24"],
+      { faculty: "CURRENT LAB" },
+      courses
+    );
+    expect(result.map((r) => `${r.FACULTY}@${r.ROOM}`)).toEqual([
+      "DR DAVE@SJT102",
+      "DR EVE@SJT202",
+    ]);
+    expect(result[0].SLOT).toBe("L23+L24");
+    expect(result[0].TYPE).toBe("ELA");
+  });
+});
+
+describe("expandCourseHalves", () => {
+  it("keeps pure theory or pure lab courses as is", () => {
+    const pure: AddedCourse = {
+      id: "c-1",
+      code: "CSE101",
+      title: "Prog",
+      faculty: "Prof A",
+      venue: "SJT101",
+      credits: "3",
+      type: "Embedded Theory",
+      slots: ["F1", "TF1"],
+      color: "bg-blue-600",
+    };
+    expect(expandCourseHalves([pure])).toEqual([pure]);
+  });
+
+  it("decomposes combined course with theory and lab slots into two halves", () => {
+    const combined: AddedCourse = {
+      id: "c-comb",
+      code: "CSE101",
+      title: "Prog",
+      faculty: "Prof Theory / Prof Lab",
+      venue: "SJT101 / SJT102",
+      credits: "4",
+      type: "ETH+ELA",
+      slots: ["F1", "TF1", "L23", "L24"],
+      color: "bg-blue-600",
+    };
+    const halves = expandCourseHalves([combined]);
+    expect(halves.length).toBe(2);
+    expect(halves[0]).toMatchObject({
+      id: "c-comb:theory",
+      faculty: "Prof Theory",
+      venue: "SJT101",
+      slots: ["F1", "TF1"],
+    });
+    expect(halves[1]).toMatchObject({
+      id: "c-comb:lab",
+      faculty: "Prof Lab",
+      venue: "SJT102",
+      slots: ["L23", "L24"],
+    });
+  });
+});
+
+describe("allCourseOfferings", () => {
+  it("filters out individual half-slots of faculties when combined offerings exist", () => {
+    const courses = [
+      // Faculty 1: combined offering + raw individual slots
+      course({ FACULTY: "PROF A", SLOT: "F1+TF1+L1+L2", TYPE: "ETH+ELA" }),
+      course({ FACULTY: "PROF A", SLOT: "F1+TF1", TYPE: "ETH" }),
+      course({ FACULTY: "PROF A", SLOT: "L1+L2", TYPE: "ELA" }),
+
+      // Faculty 2: combined offering
+      course({ FACULTY: "PROF B", SLOT: "G1+TG1+L3+L4", TYPE: "ETH+ELA" }),
+
+      // Different course
+      course({ CODE: "BMAT201", FACULTY: "PROF C", SLOT: "A1+TA1" }),
+    ];
+
+    const offerings = allCourseOfferings("BACSE104", courses);
+
+    // Only combined offerings should be returned. Individual slots of PROF A must not occupy the list!
+    expect(offerings.length).toBe(2);
+    expect(offerings.map((o) => `${o.FACULTY}@${o.SLOT}`)).toEqual([
+      "PROF A@F1+TF1+L1+L2",
+      "PROF B@G1+TG1+L3+L4",
+    ]);
+  });
 });
 
 const half: AddedCourse = {
@@ -124,9 +234,9 @@ const half: AddedCourse = {
   faculty: "AARTHI D",
   employeeId: "54969",
   venue: "AB1-101",
-  slots: ["G1", "L31", "L32"],
-  credits: "4",
-  type: "ETH+ELA",
+  slots: ["G1"],
+  credits: "3",
+  type: "Embedded Theory",
   color: "bg-amber-500",
 };
 
@@ -159,8 +269,7 @@ describe("SlotFacultySwapSheet", () => {
     expect(screen.getByText("ZAHID A")).toBeTruthy();
     expect(screen.getByText("TBA")).toBeTruthy();
     // The current assignment's own chips sit in the block header.
-    expect(screen.getByText("G1")).toBeTruthy();
-    expect(screen.getByText("L32")).toBeTruthy();
+    expect(screen.getAllByText("G1").length).toBeGreaterThan(0);
   });
 
   it("hands the tapped course to the chosen faculty", () => {
@@ -240,5 +349,163 @@ describe("SlotFacultySwapSheet", () => {
     expect(screen.getByText("Faculty in this Slot")).toBeTruthy();
     expect(screen.getByText("Download JPEG")).toBeTruthy();
     expect(screen.getByText("SHINY E")).toBeTruthy();
+  });
+
+  it("omits component split for embedded courses and shows drop-in replacements and other slots", () => {
+    const onSwap = vi.fn();
+    const combinedCourse: AddedCourse = {
+      id: "comb-1",
+      code: "BACSE104",
+      title: "Object Oriented Analysis And Design",
+      faculty: "AARTHI D / LAB TEACHER",
+      venue: "AB1-101 / LAB-102",
+      slots: ["G1", "L31", "L32"],
+      credits: "4",
+      type: "ETH+ELA",
+      color: "bg-blue-600",
+    };
+    render(
+      <SlotFacultySwapSheet
+        code="BACSE104"
+        courseTitle="Object Oriented Analysis And Design"
+        halves={[combinedCourse]}
+        masterCourses={[
+          course({ FACULTY: "SHINY E", ERP_ID: "55123", ROOM: "AB1-212 / LAB-212", SLOT: "G1+L31+L32" }),
+        ]}
+        onSwap={onSwap}
+        onClose={() => {}}
+      />
+    );
+
+    // Same-slot component alternatives are NOT shown for embedded courses
+    expect(screen.queryByText("Same-Slot Faculty by Component")).toBeNull();
+    expect(screen.queryByText("Embedded Theory Offering")).toBeNull();
+    expect(screen.queryByText("Embedded Lab Offering")).toBeNull();
+
+    // Drop-In Combined Replacements are prioritized and shown
+    expect(screen.getByText("Drop-In Combined Replacements")).toBeTruthy();
+    expect(screen.getByText("Full Drop-In")).toBeTruthy();
+
+    // Single Drop-In button for SHINY E
+    const shinyButtons = screen.getAllByText("SHINY E");
+    expect(shinyButtons.length).toBe(1);
+
+    // Clicking drop-in swaps the whole combined course
+    fireEvent.click(shinyButtons[0]);
+    expect(onSwap).toHaveBeenCalledWith("comb-1", expect.anything());
+  });
+
+  it("shows other available faculties with embedded badge, split TH/LAB slots, and darkened clashes", () => {
+    const onSwap = vi.fn();
+    const combinedCourse: AddedCourse = {
+      id: "comb-1",
+      code: "BACSE104",
+      title: "Object Oriented Analysis And Design",
+      faculty: "AARTHI D",
+      venue: "AB1-101",
+      slots: ["G1", "L31", "L32"],
+      credits: "4",
+      type: "ETH+ELA",
+      color: "bg-blue-600",
+    };
+
+    // Another course in the timetable taking slot F1
+    const otherCourseInTimetable: AddedCourse = {
+      id: "c-other",
+      code: "BMAT201",
+      title: "Maths",
+      faculty: "DR MATH",
+      venue: "SJT101",
+      slots: ["F1", "TF1"],
+      credits: "4",
+      type: "ETH",
+      color: "bg-green-600",
+    };
+
+    render(
+      <SlotFacultySwapSheet
+        code="BACSE104"
+        courseTitle="Object Oriented Analysis And Design"
+        halves={[combinedCourse]}
+        allTimetableCourses={[combinedCourse, otherCourseInTimetable]}
+        blockedSlots={new Set(["B2"])}
+        masterCourses={[
+          // Offering 1: Clash with BMAT201 on F1
+          course({ FACULTY: "PROF CLASH", SLOT: "F1+TF1+L1+L2", ERP_ID: "11111" }),
+          // Offering 2: Blocked slot B2
+          course({ FACULTY: "PROF BLOCKED", SLOT: "B2+TB2+L5+L6", ERP_ID: "22222" }),
+          // Offering 3: No clash (e.g. C1+TC1)
+          course({ FACULTY: "PROF FREE", SLOT: "C1+TC1+L7+L8", ERP_ID: "33333" }),
+        ]}
+        onSwap={onSwap}
+        onClose={() => {}}
+      />
+    );
+
+    // Other Available Offerings section is rendered
+    expect(screen.getByText("Other Available Offerings for BACSE104 (Other Slots)")).toBeTruthy();
+    expect(screen.getByText("PROF CLASH")).toBeTruthy();
+    expect(screen.getByText("PROF BLOCKED")).toBeTruthy();
+    expect(screen.getByText("PROF FREE")).toBeTruthy();
+
+    // Embedded badge is shown for embedded course offerings
+    expect(screen.getAllByText("Embedded").length).toBeGreaterThanOrEqual(3);
+
+    // Theory and Lab slots are split and labeled
+    expect(screen.getByText("TH: C1+TC1")).toBeTruthy();
+    expect(screen.getByText("LAB: L7+L8")).toBeTruthy();
+
+    // Clash indicators
+    expect(screen.getAllByText("⚠️ Clash").length).toBe(2);
+    expect(screen.getByText("✓ No Clash")).toBeTruthy();
+
+    // Clicking clash offering does NOT call onSwap
+    fireEvent.click(screen.getByText("PROF CLASH"));
+    expect(onSwap).not.toHaveBeenCalled();
+
+    // Clicking clash-free offering calls onSwap with comb-1
+    fireEvent.click(screen.getByText("PROF FREE"));
+    expect(onSwap).toHaveBeenCalledWith(
+      "comb-1",
+      expect.objectContaining({ FACULTY: "PROF FREE", ERP_ID: "33333" })
+    );
+  });
+
+  it("does not show individual slots of faculties in other offerings when course is embedded", () => {
+    const combinedCourse: AddedCourse = {
+      id: "comb-1",
+      code: "BACSE104",
+      title: "Object Oriented Analysis And Design",
+      faculty: "AARTHI D",
+      venue: "AB1-101",
+      slots: ["G1", "L31", "L32"],
+      credits: "4",
+      type: "ETH+ELA",
+      color: "bg-blue-600",
+    };
+
+    render(
+      <SlotFacultySwapSheet
+        code="BACSE104"
+        courseTitle="Object Oriented Analysis And Design"
+        halves={[combinedCourse]}
+        masterCourses={[
+          // PROF COMBINED: has combined offering + leftover individual slot
+          course({ FACULTY: "PROF COMBINED", SLOT: "A1+TA1+L11+L12", TYPE: "ETH+ELA", ERP_ID: "100" }),
+          course({ FACULTY: "PROF COMBINED", SLOT: "A1+TA1", TYPE: "ETH", ERP_ID: "100" }),
+          // PROF INDIVIDUAL: only theory half (unmerged)
+          course({ FACULTY: "PROF INDIVIDUAL", SLOT: "B1+TB1", TYPE: "ETH", ERP_ID: "200" }),
+        ]}
+        onClose={() => {}}
+      />
+    );
+
+    // Only complete embedded offering is shown
+    expect(screen.getByText("PROF COMBINED")).toBeTruthy();
+    expect(screen.getByText("TH: A1+TA1")).toBeTruthy();
+    expect(screen.getByText("LAB: L11+L12")).toBeTruthy();
+
+    // Individual slot of PROF COMBINED or PROF INDIVIDUAL is not in the list!
+    expect(screen.queryByText("PROF INDIVIDUAL")).toBeNull();
   });
 });

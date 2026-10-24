@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Info, UploadCloud, Map as MapIcon, Download, Plus, Edit2, Check, Maximize2, Minimize2, Copy, Save, Upload, Wand2, X, Settings2, Users, ArrowLeft, ArrowRight, Eye, HelpCircle, Share2, FileText, Search, Lock, ChevronDown, Keyboard, CalendarDays, ExternalLink, ClipboardPaste, Compass, LayoutDashboard, Layers } from "lucide-react";
 
 import SearchInput from "../shared/SearchInput";
 import EmptyState from "../shared/EmptyState";
@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import { AnimatePresence } from "framer-motion";
 import BottomSheet from "../shared/BottomSheet";
 import FFCSGuideModal from "./FFCSGuideModal";
-import { downloadTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
+import { downloadTimetableImage, downloadModernTimetableImage, openTimetablePrintablePage } from "@/lib/exportTimetable";
 import { GLOBAL_CAMPUS, getTimetableSchema } from "@/lib/campusSchema";
 
 // Re-exported because the tab has always been where importers found these;
@@ -24,8 +24,9 @@ import { TargetCoursesModal } from './FFCS/components/modals/TargetCoursesModal'
 import PasteRegisteredCoursesModal from './FFCS/components/modals/PasteRegisteredCoursesModal';
 import FacultyScheduleModal from './FFCS/components/modals/FacultyScheduleModal';
 import SlotFacultySwapSheet from './FFCS/components/SlotFacultySwapSheet';
-import { sameSlotFacultyAlternatives, splitSlots } from './FFCS/logic/generate';
+import { sameSlotFacultyAlternatives, expandCourseHalves } from './FFCS/logic/generate';
 import FacultyReviewSheet, { VitfacReviewPill, FacultyAvatar } from './FFCS/components/FacultyReviewSheet';
+import FFCSGuidedSelector from './FFCS/components/FFCSGuidedSelector';
 import { ENABLE_VITFAC_INTEGRATION } from '@/lib/vitfacService';
 import { buildFacultyNameGroups } from './FFCS/logic/facultyGroups';
 import { mergeCourses } from '@/features/import/importFile';
@@ -49,7 +50,7 @@ import {
   parseReportRows,
   type FFCSSemesterId,
 } from "./FFCS/reports";
-import { DAYS, COLORS, typeLabels, typeColors, defaultColor } from "./FFCS/constants";
+import { DAYS, COLORS, typeLabels, typeColors, defaultColor, getCourseBadgeProps } from "./FFCS/constants";
 import { isCourseFullyAdded } from "./FFCS/utils";
 import { freeHalfDays, pairwiseSocialScore } from "@/lib/timetableMetrics";
 import {
@@ -57,11 +58,13 @@ import {
   courseInPeriod,
   periodsForSlot,
   slotsOverlap,
+  splitSlots,
+  findPeriodClash,
   type SlotPeriod,
 } from "@/lib/slots";
 import { exportTimetableIcal } from "@/lib/exportIcal";
 import { getBatchColorClass, getAssetPath } from "@/lib/utils";
-import { TimetableView } from "../timetable";
+import { TimetableView, useTimetableViewMode } from "../timetable";
 
 /**
  * localStorage with the SSR guard and the quota throw handled once. The
@@ -189,11 +192,9 @@ const getPeriodsForSlotOuter = (slotName: string) =>
   periodsForSlot(getTimetableSchema(), slotName);
 
 const getPeriodsForSlotsOuter = (slotStr: string): SlotPeriod[] => {
-  const parts = String(slotStr ?? "")
-    .split("+")
-    .map((s) => s.trim().toUpperCase())
-    .filter((s) => s && s !== "NIL");
-  return parts.flatMap(getPeriodsForSlotOuter);
+  return splitSlots(slotStr)
+    .filter((s) => s !== "NIL")
+    .flatMap(getPeriodsForSlotOuter);
 };
 
 const isMorningSlot = (slot: string) => {
@@ -600,6 +601,26 @@ export default function FFCSTimetableTab() {
 
   const [masterCourses, setMasterCourses] = useState<ParsedCourse[]>([]);
   const [rawParsedCourses, setRawParsedCourses] = useState<ParsedCourse[]>([]);
+  const courseAlternativesPool = useMemo(() => {
+    if (!rawParsedCourses || rawParsedCourses.length === 0) return masterCourses;
+    const combinedFaculties = new Set(
+      masterCourses
+        .filter(c => {
+          const parts = splitSlots(c.SLOT);
+          return parts.some(s => !s.startsWith("L") && s !== "NIL") && parts.some(s => s.startsWith("L"));
+        })
+        .map(c => `${c.CODE.trim().toUpperCase()}|${(c.FACULTY || "").trim().toLowerCase()}`)
+    );
+
+    const filteredRaw = rawParsedCourses.filter(c => {
+      const code = c.CODE.trim().toUpperCase();
+      const base = (code.endsWith('L') || code.endsWith('P')) ? code.slice(0, -1) : code;
+      const fac = (c.FACULTY || "").trim().toLowerCase();
+      return !combinedFaculties.has(`${code}|${fac}`) && !combinedFaculties.has(`${base}|${fac}`);
+    });
+
+    return [...masterCourses, ...filteredRaw];
+  }, [masterCourses, rawParsedCourses]);
   const [semesterId, setSemesterId] = useState<FFCSSemesterId>(DEFAULT_FFCS_SEMESTER);
   const activeSemester = useMemo(() => getFFCSSemester(semesterId), [semesterId]);
   const reportCodesRef = useRef<Set<string>>(new Set());
@@ -643,6 +664,23 @@ export default function FFCSTimetableTab() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
+    if (typeof window !== "undefined") {
+      const saved = safeStorage.getItem("ffcs_layout_mode");
+      if (saved === "guided" || saved === "modern" || saved === "classic") {
+        return saved;
+      }
+      if (window.innerWidth < 768) {
+        return "guided";
+      }
+    }
+    return "modern";
+  });
+
+  useEffect(() => {
+    safeStorage.setItem("ffcs_layout_mode", layoutMode);
+  }, [layoutMode]);
+
   // Preferences live one level above the UI that consumes them: the tab owns
   // the single instance and hands it to the settings sheet, the generator's
   // seed values and the export button, so a change is visible everywhere
@@ -650,6 +688,7 @@ export default function FFCSTimetableTab() {
   const { settings, update: updateSetting, reset: resetSettings } = useFFCSSettings();
   const { visible: hints, dismiss: dismissHint } = useTips();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { resolved: resolvedView, isMobile } = useTimetableViewMode();
 
   // Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -659,22 +698,108 @@ export default function FFCSTimetableTab() {
   const [slotSwapRow, setSlotSwapRow] = useState<{ code: string; title: string; ids: string[] } | null>(null);
 
   const swapSlotFaculty = useCallback((courseId: string, offering: ParsedCourse) => {
+    const isTheory = courseId.endsWith(":theory");
+    const isLab = courseId.endsWith(":lab");
+    const baseId = isTheory
+      ? courseId.slice(0, -":theory".length)
+      : isLab
+      ? courseId.slice(0, -":lab".length)
+      : courseId;
+
+    const targetIds = (isTheory || isLab)
+      ? [baseId]
+      : (slotSwapRow?.ids ?? [baseId]);
+
+    const offSlots = splitSlots(offering.SLOT);
+    const theorySlots = offSlots.filter((s) => !s.startsWith("L"));
+    const labSlots = offSlots.filter((s) => s.startsWith("L"));
+    const roomParts = (offering.ROOM || "").split(/\s*\/\s*/);
+    const facParts = (offering.FACULTY || "").split(/\s*\/\s*/);
+
+    const updateCourse = (c: AddedCourse): AddedCourse => {
+      if (!targetIds.includes(c.id)) return c;
+
+      if (isTheory) {
+        const facs = (c.faculty || "").split(/\s*\/\s*/);
+        const venues = (c.venue || "").split(/\s*\/\s*/);
+        const labFaculty = facs[1] || facs[0] || "";
+        const labVenue = venues[1] || venues[0] || "";
+        const newFaculty = labFaculty && labFaculty !== offering.FACULTY
+          ? `${offering.FACULTY} / ${labFaculty}`
+          : offering.FACULTY;
+        const newVenue = labVenue && labVenue !== offering.ROOM
+          ? `${offering.ROOM} / ${labVenue}`
+          : offering.ROOM || c.venue;
+
+        return {
+          ...c,
+          faculty: newFaculty,
+          employeeId: offering.ERP_ID,
+          venue: newVenue,
+        };
+      }
+
+      if (isLab) {
+        const facs = (c.faculty || "").split(/\s*\/\s*/);
+        const venues = (c.venue || "").split(/\s*\/\s*/);
+        const theoryFaculty = facs[0] || "";
+        const theoryVenue = venues[0] || "";
+        const newFaculty = theoryFaculty && theoryFaculty !== offering.FACULTY
+          ? `${theoryFaculty} / ${offering.FACULTY}`
+          : offering.FACULTY;
+        const newVenue = theoryVenue && theoryVenue !== offering.ROOM
+          ? `${theoryVenue} / ${offering.ROOM}`
+          : offering.ROOM || c.venue;
+
+        return {
+          ...c,
+          faculty: newFaculty,
+          venue: newVenue,
+        };
+      }
+
+      // Swapping whole course (drop-in or full alternative offering)
+      const isPureTheoryHalf = c.slots.every((s) => !s.startsWith("L"));
+      const isPureLabHalf = c.slots.every((s) => s.startsWith("L"));
+
+      if (isPureTheoryHalf && theorySlots.length > 0) {
+        return {
+          ...c,
+          title: offering.TITLE || c.title,
+          faculty: facParts[0]?.trim() || offering.FACULTY,
+          employeeId: offering.ERP_ID,
+          venue: roomParts[0]?.trim() || offering.ROOM || c.venue,
+          slots: theorySlots,
+        };
+      }
+
+      if (isPureLabHalf && labSlots.length > 0) {
+        return {
+          ...c,
+          title: offering.TITLE || c.title,
+          faculty: (facParts[1] || facParts[0])?.trim() || offering.FACULTY,
+          employeeId: facParts.length > 1 ? undefined : offering.ERP_ID,
+          venue: (roomParts[1] || roomParts[0])?.trim() || offering.ROOM || c.venue,
+          slots: labSlots,
+        };
+      }
+
+      return {
+        ...c,
+        title: offering.TITLE || c.title,
+        faculty: offering.FACULTY,
+        employeeId: offering.ERP_ID,
+        venue: offering.ROOM || (offering as any).VENUE || c.venue,
+        slots: offSlots.length > 0 ? offSlots : c.slots,
+      };
+    };
+
     if (generatorPreviewTimetable) {
       setGeneratorPreviewTimetable((prev) =>
         prev
           ? {
               ...prev,
-              courses: prev.courses.map((c) =>
-                c.id === courseId
-                  ? {
-                      ...c,
-                      title: offering.TITLE,
-                      faculty: offering.FACULTY,
-                      employeeId: offering.ERP_ID,
-                      venue: offering.ROOM || (offering as any).VENUE || c.venue,
-                    }
-                  : c
-              ),
+              courses: prev.courses.map(updateCourse),
             }
           : null
       );
@@ -684,23 +809,14 @@ export default function FFCSTimetableTab() {
           t.id === activeTimetableId
             ? {
                 ...t,
-                courses: t.courses.map((c) =>
-                  c.id === courseId
-                    ? {
-                        ...c,
-                        title: offering.TITLE,
-                        faculty: offering.FACULTY,
-                        employeeId: offering.ERP_ID,
-                        venue: offering.ROOM || (offering as any).VENUE || c.venue,
-                      }
-                    : c
-                ),
+                courses: t.courses.map(updateCourse),
               }
             : t
         )
       );
     }
-  }, [activeTimetableId, generatorPreviewTimetable]);
+    setSlotSwapRow(null);
+  }, [activeTimetableId, generatorPreviewTimetable, slotSwapRow]);
 
   // Staged results the Social Matrix can score alongside saved timetables. The
   // generator subpage saves into `timetables` directly now, so nothing fills
@@ -1022,15 +1138,9 @@ export default function FFCSTimetableTab() {
 
     for (const existingCourse of courses) {
       const existingPeriods = existingCourse.slots.flatMap(getPeriodsForSlot);
-      
-      for (const np of newPeriods) {
-        for (const ep of existingPeriods) {
-          if (np.day === ep.day) {
-            if (Math.max(np.startMin, ep.startMin) < Math.min(np.endMin, ep.endMin)) {
-              return `Time clash on ${np.day.toUpperCase()} between new slot and ${existingCourse.code} (${existingCourse.slots.join("+")})`;
-            }
-          }
-        }
+      const clash = findPeriodClash(newPeriods, existingPeriods);
+      if (clash) {
+        return `Time clash on ${clash.periodA.day.toUpperCase()} between new slot and ${existingCourse.code} (${existingCourse.slots.join("+")})`;
       }
     }
     return null;
@@ -1220,21 +1330,48 @@ export default function FFCSTimetableTab() {
 
   // downloadSampleCSV removed as database is preloaded.
 
-  const downloadImage = useCallback(async (format: 'jpg' | 'png' = 'jpg') => {
-    if (!captureRef.current) return;
-    setIsDownloading(true);
-    try {
-      await downloadTimetableImage(captureRef.current, activeTimetable.name, themeBgColor, format);
-      track("export_image", { format });
-      setSuccessMsg("Timetable downloaded successfully!");
-      setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to download timetable image.");
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [activeTimetable.name, themeBgColor]);
+  const downloadImage = useCallback(
+    async (format: 'jpg' | 'png' = 'jpg', forcedView?: 'vertical' | 'horizontal') => {
+      if (courses.length === 0) {
+        setError("Please add at least one course before downloading the timetable.");
+        return;
+      }
+      setIsDownloading(true);
+      const activeView = forcedView ?? (resolvedView ?? (isMobile ? 'vertical' : 'horizontal'));
+      try {
+        await downloadModernTimetableImage({
+          timetableName: activeTimetable.name,
+          courses,
+          theoryPeriods,
+          labPeriods,
+          days: DAYS,
+          viewMode: activeView === "vertical" ? "vertical" : "horizontal",
+          format,
+          themeBgColor: "#090d16",
+        });
+        track("export_image", { format, viewMode: activeView });
+        setSuccessMsg(`Timetable (${activeView === 'vertical' ? 'Vertical Heatmap' : 'Horizontal Grid'}) downloaded successfully!`);
+        setTimeout(() => setSuccessMsg(null), 3500);
+      } catch (err) {
+        console.warn("Modern offscreen image export failed, trying live capture fallback:", err);
+        if (captureRef.current) {
+          try {
+            await downloadTimetableImage(captureRef.current, activeTimetable.name, themeBgColor, format);
+            track("export_image", { format, fallback: true });
+            setSuccessMsg("Timetable downloaded successfully!");
+            setTimeout(() => setSuccessMsg(null), 3000);
+            return;
+          } catch {
+            // ignore
+          }
+        }
+        setError("Failed to download timetable image.");
+      } finally {
+        setIsDownloading(false);
+      }
+    },
+    [courses, activeTimetable.name, theoryPeriods, labPeriods, resolvedView, isMobile, themeBgColor]
+  );
 
   /**
    * Share the active plan as a link that carries the plan itself.
@@ -1319,6 +1456,42 @@ export default function FFCSTimetableTab() {
     if (!selectedCourseCode) return [];
     let slots = masterCourses.filter(c => c.CODE === selectedCourseCode);
     
+    if (isGroupingEnabled) {
+      const hasCombined = slots.some(c => {
+        const parts = splitSlots(c.SLOT);
+        return parts.some(s => !s.startsWith("L") && s !== "NIL") && parts.some(s => s.startsWith("L"));
+      });
+      if (hasCombined) {
+        // Individual slots of faculties who already have a combined offering must not occupy the slot list
+        slots = slots.filter(c => {
+          const parts = splitSlots(c.SLOT);
+          const isCombined = parts.some(s => !s.startsWith("L") && s !== "NIL") && parts.some(s => s.startsWith("L"));
+          if (isCombined) return true;
+
+          const facNorm = (c.FACULTY || "").trim().toLowerCase();
+          const isSubset = slots.some(other => {
+            if (other === c) return false;
+            const otherParts = splitSlots(other.SLOT);
+            const otherIsCombined = otherParts.some(s => !s.startsWith("L") && s !== "NIL") && otherParts.some(s => s.startsWith("L"));
+            if (!otherIsCombined) return false;
+            const otherFacNorm = (other.FACULTY || "").trim().toLowerCase();
+            const facMatches = otherFacNorm.includes(facNorm) || facNorm.includes(otherFacNorm);
+            return facMatches && parts.every(s => otherParts.includes(s));
+          });
+
+          return !isSubset;
+        });
+
+        const combinedOnly = slots.filter(c => {
+          const parts = splitSlots(c.SLOT);
+          return parts.some(s => !s.startsWith("L") && s !== "NIL") && parts.some(s => s.startsWith("L"));
+        });
+        if (combinedOnly.length > 0) {
+          slots = combinedOnly;
+        }
+      }
+    }
+
     if (courseLocks.length > 0) {
       const lock = courseLocks.find(l => l.code === selectedCourseCode);
       if (lock) {
@@ -1334,7 +1507,7 @@ export default function FFCSTimetableTab() {
       }
     }
     return slots;
-  }, [masterCourses, selectedCourseCode, courseLocks]);
+  }, [masterCourses, selectedCourseCode, courseLocks, isGroupingEnabled]);
 
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1631,15 +1804,27 @@ export default function FFCSTimetableTab() {
 
         {/* Secondary controls row: Segmented control + report status badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <SegmentedControl
-            value={semesterId}
-            onChange={(value) => { void handleSemesterChange(value); }}
-            options={FFCS_SEMESTER_REPORTS.map((report) => ({
-              value: report.id,
-              label: report.shortLabel,
-              title: `Load the ${report.label} slot timetable`,
-            }))}
-          />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <SegmentedControl
+              value={semesterId}
+              onChange={(value) => { void handleSemesterChange(value); }}
+              options={FFCS_SEMESTER_REPORTS.map((report) => ({
+                value: report.id,
+                label: report.shortLabel,
+                title: `Load the ${report.label} slot timetable`,
+              }))}
+            />
+
+            <SegmentedControl
+              value={layoutMode}
+              onChange={(value) => setLayoutMode(value as "guided" | "modern" | "classic")}
+              options={[
+                { value: "guided", label: "Guided", icon: <Compass className="w-3.5 h-3.5" />, title: "Step-by-step mobile-first course selector" },
+                { value: "modern", label: "Modern", icon: <LayoutDashboard className="w-3.5 h-3.5" />, title: "Modernized all-in-one planner dashboard" },
+                { value: "classic", label: "Classic", icon: <Layers className="w-3.5 h-3.5" />, title: "Original single-page layout" },
+              ]}
+            />
+          </div>
 
           <div className="flex items-center gap-2">
             {isLoadingCourses ? (
@@ -2012,17 +2197,43 @@ export default function FFCSTimetableTab() {
                             ? (() => {
                                 const row = availableSlots[parseInt(selectedSlotIndex)];
                                 const rowSlots = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
-                                const facultyAlts = sameSlotFacultyAlternatives(
-                                  selectedCourseCode,
-                                  rowSlots,
-                                  { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
-                                  masterCourses
-                                );
-                                const facultyCount = 1 + facultyAlts.length;
-                                const facultyCountTitle =
-                                  facultyCount === 1
-                                    ? "1 faculty teaching this slot"
-                                    : `${facultyCount} faculties teaching this slot`;
+                                const theorySlots = rowSlots.filter(s => !s.startsWith("L"));
+                                const labSlots = rowSlots.filter(s => s.startsWith("L"));
+                                let facultyCountDisplay = "1";
+                                let facultyCountTitle = "1 faculty teaching this slot";
+
+                                if (theorySlots.length > 0 && labSlots.length > 0) {
+                                  const facParts = (row?.FACULTY || "").split(/\s*\/\s*/);
+                                  const tAlts = sameSlotFacultyAlternatives(
+                                    selectedCourseCode,
+                                    theorySlots,
+                                    { faculty: facParts[0] || row?.FACULTY, employeeId: row?.ERP_ID },
+                                    courseAlternativesPool
+                                  );
+                                  const lAlts = sameSlotFacultyAlternatives(
+                                    selectedCourseCode,
+                                    labSlots,
+                                    { faculty: facParts[1] || facParts[0] || row?.FACULTY },
+                                    courseAlternativesPool
+                                  );
+                                  const tCount = 1 + tAlts.length;
+                                  const lCount = 1 + lAlts.length;
+                                  facultyCountDisplay = tCount === lCount ? `${tCount}` : `${tCount} / ${lCount}`;
+                                  facultyCountTitle = `${tCount} theory / ${lCount} lab faculties teaching this slot`;
+                                } else {
+                                  const facultyAlts = sameSlotFacultyAlternatives(
+                                    selectedCourseCode,
+                                    rowSlots,
+                                    { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
+                                    courseAlternativesPool
+                                  );
+                                  const facultyCount = 1 + facultyAlts.length;
+                                  facultyCountDisplay = `${facultyCount}`;
+                                  facultyCountTitle =
+                                    facultyCount === 1
+                                      ? "1 faculty teaching this slot"
+                                      : `${facultyCount} faculties teaching this slot`;
+                                }
 
                                 return (
                                   <>
@@ -2038,7 +2249,7 @@ export default function FFCSTimetableTab() {
                                       title={facultyCountTitle}
                                     >
                                       <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-                                      <span>{facultyCount}</span>
+                                      <span>{facultyCountDisplay}</span>
                                     </span>
                                     <VitfacReviewPill
                                       employeeId={row.ERP_ID}
@@ -2142,7 +2353,9 @@ export default function FFCSTimetableTab() {
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-text-heading px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
                   <Download className="w-4 h-4" />
-                  {isDownloading ? "Capturing..." : `Download ${settings.exportFormat.toUpperCase()}`}
+                  {isDownloading
+                    ? "Generating..."
+                    : `Download ${settings.exportFormat.toUpperCase()} (${(resolvedView ?? (isMobile ? "vertical" : "horizontal")) === "vertical" ? "Vertical" : "Horizontal"})`}
                 </button>
                 {/* Touch devices never hover the trigger above, so the
                     hover-only format menu is unreachable there. Surface the
@@ -2155,18 +2368,30 @@ export default function FFCSTimetableTab() {
                 >
                   {settings.exportFormat === 'jpg' ? 'PNG' : 'JPG'}
                 </button>
-                <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-56 bg-surface border border-border-strong rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden text-xs">
                   <button 
                     onClick={() => downloadImage('jpg')}
-                    className="w-full text-left px-4 py-2.5 text-sm text-text-heading hover:bg-surface-secondary transition-colors"
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors"
                   >
-                    Download as JPG
+                    Download JPG (Current: {(resolvedView ?? (isMobile ? 'vertical' : 'horizontal')).toUpperCase()})
+                  </button>
+                  <button 
+                    onClick={() => downloadImage('jpg', 'vertical')}
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                  >
+                    Download JPG (Vertical Heatmap)
+                  </button>
+                  <button 
+                    onClick={() => downloadImage('jpg', 'horizontal')}
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong/50"
+                  >
+                    Download JPG (Horizontal Grid)
                   </button>
                   <button 
                     onClick={() => downloadImage('png')}
-                    className="w-full text-left px-4 py-2.5 text-sm text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
+                    className="w-full text-left px-4 py-2.5 text-text-heading hover:bg-surface-secondary transition-colors border-t border-border-strong"
                   >
-                    Download as PNG
+                    Download PNG (Current View)
                   </button>
                 </div>
               </div>
@@ -2225,32 +2450,60 @@ export default function FFCSTimetableTab() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {getGroupedCourses(courses).map(c => {
-                        const halves: AddedCourse[] = courses.filter((course) =>
+                        const rawHalves: AddedCourse[] = courses.filter((course) =>
                           (c.ids ?? [c.id]).includes(course.id)
                         );
-                        const counts = halves.map((half) => {
+                        const allSlots = Array.from(new Set(rawHalves.flatMap((h) => h.slots)));
+                        const theorySlots = allSlots.filter((s) => !s.startsWith("L") && s !== "NIL");
+                        const labSlots = allSlots.filter((s) => s.startsWith("L"));
+                        const isEmbedded = theorySlots.length > 0 && labSlots.length > 0;
+
+                        const dropIns = isEmbedded
+                          ? sameSlotFacultyAlternatives(
+                              c.code,
+                              allSlots,
+                              { faculty: c.faculty, employeeId: rawHalves[0]?.employeeId || (c as any).employeeId },
+                              courseAlternativesPool
+                            )
+                          : [];
+
+                        const expandedHalves = expandCourseHalves(rawHalves);
+                        const counts = expandedHalves.map((half) => {
                           const alts = sameSlotFacultyAlternatives(
                             half.code,
                             half.slots,
                             { faculty: half.faculty, employeeId: half.employeeId },
-                            masterCourses
+                            courseAlternativesPool
                           );
                           return 1 + alts.length;
                         });
+
+                        const dropInCount = dropIns.length;
                         const facultyCountDisplay =
-                          counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
+                          dropInCount > 0
+                            ? `${1 + dropInCount} drop-in`
+                            : isEmbedded
+                            ? "1"
+                            : counts.length > 1 && counts.some((cnt) => cnt !== counts[0])
                             ? counts.join(" / ")
                             : String(counts[0] ?? 1);
+
                         const facultyCountTitle =
-                          counts.length === 1 && counts[0] === 1
-                            ? "1 faculty teaching this slot"
+                          dropInCount > 0
+                            ? `${1 + dropInCount} drop-in replacements · Click to switch`
+                            : isEmbedded
+                            ? "1 faculty teaching this slot · Click to switch to other slots"
+                            : counts.length === 1 && counts[0] === 1
+                            ? "1 faculty teaching this slot · Click to switch"
                             : `${facultyCountDisplay} faculties teaching this slot · Click to switch`;
+
+                        const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
 
                         return (
                         <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-3">
-                              <div className={`px-2.5 py-1 rounded-lg ${c.color} text-white text-xs font-bold shadow-sm shrink-0`}>{c.code}</div>
+                              <div className={badgeProps.className} style={badgeProps.style}>{c.code}</div>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-muted-foreground text-xs max-w-xs">{c.title}</p>
                                 {c.batches && c.batches.length > 0 && c.batches.map(b => (
@@ -2267,7 +2520,7 @@ export default function FFCSTimetableTab() {
                           <td className="py-3 px-2">
                             <div className="flex items-center gap-2 flex-wrap">
                               <FacultyAvatar
-                                employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
                                 name={c.faculty}
                                 size="xs"
                                 tone="blue"
@@ -2289,13 +2542,13 @@ export default function FFCSTimetableTab() {
                                   </span>
                                 </button>
                                 <VitfacReviewPill
-                                  employeeId={halves[0]?.employeeId || (c as any).employeeId}
+                                  employeeId={rawHalves[0]?.employeeId || (c as any).employeeId}
                                   name={c.faculty}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setFacultyReviewTarget({
                                       name: c.faculty,
-                                      employeeId: halves[0]?.employeeId || (c as any).employeeId,
+                                      employeeId: rawHalves[0]?.employeeId || (c as any).employeeId,
                                       courseCode: c.code,
                                     });
                                   }}
@@ -2473,10 +2726,12 @@ export default function FFCSTimetableTab() {
                   </td>
                 </tr>
               ) : (
-                getGroupedCourses(courses).map((c, i) => (
+                getGroupedCourses(courses).map((c, i) => {
+                  const badgeProps = getCourseBadgeProps(c.color, resolvedView !== "classic");
+                  return (
                   <tr key={i} className="border-b border-border-strong hover:bg-surface-secondary/20">
                     <td className="py-3 px-4 font-medium">
-                      <div className={`inline-block px-2.5 py-1 rounded-lg ${c.color || 'bg-blue-600'} text-white text-xs font-bold shadow-sm`}>{c.code}</div>
+                      <div className={`inline-block ${badgeProps.className}`} style={badgeProps.style}>{c.code}</div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -2495,7 +2750,8 @@ export default function FFCSTimetableTab() {
                     <td className="py-3 px-4 font-mono text-xs">{c.slots.join(" + ")}</td>
                     <td className="py-3 px-4 text-center font-medium">{c.credits}</td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -2556,6 +2812,8 @@ export default function FFCSTimetableTab() {
             courseTitle={slotSwapRow.title}
             halves={courses.filter((c) => slotSwapRow.ids.includes(c.id))}
             masterCourses={masterCourses}
+            allTimetableCourses={courses}
+            blockedSlots={blockedSlots}
             onSwap={swapSlotFaculty}
             onClose={() => setSlotSwapRow(null)}
             backdropZIndex={450}
@@ -2952,17 +3210,43 @@ export default function FFCSTimetableTab() {
                 const slotsArray = row?.SLOT?.split("+").map(s => s.trim().toUpperCase()).filter(s => s && s !== "NIL") || [];
                 const clashError = checkClashes(slotsArray);
                 const isBlocked = !!clashError;
-                const facultyAlts = sameSlotFacultyAlternatives(
-                  selectedCourseCode,
-                  slotsArray,
-                  { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
-                  masterCourses
-                );
-                const facultyCount = 1 + facultyAlts.length;
-                const facultyCountTitle =
-                  facultyCount === 1
-                    ? "1 faculty teaching this slot"
-                    : `${facultyCount} faculties teaching this slot`;
+                const theorySlots = slotsArray.filter(s => !s.startsWith("L"));
+                const labSlots = slotsArray.filter(s => s.startsWith("L"));
+                let facultyCountDisplay = "1";
+                let facultyCountTitle = "1 faculty teaching this slot";
+
+                if (theorySlots.length > 0 && labSlots.length > 0) {
+                  const facParts = (row?.FACULTY || "").split(/\s*\/\s*/);
+                  const tAlts = sameSlotFacultyAlternatives(
+                    selectedCourseCode,
+                    theorySlots,
+                    { faculty: facParts[0] || row?.FACULTY, employeeId: row?.ERP_ID },
+                    courseAlternativesPool
+                  );
+                  const lAlts = sameSlotFacultyAlternatives(
+                    selectedCourseCode,
+                    labSlots,
+                    { faculty: facParts[1] || facParts[0] || row?.FACULTY },
+                    courseAlternativesPool
+                  );
+                  const tCount = 1 + tAlts.length;
+                  const lCount = 1 + lAlts.length;
+                  facultyCountDisplay = tCount === lCount ? `${tCount}` : `${tCount} / ${lCount}`;
+                  facultyCountTitle = `${tCount} theory / ${lCount} lab faculties teaching this slot`;
+                } else {
+                  const facultyAlts = sameSlotFacultyAlternatives(
+                    selectedCourseCode,
+                    slotsArray,
+                    { faculty: row?.FACULTY, employeeId: row?.ERP_ID },
+                    courseAlternativesPool
+                  );
+                  const facultyCount = 1 + facultyAlts.length;
+                  facultyCountDisplay = `${facultyCount}`;
+                  facultyCountTitle =
+                    facultyCount === 1
+                      ? "1 faculty teaching this slot"
+                      : `${facultyCount} faculties teaching this slot`;
+                }
                 
                 return (
                   <button
@@ -3008,7 +3292,7 @@ export default function FFCSTimetableTab() {
                           title={facultyCountTitle}
                         >
                           <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-                          <span>{facultyCount}</span>
+                          <span>{facultyCountDisplay}</span>
                         </span>
                         <VitfacReviewPill
                           employeeId={row?.ERP_ID}

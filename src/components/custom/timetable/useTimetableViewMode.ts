@@ -5,8 +5,8 @@ import { useAtom } from "jotai";
 import { useIsMobile } from "../shared";
 import { settingsAtom } from "@/store/settingsAtoms";
 
-export type TimetableViewMode = "auto" | "vertical" | "horizontal";
-export type ResolvedView = "vertical" | "horizontal";
+export type TimetableViewMode = "auto" | "vertical" | "horizontal" | "classic";
+export type ResolvedView = "vertical" | "horizontal" | "classic";
 /** How much a vertical cell holds. "compact" is slot-only and fits the viewport. */
 export type CellDensity = "full" | "compact";
 

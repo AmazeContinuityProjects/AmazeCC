@@ -324,6 +324,45 @@ function isDayId(day: string): day is DayId {
   return (DAYS_OF_WEEK as readonly string[]).includes(day);
 }
 
+/** Split `"A1+TA1"` into its slot tokens, upper-cased and trimmed. */
+export function splitSlots(slot: string): string[] {
+  return String(slot ?? "")
+    .split("+")
+    .map((s) => normalise(s))
+    .filter(Boolean);
+}
+
+/** Do two scheduled periods overlap in time on the same day? */
+export function periodsOverlap(a: SlotPeriod, b: SlotPeriod): boolean {
+  return a.day === b.day && Math.max(a.startMin, b.startMin) < Math.min(a.endMin, b.endMin);
+}
+
+/** Do any periods in list `a` collide with any periods in list `b`? */
+export function periodListsClash(
+  a: readonly SlotPeriod[],
+  b: readonly SlotPeriod[]
+): boolean {
+  for (const x of a) {
+    for (const y of b) {
+      if (periodsOverlap(x, y)) return true;
+    }
+  }
+  return false;
+}
+
+/** Find the first pair of clashing periods between two lists, or null if clash-free. */
+export function findPeriodClash(
+  a: readonly SlotPeriod[],
+  b: readonly SlotPeriod[]
+): { periodA: SlotPeriod; periodB: SlotPeriod } | null {
+  for (const x of a) {
+    for (const y of b) {
+      if (periodsOverlap(x, y)) return { periodA: x, periodB: y };
+    }
+  }
+  return null;
+}
+
 /**
  * Do a theory booking and a lab booking land on the clock at the same time?
  *
@@ -337,22 +376,8 @@ export function slotsOverlap(
   labSlotStr: string,
   schema: CampusSchema
 ): boolean {
-  const split = (s: string) =>
-    String(s ?? "")
-      .split("+")
-      .map((x) => normalise(x))
-      .filter(Boolean);
-
-  const theoryPeriods = split(theorySlotStr).flatMap((s) => periodsForSlot(schema, s));
-  const labPeriods = split(labSlotStr).flatMap((s) => periodsForSlot(schema, s));
-
-  for (const t of theoryPeriods) {
-    for (const l of labPeriods) {
-      if (t.day === l.day && Math.max(t.startMin, l.startMin) < Math.min(t.endMin, l.endMin)) {
-        return true;
-      }
-    }
-  }
-  return false;
+  const theoryPeriods = splitSlots(theorySlotStr).flatMap((s) => periodsForSlot(schema, s));
+  const labPeriods = splitSlots(labSlotStr).flatMap((s) => periodsForSlot(schema, s));
+  return periodListsClash(theoryPeriods, labPeriods);
 }
 

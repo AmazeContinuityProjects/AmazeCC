@@ -61,7 +61,7 @@ export interface AnalyticsEventMap {
   /** A timetable was saved from the generator into the planner. */
   timetable_saved: { source: "generator" | "share" };
   /** An image export finished. */
-  export_image: { format: "jpg" | "png" };
+  export_image: { format: "jpg" | "png"; viewMode?: string; fallback?: boolean };
   /** The printable page was opened. */
   export_printable: Record<string, never>;
   /** Smart paste parsed a selection. */

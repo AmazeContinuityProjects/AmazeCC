@@ -53,9 +53,10 @@ const MODE_OPTIONS: readonly {
   label: string;
   title: string;
 }[] = [
-  { value: "auto", label: "Auto", title: "Vertical on phones, full grid on larger screens" },
-  { value: "vertical", label: "Vertical", title: "Always the mobile heatmap" },
-  { value: "horizontal", label: "Grid", title: "Always the full horizontal grid" },
+  { value: "auto", label: "Auto", title: "Vertical on phones, modern grid on larger screens" },
+  { value: "vertical", label: "Vertical", title: "Mobile heatmap" },
+  { value: "horizontal", label: "Modern Grid", title: "Modern university schedule grid (matching the JPG export)" },
+  { value: "classic", label: "Classic Grid", title: "Original legacy horizontal grid" },
 ];
 
 /**
@@ -148,10 +149,12 @@ export default function TimetableView({
               {mode === "auto"
                 ? isMobile
                   ? "Auto · showing the vertical view on this phone"
-                  : "Auto · showing the full grid on this screen"
+                  : "Auto · showing the modern grid on this screen"
                 : mode === "vertical"
                   ? "Pinned to the vertical view"
-                  : "Pinned to the full grid"}
+                  : mode === "classic"
+                    ? "Pinned to the classic grid"
+                    : "Pinned to the modern grid"}
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-1.5 sm:items-end">
@@ -213,6 +216,7 @@ export default function TimetableView({
               selectedGapDetails={selectedGapDetails}
               title={forceView ? title : ""}
               showLegend={showLegend}
+              variant={view === "classic" ? "classic" : "modern"}
             />
           </div>
         </div>

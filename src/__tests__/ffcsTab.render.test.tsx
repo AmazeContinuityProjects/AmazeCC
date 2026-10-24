@@ -111,7 +111,7 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
 
     // Wait for async loadSemesterReport
-    const badges = await screen.findAllByTitle(/2 faculties teaching this slot/);
+    const badges = await screen.findAllByTitle(/2 (drop-in replacements|faculties teaching this slot)/);
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toContain("2");
 
@@ -122,10 +122,10 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getByText("Switch Faculty")).toBeTruthy();
     expect(screen.getByText("How to Pick It Out in FFCS:")).toBeTruthy();
     expect(screen.getByTestId("download-faculty-jpeg-btn")).toBeTruthy();
-    expect(screen.getByText("SURESH K")).toBeTruthy();
+    expect(screen.getAllByText("SURESH K").length).toBeGreaterThan(0);
 
     // Click SURESH K to swap faculty
-    fireEvent.click(screen.getByText("SURESH K"));
+    fireEvent.click(screen.getAllByText("SURESH K")[0]);
 
     // Timetable should now reflect SURESH K
     expect(screen.getAllByText("SURESH K").length).toBeGreaterThan(0);
@@ -145,15 +145,23 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
 
     // Open Course Search
-    const chooseCourseBtn = await screen.findByText("-- Search & Choose Course --");
+    const chooseCourseBtn = await screen.findByText(
+      "-- Search & Choose Course --",
+      {},
+      { timeout: 5000 }
+    );
     fireEvent.click(chooseCourseBtn);
 
     // Pick BCSE101 from modal
-    const courseOption = await screen.findByText("BCSE101");
+    const courseOption = await screen.findByText("BCSE101", {}, { timeout: 5000 });
     fireEvent.click(courseOption);
 
     // Step 2 appears, open Slot Search
-    const chooseSlotBtn = await screen.findByText("-- Search & Choose Slot --");
+    const chooseSlotBtn = await screen.findByText(
+      "-- Search & Choose Slot --",
+      {},
+      { timeout: 5000 }
+    );
     fireEvent.click(chooseSlotBtn);
 
     // Search Slot & Faculty modal is open
@@ -163,5 +171,64 @@ describe("FFCSTimetableTab", () => {
     const slotFacultyBadges = screen.getAllByTitle("2 faculties teaching this slot");
     expect(slotFacultyBadges.length).toBeGreaterThan(0);
     expect(slotFacultyBadges[0].textContent).toContain("2");
+  });
+
+  it("shows alternative faculty count for embedded theory groups added via VTOP paste and allows switching", async () => {
+    const csvContent =
+      "COURSE CODE,COURSE TITLE,TYPE,CREDITS,SLOT,FACULTY,ROOM,ERP ID\n" +
+      "BCSE202L,Database Systems,ETH,3,F1+TF1,DR ALICE,SJT101,2001\n" +
+      "BCSE202L,Database Systems,ELA,1,L23+L24,DR ALICE,SJT102,2001\n" +
+      "BCSE202L,Database Systems,ETH,3,F1+TF1,DR BOB,SJT103,2002\n" +
+      "BCSE202L,Database Systems,ELA,1,L31+L32,DR BOB,SJT104,2002\n";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode(csvContent).buffer,
+    } as any);
+
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "1",
+          name: "Timetable 1",
+          courses: [
+            {
+              id: "c-eth",
+              code: "BCSE202L",
+              title: "Database Systems",
+              type: "Embedded Theory",
+              credits: "3",
+              slots: ["F1", "TF1"],
+              venue: "SJT101",
+              faculty: "DR ALICE",
+              employeeId: "2001",
+              color: "bg-blue-600",
+            },
+          ],
+        },
+      ])
+    );
+    storage.setItem("ffcs_activeTimetableId", "1");
+
+    render(<FFCSTimetableTab />);
+
+    // Wait for async loadSemesterReport and find faculty count badge
+    const badges = await screen.findAllByTitle(/2 faculties teaching this slot/);
+    expect(badges.length).toBeGreaterThan(0);
+    expect(badges[0].textContent).toContain("2");
+
+    // Click the badge to open SlotFacultySwapSheet
+    fireEvent.click(badges[0]);
+
+    // Should open sheet and display DR BOB as alternative
+    expect(screen.getByText("Switch Faculty")).toBeTruthy();
+    expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
+
+    // Click DR BOB to swap faculty
+    fireEvent.click(screen.getAllByText("DR BOB")[0]);
+
+    // Timetable should now reflect DR BOB
+    expect(screen.getAllByText("DR BOB").length).toBeGreaterThan(0);
   });
 });

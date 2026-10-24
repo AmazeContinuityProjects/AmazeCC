@@ -52,6 +52,10 @@ export interface VitfacProfileBundle {
       reviews: number;
       wPct: number;
       metrics?: VitfacMetrics;
+      lore?: {
+        green?: VitfacLoreItem[];
+        red?: VitfacLoreItem[];
+      };
     }[];
   };
 }
@@ -251,7 +255,26 @@ export function getFacultyReview(params: {
 }
 
 /**
+ * Update or enrich a faculty entry in the in-memory catalog with live stats.
+ */
+export function updateFacultyInCatalog(updatedProf: VitfacFaculty) {
+  const decodedEmpId = updatedProf.employeeId || decodeVitfacId(updatedProf.id);
+  const enriched: VitfacFaculty = {
+    ...updatedProf,
+    employeeId: decodedEmpId,
+  };
+  if (decodedEmpId) byEmployeeId.set(decodedEmpId, enriched);
+  if (updatedProf.id) byEmployeeId.set(updatedProf.id, enriched);
+  if (updatedProf.name) {
+    const norm = normalizeFacultyName(updatedProf.name);
+    if (norm) byNormalizedName.set(norm, enriched);
+  }
+  notifyListeners();
+}
+
+/**
  * Fetch detailed profile bundle for a specific professor.
+ * Harmonizes worker stats by prioritizing aggregated courseStats.global over stale table columns.
  */
 export async function getFacultyProfileBundle(
   idOrEmpId: string
@@ -266,7 +289,22 @@ export async function getFacultyProfileBundle(
     const res = await fetch(`${VITFAC_WORKER_BASE}/profile/${encodeURIComponent(b64Id)}`);
     if (!res.ok) return null;
     const json = await res.json();
-    return json?.data || null;
+    const bundle: VitfacProfileBundle | null = json?.data || null;
+
+    if (bundle && bundle.prof) {
+      // Synchronize prof stats with courseStats.global if present
+      // (Resolves worker discrepancy where bundle.prof has partial/stale counters while courseStats.global has the true aggregated numbers)
+      const global = bundle.courseStats?.global;
+      if (global) {
+        if (typeof global.wPct === "number") bundle.prof.wPct = Math.round(global.wPct);
+        if (typeof global.reviews === "number") bundle.prof.reviews = global.reviews;
+        if (global.metrics) bundle.prof.metrics = global.metrics;
+        if (global.lore) bundle.prof.lore = global.lore;
+      }
+      updateFacultyInCatalog(bundle.prof);
+    }
+
+    return bundle;
   } catch (err) {
     console.warn("Failed to fetch vitfac profile bundle:", err);
     return null;
@@ -280,7 +318,7 @@ export function getVitfacProfileUrl(idOrEmpId: string): string {
   const b64Id = /^[0-9]+$/.test(idOrEmpId.trim())
     ? encodeVitfacId(idOrEmpId.trim())
     : idOrEmpId.trim();
-  return `https://vitfac.pages.dev/prof.html?id=${encodeURIComponent(b64Id)}`;
+  return `https://vitfac.pages.dev/profile?id=${encodeURIComponent(b64Id)}`;
 }
 
 /**

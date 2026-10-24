@@ -22,6 +22,7 @@ export type SlotMap = {
 };
 
 export type TimetablePeriod = {
+  slot?: string;
   start?: string;
   end?: string;
   lunch?: boolean;
