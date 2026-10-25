@@ -25,14 +25,14 @@ describe("FFCSTimetableTab", () => {
   });
 
   it("fits as many stat tiles as the available width allows", () => {
-    expect(getFittingStatTileCount(155)).toBe(1);
-    expect(getFittingStatTileCount(156)).toBe(1);
-    expect(getFittingStatTileCount(323)).toBe(1);
-    expect(getFittingStatTileCount(324)).toBe(2);
-    expect(getFittingStatTileCount(491)).toBe(2);
-    expect(getFittingStatTileCount(492)).toBe(3);
-    expect(getFittingStatTileCount(659)).toBe(3);
-    expect(getFittingStatTileCount(660)).toBe(4);
+    expect(getFittingStatTileCount(279)).toBe(1);
+    expect(getFittingStatTileCount(280)).toBe(1);
+    expect(getFittingStatTileCount(571)).toBe(1);
+    expect(getFittingStatTileCount(572)).toBe(2);
+    expect(getFittingStatTileCount(863)).toBe(2);
+    expect(getFittingStatTileCount(864)).toBe(3);
+    expect(getFittingStatTileCount(1155)).toBe(3);
+    expect(getFittingStatTileCount(1156)).toBe(4);
     expect(getFittingStatTileCount(1200)).toBe(4);
     expect(getFittingStatTileCount(0)).toBe(4);
   });
@@ -128,6 +128,61 @@ describe("FFCSTimetableTab", () => {
     expect(screen.getByText("Active Timetable")).toBeDefined();
     expect(screen.queryByText("Total Credits")).toBeNull();
     expect(screen.queryByText("Weekly Rhythm")).toBeNull();
+  }, 30_000);
+
+  it("shows one mobile stat card beside the remaining-stat carousel", async () => {
+    storage.setItem(
+      "ffcs_timetables",
+      JSON.stringify([
+        {
+          id: "default",
+          name: "Mobile Plan",
+          courses: [
+            {
+              id: "course-theory",
+              code: "CSE2001",
+              title: "Course",
+              slots: ["A1"],
+              faculty: "Faculty One",
+              venue: "SJT",
+              credits: "3",
+              type: "ETH",
+              color: "blue",
+            },
+          ],
+        },
+      ])
+    );
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+
+    render(<FFCSTimetableTab />);
+
+    const statStrip = screen.getByTestId("ffcs-stat-strip");
+    expect(statStrip.style.gridTemplateColumns).toBe("repeat(2, minmax(0, 1fr))");
+    expect(
+      await screen.findByRole("button", {
+        name: /Weekly Rhythm: .*View schedule details/,
+      })
+    ).toBeDefined();
+    const carousel = within(statStrip).getByRole("region", {
+      name: "More timetable statistics",
+    });
+    const carouselValue = within(carousel).getByText("3 / 27");
+    expect(carouselValue.className).toContain("text-xl");
+    expect(carouselValue.parentElement?.tagName).toBe("DIV");
+    expect(carouselValue.parentElement?.style.opacity).toBe("");
   }, 30_000);
 
   it("matches the Selected Courses credit total and opens the timetable switcher from its stat", () => {

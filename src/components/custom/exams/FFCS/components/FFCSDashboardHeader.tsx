@@ -707,7 +707,7 @@ function CourseOptionQuality({
   );
 }
 
-const STAT_TILE_MIN_WIDTH = 156;
+const STAT_TILE_MIN_WIDTH = 280;
 const STAT_TILE_GAP = 12;
 const MAX_STAT_TILES = 4;
 
@@ -1053,7 +1053,7 @@ export default function FFCSDashboardHeader({
     ? Math.max(0, statTileCount - 1)
     : statTiles.length;
   const weeklyRhythmTile = statTiles.find((tile) => tile.id === "weekly-rhythm");
-  const directTiles = hasStatOverflow
+  const desktopDirectTiles = hasStatOverflow
     ? [
         ...(directTileCount > 0 && weeklyRhythmTile ? [weeklyRhythmTile] : []),
         ...statTiles
@@ -1064,19 +1064,24 @@ export default function FFCSDashboardHeader({
           ),
       ]
     : statTiles;
+  const mobileDirectTiles = [
+    ...(weeklyRhythmTile ? [weeklyRhythmTile] : []),
+    ...statTiles.filter((tile) => tile.id !== "weekly-rhythm"),
+  ].slice(0, 1);
+  const directTiles = isMobileViewport ? mobileDirectTiles : desktopDirectTiles;
   const directStatIds = new Set(directTiles.map((tile) => tile.id));
   const overflowSlides = statSlides
     .filter((slide) => !directStatIds.has(slide.id))
     .sort((a, b) => {
+      if (isMobileViewport) return 0;
       if (a.id === "active-timetable") return 1;
       if (b.id === "active-timetable") return -1;
       return 0;
     });
   const statCarousel = useCarousel(overflowSlides.length);
-  const statColumnCount = Math.max(
-    1,
-    directTiles.length + (overflowSlides.length > 0 ? 1 : 0)
-  );
+  const statColumnCount = isMobileViewport
+    ? 2
+    : Math.max(1, directTiles.length + (overflowSlides.length > 0 ? 1 : 0));
   const courseMenuActions: Record<CourseMenuAction, () => void> = {
     "manual-add": onOpenCourseSearch,
     "target-courses": onOpenCourseLocks,
@@ -1118,7 +1123,9 @@ export default function FFCSDashboardHeader({
         data-testid={statTiles.length > 0 ? "ffcs-stat-strip" : undefined}
         className={`grid gap-3 ${statTiles.length === 0 ? "hidden" : ""}`}
         style={{
-          gridTemplateColumns: `repeat(${Math.max(1, statColumnCount)}, minmax(min(100%, ${STAT_TILE_MIN_WIDTH}px), ${STAT_TILE_MIN_WIDTH}px))`,
+          gridTemplateColumns: isMobileViewport
+            ? "repeat(2, minmax(0, 1fr))"
+            : `repeat(${statColumnCount}, minmax(min(100%, ${STAT_TILE_MIN_WIDTH}px), ${STAT_TILE_MIN_WIDTH}px))`,
         }}
       >
         {directTiles.map((tile) => {
