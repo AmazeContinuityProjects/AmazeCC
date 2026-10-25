@@ -848,12 +848,16 @@ describe("FFCSGuidedSelector", () => {
     expect(screen.getByTestId("mobile-preflight-screen")).toBeDefined();
     expect(screen.getByText("FFCS Mobile Generator")).toBeDefined();
     expect(screen.getByText("Mobile-First Timetable Builder")).toBeDefined();
+    expect(screen.queryByTestId("pwa-install-btn")).toBeNull();
+    expect(screen.queryByText("PWA Ready")).toBeNull();
+    expect(screen.queryByText("App Installed")).toBeNull();
 
     // The pre-flight screen is an organic step of the hero, not an external
     // splash: it lives inside the unified hero container and under the hero
     // header (Plan + Fullscreen toggle), with the ambient lighting that
     // container provides.
     expect(screen.getByTestId("guided-hero-container")).toBeDefined();
+    expect(screen.getByTestId("guided-hero-container").className).toContain("overscroll-y-contain");
     expect(screen.getByText("Single Page View (Plan)")).toBeDefined();
     // The fullscreen toggle's title reflects the current state ("Enter
     // Fullscreen" vs "Exit Fullscreen"), so match on the shared word.

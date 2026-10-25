@@ -2,26 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, LogIn, Download, ExternalLink } from "lucide-react";
+import { LogIn } from "lucide-react";
 import ThemeToggle from "@/components/custom/ThemeToggle";
 import FFCSTimetableTab from "@/components/custom/exams/FFCSTimetableTab";
 import { getAssetPath } from "@/lib/utils";
-import { usePwaInstall } from "@/lib/pwaInstall";
 
 export default function FFCSPageView() {
   const [mounted, setMounted] = useState(false);
-  const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
-    if (typeof window === "undefined") return "modern";
-    try {
-      const saved = window.localStorage.getItem("ffcs_layout_mode");
-      if (saved === "revamp") return "modern";
-      if (saved === "guided" || saved === "modern" || saved === "classic") return saved;
-    } catch {
-      // Fall back to the viewport default when storage is unavailable.
-    }
-    return window.innerWidth < 768 ? "guided" : "modern";
-  });
-  const { canInstall, promptInstall } = usePwaInstall();
+  const [plannerLayoutMode, setPlannerLayoutMode] = useState<"guided" | "modern" | "classic">("modern");
 
   useEffect(() => {
     setMounted(true);
@@ -51,26 +39,11 @@ export default function FFCSPageView() {
                 <span className="text-base sm:text-lg font-black tracking-tight font-outfit text-zinc-900 dark:text-white">
                   AmazeCC <span className="text-indigo-600 dark:text-indigo-400">FFCS</span>
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                  App
-                </span>
               </div>
             </Link>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {canInstall && (
-              <button
-                type="button"
-                onClick={promptInstall}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors px-2.5 sm:px-3 py-2 rounded-xl shadow-xs cursor-pointer active:scale-95"
-                title="Install AmazeCC FFCS as an independent web app on your device"
-              >
-                <Download size={14} className="shrink-0" />
-                <span className="hidden sm:inline">Install App</span>
-              </button>
-            )}
-
             <Link
               href="/"
               title="Login to AmazeCC"

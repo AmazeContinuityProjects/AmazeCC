@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { isTopOverlay, useOverlayBack } from "@/lib/overlayStack";
+import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { useKeyboardInset } from "@/lib/useKeyboardInset";
 import { IconButton } from "./primitives/Controls";
 
@@ -164,7 +165,7 @@ export default function BottomSheet({
     setPortalReady(true);
   }, []);
 
-  // Escape to close + lock body scroll while open
+  // Escape closes the top sheet only.
   //
   // Two things had to be fixed here.
   //
@@ -184,13 +185,12 @@ export default function BottomSheet({
       handleDismiss();
     };
     document.addEventListener("keydown", handler);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handler);
-      document.body.style.overflow = prevOverflow;
     };
   }, [handleDismiss, dismissable, overlayId]);
+
+  useEffect(() => acquireBodyScrollLock(), []);
 
   // Grabber-initiated swipe-down to dismiss (content keeps native scrolling)
   const panelRef = useRef<HTMLDivElement>(null);
@@ -282,7 +282,8 @@ export default function BottomSheet({
     <>
       {chrome}
       <div
-        className={`overflow-y-auto px-4 sm:px-5 pb-5 sm:pb-6 pt-1 min-h-0 ${contentClassName}`}
+        className={`min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y px-4 sm:px-5 pb-5 sm:pb-6 pt-1 ${contentClassName}`}
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         {hasTitleCard && (
           <TitleCard

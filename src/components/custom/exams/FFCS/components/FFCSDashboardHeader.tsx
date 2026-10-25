@@ -798,7 +798,7 @@ export default function FFCSDashboardHeader({
   const [mobileWidget, setMobileWidget] = useState<MobileWidget | null>(null);
   const [isWeeklyDetailsOpen, setIsWeeklyDetailsOpen] = useState(false);
   const [isClashDetailsOpen, setIsClashDetailsOpen] = useState(false);
-  const widgetPreferencesReady = useRef(false);
+  const [widgetPreferencesReady, setWidgetPreferencesReady] = useState(false);
   const statsContainerRef = useRef<HTMLDivElement>(null);
   const [statTileCount, setStatTileCount] = useState(MAX_STAT_TILES);
 
@@ -877,18 +877,18 @@ export default function FFCSDashboardHeader({
     } catch (error) {
       console.error("Failed to load FFCS dashboard widget preferences:", error);
     } finally {
-      widgetPreferencesReady.current = true;
+      setWidgetPreferencesReady(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!widgetPreferencesReady.current) return;
+    if (!widgetPreferencesReady) return;
     try {
       window.localStorage.setItem("ffcs_dashboard_widgets", JSON.stringify(enabledWidgets));
     } catch (error) {
       console.error("Failed to save FFCS dashboard widget preferences:", error);
     }
-  }, [enabledWidgets]);
+  }, [enabledWidgets, widgetPreferencesReady]);
 
   useEffect(() => {
     const container = statsContainerRef.current;

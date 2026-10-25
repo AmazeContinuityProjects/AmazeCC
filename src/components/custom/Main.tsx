@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useAtom, useSetAtom } from "jotai";
 import {
   credentialsAtom, messageAtom, attendanceDataAtom, marksDataAtom, marksStatsAtom, gradesDataAtom,
@@ -2654,6 +2655,14 @@ export default function LoginPage() {
               Edit saved credentials
             </button>
           </div>
+          <div className="mx-auto mt-5 w-full max-w-md px-4">
+            <Link
+              href="/ffcs/"
+              className="flex min-h-11 w-full items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-500/15 dark:text-indigo-300"
+            >
+              Go to FFCS Planner
+            </Link>
+          </div>
         </>
       )}
 
@@ -2882,5 +2891,4 @@ function GlobalShortcutsModal({ onClose }: { onClose: () => void }) {
     </BottomSheet>
   );
 }
-
 

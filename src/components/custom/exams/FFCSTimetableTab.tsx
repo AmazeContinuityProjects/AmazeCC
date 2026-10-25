@@ -691,34 +691,10 @@ export default function FFCSTimetableTab({
   const [isShareLinkOptionsOpen, setIsShareLinkOptionsOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">(() => {
-    if (typeof window !== "undefined") {
-      const saved = safeStorage.getItem("ffcs_layout_mode");
-      if (saved === "guided" || saved === "modern" || saved === "classic") return saved;
-      if (saved === "revamp") return "modern";
-      if (window.innerWidth < 768) return "modern";
-    }
-    return "modern";
-  });
+  const [layoutMode, setLayoutMode] = useState<"guided" | "modern" | "classic">("modern");
   const [isGuidedFullScreen, setIsGuidedFullScreen] = useState(true);
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [isCourseListModalOpen, setIsCourseListModalOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = safeStorage.getItem("ffcs_layout_mode");
-
-      if (saved === "guided" || saved === "modern" || saved === "classic" || saved === "revamp") {
-        const mode = saved === "revamp" ? "modern" : saved;
-        if (mode !== layoutMode) setLayoutMode(mode);
-        if (mode === "guided") {
-          setIsGuidedFullScreen(true);
-        }
-      } else if (typeof window !== "undefined" && window.innerWidth < 768) {
-        if (layoutMode !== "modern") setLayoutMode("modern");
-      }
-    } catch {}
-  }, []);
 
   useEffect(() => {
     onLayoutModeChange?.(layoutMode);
@@ -1206,9 +1182,7 @@ export default function FFCSTimetableTab({
   }, [manualLinks, isLoaded]);
 
   useEffect(() => {
-    if (isLoaded) {
-      safeStorage.setItem("ffcs_layout_mode", layoutMode);
-    }
+    if (isLoaded) safeStorage.setItem("ffcs_layout_mode", layoutMode);
   }, [layoutMode, isLoaded]);
 
   useEffect(() => {

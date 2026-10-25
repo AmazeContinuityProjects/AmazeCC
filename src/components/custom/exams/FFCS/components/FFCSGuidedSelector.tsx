@@ -45,8 +45,6 @@ import {
   Eye,
   LayoutGrid,
   LayoutDashboard,
-  Smartphone,
-  Download,
 } from "lucide-react";
 import { Switch, SegmentedControl } from "../../../shared/primitives";
 import { FacultyAvatar, VitfacReviewPill } from "./FacultyReviewSheet";
@@ -54,6 +52,7 @@ import { ParsedCourse, AddedCourse, TimetableState, CourseLock, Friend, FriendGr
 import { COLORS, DAYS } from "../constants";
 import { splitSlots, sameSlotFacultyAlternatives } from "../logic/generate";
 import { useVitfacReview, getFacultyReview, loadVitfacRankingData } from "@/lib/vitfacService";
+import { acquireBodyScrollLock } from "@/lib/bodyScrollLock";
 import { CourseImportPanel, type ImportMode } from "./CourseImportPanel";
 import { useGenerationRun } from "../hooks/useGenerationRun";
 import { getTimetableSchema } from "@/lib/campusSchema";
@@ -65,7 +64,6 @@ import {
   type RankingPriority,
 } from "@/lib/ffcsSettings";
 import type { FacultyRatingLookup } from "@/lib/ffcsFacultyRanking";
-import { usePwaInstall } from "@/lib/pwaInstall";
 import SlotFacultySwapSheet from "./SlotFacultySwapSheet";
 import VerticalTimetableGrid from "@/components/custom/timetable/VerticalTimetableGrid";
 import { toMinutes } from "@/lib/social/schedule";
@@ -936,15 +934,6 @@ export default function FFCSGuidedSelector({
     return true;
   });
 
-  const { canInstall, promptInstall } = usePwaInstall();
-  const isPwaStandalone = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return Boolean(
-      window.matchMedia?.("(display-mode: standalone)")?.matches ||
-        (window.navigator as unknown as { standalone?: boolean })?.standalone
-    );
-  }, []);
-
   useEffect(() => {
     if (isFullScreen !== undefined) {
       setFullScreenMode(isFullScreen);
@@ -992,13 +981,7 @@ export default function FFCSGuidedSelector({
   }, [fullScreenMode, onToggleFullScreen]);
 
   useEffect(() => {
-    if (fullScreenMode && typeof document !== "undefined") {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
+    if (fullScreenMode) return acquireBodyScrollLock();
   }, [fullScreenMode]);
 
   const [lockedOnlyFilter, setLockedOnlyFilter] = useState<boolean>(() => effectiveCourseLocks.length > 0);
@@ -5481,23 +5464,12 @@ export default function FFCSGuidedSelector({
       data-testid="mobile-preflight-screen"
       className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center gap-4 my-auto animate-in fade-in duration-200"
     >
-      {/* Top category label & PWA status */}
+      {/* Top category label */}
       <div className="space-y-1.5 text-center sm:text-left">
-        <div className="flex items-center justify-between mb-1">
+        <div className="mb-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-outfit">
             Mobile First · Timetable Studio
           </span>
-          {isPwaStandalone ? (
-            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>App Installed</span>
-            </span>
-          ) : canInstall ? (
-            <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Smartphone className="w-3 h-3" />
-              <span>PWA Ready</span>
-            </span>
-          ) : null}
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-outfit">
           Mobile-First Timetable Builder
@@ -5540,18 +5512,6 @@ export default function FFCSGuidedSelector({
         </div>
       </div>
 
-      {/* PWA Install Button */}
-      {canInstall && !isPwaStandalone && (
-        <button
-          type="button"
-          data-testid="pwa-install-btn"
-          onClick={promptInstall}
-          className="w-full py-2.5 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-98"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Install App</span>
-        </button>
-      )}
     </div>
   );
 
@@ -5661,7 +5621,7 @@ export default function FFCSGuidedSelector({
       data-testid="guided-hero-container"
       className={
         fullScreenMode
-          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300"
+          ? "fixed inset-0 z-50 h-[100dvh] w-full bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-y-auto overscroll-y-contain touch-pan-y sm:overflow-hidden select-none px-4 sm:px-8 py-4 sm:py-6 animate-in fade-in duration-300"
           : "relative w-full rounded-[32px] bg-zinc-950 text-zinc-100 flex flex-col justify-between overflow-hidden select-none px-4 sm:px-6 py-5 shadow-2xl border border-zinc-800 min-h-[580px]"
       }
     >

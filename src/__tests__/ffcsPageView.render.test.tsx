@@ -1,11 +1,11 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
 import FFCSPageView from "../app/ffcs/FFCSPageView";
-import * as pwaModule from "@/lib/pwaInstall";
 
-function setLayoutMode(mode: "guided" | "modern") {
-  const values = new Map<string, string>([["ffcs_layout_mode", mode]]);
+function setLayoutMode(mode?: "guided" | "modern") {
+  const values = new Map<string, string>();
+  if (mode) values.set("ffcs_layout_mode", mode);
   Object.defineProperty(window, "localStorage", {
     configurable: true,
     value: {
@@ -26,12 +26,12 @@ describe("FFCSPageView", () => {
     expect(screen.queryByText(/Back to AmazeCC Home/i)).toBeNull();
     expect(screen.queryByText(/VTOP Login/i)).toBeNull();
 
-    // 2. Should show "AmazeCC" brand link and standalone "App" badge
+    // 2. Should show "AmazeCC" brand link without presenting FFCS as an app
     const amazeccLinks = screen.getAllByRole("link", { name: /AmazeCC/i });
     expect(amazeccLinks.length).toBeGreaterThan(0);
     const homeBrandLink = amazeccLinks.find((el) => el.getAttribute("href") === "/");
     expect(homeBrandLink).toBeDefined();
-    expect(screen.getByText("App")).toBeDefined();
+    expect(screen.queryByText("App")).toBeNull();
 
     // 3. Should show "Login to AmazeCC"
     expect(screen.getByText("Login to AmazeCC")).toBeDefined();
@@ -42,22 +42,25 @@ describe("FFCSPageView", () => {
     expect(nav?.className).not.toContain("sticky");
   });
 
-  it("renders Install App button when PWA installation is available and invokes promptInstall", () => {
+  it("does not offer a separate FFCS app install action", () => {
     setLayoutMode("guided");
-    const promptInstallMock = vi.fn().mockResolvedValue(true);
-    vi.spyOn(pwaModule, "usePwaInstall").mockReturnValue({
-      canInstall: true,
-      promptInstall: promptInstallMock,
-    });
-
     render(<FFCSPageView />);
+    expect(screen.queryByRole("button", { name: /Install App/i })).toBeNull();
+  });
 
-    const installBtn = screen.getByRole("button", { name: /Install App/i });
-    expect(installBtn).toBeDefined();
-    fireEvent.click(installBtn);
-    expect(promptInstallMock).toHaveBeenCalledTimes(1);
-
-    vi.restoreAllMocks();
+  it("defaults to Modern on mobile when no planner layout has been saved", () => {
+    setLayoutMode();
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    try {
+      const { container } = render(<FFCSPageView />);
+      expect(container.querySelector("nav")?.hasAttribute("hidden")).toBe(true);
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalWidth,
+      });
+    }
   });
 
   it("combines the page headers in Modern mode", () => {
