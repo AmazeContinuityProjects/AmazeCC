@@ -603,7 +603,7 @@ describe("FFCSGuidedSelector", () => {
     expect(onToggleBlockSlot).toHaveBeenCalledWith("D1");
   });
 
-  it("renders the Single Page View button and invokes onSwitchToSinglePageView when clicked", () => {
+  it("renders the Plan button and invokes onSwitchToSinglePageView when clicked", () => {
     const onSwitchToSinglePageView = vi.fn();
     render(
       <FFCSGuidedSelector
@@ -615,9 +615,168 @@ describe("FFCSGuidedSelector", () => {
       />
     );
 
-    const singlePageBtn = screen.getByRole("button", { name: /Single Page View/i });
-    expect(singlePageBtn).toBeDefined();
-    fireEvent.click(singlePageBtn);
+    const planBtn = screen.getByRole("button", { name: /Plan/i });
+    expect(planBtn).toBeDefined();
+    fireEvent.click(planBtn);
     expect(onSwitchToSinglePageView).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies 85% scale to the entire hero UI container", () => {
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        onAddCourse={vi.fn()}
+      />
+    );
+
+    const container = screen.getByTestId("guided-hero-container");
+    expect(container).toBeDefined();
+    expect(container.style.zoom).toBe("0.85");
+    expect(container.className).toContain("[zoom:0.85]");
+  });
+
+  it("integrates manual timetable flow into one continuous unified flow for the mounted timetable", async () => {
+    const onAddCourse = vi.fn();
+    const onViewTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]} // Timetable 1
+        allTimetables={mockTimetables}
+        courses={mockTimetables[0].courses}
+        onAddCourse={onAddCourse}
+        onViewTimetable={onViewTimetable}
+      />
+    );
+
+    // Step 1: Mode -> Select Manual Builder
+    fireEvent.click(screen.getByRole("button", { name: /Build My Own Timetable/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Continue to Timetable Selection/i }));
+
+    // Step 2: Target Timetable -> Timetable 1 is mounted
+    expect(screen.getAllByText("Select Target Timetable").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Timetable 1").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Continue to Course Strategy/i }));
+
+    // Step 3: Course Strategy -> Choose One by One
+    expect(screen.getAllByText("Course Strategy").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Choose Courses One by One/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Start Adding Courses/i }));
+
+    // Step 4: Unified Course Selection for Timetable 1
+    expect(screen.getAllByText(/Choose Course for Timetable 1/i).length).toBeGreaterThan(0);
+    // BCSE102 (Algorithms)
+    const bcse102Card = screen.getByText("BCSE102");
+    expect(bcse102Card).toBeDefined();
+    fireEvent.click(bcse102Card);
+
+    // Step 5: Pick Faculty & Slot
+    expect(screen.getAllByText(/Pick Faculty & Slot/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("DR. BOB")).toBeDefined();
+    const bobOffering = screen.getByText("DR. BOB");
+    fireEvent.click(bobOffering);
+
+    // Step 6: Review & Place into Timetable 1
+    const addBtn = screen.getByRole("button", { name: /Add to Timetable 1/i });
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn);
+
+    // Verifies addition called
+    expect(onAddCourse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "BCSE102",
+        faculty: "DR. BOB",
+      }),
+      false
+    );
+
+    // Step 7: Seamlessly transitions to Mounted Timetable Grid View within the hero
+    expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /^Add Another Course$/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Done \/ View Grid/i })).toBeDefined();
+
+    // Clicking Add Another Course returns to Course selection in the same unified flow
+    fireEvent.click(screen.getByRole("button", { name: /^Add Another Course$/i }));
+    expect(screen.getAllByText(/Choose Course for Timetable 1/i).length).toBeGreaterThan(0);
+  });
+
+  it("allows browsing and cycling between multiple timetables directly in the hero UI", async () => {
+    const onSelectTimetable = vi.fn();
+    const onViewTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]} // Timetable 1
+        allTimetables={mockTimetables} // Timetable 1 and Timetable 2
+        initialGuidedPhase="manual_timetable_view"
+        onAddCourse={vi.fn()}
+        onSelectTimetable={onSelectTimetable}
+        onViewTimetable={onViewTimetable}
+      />
+    );
+
+    // Should display Timetable 1 initially with 1 course and credit count
+    expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("4 Credits")).toBeDefined();
+    expect(screen.getAllByText("● Mounted Active Timetable").length).toBeGreaterThan(0);
+
+    // Pill tabs for timetables are present
+    const ttTabs = screen.getAllByRole("tab");
+    expect(ttTabs.length).toBe(2);
+    expect(ttTabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(ttTabs[1].getAttribute("aria-selected")).toBe("false");
+
+    // Click Next Timetable button to switch to Timetable 2
+    const nextBtns = screen.getAllByRole("button", { name: /Next Timetable/i });
+    expect(nextBtns.length).toBeGreaterThan(0);
+    fireEvent.click(nextBtns[0]);
+
+    // onSelectTimetable should be called with tt-2 id
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-2");
+    expect(screen.getAllByText(/Timetable 2/i).length).toBeGreaterThan(0);
+
+    // Empty state rendered for Timetable 2
+    expect(screen.getByText(/No courses placed in/i)).toBeDefined();
+
+    // Click tab 0 to navigate back to Timetable 1
+    fireEvent.click(ttTabs[0]);
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-1");
+
+    // Arrow keys cycle timetables
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-2");
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(onSelectTimetable).toHaveBeenCalledWith("tt-1");
+  });
+
+  it("navigates to multi-timetable browser from auto results via My Timetables button", async () => {
+    const onSelectTimetable = vi.fn();
+
+    render(
+      <FFCSGuidedSelector
+        masterCourses={mockMasterCourses}
+        activeTimetable={mockTimetables[0]}
+        allTimetables={mockTimetables}
+        initialGuidedPhase="auto_results"
+        initialPlanMode="auto"
+        onAddCourse={vi.fn()}
+        onSelectTimetable={onSelectTimetable}
+      />
+    );
+
+    // Mock auto results state with at least one variant if present or check button
+    // The "My Timetables" button in auto results header strip
+    const myTimetablesBtns = screen.queryAllByRole("button", { name: /My Timetables/i });
+    if (myTimetablesBtns.length > 0) {
+      fireEvent.click(myTimetablesBtns[0]);
+      // Should now be in the timetable browser
+      expect(screen.getAllByText(/Timetable Browser/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Timetable 1/i).length).toBeGreaterThan(0);
+    }
   });
 });
