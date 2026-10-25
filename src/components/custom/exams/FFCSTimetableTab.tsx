@@ -4111,7 +4111,7 @@ export default function FFCSTimetableTab({
                 </div>
               )}
             </div>
-            <div className="pt-3 border-t border-border-strong flex flex-wrap justify-between items-center gap-2">
+            <div className="sticky bottom-0 z-10 -mx-4 sm:-mx-5 mt-1 px-4 sm:px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border-strong bg-white/95 dark:bg-zinc-950/95 backdrop-blur flex flex-wrap justify-between items-center gap-2">
               <span className="text-xs text-muted-foreground">{timetables.length} timetable{timetables.length !== 1 ? 's' : ''}</span>
               <div className="flex items-center gap-2">
                 <button

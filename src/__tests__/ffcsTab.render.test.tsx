@@ -281,6 +281,7 @@ describe("FFCSTimetableTab", () => {
       name: /Weekly Rhythm: 8 free half-days out of 10/,
     });
     expect(weeklyRhythm.textContent).toContain("8 / 10");
+    expect(weeklyRhythm.textContent).not.toMatch(/\b(Standard|Light)\b/);
     fireEvent.click(weeklyRhythm);
 
     expect(screen.getByRole("heading", { name: "Weekly Rhythm" })).toBeDefined();
@@ -665,6 +666,9 @@ describe("FFCSTimetableTab", () => {
     render(<FFCSTimetableTab />);
     fireEvent.click(screen.getByRole("button", { name: "New Plan" }));
     fireEvent.click(screen.getByTitle("Switch or manage saved timetables"));
+    expect(
+      screen.getByRole("button", { name: "New" }).closest(".sticky")
+    ).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
     expect(confirmSpy).toHaveBeenLastCalledWith(

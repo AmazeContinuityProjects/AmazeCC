@@ -286,7 +286,7 @@ type DashboardStat = {
   label: string;
   value: React.ReactNode;
   sub: React.ReactNode;
-  badge: React.ReactNode;
+  badge?: React.ReactNode;
   tone: string;
   className?: string;
 };
@@ -1023,7 +1023,6 @@ export default function FFCSDashboardHeader({
       label: "Weekly Rhythm",
       value: `${freeHalfDaysCount} / 10`,
       sub: `${daysWithClassesCount} class days · free half-days`,
-      badge: freeHalfDaysCount >= 4 ? "Light" : "Standard",
       tone: freeHalfDaysCount >= 4 ? "emerald" : "blue",
       className: "cursor-pointer hover:border-emerald-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
     }] : []),
