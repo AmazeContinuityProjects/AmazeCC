@@ -315,6 +315,48 @@ describe("the unlimited search stops at the ceiling", () => {
   });
 });
 
+describe("removing the unlimited safety ceiling", () => {
+  it("can continue past 30,000 results when explicitly enabled in planner settings", () => {
+    const masterCourses: ParsedCourse[] = [];
+    const courseLocks: CourseLock[] = [];
+    const optionCounts = [174, 173];
+    optionCounts.forEach((count, courseIndex) => {
+      const code = `BCSE4${courseIndex}0`;
+      courseLocks.push(lock({ code }));
+      for (let optionIndex = 0; optionIndex < count; optionIndex++) {
+        masterCourses.push(
+          row({
+            CODE: code,
+            SLOT: "UNKNOWN",
+            ROOM: `AB1-${optionIndex}`,
+          })
+        );
+      }
+    });
+    let accepted = 0;
+    const result = generateTimetablesStream(
+      params({
+        masterCourses,
+        courseLocks,
+        noLimit: true,
+        removeHardResultLimit: true,
+      }),
+      {
+        batchSize: 100,
+        onBatch: (batch) => (accepted += batch.length),
+      }
+    );
+
+    expect(result.kind).toBe("ok");
+    expect(accepted).toBeGreaterThan(HARD_RESULT_LIMIT);
+    if (result.kind === "ok") {
+      expect(result.capped).toBe(false);
+      expect(result.timetables).toHaveLength(1);
+      expect(result.timetables[0].variants).toHaveLength(174 * 173);
+    }
+  });
+});
+
 /**
  * A course offered on two slots offers two *choices*.
  *

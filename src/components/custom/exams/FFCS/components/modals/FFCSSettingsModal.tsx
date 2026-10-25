@@ -304,6 +304,18 @@ export function FFCSSettingsModal({
             />
             <SettingRow
               stacked
+              title="Remove 30,000-result safety ceiling"
+              description="When a generator run uses Unlimited, allow it to search beyond 30,000 results. This can consume substantial memory, freeze the page, or make the browser unstable. Keep this off unless you understand the risk."
+              control={
+                <Switch
+                  checked={settings.removeHardResultLimit}
+                  onCheckedChange={(checked) => update("removeHardResultLimit", checked)}
+                  label="Remove 30,000-result safety ceiling"
+                />
+              }
+            />
+            <SettingRow
+              stacked
               title="Combined ranking priority"
               description="Higher items carry more weight in the final generated timetable list."
               control={

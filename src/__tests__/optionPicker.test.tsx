@@ -87,6 +87,41 @@ describe("OptionPicker overlay", () => {
     expect(screen.queryByText("Alpha")).toBeNull();
   });
 
+  it("constrains the desktop list to the viewport and keeps its options scrollable", () => {
+    const options = Array.from({ length: 40 }, (_, index) => ({
+      value: `slot-${index}`,
+      label: `Slot ${index}`,
+    }));
+    render(<OptionPicker value="slot-0" options={options} onChange={() => {}} />);
+    const trigger = screen.getByRole("button", { name: /slot 0/i });
+    trigger.getBoundingClientRect = () =>
+      ({
+        top: 540,
+        bottom: 570,
+        left: 20,
+        right: 220,
+        width: 200,
+        height: 30,
+        x: 20,
+        y: 540,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    Object.defineProperty(window, "innerHeight", {
+      value: 600,
+      configurable: true,
+    });
+    fireEvent.click(trigger);
+
+    const listbox = screen.getByRole("listbox");
+    expect(listbox.className).toContain("overflow-y-auto");
+    expect(listbox.className).toContain("min-h-0");
+    const popup = [...document.querySelectorAll("div")].find((element) =>
+      element.className.includes("bg-popover")
+    );
+    expect(popup?.style.height).toBe("320px");
+    expect(popup?.style.top).toBe("214px");
+  });
+
   it("selecting an option reports the value and closes", () => {
     let seen = "";
     // Fresh width: the mobile flag is read on mount, and earlier tests in this

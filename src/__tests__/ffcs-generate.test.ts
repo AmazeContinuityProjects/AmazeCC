@@ -242,6 +242,40 @@ describe("the filters", () => {
     expect(layouts(r)).toEqual(["A2|TA2"]);
   });
 
+  it("lets relaxed morning theory include evening offerings but ranks morning theory first", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", SLOT: "A1+TA1" }),
+          row({ CODE: "BCSE101", SLOT: "A2+TA2", ROOM: "AB2-202" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" })],
+        preference: "morning",
+        strictTheoryPreference: false,
+      })
+    );
+    expect(layouts(r)).toEqual(["A1|TA1", "A2|TA2"]);
+    if (r.kind === "ok") {
+      expect(r.timetables[0].rankingComponents?.time).toBeGreaterThan(
+        r.timetables[1].rankingComponents?.time ?? 0
+      );
+    }
+  });
+
+  it("does not apply theory preferences to lab-only offerings", () => {
+    const r = generateTimetables(
+      params({
+        masterCourses: [
+          row({ CODE: "BCSE101", TYPE: "LO", SLOT: "L1" }),
+          row({ CODE: "BCSE101", TYPE: "LO", SLOT: "L21", ROOM: "AB2-202" }),
+        ],
+        courseLocks: [lock({ code: "BCSE101" })],
+        preference: "evening",
+      })
+    );
+    expect(layouts(r)).toEqual(["L1", "L21"]);
+  });
+
   it("keeps only offerings inside the time bounds", () => {
     // A1 is 08:00–08:50 and TA1 is 09:50–10:40, so a 11:00 cutoff keeps the
     // whole booking. TA1 is the binding constraint, not A1.

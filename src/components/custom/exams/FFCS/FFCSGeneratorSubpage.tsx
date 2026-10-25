@@ -69,12 +69,12 @@ const GENERATOR_TIME_PREFERENCE_OPTIONS = [
   {
     value: "morning" as const,
     label: "Morning Theory Preferred",
-    description: "Prioritize theory lectures in the morning and labs in the afternoon.",
+    description: "Use morning theory only by default; relax it below to allow evening offerings.",
   },
   {
     value: "evening" as const,
     label: "Evening Theory Preferred",
-    description: "Prioritize theory lectures in the afternoon/evening and labs in the morning.",
+    description: "Use evening theory only by default; relax it below to allow morning offerings.",
   },
 ] as const;
 
@@ -211,6 +211,9 @@ export function FFCSGeneratorSubpage({
   const [generatorPreference, setGeneratorPreference] = useState<"compact" | "spread" | "morning" | "evening">(
     () => sessionPrefs.preference ?? "compact"
   );
+  const [strictTheoryPreference, setStrictTheoryPreference] = useState<boolean>(
+    () => sessionPrefs.strictTheoryPreference ?? true
+  );
   const [generatorUniqueFaculties, setGeneratorUniqueFaculties] = useState<boolean>(
     () => sessionPrefs.uniqueFaculties ?? false
   );
@@ -319,6 +322,7 @@ export function FFCSGeneratorSubpage({
   useEffect(() => {
     saveSessionPreferences({
       preference: generatorPreference,
+      strictTheoryPreference,
       uniqueFaculties: generatorUniqueFaculties,
       noLimit: generatorNoLimit,
       resultCap: generatorResultCap,
@@ -339,6 +343,7 @@ export function FFCSGeneratorSubpage({
     });
   }, [
     generatorPreference,
+    strictTheoryPreference,
     generatorUniqueFaculties,
     generatorNoLimit,
     generatorResultCap,
@@ -571,6 +576,7 @@ export function FFCSGeneratorSubpage({
         blockedSlots: [...blockedSlots],
         friends,
         preference: generatorPreference,
+        strictTheoryPreference,
         syncFriendClasses: generatorSyncFriendsClasses,
         maximizeFreeTimeFriends: generatorMaximizeFreeTimeFriends,
         minStartTime: generatorMinStartTime,
@@ -578,6 +584,7 @@ export function FFCSGeneratorSubpage({
         maxEndTimeByDay: generatorMaxEndTimeByDay,
         uniqueFaculties: generatorUniqueFaculties,
         noLimit: generatorNoLimit,
+        removeHardResultLimit: settings.removeHardResultLimit,
         // The settings cap only binds while the per-run switch leaves the
         // search bounded — the switch is the more recent thing chosen.
         resultCap: generatorResultCap,
@@ -1600,42 +1607,6 @@ export function FFCSGeneratorSubpage({
               </div>
             ) : isReviewing && stagedTimetables.length > 0 ? (
               <div className="w-full max-w-none flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-300">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border-strong shadow-sm">
-                  <div>
-                    <h2 className="text-2xl font-bold text-text-heading">Review Timetables</h2>
-                    <p className="text-muted-foreground mt-1">Select the ones you like, or <b className="text-text-heading">double-click</b> any card to instantly save and view it.</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button 
-                      type="button"
-                      onClick={() => setIsReviewing(false)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl border border-border-strong bg-surface hover:bg-surface-secondary text-text-heading transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back to Options
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setStagedTimetables([]);
-                        setSelectedStagedIds(new Set());
-                        setIsReviewing(false);
-                      }}
-                      className="px-4 py-2 text-sm font-bold bg-surface-secondary hover:bg-surface-secondary/80 text-muted-foreground rounded-xl transition-colors cursor-pointer"
-                    >
-                      Discard All
-                    </button>
-                    <button 
-                      type="button"
-                      disabled={selectedStagedIds.size === 0}
-                      onClick={saveSelectedTimetables}
-                      className="px-6 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <Save className="w-4 h-4" /> Save Selected ({selectedStagedIds.size})
-                    </button>
-                  </div>
-                </div>
-
                 {/* Grid of Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                   {stagedTimetables.slice(0, stagedVisibleCount).map(tt => (
@@ -2294,6 +2265,24 @@ export function FFCSGeneratorSubpage({
                         value={generatorPreference}
                         onChange={(val) => setGeneratorPreference(val as any)}
                       />
+                      {(generatorPreference === "morning" || generatorPreference === "evening") && (
+                        <label className="mt-3 flex items-start gap-2.5 rounded-xl border border-border-strong bg-surface-secondary/20 p-3 text-sm text-text-heading">
+                          <input
+                            type="checkbox"
+                            checked={strictTheoryPreference}
+                            onChange={(event) => setStrictTheoryPreference(event.target.checked)}
+                            className="mt-0.5 accent-indigo-500"
+                          />
+                          <span>
+                            <span className="block font-medium">
+                              Strictly {generatorPreference} theory only
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              Turn this off to allow some {generatorPreference === "morning" ? "evening" : "morning"} theory classes and rank schedules with more preferred-time theory higher. Labs are not restricted.
+                            </span>
+                          </span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-3">
@@ -2321,7 +2310,11 @@ export function FFCSGeneratorSubpage({
                           <div className="w-10 h-6 bg-surface-secondary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                         </div>
                         <span className="text-sm font-medium text-text-heading">
-                          Remove Result Cap ({generatorResultCap})
+                          {generatorNoLimit
+                            ? settings.removeHardResultLimit
+                              ? "Unlimited Search"
+                              : "Unlimited Search (30,000 max)"
+                            : `Limit to ${generatorResultCap} results`}
                         </span>
                       </label>
                     </div>

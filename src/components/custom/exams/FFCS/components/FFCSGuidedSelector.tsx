@@ -715,6 +715,7 @@ export default function FFCSGuidedSelector({
   // Auto-Generator States inside Guided Hero
   const generation = useGenerationRun();
   const [autoPreference, setAutoPreference] = useState<"compact" | "spread" | "morning" | "evening">("compact");
+  const [autoStrictTheoryPreference, setAutoStrictTheoryPreference] = useState<boolean>(true);
   const [autoRankingMode, setAutoRankingMode] = useState<RankingMode | null>(() =>
     settings?.rankingMode === "none" ? null : settings?.rankingMode ?? "Balanced"
   );
@@ -1268,12 +1269,14 @@ export default function FFCSGuidedSelector({
         blockedSlots: Array.from(effectiveBlockedSlots),
         friends: friends || [],
         preference: autoPreference,
+        strictTheoryPreference: autoStrictTheoryPreference,
         syncFriendClasses: autoSyncFriends,
         maximizeFreeTimeFriends: autoMaximizeFreeTime ? (friends || []).map((f) => f.id) : [],
         minStartTime: autoMinStartTime,
         maxEndTime: autoMaxEndTime,
         uniqueFaculties: autoUniqueFaculties,
         noLimit: autoNoLimit,
+        removeHardResultLimit: settings?.removeHardResultLimit ?? false,
         resultCap: autoNoLimit ? undefined : autoResultCap,
         minHalfDays: autoMinHalfDays,
         sortBy: autoSortBy,
@@ -3365,7 +3368,11 @@ export default function FFCSGuidedSelector({
                 </span>
               </div>
               <span className="text-xs font-black text-indigo-400 font-mono">
-                {autoNoLimit ? "Unlimited (30k max)" : `${autoResultCap} Timetables`}
+                {autoNoLimit
+                  ? settings?.removeHardResultLimit
+                    ? "Unlimited"
+                    : "Unlimited (30k max)"
+                  : `${autoResultCap} Timetables`}
               </span>
             </div>
 
@@ -3405,6 +3412,11 @@ export default function FFCSGuidedSelector({
                 Unlimited ✨
               </button>
             </div>
+            {autoNoLimit && !settings?.removeHardResultLimit && (
+              <p className="mt-2 text-[10px] text-amber-300">
+                Unlimited runs still stop at 30,000 results. The Planner Settings opt-in can remove that safety ceiling, but may make the browser unstable.
+              </p>
+            )}
           </div>
 
           {/* Section 3: Pacing Style */}
@@ -3415,8 +3427,8 @@ export default function FFCSGuidedSelector({
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: "compact", label: "Compact & Packed", desc: "Minimizes idle gaps between classes" },
-                { id: "morning", label: "Morning Theory", desc: "Theory in morning, lab in afternoon" },
-                { id: "evening", label: "Evening Theory", desc: "Theory in evening, lab in morning" },
+                { id: "morning", label: "Morning Theory", desc: "Prefer morning theory; strictness is adjustable" },
+                { id: "evening", label: "Evening Theory", desc: "Prefer evening theory; strictness is adjustable" },
                 { id: "spread", label: "Spread & Relaxed", desc: "Paced evenly throughout the week" },
               ].map((opt) => (
                 <button
@@ -3437,6 +3449,24 @@ export default function FFCSGuidedSelector({
                 </button>
               ))}
             </div>
+            {(autoPreference === "morning" || autoPreference === "evening") && (
+              <label className="flex items-start gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-xs text-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={autoStrictTheoryPreference}
+                  onChange={(event) => setAutoStrictTheoryPreference(event.target.checked)}
+                  className="mt-0.5 accent-indigo-500"
+                />
+                <span>
+                  <span className="block font-bold">
+                    Strictly {autoPreference} theory only
+                  </span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-zinc-400">
+                    Turn off to allow some {autoPreference === "morning" ? "evening" : "morning"} theory classes, while ranking schedules with more preferred-time theory higher. Labs are not restricted.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
         </div>
       </div>

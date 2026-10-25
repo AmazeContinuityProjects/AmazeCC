@@ -76,6 +76,8 @@ export interface FFCSSettings {
   minHalfDays: number;
   /** Search cap used when the run is not unlimited. */
   resultCap: number;
+  /** Allow unlimited searches to exceed the default 30,000-result safety ceiling. */
+  removeHardResultLimit: boolean;
   /** Whether to offer the guided tour to a first-time visitor. */
   showTour: boolean;
   /** Show a vertical timetable beside the dashboard on extra-wide screens. */
@@ -92,6 +94,7 @@ export const FFCSSettingsDefaults: Readonly<FFCSSettings> = Object.freeze({
   facultyScoreFilters: { ...DEFAULT_FACULTY_SCORE_FILTERS },
   minHalfDays: 0,
   resultCap: DEFAULT_RESULT_LIMIT,
+  removeHardResultLimit: false,
   showTour: true,
   showVerticalTimetableBesideWidgets: false,
 });
@@ -177,6 +180,10 @@ export function sanitizeFFCSSettings(raw: unknown): FFCSSettings {
     })(),
     minHalfDays: asInt(r.minHalfDays, 0, MAX_HALF_DAYS, FFCSSettingsDefaults.minHalfDays),
     resultCap: asInt(r.resultCap, MIN_RESULT_CAP, MAX_RESULT_CAP, FFCSSettingsDefaults.resultCap),
+    removeHardResultLimit:
+      typeof r.removeHardResultLimit === "boolean"
+        ? r.removeHardResultLimit
+        : FFCSSettingsDefaults.removeHardResultLimit,
     showTour: typeof r.showTour === "boolean" ? r.showTour : FFCSSettingsDefaults.showTour,
     showVerticalTimetableBesideWidgets:
       typeof r.showVerticalTimetableBesideWidgets === "boolean"

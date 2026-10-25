@@ -7,6 +7,7 @@ import type { SortBy } from "@/lib/timetableMetrics";
 
 export interface GeneratorSessionPreferences {
   preference?: "compact" | "spread" | "morning" | "evening";
+  strictTheoryPreference?: boolean;
   uniqueFaculties?: boolean;
   noLimit?: boolean;
   resultCap?: number;

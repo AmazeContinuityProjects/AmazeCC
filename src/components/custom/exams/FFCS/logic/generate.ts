@@ -101,13 +101,13 @@ export interface GenerateParams {
   /**
    * Which half of the day the student wants.
    *
-   * The caller's type also admits `"compact"` and `"spread"`, and the filter
-   * this replaces only ever tested for `"morning"` and `"evening"` — so those
-   * two behaved as `"none"` and still do. They are accepted here rather than
-   * rejected so the two entry points agree; deciding what they should do is a
-   * question about the planner's UI, not about this filter.
+   * `"morning"` and `"evening"` can filter strictly or score preferred-side
+   * theory coverage softly, based on `strictTheoryPreference`. `"compact"` and
+   * `"spread"` are ranking preferences rather than option filters.
    */
   preference: "none" | "morning" | "evening" | "compact" | "spread";
+  /** Keep the morning/evening theory filter strict; false ranks both sides softly. */
+  strictTheoryPreference?: boolean;
   /**
    * Narrow each course to the exact offering a friend already has.
    *
@@ -140,10 +140,13 @@ export interface GenerateParams {
    * the same fifty the planner has always stopped at. It exists so the result
    * cap in settings is a real ceiling on the search rather than a display
    * number trimmed after the fact; `noLimit` still outranks it, because the
-   * per-run switch is the more recent thing the student chose — and the switch
-   * is itself bounded by {@link HARD_RESULT_LIMIT}, so no run is unbounded.
+   * per-run switch is the more recent thing the student chose. Unlimited runs
+   * retain {@link HARD_RESULT_LIMIT} unless Planner Settings explicitly opts
+   * out via `removeHardResultLimit`.
    */
   resultCap?: number;
+  /** Explicit Planner Settings opt-in to remove the unlimited run safety ceiling. */
+  removeHardResultLimit?: boolean;
   minHalfDays: number;
   sortBy: SortBy;
   /**
@@ -419,19 +422,15 @@ function optionsFor(
   options = options.filter(isCompleteEmbeddedCourse);
 
   // 5. Morning-only or evening-only.
-  if (params.preference === "morning") {
+  if (params.preference === "morning" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      // A course with a theory slot is judged on it; a lab-only course has to be
-      // judged on whether any of its slots reach the evening.
-      if (theory.length) return isMorningSlot(schema, theory[0]);
-      return splitSlots(opt.SLOT).filter((s) => s !== "NIL").some((s) => isEveningSlot(schema, s));
+      return !theory.length || isMorningSlot(schema, theory[0]);
     });
-  } else if (params.preference === "evening") {
+  } else if (params.preference === "evening" && params.strictTheoryPreference !== false) {
     options = options.filter((opt) => {
       const theory = splitSlots(opt.SLOT).filter((s) => !s.startsWith("L") && s !== "NIL");
-      if (theory.length) return isEveningSlot(schema, theory[0]);
-      return splitSlots(opt.SLOT).filter((s) => s !== "NIL").some((s) => isMorningSlot(schema, s));
+      return !theory.length || isEveningSlot(schema, theory[0]);
     });
   }
 
@@ -1055,6 +1054,25 @@ function groupVariants(timetables: TimetableState[]): TimetableState[] {
 
 /* ── entry point ────────────────────────────────────────────────────────── */
 
+function preferredTheoryScore(
+  courses: AddedCourse[],
+  schema: CampusSchema,
+  preference: "morning" | "evening"
+): number | null {
+  const theoryPeriods = courses.flatMap((course) =>
+    course.slots.flatMap((slot) =>
+      periodsForSlot(schema, slot).filter((period) => period.type === "theory")
+    )
+  );
+  if (!theoryPeriods.length) return null;
+  const preferredCount = theoryPeriods.filter((period) =>
+    preference === "morning"
+      ? period.startMin < MORNING_BEFORE_MIN
+      : period.startMin >= MORNING_BEFORE_MIN
+  ).length;
+  return (preferredCount / theoryPeriods.length) * 100;
+}
+
 /**
  * Score one combination. Split out because both the streaming path and the
  * progress reporting need to describe it, and because the half-days test is
@@ -1085,10 +1103,13 @@ function scoreCombination(
 
   const hasProfile = Boolean(params.rankingMode);
   const hasFacultyData = (facultySummary?.ratedFacultyCount ?? 0) > 0;
+  const hasSoftTheoryPreference =
+    params.strictTheoryPreference === false &&
+    (params.preference === "morning" || params.preference === "evening");
   const hasTimePreference =
     params.preference !== "none" ||
     Boolean(params.minStartTime || params.maxEndTime || Object.keys(params.maxEndTimeByDay ?? {}).length);
-  if (hasProfile || hasFacultyData) {
+  if (hasProfile || hasFacultyData || hasSoftTheoryPreference) {
     const ranked: RankingScore | null = params.rankingMode
       ? rankCourses(
           courses,
@@ -1106,9 +1127,13 @@ function scoreCombination(
       const lateFinish = bounded((timeInputs.averageDayEndMinutes - 12 * 60) / (7 * 60));
       switch (params.preference) {
         case "morning":
-          return earlyStart * 100;
+          return hasSoftTheoryPreference
+            ? preferredTheoryScore(courses, params.schema, "morning")
+            : earlyStart * 100;
         case "evening":
-          return lateFinish * 100;
+          return hasSoftTheoryPreference
+            ? preferredTheoryScore(courses, params.schema, "evening")
+            : lateFinish * 100;
         case "compact":
           return timeInputs.activeDays
             ? (timeInputs.compactDays / timeInputs.activeDays) * 100
@@ -1240,7 +1265,9 @@ export function generateTimetablesStream(
   }
 
   const limit = params.noLimit
-    ? HARD_RESULT_LIMIT
+    ? params.removeHardResultLimit
+      ? Number.POSITIVE_INFINITY
+      : HARD_RESULT_LIMIT
     : params.resultCap ?? DEFAULT_RESULT_LIMIT;
   const batchSize = hooks.batchSize && hooks.batchSize > 0 ? hooks.batchSize : DEFAULT_BATCH_SIZE;
 
@@ -1337,7 +1364,9 @@ export function generateTimetablesStream(
 
   if (
     params.rankingMode ||
-    timetables.some((timetable) => (timetable.facultySummary?.ratedFacultyCount ?? 0) > 0)
+    timetables.some((timetable) => (timetable.facultySummary?.ratedFacultyCount ?? 0) > 0) ||
+    (params.strictTheoryPreference === false &&
+      (params.preference === "morning" || params.preference === "evening"))
   ) {
     timetables = [...timetables].sort(
       (a, b) => (b.rankingScore ?? -1) - (a.rankingScore ?? -1)
@@ -1351,7 +1380,7 @@ export function generateTimetablesStream(
   return {
     kind: "ok",
     timetables: groupVariants(timetables),
-    capped: walk.found >= limit,
+    capped: Number.isFinite(limit) && walk.found >= limit,
   };
 }
 

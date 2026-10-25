@@ -132,6 +132,17 @@ describe("FFCSSettingsModal", () => {
     expect(p.update).toHaveBeenCalledWith("separateCourseListExport", true);
   });
 
+  it("updates the unlimited-search safety ceiling preference", () => {
+    const p = props();
+    render(<FFCSSettingsModal {...p} />);
+
+    act(() =>
+      screen.getByRole("switch", { name: "Remove 30,000-result safety ceiling" }).click()
+    );
+
+    expect(p.update).toHaveBeenCalledWith("removeHardResultLimit", true);
+  });
+
   it("reorders the combined ranking priority through planner settings", () => {
     const p = props();
     render(<FFCSSettingsModal {...p} />);

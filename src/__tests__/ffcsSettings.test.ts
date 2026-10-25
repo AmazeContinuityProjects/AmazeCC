@@ -95,6 +95,12 @@ describe("sanitizeFFCSSettings", () => {
     expect(sanitizeFFCSSettings({ resultCap: 99999 }).resultCap).toBe(1000);
     expect(sanitizeFFCSSettings({ resultCap: 250 }).resultCap).toBe(250);
   });
+
+  it("keeps removal of the unlimited search safety ceiling off unless opted in", () => {
+    expect(FFCSSettingsDefaults.removeHardResultLimit).toBe(false);
+    expect(sanitizeFFCSSettings({ removeHardResultLimit: true }).removeHardResultLimit).toBe(true);
+    expect(sanitizeFFCSSettings({ removeHardResultLimit: "yes" }).removeHardResultLimit).toBe(false);
+  });
 });
 
 describe("useFFCSSettings", () => {
